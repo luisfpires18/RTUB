@@ -41,7 +41,7 @@ public class CloudflareGalleryMediaStorageService : BaseCloudflareStorageService
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var extension = Path.GetExtension(fileName);
             var sanitizedTitle = !string.IsNullOrEmpty(title) ? SanitizeForFilename(title) : "media";
-            
+
             var dateStr = "";
             if (year.HasValue)
             {
@@ -55,11 +55,11 @@ public class CloudflareGalleryMediaStorageService : BaseCloudflareStorageService
                     }
                 }
             }
-            
-            var finalFileName = string.IsNullOrEmpty(dateStr) 
+
+            var finalFileName = string.IsNullOrEmpty(dateStr)
                 ? $"{timestamp}-{sanitizedTitle}{extension}"
                 : $"{timestamp}-{sanitizedTitle}-{dateStr}{extension}";
-            
+
             var mediaTypeFolder = mediaType.ToString().ToLower();
             var key = $"images/{_environment}/gallery/{mediaTypeFolder}/{finalFileName}";
 
@@ -143,18 +143,18 @@ public class CloudflareGalleryMediaStorageService : BaseCloudflareStorageService
     {
         if (string.IsNullOrEmpty(input))
             return "media";
-        
+
         // Remove or replace invalid filename characters
         var invalidChars = Path.GetInvalidFileNameChars();
         var sanitized = string.Join("_", input.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
-        
+
         // Replace spaces with hyphens
         sanitized = sanitized.Replace(" ", "-");
-        
+
         // Limit length
         if (sanitized.Length > 50)
             sanitized = sanitized.Substring(0, 50);
-        
+
         return string.IsNullOrEmpty(sanitized) ? "media" : sanitized;
     }
 }

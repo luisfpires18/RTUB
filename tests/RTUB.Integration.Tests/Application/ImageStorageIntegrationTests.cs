@@ -36,7 +36,7 @@ public class ImageStorageIntegrationTests : IDisposable
         _mockImageStorageService = new Mock<IImageStorageService>();
 
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
-        
+
         // Mock dependencies for EventService
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
@@ -46,19 +46,19 @@ public class ImageStorageIntegrationTests : IDisposable
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _eventService = new EventService(
-            new EventRepository(_context), 
-            _mockImageStorageService.Object, 
-            new EnrollmentRepository(_context), 
-            mockEventVideoRepository.Object, 
+            new EventRepository(_context),
+            _mockImageStorageService.Object,
+            new EnrollmentRepository(_context),
+            mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
             _context);
-        
+
         _slideshowService = new SlideshowService(new SlideshowRepository(_context), _mockImageStorageService.Object);
     }
 

@@ -34,9 +34,9 @@ public static partial class SeedData
             .ToListAsync();
         if (allMembers.Count == 0)
             return;
-        
+
         var activeMembers = allMembers.Where(m => !m.IsRetired).ToList();
-        
+
         // Define threshold: 6 months ago (matches retirement logic)
         var today = DateTime.Today;
         var sixMonthsAgo = today.AddMonths(-6);
@@ -71,10 +71,10 @@ public static partial class SeedData
         {
             // Use all members for old events, active members only for recent ones
             var membersPool = evt.Date < sixMonthsAgo ? allMembers : activeMembers;
-            
+
             // Create a general fallback queue for the current event
             var generalFallback = new Queue<ApplicationUser>(membersPool.OrderBy(m => m.Id));
-            
+
             ApplicationUser CycleQueue(Queue<ApplicationUser> queue)
             {
                 if (queue.Count == 0)
@@ -82,7 +82,7 @@ public static partial class SeedData
                     // If queue is empty, cycle from generalFallback
                     if (generalFallback.Count == 0)
                         generalFallback = new Queue<ApplicationUser>(membersPool.OrderBy(m => m.Id));
-                    
+
                     var user = generalFallback.Dequeue();
                     generalFallback.Enqueue(user);
                     return user;
@@ -92,7 +92,7 @@ public static partial class SeedData
                 queue.Enqueue(u);
                 return u;
             }
-            
+
             int seed = (int)((((long)evt.Id * 73856093L) ^ evt.Date.DayOfYear ^ (int)evt.Type) & 0x7FFFFFFF);
             if (seed == 0)
             {

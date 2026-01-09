@@ -140,7 +140,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             var entityTypeName = entry.Entity.GetType().Name;
             if (AuditConfiguration.ExcludedEntityTypes.Contains(entityTypeName))
                 continue;
-                
+
             switch (entry.State)
             {
                 case EntityState.Added:
@@ -373,7 +373,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     }
                 }
             }
-            
+
             // Skip audit log creation if there are no meaningful changes for Modified actions
             if (!changes.Any())
             {
@@ -1209,7 +1209,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OrderBy(e => e.State == EntityState.Added ? 1 : 0)
                 .ThenByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
                 .ToList();
-            
+
             var keptEntry = entries.First();
             var keptUser = keptEntry.Entity;
             var userId = keptUser.Id;
@@ -1234,7 +1234,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     }
                 }
             }
-            
+
             // Detach all but the first entry (the one we want to keep)
             foreach (var entry in entries.Skip(1))
             {

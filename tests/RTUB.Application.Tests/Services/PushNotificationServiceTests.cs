@@ -665,7 +665,7 @@ public class PushNotificationServiceTests
 
         // Assert - verify conversation was reloaded with tracking before update
         _mockConversationRepository.Verify(r => r.GetByIdAsync(123), Times.Once);
-        
+
         // Verify the tracked conversation was updated with the message details
         _mockConversationRepository.Verify(r => r.UpdateAsync(It.Is<Conversation>(
             c => c.Id == 123 &&

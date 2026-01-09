@@ -34,11 +34,11 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             // Get primary instrument (simulating what Events.razor does)
             var primaryInstrument = await memberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
-            
+
             // Create enrollment with primary instrument
             await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, instrumentToUse, null, true);
         }
@@ -47,12 +47,12 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var enrollment = await context.Enrollments
                 .FirstOrDefaultAsync(e => e.EventId == eventEntity.Id && e.UserId == user.Id);
 
             enrollment.Should().NotBeNull();
-            enrollment!.Instrument.Should().Be(InstrumentType.Guitarra, 
+            enrollment!.Instrument.Should().Be(InstrumentType.Guitarra,
                 "Primary instrument should be automatically selected when admin adds member");
             enrollment.WillAttend.Should().BeTrue();
         }
@@ -70,10 +70,10 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var primaryInstrument = await memberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
-            
+
             await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, instrumentToUse, null, true);
         }
 
@@ -81,7 +81,7 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var enrollment = await context.Enrollments
                 .FirstOrDefaultAsync(e => e.EventId == eventEntity.Id && e.UserId == user.Id);
 
@@ -104,10 +104,10 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var primaryInstrument = await memberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
-            
+
             await attendanceService.CreateAttendanceWithApprovalAsync(rehearsal.Id, user.Id, instrumentToUse, null, null);
         }
 
@@ -115,7 +115,7 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var attendance = await context.RehearsalAttendances
                 .FirstOrDefaultAsync(a => a.RehearsalId == rehearsal.Id && a.UserId == user.Id);
 
@@ -140,10 +140,10 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var primaryInstrument = await memberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
-            
+
             await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, true, instrumentToUse, null);
         }
 
@@ -151,7 +151,7 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var attendance = await context.RehearsalAttendances
                 .FirstOrDefaultAsync(a => a.RehearsalId == rehearsal.Id && a.UserId == user.Id);
 
@@ -175,10 +175,10 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var primaryInstrument = await memberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
-            
+
             await attendanceService.CreateAttendanceWithApprovalAsync(rehearsal.Id, user.Id, instrumentToUse, null, null);
         }
 
@@ -186,7 +186,7 @@ public class AdminAddMemberWithPrimaryInstrumentTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var attendance = await context.RehearsalAttendances
                 .FirstOrDefaultAsync(a => a.RehearsalId == rehearsal.Id && a.UserId == user.Id);
 

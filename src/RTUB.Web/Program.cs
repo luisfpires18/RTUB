@@ -49,7 +49,7 @@ public class Program
         // Configure Ranking system
         services.Configure<RTUB.Application.Configuration.RankingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
-        
+
         // Configure XP Settings (same section as RankingConfiguration, but focused on XP values)
         services.Configure<RTUB.Application.Configuration.XpSettings>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.XpSettings.SectionName));
@@ -334,7 +334,7 @@ public class Program
 
         // Background worker for sending birthday emails automatically
         services.AddHostedService<BirthdayEmailSchedulerService>();
-        
+
         // Background worker for updating member status cache
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
 
@@ -346,13 +346,13 @@ public class Program
 
         // Media Session API interop for lock screen / system media overlay
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
-        
+
         // Audio Player interop for reliable audio playback
         services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
-        
+
         // PWA Helper interop for PWA mode detection
         services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
-        
+
         // Media Queue Service for PWA playback queue management
         services.AddScoped<RTUB.Web.Services.MediaQueueService>();
 
@@ -438,10 +438,10 @@ public class Program
 
                     // Only migrate if there are pending migrations (performance optimization)
                     var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
-                    bool hadMemberStatusMigration = pendingMigrations.Any(m => 
-                        m.Contains("AddMemberStatusTable") || 
+                    bool hadMemberStatusMigration = pendingMigrations.Any(m =>
+                        m.Contains("AddMemberStatusTable") ||
                         m.Contains("AddTotalActivitiesCountToMemberStatus"));
-                    
+
                     if (pendingMigrations.Any())
                     {
                         await db.Database.MigrateAsync();
@@ -453,7 +453,7 @@ public class Program
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
-                    
+
                     // Initialize MemberStatus table if the migration just ran
                     // This ensures "Gestao de membros ativos" has data immediately after deployment
                     // instead of waiting for the scheduled daily update

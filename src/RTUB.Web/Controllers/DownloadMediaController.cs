@@ -51,10 +51,10 @@ public class DownloadMediaController : ControllerBase
             // Set Content-Disposition header to force download with proper RFC 5987 encoding
             // Set both FileName (ASCII-safe fallback for older browsers) and FileNameStar (RFC 5987 for full Unicode support)
             var contentDisposition = new ContentDispositionHeaderValue("attachment");
-            
+
             // Check if filename contains non-ASCII characters
             var hasNonAsciiChars = !filename.All(char.IsAscii);
-            
+
             // Try to set the filename
             try
             {
@@ -64,7 +64,7 @@ public class DownloadMediaController : ControllerBase
                     // Replace non-ASCII characters with underscores for FileName fallback
                     var asciiSafeFilename = new string(filename.Select(c => char.IsAscii(c) ? c : '_').ToArray());
                     contentDisposition.FileName = asciiSafeFilename;
-                    
+
                     // Set FileNameStar for full Unicode support (RFC 5987)
                     contentDisposition.FileNameStar = filename;
                 }
@@ -80,7 +80,7 @@ public class DownloadMediaController : ControllerBase
                 _logger.LogWarning(ex, "Failed to set FileName for {Filename}, using FileNameStar fallback", filename);
                 contentDisposition.FileNameStar = filename;
             }
-            
+
             Response.Headers["Content-Disposition"] = contentDisposition.ToString();
 
             // Stream file content to client

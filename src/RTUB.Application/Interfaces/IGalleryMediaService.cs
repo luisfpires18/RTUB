@@ -51,9 +51,9 @@ public interface IGalleryMediaService
     /// Get paginated gallery media
     /// </summary>
     Task<(IEnumerable<GalleryMedia> Items, int TotalCount)> GetPaginatedAsync(
-        int page, 
-        int pageSize, 
-        int? year = null, 
+        int page,
+        int pageSize,
+        int? year = null,
         string? personId = null,
         bool? isAuthenticated = null);
 }

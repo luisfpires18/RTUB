@@ -42,7 +42,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _enrollmentRepository = new EnrollmentRepository(_context);
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        
+
         // Mock dependencies for EventService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
@@ -50,12 +50,12 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _eventService = new EventService(
-            _eventRepository, 
-            _mockImageStorageService.Object, 
-            _enrollmentRepository, 
-            mockEventVideoRepository.Object, 
+            _eventRepository,
+            _mockImageStorageService.Object,
+            _enrollmentRepository,
+            mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

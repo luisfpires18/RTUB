@@ -581,55 +581,55 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "user1", 
-            UserName = "user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
             Email = "user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "user2", 
-            UserName = "user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "user2",
+            UserName = "user2",
             Email = "user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "user3", 
-            UserName = "user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "user3",
+            UserName = "user3",
             Email = "user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var newNonAttendingUser = new ApplicationUser 
-        { 
-            Id = "user4", 
-            UserName = "user4", 
+        var newNonAttendingUser = new ApplicationUser
+        {
+            Id = "user4",
+            UserName = "user4",
             Email = "user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, newNonAttendingUser);
 
         // Create existing attendances
         var attendance1 = RehearsalAttendance.Create(rehearsal.Id, "user1", InstrumentType.Guitarra);
         attendance1.WillAttend = true;
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal.Id, "user2", InstrumentType.Baixo);
         attendance2.WillAttend = true;
-        
+
         var attendance3 = RehearsalAttendance.Create(rehearsal.Id, "user3", InstrumentType.Bandolim);
         attendance3.WillAttend = false; // This user is NOT attending
-        
+
         _context.RehearsalAttendances.AddRange(attendance1, attendance2, attendance3);
         await _context.SaveChangesAsync();
 
@@ -637,7 +637,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var capturedRecipients = new List<string>();
         _mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })
@@ -671,55 +671,55 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "user1", 
-            UserName = "user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
             Email = "user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "user2", 
-            UserName = "user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "user2",
+            UserName = "user2",
             Email = "user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "user3", 
-            UserName = "user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "user3",
+            UserName = "user3",
             Email = "user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var newAttendingUser = new ApplicationUser 
-        { 
-            Id = "user4", 
-            UserName = "user4", 
+        var newAttendingUser = new ApplicationUser
+        {
+            Id = "user4",
+            UserName = "user4",
             Email = "user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, newAttendingUser);
 
         // Create existing attendances
         var attendance1 = RehearsalAttendance.Create(rehearsal.Id, "user1", InstrumentType.Guitarra);
         attendance1.WillAttend = true;
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal.Id, "user2", InstrumentType.Baixo);
         attendance2.WillAttend = true;
-        
+
         var attendance3 = RehearsalAttendance.Create(rehearsal.Id, "user3", InstrumentType.Bandolim);
         attendance3.WillAttend = false; // This user is NOT attending
-        
+
         _context.RehearsalAttendances.AddRange(attendance1, attendance2, attendance3);
         await _context.SaveChangesAsync();
 
@@ -727,7 +727,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var capturedRecipients = new List<string>();
         _mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })
@@ -761,58 +761,58 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "user1", 
-            UserName = "user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
             Email = "user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "user2", 
-            UserName = "user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "user2",
+            UserName = "user2",
             Email = "user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "user3", 
-            UserName = "user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "user3",
+            UserName = "user3",
             Email = "user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var changingUser = new ApplicationUser 
-        { 
-            Id = "user4", 
-            UserName = "user4", 
+        var changingUser = new ApplicationUser
+        {
+            Id = "user4",
+            UserName = "user4",
             Email = "user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, changingUser);
 
         // Create existing attendances
         var attendance1 = RehearsalAttendance.Create(rehearsal.Id, "user1", InstrumentType.Guitarra);
         attendance1.WillAttend = true;
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal.Id, "user2", InstrumentType.Baixo);
         attendance2.WillAttend = true;
-        
+
         var attendance3 = RehearsalAttendance.Create(rehearsal.Id, "user3", InstrumentType.Bandolim);
         attendance3.WillAttend = false; // This user is NOT attending
-        
+
         var attendance4 = RehearsalAttendance.Create(rehearsal.Id, "user4", InstrumentType.Cavaquinho);
         attendance4.WillAttend = true; // This user is currently attending but will change
-        
+
         _context.RehearsalAttendances.AddRange(attendance1, attendance2, attendance3, attendance4);
         await _context.SaveChangesAsync();
 
@@ -820,7 +820,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var capturedRecipients = new List<string>();
         _mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })

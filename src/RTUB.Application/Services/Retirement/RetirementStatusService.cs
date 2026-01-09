@@ -64,8 +64,8 @@ public class RetirementStatusService : IRetirementStatusService
         // Filter to only attended rehearsals from PAST, non-cancelled rehearsals
         // Use actual rehearsal date, not check-in timestamp
         var attendedRehearsals = rehearsalAttendances
-            .Where(ra => ra.Attended 
-                && ra.Rehearsal != null 
+            .Where(ra => ra.Attended
+                && ra.Rehearsal != null
                 && !ra.Rehearsal.IsCanceled
                 && ra.Rehearsal.Date < now)
             .Select(ra => ra.Rehearsal!.Date)
@@ -76,8 +76,8 @@ public class RetirementStatusService : IRetirementStatusService
         // but use Event.Date (start date) for month grouping to ensure
         // multi-day events are counted in the month they START, not END
         var confirmedEnrollments = enrollments
-            .Where(e => e.WillAttend 
-                && e.Event != null 
+            .Where(e => e.WillAttend
+                && e.Event != null
                 && !e.Event.IsCancelled
                 && (e.Event.EndDate ?? e.Event.Date) < now)  // Filter: event must have ended
             .Select(e => e.Event!.Date)  // Group by start date for consecutive month counting

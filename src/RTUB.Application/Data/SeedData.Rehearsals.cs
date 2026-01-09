@@ -67,7 +67,7 @@ public static partial class SeedData
             .ToListAsync();
         if (allMembers.Count == 0)
             return;
-        
+
         // Get only active members (not retired) for recent rehearsals
         var activeMembers = allMembers.Where(m => !m.IsRetired).ToList();
 
@@ -80,7 +80,7 @@ public static partial class SeedData
             return;
 
         var attendances = new List<RehearsalAttendance>();
-        
+
         // Define threshold: 6 months ago (matches retirement logic)
         var sixMonthsAgo = today.AddMonths(-6);
 
@@ -88,7 +88,7 @@ public static partial class SeedData
         {
             // Use all members for old rehearsals, active members only for recent ones
             var membersPool = rehearsal.Date < sixMonthsAgo ? allMembers : activeMembers;
-            
+
             var seed = (int)((((long)rehearsal.Id * 92821L) ^ rehearsal.Date.DayOfYear) & 0x7FFFFFFF);
             if (seed == 0)
             {

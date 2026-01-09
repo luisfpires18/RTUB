@@ -88,7 +88,7 @@ public class AdminNotificationSkipTests : IDisposable
         // Arrange
         var eventEntity = Core.Entities.Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Festival, "Description");
         _context.Events.Add(eventEntity);
-        
+
         // Add an existing enrolled user so there's someone to notify
         var existingUser = new ApplicationUser
         {
@@ -101,7 +101,7 @@ public class AdminNotificationSkipTests : IDisposable
         };
         _context.Users.Add(existingUser);
         await _context.SaveChangesAsync();
-        
+
         var existingEnrollment = Enrollment.Create(existingUser.Id, eventEntity.Id);
         existingEnrollment.WillAttend = true;
         _context.Enrollments.Add(existingEnrollment);
@@ -171,7 +171,7 @@ public class AdminNotificationSkipTests : IDisposable
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         _context.Rehearsals.Add(rehearsal);
-        
+
         // Add an existing attendee so there's someone to notify
         var existingUser = new ApplicationUser
         {
@@ -184,7 +184,7 @@ public class AdminNotificationSkipTests : IDisposable
         };
         _context.Users.Add(existingUser);
         await _context.SaveChangesAsync();
-        
+
         var existingAttendance = RehearsalAttendance.Create(rehearsal.Id, existingUser.Id, InstrumentType.Bandolim);
         existingAttendance.WillAttend = true;
         _context.RehearsalAttendances.Add(existingAttendance);

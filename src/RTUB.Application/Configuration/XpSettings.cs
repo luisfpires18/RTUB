@@ -8,18 +8,18 @@ namespace RTUB.Application.Configuration;
 public class XpSettings
 {
     public const string SectionName = "Ranking";
-    
+
     /// <summary>
     /// XP awarded per rehearsal attended
     /// </summary>
     public int XpPerRehearsal { get; set; } = 10;
-    
+
     /// <summary>
     /// XP awarded per event type (Festival, Atuacao, Convivio, etc.)
     /// Key is the EventType enum name as string
     /// </summary>
     public Dictionary<string, int> XpPerEventType { get; set; } = new();
-    
+
     /// <summary>
     /// Get XP for a specific event type by name, or 0 if not configured
     /// </summary>

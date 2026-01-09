@@ -20,7 +20,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly MemberStatisticsService _service;
-    
+
     // Test XP configuration constants
     private const int TestXpPerRehearsal = 12;
     private const int TestXpForFestival = 80;
@@ -36,7 +36,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        
+
         // Create mock XpSettings for tests using constants
         var xpSettings = Options.Create(new XpSettings
         {
@@ -48,7 +48,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
                 { "Convivio", TestXpForConvivio }
             }
         });
-        
+
         _service = new MemberStatisticsService(_context, xpSettings);
     }
 
@@ -399,12 +399,12 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var xpSettings = Options.Create(new XpSettings());
-        
+
         // Act & Assert
         var act = () => new MemberStatisticsService(null!, xpSettings);
         act.Should().Throw<ArgumentNullException>().WithParameterName("context");
     }
-    
+
     [Fact]
     public async Task Constructor_WithNullXpSettings_ThrowsArgumentNullException()
     {
@@ -436,10 +436,10 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = "user-with-activities";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
@@ -489,7 +489,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
         result.RehearsalXpTotal.Should().Be(2 * TestXpPerRehearsal);
 
         result.EventsByType.Should().HaveCount(2);
-        
+
         var festivalXp = result.EventsByType.FirstOrDefault(e => e.TypeName == "Festival");
         festivalXp.Should().NotBeNull();
         festivalXp!.Count.Should().Be(1);
@@ -525,10 +525,10 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = "user-with-activities-2";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser2", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser2",
             Email = "test2@example.com",
             FirstName = "Test",
             LastName = "User",
@@ -592,10 +592,10 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = "user-with-future-activities";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser3", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser3",
             Email = "test3@example.com",
             FirstName = "Test",
             LastName = "User",

@@ -77,7 +77,7 @@ public class MemberStatisticsService : IMemberStatisticsService
     {
         var beforeDateOnly = beforeDate.Date;
         var xpConfig = _xpSettings.Value;
-        
+
         // Get rehearsal count
         var rehearsalCount = await (
             from attendance in _context.RehearsalAttendances
@@ -85,7 +85,7 @@ public class MemberStatisticsService : IMemberStatisticsService
             where attendance.UserId == userId && attendance.Attended && rehearsal.Date < beforeDateOnly
             select attendance
         ).CountAsync();
-        
+
         // Get events by type
         var eventsByType = await (
             from enrollment in _context.Enrollments
@@ -95,14 +95,14 @@ public class MemberStatisticsService : IMemberStatisticsService
             group evt by evt.Type into g
             select new { EventType = g.Key, Count = g.Count() }
         ).ToListAsync();
-        
+
         // Calculate XP breakdown by event type
         var eventTypeXpList = new List<EventTypeXpDto>();
         foreach (var eventGroup in eventsByType)
         {
             var eventTypeName = eventGroup.EventType.ToString();
             var xpPerUnit = xpConfig.GetXpForEventType(eventTypeName);
-            
+
             eventTypeXpList.Add(new EventTypeXpDto
             {
                 TypeName = eventTypeName,
@@ -111,11 +111,11 @@ public class MemberStatisticsService : IMemberStatisticsService
                 TotalXp = eventGroup.Count * xpPerUnit
             });
         }
-        
+
         // Calculate totals
         var rehearsalXpTotal = rehearsalCount * xpConfig.XpPerRehearsal;
         var eventsXpTotal = eventTypeXpList.Sum(e => e.TotalXp);
-        
+
         return new UserXpBreakdownDto
         {
             TotalXp = rehearsalXpTotal + eventsXpTotal,
@@ -136,7 +136,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var beforeDateOnly = beforeDate.Date;
         var xpConfig = _xpSettings.Value;
         var activities = new List<AttendedActivityDto>();
-        
+
         // Get attended rehearsals
         var rehearsals = await (
             from attendance in _context.RehearsalAttendances
@@ -151,23 +151,23 @@ public class MemberStatisticsService : IMemberStatisticsService
                 IsRehearsal = true
             }
         ).ToListAsync();
-        
+
         activities.AddRange(rehearsals);
-        
+
         // Get attended events with event type information
         var eventData = await (
             from enrollment in _context.Enrollments
             join evt in _context.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.UserId == userId && enrollment.WillAttend && eventEndDate < beforeDateOnly
-            select new 
-            { 
+            select new
+            {
                 Date = evt.Date,
                 Name = evt.Name,
                 Type = evt.Type
             }
         ).ToListAsync();
-        
+
         // Transform events to AttendedActivityDto with calculated XP
         var eventActivities = eventData.Select(evt => new AttendedActivityDto
         {
@@ -177,9 +177,9 @@ public class MemberStatisticsService : IMemberStatisticsService
             XpEarned = xpConfig.GetXpForEventType(evt.Type.ToString()),
             IsRehearsal = false
         });
-        
+
         activities.AddRange(eventActivities);
-        
+
         // Sort by date descending (newest first)
         return activities.OrderByDescending(a => a.Date).ToList();
     }

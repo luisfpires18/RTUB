@@ -47,24 +47,24 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Create mock push notification service
         _mockPushNotificationService = new Mock<IPushNotificationService>();
-        
+
         // Create mock audit log service
         _mockAuditLogService = new Mock<IAuditLogService>();
-        
+
         // Create mock logger
         _mockLogger = new Mock<ILogger<MemberStatusService>>();
-        
+
         // Create mock options with push notifications disabled for tests
         _mockOptions = new Mock<IOptions<MemberStatusUpdateOptions>>();
-        _mockOptions.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
-        { 
-            Enabled = true, 
+        _mockOptions.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions
+        {
+            Enabled = true,
             ScheduledTime = "21:00",
-            PushNotificationsEnabled = false 
+            PushNotificationsEnabled = false
         });
 
         _service = new MemberStatusService(
-            _context, 
+            _context,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
             _mockAuditLogService.Object,
@@ -197,37 +197,37 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create activities in the last 3 months including current month
         // Use dates in the past to ensure they are counted
         var now = DateTime.UtcNow;
-        
+
         // Current month - 1 day ago to ensure it's in the past
         var oneDayAgo = now.AddDays(-1);
         var rehearsalCurrent = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsalCurrent);
         await _context.SaveChangesAsync();
-        
+
         var attendanceCurrent = RehearsalAttendance.Create(rehearsalCurrent.Id, userId);
         attendanceCurrent.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendanceCurrent);
-        
+
         // 1 month ago - mid-month to ensure it's in the correct month
         var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // 2 months ago - mid-month
         var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
         var event1 = Event.Create("Event 1", twoMonthsAgo, "Location 2", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
-        
+
         var enrollment1 = Enrollment.Create(userId, event1.Id);
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -237,9 +237,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
         result.IsRetired.Should().BeFalse(); // Should be automatically set to active
-        
+
         // Verify that user was updated in database
-        _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => 
+        _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.Id == userId && u.IsRetired == false)), Times.Once);
     }
 
@@ -258,29 +258,29 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Current month - 1 day ago
         var oneDayAgo = now.AddDays(-1);
         var rehearsalCurrent = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsalCurrent);
         await _context.SaveChangesAsync();
-        
+
         var attendanceCurrent = RehearsalAttendance.Create(rehearsalCurrent.Id, userId);
         attendanceCurrent.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendanceCurrent);
-        
+
         // 1 month ago - mid-month
         var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // No activity 2 months ago - breaks the consecutive chain at 2 months
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -308,49 +308,49 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Current month - 1 day ago (past activity)
         var oneDayAgo = now.AddDays(-1);
         var rehearsal0 = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsal0);
         await _context.SaveChangesAsync();
-        
+
         var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
         attendance0.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance0);
-        
+
         // 1 month ago - mid-month
         var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // No activity 2 months ago - this breaks the consecutive chain at 2 months
-        
+
         // Future activity (should NOT count) - use a date clearly in the future
         var futureDate = now.AddDays(10);
         var rehearsal2 = Rehearsal.Create(futureDate, "Location Future");
         _context.Rehearsals.Add(rehearsal2);
         await _context.SaveChangesAsync();
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
         attendance2.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance2);
-        
+
         // Another future activity even further out
         var futureDate2 = now.AddMonths(1);
         var rehearsal3 = Rehearsal.Create(futureDate2, "Location Future 2");
         _context.Rehearsals.Add(rehearsal3);
         await _context.SaveChangesAsync();
-        
+
         var attendance3 = RehearsalAttendance.Create(rehearsal3.Id, userId);
         attendance3.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance3);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -379,27 +379,27 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(IdentityResult.Success);
 
         var now = DateTime.UtcNow;
-        
+
         // Current month - 1 day ago
         var oneDayAgo = now.AddDays(-1);
         var rehearsal0 = Rehearsal.Create(oneDayAgo, "Location Current");
         _context.Rehearsals.Add(rehearsal0);
         await _context.SaveChangesAsync();
-        
+
         var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
         attendance0.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance0);
-        
+
         // 1 month ago - mid-month regular rehearsal
         var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // 2 months ago - MULTI-DAY event that starts in month -2 but ends in month -1
         // This should be counted in the START month (2 months ago), not the END month (1 month ago)
         var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 28); // Near end of month
@@ -408,11 +408,11 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         event1.EndDate = oneMonthAgoEnd; // Event spans two months
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
-        
+
         var enrollment1 = Enrollment.Create(userId, event1.Id);
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -422,9 +422,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
         result.IsRetired.Should().BeFalse(); // Should transition to active with 3 consecutive months
-        
+
         // Verify that user was updated in database
-        _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => 
+        _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.Id == userId && u.IsRetired == false)), Times.Once);
     }
 
@@ -441,7 +441,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity 2 months ago so recalculation produces ProgressMonths = 4
         // 1 completed month without activity + 1 (no current month) = 2
         // ProgressMonths = 6 - 2 = 4
@@ -449,7 +449,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var rehearsal = Rehearsal.Create(twoMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -527,7 +527,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Assert - Should recalculate and update
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
-        
+
         // Verify the cached status was updated in database
         var updatedCache = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
         updatedCache.Should().NotBeNull();
@@ -617,15 +617,15 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Create a service with push notifications enabled for this test
         var optionsWithNotifications = new Mock<IOptions<MemberStatusUpdateOptions>>();
-        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
-        { 
-            Enabled = true, 
+        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions
+        {
+            Enabled = true,
             ScheduledTime = "21:00",
-            PushNotificationsEnabled = true 
+            PushNotificationsEnabled = true
         });
-        
+
         var serviceWithNotifications = new MemberStatusService(
-            _context, 
+            _context,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
             _mockAuditLogService.Object,
@@ -662,13 +662,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(IdentityResult.Success);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity 7 months ago (before the 6-month inactivity window)
         var sevenMonthsAgo = new DateTime(now.AddMonths(-7).Year, now.AddMonths(-7).Month, 15);
         var rehearsal = Rehearsal.Create(sevenMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -698,14 +698,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity 6 months ago (on the edge, so only 5 completed months without activity)
         // No activity in current month → 5 + 1 = 6 counted → ProgressMonths = 0 ("Próximo da reforma")
         var sixMonthsAgo = new DateTime(now.AddMonths(-6).Year, now.AddMonths(-6).Month, 15);
         var rehearsal = Rehearsal.Create(sixMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -737,27 +737,27 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity in current month (yesterday)
         var yesterday = now.AddDays(-1);
         var rehearsal1 = Rehearsal.Create(yesterday, "Recent Rehearsal");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // Also add activity in the last completed month (to ensure consecutive activity)
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal2 = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
         _context.Rehearsals.Add(rehearsal2);
         await _context.SaveChangesAsync();
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
         attendance2.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance2);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -784,13 +784,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity in previous completed month (last month mid)
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -822,13 +822,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity in current month only (yesterday)
         var yesterday = now.AddDays(-1);
         var rehearsal = Rehearsal.Create(yesterday, "Recent Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -860,29 +860,29 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity in current month
         var yesterday = now.AddDays(-1);
         var rehearsal1 = Rehearsal.Create(yesterday, "Current Month");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // NO activity in last month (creates gap)
-        
+
         // Add activity 2 months ago
         var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
         var rehearsal2 = Rehearsal.Create(twoMonthsAgo, "Two Months Ago");
         _context.Rehearsals.Add(rehearsal2);
         await _context.SaveChangesAsync();
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
         attendance2.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance2);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -925,7 +925,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         await _context.SaveChangesAsync();
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity 5 months ago (so 4 consecutive COMPLETED months without activity)
         // With new logic: no current month activity adds 1 → 4 + 1 = 5 → ProgressMonths = 6 - 5 = 1
         // i=1: no activity (last month)
@@ -939,7 +939,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var rehearsal = Rehearsal.Create(fiveMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -947,15 +947,15 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Create a service with push notifications enabled for this test
         var optionsWithNotifications = new Mock<IOptions<MemberStatusUpdateOptions>>();
-        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
-        { 
-            Enabled = true, 
+        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions
+        {
+            Enabled = true,
             ScheduledTime = "21:00",
-            PushNotificationsEnabled = true 
+            PushNotificationsEnabled = true
         });
-        
+
         var serviceWithNotifications = new MemberStatusService(
-            _context, 
+            _context,
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
             _mockAuditLogService.Object,
@@ -995,51 +995,51 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Current month (January) - activity 5 days ago (PAST - should count)
         var currentMonthActivity = now.AddDays(-5);
         var rehearsal1 = Rehearsal.Create(currentMonthActivity, "January Rehearsal");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         // Last month (December) - mid-month (PAST - should count)
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var event1 = Event.Create("December Event", lastMonth, "Location Dec", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
-        
+
         var enrollment1 = Enrollment.Create(userId, event1.Id);
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
-        
+
         // NO activity in November (breaks consecutive chain at 2 months)
-        
+
         // February enrollment (FUTURE - should NOT count)
         // AddMonths handles year transitions correctly (e.g., Jan + 1 = Feb)
         var february = new DateTime(now.AddMonths(1).Year, now.AddMonths(1).Month, 15);
-        
+
         var event2 = Event.Create("February Event", february, "Location Feb", EventType.Atuacao);
         _context.Events.Add(event2);
         await _context.SaveChangesAsync();
-        
+
         var enrollment2 = Enrollment.Create(userId, event2.Id);
         enrollment2.WillAttend = true;
         _context.Enrollments.Add(enrollment2);
-        
+
         // March enrollment (FUTURE - should NOT count)
         var march = february.AddMonths(1);
         var event3 = Event.Create("March Event", march, "Location Mar", EventType.Atuacao);
         _context.Events.Add(event3);
         await _context.SaveChangesAsync();
-        
+
         var enrollment3 = Enrollment.Create(userId, event3.Id);
         enrollment3.WillAttend = true;
         _context.Enrollments.Add(enrollment3);
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -1070,26 +1070,26 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity in current month and last month (2 consecutive months)
         var currentMonthActivity = now.AddDays(-2);
         var rehearsal1 = Rehearsal.Create(currentMonthActivity, "Current Month Rehearsal");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
-        
+
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
-        
+
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal2 = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
         _context.Rehearsals.Add(rehearsal2);
         await _context.SaveChangesAsync();
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
         attendance2.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance2);
-        
+
         await _context.SaveChangesAsync();
 
         // First, get individual result (this updates the cache)
@@ -1102,10 +1102,10 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         batchResult.Should().ContainKey(userId);
         var batchMemberResult = batchResult[userId];
         batchMemberResult.Should().NotBeNull();
-        
+
         // Key assertion: IsRetired should be consistent
         batchMemberResult!.IsRetired.Should().Be(individualResult.IsRetired);
-        
+
         // Progress should also be consistent
         batchMemberResult.ProgressMonths.Should().Be(individualResult.ProgressMonths);
         batchMemberResult.ProgressTotalMonths.Should().Be(individualResult.ProgressTotalMonths);
@@ -1129,13 +1129,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add activity only 1 month ago (not enough for natural reactivation)
         var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);
@@ -1181,14 +1181,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             .ReturnsAsync(user);
 
         var now = DateTime.UtcNow;
-        
+
         // Add no recent activity (normally would be retired with 6+ months without activity)
         // Add activity 8 months ago (well past the 6-month threshold)
         var eightMonthsAgo = new DateTime(now.AddMonths(-8).Year, now.AddMonths(-8).Month, 15);
         var rehearsal = Rehearsal.Create(eightMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
-        
+
         var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
         attendance.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance);

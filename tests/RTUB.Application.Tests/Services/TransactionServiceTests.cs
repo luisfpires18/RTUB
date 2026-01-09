@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -21,6 +22,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly TransactionService _service;
+    private readonly Mock<IReceiptStorageService> _mockReceiptStorageService;
 
     public TransactionServiceTests(DatabaseFixture fixture)
     {
@@ -32,7 +34,8 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new TransactionService(new TransactionRepository(_context));
+        _mockReceiptStorageService = new Mock<IReceiptStorageService>();
+        _service = new TransactionService(new TransactionRepository(_context), _mockReceiptStorageService.Object);
     }
 
     #region Create Tests

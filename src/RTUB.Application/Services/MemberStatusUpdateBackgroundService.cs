@@ -56,9 +56,9 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
                 }
 
                 var delay = nextRun - now;
-                
-                _logger.LogInformation("Next member status update scheduled for {NextRun} (in {Delay})", 
-                    nextRun.ToString("yyyy-MM-dd HH:mm:ss"), 
+
+                _logger.LogInformation("Next member status update scheduled for {NextRun} (in {Delay})",
+                    nextRun.ToString("yyyy-MM-dd HH:mm:ss"),
                     delay.ToString(@"hh\:mm\:ss"));
 
                 // Wait until the scheduled time

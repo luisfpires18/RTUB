@@ -23,7 +23,7 @@ public interface ISongService
     Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null);
     Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountBySongIdAsync(int songId);
-    
+
     // Play count tracking
     Task IncrementPlayCountAsync(int songId, string? userId = null);
     Task<int> GetPlayCountBySongIdAsync(int songId);

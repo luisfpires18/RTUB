@@ -72,7 +72,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             // Track if this is a change from not attending to attending
             var wasNotAttending = !existing.WillAttend;
             var wasAttending = existing.WillAttend;
-            
+
             // Update existing attendance
             existing.WillAttend = willAttend;
             // Always update instrument (including setting to null to clear it)
@@ -83,7 +83,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             existing.OtherInstruments = otherInstruments;
 
             await _attendanceRepository.UpdateAsync(existing);
-            
+
             // Send notification if user changed from not attending to attending
             if (willAttend && wasNotAttending && !skipNotification)
             {
@@ -94,7 +94,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             {
                 await NotifyCancellationAsync(existing);
             }
-            
+
             return existing;
         }
 
@@ -107,7 +107,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.OtherInstruments = otherInstruments;
 
         var createdAttendance = await _attendanceRepository.AddAsync(attendance);
-        
+
         // Send notification to other attendees if user is attending
         if (willAttend && !skipNotification)
         {

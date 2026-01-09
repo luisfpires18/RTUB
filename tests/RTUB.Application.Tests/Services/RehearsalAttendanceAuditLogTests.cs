@@ -88,10 +88,10 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
 
         // Act
         await _attendanceService.CreateAttendanceWithApprovalAsync(
-            rehearsal.Id, 
-            user.Id, 
-            InstrumentType.Cavaquinho, 
-            null, 
+            rehearsal.Id,
+            user.Id,
+            InstrumentType.Cavaquinho,
+            null,
             null
         );
 
@@ -144,10 +144,10 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
 
         // Act
         await _attendanceService.CreateAttendanceWithApprovalAsync(
-            rehearsal.Id, 
-            user.Id, 
-            InstrumentType.Guitarra, 
-            "Test notes", 
+            rehearsal.Id,
+            user.Id,
+            InstrumentType.Guitarra,
+            "Test notes",
             "Banjo"
         );
 

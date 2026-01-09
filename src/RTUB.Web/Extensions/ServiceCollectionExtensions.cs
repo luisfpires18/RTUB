@@ -192,6 +192,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISongVideoStorageService, CloudflareSongVideoStorageService>();
         services.AddScoped<IEventVideoStorageService, CloudflareEventVideoStorageService>();
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
+        services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
 
         return services;
     }
