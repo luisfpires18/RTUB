@@ -1019,10 +1019,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // NO activity in November (breaks consecutive chain at 2 months)
         
         // February enrollment (FUTURE - should NOT count)
-        var february = new DateTime(now.Year, now.Month, 1).AddMonths(1);
-        if (now.Month == 12) february = new DateTime(now.Year + 1, 1, 15);
-        else if (now.Month == 1) february = new DateTime(now.Year, 2, 15);
-        else february = new DateTime(now.AddMonths(1).Year, now.AddMonths(1).Month, 15);
+        // AddMonths handles year transitions correctly (e.g., Jan + 1 = Feb)
+        var february = new DateTime(now.AddMonths(1).Year, now.AddMonths(1).Month, 15);
         
         var event2 = Event.Create("February Event", february, "Location Feb", EventType.Atuacao);
         _context.Events.Add(event2);

@@ -934,7 +934,7 @@ public class MemberStatusService : IMemberStatusService
             {
                 // Currently cached as active - check if should be retired
                 // Note: We don't check OverrideRetired here because MapToResultAsync is for display only
-                // The actual status update with override check happens in UpdateMemberStatusAsync
+                // The actual status update with override check happens in UpdateMemberStatusAsync (line ~80)
                 if (consecutiveMonthsWithoutActivity >= 6)
                 {
                     isRetired = true; // Should be retired (6+ consecutive months without activity)
