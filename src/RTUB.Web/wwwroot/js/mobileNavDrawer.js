@@ -57,7 +57,8 @@
         navLinks.forEach(link => {
             link.addEventListener('click', function () {
                 // Small delay to allow navigation to start
-                setTimeout(closeDrawer, 150);
+                // Reduced delay matches Blazor's navigation timing better
+                setTimeout(closeDrawer, 100);
             });
         });
 
@@ -105,11 +106,23 @@
             // Hide drawer
             drawer.classList.remove('show');
             
-            // Hide backdrop after drawer animation
+            // Use transitionend event for more reliable timing
+            // Fallback to timeout if event doesn't fire
+            let transitionEnded = false;
+            const handleTransitionEnd = () => {
+                if (!transitionEnded) {
+                    transitionEnded = true;
+                    backdrop.classList.remove('show');
+                    body.style.overflow = '';
+                }
+            };
+            
+            drawer.addEventListener('transitionend', handleTransitionEnd, { once: true });
+            
+            // Fallback timeout (slightly longer than CSS transition: 300ms)
             setTimeout(() => {
-                backdrop.classList.remove('show');
-                body.style.overflow = '';
-            }, 300); // Match CSS transition duration
+                handleTransitionEnd();
+            }, 350);
 
             // Update aria attributes
             const toggler = document.querySelector('.navbar-toggler');

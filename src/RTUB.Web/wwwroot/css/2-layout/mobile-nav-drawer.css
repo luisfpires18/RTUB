@@ -38,8 +38,7 @@
     width: 80%;
     max-width: 320px;
     height: 100vh;
-    height: -webkit-fill-available; /* iOS Safari/PWA support */
-    height: 100dvh; /* Dynamic viewport height */
+    height: 100dvh; /* Dynamic viewport height - preferred for modern browsers */
     background-color: #1a1a1a;
     z-index: 1050;
     overflow-y: auto;
