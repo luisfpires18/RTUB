@@ -38,14 +38,14 @@ public class GalleryMediaService : IGalleryMediaService
         // Load the existing tracked entity from the context
         var existingMedia = await _context.GalleryMedia
             .FirstOrDefaultAsync(m => m.Id == media.Id);
-        
+
         if (existingMedia == null)
             throw new InvalidOperationException($"Media with ID {media.Id} not found");
-        
+
         // Update only the allowed fields on the tracked entity
         existingMedia.UpdateDetails(media.Title, media.Year, media.Month, media.Day, media.TakenAt);
         existingMedia.UpdatePrivacy(media.IsPrivate);
-        
+
         await _context.SaveChangesAsync();
         return existingMedia;
     }

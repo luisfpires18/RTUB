@@ -19,7 +19,7 @@ public interface IGalleryMediaStorageService
     /// <param name="month">Month of the media (optional, for file naming)</param>
     /// <param name="day">Day of the media (optional, for file naming)</param>
     /// <returns>URL of the uploaded file</returns>
-    Task<string> UploadMediaAsync(Stream fileStream, string fileName, string contentType, MediaType mediaType, 
+    Task<string> UploadMediaAsync(Stream fileStream, string fileName, string contentType, MediaType mediaType,
         string? title = null, int? year = null, byte? month = null, byte? day = null);
 
     /// <summary>

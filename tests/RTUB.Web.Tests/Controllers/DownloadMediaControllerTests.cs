@@ -122,16 +122,16 @@ public class DownloadMediaControllerTests
 
         // Assert
         result.Should().BeOfType<FileStreamResult>();
-        
+
         // Verify Content-Disposition header is set and doesn't throw exception with non-ASCII characters
         var contentDisposition = _controller.Response.Headers["Content-Disposition"].ToString();
         contentDisposition.Should().NotBeNullOrEmpty();
         contentDisposition.Should().Contain("attachment");
-        
+
         // The filename should be properly encoded (RFC 5987) with filename* parameter
         // which uses percent-encoding for non-ASCII characters
         contentDisposition.Should().Contain("filename*=utf-8''");
-        
+
         // Should also have a fallback filename for older browsers
         contentDisposition.Should().Contain("filename=");
     }
@@ -164,7 +164,7 @@ public class DownloadMediaControllerTests
 
         // Assert
         result.Should().BeOfType<FileStreamResult>();
-        
+
         // Verify Content-Disposition header is set
         var contentDisposition = _controller.Response.Headers["Content-Disposition"].ToString();
         contentDisposition.Should().NotBeNullOrEmpty();

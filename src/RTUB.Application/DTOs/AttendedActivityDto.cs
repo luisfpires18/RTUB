@@ -10,22 +10,22 @@ public class AttendedActivityDto
     /// Date of the activity
     /// </summary>
     public DateTime Date { get; set; }
-    
+
     /// <summary>
     /// Name of the activity (event name or "Ensaio" for rehearsals)
     /// </summary>
     public string Name { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Type of activity (Festival, Atuacao, Ensaio, etc.)
     /// </summary>
     public string Type { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// XP awarded for this specific activity
     /// </summary>
     public int XpEarned { get; set; }
-    
+
     /// <summary>
     /// Whether this is a rehearsal (true) or an event (false)
     /// </summary>

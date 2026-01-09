@@ -66,7 +66,7 @@ public class EventVideo : BaseEntity
     {
         if (title != null && title.Length > 200)
             throw new ArgumentException("Title cannot exceed 200 characters", nameof(title));
-        
+
         Title = title;
     }
 

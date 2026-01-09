@@ -245,6 +245,7 @@ else
                        OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
         @if (!report.IsPublished && CanCreateReports())
             {
+            <th>Recibo</th>
             <th>Ações</th>
      }
       </tr>
@@ -266,6 +267,14 @@ else
     </td>
           @if (!report.IsPublished && CanCreateReports())
         {
+            <td>
+                @if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
+                {
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                }
+            </td>
              <td>
             <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
     <i class="bi bi-pencil"></i>
@@ -383,6 +392,22 @@ else
            <InputNumber class="form-control" @bind-Value="editingTransaction!.Amount" step="0.01" />
             </div>
 
+            <ImageUploadManager Label="Recibo (opcional)"
+                               CurrentImageUrl="@editingTransactionReceiptUrl"
+                               ShowCurrentImage="@(!isCreateTransactionMode && !string.IsNullOrEmpty(editingTransactionReceiptUrl))"
+                               PreviewCssClass="img-thumbnail"
+                               OnFileSelected="HandleReceiptUpload" />
+
+            @if (!isCreateTransactionMode && !string.IsNullOrEmpty(editingTransactionReceiptUrl))
+            {
+                <div class="mb-3 form-check">
+                    <input class="form-check-input" type="checkbox" id="deleteReceiptCheckbox" @bind="deleteExistingReceipt" />
+                    <label class="form-check-label text-white-full" for="deleteReceiptCheckbox">
+                        Remover recibo existente
+                    </label>
+                </div>
+            }
+
        <div class="d-flex justify-content-end gap-2">
            <button type="button" class="btn btn-secondary" @onclick="CloseTransactionModal">Cancelar</button>
         <button type="submit" class="btn btn-success">Guardar</button>
@@ -415,6 +440,26 @@ else
                OnConfirm="DeleteTransaction"
                OnCancel="CloseDeleteTransactionModal" />
 
+<!-- Receipt Viewer Modal -->
+<Modal Show="@showReceiptModal"
+       ShowChanged="@((bool show) => showReceiptModal = show)"
+       Title="Recibo da Transação"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(receiptToView))
+        {
+            <div class="text-center">
+                <img src="@receiptToView" alt="Recibo" class="img-fluid" style="max-height: 70vh;" />
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseReceiptModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     [Parameter]
     public int ReportId { get; set; }
@@ -427,6 +472,7 @@ else
     private bool showTransactionModal = false;
     private bool showDeleteActivityModal = false;
     private bool showDeleteTransactionModal = false;
+    private bool showReceiptModal = false;
 
     private bool isCreateActivityMode = false;
     private bool isCreateTransactionMode = false;
@@ -437,6 +483,12 @@ else
     private Transaction? deletingTransaction;
 
     private int currentActivityId = 0;
+
+    // Receipt state variables
+    private IBrowserFile? selectedReceiptFile;
+    private string? receiptToView;
+    private bool deleteExistingReceipt = false;
+    private string? editingTransactionReceiptUrl;
 
     // Accordion state - allows multiple activities to be open
     private HashSet<int> expandedActivityIds = new HashSet<int>();
@@ -777,6 +829,9 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
     Date = DateTime.Today,
      Type = "Expense"
         };
+        selectedReceiptFile = null;
+        editingTransactionReceiptUrl = null;
+        deleteExistingReceipt = false;
         showTransactionModal = true;
     }
 
@@ -794,6 +849,9 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
   Amount = transaction.Amount,
          Type = transaction.Type
       };
+        selectedReceiptFile = null;
+        editingTransactionReceiptUrl = transaction.ReceiptUrl;
+        deleteExistingReceipt = false;
         showTransactionModal = true;
     }
 
@@ -802,33 +860,62 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         showTransactionModal = false;
       editingTransaction = null;
         currentActivityId = 0;
+        selectedReceiptFile = null;
+        editingTransactionReceiptUrl = null;
+        deleteExistingReceipt = false;
     }
 
     private async Task SaveTransaction()
     {
         if (editingTransaction == null) return;
 
-        if (isCreateTransactionMode)
+        Stream? receiptStream = null;
+        string? receiptFileName = null;
+        string? receiptContentType = null;
+
+        if (selectedReceiptFile != null)
         {
-       await TransactionService.CreateTransactionAsync(
-   editingTransaction.Date,
-        editingTransaction.Description ?? string.Empty,
-   editingTransaction.Category ?? string.Empty,
-        editingTransaction.Amount,
-        editingTransaction.Type,
-  editingTransaction.ActivityId
-   );
+            var maxFileSize = 10 * 1024 * 1024; // 10MB
+            receiptStream = selectedReceiptFile.OpenReadStream(maxFileSize);
+            receiptFileName = selectedReceiptFile.Name;
+            receiptContentType = selectedReceiptFile.ContentType;
         }
-        else
+
+        try
         {
-  await TransactionService.UpdateTransactionAsync(
-     editingTransaction.Id,
-    editingTransaction.Date,
-  editingTransaction.Description ?? string.Empty,
-     editingTransaction.Category ?? string.Empty,
-       editingTransaction.Amount,
-        editingTransaction.Type
-            );
+            if (isCreateTransactionMode)
+            {
+                await TransactionService.CreateTransactionAsync(
+                    editingTransaction.Date,
+                    editingTransaction.Description ?? string.Empty,
+                    editingTransaction.Category ?? string.Empty,
+                    editingTransaction.Amount,
+                    editingTransaction.Type,
+                    editingTransaction.ActivityId,
+                    receiptStream,
+                    receiptFileName,
+                    receiptContentType
+                );
+            }
+            else
+            {
+                await TransactionService.UpdateTransactionAsync(
+                    editingTransaction.Id,
+                    editingTransaction.Date,
+                    editingTransaction.Description ?? string.Empty,
+                    editingTransaction.Category ?? string.Empty,
+                    editingTransaction.Amount,
+                    editingTransaction.Type,
+                    receiptStream,
+                    receiptFileName,
+                    receiptContentType,
+                    deleteExistingReceipt
+                );
+            }
+        }
+        finally
+        {
+            receiptStream?.Dispose();
         }
 
         await LoadTransactions(); // Reload transactions first
@@ -865,5 +952,24 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         await LoadActivities(); // Reload activities - financial values are computed properties
 
         CloseDeleteTransactionModal();
+    }
+
+    // Receipt methods
+    private void OpenReceiptModal(string? receiptUrl)
+    {
+        if (string.IsNullOrEmpty(receiptUrl)) return;
+        receiptToView = receiptUrl;
+        showReceiptModal = true;
+    }
+
+    private void CloseReceiptModal()
+    {
+        showReceiptModal = false;
+        receiptToView = null;
+    }
+
+    private void HandleReceiptUpload(IBrowserFile file)
+    {
+        selectedReceiptFile = file;
     }
 }

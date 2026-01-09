@@ -36,34 +36,34 @@ public class MemberStatusResult
     /// Used to determine if the "Estado na Tuna" section should be shown
     /// </summary>
     public bool HasAnyActivity { get; set; }
-    
+
     /// <summary>
     /// For active members: Months until they become reformed (6 months from last activity)
     /// For reformed members: Consecutive months of activity completed (out of 3 needed to return to active)
     /// Null if not applicable
     /// </summary>
     public int? ProgressMonths { get; set; }
-    
+
     /// <summary>
     /// Total months needed for progress
     /// For active members: 6 (months until reform)
     /// For reformed members: 3 (months needed to return to active)
     /// </summary>
     public int? ProgressTotalMonths { get; set; }
-    
+
     /// <summary>
     /// Description of the progress tracking
     /// For active members: "X meses até reforma"
     /// For reformed members: "X/3 meses de atividade consecutiva"
     /// </summary>
     public string? ProgressDescription { get; set; }
-    
+
     /// <summary>
     /// Total number of activities (rehearsals + events) the member has attended
     /// Used for sorting members by participation level
     /// </summary>
     public int TotalActivitiesCount { get; set; }
-    
+
     /// <summary>
     /// Indicates if the member has any activity in the current month
     /// Used to determine whether to show progress for active members

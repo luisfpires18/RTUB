@@ -31,10 +31,10 @@ public class EventService : IEventService
     private readonly ApplicationDbContext _context;
 
     public EventService(
-        IEventRepository eventRepository, 
-        IImageStorageService imageStorageService, 
-        IEnrollmentRepository enrollmentRepository, 
-        IEventVideoRepository eventVideoRepository, 
+        IEventRepository eventRepository,
+        IImageStorageService imageStorageService,
+        IEnrollmentRepository enrollmentRepository,
+        IEventVideoRepository eventVideoRepository,
         IEventVideoStorageService eventVideoStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
@@ -255,7 +255,7 @@ public class EventService : IEventService
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
             var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
             var baseUrl = GetBaseUrl();
-            
+
             var notification = _pushNotificationFactory.CreateEventVideoUploadNotification(
                 eventEntity,
                 uploaderName,

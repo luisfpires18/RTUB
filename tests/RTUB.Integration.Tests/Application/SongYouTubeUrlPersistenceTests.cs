@@ -31,7 +31,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
-        
+
         // Mock dependencies for SongService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
@@ -39,17 +39,17 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _songService = new SongService(
-            new SongRepository(_context), 
-            mockSongVideoRepository.Object, 
-            mockSongVideoStorageService.Object, 
+            new SongRepository(_context),
+            mockSongVideoRepository.Object,
+            mockSongVideoStorageService.Object,
             _context,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object);
-        
+
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }

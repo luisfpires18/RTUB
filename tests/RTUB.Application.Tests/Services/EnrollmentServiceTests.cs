@@ -288,55 +288,55 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "enroll_non_user1", 
-            UserName = "enroll_non_user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "enroll_non_user1",
+            UserName = "enroll_non_user1",
             Email = "enroll_non_user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "enroll_non_user2", 
-            UserName = "enroll_non_user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "enroll_non_user2",
+            UserName = "enroll_non_user2",
             Email = "enroll_non_user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "enroll_non_user3", 
-            UserName = "enroll_non_user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "enroll_non_user3",
+            UserName = "enroll_non_user3",
             Email = "enroll_non_user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var newNonEnrollUser = new ApplicationUser 
-        { 
-            Id = "enroll_non_user4", 
-            UserName = "enroll_non_user4", 
+        var newNonEnrollUser = new ApplicationUser
+        {
+            Id = "enroll_non_user4",
+            UserName = "enroll_non_user4",
             Email = "enroll_non_user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, newNonEnrollUser);
 
         // Create existing enrollments
         var enrollment1 = Enrollment.Create("enroll_non_user1", testEvent.Id);
         enrollment1.WillAttend = true;
-        
+
         var enrollment2 = Enrollment.Create("enroll_non_user2", testEvent.Id);
         enrollment2.WillAttend = true;
-        
+
         var enrollment3 = Enrollment.Create("enroll_non_user3", testEvent.Id);
         enrollment3.WillAttend = false; // This user is NOT attending
-        
+
         _context.Enrollments.AddRange(enrollment1, enrollment2, enrollment3);
         await _context.SaveChangesAsync();
 
@@ -345,7 +345,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })
@@ -389,55 +389,55 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "enroll_user1", 
-            UserName = "enroll_user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "enroll_user1",
+            UserName = "enroll_user1",
             Email = "enroll_user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "enroll_user2", 
-            UserName = "enroll_user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "enroll_user2",
+            UserName = "enroll_user2",
             Email = "enroll_user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "enroll_user3", 
-            UserName = "enroll_user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "enroll_user3",
+            UserName = "enroll_user3",
             Email = "enroll_user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var newAttendingUser = new ApplicationUser 
-        { 
-            Id = "enroll_user4", 
-            UserName = "enroll_user4", 
+        var newAttendingUser = new ApplicationUser
+        {
+            Id = "enroll_user4",
+            UserName = "enroll_user4",
             Email = "enroll_user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, newAttendingUser);
 
         // Create existing enrollments
         var enrollment1 = Enrollment.Create("enroll_user1", testEvent.Id);
         enrollment1.WillAttend = true;
-        
+
         var enrollment2 = Enrollment.Create("enroll_user2", testEvent.Id);
         enrollment2.WillAttend = true;
-        
+
         var enrollment3 = Enrollment.Create("enroll_user3", testEvent.Id);
         enrollment3.WillAttend = false; // This user is NOT attending
-        
+
         _context.Enrollments.AddRange(enrollment1, enrollment2, enrollment3);
         await _context.SaveChangesAsync();
 
@@ -446,7 +446,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })
@@ -490,58 +490,58 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         await _context.SaveChangesAsync();
 
         // Create test users
-        var attendingUser1 = new ApplicationUser 
-        { 
-            Id = "enroll_change_user1", 
-            UserName = "enroll_change_user1", 
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "enroll_change_user1",
+            UserName = "enroll_change_user1",
             Email = "enroll_change_user1@test.com",
             FirstName = "User",
             LastName = "One",
-            Nickname = "User One" 
+            Nickname = "User One"
         };
-        var attendingUser2 = new ApplicationUser 
-        { 
-            Id = "enroll_change_user2", 
-            UserName = "enroll_change_user2", 
+        var attendingUser2 = new ApplicationUser
+        {
+            Id = "enroll_change_user2",
+            UserName = "enroll_change_user2",
             Email = "enroll_change_user2@test.com",
             FirstName = "User",
             LastName = "Two",
-            Nickname = "User Two" 
+            Nickname = "User Two"
         };
-        var notAttendingUser = new ApplicationUser 
-        { 
-            Id = "enroll_change_user3", 
-            UserName = "enroll_change_user3", 
+        var notAttendingUser = new ApplicationUser
+        {
+            Id = "enroll_change_user3",
+            UserName = "enroll_change_user3",
             Email = "enroll_change_user3@test.com",
             FirstName = "User",
             LastName = "Three",
-            Nickname = "User Three" 
+            Nickname = "User Three"
         };
-        var changingUser = new ApplicationUser 
-        { 
-            Id = "enroll_change_user4", 
-            UserName = "enroll_change_user4", 
+        var changingUser = new ApplicationUser
+        {
+            Id = "enroll_change_user4",
+            UserName = "enroll_change_user4",
             Email = "enroll_change_user4@test.com",
             FirstName = "User",
             LastName = "Four",
-            Nickname = "User Four" 
+            Nickname = "User Four"
         };
-        
+
         _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, changingUser);
 
         // Create existing enrollments
         var enrollment1 = Enrollment.Create("enroll_change_user1", testEvent.Id);
         enrollment1.WillAttend = true;
-        
+
         var enrollment2 = Enrollment.Create("enroll_change_user2", testEvent.Id);
         enrollment2.WillAttend = true;
-        
+
         var enrollment3 = Enrollment.Create("enroll_change_user3", testEvent.Id);
         enrollment3.WillAttend = false; // This user is NOT attending
-        
+
         var enrollment4 = Enrollment.Create("enroll_change_user4", testEvent.Id);
         enrollment4.WillAttend = true; // This user is currently attending but will change
-        
+
         _context.Enrollments.AddRange(enrollment1, enrollment2, enrollment3, enrollment4);
         await _context.SaveChangesAsync();
 
@@ -550,7 +550,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         mockPushNotificationService
             .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
-            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
             {
                 capturedRecipients.AddRange(recipients);
             })

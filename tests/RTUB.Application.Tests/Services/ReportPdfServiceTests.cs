@@ -123,11 +123,11 @@ public class ReportPdfServiceTests : IDisposable
     {
         // Arrange
         var report = Report.Create("Cached Report", 2024);
-        
+
         // Set UpdatedAt to ensure consistent cache key
         var updatedAt = DateTime.UtcNow;
         typeof(Report).GetProperty("UpdatedAt")!.SetValue(report, updatedAt);
-        
+
         var activities = new List<Activity>
         {
             Activity.Create(report.Id, "Activity 1", null)

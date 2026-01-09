@@ -244,7 +244,7 @@ public class SongService : ISongService
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
             var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
             var baseUrl = GetBaseUrl();
-            
+
             var notification = _pushNotificationFactory.CreateSongVideoUploadNotification(
                 song,
                 uploaderName,
@@ -330,7 +330,7 @@ public class SongService : ISongService
     public async Task<Dictionary<int, int>> GetPlayCountsForSongsAsync(IEnumerable<int> songIds)
     {
         var songIdsList = songIds.ToList();
-        
+
         var playCounts = await _context.SongPlayCounts
             .Where(pc => songIdsList.Contains(pc.SongId))
             .GroupBy(pc => pc.SongId)
@@ -387,18 +387,19 @@ public class SongService : ISongService
         var stats = await _context.SongPlayCounts
             .Where(pc => pc.UserId != null)
             .GroupBy(pc => new { pc.UserId, pc.SongId })
-            .Select(g => new 
-            { 
-                g.Key.UserId, 
-                g.Key.SongId, 
-                PlayCount = g.Count() 
+            .Select(g => new
+            {
+                g.Key.UserId,
+                g.Key.SongId,
+                PlayCount = g.Count()
             })
             .Join(
                 _context.Users,
                 pc => pc.UserId,
                 u => u.Id,
-                (pc, u) => new { 
-                    pc.SongId, 
+                (pc, u) => new
+                {
+                    pc.SongId,
                     User = new UserPlayInfo
                     {
                         UserId = u.Id,
@@ -407,7 +408,7 @@ public class SongService : ISongService
                         LastName = u.LastName ?? "",
                         ProfilePictureSrc = !string.IsNullOrEmpty(u.ImageUrl) ? u.ImageUrl : "/images/default-avatar.webp"
                     },
-                    pc.PlayCount 
+                    pc.PlayCount
                 }
             )
             .Join(

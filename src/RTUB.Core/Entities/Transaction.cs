@@ -29,13 +29,16 @@ public class Transaction : BaseEntity
     [RegularExpression("^(Income|Expense)$", ErrorMessage = "O tipo deve ser 'Income' ou 'Expense'")]
     public string Type { get; set; } = "Expense";
 
+    [MaxLength(500, ErrorMessage = "A URL do recibo não pode exceder 500 caracteres")]
+    public string? ReceiptUrl { get; set; }
+
     // Navigation property
     public virtual Activity? Activity { get; set; }
 
     // Private constructor for EF Core
     public Transaction() { }
 
-    public static Transaction Create(DateTime date, string description, string category, decimal amount, string type, int? activityId = null)
+    public static Transaction Create(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, string? receiptUrl = null)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("A descrição não pode estar vazia", nameof(description));
@@ -56,8 +59,14 @@ public class Transaction : BaseEntity
             Category = category,
             Amount = amount,
             Type = type,
-            ActivityId = activityId
+            ActivityId = activityId,
+            ReceiptUrl = receiptUrl
         };
+    }
+
+    public void SetReceiptUrl(string? receiptUrl)
+    {
+        ReceiptUrl = receiptUrl;
     }
 
     public void UpdateDetails(DateTime date, string description, string category, decimal amount, string type)

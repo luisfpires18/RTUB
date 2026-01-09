@@ -46,7 +46,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         _mockImageStorageService = new Mock<IImageStorageService>();
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        
+
         // Mock dependencies for EventService and SongService
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
@@ -54,27 +54,27 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _eventService = new EventService(
-            new EventRepository(_context), 
-            _mockImageStorageService.Object, 
-            new EnrollmentRepository(_context), 
-            mockEventVideoRepository.Object, 
+            new EventRepository(_context),
+            _mockImageStorageService.Object,
+            new EnrollmentRepository(_context),
+            mockEventVideoRepository.Object,
             mockEventVideoStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockUserManager.Object,
             mockHttpContextAccessor.Object,
             _context);
-        
+
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
-        
+
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
         _songService = new SongService(
-            new SongRepository(_context), 
-            mockSongVideoRepository.Object, 
-            mockSongVideoStorageService.Object, 
+            new SongRepository(_context),
+            mockSongVideoRepository.Object,
+            mockSongVideoStorageService.Object,
             _context,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

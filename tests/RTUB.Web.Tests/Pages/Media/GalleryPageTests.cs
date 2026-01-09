@@ -643,11 +643,11 @@ public class GalleryPageTests
             takenAt: null,
             thumbnailUrl: null
         );
-        
+
         // Use reflection to set the Id since it's internal
         var idProperty = typeof(GalleryMedia).GetProperty("Id");
         idProperty?.SetValue(media, id);
-        
+
         return media;
     }
 
@@ -668,10 +668,10 @@ public class GalleryPageTests
 
         if (day.HasValue && month.HasValue)
             return $"{day} {monthNames[month.Value]} {year}";
-        
+
         if (month.HasValue)
             return $"{monthNames[month.Value]} {year}";
-        
+
         return year.ToString();
     }
 

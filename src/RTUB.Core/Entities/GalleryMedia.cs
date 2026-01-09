@@ -154,7 +154,7 @@ public class GalleryMedia : BaseEntity
     {
         const int minYear = 1900;
         var maxYear = DateTime.UtcNow.Year + 1;
-        
+
         if (year < minYear || year > maxYear)
             throw new ArgumentException($"O ano deve estar entre {minYear} e {maxYear}", nameof(year));
     }

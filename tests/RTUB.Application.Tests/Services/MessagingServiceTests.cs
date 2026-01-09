@@ -228,10 +228,10 @@ public class MessagingServiceTests
 
         // Assert
         result.Should().NotBeNull();
-        
+
         // Verify that the settings were created/fetched
         _mockSettingsRepository.Verify(r => r.GetOrCreateAsync(receiverId, conversation.Id), Times.Once);
-        
+
         // Verify that the conversation was pinned
         _mockSettingsRepository.Verify(r => r.UpdateAsync(It.Is<ConversationUserSettings>(
             s => s.UserId == receiverId &&

@@ -21,7 +21,7 @@ public class BirthdayEmailSchedulerService : BackgroundService
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly BirthdayEmailSchedulerOptions _options;
     private DateTime _lastRunDate = DateTime.MinValue;
-    
+
     private const int StartupDelaySeconds = 10;
     private const int DelayBetweenEmailsSeconds = 5;
 

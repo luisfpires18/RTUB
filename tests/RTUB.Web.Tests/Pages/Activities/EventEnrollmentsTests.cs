@@ -33,10 +33,10 @@ public class EventEnrollmentsTests : TestContext
     {
         // Arrange
         var testUri = "https://example.com/events/123/enrollments";
-        
+
         // Simulate the logic from CopyLinkToClipboard method
         // NavigationManager.ToAbsoluteUri(NavigationManager.Uri).ToString()
-        
+
         // Act
         var absoluteUrl = new Uri(testUri).ToString();
 
@@ -67,7 +67,7 @@ public class EventEnrollmentsTests : TestContext
     public void CopyLinkToClipboard_ShouldWorkWithDifferentEventIds(string testUrl)
     {
         // Arrange & Assert
-        testUrl.Should().MatchRegex(@"/events/\d+/enrollments$", 
+        testUrl.Should().MatchRegex(@"/events/\d+/enrollments$",
             "URL should match enrollments page pattern");
     }
 
@@ -78,7 +78,7 @@ public class EventEnrollmentsTests : TestContext
         var buttonClasses = "btn btn-outline-secondary btn-sm ms-auto";
 
         // Assert
-        buttonClasses.Should().Contain("ms-auto", 
+        buttonClasses.Should().Contain("ms-auto",
             "Button should use Bootstrap ms-auto class for right alignment");
     }
 }

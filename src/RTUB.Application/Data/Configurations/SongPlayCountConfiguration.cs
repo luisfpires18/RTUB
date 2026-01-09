@@ -32,7 +32,7 @@ public class SongPlayCountConfiguration : IEntityTypeConfiguration<SongPlayCount
 
         // Index for performance when querying play counts by song
         builder.HasIndex(spc => spc.SongId);
-        
+
         // Index for querying by user
         builder.HasIndex(spc => spc.UserId);
     }

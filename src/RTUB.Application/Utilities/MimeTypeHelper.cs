@@ -45,7 +45,7 @@ public static class MimeTypeHelper
     public static string GetVideoMimeType(string fileName, string? providedContentType)
     {
         // If provided content type is valid and looks like a video type, use it
-        if (!string.IsNullOrWhiteSpace(providedContentType) && 
+        if (!string.IsNullOrWhiteSpace(providedContentType) &&
             providedContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
         {
             return providedContentType;
@@ -71,7 +71,7 @@ public static class MimeTypeHelper
     public static string GetImageMimeType(string fileName, string? providedContentType)
     {
         // If provided content type is valid and looks like an image type, use it
-        if (!string.IsNullOrWhiteSpace(providedContentType) && 
+        if (!string.IsNullOrWhiteSpace(providedContentType) &&
             providedContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
             return providedContentType;
@@ -97,7 +97,7 @@ public static class MimeTypeHelper
     /// <returns>A valid MIME type for the media</returns>
     public static string GetMediaMimeType(string fileName, string? providedContentType, bool isVideo)
     {
-        return isVideo 
+        return isVideo
             ? GetVideoMimeType(fileName, providedContentType)
             : GetImageMimeType(fileName, providedContentType);
     }
