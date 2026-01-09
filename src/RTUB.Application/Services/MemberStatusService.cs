@@ -887,7 +887,10 @@ public class MemberStatusService : IMemberStatusService
     
     /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
-    /// Computes HasActivityInCurrentMonth and ProgressMonths dynamically since they depend on current time
+    /// Computes HasActivityInCurrentMonth, ProgressMonths, and IsRetired dynamically since they depend on current time
+    /// CRITICAL: Recalculates IsRetired and progress for BOTH active and retired members to ensure consistency
+    /// between batch queries (cached) and individual queries (fresh calculation)
+    /// This is essential because future activities should never count toward status calculations
     /// </summary>
     private async Task<MemberStatusResult> MapToResultAsync(MemberStatus memberStatus)
     {
@@ -896,40 +899,75 @@ public class MemberStatusService : IMemberStatusService
         var currentMonthStart = new DateTime(now.Year, now.Month, 1);
         var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(memberStatus.UserId, currentMonthStart, now);
         
-        // Recalculate progress for active members based on current month activity
-        // This is needed because the cached progress might not include the proactive warning
+        // Recalculate IsRetired and progress dynamically for both active and retired members
+        // This ensures consistency between cached (batch) and fresh (individual) queries
+        // CRITICAL: This prevents stale cache from showing incorrect status (e.g., active when should be retired)
+        bool isRetired = memberStatus.IsRetired;
         int? progressMonths = memberStatus.ProgressMonths;
+        int? progressTotalMonths = memberStatus.ProgressTotalMonths;
         string? progressDescription = memberStatus.ProgressDescription;
         
-        if (!memberStatus.IsRetired && memberStatus.ProgressTotalMonths == 6)
+        if (memberStatus.HasAnyActivity)
         {
-            // For active members, recalculate progress including proactive warning
+            // Calculate consecutive months with activity (for retired→active transition check)
+            var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(memberStatus.UserId, now, hasActivityInCurrentMonth);
+            
+            // Calculate consecutive months without activity (for active→retired transition check)
             var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(memberStatus.UserId, now);
             
-            // If no activity in current month, add 1 for proactive warning
-            if (!hasActivityInCurrentMonth)
+            // Dynamically recalculate IsRetired based on current consecutive months
+            // This ensures the displayed status matches the actual calculated status
+            if (memberStatus.IsRetired)
             {
-                consecutiveMonthsWithoutActivity++;
+                // Currently cached as retired - check if should be active
+                if (consecutiveMonthsWithActivity >= 3)
+                {
+                    isRetired = false; // Should be active (3+ consecutive months of activity)
+                }
+                
+                // Progress for retired members: X/3 months toward reactivation
+                progressMonths = consecutiveMonthsWithActivity;
+                progressTotalMonths = 3;
+                progressDescription = $"{consecutiveMonthsWithActivity}/3 meses de atividade consecutiva";
             }
-            
-            var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
-            if (monthsUntilReform < 0) monthsUntilReform = 0;
-            
-            progressMonths = monthsUntilReform;
-            progressDescription = monthsUntilReform > 0 
-                ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
-                : "Próximo da reforma";
+            else
+            {
+                // Currently cached as active - check if should be retired
+                // Note: We don't check OverrideRetired here because MapToResultAsync is for display only
+                // The actual status update with override check happens in UpdateMemberStatusAsync
+                if (consecutiveMonthsWithoutActivity >= 6)
+                {
+                    isRetired = true; // Should be retired (6+ consecutive months without activity)
+                }
+                
+                // Progress for active members: months until retirement
+                // If no activity in current month, add 1 for proactive warning
+                var displayMonthsWithoutActivity = consecutiveMonthsWithoutActivity;
+                if (!hasActivityInCurrentMonth)
+                {
+                    displayMonthsWithoutActivity++;
+                }
+                
+                var monthsUntilReform = 6 - displayMonthsWithoutActivity;
+                if (monthsUntilReform < 0) monthsUntilReform = 0;
+                
+                progressMonths = monthsUntilReform;
+                progressTotalMonths = 6;
+                progressDescription = monthsUntilReform > 0 
+                    ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
+                    : "Próximo da reforma";
+            }
         }
         
         return new MemberStatusResult
         {
-            IsRetired = memberStatus.IsRetired,
+            IsRetired = isRetired,
             LastRehearsalDate = memberStatus.LastRehearsalDate,
             LastEventDate = memberStatus.LastEventDate,
             LastActivityDate = memberStatus.LastActivityDate,
             HasAnyActivity = memberStatus.HasAnyActivity,
             ProgressMonths = progressMonths,
-            ProgressTotalMonths = memberStatus.ProgressTotalMonths,
+            ProgressTotalMonths = progressTotalMonths,
             ProgressDescription = progressDescription,
             TotalActivitiesCount = memberStatus.TotalActivitiesCount,
             HasActivityInCurrentMonth = hasActivityInCurrentMonth
