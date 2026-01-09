@@ -1113,6 +1113,114 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         batchMemberResult.HasActivityInCurrentMonth.Should().Be(individualResult.HasActivityInCurrentMonth);
     }
 
+    [Fact]
+    public async Task GetMemberStatusAsync_RespectsOverrideRetiredFlag_WhenAdminManuallySetsActive()
+    {
+        // Arrange - Test that OverrideRetired flag prevents automatic status recalculation
+        // Scenario: Admin manually sets member to active using "Tornar Ativo" button
+        // Even if member doesn't have 3 consecutive months of activity, they should stay active
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Manually set to active by admin
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity only 1 month ago (not enough for natural reactivation)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Create a cached status with OverrideRetired = true (simulating admin's manual activation)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false, // Manually set to active
+            OverrideRetired = true, // This is the key flag
+            HasAnyActivity = true,
+            LastRehearsalDate = lastMonth,
+            LastActivityDate = lastMonth,
+            ProgressMonths = 5, // Would normally show 5 months until reform
+            ProgressTotalMonths = 6,
+            LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // Fresh cache
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should stay active because OverrideRetired is true
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeFalse(); // Should stay active due to OverrideRetired
+    }
+
+    [Fact]
+    public async Task GetMemberStatusesBatchAsync_RespectsOverrideRetiredFlag()
+    {
+        // Arrange - Test that batch query also respects OverrideRetired flag
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Manually set to active by admin
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add no recent activity (normally would be retired with 6+ months without activity)
+        // Add activity 8 months ago (well past the 6-month threshold)
+        var eightMonthsAgo = new DateTime(now.AddMonths(-8).Year, now.AddMonths(-8).Month, 15);
+        var rehearsal = Rehearsal.Create(eightMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Create a cached status with OverrideRetired = true (simulating admin's manual activation)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false, // Manually set to active by admin
+            OverrideRetired = true, // This prevents automatic retirement
+            HasAnyActivity = true,
+            LastRehearsalDate = eightMonthsAgo,
+            LastActivityDate = eightMonthsAgo,
+            ProgressMonths = 0, // Would normally be "Próximo da reforma"
+            ProgressTotalMonths = 6,
+            LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // Fresh cache
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var batchResult = await _service.GetMemberStatusesBatchAsync(new[] { userId });
+
+        // Assert - Should stay active because OverrideRetired is true
+        batchResult.Should().ContainKey(userId);
+        var memberResult = batchResult[userId];
+        memberResult.Should().NotBeNull();
+        memberResult!.IsRetired.Should().BeFalse(); // Should stay active despite 8 months without activity
+    }
+
     private ApplicationUser CreateTestUser(string userId)
     {
         return new ApplicationUser

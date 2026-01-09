@@ -891,6 +891,7 @@ public class MemberStatusService : IMemberStatusService
     /// CRITICAL: Recalculates IsRetired and progress for BOTH active and retired members to ensure consistency
     /// between batch queries (cached) and individual queries (fresh calculation)
     /// This is essential because future activities should never count toward status calculations
+    /// IMPORTANT: Respects OverrideRetired flag - when admin manually sets status, it won't be recalculated
     /// </summary>
     private async Task<MemberStatusResult> MapToResultAsync(MemberStatus memberStatus)
     {
@@ -902,6 +903,7 @@ public class MemberStatusService : IMemberStatusService
         // Recalculate IsRetired and progress dynamically for both active and retired members
         // This ensures consistency between cached (batch) and fresh (individual) queries
         // CRITICAL: This prevents stale cache from showing incorrect status (e.g., active when should be retired)
+        // IMPORTANT: If OverrideRetired is true, respect the admin's manual setting and don't recalculate IsRetired
         bool isRetired = memberStatus.IsRetired;
         int? progressMonths = memberStatus.ProgressMonths;
         int? progressTotalMonths = memberStatus.ProgressTotalMonths;
@@ -915,16 +917,34 @@ public class MemberStatusService : IMemberStatusService
             // Calculate consecutive months without activity (for active→retired transition check)
             var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(memberStatus.UserId, now);
             
-            // Dynamically recalculate IsRetired based on current consecutive months
-            // This ensures the displayed status matches the actual calculated status
-            if (memberStatus.IsRetired)
+            // Only recalculate IsRetired if OverrideRetired is false
+            // When OverrideRetired is true, the admin has manually set the status and we should respect it
+            if (!memberStatus.OverrideRetired)
             {
-                // Currently cached as retired - check if should be active
-                if (consecutiveMonthsWithActivity >= 3)
+                // Dynamically recalculate IsRetired based on current consecutive months
+                // This ensures the displayed status matches the actual calculated status
+                if (memberStatus.IsRetired)
                 {
-                    isRetired = false; // Should be active (3+ consecutive months of activity)
+                    // Currently cached as retired - check if should be active
+                    if (consecutiveMonthsWithActivity >= 3)
+                    {
+                        isRetired = false; // Should be active (3+ consecutive months of activity)
+                    }
                 }
-                
+                else
+                {
+                    // Currently cached as active - check if should be retired
+                    if (consecutiveMonthsWithoutActivity >= 6)
+                    {
+                        isRetired = true; // Should be retired (6+ consecutive months without activity)
+                    }
+                }
+            }
+            
+            // Always recalculate progress regardless of OverrideRetired
+            // Progress is informational and shows actual activity status
+            if (isRetired)
+            {
                 // Progress for retired members: X/3 months toward reactivation
                 progressMonths = consecutiveMonthsWithActivity;
                 progressTotalMonths = 3;
@@ -932,14 +952,6 @@ public class MemberStatusService : IMemberStatusService
             }
             else
             {
-                // Currently cached as active - check if should be retired
-                // Note: We don't check OverrideRetired here because MapToResultAsync is for display only
-                // The actual status update with override check happens in UpdateMemberStatusAsync (line ~80)
-                if (consecutiveMonthsWithoutActivity >= 6)
-                {
-                    isRetired = true; // Should be retired (6+ consecutive months without activity)
-                }
-                
                 // Progress for active members: months until retirement
                 // If no activity in current month, add 1 for proactive warning
                 var displayMonthsWithoutActivity = consecutiveMonthsWithoutActivity;
