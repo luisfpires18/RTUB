@@ -61,8 +61,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #121212;
+    border-bottom: 2px solid rgba(111, 66, 193, 0.3); /* Purple accent border */
+    background: linear-gradient(135deg, #121212 0%, rgba(111, 66, 193, 0.1) 100%); /* Subtle purple gradient */
     flex-shrink: 0;
   }
 
@@ -86,16 +86,17 @@
     align-items: center;
     justify-content: center;
     border-radius: 0.25rem;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   .mobile-nav-close:hover,
   .mobile-nav-close:focus {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    color: var(--bs-primary);
   }
 
   .mobile-nav-close:active {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(var(--bs-primary-rgb), 0.3);
   }
 
   /* Drawer content area */
@@ -166,12 +167,22 @@
     font-family: inherit;
     cursor: pointer;
   }
+  
+  .mobile-nav-drawer .dropdown-toggle:hover::after,
+  .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"]::after {
+    color: var(--bs-primary);
+  }
 
   .mobile-nav-drawer .dropdown-toggle::after {
     position: absolute;
     right: 1.25rem;
     top: 50%;
     transform: translateY(-50%);
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+  
+  .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"]::after {
+    transform: translateY(-50%) rotate(180deg);
   }
 
   .mobile-nav-drawer .dropdown-menu {
@@ -180,10 +191,11 @@
     width: 100%;
     border: none;
     border-radius: 0;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(111, 66, 193, 0.08); /* Subtle purple tint */
     box-shadow: none;
     margin: 0;
-    padding: 0;
+    padding: 0.25rem 0;
+    border-left: 2px solid rgba(111, 66, 193, 0.3); /* Purple accent border */
   }
 
   .mobile-nav-drawer .dropdown-menu.show {
@@ -192,21 +204,22 @@
 
   .mobile-nav-drawer .dropdown-item {
     padding: 0.75rem 1.25rem 0.75rem 3rem;
-    color: #ddd;
+    color: #e0e0e0;
     font-size: 0.9rem;
     min-height: 44px;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
     border-left: 3px solid transparent;
+    background-color: transparent;
   }
 
   .mobile-nav-drawer .dropdown-item:hover,
   .mobile-nav-drawer .dropdown-item:focus {
-    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
     color: #fff;
-    border-left-color: rgba(var(--bs-primary-rgb), 0.5);
+    border-left-color: var(--bs-primary);
   }
 
   .mobile-nav-drawer .dropdown-item i {
@@ -224,8 +237,8 @@
   /* User section at bottom of drawer */
   .mobile-nav-drawer .navbar-nav.user-nav {
     margin-top: auto;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #121212;
+    border-top: 2px solid rgba(111, 66, 193, 0.3); /* Purple accent border */
+    background: linear-gradient(180deg, #121212 0%, rgba(111, 66, 193, 0.08) 100%); /* Subtle purple gradient */
     padding: 0.75rem 0;
   }
 
