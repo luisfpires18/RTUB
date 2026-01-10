@@ -99,6 +99,12 @@ public class BirthdayEmailSchedulerService : BackgroundService
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
+            // Exclude users who are ONLY Leitão (not yet official members)
+            // Leitão who have also become Caloiro, Tuno, etc. are still included
+            usersWithBirthdaysToday = usersWithBirthdaysToday
+                .Where(u => !u.IsOnlyLeitao())
+                .ToList();
+
             if (!usersWithBirthdaysToday.Any())
             {
                 _logger.LogInformation("No birthdays today");
