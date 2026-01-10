@@ -186,7 +186,7 @@
   }
 
   .mobile-nav-drawer .dropdown-menu {
-    position: static;
+    position: static !important; /* Override Bootstrap's absolute positioning */
     float: none;
     width: 100%;
     border: none;
@@ -196,6 +196,8 @@
     margin: 0;
     padding: 0.25rem 0;
     border-left: 2px solid rgba(111, 66, 193, 0.3); /* Purple accent border */
+    transform: none !important; /* Prevent Bootstrap's transform positioning */
+    inset: auto !important; /* Remove Bootstrap's absolute positioning values */
   }
 
   .mobile-nav-drawer .dropdown-menu.show {
