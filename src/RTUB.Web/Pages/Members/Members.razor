@@ -953,7 +953,6 @@ else
                         : string.Empty;
                     var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     var isRetired = statusData?.IsRetired ?? member.IsRetired;
-                    var showMakeActiveButton = isAdmin && isRetired;
                     <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
@@ -961,11 +960,7 @@ else
                                     InstrumentText="@instrumentText"
                                     LastRehearsalText="@rehearsalText"
                                     LastEventText="@eventText"
-                                    ProgressText="@progressText"
-                                    ShowActionButton="@showMakeActiveButton"
-                                    OnAction="@(() => OpenMakeActiveConfirmModal(member))"
-                                    ActionTooltip="Tornar Ativo"
-                                    ActionIcon="arrow-up-circle">
+                                    ProgressText="@progressText">
                         <StatusContent>
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {
@@ -1074,18 +1069,6 @@ else
                                 <DateBadge Date="@birthdayBadgeDate.Value" />
                             }
                         </BirthdayContent>
-                        <ActionsContent>
-                            <AuthorizeView Roles="Owner">
-                                <Authorized>
-                                    <button class="btn btn-sm @(IsBirthdayToday(member) ? "btn-success" : "btn-secondary")"
-                                            @onclick="@(() => SendBirthdayEmail(member))"
-                                            disabled="@(!IsBirthdayToday(member))"
-                                            title="@(IsBirthdayToday(member) ? "Enviar email de aniversário" : "Não é aniversário hoje")">
-                                        <i class="bi bi-envelope-heart"></i>
-                                    </button>
-                                </Authorized>
-                            </AuthorizeView>
-                        </ActionsContent>
                     </MemberCardLite>
                 }
             </div>
