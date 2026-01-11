@@ -353,6 +353,73 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         evt.EndDate.Should().Be(endDate);
     }
 
+    [Fact]
+    public async Task UpdateEventAsync_WithValidData_UpdatesEvent()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync("Original Event", DateTime.Now.AddDays(5), "Original Location", EventType.Festival, "Original Description");
+        var newName = "Updated Event";
+        var newDate = DateTime.Now.AddDays(10);
+        var newLocation = "Updated Location";
+        var newDescription = "Updated Description";
+        var newType = EventType.Atuacao;
+
+        // Act
+        await _eventService.UpdateEventAsync(eventEntity.Id, newName, newDate, newLocation, newDescription, newType);
+        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.Name.Should().Be(newName);
+        updated.Date.Should().Be(newDate);
+        updated.Location.Should().Be(newLocation);
+        updated.Description.Should().Be(newDescription);
+        updated.Type.Should().Be(newType);
+    }
+
+    [Fact]
+    public async Task UpdateEventAsync_WithEnrollments_DoesNotThrowTrackingException()
+    {
+        // Arrange - This test reproduces the tracking issue when updating events with enrollments
+        var user = new ApplicationUser
+        {
+            Id = "test-user-1",
+            UserName = "testuser",
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "TestNick",
+            PhoneNumber = "123456789"
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        var eventEntity = await _eventService.CreateEventAsync("Event with Enrollments", DateTime.Now.AddDays(7), "Test Location", EventType.Festival);
+        
+        var enrollment = Enrollment.Create(user.Id, eventEntity.Id);
+        enrollment.WillAttend = true;
+        enrollment.Instrument = InstrumentType.Guitarra;
+        _context.Enrollments.Add(enrollment);
+        await _context.SaveChangesAsync();
+
+        // Load the event with enrollments (simulating typical usage)
+        var loadedEvent = await _context.Events
+            .Include(e => e.Enrollments)
+            .ThenInclude(en => en.User)
+            .FirstOrDefaultAsync(e => e.Id == eventEntity.Id);
+        loadedEvent.Should().NotBeNull();
+
+        // Act - Update the event (this should not throw tracking exception)
+        var act = async () => await _eventService.UpdateEventAsync(eventEntity.Id, "Updated Name", DateTime.Now.AddDays(8), "Updated Location", "Updated Description", EventType.Atuacao);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        
+        var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
+        updated.Should().NotBeNull();
+        updated!.Name.Should().Be("Updated Name");
+    }
+
     public void Dispose()
     {
         _context?.Dispose();
