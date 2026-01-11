@@ -4012,23 +4012,29 @@ else
     
     private async Task LoadTrophiesStatistics()
     {
+        // Get all past events
+        var pastEvents = (await EventService.GetPastEventsAsync(100)).ToList();
+        
         // Get all trophies
         var allTrophies = (await TrophyService.GetAllAsync()).ToList();
         
-        // Group by event and include event details
-        var groupedByEvent = allTrophies
-            .Where(t => t.Event != null)
+        // Group trophies by event
+        var trophiesByEvent = allTrophies
+            .Where(t => t.EventId > 0)
             .GroupBy(t => t.EventId)
-            .Select(g => {
-                var firstTrophy = g.First();
-                var eventEntity = firstTrophy.Event;
+            .ToDictionary(g => g.Key, g => g.ToList());
+        
+        // Create stats for all past events (including those with 0 trophies)
+        var groupedByEvent = pastEvents
+            .Select(evt => {
+                var eventTrophies = trophiesByEvent.TryGetValue(evt.Id, out var trophyList) ? trophyList : new List<Trophy>();
                 return new TrophyStatsByEvent
                 {
-                    EventId = g.Key,
-                    EventName = eventEntity?.Name ?? "Evento desconhecido",
-                    EventDate = eventEntity?.Date ?? DateTime.MinValue,
-                    TrophyCount = g.Count(),
-                    Trophies = g.ToList()
+                    EventId = evt.Id,
+                    EventName = evt.Name ?? "Evento desconhecido",
+                    EventDate = evt.Date,
+                    TrophyCount = eventTrophies.Count,
+                    Trophies = eventTrophies
                 };
             })
             .OrderByDescending(s => s.TrophyCount)

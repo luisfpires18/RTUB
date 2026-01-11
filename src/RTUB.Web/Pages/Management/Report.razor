@@ -230,26 +230,41 @@ else
         else
             {
          <!-- Sort Controls -->
-         <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-             <span class="text-light-theme small">Ordenar por:</span>
+         <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+             <span class="text-light-theme small">Ordenar:</span>
              <div class="btn-group btn-group-sm" role="group" aria-label="Ordenação de transações">
                  <button type="button" class="btn @(tableState.SortColumn == "Date" ? "btn-primary" : "btn-outline-secondary")" 
-                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByDate))">
-                     Data <i class="bi @(tableState.SortColumn == "Date" ? (tableState.SortDescending ? "bi-sort-down" : "bi-sort-up") : "")"></i>
+                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByDate))"
+                         title="Ordenar por data">
+                     <i class="bi bi-calendar3"></i>
+                     @if (tableState.SortColumn == "Date")
+                     {
+                         <i class="bi @(tableState.SortDescending ? "bi-caret-down-fill" : "bi-caret-up-fill") ms-1"></i>
+                     }
                  </button>
                  <button type="button" class="btn @(tableState.SortColumn == "Amount" ? "btn-primary" : "btn-outline-secondary")" 
-                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByAmount))">
-                     Valor <i class="bi @(tableState.SortColumn == "Amount" ? (tableState.SortDescending ? "bi-sort-down" : "bi-sort-up") : "")"></i>
+                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByAmount))"
+                         title="Ordenar por valor">
+                     <i class="bi bi-currency-euro"></i>
+                     @if (tableState.SortColumn == "Amount")
+                     {
+                         <i class="bi @(tableState.SortDescending ? "bi-caret-down-fill" : "bi-caret-up-fill") ms-1"></i>
+                     }
                  </button>
                  <button type="button" class="btn @(tableState.SortColumn == "Type" ? "btn-primary" : "btn-outline-secondary")" 
-                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByType))">
-                     Tipo <i class="bi @(tableState.SortColumn == "Type" ? (tableState.SortDescending ? "bi-sort-down" : "bi-sort-up") : "")"></i>
+                         @onclick="@(() => HandleTransactionSort(activity.Id, SortByType))"
+                         title="Ordenar por tipo">
+                     <i class="bi bi-tag"></i>
+                     @if (tableState.SortColumn == "Type")
+                     {
+                         <i class="bi @(tableState.SortDescending ? "bi-caret-down-fill" : "bi-caret-up-fill") ms-1"></i>
+                     }
                  </button>
              </div>
          </div>
 
          <!-- Transaction Cards Grid -->
-         <div class="row g-3">
+         <div class="row g-2">
              @foreach (var transaction in filteredTransactions)
              {
                  <div class="col-12 col-sm-6 col-lg-4">
