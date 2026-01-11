@@ -132,13 +132,24 @@ public class Repository<T> : IRepository<T> where T : class
             .Select(p => p.PropertyInfo?.GetValue(entity))
             .ToArray();
 
-        var trackedEntry = _context.ChangeTracker
-            .Entries<T>()
-            .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
-
-        if (trackedEntry != null && !ReferenceEquals(trackedEntry.Entity, entity))
+        // Disable auto detect changes to prevent tracking navigation properties
+        var wasAutoDetectChangesEnabled = _context.ChangeTracker.AutoDetectChangesEnabled;
+        try
         {
-            trackedEntry.State = EntityState.Detached;
+            _context.ChangeTracker.AutoDetectChangesEnabled = false;
+            
+            var trackedEntry = _context.ChangeTracker
+                .Entries<T>()
+                .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
+
+            if (trackedEntry != null && !ReferenceEquals(trackedEntry.Entity, entity))
+            {
+                trackedEntry.State = EntityState.Detached;
+            }
+        }
+        finally
+        {
+            _context.ChangeTracker.AutoDetectChangesEnabled = wasAutoDetectChangesEnabled;
         }
     }
 
