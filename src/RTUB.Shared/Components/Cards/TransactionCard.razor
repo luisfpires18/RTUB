@@ -1,0 +1,122 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@*
+    TransactionCard Component
+    Reusable card for displaying financial transaction information with admin controls
+*@
+
+<div class="card transaction-card h-100">
+    <div class="card-body d-flex flex-column p-3 position-relative">
+        @if (ShowActions)
+        {
+            <div class="transaction-admin-overlay">
+                <button class="btn btn-sm music-btn-edit" 
+                        @onclick="HandleEdit" 
+                        @onclick:stopPropagation="true"
+                        title="Editar transação"
+                        aria-label="Editar transação">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" 
+                        @onclick="HandleDelete" 
+                        @onclick:stopPropagation="true"
+                        title="Eliminar transação"
+                        aria-label="Eliminar transação">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
+
+        <div class="transaction-header mb-2">
+            <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")">
+                @(Transaction.Type == "Income" ? "Receita" : "Despesa")
+            </span>
+            <span class="transaction-date text-light-theme">
+                <i class="bi bi-calendar3 me-1"></i>@Transaction.Date.ToString("dd/MM/yyyy")
+            </span>
+        </div>
+
+        <h6 class="card-title transaction-description mb-2">@Transaction.Description</h6>
+        
+        <div class="transaction-details mb-2">
+            <div class="transaction-category">
+                <i class="bi bi-tag me-1 text-light-theme"></i>
+                <span class="text-light-theme">@Transaction.Category</span>
+            </div>
+        </div>
+
+        <div class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")">
+            @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
+        </div>
+
+        @if (!string.IsNullOrEmpty(Transaction.ReceiptUrl))
+        {
+            <div class="transaction-actions mt-auto pt-2">
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-1 w-100" 
+                        @onclick="HandleViewReceipt"
+                        @onclick:stopPropagation="true"
+                        title="Ver recibo"
+                        aria-label="Ver recibo da transação">
+                    <i class="bi bi-eye"></i>
+                    <span>Ver Recibo</span>
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The transaction to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Transaction Transaction { get; set; } = null!;
+
+    /// <summary>
+    /// Whether to show admin action buttons (edit/delete)
+    /// </summary>
+    [Parameter]
+    public bool ShowActions { get; set; } = false;
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<Transaction> OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<Transaction> OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when the view receipt button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnViewReceipt { get; set; }
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync(Transaction);
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Transaction);
+        }
+    }
+
+    private async Task HandleViewReceipt()
+    {
+        if (OnViewReceipt.HasDelegate && !string.IsNullOrEmpty(Transaction.ReceiptUrl))
+        {
+            await OnViewReceipt.InvokeAsync(Transaction.ReceiptUrl);
+        }
+    }
+}
