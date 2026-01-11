@@ -140,6 +140,9 @@
     float: none;
     width: 100%;
     margin-top: 0.35rem;
+    padding: 0;
+    border: none;
+    background: transparent;
     box-shadow: none;
   }
   .navbar .offcanvas .dropdown-menu.show {
@@ -153,6 +156,20 @@
     margin-left: auto;
   }
   .navbar .offcanvas .dropdown-item {
-    padding-left: 2.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.9rem 0.65rem 2.25rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 0.75rem;
+  }
+  .navbar .offcanvas .dropdown-item i {
+    color: rgba(224, 210, 255, 0.95);
+    font-size: 1.05rem;
+  }
+  .navbar .offcanvas .dropdown-item:hover,
+  .navbar .offcanvas .dropdown-item:focus {
+    background-color: rgba(111, 66, 193, 0.2);
+    color: #fff;
   }
 }
