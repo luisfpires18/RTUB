@@ -58,6 +58,9 @@
   background-color: rgba(var(--bs-primary-rgb), 0.2);
   color: #fff;
 }
+.nav-link:active {
+  color: #fff;
+}
 .nav-link.active {
   background-color: var(--bs-primary);
   color: #fff;
@@ -105,6 +108,9 @@
 .dropdown-item:hover,
 .dropdown-item:focus {
   background-color: rgba(111, 66, 193, 0.2);
+  color: #fff;
+}
+.dropdown-item:active {
   color: #fff;
 }
 .dropdown-divider {
