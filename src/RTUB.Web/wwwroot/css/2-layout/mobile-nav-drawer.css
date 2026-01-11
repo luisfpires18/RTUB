@@ -166,10 +166,11 @@
     border: none;
     font-family: inherit;
     cursor: pointer;
+    position: relative;
   }
 
   .mobile-nav-drawer .dropdown-toggle::after {
-    display: none;
+    display: none !important;
   }
 
   .mobile-nav-drawer .mobile-nav-caret {
@@ -178,6 +179,7 @@
     align-items: center;
     transition: transform 0.2s ease, color 0.2s ease;
     color: inherit;
+    pointer-events: none;
   }
 
   .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"] .mobile-nav-caret {

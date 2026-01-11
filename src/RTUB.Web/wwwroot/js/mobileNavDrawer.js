@@ -53,7 +53,7 @@
         });
 
         // Close drawer when clicking nav links (optional, for better UX)
-        const navLinks = drawer.querySelectorAll('.nav-link:not(.dropdown-toggle)');
+        const navLinks = drawer.querySelectorAll('.nav-link:not(.dropdown-toggle), .dropdown-item');
         navLinks.forEach(link => {
             link.addEventListener('click', function () {
                 // Small delay to allow navigation to start
@@ -62,12 +62,34 @@
             });
         });
 
-        // Handle dropdown toggles in mobile drawer
-        const dropdownToggles = drawer.querySelectorAll('.dropdown-toggle');
+        // Handle dropdown toggles in mobile drawer (custom in-place dropdowns)
+        const dropdownToggles = drawer.querySelectorAll('[data-mobile-dropdown="true"]');
         dropdownToggles.forEach(toggle => {
             toggle.addEventListener('click', function (e) {
-                // Let Bootstrap handle dropdown, but prevent drawer close
+                e.preventDefault();
                 e.stopPropagation();
+
+                const currentItem = toggle.closest('.dropdown');
+                if (!currentItem) {
+                    return;
+                }
+
+                const currentMenu = currentItem.querySelector('.dropdown-menu');
+                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+
+                drawer.querySelectorAll('.dropdown').forEach(item => {
+                    const menu = item.querySelector('.dropdown-menu');
+                    const trigger = item.querySelector('[data-mobile-dropdown="true"]');
+                    if (menu && trigger && item !== currentItem) {
+                        menu.classList.remove('show');
+                        trigger.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                if (currentMenu) {
+                    currentMenu.classList.toggle('show', !isExpanded);
+                }
+                toggle.setAttribute('aria-expanded', (!isExpanded).toString());
             });
         });
     }
@@ -103,6 +125,11 @@
         const body = document.body;
 
         if (drawer && backdrop) {
+            drawer.querySelectorAll('.dropdown-menu.show').forEach(menu => menu.classList.remove('show'));
+            drawer.querySelectorAll('[data-mobile-dropdown="true"]').forEach(toggle => {
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+
             // Hide drawer
             drawer.classList.remove('show');
             
