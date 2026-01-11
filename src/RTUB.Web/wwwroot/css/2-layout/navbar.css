@@ -131,6 +131,13 @@
   .pwa-mode .navbar .offcanvas {
     width: min(60vw, 320px);
   }
+  .pwa-mode .navbar {
+    overflow-x: hidden;
+  }
+  .pwa-mode .navbar .offcanvas,
+  .pwa-mode .navbar .offcanvas .offcanvas-body {
+    overflow-x: hidden;
+  }
   .navbar .offcanvas .navbar-nav {
     flex-direction: column;
     gap: 0.35rem;
