@@ -166,14 +166,26 @@ window.pwaHelper = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+const applyPwaMode = () => {
     if (window.pwaHelper) {
         window.pwaHelper.applyPwaModeClass();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', applyPwaMode);
+window.addEventListener('pageshow', applyPwaMode);
+window.addEventListener('resize', applyPwaMode);
+window.addEventListener('orientationchange', applyPwaMode);
+window.addEventListener('focus', applyPwaMode);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        applyPwaMode();
     }
 });
 
-window.addEventListener('resize', () => {
-    if (window.pwaHelper) {
-        window.pwaHelper.applyPwaModeClass();
-    }
-});
+const displayModeQuery = window.matchMedia('(display-mode: standalone)');
+if (displayModeQuery?.addEventListener) {
+    displayModeQuery.addEventListener('change', applyPwaMode);
+} else if (displayModeQuery?.addListener) {
+    displayModeQuery.addListener(applyPwaMode);
+}
