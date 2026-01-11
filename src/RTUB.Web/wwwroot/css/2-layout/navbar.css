@@ -207,7 +207,23 @@
 }
 
 @media (display-mode: standalone) and (max-width: 991.98px) {
+  html,
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
   .navbar .offcanvas {
     width: min(60vw, 320px);
+  }
+  .navbar {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
+  }
+  .navbar .offcanvas,
+  .navbar .offcanvas .offcanvas-body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
   }
 }
