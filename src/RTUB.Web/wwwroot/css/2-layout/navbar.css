@@ -128,6 +128,9 @@
   .navbar .offcanvas {
     width: min(92vw, 360px);
   }
+  .pwa-mode .navbar .offcanvas {
+    width: min(60vw, 320px);
+  }
   .navbar .offcanvas .navbar-nav {
     flex-direction: column;
     gap: 0.35rem;

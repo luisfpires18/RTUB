@@ -154,5 +154,26 @@ window.pwaHelper = {
             console.error('Error subscribing to push:', e);
             return false;
         }
+    },
+
+    /**
+     * Applies a CSS class on the document element to allow PWA-specific styling
+     */
+    applyPwaModeClass: function() {
+        const root = document.documentElement;
+        if (!root) return;
+        root.classList.toggle('pwa-mode', this.isPwaMode());
     }
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.pwaHelper) {
+        window.pwaHelper.applyPwaModeClass();
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (window.pwaHelper) {
+        window.pwaHelper.applyPwaModeClass();
+    }
+});
