@@ -12,6 +12,7 @@
 @attribute [Authorize]
 @inherits CrudTablePageBase<Request>
 @inject IRequestService RequestService
+@inject IFiscalYearService FiscalYearService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -31,6 +32,14 @@
                 @bind-Value="SearchTerm"
                 OnSearch="UpdateSearch"
                 Placeholder="Pesquisar por nome, email, tipo de evento..." />
+        </div>
+        <div class="flex-lg-shrink-0" style="min-width: 200px;">
+            <FilterDropdown
+                SelectedValue="@selectedFiscalYear"
+                SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                OnChange="@OnFiscalYearChanged"
+                AllItemsLabel="Todos os anos"
+                Options="@fiscalYearOptions" />
         </div>
         <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 240px;">
             <FilterDropdown
@@ -269,6 +278,13 @@ else
     private string selectedStatusFilter = string.Empty;
     private List<string> statusFilterOptions = new() { "Pendente", "Aprovado", "Rejeitado" };
 
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+
     // Separate lists for pending and answered requests
     private List<Request> PendingRequests = new();
     private List<Request> AnsweredRequests = new();
@@ -310,6 +326,16 @@ else
                 }
             }
         }
+
+        // Load fiscal years
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= 2025)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
+        currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+        selectedFiscalYear = currentFiscalYear;
         
         await LoadItemsAsync();
         
@@ -355,6 +381,17 @@ else
         SearchHelper.SearchTerm = SearchTerm;
         FilteredItems = SearchHelper.FilterMultiple(AllItems, GetSearchSelectors());
 
+        // Apply fiscal year filter if selected
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            var fiscalYearRange = GetFiscalYearDateRange(selectedFiscalYear);
+            if (fiscalYearRange.HasValue)
+            {
+                var (startDate, endDate) = fiscalYearRange.Value;
+                FilteredItems = FilteredItems.Where(r => r.CreatedAt >= startDate && r.CreatedAt <= endDate).ToList();
+            }
+        }
+
         // Apply status filter if selected
         if (!string.IsNullOrEmpty(selectedStatusFilter))
         {
@@ -381,6 +418,30 @@ else
         // Update pagination for both grids
         UpdatePendingPagination();
         UpdateAnsweredPagination();
+    }
+
+    /// <summary>
+    /// Gets the fiscal year date range from the selected fiscal year string
+    /// </summary>
+    /// <returns>A tuple with start and end dates, or null if no valid fiscal year is selected</returns>
+    private (DateTime startDate, DateTime endDate)? GetFiscalYearDateRange(string fiscalYear)
+    {
+        if (string.IsNullOrEmpty(fiscalYear)) return null;
+        
+        var parts = fiscalYear.Split('-');
+        if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+        {
+            var startDate = new DateTime(startYear, 9, 1); // September 1st
+            var endDate = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year (end of day)
+            return (startDate, endDate);
+        }
+        
+        return null;
+    }
+
+    private void OnFiscalYearChanged()
+    {
+        ApplyFiltersAndPagination();
     }
 
     private void UpdatePendingPagination()
