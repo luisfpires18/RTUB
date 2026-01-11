@@ -56,13 +56,14 @@ public class EventTests
         var newDescription = "Updated Description";
 
         // Act
-        event1.UpdateDetails(newName, newDate, newLocation, newDescription);
+        event1.UpdateDetails(newName, newDate, newLocation, newDescription, EventType.Atuacao);
 
         // Assert
         event1.Name.Should().Be(newName);
         event1.Date.Should().Be(newDate);
         event1.Location.Should().Be(newLocation);
         event1.Description.Should().Be(newDescription);
+        event1.Type.Should().Be(EventType.Atuacao);
     }
 
     [Fact]
