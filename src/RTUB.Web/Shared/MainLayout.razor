@@ -19,11 +19,16 @@
     <div class="container-xxl rtub-wide px-xxl-4">
         <a class="navbar-brand" href="/">RTUB</a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav" aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#topNav" aria-controls="topNav" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse" id="topNav">
+        <div class="offcanvas offcanvas-end offcanvas-lg" tabindex="-1" id="topNav" aria-labelledby="topNavLabel">
+            <div class="offcanvas-header d-lg-none">
+                <h5 class="offcanvas-title" id="topNavLabel">Navegação</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
                 <!-- 1. Música (Public / Member) -->
@@ -58,7 +63,7 @@
 
                         <!-- 5. Membros (Member Dropdown) -->
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="membersDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <button class="nav-link dropdown-toggle" type="button" id="membersDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                                 <i class="bi bi-people"></i> Membros
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="membersDropdown">
@@ -83,7 +88,7 @@
                         
                         <!-- 7. Inventário (Member Dropdown) -->
                         <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                                 <i class="bi bi-box-seam"></i> Inventário
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
@@ -96,7 +101,7 @@
                         @if (_shouldShowGestaoDropdown)
                         {
                             <li class="nav-item dropdown">
-                                <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                                     <i class="bi bi-gear-fill"></i> Gestão
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="managementDropdown">
@@ -125,7 +130,7 @@
                     <Authorized Context="adminOwnerAuth">
                         <li class="nav-item dropdown">
                             <button class="nav-link dropdown-toggle" type="button" id="ownerDropdown"
-                                    data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                                 <i class="bi bi-tools"></i> Operações
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
@@ -184,7 +189,7 @@
                             }
                         }
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
                                     <img src="@GetNavbarAvatarUrl()" 
@@ -225,6 +230,7 @@
                     <a class="btn" href="/login">Entrar</a>
                 </NotAuthorized>
             </AuthorizeView>
+            </div>
         </div>
     </div>
 </nav>
