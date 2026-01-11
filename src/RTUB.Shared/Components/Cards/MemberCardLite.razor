@@ -5,18 +5,6 @@
 *@
 
 <div class="member-card-lite">
-    @* Top-right action button (optional) *@
-    @if (ShowActionButton && OnAction.HasDelegate)
-    {
-        <button class="member-card-lite-action-btn"
-                @onclick="@OnAction"
-                @onclick:stopPropagation="true"
-                title="@ActionTooltip"
-                aria-label="@ActionTooltip">
-            <i class="bi bi-@ActionIcon"></i>
-        </button>
-    }
-    
     <div class="member-card-lite-header">
         <img src="@AvatarUrl"
              alt="@AltText"
@@ -116,13 +104,6 @@
                 <span class="member-card-lite-value">@CityText</span>
             </div>
         }
-        @if (ActionsContent != null)
-        {
-            <div class="member-card-lite-row">
-                <span class="member-card-lite-label">Ações</span>
-                <span class="member-card-lite-value member-card-lite-actions">@ActionsContent</span>
-            </div>
-        }
     </div>
 </div>
 
@@ -174,22 +155,7 @@
 
     [Parameter]
     public string CityText { get; set; } = "";
-
-    [Parameter]
-    public RenderFragment? ActionsContent { get; set; }
     
     [Parameter]
     public RenderFragment? EncouragementContent { get; set; }
-    
-    [Parameter]
-    public bool ShowActionButton { get; set; } = false;
-    
-    [Parameter]
-    public EventCallback OnAction { get; set; }
-    
-    [Parameter]
-    public string ActionTooltip { get; set; } = "";
-    
-    [Parameter]
-    public string ActionIcon { get; set; } = "check-circle";
 }
