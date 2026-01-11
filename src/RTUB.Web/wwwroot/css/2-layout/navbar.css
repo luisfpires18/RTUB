@@ -210,4 +210,9 @@
   .navbar .offcanvas {
     width: min(60vw, 320px);
   }
+  .navbar {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    touch-action: pan-y;
+  }
 }
