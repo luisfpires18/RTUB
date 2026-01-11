@@ -104,9 +104,12 @@
   color: #f2f2f2 !important;
   border-radius: 0.5rem;
   padding: 0.55rem 0.75rem;
+  text-decoration: none;
 }
+.dropdown-item:link,
 .dropdown-item:visited {
   color: #f2f2f2 !important;
+  text-decoration: none;
 }
 .dropdown-item:hover,
 .dropdown-item:focus {
@@ -172,6 +175,15 @@
     padding: 0.65rem 0.9rem 0.65rem 2.25rem;
     background-color: rgba(255, 255, 255, 0.02);
     border-radius: 0.75rem;
+    color: #f2f2f2 !important;
+    text-decoration: none;
+  }
+  .navbar .offcanvas .dropdown-item:link,
+  .navbar .offcanvas .dropdown-item:visited,
+  .navbar .offcanvas .dropdown-item:active,
+  .navbar .offcanvas .dropdown-item.active {
+    color: #fff !important;
+    text-decoration: none;
   }
   .navbar .offcanvas .dropdown-item i {
     color: rgba(224, 210, 255, 0.95);
