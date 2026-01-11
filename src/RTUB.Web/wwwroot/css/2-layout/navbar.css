@@ -112,7 +112,7 @@
 }
 .dropdown-item.active,
 .dropdown-item:active {
-  color: #fff;
+  color: #fff !important;
 }
 .dropdown-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
