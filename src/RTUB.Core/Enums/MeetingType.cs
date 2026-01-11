@@ -18,5 +18,10 @@ public enum MeetingType
     /// <summary>
     /// Conselho de Veteranos - Veterans Council (restricted to Veteranos)
     /// </summary>
-    ConselhoVeteranos
+    ConselhoVeteranos,
+
+    /// <summary>
+    /// Reunião de Direção - Board Meeting (restricted to Direção members)
+    /// </summary>
+    ReuniaoDirecao
 }

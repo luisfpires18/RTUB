@@ -23,6 +23,10 @@
                 {
                     <i class="bi bi-megaphone-fill"></i>
                 }
+                else if (MeetingRequest.RequestedMeetingType == MeetingType.ReuniaoDirecao)
+                {
+                    <i class="bi bi-briefcase-fill"></i>
+                }
                 else
                 {
                     <i class="bi bi-people-fill"></i>
@@ -176,9 +180,10 @@
     {
         return MeetingRequest.RequestedMeetingType switch
         {
-            MeetingType.ConselhoVeteranos => "bg-dark text-white",
+            MeetingType.ConselhoVeteranos => "bg-secondary",  // Grey for veteran council
             MeetingType.AssembleiaGeralOrdinaria => "bg-primary",  // Blue for ordinary assembly
             MeetingType.AssembleiaGeralExtraordinaria => "bg-primary",  // Blue for extraordinary assembly
+            MeetingType.ReuniaoDirecao => "bg-info",  // Light blue for board meetings
             _ => "bg-secondary"
         };
     }
@@ -190,6 +195,7 @@
             MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
             MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
             MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            MeetingType.ReuniaoDirecao => "Reunião de Direção",
             _ => "Desconhecido"
         };
     }

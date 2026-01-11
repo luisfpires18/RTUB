@@ -7,37 +7,34 @@
     Card for displaying meeting information with admin controls
 *@
 
-<div class="position-relative">
-    @* Status badge positioned absolutely outside header *@
-    <div class="meeting-status-badge @GetMeetingStatusClass()">
-        @GetMeetingStatus()
-    </div>
-    
-    <div class="card meeting-card h-100">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar3"></i>
-                    <span>@GetMeetingTypeFullName()</span>
-                </div>
+<div class="card meeting-card h-100">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-calendar3"></i>
+                <span>@GetMeetingTypeFullName()</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
+                    @GetMeetingStatus()
+                </span>
                 @if (IsAdmin)
                 {
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
-                            <i class="bi bi-pencil music-icon-edit"></i>
-                        </button>
-                        <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                            <i class="bi bi-trash music-icon-delete"></i>
-                        </button>
-                    </div>
+                    <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                        <i class="bi bi-pencil music-icon-edit"></i>
+                    </button>
+                    <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
                 }
             </div>
         </div>
-        <div class="card-body d-flex flex-column">
-            <h5 class="meeting-title mb-1">@Meeting.Title</h5>
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
-            </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <h5 class="meeting-title mb-1">@Meeting.Title</h5>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
+        </div>
         
         <div class="meeting-info">
             <div class="meeting-info-row">
@@ -106,7 +103,6 @@
         </div>
         </div>
     </div>
-</div>
 
 @code {
     /// <summary>
@@ -235,6 +231,7 @@
             MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
             MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
             MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            MeetingType.ReuniaoDirecao => "Reunião de Direção",
             _ => ""
         };
     }
@@ -277,9 +274,10 @@
     {
         return Meeting.Type switch
         {
-            MeetingType.ConselhoVeteranos => "bg-warning text-dark",  // Yellow/orange for veteran council
+            MeetingType.ConselhoVeteranos => "bg-secondary",  // Grey for veteran council
             MeetingType.AssembleiaGeralOrdinaria => "bg-primary",  // Blue for ordinary assembly
             MeetingType.AssembleiaGeralExtraordinaria => "bg-primary",  // Blue for extraordinary assembly
+            MeetingType.ReuniaoDirecao => "bg-info",  // Light blue for board meetings
             _ => "bg-secondary"
         };
     }
@@ -290,7 +288,7 @@
         background: var(--card-bg-color);
         border: 1px solid var(--card-border-color);
         border-radius: 8px;
-        overflow: visible; /* Allow status badge to overflow */
+        overflow: hidden;
         transition: transform 0.2s, box-shadow 0.2s;
     }
 
@@ -305,18 +303,15 @@
         padding: 0.75rem 1rem;
     }
 
-    .meeting-status-badge {
-        position: absolute;
-        top: 60px;
-        right: 8px;
-        z-index: 10;
+    .meeting-status-badge-inline {
         display: inline-flex;
         align-items: center;
         padding: 0.2rem 0.55rem;
         border-radius: 0.3rem;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .meeting-status-upcoming {

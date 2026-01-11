@@ -4,6 +4,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Services
 @using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -11,6 +12,7 @@
 @using Microsoft.Extensions.Hosting
 @attribute [Authorize]
 @inject IDocumentStorageService DocumentStorageService
+@inject IFiscalYearService FiscalYearService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
@@ -34,6 +36,17 @@
                 </button>
             </div>
         }
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+        <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
+            <FilterDropdown SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Todos os anos"
+                            Options="@fiscalYearOptions" />
+        </div>
     </div>
 </div>
 
@@ -284,6 +297,13 @@ else
     private List<string> folders = new();
     private Dictionary<string, List<DocumentMetadata>> folderDocuments = new();
     
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+    
     // Per-folder pagination state (for documents within folders)
     private Dictionary<string, FolderPaginationState> folderPaginationStates = new();
     
@@ -353,6 +373,16 @@ else
                 }
             }
             
+            // Load fiscal years
+            var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+            fiscalYears = allFiscalYears
+                .Where(fy => fy.StartYear >= 2025)
+                .Select(fy => fy.GetFiscalYearString())
+                .OrderByDescending(y => y)
+                .ToList();
+            currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+            selectedFiscalYear = currentFiscalYear;
+            
             await LoadDocumentation();
         }
         catch (Exception ex)
@@ -382,15 +412,49 @@ else
             
             var results = await Task.WhenAll(documentTasks);
             
+            // Determine the date range based on selected fiscal year
+            DateTime? startDate = null;
+            DateTime? endDate = null;
+            
+            if (!string.IsNullOrEmpty(selectedFiscalYear))
+            {
+                // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
+                var parts = selectedFiscalYear.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+                {
+                    startDate = new DateTime(startYear, 9, 1); // September 1st
+                    endDate = new DateTime(startYear + 1, 8, 31); // August 31st next year
+                }
+            }
+            
             foreach (var result in results)
             {
-                folderDocuments[result.Folder] = result.Documents;
+                var filteredDocuments = result.Documents.AsEnumerable();
+                
+                // Apply fiscal year filter based on LastModified date
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    filteredDocuments = filteredDocuments.Where(d => 
+                        d.LastModified.Date >= startDate.Value.Date && d.LastModified.Date <= endDate.Value.Date);
+                }
+                
+                folderDocuments[result.Folder] = filteredDocuments.ToList();
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Erro ao carregar pastas e documentos: {ex.Message}";
         }
+    }
+    
+    private async Task OnFiscalYearChanged()
+    {
+        // Reset pagination when fiscal year changes
+        folderPaginationStates.Clear();
+        currentFolderPage = 1;
+        
+        // Reload documentation with new filter
+        await LoadDocumentation();
     }
 
     private void OpenCreateFolderModal()
