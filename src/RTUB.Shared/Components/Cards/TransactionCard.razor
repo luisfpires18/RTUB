@@ -3,10 +3,11 @@
 @*
     TransactionCard Component
     Compact card for displaying financial transaction information with admin controls
+    Redesigned to match LabelCard style with header icon
 *@
 
 <div class="card transaction-card h-100">
-    <div class="card-body d-flex flex-column p-2 position-relative">
+    <div class="position-relative">
         @if (ShowActions)
         {
             <div class="transaction-admin-overlay">
@@ -26,41 +27,54 @@
                 </button>
             </div>
         }
-
-        <div class="transaction-header mb-1">
-            <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")" style="font-size: 0.7rem;">
-                @(Transaction.Type == "Income" ? "Receita" : "Despesa")
-            </span>
-            <span class="transaction-date text-light-theme">
-                <i class="bi bi-calendar3 me-1"></i>@Transaction.Date.ToString("dd/MM/yy")
-            </span>
-        </div>
-
-        <h6 class="card-title transaction-description mb-1">@Transaction.Description</h6>
-        
-        <div class="transaction-details mb-1">
-            <div class="transaction-category">
-                <i class="bi bi-tag me-1 text-light-theme"></i>
-                <span class="text-light-theme">@Transaction.Category</span>
+        <div class="transaction-header @(Transaction.Type == "Income" ? "income-header" : "expense-header")">
+            <div class="transaction-icon-circle @(Transaction.Type == "Income" ? "income-circle" : "expense-circle")">
+                <i class="bi @(Transaction.Type == "Income" ? "bi-cash-coin" : "bi-credit-card")" aria-hidden="true"></i>
             </div>
         </div>
+    </div>
+    <div class="card-body d-flex flex-column p-2">
+        <div class="transaction-info">
+            <!-- Type Badge and Date -->
+            <div class="transaction-meta mb-2">
+                <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")" style="font-size: 0.7rem;">
+                    @(Transaction.Type == "Income" ? "Receita" : "Despesa")
+                </span>
+                <span class="transaction-date text-muted">
+                    <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>@Transaction.Date.ToString("dd/MM/yy")
+                </span>
+            </div>
 
-        <div class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")">
-            @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
+            <!-- Description -->
+            <h6 class="transaction-title mb-2" title="@Transaction.Description">
+                @Transaction.Description
+            </h6>
+
+            <!-- Category -->
+            <div class="transaction-info-row mb-2">
+                <i class="bi bi-tag transaction-icon" aria-hidden="true"></i>
+                <span class="transaction-text text-muted small">@Transaction.Category</span>
+            </div>
+
+            <!-- Amount -->
+            <div class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")">
+                @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
+            </div>
         </div>
 
         @if (!string.IsNullOrEmpty(Transaction.ReceiptUrl))
         {
             <div class="transaction-actions mt-auto">
-                <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-1 w-100" 
-                        style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"
-                        @onclick="HandleViewReceipt"
-                        @onclick:stopPropagation="true"
-                        title="Ver recibo"
-                        aria-label="Ver recibo da transação">
-                    <i class="bi bi-eye"></i>
-                    <span>Ver Recibo</span>
-                </button>
+                <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <button class="btn btn-sm btn-purple transaction-action-btn" 
+                            @onclick="HandleViewReceipt"
+                            @onclick:stopPropagation="true"
+                            title="Ver recibo"
+                            aria-label="Ver recibo da transação">
+                        <i class="bi bi-eye-fill" aria-hidden="true"></i>
+                        <span>Ver Recibo</span>
+                    </button>
+                </div>
             </div>
         }
     </div>

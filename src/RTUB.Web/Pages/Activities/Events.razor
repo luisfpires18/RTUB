@@ -901,7 +901,7 @@ else
                 <!-- Trophies by Event Section (with expandable trophies) -->
                 <div class="mb-4">
                     <h4 class="mb-3"><i class="bi bi-trophy-fill text-warning"></i> Prémios por Evento</h4>
-                    @foreach (var eventGroup in paginatedTrophiesStats.Where(e => e.Trophies.Any()))
+                    @foreach (var eventGroup in paginatedTrophiesStats)
                     {
                         var isExpanded = trophiesStatsExpanded.GetValueOrDefault(eventGroup.EventId, false);
                         var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;

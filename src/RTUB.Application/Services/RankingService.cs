@@ -236,22 +236,27 @@ public class RankingService : IRankingService
 
         var startDateOnly = startDate.Date;
         var endDateOnly = endDate.Date;
+        var nowDate = DateTime.UtcNow.Date;
 
         // Batch load all rehearsal attendances within date range in a single query
+        // Also exclude future rehearsals (after today) to match "all years" behavior
         var rehearsalXpByUser = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
             .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && 
-                        ra.Rehearsal!.Date >= startDateOnly && ra.Rehearsal!.Date <= endDateOnly)
+                        ra.Rehearsal!.Date >= startDateOnly && ra.Rehearsal!.Date <= endDateOnly &&
+                        ra.Rehearsal!.Date < nowDate)
             .GroupBy(ra => ra.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
 
         // Batch load all enrollments with event types within date range in a single query
+        // Also exclude future events (after today) to match "all years" behavior
         var enrollmentsByUser = await _enrollmentRepository.Query()
             .Include(e => e.Event)
             .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && 
                        (e.Event!.EndDate ?? e.Event!.Date).Date >= startDateOnly &&
-                       (e.Event!.EndDate ?? e.Event!.Date).Date <= endDateOnly)
+                       (e.Event!.EndDate ?? e.Event!.Date).Date <= endDateOnly &&
+                       (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })
             .ToListAsync();
 
