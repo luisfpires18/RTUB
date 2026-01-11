@@ -4024,8 +4024,9 @@ else
             .GroupBy(t => t.EventId)
             .ToDictionary(g => g.Key, g => g.ToList());
         
-        // Create stats for all past events (including those with 0 trophies)
+        // Create stats for all past events (only festivals can have trophies)
         var groupedByEvent = pastEvents
+            .Where(evt => evt.Type == EventType.Festival)
             .Select(evt => {
                 var eventTrophies = trophiesByEvent.TryGetValue(evt.Id, out var trophyList) ? trophyList : new List<Trophy>();
                 return new TrophyStatsByEvent
