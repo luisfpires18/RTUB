@@ -907,7 +907,9 @@ else
                         var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;
                         var position = paginatedTrophiesStats.IndexOf(eventGroup) + startIndex + 1;
                         <div class="user-stats-group mb-3">
-                            <div class="user-stats-header" @onclick="() => ToggleTrophiesStats(eventGroup.EventId)" style="cursor: pointer;">
+                            <div class="user-stats-header @(eventGroup.TrophyCount > 0 ? "" : "not-expandable")" 
+                                 @onclick="() => { if (eventGroup.TrophyCount > 0) ToggleTrophiesStats(eventGroup.EventId); }" 
+                                 style="@(eventGroup.TrophyCount > 0 ? "cursor: pointer;" : "")">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="stats-card-position me-2">
                                         @if (position == 1)
@@ -933,7 +935,10 @@ else
                                     </div>
                                 </div>
                                 <div class="user-stats-total">@eventGroup.TrophyCount prémio(s)</div>
-                                <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
+                                @if (eventGroup.TrophyCount > 0)
+                                {
+                                    <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
+                                }
                             </div>
                             @if (isExpanded)
                             {
