@@ -96,13 +96,13 @@ public class EventService : IEventService
         return await _eventRepository.AddAsync(eventEntity);
     }
 
-    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null)
+    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null)
     {
         var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
-        eventEntity.UpdateDetails(name, date, location, description);
+        eventEntity.UpdateDetails(name, date, location, description, type);
 
         if (endDate.HasValue)
         {
@@ -116,14 +116,14 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
-    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType)
+    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType)
     {
         var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
         // Update event details
-        eventEntity.UpdateDetails(name, date, location, description);
+        eventEntity.UpdateDetails(name, date, location, description, type);
 
         if (endDate.HasValue)
         {

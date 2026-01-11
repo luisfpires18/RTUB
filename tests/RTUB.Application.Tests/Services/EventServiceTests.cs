@@ -276,7 +276,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, newName, newDate, newLocation, newDescription, newEndDate, imageStream, "test.webp", "image/webp");
+        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, newName, newDate, newLocation, newDescription, EventType.Atuacao, newEndDate, imageStream, "test.webp", "image/webp");
         var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
 
         // Assert
@@ -312,7 +312,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, "New Name", DateTime.Now.AddDays(5), "New Location", "New desc", null, imageStream, "test.webp", "image/webp");
+        await _eventService.UpdateEventWithImageAsync(eventEntity.Id, "New Name", DateTime.Now.AddDays(5), "New Location", "New desc", EventType.Festival, null, imageStream, "test.webp", "image/webp");
 
         // Assert
         _mockImageStorageService.Verify(
@@ -328,7 +328,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
 
         // Act & Assert
-        var act = async () => await _eventService.UpdateEventWithImageAsync(999, "Name", DateTime.Now, "Location", "Description", null, imageStream, "test.webp", "image/webp");
+        var act = async () => await _eventService.UpdateEventWithImageAsync(999, "Name", DateTime.Now, "Location", "Description", EventType.Atuacao, null, imageStream, "test.webp", "image/webp");
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }

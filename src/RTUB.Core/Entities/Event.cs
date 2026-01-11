@@ -68,7 +68,7 @@ public class Event : BaseEntity
     }
 
     // Business methods
-    public void UpdateDetails(string name, DateTime date, string location, string description)
+    public void UpdateDetails(string name, DateTime date, string location, string description, EventType type)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("O nome do evento não pode estar vazio", nameof(name));
@@ -80,6 +80,7 @@ public class Event : BaseEntity
         Date = date;
         Location = location;
         Description = description;
+        Type = type;
     }
 
     public void SetEndDate(DateTime? endDate)
