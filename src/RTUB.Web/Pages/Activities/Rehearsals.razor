@@ -118,7 +118,7 @@ else
                         PageSize="@upcomingRehearsalsPagination.PageSize"
                         TotalItems="@filteredUpcomingRehearsals.Count"
                         ItemLabel="ensaios"
-                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
                         OnPageChanged="@HandleUpcomingRehearsalsPageChange"
                         OnPageSizeChanged="@HandleUpcomingRehearsalsPageSizeChange" />
     }
@@ -174,7 +174,7 @@ else
                         PageSize="@previousRehearsalsPagination.PageSize"
                         TotalItems="@filteredPreviousRehearsals.Count"
                         ItemLabel="ensaios"
-                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
                         OnPageChanged="@HandlePreviousRehearsalsPageChange"
                         OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
     }
@@ -1127,7 +1127,7 @@ else
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
     private List<Rehearsal> paginatedUpcomingRehearsals = new();
-    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
+    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 10 };
     private List<RehearsalAttendanceDisplay> rehearsalAttendances = new();
     private List<RehearsalAttendanceDisplay> paginatedRehearsalAttendances = new();
     private int attendanceCount = 0;
@@ -1156,7 +1156,7 @@ else
     private List<Rehearsal> paginatedPreviousRehearsals = new();
     private string previousRehearsalsSearch = "";
     private SearchHelper<Rehearsal> previousSearchHelper = new();
-    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 12 };
+    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 10 };
 
     // Fiscal year filtering
     private List<string> fiscalYears = new();
