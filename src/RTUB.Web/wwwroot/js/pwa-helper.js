@@ -154,5 +154,38 @@ window.pwaHelper = {
             console.error('Error subscribing to push:', e);
             return false;
         }
+    },
+
+    /**
+     * Applies a CSS class on the document element to allow PWA-specific styling
+     */
+    applyPwaModeClass: function() {
+        const root = document.documentElement;
+        if (!root) return;
+        root.classList.toggle('pwa-mode', this.isPwaMode());
     }
 };
+
+const applyPwaMode = () => {
+    if (window.pwaHelper) {
+        window.pwaHelper.applyPwaModeClass();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', applyPwaMode);
+window.addEventListener('pageshow', applyPwaMode);
+window.addEventListener('resize', applyPwaMode);
+window.addEventListener('orientationchange', applyPwaMode);
+window.addEventListener('focus', applyPwaMode);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        applyPwaMode();
+    }
+});
+
+const displayModeQuery = window.matchMedia('(display-mode: standalone)');
+if (displayModeQuery?.addEventListener) {
+    displayModeQuery.addEventListener('change', applyPwaMode);
+} else if (displayModeQuery?.addListener) {
+    displayModeQuery.addListener(applyPwaMode);
+}

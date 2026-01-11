@@ -128,6 +128,9 @@
   .navbar .offcanvas {
     width: min(92vw, 360px);
   }
+  .pwa-mode .navbar .offcanvas {
+    width: min(60vw, 320px);
+  }
   .navbar .offcanvas .navbar-nav {
     flex-direction: column;
     gap: 0.35rem;
@@ -193,5 +196,11 @@
   .navbar .offcanvas .dropdown-item:focus {
     background-color: rgba(111, 66, 193, 0.2);
     color: #fff;
+  }
+}
+
+@media (display-mode: standalone) and (max-width: 991.98px) {
+  .navbar .offcanvas {
+    width: min(60vw, 320px);
   }
 }
