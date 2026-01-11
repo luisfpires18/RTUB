@@ -1,11 +1,25 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 
-<div class="card logistics-board-card h-100">
+<div class="card logistics-board-card h-100 @(Board.IsCompleted ? "completed-board" : "")">
     <div class="position-relative">
         @if (ShowActions)
         {
             <div class="board-admin-overlay">
+                @if (ShowFinishButton && !Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => OnFinish.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Concluir Quadro">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                }
+                @if (ShowFinishButton && Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-warning" @onclick="() => OnReopen.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Reabrir Quadro">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                }
                 <button class="btn btn-sm music-btn-edit" @onclick="() => OnEdit.InvokeAsync(Board)" 
                         @onclick:stopPropagation="true" title="Editar">
                     <i class="bi bi-pencil music-icon-edit"></i>
@@ -17,8 +31,8 @@
             </div>
         }
         <div class="board-icon-header">
-            <div class="board-icon-circle">
-                <i class="bi bi-kanban"></i>
+            <div class="board-icon-circle @(Board.IsCompleted ? "completed" : "")">
+                <i class="bi @(Board.IsCompleted ? "bi-check-circle-fill" : "bi-kanban")"></i>
             </div>
         </div>
     </div>
@@ -35,6 +49,15 @@
             <div class="mb-2">
                 <span class="badge bg-primary d-inline-flex align-items-center gap-1">
                     <i class="bi bi-calendar-event"></i> @Board.Event.Name
+                </span>
+            </div>
+        }
+
+        @if (Board.IsCompleted)
+        {
+            <div class="mb-2">
+                <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-check-circle"></i> Concluído
                 </span>
             </div>
         }
@@ -58,6 +81,9 @@
     public bool ShowActions { get; set; } = true;
 
     [Parameter]
+    public bool ShowFinishButton { get; set; } = false;
+
+    [Parameter]
     public EventCallback<LogisticsBoard> OnView { get; set; }
 
     [Parameter]
@@ -65,4 +91,10 @@
 
     [Parameter]
     public EventCallback<LogisticsBoard> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnFinish { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnReopen { get; set; }
 }

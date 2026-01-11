@@ -45,7 +45,7 @@ public class LogisticsBoardService : ILogisticsBoardService
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<LogisticsBoard> Boards, int TotalCount)> GetBoardsPagedAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<(IEnumerable<LogisticsBoard> Boards, int TotalCount)> GetBoardsPagedAsync(int page, int pageSize, string? searchTerm = null, bool? isCompleted = null)
     {
         var query = _boardRepository.Query()
             .Include(b => b.Event)
@@ -56,8 +56,18 @@ public class LogisticsBoardService : ILogisticsBoardService
             query = query.Where(b => b.Name.Contains(searchTerm!) || b.Description.Contains(searchTerm!));
         }
 
+        if (isCompleted.HasValue)
+        {
+            query = query.Where(b => b.IsCompleted == isCompleted.Value);
+        }
+
         var totalCount = await query.CountAsync();
-        var boards = await _boardRepository.SearchBoardsAsync(searchTerm, page, pageSize);
+        
+        var boards = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
         return (boards, totalCount);
     }
@@ -109,5 +119,25 @@ public class LogisticsBoardService : ILogisticsBoardService
         }
 
         await _boardRepository.DeleteAsync(board);
+    }
+
+    public async Task MarkBoardAsCompletedAsync(int id)
+    {
+        var board = await _boardRepository.GetByIdAsync(id);
+        if (board == null)
+            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+
+        board.MarkAsCompleted();
+        await _boardRepository.UpdateAsync(board);
+    }
+
+    public async Task MarkBoardAsNotCompletedAsync(int id)
+    {
+        var board = await _boardRepository.GetByIdAsync(id);
+        if (board == null)
+            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+
+        board.MarkAsNotCompleted();
+        await _boardRepository.UpdateAsync(board);
     }
 }

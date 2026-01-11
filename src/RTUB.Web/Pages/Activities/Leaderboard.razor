@@ -556,7 +556,7 @@ else
         // Load fiscal years
         var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
         fiscalYears = allFiscalYears
-            .Where(fy => fy.StartYear >= 2025)
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
             .Select(fy => fy.GetFiscalYearString())
             .OrderByDescending(y => y)
             .ToList();
@@ -593,7 +593,7 @@ else
             if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
             {
                 var startDate = new DateTime(startYear, 9, 1); // September 1st
-                var endDate = new DateTime(startYear + 1, 8, 31); // August 31st next year
+                var endDate = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year (end of day)
                 
                 // Use date range overloads for fiscal year filtering
                 rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds, startDate, endDate);

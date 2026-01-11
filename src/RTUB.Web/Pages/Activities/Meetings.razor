@@ -278,6 +278,10 @@ else
                         {
                             <option value="@MeetingType.ConselhoVeteranos">Conselho de Veteranos (CV)</option>
                         }
+                        @if (CanCreateMeetingType(MeetingType.ReuniaoDirecao))
+                        {
+                            <option value="@MeetingType.ReuniaoDirecao">Reunião de Direção</option>
+                        }
                     </InputSelect>
                     <ValidationMessage For="@(() => editingMeeting.Type)" />
                 </div>
@@ -827,11 +831,10 @@ else
             }
         }
 
-        // Load fiscal years (show only fiscal years from current year minus 1)
-        var currentFiscalYearStart = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        // Load fiscal years (show only fiscal years from 2025 and beyond)
         var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
         fiscalYears = allFiscalYears
-            .Where(fy => fy.StartYear >= currentFiscalYearStart - 1)
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
             .Select(fy => fy.GetFiscalYearString())
             .OrderByDescending(y => y)
             .ToList();
@@ -1681,7 +1684,12 @@ else
     
     private bool IsDirecaoMember()
     {
-        if (currentUser == null || currentUser.Positions == null) return false;
+        if (currentUser == null) return false;
+        
+        // Owner can also access Direção functions
+        if (isOwner) return true;
+        
+        if (currentUser.Positions == null) return false;
         
         // Direção members: Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro
         return currentUser.Positions.Contains(Position.Magister) ||

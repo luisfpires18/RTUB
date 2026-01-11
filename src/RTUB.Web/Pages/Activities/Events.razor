@@ -898,67 +898,35 @@ else
         else
         {
             <div class="statistics-container">
-                <!-- Trophies by Event Section -->
+                <!-- Trophies by Event Section (with expandable trophies) -->
                 <div class="mb-4">
                     <h4 class="mb-3"><i class="bi bi-trophy-fill text-warning"></i> Prémios por Evento</h4>
-                    <div class="stats-card-grid">
-                        @{
-                            var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;
-                        }
-                        @for (int i = 0; i < paginatedTrophiesStats.Count; i++)
-                        {
-                            var stat = paginatedTrophiesStats[i];
-                            var position = startIndex + i + 1;
-                            <div class="stats-card">
-                                <div class="stats-card-position">
-                                    @if (position == 1)
-                                    {
-                                        <span class="stats-medal gold">🥇</span>
-                                    }
-                                    else if (position == 2)
-                                    {
-                                        <span class="stats-medal silver">🥈</span>
-                                    }
-                                    else if (position == 3)
-                                    {
-                                        <span class="stats-medal bronze">🥉</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="stats-position">@position</span>
-                                    }
-                                </div>
-                                <div class="stats-card-content">
-                                    <div class="stats-card-title">@stat.EventName</div>
-                                    <div class="stats-card-subtitle">@stat.EventDate.ToString("dd MMM yyyy")</div>
-                                </div>
-                                <div class="stats-card-count">
-                                    <i class="bi bi-trophy-fill text-warning"></i>
-                                    <span>@stat.TrophyCount</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    <TablePagination 
-                        CurrentPage="@trophiesStatsPaginationHelper.CurrentPage"
-                        PageSize="@trophiesStatsPaginationHelper.PageSize"
-                        TotalItems="@trophiesStatsByEvent.Count"
-                        ItemLabel="eventos"
-                        PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
-                        OnPageChanged="@HandleTrophiesStatsPageChanged"
-                        OnPageSizeChanged="@HandleTrophiesStatsPageSizeChanged" />
-                </div>
-
-                <!-- Trophy Details Section (Expandable) -->
-                <div class="mb-4">
-                    <h4 class="mb-3"><i class="bi bi-list-stars text-primary"></i> Lista de Prémios</h4>
                     @foreach (var eventGroup in paginatedTrophiesStats.Where(e => e.Trophies.Any()))
                     {
                         var isExpanded = trophiesStatsExpanded.GetValueOrDefault(eventGroup.EventId, false);
+                        var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;
+                        var position = paginatedTrophiesStats.IndexOf(eventGroup) + startIndex + 1;
                         <div class="user-stats-group mb-3">
                             <div class="user-stats-header" @onclick="() => ToggleTrophiesStats(eventGroup.EventId)" style="cursor: pointer;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-calendar-event text-primary"></i>
+                                    <div class="stats-card-position me-2">
+                                        @if (position == 1)
+                                        {
+                                            <span class="stats-medal gold">🥇</span>
+                                        }
+                                        else if (position == 2)
+                                        {
+                                            <span class="stats-medal silver">🥈</span>
+                                        }
+                                        else if (position == 3)
+                                        {
+                                            <span class="stats-medal bronze">🥉</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="stats-position">@position</span>
+                                        }
+                                    </div>
                                     <div class="user-stats-info">
                                         <div class="user-stats-nickname">@eventGroup.EventName</div>
                                         <div class="user-stats-fullname">@eventGroup.EventDate.ToString("dd MMM yyyy")</div>
@@ -984,6 +952,14 @@ else
                             }
                         </div>
                     }
+                    <TablePagination 
+                        CurrentPage="@trophiesStatsPaginationHelper.CurrentPage"
+                        PageSize="@trophiesStatsPaginationHelper.PageSize"
+                        TotalItems="@trophiesStatsByEvent.Count"
+                        ItemLabel="eventos"
+                        PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                        OnPageChanged="@HandleTrophiesStatsPageChanged"
+                        OnPageSizeChanged="@HandleTrophiesStatsPageSizeChanged" />
                 </div>
             </div>
         }
@@ -1692,7 +1668,7 @@ else
         // Load fiscal years
         var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
         fiscalYears = allFiscalYears
-            .Where(fy => fy.StartYear >= 2025)
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
             .Select(fy => fy.GetFiscalYearString())
             .OrderByDescending(y => y)
             .ToList();

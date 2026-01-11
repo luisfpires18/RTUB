@@ -705,6 +705,7 @@ else
         // Load fiscal years
         var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
         fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
             .Select(fy => fy.GetFiscalYearString())
             .OrderByDescending(y => y)
             .ToList();

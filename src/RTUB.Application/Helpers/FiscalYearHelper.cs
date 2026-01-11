@@ -7,6 +7,11 @@ namespace RTUB.Application.Helpers;
 public static class FiscalYearHelper
 {
     /// <summary>
+    /// The year when the application was created.
+    /// Used to filter fiscal years and other date-based data.
+    /// </summary>
+    public const int AppYearCreated = 2025;
+    /// <summary>
     /// Calculates the current fiscal year start year
     /// </summary>
     /// <returns>The start year of the current fiscal year</returns>
