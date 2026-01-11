@@ -107,8 +107,9 @@ public class GalleryMediaService : IGalleryMediaService
         int pageSize,
         int? year = null,
         string? personId = null,
-        bool? isAuthenticated = null)
+        bool? isAuthenticated = null,
+        string? titleSearch = null)
     {
-        return await _repository.GetPaginatedWithDetailsAsync(page, pageSize, year, personId, isAuthenticated);
+        return await _repository.GetPaginatedWithDetailsAsync(page, pageSize, year, personId, isAuthenticated, titleSearch);
     }
 }
