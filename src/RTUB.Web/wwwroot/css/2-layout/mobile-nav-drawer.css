@@ -156,7 +156,7 @@
 
   /* Dropdown styling in drawer */
   .mobile-nav-drawer .nav-item.dropdown {
-    position: relative;
+    position: static; /* Changed from relative to allow dropdown to flow naturally */
   }
 
   .mobile-nav-drawer .dropdown-toggle {
@@ -234,31 +234,6 @@
   .mobile-nav-drawer .dropdown-divider {
     margin: 0.25rem 1.25rem;
     border-top-color: rgba(255, 255, 255, 0.1);
-  }
-
-  /* Collapse button at the end of dropdown menus (ChatGPT-style) */
-  .mobile-nav-drawer .dropdown-collapse-btn {
-    color: var(--bs-primary);
-    font-weight: 500;
-    justify-content: center;
-    text-align: center;
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
-    background-color: transparent;
-    border: none;
-    width: 100%;
-    cursor: pointer;
-  }
-
-  .mobile-nav-drawer .dropdown-collapse-btn:hover,
-  .mobile-nav-drawer .dropdown-collapse-btn:focus {
-    background-color: rgba(var(--bs-primary-rgb), 0.15);
-    color: var(--bs-primary);
-  }
-
-  .mobile-nav-drawer .dropdown-collapse-btn i {
-    font-size: 0.9rem;
-    margin-right: 0.5rem;
   }
 
   /* User section at bottom of drawer */
