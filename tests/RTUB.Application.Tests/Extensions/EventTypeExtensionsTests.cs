@@ -20,6 +20,8 @@ public class EventTypeExtensionsTests
     [InlineData(EventType.Nerba, "NERBA")]
     [InlineData(EventType.Missa, "Missa")]
     [InlineData(EventType.Batizado, "Batizado")]
+    [InlineData(EventType.Arruada, "Arruada")]
+    [InlineData(EventType.Aniversario, "Aniversário")]
     public void GetDisplayName_ReturnsCorrectPortugueseName(EventType eventType, string expectedDisplayName)
     {
         // Act

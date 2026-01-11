@@ -13,5 +13,7 @@ public enum EventType
     Convivio,
     Nerba,
     Missa,
-    Batizado
+    Batizado,
+    Arruada,
+    Aniversario
 }

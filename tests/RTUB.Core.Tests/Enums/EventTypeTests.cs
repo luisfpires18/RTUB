@@ -23,7 +23,9 @@ public class EventTypeTests
             EventType.Convivio,
             EventType.Nerba,
             EventType.Missa,
-            EventType.Batizado
+            EventType.Batizado,
+            EventType.Arruada,
+            EventType.Aniversario
         };
 
         // Act
@@ -43,6 +45,8 @@ public class EventTypeTests
     [InlineData("Nerba", EventType.Nerba)]
     [InlineData("Missa", EventType.Missa)]
     [InlineData("Batizado", EventType.Batizado)]
+    [InlineData("Arruada", EventType.Arruada)]
+    [InlineData("Aniversario", EventType.Aniversario)]
     public void EventType_CanParse(string value, EventType expected)
     {
         // Act
@@ -72,6 +76,6 @@ public class EventTypeTests
         var count = Enum.GetValues<EventType>().Length;
 
         // Assert
-        count.Should().Be(9);
+        count.Should().Be(11);
     }
 }

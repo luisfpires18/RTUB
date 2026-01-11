@@ -23,6 +23,8 @@ public static class EventTypeExtensions
             EventType.Nerba => "NERBA",
             EventType.Missa => "Missa",
             EventType.Batizado => "Batizado",
+            EventType.Arruada => "Arruada",
+            EventType.Aniversario => "Aniversário",
             _ => eventType.ToString()
         };
     }
