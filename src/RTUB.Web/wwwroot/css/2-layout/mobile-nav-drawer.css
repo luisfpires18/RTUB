@@ -167,22 +167,22 @@
     font-family: inherit;
     cursor: pointer;
   }
-  
-  .mobile-nav-drawer .dropdown-toggle:hover::after,
-  .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"]::after {
-    color: var(--bs-primary);
-  }
 
   .mobile-nav-drawer .dropdown-toggle::after {
-    position: absolute;
-    right: 1.25rem;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: transform 0.2s ease, color 0.2s ease;
+    display: none;
   }
-  
-  .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"]::after {
-    transform: translateY(-50%) rotate(180deg);
+
+  .mobile-nav-drawer .mobile-nav-caret {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease, color 0.2s ease;
+    color: inherit;
+  }
+
+  .mobile-nav-drawer .dropdown-toggle[aria-expanded="true"] .mobile-nav-caret {
+    transform: rotate(180deg);
+    color: var(--bs-primary);
   }
 
   .mobile-nav-drawer .dropdown-menu {
