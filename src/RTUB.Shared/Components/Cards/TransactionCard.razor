@@ -2,8 +2,8 @@
 @using RTUB.Core.Entities
 @*
     TransactionCard Component
-    Compact card for displaying financial transaction information
-    Styled to match RequestCard pattern
+    Card for displaying transaction information
+    Styled like LabelCard
 *@
 
 <div class="card transaction-card h-100">
@@ -25,45 +25,37 @@
                 </button>
             </div>
         }
-        <div class="transaction-icon-header">
+        <div class="transaction-header">
             <div class="transaction-icon-circle @(Transaction.Type == "Income" ? "income" : "expense")">
                 <i class="bi @(Transaction.Type == "Income" ? "bi-arrow-down-circle-fill" : "bi-arrow-up-circle-fill")"></i>
             </div>
         </div>
     </div>
-    <div class="card-body d-flex flex-column p-2">
+    <div class="card-body d-flex flex-column">
         <div class="transaction-info">
-            <!-- Description -->
-            <div class="transaction-info-row">
-                <i class="bi bi-card-text transaction-icon"></i>
-                <span class="transaction-text fw-bold" title="@Transaction.Description">@TruncateDescription(Transaction.Description)</span>
-            </div>
+            <!-- Amount as prominent title -->
+            <h5 class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")" 
+                title="@Transaction.Amount.ToString("N2")€">
+                @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
+            </h5>
             
-            <!-- Amount - prominent display -->
-            <div class="transaction-info-row transaction-amount-row">
-                <i class="bi bi-currency-euro transaction-icon"></i>
-                <span class="transaction-text @(Transaction.Type == "Income" ? "text-success" : "text-danger") fw-bold">
-                    @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
-                </span>
-            </div>
+            <!-- Description as subtitle -->
+            <p class="transaction-description mb-2" title="@Transaction.Description">
+                @Transaction.Description
+            </p>
             
-            <!-- Category -->
-            <div class="transaction-info-row">
-                <i class="bi bi-tag transaction-icon"></i>
-                <span class="transaction-text">@Transaction.Category</span>
-            </div>
-            
-            <!-- Date -->
-            <div class="transaction-info-row">
-                <i class="bi bi-calendar3 transaction-icon"></i>
-                <span class="transaction-text">@Transaction.Date.ToString("dd/MM/yyyy")</span>
-            </div>
-
-            <!-- Type Badge -->
-            <div class="mt-2">
+            <!-- Type badge -->
+            <div class="transaction-badge-row mb-2">
                 <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")">
                     @(Transaction.Type == "Income" ? "Receita" : "Despesa")
                 </span>
+                <span class="badge bg-secondary ms-1">@Transaction.Category</span>
+            </div>
+            
+            <!-- Date info row -->
+            <div class="transaction-info-row">
+                <i class="bi bi-calendar3 transaction-icon"></i>
+                <span class="transaction-text text-muted small">@Transaction.Date.ToString("dd/MM/yyyy")</span>
             </div>
         </div>
 
@@ -71,7 +63,7 @@
         {
             <div class="transaction-actions mt-auto">
                 <div class="d-flex gap-2 align-items-center justify-content-center">
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                    <button class="btn btn-sm btn-purple transaction-action-btn" 
                             @onclick="HandleViewReceipt"
                             @onclick:stopPropagation="true"
                             title="Ver Recibo">
@@ -85,8 +77,6 @@
 </div>
 
 @code {
-    private const int DescriptionMaxLength = 30;
-
     [Parameter, EditorRequired]
     public Transaction Transaction { get; set; } = null!;
 
@@ -101,13 +91,6 @@
 
     [Parameter]
     public EventCallback<string> OnViewReceipt { get; set; }
-
-    private static string TruncateDescription(string? text)
-    {
-        if (string.IsNullOrEmpty(text) || text.Length <= DescriptionMaxLength)
-            return text ?? "";
-        return string.Concat(text.AsSpan(0, DescriptionMaxLength), "...");
-    }
 
     private async Task HandleEdit()
     {
