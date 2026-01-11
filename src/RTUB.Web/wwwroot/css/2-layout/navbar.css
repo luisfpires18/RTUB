@@ -198,3 +198,9 @@
     color: #fff;
   }
 }
+
+@media (display-mode: standalone) and (max-width: 991.98px) {
+  .navbar .offcanvas {
+    width: min(60vw, 320px);
+  }
+}
