@@ -44,6 +44,26 @@ public class MemberStatisticsService : IMemberStatisticsService
     }
 
     /// <summary>
+    /// Gets rehearsal attendance counts per user for attended rehearsals within a date range
+    /// Optimized to avoid unnecessary Include - navigation property not needed for aggregation
+    /// </summary>
+    public async Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime startDate, DateTime endDate)
+    {
+        var startDateOnly = startDate.Date;
+        var endDateOnly = endDate.Date;
+
+        var attendanceCounts = await (
+            from attendance in _context.RehearsalAttendances
+            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            where attendance.Attended && rehearsal.Date >= startDateOnly && rehearsal.Date <= endDateOnly
+            group attendance by attendance.UserId into g
+            select new { UserId = g.Key, Count = g.Count() }
+        ).ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        return attendanceCounts;
+    }
+
+    /// <summary>
     /// Gets enrollments with event types for users who attended events before a specific date
     /// Optimized to use Join for better performance
     /// </summary>
@@ -58,6 +78,30 @@ public class MemberStatisticsService : IMemberStatisticsService
             join evt in _context.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
             where enrollment.WillAttend && eventEndDate < beforeDateOnly
+            select new UserEnrollmentWithEventType
+            {
+                UserId = enrollment.UserId,
+                EventType = evt.Type
+            }
+        ).ToListAsync();
+
+        return enrollmentsWithTypes;
+    }
+
+    /// <summary>
+    /// Gets enrollments with event types for users who attended events within a date range
+    /// Optimized to use Join for better performance
+    /// </summary>
+    public async Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime startDate, DateTime endDate)
+    {
+        var startDateOnly = startDate.Date;
+        var endDateOnly = endDate.Date;
+
+        var enrollmentsWithTypes = await (
+            from enrollment in _context.Enrollments
+            join evt in _context.Events on enrollment.EventId equals evt.Id
+            let eventEndDate = (evt.EndDate ?? evt.Date).Date
+            where enrollment.WillAttend && eventEndDate >= startDateOnly && eventEndDate <= endDateOnly
             select new UserEnrollmentWithEventType
             {
                 UserId = enrollment.UserId,

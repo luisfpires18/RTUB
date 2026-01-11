@@ -12,7 +12,9 @@
 @using RTUB.Application.Utilities
 @using RTUB.Shared
 @using System.Web
+@using Microsoft.AspNetCore.WebUtilities
 @inject IEventService EventService
+@inject IFiscalYearService FiscalYearService
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
 @inject ITrophyService TrophyService
@@ -49,6 +51,9 @@
                         </button>
                     </Authorized>
                 </AuthorizeView>
+                <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
+                    <i class="bi bi-trophy-fill"></i> Prémios
+                </button>
                 <AuthorizeView>
                     <Authorized>
                         <EnrollmentStatisticsButton/>
@@ -57,78 +62,100 @@
                 </AuthorizeView>
             </div>
         </div>
+
+        <!-- Filter Controls -->
+        <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedFiscalYear"
+                                SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                                OnChange="@OnFiscalYearChanged"
+                                AllItemsLabel="Todos os anos"
+                                Options="@fiscalYearOptions" />
+            </div>
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedEventType"
+                                SelectedValueChanged="@(value => selectedEventType = value)"
+                                OnChange="@OnEventTypeChanged"
+                                AllItemsLabel="Todos os tipos"
+                                Options="@eventTypeOptions" />
+            </div>
+        </div>
     </div>
 
 
-@if (events == null)
+@if (allEvents == null)
 {
     <p>A carregar atuações...</p>
 }
-else if (!events.Any())
+else if (!filteredFutureEvents.Any() && !filteredPreviousEvents.Any())
 {
-    <EmptyState Title="Nenhum evento criado ainda"
+    <EmptyState Title="Nenhum evento encontrado"
+               Message="@GetEmptyStateMessage()"
                Icon="bi-info-circle" />
 }
 else
 {
-    <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
-        @foreach (var eventItem in paginatedFutureEvents)
-        {
-            <div class="col-md-4 mb-4" @key="eventItem.Id">
-                <AuthorizeView>
-                    <Authorized>
-                        @{
-                            var userEnrollment = GetUserEnrollment(eventItem.Id);
-                        }
-                        <EventCard Event="@eventItem"
-                                   ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
-                                   UserEnrollment="@userEnrollment"
-                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
-                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
-                                   IsAdmin="@isUserAdmin"
-                                   IsPastEvent="false"
-                                   ShowDeleteButton="@CanDeleteEvent()"
-                                   ShowCancelButton="@CanCancelEvent()"
-                                   OnEdit="@(() => OpenEditModal(eventItem))"
-                                   OnDelete="@(() => OpenDeleteModal(eventItem))"
-                                   OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
-                                   OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
-                                   OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
-                                   OnUncancelEvent="@(() => UncancelEvent(eventItem))"
-                                   OnEnrollGoing="@(() => OpenEnrollModalWithParticipation(eventItem, true))"
-                                   OnEnrollNotGoing="@(() => OpenEnrollModalWithParticipation(eventItem, false))"
-                                   OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
-                                   OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
-                                   OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                   OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
-                                   OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
-                                   OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
-                    </Authorized>
-                    <NotAuthorized Context="unauthorizedContext">
-                        <EventCard Event="@eventItem"
-                                   ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
-                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
-                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
-                                   IsAdmin="false"
-                                   IsPastEvent="false"
-                                   ShowButtons="false" />
-                    </NotAuthorized>
-                </AuthorizeView>
-            </div>
-        }
-    </div>
-
-    @if (events != null && events.Count > futureEventsPaginationHelper.PageSize)
+    @if (filteredFutureEvents.Any())
     {
-        <TablePagination CurrentPage="@futureEventsPaginationHelper.CurrentPage"
-                        PageSize="@futureEventsPaginationHelper.PageSize"
-                        TotalItems="@(events?.Count ?? 0)"
-                        ItemLabel="eventos"
-                        PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
-                        OnPageChanged="@HandleFutureEventsPageChange"
-                        OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
+        <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
+            @foreach (var eventItem in paginatedFutureEvents)
+            {
+                <div class="col-md-4 mb-4" @key="eventItem.Id">
+                    <AuthorizeView>
+                        <Authorized>
+                            @{
+                                var userEnrollment = GetUserEnrollment(eventItem.Id);
+                            }
+                            <EventCard Event="@eventItem"
+                                       ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
+                                       UserEnrollment="@userEnrollment"
+                                       EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                       RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                       DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                       IsAdmin="@isUserAdmin"
+                                       IsPastEvent="false"
+                                       ShowDeleteButton="@CanDeleteEvent()"
+                                       ShowCancelButton="@CanCancelEvent()"
+                                       OnEdit="@(() => OpenEditModal(eventItem))"
+                                       OnDelete="@(() => OpenDeleteModal(eventItem))"
+                                       OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
+                                       OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
+                                       OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
+                                       OnUncancelEvent="@(() => UncancelEvent(eventItem))"
+                                       OnEnrollGoing="@(() => OpenEnrollModalWithParticipation(eventItem, true))"
+                                       OnEnrollNotGoing="@(() => OpenEnrollModalWithParticipation(eventItem, false))"
+                                       OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
+                                       OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
+                                       OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
+                                       OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
+                                       OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
+                                       OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
+                        </Authorized>
+                        <NotAuthorized Context="unauthorizedContext">
+                            <EventCard Event="@eventItem"
+                                       ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
+                                       EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                       RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                       DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                       IsAdmin="false"
+                                       IsPastEvent="false"
+                                       ShowButtons="false" />
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            }
+        </div>
+
+        @if (filteredFutureEvents.Count > futureEventsPaginationHelper.PageSize)
+        {
+            <TablePagination CurrentPage="@futureEventsPaginationHelper.CurrentPage"
+                            PageSize="@futureEventsPaginationHelper.PageSize"
+                            TotalItems="@filteredFutureEvents.Count"
+                            ItemLabel="eventos"
+                            PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
+                            OnPageChanged="@HandleFutureEventsPageChange"
+                            OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
+        }
     }
 }
 
@@ -848,6 +875,124 @@ else
                OnConfirm="DeleteTrophy"
                OnCancel="CloseTrophyDeleteModal" />
 
+<!-- Trophies Statistics Modal -->
+<Modal Show="@showTrophiesStatsModal"
+       ShowChanged="@((value) => showTrophiesStatsModal = value)"
+       Title="Prémios Conquistados"
+       Size="Modal.ModalSize.Large"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (isLoadingTrophiesStats)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        }
+        else if (trophiesStatsByEvent == null || !trophiesStatsByEvent.Any())
+        {
+            <EmptyState Title="Nenhum prémio conquistado ainda"
+                       Icon="bi-trophy" />
+        }
+        else
+        {
+            <div class="statistics-container">
+                <!-- Trophies by Event Section -->
+                <div class="mb-4">
+                    <h4 class="mb-3"><i class="bi bi-trophy-fill text-warning"></i> Prémios por Evento</h4>
+                    <div class="stats-card-grid">
+                        @{
+                            var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;
+                        }
+                        @for (int i = 0; i < paginatedTrophiesStats.Count; i++)
+                        {
+                            var stat = paginatedTrophiesStats[i];
+                            var position = startIndex + i + 1;
+                            <div class="stats-card">
+                                <div class="stats-card-position">
+                                    @if (position == 1)
+                                    {
+                                        <span class="stats-medal gold">🥇</span>
+                                    }
+                                    else if (position == 2)
+                                    {
+                                        <span class="stats-medal silver">🥈</span>
+                                    }
+                                    else if (position == 3)
+                                    {
+                                        <span class="stats-medal bronze">🥉</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stats-position">@position</span>
+                                    }
+                                </div>
+                                <div class="stats-card-content">
+                                    <div class="stats-card-title">@stat.EventName</div>
+                                    <div class="stats-card-subtitle">@stat.EventDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                                <div class="stats-card-count">
+                                    <i class="bi bi-trophy-fill text-warning"></i>
+                                    <span>@stat.TrophyCount</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <TablePagination 
+                        CurrentPage="@trophiesStatsPaginationHelper.CurrentPage"
+                        PageSize="@trophiesStatsPaginationHelper.PageSize"
+                        TotalItems="@trophiesStatsByEvent.Count"
+                        ItemLabel="eventos"
+                        PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                        OnPageChanged="@HandleTrophiesStatsPageChanged"
+                        OnPageSizeChanged="@HandleTrophiesStatsPageSizeChanged" />
+                </div>
+
+                <!-- Trophy Details Section (Expandable) -->
+                <div class="mb-4">
+                    <h4 class="mb-3"><i class="bi bi-list-stars text-primary"></i> Lista de Prémios</h4>
+                    @foreach (var eventGroup in paginatedTrophiesStats.Where(e => e.Trophies.Any()))
+                    {
+                        var isExpanded = trophiesStatsExpanded.GetValueOrDefault(eventGroup.EventId, false);
+                        <div class="user-stats-group mb-3">
+                            <div class="user-stats-header" @onclick="() => ToggleTrophiesStats(eventGroup.EventId)" style="cursor: pointer;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-event text-primary"></i>
+                                    <div class="user-stats-info">
+                                        <div class="user-stats-nickname">@eventGroup.EventName</div>
+                                        <div class="user-stats-fullname">@eventGroup.EventDate.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                </div>
+                                <div class="user-stats-total">@eventGroup.TrophyCount prémio(s)</div>
+                                <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
+                            </div>
+                            @if (isExpanded)
+                            {
+                                <div class="stats-card-grid mt-2">
+                                    @foreach (var trophy in eventGroup.Trophies)
+                                    {
+                                        <div class="stats-card stats-card-detailed">
+                                            <div class="stats-card-content">
+                                                <div class="stats-card-title">
+                                                    <i class="bi bi-trophy-fill text-warning me-2"></i>@trophy.Name
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophiesStatsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 <!-- Videos Modal (with Upload and View sections) -->
 <Modal Show="@showVideosModal" 
        ShowChanged="@((value) => showVideosModal = value)"
@@ -1354,7 +1499,8 @@ else
 </div>
 
 @code {
-    private List<Event>? events;
+    private List<Event>? allEvents; // All events (unfiltered)
+    private List<Event> events = new(); // Future events (filtered)
     private List<Enrollment>? enrollments;
     private List<Enrollment>? eventEnrollments;
     private List<EventRepertoire>? eventRepertoires;
@@ -1379,12 +1525,15 @@ else
     private bool showEmailNotificationModal = false;
     private bool showPushNotificationModal = false;
     private bool showCancelEventModal = false;
+    private bool showTrophiesStatsModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
     private bool isTrophyCreateMode = false;
+    private bool isLoadingTrophiesStats = false;
+    private bool isInitializing = true;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1400,6 +1549,29 @@ else
     private Trophy? editingTrophy;
     private Trophy? deletingTrophy;
     private List<Trophy>? eventTrophies;
+    
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+    
+    // Event type filtering
+    private string selectedEventType = "";
+    private List<EventType> availableEventTypes = new();
+    private IEnumerable<FilterDropdownOption> eventTypeOptions => availableEventTypes
+        .Select(type => new FilterDropdownOption(type.ToString(), GetEventTypeDisplay(type)));
+    
+    // Filtered events lists
+    private List<Event> filteredFutureEvents = new();
+    private List<Event> filteredPreviousEvents = new();
+    
+    // Trophies Statistics Modal state
+    private List<TrophyStatsByEvent> trophiesStatsByEvent = new();
+    private List<TrophyStatsByEvent> paginatedTrophiesStats = new();
+    private Dictionary<int, bool> trophiesStatsExpanded = new();
+    private PaginationHelper<TrophyStatsByEvent> trophiesStatsPaginationHelper = new() { PageSize = 5 };
     
     // Video modal state (view and upload)
     private List<EventVideo>? eventVideos = null;
@@ -1432,17 +1604,16 @@ else
 
     // Future events pagination
     private PaginationHelper<Event> futureEventsPaginationHelper = new() { PageSize = 9 };
-    private List<Event> paginatedFutureEvents => futureEventsPaginationHelper.GetPageData(events ?? new List<Event>());
+    private List<Event> paginatedFutureEvents => futureEventsPaginationHelper.GetPageData(filteredFutureEvents);
 
-    // Previous events (admin only)
+    // Previous events
     private List<Event>? allPreviousEvents;
-    private List<Event>? filteredPreviousEvents;
     private string previousEventsSearch = string.Empty;
     
     // Helper instances for previous events
     private SearchHelper<Event> searchHelper = new();
     private PaginationHelper<Event> paginationHelper = new() { PageSize = 9 };
-    private List<Event> paginatedPreviousEvents => paginationHelper.GetPageData(filteredPreviousEvents ?? new List<Event>());
+    private List<Event> paginatedPreviousEvents => paginationHelper.GetPageData(filteredPreviousEvents);
     
     // Enrollment modal filter variables
     private string enrollmentSearchTerm = string.Empty;
@@ -1518,18 +1689,35 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadEvents();
-        await LoadPreviousEvents();
+        // Load fiscal years
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= 2025)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
+        currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+
+        // Read URL parameters
+        var uri = new Uri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        
+        // Fiscal year from URL or default to current
+        selectedFiscalYear = query.TryGetValue("fy", out var fy) ? fy.ToString() : currentFiscalYear;
+        
+        // Event type from URL
+        selectedEventType = query.TryGetValue("type", out var eventType) ? eventType.ToString() : "";
+        
+        await LoadAllEvents();
         await LoadEnrollments();
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
         await LoadCurrentUser();
         
-        // Check for query parameters to auto-open create modal with pre-filled data
-        var uri = new Uri(Navigation.Uri);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        isInitializing = false;
         
-        if (query["openModal"] == "true" && isUserAdmin)
+        // Check for query parameters to auto-open create modal with pre-filled data
+        if (query.TryGetValue("openModal", out var openModal) && openModal == "true" && isUserAdmin)
         {
             // Pre-fill event creation modal from request data
             isCreateMode = true;
@@ -1539,10 +1727,10 @@ else
             isDateRange = false;
             eventTimeString = "19:00";
             
-            var name = query["name"];
-            var location = query["location"];
-            var dateStr = query["date"];
-            var description = query["description"];
+            var name = query.TryGetValue("name", out var n) ? n.ToString() : string.Empty;
+            var location = query.TryGetValue("location", out var l) ? l.ToString() : string.Empty;
+            var dateStr = query.TryGetValue("date", out var d) ? d.ToString() : string.Empty;
+            var description = query.TryGetValue("description", out var desc) ? desc.ToString() : string.Empty;
             
             var parsedDate = DateTime.TryParse(dateStr, out var date) ? date : DateTime.Today;
             var eventTime = TimeSpan.Parse(eventTimeString);
@@ -1579,9 +1767,169 @@ else
         }
     }
 
-    private async Task LoadEvents()
+    private async Task LoadAllEvents()
     {
-        events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
+        // Load all upcoming events
+        var upcomingEvents = (await EventService.GetUpcomingEventsAsync(100)).ToList();
+        
+        // Load all past events
+        allPreviousEvents = (await EventService.GetPastEventsAsync(100)).ToList();
+        
+        // Combine to get all events
+        allEvents = upcomingEvents.Concat(allPreviousEvents).ToList();
+        
+        // Extract available event types from actual data
+        availableEventTypes = allEvents
+            .Select(e => e.Type)
+            .Distinct()
+            .OrderBy(t => GetEventTypeDisplay(t))
+            .ToList();
+        
+        // Apply filters
+        FilterEvents();
+    }
+    
+    private void FilterEvents()
+    {
+        if (allEvents == null)
+        {
+            filteredFutureEvents = new List<Event>();
+            filteredPreviousEvents = new List<Event>();
+            events = new List<Event>();
+            return;
+        }
+        
+        // Determine the date range based on selected fiscal year
+        DateTime? fiscalYearStart = null;
+        DateTime? fiscalYearEnd = null;
+        
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                fiscalYearStart = new DateTime(startYear, 9, 1); // September 1st
+                fiscalYearEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
+            }
+        }
+        
+        // Apply fiscal year and event type filters
+        var filtered = allEvents.AsEnumerable();
+        
+        // Filter by fiscal year
+        if (fiscalYearStart.HasValue && fiscalYearEnd.HasValue)
+        {
+            filtered = filtered.Where(e => e.Date >= fiscalYearStart.Value && e.Date <= fiscalYearEnd.Value);
+        }
+        
+        // Filter by event type
+        if (!string.IsNullOrEmpty(selectedEventType) && Enum.TryParse<EventType>(selectedEventType, out var eventTypeFilter))
+        {
+            filtered = filtered.Where(e => e.Type == eventTypeFilter);
+        }
+        
+        var filteredList = filtered.ToList();
+        
+        // Split into future and past events
+        var today = DateTime.Today;
+        filteredFutureEvents = filteredList
+            .Where(e => e.Date >= today)
+            .OrderBy(e => e.Date)
+            .ToList();
+        
+        // For backward compatibility, assign to events as well
+        events = filteredFutureEvents;
+        
+        // Filter previous events (also apply search)
+        var previousFiltered = filteredList.Where(e => e.Date < today);
+        
+        // Apply search filter to previous events
+        if (!string.IsNullOrWhiteSpace(previousEventsSearch))
+        {
+            searchHelper.SearchTerm = previousEventsSearch;
+            filteredPreviousEvents = searchHelper.FilterMultiple(previousFiltered.ToList(), new List<Func<Event, string>>
+            {
+                e => e.Name ?? "",
+                e => e.Location ?? "",
+                e => e.Description ?? ""
+            })
+            .OrderByDescending(e => e.Date)
+            .ToList();
+        }
+        else
+        {
+            filteredPreviousEvents = previousFiltered
+                .OrderByDescending(e => e.Date)
+                .ToList();
+        }
+        
+        // Reset pagination when filters change
+        futureEventsPaginationHelper.Reset();
+        paginationHelper.Reset();
+        
+        // Update URL state
+        UpdateUrlState();
+    }
+    
+    private async Task OnFiscalYearChanged()
+    {
+        FilterEvents();
+        await Task.CompletedTask;
+    }
+    
+    private async Task OnEventTypeChanged()
+    {
+        FilterEvents();
+        await Task.CompletedTask;
+    }
+    
+    private void UpdateUrlState()
+    {
+        // Don't update URL during initialization to avoid redirect loop
+        if (isInitializing)
+        {
+            return;
+        }
+
+        var queryParams = new List<string>();
+        
+        // Add fiscal year if not default
+        if (!string.IsNullOrEmpty(selectedFiscalYear) && selectedFiscalYear != currentFiscalYear)
+        {
+            queryParams.Add($"fy={Uri.EscapeDataString(selectedFiscalYear)}");
+        }
+        
+        // Add event type if selected
+        if (!string.IsNullOrEmpty(selectedEventType))
+        {
+            queryParams.Add($"type={Uri.EscapeDataString(selectedEventType)}");
+        }
+        
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var newUrl = Navigation.ToAbsoluteUri("/events" + queryString).ToString();
+        Navigation.NavigateTo(newUrl, false); // false = don't force reload
+    }
+    
+    private string GetEmptyStateMessage()
+    {
+        var messages = new List<string>();
+        
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            messages.Add($"ano letivo {selectedFiscalYear}");
+        }
+        
+        if (!string.IsNullOrEmpty(selectedEventType) && Enum.TryParse<EventType>(selectedEventType, out var eventType))
+        {
+            messages.Add($"tipo \"{GetEventTypeDisplay(eventType)}\"");
+        }
+        
+        if (messages.Any())
+        {
+            return $"Não existem atuações para {string.Join(" e ", messages)}.";
+        }
+        
+        return "Não existem atuações para mostrar.";
     }
 
     private async Task LoadEnrollments()
@@ -1595,18 +1943,9 @@ else
         // This follows the same pattern as loading all enrollments
         var repertoiresList = new List<EventRepertoire>();
         
-        if (events != null)
+        if (allEvents != null)
         {
-            foreach (var evt in events)
-            {
-                var repertoires = await EventRepertoireService.GetRepertoireByEventIdAsync(evt.Id);
-                repertoiresList.AddRange(repertoires);
-            }
-        }
-        
-        if (allPreviousEvents != null)
-        {
-            foreach (var evt in allPreviousEvents)
+            foreach (var evt in allEvents)
             {
                 var repertoires = await EventRepertoireService.GetRepertoireByEventIdAsync(evt.Id);
                 repertoiresList.AddRange(repertoires);
@@ -1622,53 +1961,36 @@ else
         // Store as dictionary mapping eventId to count for efficient lookup
         var counts = new Dictionary<int, int>();
         
-        var allEvents = new List<Event>();
-        if (events != null) allEvents.AddRange(events);
-        if (allPreviousEvents != null) allEvents.AddRange(allPreviousEvents);
-        
-        foreach (var evt in allEvents)
+        if (allEvents != null)
         {
-            var discussion = await DiscussionService.GetByEventIdAsync(evt.Id);
-            if (discussion != null)
+            foreach (var evt in allEvents)
             {
-                var count = await PostService.GetCountByDiscussionIdAsync(discussion.Id);
-                counts[evt.Id] = count;
-            }
-            else
-            {
-                counts[evt.Id] = 0;
+                var discussion = await DiscussionService.GetByEventIdAsync(evt.Id);
+                if (discussion != null)
+                {
+                    var count = await PostService.GetCountByDiscussionIdAsync(discussion.Id);
+                    counts[evt.Id] = count;
+                }
+                else
+                {
+                    counts[evt.Id] = 0;
+                }
             }
         }
         
         discussionPostCounts = counts;
     }
 
-    private async Task LoadPreviousEvents()
-    {
-        allPreviousEvents = (await EventService.GetPastEventsAsync(100)).ToList();
-        FilterPreviousEvents();
-    }
-
     private void FilterPreviousEvents()
     {
-        if (allPreviousEvents == null)
+        if (allEvents == null)
         {
             filteredPreviousEvents = new List<Event>();
             return;
         }
-
-        // Use SearchHelper for filtering
-        searchHelper.SearchTerm = previousEventsSearch;
-        filteredPreviousEvents = searchHelper.FilterMultiple(allPreviousEvents, new List<Func<Event, string>>
-        {
-            e => e.Name ?? "",
-            e => e.Location ?? "",
-            e => e.Description ?? ""
-        })
-        .OrderByDescending(e => e.Date)
-        .ToList();
-
-        paginationHelper.Reset(); // Reset to first page when filtering
+        
+        // Re-run full filtering to apply search
+        FilterEvents();
     }
 
     private async Task HandlePreviousEventsSearch(string searchTerm)
@@ -1924,8 +2246,7 @@ else
         }
 
         // Reload all event-related data to ensure UI is fully updated
-        await LoadEvents();
-        await LoadPreviousEvents();
+        await LoadAllEvents();
         await LoadEnrollments();
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
@@ -1954,8 +2275,7 @@ else
         await EventService.DeleteEventAsync(deletingEvent.Id);
         
         // Reload all event-related data to ensure UI is fully updated
-        await LoadEvents();
-        await LoadPreviousEvents();
+        await LoadAllEvents();
         await LoadEnrollments();
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
@@ -3097,8 +3417,7 @@ else
             }
 
             // Reload events
-            await LoadEvents();
-            await LoadPreviousEvents();
+            await LoadAllEvents();
 
             CloseCancelEventModal();
         }
@@ -3118,8 +3437,7 @@ else
         try
         {
             await EventService.UncancelEventAsync(eventItem.Id);
-            await LoadEvents();
-            await LoadPreviousEvents();
+            await LoadAllEvents();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -3692,6 +4010,109 @@ else
         {
             Logger.LogError(ex, "Error logging video playback for video {VideoId}", video.Id);
         }
+    }
+    
+    // Trophies Statistics Modal methods
+    private async Task OpenTrophiesStatsModal()
+    {
+        showTrophiesStatsModal = true;
+        isLoadingTrophiesStats = true;
+        StateHasChanged();
+        
+        try
+        {
+            await LoadTrophiesStatistics();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading trophies statistics");
+        }
+        finally
+        {
+            isLoadingTrophiesStats = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadTrophiesStatistics()
+    {
+        // Get all trophies
+        var allTrophies = (await TrophyService.GetAllAsync()).ToList();
+        
+        // Group by event and include event details
+        var groupedByEvent = allTrophies
+            .Where(t => t.Event != null)
+            .GroupBy(t => t.EventId)
+            .Select(g => {
+                var firstTrophy = g.First();
+                var eventEntity = firstTrophy.Event;
+                return new TrophyStatsByEvent
+                {
+                    EventId = g.Key,
+                    EventName = eventEntity?.Name ?? "Evento desconhecido",
+                    EventDate = eventEntity?.Date ?? DateTime.MinValue,
+                    TrophyCount = g.Count(),
+                    Trophies = g.ToList()
+                };
+            })
+            .OrderByDescending(s => s.TrophyCount)
+            .ThenByDescending(s => s.EventDate)
+            .ToList();
+        
+        trophiesStatsByEvent = groupedByEvent;
+        
+        // Set up pagination
+        paginatedTrophiesStats = trophiesStatsPaginationHelper.GetPageData(trophiesStatsByEvent);
+        
+        // Initialize all as collapsed
+        trophiesStatsExpanded.Clear();
+        foreach (var stat in trophiesStatsByEvent)
+        {
+            trophiesStatsExpanded[stat.EventId] = false;
+        }
+    }
+    
+    private void CloseTrophiesStatsModal()
+    {
+        showTrophiesStatsModal = false;
+    }
+    
+    private void HandleTrophiesStatsPageChanged(int newPage)
+    {
+        trophiesStatsPaginationHelper.GoToPage(newPage);
+        paginatedTrophiesStats = trophiesStatsPaginationHelper.GetPageData(trophiesStatsByEvent);
+        StateHasChanged();
+    }
+    
+    private void HandleTrophiesStatsPageSizeChanged(int newSize)
+    {
+        trophiesStatsPaginationHelper.PageSize = newSize;
+        trophiesStatsPaginationHelper.CurrentPage = 1;
+        paginatedTrophiesStats = trophiesStatsPaginationHelper.GetPageData(trophiesStatsByEvent);
+        StateHasChanged();
+    }
+    
+    private void ToggleTrophiesStats(int eventId)
+    {
+        if (trophiesStatsExpanded.ContainsKey(eventId))
+        {
+            trophiesStatsExpanded[eventId] = !trophiesStatsExpanded[eventId];
+        }
+        else
+        {
+            trophiesStatsExpanded[eventId] = true;
+        }
+        StateHasChanged();
+    }
+    
+    // Trophy stats helper class
+    private class TrophyStatsByEvent
+    {
+        public int EventId { get; set; }
+        public string EventName { get; set; } = string.Empty;
+        public DateTime EventDate { get; set; }
+        public int TrophyCount { get; set; }
+        public List<Trophy> Trophies { get; set; } = new();
     }
 }
 

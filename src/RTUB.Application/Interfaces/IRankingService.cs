@@ -48,4 +48,10 @@ public interface IRankingService
     /// Optimized to avoid N+1 queries
     /// </summary>
     Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds);
+
+    /// <summary>
+    /// Gets the rank progress information for multiple users within a date range
+    /// Used for fiscal year filtering in leaderboard
+    /// </summary>
+    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, DateTime startDate, DateTime endDate);
 }
