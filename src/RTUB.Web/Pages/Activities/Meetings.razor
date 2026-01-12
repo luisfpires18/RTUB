@@ -71,7 +71,7 @@ else
     @if (assemblyInfoLabel != null)
     {
         <div class="position-relative">
-            @if (CanManageMeetings())
+            @if (isAdmin || isOwner)
             {
                 <div class="position-absolute top-0 end-0 p-2">
                     <button class="btn btn-sm btn-outline-light" 
@@ -778,6 +778,7 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
+    private bool isAdmin = false;
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -878,8 +879,9 @@ else
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         
-        // Cache owner role to avoid synchronous I/O in rendering methods
+        // Cache owner and admin roles to avoid synchronous I/O in rendering methods
         isOwner = user.IsInRole("Owner");
+        isAdmin = user.IsInRole("Admin");
 
         if (user.Identity?.IsAuthenticated == true)
         {
