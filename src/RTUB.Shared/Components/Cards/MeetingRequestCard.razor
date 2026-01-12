@@ -11,10 +11,16 @@
     <div class="position-relative">
         @if (IsAuthor)
         {
-            <div class="request-admin-overlay">
+            <div class="request-admin-overlay" style="flex-direction: column;">
                 <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
+                @if (ShowReminder && MeetingRequest.Status == RequestStatus.Pending)
+                {
+                    <button class="btn btn-sm music-btn-delete" @onclick="HandleSendReminder" title="Enviar Lembrete">
+                        <i class="bi bi-bell-fill music-icon-delete"></i>
+                    </button>
+                }
             </div>
         }
         <div class="request-icon-header">
@@ -94,16 +100,6 @@
                             @onclick="HandleReject" 
                             title="Rejeitar">
                         <i class="bi bi-x-circle-fill"></i>
-                    </button>
-                }
-
-                @if (ShowReminder && MeetingRequest.Status == RequestStatus.Pending)
-                {
-                    <!-- Send Reminder button -->
-                    <button class="btn btn-sm btn-outline-warning d-flex align-items-center" 
-                            @onclick="HandleSendReminder" 
-                            title="Enviar Lembrete">
-                        <i class="bi bi-bell-fill"></i>
                     </button>
                 }
             </div>

@@ -148,6 +148,15 @@ else
             </div>
         </div>
         
+        @if (!string.IsNullOrEmpty(reminderSuccessMessage))
+        {
+            <Alert Type="Alert.AlertType.Success" 
+                   Message="@reminderSuccessMessage" 
+                   Icon="bi-check-circle-fill"
+                   Dismissible="true"
+                   OnDismiss="@(() => reminderSuccessMessage = null)" />
+        }
+        
         @if (isLoadingRequests)
         {
             <div class="text-center p-5">
@@ -702,6 +711,25 @@ else
         </button>
     </FooterContent>
 </Modal>
+
+<!-- Send Reminder Confirmation Modal -->
+<Modal Show="@showReminderConfirmModal" 
+       ShowChanged="@((bool show) => showReminderConfirmModal = show)"
+       Title="Enviar Lembrete">
+    <BodyContent>
+        @if (reminderRequest != null)
+        {
+            <p>Tem a certeza que quer enviar um lembrete sobre o pedido <strong>@reminderRequest.Title</strong>?</p>
+            <p class="text-muted">Será enviada uma notificação push para os responsáveis.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseReminderConfirmModal">Cancelar</button>
+        <button class="btn btn-primary" @onclick="ConfirmSendReminder">
+            <i class="bi bi-bell-fill"></i> Enviar
+        </button>
+    </FooterContent>
+</Modal>
 }
 
 @code {
@@ -773,9 +801,12 @@ else
     private bool showProposalModal = false;
     private bool showRequestDetailsModal = false;
     private bool showDeleteRequestModal = false;
+    private bool showReminderConfirmModal = false;
     private MeetingRequest? proposalRequest;
     private MeetingRequest? viewingRequest;
     private MeetingRequest? deletingRequest;
+    private MeetingRequest? reminderRequest;
+    private string? reminderSuccessMessage;
     
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -1901,18 +1932,48 @@ else
     
     private async Task SendMeetingRequestReminder(MeetingRequest request)
     {
+        reminderRequest = request;
+        showReminderConfirmModal = true;
+        await Task.CompletedTask;
+    }
+    
+    private void CloseReminderConfirmModal()
+    {
+        showReminderConfirmModal = false;
+        reminderRequest = null;
+    }
+    
+    private async Task ConfirmSendReminder()
+    {
+        if (reminderRequest == null) return;
+        
         try
         {
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
-            var success = await MeetingRequestService.SendReminderNotificationAsync(request.Id, baseUrl);
+            var success = await MeetingRequestService.SendReminderNotificationAsync(reminderRequest.Id, baseUrl);
             if (success)
             {
-                // Could show a success message here
+                reminderSuccessMessage = "Notificação Enviada!";
+                StateHasChanged();
+                
+                // Auto-dismiss after 3 seconds
+                _ = Task.Delay(3000).ContinueWith(_ =>
+                {
+                    InvokeAsync(() =>
+                    {
+                        reminderSuccessMessage = null;
+                        StateHasChanged();
+                    });
+                });
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending reminder: {ex.Message}");
+        }
+        finally
+        {
+            CloseReminderConfirmModal();
         }
     }
 }
