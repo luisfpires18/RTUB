@@ -233,7 +233,7 @@ else
                             TotalItems="@GetFilteredTransactionCount(activity.Id)"
                             ItemLabel="transações"
                             OnPageChanged="@(page => HandleTransactionPageChange(activity.Id, page))"
-                            PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                            PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
                             OnPageSizeChanged="@(pageSize => HandleTransactionPageSizeChange(activity.Id, pageSize))" />
          }
  }
@@ -495,7 +495,7 @@ else
         public string SortColumn { get; set; } = "Date";
         public bool SortDescending { get; set; } = true;
         public int CurrentPage { get; set; } = 1;
-        public int PageSize { get; set; } = 5;
+        public int PageSize { get; set; } = 10;
     }
 
     private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
