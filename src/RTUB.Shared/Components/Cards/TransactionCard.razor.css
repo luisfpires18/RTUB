@@ -16,18 +16,18 @@
 
 .transaction-header {
     width: 100%;
-    height: 60px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
-    border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+    border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.3);
     position: relative;
 }
 
 .transaction-icon-circle {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -58,7 +58,7 @@
 }
 
 .transaction-icon-circle i {
-    font-size: 1.125rem;
+    font-size: 1rem;
 }
 
 .transaction-icon-circle.income i {
@@ -71,21 +71,21 @@
 
 /* Info section */
 .transaction-info {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .transaction-amount {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
     line-height: 1.2;
 }
 
 .transaction-description {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--bs-body-color);
-    margin-bottom: 0.375rem;
-    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    line-height: 1.15;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -94,14 +94,21 @@
 }
 
 .transaction-badge-row {
-    margin-bottom: 0.375rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.transaction-badge-row .badge {
+    font-size: 0.75rem;
 }
 
 .transaction-info-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
+    gap: 0.375rem;
+    font-size: 0.8rem;
 }
 
 .transaction-icon {
@@ -115,8 +122,8 @@
 /* Admin overlay */
 .transaction-admin-overlay {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 4px;
+    right: 4px;
     display: flex;
     gap: 4px;
     z-index: 10;
@@ -124,7 +131,7 @@
 
 /* Actions section */
 .transaction-actions {
-    padding-top: 0.5rem;
+    padding-top: 0.35rem;
     border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
 }
 
@@ -133,12 +140,12 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 0.375rem 0.625rem;
+    padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
     font-weight: 500;
     border-radius: 0.375rem;
     transition: all 0.2s ease;
-    min-height: 32px;
+    min-height: 28px;
 }
 
 .transaction-action-btn:hover {
@@ -153,19 +160,27 @@
 /* Responsive */
 @media (max-width: 576px) {
     .transaction-header {
-        height: 50px;
+        height: 44px;
     }
     
     .transaction-icon-circle {
-        width: 32px;
-        height: 32px;
+        width: 30px;
+        height: 30px;
     }
     
     .transaction-icon-circle i {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
     
     .transaction-amount {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
+
+    .transaction-description {
+        font-size: 0.8rem;
+    }
+}
+
+.transaction-card .card-body {
+    padding: 0.5rem 0.75rem;
 }
