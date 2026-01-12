@@ -1,0 +1,129 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@*
+    TransactionCard Component
+    Compact card for displaying transaction information on report pages
+*@
+
+<div class="card transaction-card h-100">
+    <div class="transaction-card__top">
+        <div class="transaction-icon-header">
+            <div class="transaction-icon-circle">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="transaction-info">
+            <div class="transaction-info-row">
+                <i class="bi bi-calendar3 transaction-icon"></i>
+                <span class="transaction-label">Data</span>
+                <span class="transaction-text">@Transaction.Date.ToString("dd MMM yyyy")</span>
+            </div>
+            <div class="transaction-info-row">
+                <i class="bi bi-card-text transaction-icon"></i>
+                <span class="transaction-label">Descrição</span>
+                <span class="transaction-text">@FormatField(Transaction.Description)</span>
+            </div>
+            <div class="transaction-info-row">
+                <i class="bi bi-tag transaction-icon"></i>
+                <span class="transaction-label">Categoria</span>
+                <span class="transaction-text">@FormatField(Transaction.Category)</span>
+            </div>
+            <div class="transaction-info-row">
+                <i class="bi bi-arrow-left-right transaction-icon"></i>
+                <span class="transaction-label">Tipo</span>
+                <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")">
+                    @(Transaction.Type == "Income" ? "Receita" : "Despesa")
+                </span>
+            </div>
+            <div class="transaction-info-row">
+                <i class="bi bi-currency-euro transaction-icon"></i>
+                <span class="transaction-label">Valor</span>
+                <span class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")">
+                    @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
+                </span>
+            </div>
+        </div>
+
+        @if (HasActions)
+        {
+            <div class="transaction-actions-section mt-auto">
+                <div class="d-flex gap-2 align-items-center justify-content-center">
+                    @if (!string.IsNullOrEmpty(Transaction.ReceiptUrl))
+                    {
+                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                @onclick="HandleViewReceipt"
+                                title="Ver recibo">
+                            <i class="bi bi-eye"></i>
+                            <span>Recibo</span>
+                        </button>
+                    }
+                    @if (CanEdit)
+                    {
+                        <button class="btn btn-sm btn-light d-flex align-items-center gap-1"
+                                @onclick="HandleEdit"
+                                title="Editar transação">
+                            <i class="bi bi-pencil"></i>
+                            <span>Editar</span>
+                        </button>
+                        <button class="btn btn-sm btn-danger d-flex align-items-center gap-1"
+                                @onclick="HandleDelete"
+                                title="Eliminar transação">
+                            <i class="bi bi-trash"></i>
+                            <span>Eliminar</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Transaction Transaction { get; set; } = null!;
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Transaction> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Transaction> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> OnViewReceipt { get; set; }
+
+    private bool HasActions => CanEdit || !string.IsNullOrEmpty(Transaction.ReceiptUrl);
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync(Transaction);
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Transaction);
+        }
+    }
+
+    private async Task HandleViewReceipt()
+    {
+        if (!string.IsNullOrEmpty(Transaction.ReceiptUrl) && OnViewReceipt.HasDelegate)
+        {
+            await OnViewReceipt.InvokeAsync(Transaction.ReceiptUrl);
+        }
+    }
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "—" : value;
+    }
+}

@@ -214,75 +214,89 @@ else
        }
         else
             {
-         <div class="table-responsive">
-      <table class="table table-sm table-striped">
-    <thead>
-  <tr>
-   <SortableTableHeader HeaderText="Data"
-                       SortColumn="Date"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Descrição"
-                       SortColumn="Description"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Categoria"
-                       SortColumn="Category"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Tipo"
-                       SortColumn="Type"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Valor"
-                       SortColumn="Amount"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-        <th>Ações</th>
-      </tr>
-         </thead>
-       <tbody>
-       @foreach (var transaction in filteredTransactions)
-   {
-         <tr>
- <td>@transaction.Date.ToString("dd/MM/yyyy")</td>
-      <td>@transaction.Description</td>
-           <td>@transaction.Category</td>
-       <td>
-  <span class="badge @(transaction.Type == "Income" ? "bg-success" : "bg-danger")">
-      @(transaction.Type == "Income" ? "Receita" : "Despesa")
-    </span>
-             </td>
-    <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
-        @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
-    </td>
-             <td>
-                @if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
-                {
-                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo" title="Ver recibo">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                }
-                @if (!report.IsPublished && CanCreateReports())
-                {
-                    <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                }
-             </td>
- </tr>
-      }
-         </tbody>
-</table>
-   </div>
+            <div class="d-md-none">
+                <div class="row g-3">
+                    @foreach (var transaction in filteredTransactions)
+                    {
+                        <div class="col-12">
+                            <TransactionCard Transaction="@transaction"
+                                             CanEdit="@(!report.IsPublished && CanCreateReports())"
+                                             OnViewReceipt="OpenReceiptModal"
+                                             OnEdit="OpenEditTransactionModal"
+                                             OnDelete="OpenDeleteTransactionModal" />
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <SortableTableHeader HeaderText="Data"
+                                                 SortColumn="Date"
+                                                 CurrentSortColumn="@tableState.SortColumn"
+                                                 IsSortAscending="@(!tableState.SortDescending)"
+                                                 OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+                            <SortableTableHeader HeaderText="Descrição"
+                                                 SortColumn="Description"
+                                                 CurrentSortColumn="@tableState.SortColumn"
+                                                 IsSortAscending="@(!tableState.SortDescending)"
+                                                 OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+                            <SortableTableHeader HeaderText="Categoria"
+                                                 SortColumn="Category"
+                                                 CurrentSortColumn="@tableState.SortColumn"
+                                                 IsSortAscending="@(!tableState.SortDescending)"
+                                                 OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+                            <SortableTableHeader HeaderText="Tipo"
+                                                 SortColumn="Type"
+                                                 CurrentSortColumn="@tableState.SortColumn"
+                                                 IsSortAscending="@(!tableState.SortDescending)"
+                                                 OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+                            <SortableTableHeader HeaderText="Valor"
+                                                 SortColumn="Amount"
+                                                 CurrentSortColumn="@tableState.SortColumn"
+                                                 IsSortAscending="@(!tableState.SortDescending)"
+                                                 OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var transaction in filteredTransactions)
+                        {
+                            <tr>
+                                <td>@transaction.Date.ToString("dd/MM/yyyy")</td>
+                                <td>@transaction.Description</td>
+                                <td>@transaction.Category</td>
+                                <td>
+                                    <span class="badge @(transaction.Type == "Income" ? "bg-success" : "bg-danger")">
+                                        @(transaction.Type == "Income" ? "Receita" : "Despesa")
+                                    </span>
+                                </td>
+                                <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
+                                    @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo" title="Ver recibo">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    }
+                                    @if (!report.IsPublished && CanCreateReports())
+                                    {
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
 
   <!-- Pagination -->
          @if (totalPages > 1)
