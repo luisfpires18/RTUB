@@ -16,6 +16,7 @@ public class ActivityServiceTests
 {
     private readonly Mock<IActivityRepository> _mockActivityRepository;
     private readonly ActivityService _service;
+    private static readonly DateTime TestDate = new DateTime(2024, 6, 15);
 
     public ActivityServiceTests()
     {
@@ -29,27 +30,29 @@ public class ActivityServiceTests
         // Arrange
         var reportId = 1;
         var name = "Test Activity";
+        var startDate = TestDate;
         var description = "Test Description";
-        var expectedActivity = Activity.Create(reportId, name, description);
+        var expectedActivity = Activity.Create(reportId, name, startDate, description);
 
         _mockActivityRepository.Setup(r => r.AddAsync(It.IsAny<Activity>()))
             .ReturnsAsync(expectedActivity);
 
         // Act
-        var result = await _service.CreateActivityAsync(reportId, name, description);
+        var result = await _service.CreateActivityAsync(reportId, name, startDate, description);
 
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be(name);
         result.Description.Should().Be(description);
         result.ReportId.Should().Be(reportId);
+        result.StartDate.Should().Be(startDate);
     }
 
     [Fact]
     public async Task GetActivityByIdAsync_ExistingActivity_ReturnsActivity()
     {
         // Arrange
-        var activity = Activity.Create(1, "Test Activity", "Description");
+        var activity = Activity.Create(1, "Test Activity", TestDate, "Description");
         _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(activity.Id))
             .ReturnsAsync(activity);
 
@@ -82,8 +85,8 @@ public class ActivityServiceTests
         // Arrange
         var activities = new List<Activity>
         {
-            Activity.Create(1, "Activity 1"),
-            Activity.Create(1, "Activity 2")
+            Activity.Create(1, "Activity 1", TestDate),
+            Activity.Create(1, "Activity 2", TestDate.AddDays(1))
         };
 
         var mockDbSet = activities.BuildMockDbSet();
@@ -103,9 +106,9 @@ public class ActivityServiceTests
         var reportId = 1;
         var allActivities = new List<Activity>
         {
-            Activity.Create(reportId, "Activity 1"),
-            Activity.Create(reportId, "Activity 2"),
-            Activity.Create(2, "Activity 3")
+            Activity.Create(reportId, "Activity 1", TestDate),
+            Activity.Create(reportId, "Activity 2", TestDate.AddDays(1)),
+            Activity.Create(2, "Activity 3", TestDate.AddDays(2))
         };
 
         var mockDbSet = allActivities.BuildMockDbSet();
@@ -123,18 +126,20 @@ public class ActivityServiceTests
     public async Task UpdateActivityAsync_WithValidData_UpdatesActivity()
     {
         // Arrange
-        var activity = Activity.Create(1, "Original Name", "Original Description");
+        var activity = Activity.Create(1, "Original Name", TestDate, "Original Description");
+        var newStartDate = TestDate.AddDays(5);
         _mockActivityRepository.Setup(r => r.GetByIdAsync(activity.Id))
             .ReturnsAsync(activity);
         _mockActivityRepository.Setup(r => r.UpdateAsync(It.IsAny<Activity>()))
             .Returns(Task.CompletedTask);
 
         // Act
-        await _service.UpdateActivityAsync(activity.Id, "Updated Name", "Updated Description");
+        await _service.UpdateActivityAsync(activity.Id, "Updated Name", newStartDate, "Updated Description");
 
         // Assert
         activity.Name.Should().Be("Updated Name");
         activity.Description.Should().Be("Updated Description");
+        activity.StartDate.Should().Be(newStartDate);
     }
 
     [Fact]
@@ -145,7 +150,7 @@ public class ActivityServiceTests
             .ReturnsAsync((Activity?)null);
 
         // Act & Assert
-        var act = async () => await _service.UpdateActivityAsync(999, "Name", "Description");
+        var act = async () => await _service.UpdateActivityAsync(999, "Name", TestDate, "Description");
         await act.Should().ThrowAsync<EntityNotFoundException>();
     }
 
@@ -153,7 +158,7 @@ public class ActivityServiceTests
     public async Task DeleteActivityAsync_ExistingActivity_DeletesActivity()
     {
         // Arrange
-        var activity = Activity.Create(1, "Test Activity");
+        var activity = Activity.Create(1, "Test Activity", TestDate);
         _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(activity.Id))
             .ReturnsAsync(activity);
         _mockActivityRepository.Setup(r => r.DeleteAsync(It.IsAny<Activity>()))

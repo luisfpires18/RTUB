@@ -47,13 +47,14 @@ public class ReportTests
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
+        var testDate = new DateTime(2023, 6, 15);
 
         // Add activities with transactions
-        var activity1 = Activity.Create(1, "Activity 1");
+        var activity1 = Activity.Create(1, "Activity 1", testDate);
         activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 3000m, "Income", 1));
         activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 1000m, "Expense", 1));
 
-        var activity2 = Activity.Create(1, "Activity 2");
+        var activity2 = Activity.Create(1, "Activity 2", testDate.AddMonths(1));
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 2000m, "Expense", 1));
 
@@ -71,7 +72,8 @@ public class ReportTests
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var activity = Activity.Create(1, "Activity");
+        var testDate = new DateTime(2023, 6, 15);
+        var activity = Activity.Create(1, "Activity", testDate);
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
         report.Activities.Add(activity);

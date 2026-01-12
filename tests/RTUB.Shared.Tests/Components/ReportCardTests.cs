@@ -13,6 +13,7 @@ namespace RTUB.Shared.Tests.Components;
 public class ReportCardTests : TestContext
 {
     private readonly Fixture _fixture;
+    private static readonly DateTime TestDate = new DateTime(2023, 6, 15);
 
     public ReportCardTests()
     {
@@ -124,7 +125,7 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var activity = Activity.Create(1, "Test Activity");
+        var activity = Activity.Create(1, "Test Activity", TestDate);
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
         report.Activities.Add(activity);
@@ -148,7 +149,7 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var activity = Activity.Create(1, "Test Activity");
+        var activity = Activity.Create(1, "Test Activity", TestDate);
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
         report.Activities.Add(activity);
@@ -167,7 +168,7 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var activity = Activity.Create(1, "Test Activity");
+        var activity = Activity.Create(1, "Test Activity", TestDate);
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
         report.Activities.Add(activity);
@@ -250,7 +251,7 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var activity = Activity.Create(1, "Test Activity");
+        var activity = Activity.Create(1, "Test Activity", TestDate);
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
         report.Activities.Add(activity);

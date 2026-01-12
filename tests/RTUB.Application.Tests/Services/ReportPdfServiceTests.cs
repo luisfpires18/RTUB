@@ -14,6 +14,7 @@ public class ReportPdfServiceTests : IDisposable
 {
     private readonly IMemoryCache _cache;
     private readonly ReportPdfService _service;
+    private static readonly DateTime TestDate = new DateTime(2024, 6, 15);
 
     public ReportPdfServiceTests()
     {
@@ -31,7 +32,7 @@ public class ReportPdfServiceTests : IDisposable
 
         var activities = new List<Activity>
         {
-            Activity.Create(report.Id, "Activity 1", "Description 1")
+            Activity.Create(report.Id, "Activity 1", TestDate, "Description 1")
         };
 
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>
@@ -58,8 +59,8 @@ public class ReportPdfServiceTests : IDisposable
         // Arrange
         var report = Report.Create("Multi Activity Report", 2024);
 
-        var activity1 = Activity.Create(report.Id, "Activity 1", "Desc 1");
-        var activity2 = Activity.Create(report.Id, "Activity 2", "Desc 2");
+        var activity1 = Activity.Create(report.Id, "Activity 1", TestDate, "Desc 1");
+        var activity2 = Activity.Create(report.Id, "Activity 2", TestDate.AddDays(1), "Desc 2");
         var activities = new List<Activity> { activity1, activity2 };
 
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>
@@ -103,7 +104,7 @@ public class ReportPdfServiceTests : IDisposable
     {
         // Arrange
         var report = Report.Create("No Transactions Report", 2024);
-        var activity = Activity.Create(report.Id, "Activity 1", null);
+        var activity = Activity.Create(report.Id, "Activity 1", TestDate);
         var activities = new List<Activity> { activity };
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>
         {
@@ -130,7 +131,7 @@ public class ReportPdfServiceTests : IDisposable
 
         var activities = new List<Activity>
         {
-            Activity.Create(report.Id, "Activity 1", null)
+            Activity.Create(report.Id, "Activity 1", TestDate)
         };
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>
         {
@@ -172,7 +173,7 @@ public class ReportPdfServiceTests : IDisposable
     {
         // Arrange
         var report = Report.Create("Financial Report", 2024);
-        var activity = Activity.Create(report.Id, "Activity 1", null);
+        var activity = Activity.Create(report.Id, "Activity 1", TestDate);
         var activities = new List<Activity> { activity };
 
         var transactions = new List<Transaction>
