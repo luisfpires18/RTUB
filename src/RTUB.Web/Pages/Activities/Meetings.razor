@@ -726,6 +726,14 @@ else
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
+                @if (!string.IsNullOrEmpty(editLabelErrorMessage))
+                {
+                    <Alert Message="@editLabelErrorMessage" 
+                           Type="Alert.AlertType.Error" 
+                           Dismissible="true"
+                           OnDismiss="@(() => editLabelErrorMessage = null)" />
+                }
+
                 <div class="mb-3">
                     <label class="form-label text-white-full fw-semibold">
                         <i class="bi bi-file-text text-primary me-2"></i>Conteúdo
@@ -829,6 +837,8 @@ else
     private Label? assemblyInfoLabel;
     private Label? editingAssemblyInfoLabel;
     private bool showEditLabelModal = false;
+    private string? editLabelErrorMessage;
+    private const string ASSEMBLY_INFO_LABEL_REFERENCE = "meetings_assembly_info";
     
     /// <summary>
     /// Gets the fiscal year date range from the selected fiscal year string
@@ -893,7 +903,7 @@ else
         selectedFiscalYear = currentFiscalYear;
 
         // Load assembly info label
-        assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync("meetings_assembly_info");
+        assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync(ASSEMBLY_INFO_LABEL_REFERENCE);
 
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
@@ -1969,6 +1979,7 @@ else
     {
         showEditLabelModal = false;
         editingAssemblyInfoLabel = null;
+        editLabelErrorMessage = null;
     }
     
     private async Task SaveAssemblyInfoLabel()
@@ -1977,6 +1988,8 @@ else
         
         try
         {
+            editLabelErrorMessage = null;
+            
             await LabelService.UpdateLabelContentAsync(
                 editingAssemblyInfoLabel.Id,
                 editingAssemblyInfoLabel.Title,
@@ -1985,13 +1998,14 @@ else
             );
             
             // Reload the label
-            assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync("meetings_assembly_info");
+            assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync(ASSEMBLY_INFO_LABEL_REFERENCE);
             
             CloseEditLabelModal();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error handling could be improved with user feedback
+            editLabelErrorMessage = $"Erro ao guardar: {ex.Message}";
+            StateHasChanged();
         }
     }
 }
