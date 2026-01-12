@@ -26,3 +26,9 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
     align-items: start;
 }
+
+@media (max-width: 575.98px) {
+    .transaction-grid {
+        grid-template-columns: 1fr;
+    }
+}
