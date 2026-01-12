@@ -1,0 +1,18 @@
+.transaction-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.transaction-grid__item {
+    flex: 0 0 280px;
+    max-width: 280px;
+}
+
+@media (max-width: 576px) {
+    .transaction-grid__item {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
