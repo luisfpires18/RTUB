@@ -18,6 +18,7 @@
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject IFiscalYearService FiscalYearService
+@inject ILabelService LabelService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -66,10 +67,25 @@ else
         </div>
     </div>
 
-    <!-- Purple Alert -->
-    <Alert Type="Alert.AlertType.Purple" 
-           Icon="bi-info-circle"
-           Message=" As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos." />
+    <!-- Purple Alert with Edit Button for Admins -->
+    @if (assemblyInfoLabel != null)
+    {
+        <div class="position-relative">
+            @if (CanManageMeetings())
+            {
+                <div class="position-absolute top-0 end-0 p-2">
+                    <button class="btn btn-sm btn-outline-light" 
+                            @onclick="OpenEditLabelModal" 
+                            title="Editar informação">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            }
+            <Alert Type="Alert.AlertType.Purple" 
+                   Icon="bi-info-circle"
+                   Message="@assemblyInfoLabel.Content" />
+        </div>
+    }
 
     <!-- Search Box and Fiscal Year Filter -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
@@ -697,6 +713,36 @@ else
         </button>
     </FooterContent>
 </Modal>
+
+<!-- Edit Label Modal -->
+<Modal Show="@showEditLabelModal" 
+       ShowChanged="@((bool show) => showEditLabelModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="Editar Informação sobre Assembleias">
+    <BodyContent>
+        @if (editingAssemblyInfoLabel != null)
+        {
+            <EditForm Model="editingAssemblyInfoLabel" OnValidSubmit="SaveAssemblyInfoLabel">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Conteúdo
+                    </label>
+                    <InputTextArea class="form-control" rows="8" @bind-Value="editingAssemblyInfoLabel.Content" placeholder="Inserir conteúdo..." />
+                    <small class="text-light-theme">Este texto será exibido na caixa roxa acima dos filtros.</small>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseEditLabelModal">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveAssemblyInfoLabel">
+            <i class="bi bi-save"></i> Guardar
+        </button>
+    </FooterContent>
+</Modal>
 }
 
 @code {
@@ -779,6 +825,11 @@ else
     private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
         .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
     
+    // Assembly info label variables
+    private Label? assemblyInfoLabel;
+    private Label? editingAssemblyInfoLabel;
+    private bool showEditLabelModal = false;
+    
     /// <summary>
     /// Gets the fiscal year date range from the selected fiscal year string
     /// </summary>
@@ -840,6 +891,9 @@ else
             .ToList();
         currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
         selectedFiscalYear = currentFiscalYear;
+
+        // Load assembly info label
+        assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync("meetings_assembly_info");
 
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
@@ -1887,6 +1941,53 @@ else
         {
             await MeetingRequestService.UpdateStatusAsync(request.Id, RequestStatus.Rejected);
             await LoadMeetingRequestsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling could be improved with user feedback
+        }
+    }
+    
+    // ========== Assembly Info Label Methods ==========
+    
+    private void OpenEditLabelModal()
+    {
+        if (assemblyInfoLabel == null) return;
+        
+        editingAssemblyInfoLabel = new Label
+        {
+            Id = assemblyInfoLabel.Id,
+            Reference = assemblyInfoLabel.Reference,
+            Title = assemblyInfoLabel.Title,
+            Content = assemblyInfoLabel.Content,
+            IsActive = assemblyInfoLabel.IsActive
+        };
+        showEditLabelModal = true;
+    }
+    
+    private void CloseEditLabelModal()
+    {
+        showEditLabelModal = false;
+        editingAssemblyInfoLabel = null;
+    }
+    
+    private async Task SaveAssemblyInfoLabel()
+    {
+        if (editingAssemblyInfoLabel == null) return;
+        
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingAssemblyInfoLabel.Id,
+                editingAssemblyInfoLabel.Title,
+                editingAssemblyInfoLabel.Content,
+                editingAssemblyInfoLabel.IsActive
+            );
+            
+            // Reload the label
+            assemblyInfoLabel = await LabelService.GetLabelByReferenceAsync("meetings_assembly_info");
+            
+            CloseEditLabelModal();
         }
         catch (Exception)
         {

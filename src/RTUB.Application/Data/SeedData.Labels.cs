@@ -370,6 +370,11 @@ public static partial class SeedData
             rankingStory.Activate();
             labels.Add(rankingStory);
 
+            // Meetings page label
+            var meetingsAssemblyInfo = Label.Create("meetings_assembly_info", "Informação sobre Assembleias Gerais", "As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos.");
+            meetingsAssemblyInfo.Activate();
+            labels.Add(meetingsAssemblyInfo);
+
             await dbContext.Labels.AddRangeAsync(labels);
             await dbContext.SaveChangesAsync();
         }
