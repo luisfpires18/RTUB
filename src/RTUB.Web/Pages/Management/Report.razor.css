@@ -1,0 +1,21 @@
+/* Mobile responsiveness - prevent horizontal scrolling on page */
+@media (max-width: 767.98px) {
+    .summary-cards-container {
+        overflow-x: hidden;
+    }
+    
+    .accordion-body {
+        overflow-x: hidden;
+    }
+    
+    /* Make table cells wrap on mobile for better display */
+    .table td, .table th {
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    /* Ensure action buttons don't wrap */
+    .table td:last-child {
+        white-space: nowrap;
+    }
+}
