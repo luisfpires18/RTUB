@@ -214,85 +214,27 @@ else
        }
         else
             {
-         <div class="table-responsive">
-      <table class="table table-sm table-striped">
-    <thead>
-  <tr>
-   <SortableTableHeader HeaderText="Data"
-                       SortColumn="Date"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Descrição"
-                       SortColumn="Description"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Categoria"
-                       SortColumn="Category"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Tipo"
-                       SortColumn="Type"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-   <SortableTableHeader HeaderText="Valor"
-                       SortColumn="Amount"
-                       CurrentSortColumn="@tableState.SortColumn"
-                       IsSortAscending="@(!tableState.SortDescending)"
-                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-        <th>Ações</th>
-      </tr>
-         </thead>
-       <tbody>
-       @foreach (var transaction in filteredTransactions)
-   {
-         <tr>
- <td>@transaction.Date.ToString("dd/MM/yyyy")</td>
-      <td>@transaction.Description</td>
-           <td>@transaction.Category</td>
-       <td>
-  <span class="badge @(transaction.Type == "Income" ? "bg-success" : "bg-danger")">
-      @(transaction.Type == "Income" ? "Receita" : "Despesa")
-    </span>
-             </td>
-    <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
-        @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
-    </td>
-             <td>
-                @if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
+            <div class="transaction-grid">
+                @foreach (var transaction in filteredTransactions)
                 {
-                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo" title="Ver recibo">
-                        <i class="bi bi-eye"></i>
-                    </button>
+                    <TransactionCard Transaction="@transaction"
+                                     CanEdit="@(!report.IsPublished && CanCreateReports())"
+                                     OnViewReceipt="OpenReceiptModal"
+                                     OnEdit="OpenEditTransactionModal"
+                                     OnDelete="OpenDeleteTransactionModal" />
                 }
-                @if (!report.IsPublished && CanCreateReports())
-                {
-                    <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                }
-             </td>
- </tr>
-      }
-         </tbody>
-</table>
-   </div>
+            </div>
 
   <!-- Pagination -->
          @if (totalPages > 1)
         {
             <TablePagination CurrentPage="@tableState.CurrentPage"
-                            PageSize="@TransactionTableState.PageSize"
+                            PageSize="@tableState.PageSize"
                             TotalItems="@GetFilteredTransactionCount(activity.Id)"
                             ItemLabel="transações"
                             OnPageChanged="@(page => HandleTransactionPageChange(activity.Id, page))"
-                            OnPageSizeChanged="@(_ => Task.CompletedTask)" />
+                            PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                            OnPageSizeChanged="@(pageSize => HandleTransactionPageSizeChange(activity.Id, pageSize))" />
          }
  }
          }
@@ -553,7 +495,7 @@ else
         public string SortColumn { get; set; } = "Date";
         public bool SortDescending { get; set; } = true;
         public int CurrentPage { get; set; } = 1;
-    public const int PageSize = 10;
+        public int PageSize { get; set; } = 5;
     }
 
     private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
@@ -694,8 +636,8 @@ var allActivityTransactions = new List<Transaction>();
 
         // Paginate
       return transactions
-        .Skip((state.CurrentPage - 1) * TransactionTableState.PageSize)
- .Take(TransactionTableState.PageSize)
+        .Skip((state.CurrentPage - 1) * state.PageSize)
+        .Take(state.PageSize)
             .ToList();
     }
 
@@ -724,6 +666,12 @@ var allActivityTransactions = new List<Transaction>();
         await Task.CompletedTask;
     }
 
+    private async Task HandleTransactionPageSizeChange(int activityId, int pageSize)
+    {
+        ChangePageSize(activityId, pageSize);
+        await Task.CompletedTask;
+    }
+
     private void ToggleSort(int activityId, string column)
     {
  var state = GetTableState(activityId);
@@ -738,12 +686,24 @@ if (state.SortColumn == column)
         }
     }
 
-  private void ChangePage(int activityId, int newPage)
+    private void ChangePage(int activityId, int newPage)
     {
         var state = GetTableState(activityId);
   var totalPages = GetTotalPages(activityId);
     if (newPage < 1 || newPage > totalPages) return;
 state.CurrentPage = newPage;
+    }
+
+    private void ChangePageSize(int activityId, int pageSize)
+    {
+        var state = GetTableState(activityId);
+        if (pageSize <= 0)
+        {
+            return;
+        }
+
+        state.PageSize = pageSize;
+        state.CurrentPage = 1;
     }
 
     private int GetTotalPages(int activityId)
@@ -763,7 +723,7 @@ state.CurrentPage = newPage;
         }
 
      return transactions.Count > 0
-    ? (int)Math.Ceiling(transactions.Count / (double)TransactionTableState.PageSize)
+    ? (int)Math.Ceiling(transactions.Count / (double)state.PageSize)
         : 0;
     }
 
