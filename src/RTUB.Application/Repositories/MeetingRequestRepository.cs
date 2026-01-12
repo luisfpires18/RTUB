@@ -50,4 +50,14 @@ public class MeetingRequestRepository : Repository<MeetingRequest>, IMeetingRequ
             .WhereIf(status.HasValue, mr => mr.Status == status!.Value)
             .CountAsync();
     }
+
+    public async Task<IEnumerable<MeetingRequest>> GetPendingWithAuthorAsync()
+    {
+        return await _dbSet
+            .Include(r => r.Author)
+            .Where(r => r.Status == RequestStatus.Pending)
+            .OrderBy(r => r.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 }

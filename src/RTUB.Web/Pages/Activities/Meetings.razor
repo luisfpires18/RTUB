@@ -20,6 +20,7 @@
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 @if (currentUser != null && currentUser.IsLeitao())
 {
@@ -169,19 +170,23 @@ else
                             <MeetingRequestCard MeetingRequest="@request"
                                                IsAuthor="true"
                                                CanApproveReject="@CanApproveRejectRequests(request)"
+                                               ShowReminder="true"
                                                OnViewDetails="@(() => OpenRequestDetailsModal(request))"
                                                OnDelete="@(() => OpenDeleteRequestModal(request))"
                                                OnAccept="@(() => AcceptMeetingRequest(request))"
-                                               OnReject="@(() => RejectMeetingRequest(request))" />
+                                               OnReject="@(() => RejectMeetingRequest(request))"
+                                               OnSendReminder="@(() => SendMeetingRequestReminder(request))" />
                         </Authorized>
                         <NotAuthorized>
                             <MeetingRequestCard MeetingRequest="@request"
                                                IsAuthor="@(request.AuthorUserId == currentUserId)"
                                                CanApproveReject="@CanApproveRejectRequests(request)"
+                                               ShowReminder="@(request.AuthorUserId == currentUserId)"
                                                OnViewDetails="@(() => OpenRequestDetailsModal(request))"
                                                OnDelete="@(() => OpenDeleteRequestModal(request))"
                                                OnAccept="@(() => AcceptMeetingRequest(request))"
-                                               OnReject="@(() => RejectMeetingRequest(request))" />
+                                               OnReject="@(() => RejectMeetingRequest(request))"
+                                               OnSendReminder="@(() => SendMeetingRequestReminder(request))" />
                         </NotAuthorized>
                     </AuthorizeView>
                 }
@@ -1891,6 +1896,23 @@ else
         catch (Exception)
         {
             // Error handling could be improved with user feedback
+        }
+    }
+    
+    private async Task SendMeetingRequestReminder(MeetingRequest request)
+    {
+        try
+        {
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            var success = await MeetingRequestService.SendReminderNotificationAsync(request.Id, baseUrl);
+            if (success)
+            {
+                // Could show a success message here
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending reminder: {ex.Message}");
         }
     }
 }

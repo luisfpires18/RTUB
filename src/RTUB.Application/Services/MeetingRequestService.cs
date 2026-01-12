@@ -147,6 +147,72 @@ public class MeetingRequestService : IMeetingRequestService
         await _meetingRequestRepository.DeleteAsync(id);
     }
 
+    public async Task<bool> SendReminderNotificationAsync(int id, string baseUrl)
+    {
+        var request = await _meetingRequestRepository.GetByIdWithAuthorAsync(id);
+        if (request == null || request.Status != RequestStatus.Pending)
+            return false;
+
+        try
+        {
+            var notification = _pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
+
+            // 1) Owners (role)
+            var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+
+            // 2) Load all users once
+            var allUsers = await _userManager.Users.ToListAsync();
+
+            // 3) Pick extra recipients based on meeting type
+            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+
+            switch (request.RequestedMeetingType)
+            {
+                case MeetingType.ConselhoVeteranos:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                    break;
+
+                case MeetingType.AssembleiaGeralOrdinaria:
+                case MeetingType.AssembleiaGeralExtraordinaria:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                    break;
+
+                case MeetingType.ReuniaoDirecao:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    (u.Positions.Contains(Position.Magister) ||
+                                     u.Positions.Contains(Position.ViceMagister)));
+                    break;
+
+                default:
+                    break;
+            }
+
+            // 4) Union Owners + position-based recipients
+            var recipientUserIds = ownerUsers
+                .Concat(positionRecipients)
+                .Select(u => u.Id)
+                .Distinct()
+                .ToList();
+
+            // 5) Send notifications
+            foreach (var userId in recipientUserIds)
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

@@ -334,6 +334,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
             MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
             MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            MeetingType.ReuniaoDirecao => "Reunião de Direção",
             _ => "Reunião"
         };
     }
@@ -528,6 +529,49 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = musicUrl,
             Tag = $"song-video-{song.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification for pending public request reminders (sent to admins daily).
+    /// </summary>
+    public SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var requestUrl = $"{baseUrl.TrimEnd('/')}/requests";
+        var bodyText = pendingCount == 1
+            ? "Existe 1 pedido de atuação pendente a aguardar aprovação."
+            : $"Existem {pendingCount} pedidos de atuação pendentes a aguardar aprovação.";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Lembrete: Pedidos Pendentes",
+            Body = bodyText,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = requestUrl,
+            Tag = "pending-requests-reminder"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification for pending meeting request reminders.
+    /// </summary>
+    public SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(meetingRequest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var meetingsUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var meetingTypeName = FormatMeetingType(meetingRequest.RequestedMeetingType);
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Lembrete: Pedido de {meetingTypeName}",
+            Body = $"O pedido \"{meetingRequest.Title}\" está pendente de aprovação.",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = meetingsUrl,
+            Tag = $"pending-meeting-request-{meetingRequest.Id}"
         };
     }
 }
