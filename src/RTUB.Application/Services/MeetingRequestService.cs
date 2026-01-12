@@ -85,8 +85,9 @@ public class MeetingRequestService : IMeetingRequestService
             // 1) Owners (role)
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
 
-            // 2) Load all users once (EF async, SQL side)
-            var allUsers = await _userManager.Users.ToListAsync();
+            // 2) Load all users once with AsNoTracking to prevent accumulating tracked entities
+            // which can cause issues during subsequent SaveChangesAsync calls
+            var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
             // 3) Pick extra recipients based on meeting type (in memory, can use Positions safely)
             IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
@@ -164,8 +165,9 @@ public class MeetingRequestService : IMeetingRequestService
             // 1) Owners (role)
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
 
-            // 2) Load all users once
-            var allUsers = await _userManager.Users.ToListAsync();
+            // 2) Load all users once with AsNoTracking to prevent accumulating tracked entities
+            // which can cause issues during subsequent SaveChangesAsync calls
+            var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
             // 3) Pick extra recipients based on meeting type
             IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();

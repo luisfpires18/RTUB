@@ -239,8 +239,9 @@ public class MeetingService : IMeetingService
         // Special case: ConselhoVeteranos uses client-side filtering
         if (meetingType == MeetingType.ConselhoVeteranos)
         {
-            // Load from DB asynchronously
-            var users = await _context.Users.ToListAsync();
+            // Load from DB asynchronously with AsNoTracking to prevent accumulating tracked entities
+            // which can cause issues during subsequent SaveChangesAsync calls
+            var users = await _context.Users.AsNoTracking().ToListAsync();
 
             // Now filter in memory (CurrentRole and Positions can be unmapped)
             return users
