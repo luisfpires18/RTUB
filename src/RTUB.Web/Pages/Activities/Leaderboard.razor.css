@@ -271,3 +271,11 @@
     }
 }
 
+/* Add spacing between filter controls and leaderboard body on mobile */
+@media (max-width: 768px) {
+    .filter-search-container,
+    .filter-dropdown-container {
+        margin-bottom: 0.5rem;
+    }
+}
+
