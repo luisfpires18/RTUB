@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Moq;
 using MockQueryable.Moq;
 using RTUB.Application.Interfaces;
@@ -21,6 +22,7 @@ public class MeetingRequestServiceTests
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private readonly Mock<ILogger<MeetingRequestService>> _mockLogger;
     private readonly MeetingRequestService _service;
 
     public MeetingRequestServiceTests()
@@ -30,13 +32,15 @@ public class MeetingRequestServiceTests
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
+        _mockLogger = new Mock<ILogger<MeetingRequestService>>();
 
         _service = new MeetingRequestService(
             _repositoryMock.Object,
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
             _mockUserManager.Object,
-            _mockHttpContextAccessor.Object);
+            _mockHttpContextAccessor.Object,
+            _mockLogger.Object);
     }
 
     [Fact]

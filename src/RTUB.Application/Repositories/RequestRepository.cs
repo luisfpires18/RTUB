@@ -23,4 +23,10 @@ public class RequestRepository : Repository<Request>, IRequestRepository
             .OrderBy(r => r.PreferredDate)
             .ToListAsync();
     }
+
+    public async Task<int> GetPendingCountAsync()
+    {
+        return await _dbSet
+            .CountAsync(r => r.Status == RequestStatus.Pending);
+    }
 }

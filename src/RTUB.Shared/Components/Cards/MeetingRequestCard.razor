@@ -11,10 +11,16 @@
     <div class="position-relative">
         @if (IsAuthor)
         {
-            <div class="request-admin-overlay">
+            <div class="request-admin-overlay" style="flex-direction: column;">
                 <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
+                @if (ShowReminder && MeetingRequest.Status == RequestStatus.Pending)
+                {
+                    <button class="btn btn-sm" style="background-color: rgba(255, 255, 255, 0.85); border: none; padding: 6px 10px;" @onclick="HandleSendReminder" title="Enviar Lembrete">
+                        <i class="bi bi-bell-fill" style="font-size: 1.1rem; color: #333; transition: transform 0.2s ease;"></i>
+                    </button>
+                }
             </div>
         }
         <div class="request-icon-header">
@@ -144,6 +150,18 @@
     [Parameter]
     public EventCallback OnReject { get; set; }
 
+    /// <summary>
+    /// Whether to show the send reminder button
+    /// </summary>
+    [Parameter]
+    public bool ShowReminder { get; set; }
+
+    /// <summary>
+    /// Callback when the send reminder button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendReminder { get; set; }
+
     private async Task HandleViewDetails()
     {
         if (OnViewDetails.HasDelegate)
@@ -173,6 +191,14 @@
         if (OnReject.HasDelegate)
         {
             await OnReject.InvokeAsync();
+        }
+    }
+
+    private async Task HandleSendReminder()
+    {
+        if (OnSendReminder.HasDelegate)
+        {
+            await OnSendReminder.InvokeAsync();
         }
     }
     

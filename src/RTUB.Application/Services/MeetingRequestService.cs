@@ -7,6 +7,7 @@ using RTUB.Core.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services;
 
@@ -21,19 +22,22 @@ public class MeetingRequestService : IMeetingRequestService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<MeetingRequestService> _logger;
 
     public MeetingRequestService(
         IMeetingRequestRepository meetingRequestRepository,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<MeetingRequestService> logger)
     {
         _meetingRequestRepository = meetingRequestRepository;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<MeetingRequest>> GetAllAsync(RequestStatus? status = null)
@@ -145,6 +149,75 @@ public class MeetingRequestService : IMeetingRequestService
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
 
         await _meetingRequestRepository.DeleteAsync(id);
+    }
+
+    public async Task<bool> SendReminderNotificationAsync(int id, string baseUrl)
+    {
+        var request = await _meetingRequestRepository.GetByIdWithAuthorAsync(id);
+        if (request == null || request.Status != RequestStatus.Pending)
+            return false;
+
+        try
+        {
+            var notification = _pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
+
+            // 1) Owners (role)
+            var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+
+            // 2) Load all users once
+            var allUsers = await _userManager.Users.ToListAsync();
+
+            // 3) Pick extra recipients based on meeting type
+            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+
+            switch (request.RequestedMeetingType)
+            {
+                case MeetingType.ConselhoVeteranos:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                    break;
+
+                case MeetingType.AssembleiaGeralOrdinaria:
+                case MeetingType.AssembleiaGeralExtraordinaria:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                    break;
+
+                case MeetingType.ReuniaoDirecao:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    (u.Positions.Contains(Position.Magister) ||
+                                     u.Positions.Contains(Position.ViceMagister)));
+                    break;
+
+                default:
+                    break;
+            }
+
+            // 4) Union Owners + position-based recipients
+            var recipients = ownerUsers
+                .Concat(positionRecipients)
+                .DistinctBy(u => u.Id)
+                .ToList();
+
+            // 5) Send notifications
+            foreach (var recipient in recipients)
+            {
+                await _pushNotificationService.SendToUserAsync(recipient.Id, notification);
+                _logger.LogInformation(
+                    "Push notification sent to {Username} about meeting request '{MeetingTitle}'",
+                    recipient.Nickname ?? recipient.UserName ?? recipient.Id,
+                    request.Title);
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private string GetBaseUrl()

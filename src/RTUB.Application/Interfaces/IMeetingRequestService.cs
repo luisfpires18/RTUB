@@ -59,4 +59,12 @@ public interface IMeetingRequestService
     /// <param name="id">Meeting request ID to delete</param>
     /// <returns>Task</returns>
     Task DeleteAsync(int id);
+
+    /// <summary>
+    /// Sends a push notification reminder for a pending meeting request.
+    /// </summary>
+    /// <param name="id">The meeting request ID</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>True if successful, false otherwise</returns>
+    Task<bool> SendReminderNotificationAsync(int id, string baseUrl);
 }

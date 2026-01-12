@@ -74,6 +74,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.LoginPopupOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.LoginPopupOptions.SectionName));
 
+        // Configure Pending Request Reminder Scheduler
+        services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -337,6 +341,9 @@ public class Program
 
         // Background worker for updating member status cache
         services.AddHostedService<MemberStatusUpdateBackgroundService>();
+
+        // Background worker for sending pending request reminders
+        services.AddHostedService<PendingRequestReminderService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();

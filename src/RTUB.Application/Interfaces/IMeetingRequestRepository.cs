@@ -28,4 +28,9 @@ public interface IMeetingRequestRepository : IRepository<MeetingRequest>
     /// Gets total count of meeting requests by status
     /// </summary>
     Task<int> GetCountAsync(RequestStatus? status = null);
+
+    /// <summary>
+    /// Gets all pending meeting requests with author
+    /// </summary>
+    Task<IEnumerable<MeetingRequest>> GetPendingWithAuthorAsync();
 }

@@ -190,4 +190,20 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for pending public request reminders (sent to admins daily).
+    /// </summary>
+    /// <param name="pendingCount">Number of pending public requests</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreatePendingPublicRequestsReminderNotification(int pendingCount, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for pending meeting request reminders.
+    /// </summary>
+    /// <param name="meetingRequest">The pending meeting request</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl);
 }

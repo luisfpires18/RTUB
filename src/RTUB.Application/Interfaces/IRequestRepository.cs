@@ -13,4 +13,9 @@ public interface IRequestRepository : IRepository<Request>
     /// Gets requests by status ordered by preferred date
     /// </summary>
     Task<IEnumerable<Request>> GetByStatusAsync(RequestStatus status);
+
+    /// <summary>
+    /// Gets count of pending requests
+    /// </summary>
+    Task<int> GetPendingCountAsync();
 }
