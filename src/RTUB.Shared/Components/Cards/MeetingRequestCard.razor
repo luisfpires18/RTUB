@@ -17,8 +17,8 @@
                 </button>
                 @if (ShowReminder && MeetingRequest.Status == RequestStatus.Pending)
                 {
-                    <button class="btn btn-sm music-btn-delete" @onclick="HandleSendReminder" title="Enviar Lembrete">
-                        <i class="bi bi-bell-fill music-icon-delete"></i>
+                    <button class="btn btn-sm" style="background-color: rgba(255, 255, 255, 0.85); border: none; padding: 6px 10px;" @onclick="HandleSendReminder" title="Enviar Lembrete">
+                        <i class="bi bi-bell-fill" style="font-size: 1.1rem; color: #333; transition: transform 0.2s ease;"></i>
                     </button>
                 }
             </div>
