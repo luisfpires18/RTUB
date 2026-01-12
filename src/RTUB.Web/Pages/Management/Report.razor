@@ -123,7 +123,7 @@ else
         </style>
 
         <div class="accordion" id="activitiesAccordion">
-          @foreach (var activity in activities.OrderBy(a => a.Name))
+          @foreach (var activity in activities)
        {
                 <div class="accordion-item mb-2">
                <h2 class="accordion-header" id="heading@activity.Id">
@@ -135,6 +135,9 @@ else
                         <div class="d-flex align-items-center gap-3 flex-grow-1 me-3">
                             <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
                                 Saldo: €@activity.Balance.ToString("N2")
+                            </span>
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
                             </span>
                             <span class="text-white-full fw-semibold">@activity.Name</span>
                         </div>
@@ -259,9 +262,46 @@ else
 
     <div class="mb-3">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-calendar-event text-primary me-2"></i>Nome
+                    <i class="bi bi-kanban text-primary me-2"></i>Nome
                 </label>
        <InputText class="form-control" @bind-Value="editingActivity!.Name" placeholder="Inserir nome..." />
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input clickable-row" type="checkbox" id="activityDateRangeToggle"
+                           @bind="isActivityDateRange" @bind:after="OnActivityDateRangeToggled" />
+                    <label class="form-check-label form-check-label-white-clickable" for="activityDateRangeToggle">
+                        Intervalo de Datas (em vez de data única)
+                    </label>
+                </div>
+            </div>
+
+            <div class="row">
+                @if (!isActivityDateRange)
+                {
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Data
+                        </label>
+                        <InputDate class="form-control" @bind-Value="editingActivity!.StartDate" />
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Data Início
+                        </label>
+                        <InputDate class="form-control" @bind-Value="editingActivity!.StartDate" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim (opcional)
+                        </label>
+                        <InputDate class="form-control" @bind-Value="editingActivity!.EndDate" />
+                    </div>
+                }
             </div>
 
 <div class="mb-3">
@@ -461,6 +501,9 @@ else
 
     private bool isCreateActivityMode = false;
     private bool isCreateTransactionMode = false;
+    
+    // Date range toggle for activity modal
+    private bool isActivityDateRange = false;
 
     private Activity? editingActivity;
     private Transaction? editingTransaction;
@@ -756,10 +799,12 @@ state.CurrentPage = newPage;
     private void OpenCreateActivityModal()
     {
         isCreateActivityMode = true;
+        isActivityDateRange = false;
         editingActivity = new Activity
         {
-       ReportId = ReportId,
-        Name = string.Empty
+            ReportId = ReportId,
+            Name = string.Empty,
+            StartDate = DateTime.Today
         };
         showActivityModal = true;
     }
@@ -767,12 +812,15 @@ state.CurrentPage = newPage;
     private void OpenEditActivityModal(Activity activity)
     {
         isCreateActivityMode = false;
+        isActivityDateRange = activity.EndDate.HasValue;
         editingActivity = new Activity
         {
-     Id = activity.Id,
+            Id = activity.Id,
             ReportId = activity.ReportId,
-   Name = activity.Name,
-            Description = activity.Description
+            Name = activity.Name,
+            Description = activity.Description,
+            StartDate = activity.StartDate,
+            EndDate = activity.EndDate
         };
         showActivityModal = true;
     }
@@ -781,19 +829,32 @@ state.CurrentPage = newPage;
     {
         showActivityModal = false;
         editingActivity = null;
+        isActivityDateRange = false;
+    }
+
+    private void OnActivityDateRangeToggled()
+    {
+        if (editingActivity != null)
+        {
+            if (!isActivityDateRange)
+            {
+                // Switching from date range to single date - clear end date
+                editingActivity.EndDate = null;
+            }
+        }
     }
 
     private async Task SaveActivity()
     {
-  if (editingActivity == null) return;
+        if (editingActivity == null) return;
 
         if (isCreateActivityMode)
         {
-await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editingActivity.Description);
+            await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
         }
-   else
+        else
         {
-  await ActivityService.UpdateActivityAsync(editingActivity.Id, editingActivity.Name, editingActivity.Description);
+            await ActivityService.UpdateActivityAsync(editingActivity.Id, editingActivity.Name, editingActivity.StartDate, editingActivity.Description, editingActivity.EndDate);
         }
 
         await LoadActivities();
@@ -1026,5 +1087,19 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
     {
         if (string.IsNullOrEmpty(url)) return false;
         return url.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetActivityDateDisplay(Activity activity)
+    {
+        if (activity.EndDate.HasValue && activity.EndDate.Value.Date != activity.StartDate.Date)
+        {
+            // Date range
+            return $"{activity.StartDate:dd MMM} - {activity.EndDate.Value:dd MMM yyyy}";
+        }
+        else
+        {
+            // Single date
+            return activity.StartDate.ToString("dd MMM yyyy");
+        }
     }
 }

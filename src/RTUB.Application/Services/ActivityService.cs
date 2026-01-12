@@ -39,27 +39,28 @@ public class ActivityService : IActivityService
     public async Task<IEnumerable<Activity>> GetActivitiesByReportIdAsync(int reportId)
     {
         // Use query to filter and include Transactions for computed properties
+        // Order by latest date (EndDate if available, otherwise StartDate) descending
         return await _activityRepository.Query()
             .AsNoTracking()
             .Include(a => a.Transactions)
             .Where(a => a.ReportId == reportId)
-            .OrderBy(a => a.Name)
+            .OrderByDescending(a => a.EndDate ?? a.StartDate)
             .ToListAsync();
     }
 
-    public async Task<Activity> CreateActivityAsync(int reportId, string name, string? description = null)
+    public async Task<Activity> CreateActivityAsync(int reportId, string name, DateTime startDate, string? description = null, DateTime? endDate = null)
     {
-        var activity = Activity.Create(reportId, name, description);
+        var activity = Activity.Create(reportId, name, startDate, description, endDate);
         return await _activityRepository.AddAsync(activity);
     }
 
-    public async Task UpdateActivityAsync(int id, string name, string? description)
+    public async Task UpdateActivityAsync(int id, string name, DateTime startDate, string? description, DateTime? endDate = null)
     {
         var activity = await _activityRepository.GetByIdAsync(id);
         if (activity == null)
             throw new EntityNotFoundException(nameof(Activity), id);
 
-        activity.UpdateDetails(name, description);
+        activity.UpdateDetails(name, startDate, description, endDate);
         await _activityRepository.UpdateAsync(activity);
     }
 

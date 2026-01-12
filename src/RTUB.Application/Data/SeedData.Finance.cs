@@ -36,17 +36,18 @@ public static partial class SeedData
             await dbContext.Reports.AddRangeAsync(new[] { reportPrev, reportCurr });
             await dbContext.SaveChangesAsync();
 
-            // Activities (grouped by report)
-            var aFitab = Activity.Create(reportCurr.Id, "FITAB", "Festival Internacional de Tunas Académicas de Bragança");
-            var aSRC = Activity.Create(reportCurr.Id, "Receção ao Caloiro (NERBA)", "Atuações e barraca");
-            var aSerenatas = Activity.Create(reportCurr.Id, "Serenatas e Atuações", "Casamentos, jantares, corporativos");
-            var aAnivers = Activity.Create(reportCurr.Id, "34º Aniversário", "Celebração interna e logística");
-            var aRTona = Activity.Create(reportCurr.Id, "RTÔNA (RTUB + Tôna Tuna)", "Arraial e convívio");
-            var aMerch = Activity.Create(reportCurr.Id, "Merchandising", "Venda de t-shirts, pins e capotes");
-            var aReparos = Activity.Create(reportCurr.Id, "Instrumentos e Reparações", "Compras e manutenções");
-            var aGerais = Activity.Create(reportCurr.Id, "Despesas Gerais", "Manutenção e operações");
-            var aFormacao = Activity.Create(reportCurr.Id, "Formação e Workshops", "Aulas internas e clínicas");
-            var aViagens = Activity.Create(reportPrev.Id, "Viagens e Deslocações", "Deslocações do ano anterior");
+            // Activities (grouped by report) with start dates
+            var currentDate = DateTime.UtcNow;
+            var aFitab = Activity.Create(reportCurr.Id, "FITAB", currentDate.AddMonths(-2), "Festival Internacional de Tunas Académicas de Bragança", currentDate.AddMonths(-2).AddDays(3));
+            var aSRC = Activity.Create(reportCurr.Id, "Receção ao Caloiro (NERBA)", currentDate.AddMonths(-1), "Atuações e barraca", currentDate.AddMonths(-1).AddDays(5));
+            var aSerenatas = Activity.Create(reportCurr.Id, "Serenatas e Atuações", currentDate.AddMonths(-3), "Casamentos, jantares, corporativos");
+            var aAnivers = Activity.Create(reportCurr.Id, "34º Aniversário", currentDate.AddMonths(-4), "Celebração interna e logística");
+            var aRTona = Activity.Create(reportCurr.Id, "RTÔNA (RTUB + Tôna Tuna)", currentDate.AddMonths(-5), "Arraial e convívio", currentDate.AddMonths(-5).AddDays(2));
+            var aMerch = Activity.Create(reportCurr.Id, "Merchandising", currentDate.AddMonths(-6), "Venda de t-shirts, pins e capotes");
+            var aReparos = Activity.Create(reportCurr.Id, "Instrumentos e Reparações", currentDate.AddMonths(-7), "Compras e manutenções");
+            var aGerais = Activity.Create(reportCurr.Id, "Despesas Gerais", currentDate.AddMonths(-8), "Manutenção e operações");
+            var aFormacao = Activity.Create(reportCurr.Id, "Formação e Workshops", currentDate.AddMonths(-9), "Aulas internas e clínicas");
+            var aViagens = Activity.Create(reportPrev.Id, "Viagens e Deslocações", currentDate.AddMonths(-12), "Deslocações do ano anterior");
 
             await dbContext.Activities.AddRangeAsync(new[]
             {
