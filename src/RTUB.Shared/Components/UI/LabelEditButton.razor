@@ -1,6 +1,6 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Authorization
-<AuthorizeView Roles="Admin">
+<AuthorizeView Roles="Admin,Owner">
     <Authorized>
         @if (CurrentLabel != null)
         {
