@@ -206,22 +206,25 @@ public class PendingRequestReminderService : BackgroundService
             }
 
             // Union Owners + position-based recipients
-            var recipientUserIds = ownerUsers
+            var recipients = ownerUsers
                 .Concat(positionRecipients)
-                .Select(u => u.Id)
-                .Distinct()
+                .DistinctBy(u => u.Id)
                 .ToList();
 
-            foreach (var userId in recipientUserIds)
+            foreach (var recipient in recipients)
             {
                 if (cancellationToken.IsCancellationRequested) break;
-                await pushNotificationService.SendToUserAsync(userId, notification);
+                await pushNotificationService.SendToUserAsync(recipient.Id, notification);
+                _logger.LogInformation(
+                    "Push notification sent to {Username} about meeting request '{MeetingTitle}'",
+                    recipient.Nickname ?? recipient.UserName ?? recipient.Id,
+                    request.Title);
             }
 
             _logger.LogInformation(
                 "Sent pending meeting request reminder for '{Title}' to {Count} recipients",
                 request.Title,
-                recipientUserIds.Count);
+                recipients.Count);
         }
     }
 

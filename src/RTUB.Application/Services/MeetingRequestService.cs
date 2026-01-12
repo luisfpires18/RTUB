@@ -7,6 +7,7 @@ using RTUB.Core.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services;
 
@@ -21,19 +22,22 @@ public class MeetingRequestService : IMeetingRequestService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<MeetingRequestService> _logger;
 
     public MeetingRequestService(
         IMeetingRequestRepository meetingRequestRepository,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<MeetingRequestService> logger)
     {
         _meetingRequestRepository = meetingRequestRepository;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<MeetingRequest>> GetAllAsync(RequestStatus? status = null)
@@ -193,16 +197,19 @@ public class MeetingRequestService : IMeetingRequestService
             }
 
             // 4) Union Owners + position-based recipients
-            var recipientUserIds = ownerUsers
+            var recipients = ownerUsers
                 .Concat(positionRecipients)
-                .Select(u => u.Id)
-                .Distinct()
+                .DistinctBy(u => u.Id)
                 .ToList();
 
             // 5) Send notifications
-            foreach (var userId in recipientUserIds)
+            foreach (var recipient in recipients)
             {
-                await _pushNotificationService.SendToUserAsync(userId, notification);
+                await _pushNotificationService.SendToUserAsync(recipient.Id, notification);
+                _logger.LogInformation(
+                    "Push notification sent to {Username} about meeting request '{MeetingTitle}'",
+                    recipient.Nickname ?? recipient.UserName ?? recipient.Id,
+                    request.Title);
             }
 
             return true;
