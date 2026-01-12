@@ -214,16 +214,14 @@ else
        }
         else
             {
-            <div class="row g-3">
+            <div class="transaction-grid">
                 @foreach (var transaction in filteredTransactions)
                 {
-                    <div class="col-12 col-lg-6 col-xxl-4">
-                        <TransactionCard Transaction="@transaction"
-                                         CanEdit="@(!report.IsPublished && CanCreateReports())"
-                                         OnViewReceipt="OpenReceiptModal"
-                                         OnEdit="OpenEditTransactionModal"
-                                         OnDelete="OpenDeleteTransactionModal" />
-                    </div>
+                    <TransactionCard Transaction="@transaction"
+                                     CanEdit="@(!report.IsPublished && CanCreateReports())"
+                                     OnViewReceipt="OpenReceiptModal"
+                                     OnEdit="OpenEditTransactionModal"
+                                     OnDelete="OpenDeleteTransactionModal" />
                 }
             </div>
 
