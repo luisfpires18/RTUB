@@ -1,0 +1,8 @@
+/* Mobile responsiveness for Inventory page */
+@media (max-width: 768px) {
+    /* Make filter dropdowns full width like search bar on mobile */
+    .d-flex.flex-column.flex-sm-row .flex-sm-shrink-0 {
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+}

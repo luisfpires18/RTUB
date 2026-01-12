@@ -44,6 +44,12 @@
     <!-- Filters -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap justify-content-between">
         <div class="d-flex flex-column flex-sm-row gap-2 flex-grow-1">
+            <div class="flex-grow-1" style="min-width: 300px; max-width: 400px;">
+                <label class="form-label fw-semibold">Pesquisar</label>
+                <SearchBar @bind-Value="titleSearchTerm"
+                           Placeholder="Pesquisar por título..."
+                           OnSearch="HandleTitleSearchChanged" />
+            </div>
             <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
                 <label class="form-label fw-semibold">Ano</label>
                 <FilterDropdown IconClass="bi-calendar3"
@@ -83,7 +89,7 @@ else if (!groupedMedia.Any())
 {
     <EmptyState Title="Nenhuma media encontrada"
                 Icon="bi-images"
-                Message="@(string.IsNullOrEmpty(selectedYear) && string.IsNullOrEmpty(selectedPersonId) ? "Ainda não há conteúdo na galeria." : "A pesquisa não devolveu resultados.")" />
+                Message="@(string.IsNullOrEmpty(selectedYear) && string.IsNullOrEmpty(selectedPersonId) && string.IsNullOrWhiteSpace(titleSearchTerm) ? "Ainda não há conteúdo na galeria." : "A pesquisa não devolveu resultados.")" />
 }
 else
 {
@@ -467,6 +473,7 @@ else
     // Filters
     private string selectedYear = "";
     private string selectedPersonId = "";
+    private string titleSearchTerm = "";
     private List<FilterDropdownOption> yearFilterOptions = new();
     private List<FilterDropdownOption> peopleFilterOptions = new();
 
@@ -585,8 +592,9 @@ else
         {
             var yearFilter = string.IsNullOrEmpty(selectedYear) ? (int?)null : int.Parse(selectedYear);
             var personFilter = string.IsNullOrEmpty(selectedPersonId) ? null : selectedPersonId;
+            var titleFilter = string.IsNullOrWhiteSpace(titleSearchTerm) ? null : titleSearchTerm;
 
-            var result = await GalleryMediaService.GetPaginatedAsync(currentPage, pageSize, yearFilter, personFilter, isAuthenticated);
+            var result = await GalleryMediaService.GetPaginatedAsync(currentPage, pageSize, yearFilter, personFilter, isAuthenticated, titleFilter);
             
             if (currentPage == 1)
             {
@@ -644,6 +652,12 @@ else
         currentPage = 1;
         allMedia.Clear();
         await LoadMedia();
+    }
+
+    private async Task HandleTitleSearchChanged(string search)
+    {
+        titleSearchTerm = search;
+        await ApplyFilters();
     }
 
     private async Task LoadMore()

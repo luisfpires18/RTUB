@@ -18,11 +18,27 @@ public interface IMemberStatisticsService
     Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime beforeDate);
 
     /// <summary>
+    /// Gets rehearsal attendance counts per user for attended rehearsals within a date range
+    /// </summary>
+    /// <param name="startDate">Only count rehearsals from this date</param>
+    /// <param name="endDate">Only count rehearsals until this date</param>
+    /// <returns>Dictionary mapping UserId to attendance count</returns>
+    Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime startDate, DateTime endDate);
+
+    /// <summary>
     /// Gets enrollments with event types for users who attended events before a specific date
     /// </summary>
     /// <param name="beforeDate">Only include events before this date</param>
     /// <returns>List of user enrollments with event types</returns>
     Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime beforeDate);
+
+    /// <summary>
+    /// Gets enrollments with event types for users who attended events within a date range
+    /// </summary>
+    /// <param name="startDate">Only include events from this date</param>
+    /// <param name="endDate">Only include events until this date</param>
+    /// <returns>List of user enrollments with event types</returns>
+    Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime startDate, DateTime endDate);
 
     /// <summary>
     /// Gets the XP breakdown for a specific user, showing XP from rehearsals and each event type

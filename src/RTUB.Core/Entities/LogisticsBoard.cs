@@ -18,6 +18,16 @@ public class LogisticsBoard : BaseEntity
     // Optional event association (1:1 or 1:0)
     public int? EventId { get; set; }
 
+    /// <summary>
+    /// Indicates if the board has been completed/concluded
+    /// </summary>
+    public bool IsCompleted { get; set; } = false;
+
+    /// <summary>
+    /// The date when the board was completed
+    /// </summary>
+    public DateTime? CompletedAt { get; set; }
+
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual ICollection<LogisticsList> Lists { get; set; } = new List<LogisticsList>();
@@ -51,5 +61,23 @@ public class LogisticsBoard : BaseEntity
     public void AssociateWithEvent(int? eventId)
     {
         EventId = eventId;
+    }
+
+    /// <summary>
+    /// Marks the board as completed
+    /// </summary>
+    public void MarkAsCompleted()
+    {
+        IsCompleted = true;
+        CompletedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks the board as not completed (reopen)
+    /// </summary>
+    public void MarkAsNotCompleted()
+    {
+        IsCompleted = false;
+        CompletedAt = null;
     }
 }

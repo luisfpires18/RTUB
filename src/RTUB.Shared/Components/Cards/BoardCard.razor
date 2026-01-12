@@ -1,7 +1,7 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 
-<div class="card logistics-board-card h-100">
+<div class="card logistics-board-card h-100 @(Board.IsCompleted ? "completed-board" : "")">
     <div class="position-relative">
         @if (ShowActions)
         {
@@ -17,8 +17,8 @@
             </div>
         }
         <div class="board-icon-header">
-            <div class="board-icon-circle">
-                <i class="bi bi-kanban"></i>
+            <div class="board-icon-circle @(Board.IsCompleted ? "completed" : "")">
+                <i class="bi @(Board.IsCompleted ? "bi-check-circle-fill" : "bi-kanban")"></i>
             </div>
         </div>
     </div>
@@ -38,14 +38,38 @@
                 </span>
             </div>
         }
+
+        @if (Board.IsCompleted)
+        {
+            <div class="mb-2">
+                <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-check-circle"></i> Concluído
+                </span>
+            </div>
+        }
         
         <div class="board-actions mt-auto">
-            <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-1 w-100" 
-                    @onclick="(() => OnView.InvokeAsync(Board))" 
-                    title="Abrir Quadro">
-                <i class="bi bi-kanban"></i>
-                <span>Abrir Quadro</span>
-            </button>
+            <div class="d-flex gap-2 w-100 justify-content-center">
+                <button class="btn btn-sm btn-outline-primary" 
+                        @onclick="(() => OnView.InvokeAsync(Board))" 
+                        title="Abrir Quadro">
+                    <i class="bi bi-kanban"></i>
+                </button>
+                @if (ShowFinishButton && !Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => OnFinish.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Concluir Quadro">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                }
+                @if (ShowFinishButton && Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-warning" @onclick="() => OnReopen.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Reabrir Quadro">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -58,6 +82,9 @@
     public bool ShowActions { get; set; } = true;
 
     [Parameter]
+    public bool ShowFinishButton { get; set; } = false;
+
+    [Parameter]
     public EventCallback<LogisticsBoard> OnView { get; set; }
 
     [Parameter]
@@ -65,4 +92,10 @@
 
     [Parameter]
     public EventCallback<LogisticsBoard> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnFinish { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnReopen { get; set; }
 }

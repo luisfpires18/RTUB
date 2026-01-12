@@ -18,6 +18,7 @@
 @inject ILabelService LabelService
 @inject ILeaderboardCommentService LeaderboardCommentService
 @inject IMemberStatisticsService MemberStatisticsService
+@inject IFiscalYearService FiscalYearService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
 @attribute [Authorize]
@@ -171,11 +172,22 @@ else
             <h2><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h2>
         </div>
         
-        <!-- Search Bar -->
+        <!-- Filter Controls -->
         <div class="px-3 pt-3">
-            <SearchBar @bind-Value="searchTerm"
-                       Placeholder="Pesquisar membros na classificação..."
-                       OnSearch="@HandleSearchChanged" />
+            <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+                <div class="flex-grow-1 filter-search-container">
+                    <SearchBar @bind-Value="searchTerm"
+                               Placeholder="Pesquisar membros na classificação..."
+                               OnSearch="@HandleSearchChanged" />
+                </div>
+                <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
+                    <FilterDropdown SelectedValue="@selectedFiscalYear"
+                                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                                    OnChange="@OnFiscalYearChanged"
+                                    AllItemsLabel="Todos os anos"
+                                    Options="@fiscalYearOptions" />
+                </div>
+            </div>
         </div>
         
         <div class="leaderboard-body">
@@ -507,6 +519,13 @@ else
     private string searchTerm = string.Empty;
     private List<LeaderboardEntry>? filteredLeaderboardUsers;
 
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+
     // Label editing
     private Label? rankingStoryLabel;
     private Label? editingLabel;
@@ -534,6 +553,18 @@ else
             currentUserId = currentUser?.Id;
         }
         
+        // Load fiscal years
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
+        currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+        
+        // Default to "Todos os anos" (empty string)
+        selectedFiscalYear = "";
+        
         await LoadRankingStory();
         await LoadLeaderboard();
     }
@@ -548,16 +579,42 @@ else
         var users = await UserManager.Users.AsNoTracking().ToListAsync();
         var now = DateTime.UtcNow;
         
-        // Batch load all rank progress data in a single operation to avoid N+1
+        // Batch load all rank progress data and statistics based on fiscal year filter
         var userIds = users.Select(u => u.Id).ToList();
-        var rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds);
         
-        // Batch load all attendance and enrollment data in two queries to avoid N+1
-        // Only count past rehearsals where Attended == true
-        var allRehearsalAttendances = await MemberStatisticsService.GetRehearsalAttendanceCountsByUserAsync(now);
+        Dictionary<string, RankProgressInfo> rankProgressByUser;
+        Dictionary<string, int> allRehearsalAttendances;
+        List<UserEnrollmentWithEventType> allEnrollmentsWithTypes;
         
-        // Load enrollments with event types - only past events where WillAttend == true
-        var allEnrollmentsWithTypes = await MemberStatisticsService.GetEnrollmentsByUserWithEventTypeAsync(now);
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                var startDate = new DateTime(startYear, 9, 1); // September 1st
+                var endDate = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year (end of day)
+                
+                // Use date range overloads for fiscal year filtering
+                rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds, startDate, endDate);
+                allRehearsalAttendances = await MemberStatisticsService.GetRehearsalAttendanceCountsByUserAsync(startDate, endDate);
+                allEnrollmentsWithTypes = await MemberStatisticsService.GetEnrollmentsByUserWithEventTypeAsync(startDate, endDate);
+            }
+            else
+            {
+                // Fallback to no filter if parsing fails
+                rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds);
+                allRehearsalAttendances = await MemberStatisticsService.GetRehearsalAttendanceCountsByUserAsync(now);
+                allEnrollmentsWithTypes = await MemberStatisticsService.GetEnrollmentsByUserWithEventTypeAsync(now);
+            }
+        }
+        else
+        {
+            // No fiscal year filter - load all time data (before current date)
+            rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds);
+            allRehearsalAttendances = await MemberStatisticsService.GetRehearsalAttendanceCountsByUserAsync(now);
+            allEnrollmentsWithTypes = await MemberStatisticsService.GetEnrollmentsByUserWithEventTypeAsync(now);
+        }
         
         // Group by user, then by event type
         var userEventsByType = allEnrollmentsWithTypes
@@ -610,6 +667,15 @@ else
     private void ToggleClassificationLevels()
     {
         isClassificationExpanded = !isClassificationExpanded;
+    }
+    
+    private async Task OnFiscalYearChanged()
+    {
+        // Reset pagination when fiscal year changes
+        currentPage = 1;
+        
+        // Reload leaderboard data with new filter
+        await LoadLeaderboard();
     }
     
     private void ApplyPagination()

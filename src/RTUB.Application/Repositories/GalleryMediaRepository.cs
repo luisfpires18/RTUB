@@ -77,7 +77,8 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
         int pageSize,
         int? year = null,
         string? personId = null,
-        bool? isAuthenticated = null)
+        bool? isAuthenticated = null,
+        string? titleSearch = null)
     {
         var query = _context.GalleryMedia
             .Include(m => m.Uploader)
@@ -99,6 +100,11 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
         if (!string.IsNullOrEmpty(personId))
         {
             query = query.Where(m => m.PeopleInMedia.Any(p => p.UserId == personId));
+        }
+
+        if (!string.IsNullOrEmpty(titleSearch))
+        {
+            query = query.Where(m => EF.Functions.Like(m.Title, $"%{titleSearch}%"));
         }
 
         var totalCount = await query.CountAsync();

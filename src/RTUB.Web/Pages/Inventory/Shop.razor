@@ -10,6 +10,7 @@
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Components.Cards
+@inject IFiscalYearService FiscalYearService
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
 @inject IImageStorageService ImageStorageService
@@ -40,12 +41,19 @@
                        Placeholder="Pesquisar produtos..."
                        OnSearch="HandleSearchChanged" />
         </div>
-        <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 200px; max-width: 240px;">
+        <div class="flex-lg-shrink-0" style="min-width: 200px; max-width: 240px;">
             <FilterDropdown ShowIcon="true"
                           AllItemsLabel="Todos os tipos"
                           Items="@productTypes"
                           @bind-SelectedValue="selectedType"
                           OnChange="FilterProducts" />
+        </div>
+        <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 200px; max-width: 240px;">
+            <FilterDropdown SelectedValue="@selectedFiscalYear"
+                            SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                            OnChange="@OnFiscalYearChanged"
+                            AllItemsLabel="Todos os anos"
+                            Options="@fiscalYearOptions" />
         </div>
     </div>
 </div>
@@ -626,6 +634,13 @@ else
     private bool isMember = false;
     private PaginationHelper<Product> paginationHelper = new() { PageSize = 6 };
 
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+
     // Product Modal State
     private bool showProductEditModal = false;
     private bool showProductDeleteModal = false;
@@ -687,6 +702,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Load fiscal years
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
+        currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+        selectedFiscalYear = currentFiscalYear;
+
         await LoadProducts();
     }
 
@@ -736,6 +761,20 @@ else
     {
         filteredProducts = products;
 
+        // Filter by fiscal year
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                var fiscalYearStart = new DateTime(startYear, 9, 1); // September 1st
+                var fiscalYearEnd = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year
+
+                filteredProducts = filteredProducts.Where(p => 
+                    p.CreatedAt >= fiscalYearStart && p.CreatedAt <= fiscalYearEnd).ToList();
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             filteredProducts = filteredProducts.Where(p =>
@@ -749,6 +788,11 @@ else
         }
 
         UpdatePagination();
+    }
+
+    private void OnFiscalYearChanged()
+    {
+        FilterProducts();
     }
 
     private void UpdatePagination()

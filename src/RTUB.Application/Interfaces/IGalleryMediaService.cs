@@ -55,5 +55,6 @@ public interface IGalleryMediaService
         int pageSize,
         int? year = null,
         string? personId = null,
-        bool? isAuthenticated = null);
+        bool? isAuthenticated = null,
+        string? titleSearch = null);
 }
