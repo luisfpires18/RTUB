@@ -5,7 +5,7 @@
     Compact card for displaying transaction information on report pages
 *@
 
-<div class="card transaction-card h-100">
+<div class="card transaction-card h-100 @(IsExpense ? "transaction-card--expense" : string.Empty)">
     <div class="transaction-card__top">
         @if (CanEdit)
         {
@@ -24,7 +24,7 @@
         }
         <div class="transaction-icon-header">
             <div class="transaction-icon-circle">
-                <i class="bi bi-cash-coin"></i>
+                <i class="bi @(IsExpense ? "bi-cash-stack" : "bi-cash-coin")"></i>
             </div>
         </div>
     </div>
@@ -46,7 +46,7 @@
                 <span class="transaction-text">@FormatField(Transaction.Category)</span>
             </div>
             <div class="transaction-info-row">
-                <i class="bi bi-arrow-left-right transaction-icon"></i>
+                <i class="bi @(IsExpense ? "bi-arrow-down-right" : "bi-arrow-up-right") transaction-icon"></i>
                 <span class="transaction-label">Tipo</span>
                 <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")">
                     @(Transaction.Type == "Income" ? "Receita" : "Despesa")
@@ -97,6 +97,7 @@
     public EventCallback<string?> OnViewReceipt { get; set; }
 
     private bool HasFooterActions => !string.IsNullOrEmpty(Transaction.ReceiptUrl);
+    private bool IsExpense => Transaction.Type != "Income";
 
     private async Task HandleEdit()
     {

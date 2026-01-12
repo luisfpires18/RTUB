@@ -1,11 +1,18 @@
 /* Scoped styles for TransactionCard component */
 
 .transaction-card {
+    --transaction-accent: var(--bs-success);
+    --transaction-accent-rgb: var(--bs-success-rgb);
     background-color: #151516;
     border: 1px solid var(--bs-border-color);
     border-radius: 0.5rem;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     overflow: hidden;
+}
+
+.transaction-card--expense {
+    --transaction-accent: var(--bs-danger);
+    --transaction-accent-rgb: var(--bs-danger-rgb);
 }
 
 .transaction-card:hover {
@@ -48,16 +55,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(var(--bs-success-rgb), 0.2) 0%, rgba(var(--bs-success-rgb), 0.05) 100%);
-    border-bottom: 2px solid rgba(var(--bs-success-rgb), 0.3);
+    background: linear-gradient(135deg, rgba(var(--transaction-accent-rgb), 0.2) 0%, rgba(var(--transaction-accent-rgb), 0.05) 100%);
+    border-bottom: 2px solid rgba(var(--transaction-accent-rgb), 0.3);
 }
 
 .transaction-icon-circle {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background-color: rgba(var(--bs-success-rgb), 0.2);
-    border: 2px solid var(--bs-success);
+    background-color: rgba(var(--transaction-accent-rgb), 0.2);
+    border: 2px solid var(--transaction-accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -65,13 +72,13 @@
 }
 
 .transaction-card:hover .transaction-icon-circle {
-    background-color: rgba(var(--bs-success-rgb), 0.3);
+    background-color: rgba(var(--transaction-accent-rgb), 0.3);
     transform: scale(1.05);
 }
 
 .transaction-icon-circle i {
     font-size: 1.6rem;
-    color: var(--bs-success);
+    color: var(--transaction-accent);
 }
 
 .transaction-info {
@@ -91,7 +98,7 @@
 }
 
 .transaction-icon {
-    color: var(--bs-success);
+    color: var(--transaction-accent);
     font-size: 1rem;
     flex-shrink: 0;
     width: 1.125rem;
@@ -117,7 +124,7 @@
 
 .transaction-actions-section {
     padding: 0.75rem 0.5rem 0 0.5rem;
-    border-top: 1px solid rgba(var(--bs-success-rgb), 0.2);
+    border-top: 1px solid rgba(var(--transaction-accent-rgb), 0.2);
     margin-top: 0.5rem;
 }
 
