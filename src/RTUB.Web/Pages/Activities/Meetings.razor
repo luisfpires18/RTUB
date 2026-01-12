@@ -71,16 +71,9 @@ else
     @if (assemblyInfoLabel != null)
     {
         <div class="position-relative">
-            @if (isAdmin || isOwner)
-            {
-                <div class="position-absolute top-0 end-0 p-2">
-                    <button class="btn btn-sm btn-outline-light" 
-                            @onclick="OpenEditLabelModal" 
-                            title="Editar informação">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </div>
-            }
+            <div class="position-absolute top-0 end-0 p-2">
+                <LabelEditButton CurrentLabel="@assemblyInfoLabel" OnEditClick="@OpenEditLabelModal" CssClass="text-white" />
+            </div>
             <Alert Type="Alert.AlertType.Purple" 
                    Icon="bi-info-circle"
                    Message="@assemblyInfoLabel.Content" />
@@ -778,7 +771,6 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
-    private bool isAdmin = false;
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -879,9 +871,8 @@ else
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         
-        // Cache owner and admin roles to avoid synchronous I/O in rendering methods
+        // Cache owner role to avoid synchronous I/O in rendering methods
         isOwner = user.IsInRole("Owner");
-        isAdmin = user.IsInRole("Admin");
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -1962,17 +1953,15 @@ else
     
     // ========== Assembly Info Label Methods ==========
     
-    private void OpenEditLabelModal()
+    private void OpenEditLabelModal(Label label)
     {
-        if (assemblyInfoLabel == null) return;
-        
         editingAssemblyInfoLabel = new Label
         {
-            Id = assemblyInfoLabel.Id,
-            Reference = assemblyInfoLabel.Reference,
-            Title = assemblyInfoLabel.Title,
-            Content = assemblyInfoLabel.Content,
-            IsActive = assemblyInfoLabel.IsActive
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
         };
         showEditLabelModal = true;
     }
