@@ -31,7 +31,7 @@
             </div>
         </div>
     </div>
-    <div class="card-body d-flex flex-column">
+    <div class="card-body d-flex flex-column py-2 px-3">
         <div class="transaction-info">
             <!-- Amount as prominent title -->
             <h5 class="transaction-amount @(Transaction.Type == "Income" ? "text-success" : "text-danger")" 
@@ -40,12 +40,12 @@
             </h5>
             
             <!-- Description as subtitle -->
-            <p class="transaction-description mb-2" title="@Transaction.Description">
+            <p class="transaction-description mb-1" title="@Transaction.Description">
                 @Transaction.Description
             </p>
             
             <!-- Type badge -->
-            <div class="transaction-badge-row mb-2">
+            <div class="transaction-badge-row mb-1">
                 <span class="badge @(Transaction.Type == "Income" ? "bg-success" : "bg-danger")">
                     @(Transaction.Type == "Income" ? "Receita" : "Despesa")
                 </span>
