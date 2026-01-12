@@ -18,6 +18,30 @@
     position: relative;
 }
 
+.transaction-card__header-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.35rem;
+    z-index: 2;
+}
+
+.transaction-card__header-button {
+    --bs-btn-padding-y: 0.15rem;
+    --bs-btn-padding-x: 0.35rem;
+    --bs-btn-font-size: 0.75rem;
+    --bs-btn-line-height: 1.05;
+    padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
+    line-height: var(--bs-btn-line-height);
+    font-size: var(--bs-btn-font-size);
+    border-radius: 0.375rem;
+}
+
+.transaction-card__header-button i {
+    font-size: 0.9rem;
+}
+
 .transaction-icon-header {
     width: 100%;
     height: 90px;

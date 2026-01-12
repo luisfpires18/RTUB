@@ -7,6 +7,21 @@
 
 <div class="card transaction-card h-100">
     <div class="transaction-card__top">
+        @if (CanEdit)
+        {
+            <div class="transaction-card__header-actions">
+                <button class="btn btn-sm btn-light transaction-card__header-button"
+                        @onclick="HandleEdit"
+                        title="Editar transação">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger transaction-card__header-button"
+                        @onclick="HandleDelete"
+                        title="Eliminar transação">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
         <div class="transaction-icon-header">
             <div class="transaction-icon-circle">
                 <i class="bi bi-cash-coin"></i>
@@ -46,7 +61,7 @@
             </div>
         </div>
 
-        @if (HasActions)
+        @if (HasFooterActions)
         {
             <div class="transaction-actions-section mt-auto">
                 <div class="d-flex gap-2 align-items-center justify-content-center">
@@ -57,21 +72,6 @@
                                 title="Ver recibo">
                             <i class="bi bi-eye"></i>
                             <span>Recibo</span>
-                        </button>
-                    }
-                    @if (CanEdit)
-                    {
-                        <button class="btn btn-sm btn-light d-flex align-items-center gap-1"
-                                @onclick="HandleEdit"
-                                title="Editar transação">
-                            <i class="bi bi-pencil"></i>
-                            <span>Editar</span>
-                        </button>
-                        <button class="btn btn-sm btn-danger d-flex align-items-center gap-1"
-                                @onclick="HandleDelete"
-                                title="Eliminar transação">
-                            <i class="bi bi-trash"></i>
-                            <span>Eliminar</span>
                         </button>
                     }
                 </div>
@@ -96,7 +96,7 @@
     [Parameter]
     public EventCallback<string?> OnViewReceipt { get; set; }
 
-    private bool HasActions => CanEdit || !string.IsNullOrEmpty(Transaction.ReceiptUrl);
+    private bool HasFooterActions => !string.IsNullOrEmpty(Transaction.ReceiptUrl);
 
     private async Task HandleEdit()
     {
