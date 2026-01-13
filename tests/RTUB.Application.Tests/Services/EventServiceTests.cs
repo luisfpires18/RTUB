@@ -395,7 +395,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _context.SaveChangesAsync();
 
         var eventEntity = await _eventService.CreateEventAsync("Event with Enrollments", DateTime.Now.AddDays(7), "Test Location", EventType.Festival);
-        
+
         var enrollment = Enrollment.Create(user.Id, eventEntity.Id);
         enrollment.WillAttend = true;
         enrollment.Instrument = InstrumentType.Guitarra;
@@ -414,7 +414,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Assert
         await act.Should().NotThrowAsync();
-        
+
         var updated = await _eventService.GetEventByIdAsync(eventEntity.Id);
         updated.Should().NotBeNull();
         updated!.Name.Should().Be("Updated Name");

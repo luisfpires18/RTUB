@@ -168,7 +168,7 @@ public class PendingRequestReminderService : BackgroundService
 
         // Load all users once for position-based filtering with AsNoTracking to prevent tracking issues
         var allUsers = await userManager.Users.AsNoTracking().ToListAsync(cancellationToken);
-        
+
         // Get owner user IDs immediately to avoid tracking issues
         var ownerUsers = await userManager.GetUsersInRoleAsync("Owner");
         var ownerUserIds = ownerUsers.Select(u => u.Id).ToList();

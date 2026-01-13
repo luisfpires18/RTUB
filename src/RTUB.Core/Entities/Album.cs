@@ -20,16 +20,20 @@ public class Album : BaseEntity
     // Privacy setting
     public bool IsPrivate { get; set; } = false;
 
+    // Exclusive album flag - when true, only users in AlbumAccess list can view
+    public bool IsExclusive { get; set; } = false;
+
     // Image handling
     public string? ImageUrl { get; set; }
 
-    // Navigation property
+    // Navigation properties
     public virtual ICollection<Song> Songs { get; set; } = new List<Song>();
+    public virtual ICollection<AlbumAccess> AlbumAccesses { get; set; } = new List<AlbumAccess>();
 
     // Private constructor for EF Core
     public Album() { }
 
-    public static Album Create(string title, int? year, string? description = null, bool isPrivate = false)
+    public static Album Create(string title, int? year, string? description = null, bool isPrivate = false, bool isExclusive = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -42,11 +46,12 @@ public class Album : BaseEntity
             Title = title,
             Year = year,
             Description = description,
-            IsPrivate = isPrivate
+            IsPrivate = isPrivate,
+            IsExclusive = isExclusive
         };
     }
 
-    public void UpdateDetails(string title, int? year, string? description, bool isPrivate)
+    public void UpdateDetails(string title, int? year, string? description, bool isPrivate, bool isExclusive = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -58,6 +63,7 @@ public class Album : BaseEntity
         Year = year;
         Description = description;
         IsPrivate = isPrivate;
+        IsExclusive = isExclusive;
     }
 
     public void SetCoverImage(string? url)

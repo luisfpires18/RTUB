@@ -20,12 +20,20 @@ public class AlbumConfiguration : IEntityTypeConfiguration<Album>
         builder.Property(a => a.ImageUrl)
             .HasMaxLength(500);
 
+        builder.Property(a => a.IsExclusive)
+            .HasDefaultValue(false);
+
         // Year is optional - removed .IsRequired() to match nullable int? in entity
 
         // Relationships
         builder.HasMany(a => a.Songs)
             .WithOne(s => s.Album)
             .HasForeignKey(s => s.AlbumId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(a => a.AlbumAccesses)
+            .WithOne(aa => aa.Album)
+            .HasForeignKey(aa => aa.AlbumId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

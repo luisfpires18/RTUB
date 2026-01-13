@@ -21,4 +21,48 @@ public interface IAlbumRepository : IRepository<Album>
     /// Gets an album with its songs included
     /// </summary>
     Task<Album?> GetAlbumWithSongsAsync(int id);
+
+    /// <summary>
+    /// Gets albums visible to a specific user.
+    /// Returns non-exclusive albums plus exclusive albums where the user is in the access list.
+    /// </summary>
+    /// <param name="userId">The user ID to check access for</param>
+    Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId);
+
+    /// <summary>
+    /// Gets the list of user IDs authorized to access an exclusive album
+    /// </summary>
+    /// <param name="albumId">The album ID</param>
+    Task<IEnumerable<string>> GetAuthorizedUserIdsAsync(int albumId);
+
+    /// <summary>
+    /// Adds a user to the album access list
+    /// </summary>
+    /// <param name="albumId">The album ID</param>
+    /// <param name="userId">The user ID to grant access</param>
+    /// <param name="saveChanges">Whether to save changes immediately</param>
+    Task AddAlbumAccessAsync(int albumId, string userId, bool saveChanges = true);
+
+    /// <summary>
+    /// Removes a user from the album access list
+    /// </summary>
+    /// <param name="albumId">The album ID</param>
+    /// <param name="userId">The user ID to revoke access</param>
+    /// <param name="saveChanges">Whether to save changes immediately</param>
+    Task RemoveAlbumAccessAsync(int albumId, string userId, bool saveChanges = true);
+
+    /// <summary>
+    /// Removes all access entries for an album
+    /// </summary>
+    /// <param name="albumId">The album ID</param>
+    /// <param name="saveChanges">Whether to save changes immediately</param>
+    Task RemoveAllAlbumAccessAsync(int albumId, bool saveChanges = true);
+
+    /// <summary>
+    /// Checks if a user has access to an album
+    /// </summary>
+    /// <param name="albumId">The album ID</param>
+    /// <param name="userId">The user ID to check</param>
+    /// <returns>True if the user has access (album is not exclusive, or user is in access list)</returns>
+    Task<bool> HasAccessAsync(int albumId, string userId);
 }
