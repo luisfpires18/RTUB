@@ -135,6 +135,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
 
+        // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
+        // This prevents issues when entities with navigation properties to ApplicationUser are added
+        // IMPORTANT: This must be called BEFORE iterating over ChangeTracker.Entries<T>() because
+        // that iteration triggers change detection which can cause tracking conflicts
+        DetachDuplicateApplicationUsers();
+
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             // Skip audit logging for excluded entities (high-frequency, low-value changes)
@@ -192,10 +198,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     break;
             }
         }
-
-        // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
-        // This prevents issues when entities with navigation properties to ApplicationUser are added
-        DetachDuplicateApplicationUsers();
 
         // Also track ApplicationUser changes (not BaseEntity)
         foreach (var entry in ChangeTracker.Entries<ApplicationUser>())
