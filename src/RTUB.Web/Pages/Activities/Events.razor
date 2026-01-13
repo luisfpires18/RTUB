@@ -401,6 +401,7 @@ else
                        WillAttend="@enrollmentForm.WillAttend"
                        WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
+                       IsCaloiro="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Caloiro))"
                        Instrument="@enrollmentForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
                        AvailableInstruments="@availableInstruments"

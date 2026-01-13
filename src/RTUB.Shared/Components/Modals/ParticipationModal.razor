@@ -130,7 +130,7 @@
             {
                 <div class="mb-3">
                     <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-file-text text-primary me-2"></i>Motivo (opcional)
+                        <i class="bi bi-file-text text-primary me-2"></i>Motivo @(IsNotesMandatory ? "(obrigatório)" : "(opcional)")
                     </label>
                     <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
                 </div>
@@ -189,6 +189,12 @@
     /// </summary>
     [Parameter]
     public bool IsLeitao { get; set; }
+
+    /// <summary>
+    /// Whether the current user is a Caloiro (affects notes requirements)
+    /// </summary>
+    [Parameter]
+    public bool IsCaloiro { get; set; }
 
     /// <summary>
     /// Selected instrument
@@ -267,6 +273,11 @@
     /// </summary>
     private bool HasInstruments => AvailableInstruments == null || AvailableInstruments.Any();
 
+    /// <summary>
+    /// Whether notes are mandatory (for Leitão/Caloiro members when not attending)
+    /// </summary>
+    private bool IsNotesMandatory => ShowWillAttend && !WillAttend && (IsLeitao || IsCaloiro);
+
     private async Task OnWantToPlayChanged(bool value)
     {
         // Note: Don't compare WantToPlay != value as the parameter may have already been updated
@@ -303,6 +314,15 @@
 
     private async Task HandleSubmit()
     {
+        validationErrors.Clear();
+
+        // Validate notes are required for Leitão/Caloiro members when not attending
+        if (IsNotesMandatory && string.IsNullOrWhiteSpace(Notes))
+        {
+            validationErrors.Add("O motivo é obrigatório para Leitões e Caloiros que não vão participar.");
+            return;
+        }
+
         // Validate instrument is selected when required
         // Only require instrument if user wants to play, will attend, is not Leitão, 
         // AND has available instruments to choose from

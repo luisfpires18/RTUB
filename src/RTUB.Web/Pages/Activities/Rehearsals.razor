@@ -190,6 +190,7 @@ else
                        WillAttend="@attendanceForm.WillAttend"
                        WillAttendChanged="@((bool value) => attendanceForm.WillAttend = value)"
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
+                       IsCaloiro="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Caloiro))"
                        Instrument="@attendanceForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => attendanceForm.Instrument = value)"
                        AvailableInstruments="@currentUserInstruments"

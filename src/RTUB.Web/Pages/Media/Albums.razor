@@ -347,49 +347,65 @@ else
                     <Authorized>
                         <div class="mb-4">
                             <h4 class="mb-3"><i class="bi bi-person-badge"></i> Estatísticas Detalhadas por Utilizador</h4>
-                            @if (paginatedUserStats != null && paginatedUserStats.Any())
+                            @if (allUserStats != null && allUserStats.Any())
                             {
-                                @foreach (var userGroup in paginatedUserStats)
+                                <!-- Search Bar -->
+                                <div class="mb-3">
+                                    <SearchBar @bind-Value="userStatsSearchTerm"
+                                               Placeholder="Pesquisar por nome..."
+                                               OnSearch="@HandleUserStatsSearchChanged" />
+                                </div>
+
+                                @if (!filteredUserStats.Any())
                                 {
-                                    var isExpanded = userStatsExpanded.GetValueOrDefault(userGroup.UserId, false);
-                                    <div class="user-stats-group mb-4">
-                                        <div class="user-stats-header" @onclick="() => ToggleUserStats(userGroup.UserId)" style="cursor: pointer;">
-                                            <img src="@userGroup.ProfilePictureSrc" alt="@userGroup.Nickname" class="user-stats-avatar" />
-                                            <div class="user-stats-info">
-                                                <div class="user-stats-nickname">@userGroup.Nickname</div>
-                                                <div class="user-stats-fullname">@userGroup.FirstName @userGroup.LastName</div>
-                                            </div>
-                                            <div class="user-stats-total">@userGroup.TotalPlays reproduções</div>
-                                            <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
-                                        </div>
-                                        @if (isExpanded)
-                                        {
-                                            <div class="stats-card-grid mt-2">
-                                                @foreach (var song in userGroup.Songs)
-                                                {
-                                                    <div class="stats-card stats-card-detailed">
-                                                        <div class="stats-card-content">
-                                                            <div class="stats-card-title">@song.SongTitle</div>
-                                                            <div class="stats-card-subtitle">@song.AlbumTitle</div>
-                                                        </div>
-                                                        <div class="stats-card-count">
-                                                            <i class="bi bi-play-circle"></i>
-                                                            <span>@song.PlayCount</span>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
+                                    <EmptyState 
+                                        Title="Nenhum utilizador encontrado com os critérios de pesquisa." 
+                                        Icon="bi-search" />
                                 }
-                                <TablePagination 
-                                    CurrentPage="@usersPaginationHelper.CurrentPage"
-                                    PageSize="@usersPaginationHelper.PageSize"
-                                    TotalItems="@allUserStats.Count"
-                                    ItemLabel="utilizadores"
-                                    PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
-                                    OnPageChanged="@HandleUsersPageChanged"
-                                    OnPageSizeChanged="@HandleUsersPageSizeChanged" />
+                                else
+                                {
+                                    @foreach (var userGroup in paginatedUserStats)
+                                    {
+                                        var isExpanded = userStatsExpanded.GetValueOrDefault(userGroup.UserId, false);
+                                        <div class="user-stats-group mb-4">
+                                            <div class="user-stats-header" @onclick="() => ToggleUserStats(userGroup.UserId)" style="cursor: pointer;">
+                                                <img src="@userGroup.ProfilePictureSrc" alt="@userGroup.Nickname" class="user-stats-avatar" />
+                                                <div class="user-stats-info">
+                                                    <div class="user-stats-nickname">@userGroup.Nickname</div>
+                                                    <div class="user-stats-fullname">@userGroup.FirstName @userGroup.LastName</div>
+                                                </div>
+                                                <div class="user-stats-total">@userGroup.TotalPlays reproduções</div>
+                                                <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
+                                            </div>
+                                            @if (isExpanded)
+                                            {
+                                                <div class="stats-card-grid mt-2">
+                                                    @foreach (var song in userGroup.Songs)
+                                                    {
+                                                        <div class="stats-card stats-card-detailed">
+                                                            <div class="stats-card-content">
+                                                                <div class="stats-card-title">@song.SongTitle</div>
+                                                                <div class="stats-card-subtitle">@song.AlbumTitle</div>
+                                                            </div>
+                                                            <div class="stats-card-count">
+                                                                <i class="bi bi-play-circle"></i>
+                                                                <span>@song.PlayCount</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    <TablePagination 
+                                        CurrentPage="@usersPaginationHelper.CurrentPage"
+                                        PageSize="@usersPaginationHelper.PageSize"
+                                        TotalItems="@filteredUserStats.Count"
+                                        ItemLabel="utilizadores"
+                                        PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                                        OnPageChanged="@HandleUsersPageChanged"
+                                        OnPageSizeChanged="@HandleUsersPageSizeChanged" />
+                                }
                             }
                             else
                             {
@@ -435,8 +451,10 @@ else
     private List<(Album Album, int PlayCount)> paginatedAlbumsStats = new();
     private List<(UserPlayInfo User, Song Song, Album Album, int PlayCount)> detailedStats = new();
     private List<UserStatsGroup> allUserStats = new();
+    private List<UserStatsGroup> filteredUserStats = new();
     private List<UserStatsGroup> paginatedUserStats = new();
     private Dictionary<string, bool> userStatsExpanded = new(); // Track collapsed/expanded state
+    private string userStatsSearchTerm = string.Empty;
     
     // Statistics pagination helpers
     private PaginationHelper<(Song Song, int PlayCount)> songsPaginationHelper = new() { PageSize = 5 };
@@ -782,8 +800,9 @@ else
                 .OrderByDescending(u => u.TotalPlays)
                 .ToList();
             
-            // Set up pagination for users
-            paginatedUserStats = usersPaginationHelper.GetPageData(allUserStats);
+            // Reset search and apply filtering/pagination for users
+            userStatsSearchTerm = string.Empty;
+            FilterUserStats();
             
             // Initialize all as collapsed (false = collapsed)
             userStatsExpanded.Clear();
@@ -806,7 +825,43 @@ else
     
     private void UpdateUsersPagination()
     {
-        paginatedUserStats = usersPaginationHelper.GetPageData(allUserStats);
+        FilterUserStats();
+    }
+    
+    private void FilterUserStats()
+    {
+        if (allUserStats == null)
+        {
+            filteredUserStats = new List<UserStatsGroup>();
+            paginatedUserStats = new List<UserStatsGroup>();
+            return;
+        }
+
+        // Apply search filter
+        if (string.IsNullOrWhiteSpace(userStatsSearchTerm))
+        {
+            filteredUserStats = allUserStats.ToList();
+        }
+        else
+        {
+            var searchTerm = userStatsSearchTerm.ToLower();
+            filteredUserStats = allUserStats
+                .Where(u => u.Nickname.ToLower().Contains(searchTerm) ||
+                            u.FirstName.ToLower().Contains(searchTerm) ||
+                            u.LastName.ToLower().Contains(searchTerm))
+                .ToList();
+        }
+
+        // Apply pagination to filtered list
+        paginatedUserStats = usersPaginationHelper.GetPageData(filteredUserStats);
+    }
+    
+    private async Task HandleUserStatsSearchChanged(string searchTerm)
+    {
+        userStatsSearchTerm = searchTerm;
+        usersPaginationHelper.Reset(); // Reset to first page on search
+        FilterUserStats();
+        await Task.CompletedTask;
     }
     
     private void CloseStatisticsModal()

@@ -375,6 +375,7 @@
                        WillAttend="@enrollmentForm.WillAttend"
                        WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
                        IsLeitao="@isCurrentUserLeitao"
+                       IsCaloiro="@isCurrentUserCaloiro"
                        Instrument="@enrollmentForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
                        AvailableInstruments="@availableInstruments"
@@ -409,6 +410,7 @@
     private List<Enrollment>? eventEnrollments;
     private string? currentUserId;
     private bool isCurrentUserLeitao = false;
+    private bool isCurrentUserCaloiro = false;
     private bool isUserAdmin = false;
     private bool showDeleteEnrollmentModal = false;
     private Enrollment? deletingEnrollment;
@@ -474,6 +476,7 @@
                 if (userData != null)
                 {
                     isCurrentUserLeitao = userData.Categories.Contains(MemberCategory.Leitao);
+                    isCurrentUserCaloiro = userData.Categories.Contains(MemberCategory.Caloiro);
                     // Immediately detach to prevent tracking issues
                     DbContext.Entry(userData).State = EntityState.Detached;
                 }
