@@ -166,9 +166,15 @@ public class PendingRequestReminderService : BackgroundService
 
         _logger.LogInformation("Found {Count} pending meeting requests", pendingRequests.Count);
 
-        // Load all users once for position-based filtering
-        var allUsers = await userManager.Users.ToListAsync(cancellationToken);
+        // Load all users once for position-based filtering with AsNoTracking to prevent tracking issues
+        var allUsers = await userManager.Users.AsNoTracking().ToListAsync(cancellationToken);
+        
+        // Get owner user IDs immediately to avoid tracking issues
         var ownerUsers = await userManager.GetUsersInRoleAsync("Owner");
+        var ownerUserIds = ownerUsers.Select(u => u.Id).ToList();
+
+        // Build a lookup for logging purposes
+        var userLookup = allUsers.ToDictionary(u => u.Id, u => u.Nickname ?? u.UserName ?? u.Id);
 
         foreach (var request in pendingRequests)
         {
@@ -177,28 +183,31 @@ public class PendingRequestReminderService : BackgroundService
             var notification = pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, DefaultBaseUrl);
 
             // Determine recipients based on meeting type
-            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+            IEnumerable<string> positionRecipientIds = Enumerable.Empty<string>();
 
             switch (request.RequestedMeetingType)
             {
                 case MeetingType.ConselhoVeteranos:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos))
+                        .Select(u => u.Id);
                     break;
 
                 case MeetingType.AssembleiaGeralOrdinaria:
                 case MeetingType.AssembleiaGeralExtraordinaria:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia))
+                        .Select(u => u.Id);
                     break;
 
                 case MeetingType.ReuniaoDirecao:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
                                     (u.Positions.Contains(Position.Magister) ||
-                                     u.Positions.Contains(Position.ViceMagister)));
+                                     u.Positions.Contains(Position.ViceMagister)))
+                        .Select(u => u.Id);
                     break;
 
                 default:
@@ -206,25 +215,25 @@ public class PendingRequestReminderService : BackgroundService
             }
 
             // Union Owners + position-based recipients
-            var recipients = ownerUsers
-                .Concat(positionRecipients)
-                .DistinctBy(u => u.Id)
+            var recipientUserIds = ownerUserIds
+                .Concat(positionRecipientIds)
+                .Distinct()
                 .ToList();
 
-            foreach (var recipient in recipients)
+            foreach (var userId in recipientUserIds)
             {
                 if (cancellationToken.IsCancellationRequested) break;
-                await pushNotificationService.SendToUserAsync(recipient.Id, notification);
+                await pushNotificationService.SendToUserAsync(userId, notification);
                 _logger.LogInformation(
                     "Push notification sent to {Username} about meeting request '{MeetingTitle}'",
-                    recipient.Nickname ?? recipient.UserName ?? recipient.Id,
+                    userLookup.GetValueOrDefault(userId, userId),
                     request.Title);
             }
 
             _logger.LogInformation(
                 "Sent pending meeting request reminder for '{Title}' to {Count} recipients",
                 request.Title,
-                recipients.Count);
+                recipientUserIds.Count);
         }
     }
 

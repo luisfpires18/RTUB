@@ -1188,58 +1188,71 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     /// </summary>
     private void DetachDuplicateApplicationUsers()
     {
-        // Get all ApplicationUser entries that are currently being tracked
-        var trackedUsers = ChangeTracker.Entries<ApplicationUser>()
-            .Where(e => e.State != EntityState.Detached)
-            .ToList();
-
-        // Group by user ID to find duplicates
-        var duplicateGroups = trackedUsers
-            .GroupBy(e => e.Entity.Id)
-            .Where(g => g.Count() > 1)
-            .ToList();
-
-        // For each group of duplicates, keep only one entry tracked
-        // Prefer Unchanged/Modified states over Added states to maintain existing data
-        foreach (var group in duplicateGroups)
+        // Disable auto-detect changes to prevent EF Core from triggering relationship fixup
+        // when we access/modify navigation properties. This prevents issues where unrelated
+        // entities (like Meeting) get their state changed during this operation.
+        var wasAutoDetectChangesEnabled = ChangeTracker.AutoDetectChangesEnabled;
+        try
         {
-            // Sort entries by priority: Unchanged/Modified first, Added last
-            // This ensures we keep the entity that's already properly tracked
-            var entries = group
-                .OrderBy(e => e.State == EntityState.Added ? 1 : 0)
-                .ThenByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
+            ChangeTracker.AutoDetectChangesEnabled = false;
+
+            // Get all ApplicationUser entries that are currently being tracked
+            var trackedUsers = ChangeTracker.Entries<ApplicationUser>()
+                .Where(e => e.State != EntityState.Detached)
                 .ToList();
 
-            var keptEntry = entries.First();
-            var keptUser = keptEntry.Entity;
-            var userId = keptUser.Id;
+            // Group by user ID to find duplicates
+            var duplicateGroups = trackedUsers
+                .GroupBy(e => e.Entity.Id)
+                .Where(g => g.Count() > 1)
+                .ToList();
 
-            // Get all entities being added that might reference the duplicate users
-            // Update their navigation properties to point to the kept instance
-            foreach (var entityEntry in ChangeTracker.Entries())
+            // For each group of duplicates, keep only one entry tracked
+            // Prefer Unchanged/Modified states over Added states to maintain existing data
+            foreach (var group in duplicateGroups)
             {
-                if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
+                // Sort entries by priority: Unchanged/Modified first, Added last
+                // This ensures we keep the entity that's already properly tracked
+                var entries = group
+                    .OrderBy(e => e.State == EntityState.Added ? 1 : 0)
+                    .ThenByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
+                    .ToList();
+
+                var keptEntry = entries.First();
+                var keptUser = keptEntry.Entity;
+                var userId = keptUser.Id;
+
+                // Get all entities being added that might reference the duplicate users
+                // Update their navigation properties to point to the kept instance
+                foreach (var entityEntry in ChangeTracker.Entries())
                 {
-                    foreach (var navigation in entityEntry.Navigations)
+                    if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
                     {
-                        if (navigation.CurrentValue is ApplicationUser navUser && navUser.Id == userId)
+                        foreach (var navigation in entityEntry.Navigations)
                         {
-                            // Check if this navigation points to a duplicate instance (not the kept one)
-                            if (!ReferenceEquals(navUser, keptUser))
+                            if (navigation.CurrentValue is ApplicationUser navUser && navUser.Id == userId)
                             {
-                                // Update the navigation to point to the kept instance
-                                navigation.CurrentValue = keptUser;
+                                // Check if this navigation points to a duplicate instance (not the kept one)
+                                if (!ReferenceEquals(navUser, keptUser))
+                                {
+                                    // Update the navigation to point to the kept instance
+                                    navigation.CurrentValue = keptUser;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // Detach all but the first entry (the one we want to keep)
-            foreach (var entry in entries.Skip(1))
-            {
-                entry.State = EntityState.Detached;
+                // Detach all but the first entry (the one we want to keep)
+                foreach (var entry in entries.Skip(1))
+                {
+                    entry.State = EntityState.Detached;
+                }
             }
+        }
+        finally
+        {
+            ChangeTracker.AutoDetectChangesEnabled = wasAutoDetectChangesEnabled;
         }
     }
 
