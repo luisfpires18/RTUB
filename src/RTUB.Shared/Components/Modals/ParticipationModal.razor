@@ -330,7 +330,7 @@
             && AvailableInstruments != null && AvailableInstruments.Any())
         {
             instrumentValidationError = "Por favor, selecione um instrumento.";
-            validationErrors = new List<string> { instrumentValidationError };
+            validationErrors.Add(instrumentValidationError);
             return;
         }
 

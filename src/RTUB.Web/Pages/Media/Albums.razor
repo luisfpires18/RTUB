@@ -801,6 +801,7 @@ else
                 .ToList();
             
             // Reset search and apply filtering/pagination for users
+            // Intentionally clearing search when data is reloaded to avoid confusion with stale filters
             userStatsSearchTerm = string.Empty;
             FilterUserStats();
             
