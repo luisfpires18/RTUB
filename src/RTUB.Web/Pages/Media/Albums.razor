@@ -3,10 +3,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Logging
+@using RTUB.Application.Data
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
@@ -14,6 +18,8 @@
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
 @inject ILogger<Albums> Logger
 
 <div class="d-flex flex-column gap-3 mb-4">
@@ -90,12 +96,20 @@ else
                     <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h5 class="card-title music-text-light mb-0">@album.Title</h5>
-                            @if (album.IsPrivate)
-                            {
-                                <span class="badge bg-warning text-dark" title="Álbum privado">
-                                    <i class="bi bi-lock-fill"></i>
-                                </span>
-                            }
+                            <div class="d-flex gap-1">
+                                @if (album.IsExclusive)
+                                {
+                                    <span class="badge bg-info text-dark" title="Álbum exclusivo">
+                                        <i class="bi bi-star-fill"></i>
+                                    </span>
+                                }
+                                @if (album.IsPrivate)
+                                {
+                                    <span class="badge bg-warning text-dark" title="Álbum privado">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </span>
+                                }
+                            </div>
                         </div>
                         @if (album.Year.HasValue)
                         {
@@ -178,6 +192,81 @@ else
                     </div>
                 </div>
             </div>
+
+            <AuthorizeView Roles="Owner">
+                <Authorized Context="ownerAuth">
+                    <div class="mb-3">
+                        <div class="rtub-checkbox-wrapper">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input rtub-checkbox-large rtub-checkbox-exclusive" 
+                                               id="albumIsExclusive" 
+                                               @bind-Value="album!.IsExclusive"
+                                               @bind-Value:after="OnExclusiveChanged" />
+                                <label class="form-check-label" for="albumIsExclusive">
+                                    <i class="bi bi-star text-info me-2"></i>Exclusivo (apenas membros selecionados)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (album!.IsExclusive)
+                    {
+                        <div class="mb-3 exclusive-members-section">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-people text-info me-2"></i>Membros com Acesso
+                            </label>
+
+                            @* Selected members as chips *@
+                            @if (selectedAuthorizedUsers.Any())
+                            {
+                                <div class="selected-members-chips mb-2">
+                                    @foreach (var user in selectedAuthorizedUsers)
+                                    {
+                                        <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
+                                            <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
+                                            <span class="member-chip-name">@user.GetDisplayName()</span>
+                                            <button type="button" class="member-chip-remove" @onclick="() => RemoveAuthorizedUser(user)" title="Remover acesso" aria-label="Remover @user.GetDisplayName()">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </span>
+                                    }
+                                </div>
+                            }
+
+                            @* Search for members to add *@
+                            <SearchBar @bind-Value="exclusiveMemberSearchTerm"
+                                       Placeholder="Pesquisar membro por nome..."
+                                       OnSearch="@HandleExclusiveMemberSearchChanged"
+                                       Compact="true" />
+
+                            @if (!string.IsNullOrWhiteSpace(exclusiveMemberSearchTerm) && filteredAvailableMembersForExclusive.Any())
+                            {
+                                <div class="member-list member-list-scrollable mt-2">
+                                    @foreach (var member in filteredAvailableMembersForExclusive)
+                                    {
+                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                             @onclick="() => AddAuthorizedUser(member)"
+                                             tabindex="0"
+                                             @onkeydown="@((e) => HandleMemberItemKeyDown(e, member))">
+                                            <div class="d-flex align-items-center">
+                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                     class="member-avatar-small me-2" />
+                                                <div>
+                                                    <strong>@member.GetDisplayName()</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(exclusiveMemberSearchTerm))
+                            {
+                                <p class="text-muted mt-2 small">Nenhum membro encontrado.</p>
+                            }
+                        </div>
+                    }
+                </Authorized>
+            </AuthorizeView>
 
             <ImageUploadManager @ref="imageUploadManager"
                                Label="Imagem de Capa"
@@ -443,6 +532,13 @@ else
     private PaginationHelper<(Album Album, int PlayCount)> albumsPaginationHelper = new() { PageSize = 5 };
     private PaginationHelper<UserStatsGroup> usersPaginationHelper = new() { PageSize = 5 };
     
+    // Exclusive album feature - member selection
+    private List<ApplicationUser> allMembersForExclusive = new();
+    private List<ApplicationUser> filteredAvailableMembersForExclusive = new();
+    private List<ApplicationUser> selectedAuthorizedUsers = new();
+    private string exclusiveMemberSearchTerm = string.Empty;
+    private string? currentUserId;
+    
     // Helper class for grouping user stats
     public class UserStatsGroup
     {
@@ -464,6 +560,30 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Get current user ID
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            // Load all members for exclusive album feature (for Owners)
+            if (user.IsInRole("Owner"))
+            {
+                allMembersForExclusive = await UserManager.Users
+                    .AsNoTracking()
+                    .Select(u => new ApplicationUser
+                    {
+                        Id = u.Id,
+                        FirstName = u.FirstName,
+                        LastName = u.LastName,
+                        Nickname = u.Nickname,
+                        ImageUrl = u.ImageUrl
+                    })
+                    .ToListAsync();
+            }
+        }
+        
         await LoadAlbums();
     }
 
@@ -474,10 +594,10 @@ else
         var user = authState.User;
         bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
 
-        if (isAuthenticated)
+        if (isAuthenticated && !string.IsNullOrEmpty(currentUserId))
         {
-            // Show all albums for authenticated users
-            albums = (await AlbumService.GetAllAlbumsAsync())
+            // Show albums the user has access to (non-exclusive + exclusive where user is authorized)
+            albums = (await AlbumService.GetAlbumsForUserAsync(currentUserId))
                 .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
                 .ThenBy(a => a.Year)                       // Then order by year ascending
                 .ToList();
@@ -538,10 +658,14 @@ else
             Year = DateTime.Now.Year
         };
         uploadedImagePath = null;
+        // Reset exclusive album state
+        selectedAuthorizedUsers = new List<ApplicationUser>();
+        exclusiveMemberSearchTerm = string.Empty;
+        filteredAvailableMembersForExclusive = new List<ApplicationUser>();
         showEditModal = true;
     }
 
-    private void OpenEditModal(Album album)
+    private async Task OpenEditModal(Album album)
     {
         isCreateMode = false;
         editingAlbum = new Album
@@ -551,9 +675,27 @@ else
             Description = album.Description,
             Year = album.Year,
             ImageUrl = album.ImageUrl,
-            IsPrivate = album.IsPrivate
+            IsPrivate = album.IsPrivate,
+            IsExclusive = album.IsExclusive
         };
         uploadedImagePath = null;
+        
+        // Load authorized users if album is exclusive
+        selectedAuthorizedUsers = new List<ApplicationUser>();
+        exclusiveMemberSearchTerm = string.Empty;
+        filteredAvailableMembersForExclusive = new List<ApplicationUser>();
+        
+        if (album.IsExclusive)
+        {
+            var authorizedUserIds = await AlbumService.GetAuthorizedUserIdsAsync(album.Id);
+            if (authorizedUserIds.Any())
+            {
+                selectedAuthorizedUsers = allMembersForExclusive
+                    .Where(m => authorizedUserIds.Contains(m.Id))
+                    .ToList();
+            }
+        }
+        
         showEditModal = true;
     }
 
@@ -564,6 +706,10 @@ else
         uploadedImagePath = null;
         croppedImageBytes = null;
         imageUploadManager?.Reset();
+        // Reset exclusive album state
+        selectedAuthorizedUsers = new List<ApplicationUser>();
+        exclusiveMemberSearchTerm = string.Empty;
+        filteredAvailableMembersForExclusive = new List<ApplicationUser>();
     }
 
     private async Task HandleImageUpload(IBrowserFile file)
@@ -622,6 +768,9 @@ else
         {
             return; // Unauthorized
         }
+        
+        // Check if user is Owner (required for exclusive albums)
+        bool isOwner = user.IsInRole("Owner");
 
         if (isCreateMode)
         {
@@ -634,13 +783,28 @@ else
                 imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "albums", normalizedName);
             }
 
-            await AlbumService.CreateAlbumAsync(
-                editingAlbum.Title,
-                editingAlbum.Year,
-                editingAlbum.Description ?? string.Empty,
-                imageUrl,
-                editingAlbum.IsPrivate
-            );
+            // Use exclusive album creation if owner selected exclusive and has authorized users
+            if (isOwner && editingAlbum.IsExclusive && selectedAuthorizedUsers.Any())
+            {
+                await AlbumService.CreateExclusiveAlbumAsync(
+                    editingAlbum.Title,
+                    editingAlbum.Year,
+                    editingAlbum.Description ?? string.Empty,
+                    imageUrl,
+                    selectedAuthorizedUsers.Select(u => u.Id).ToList()
+                );
+            }
+            else
+            {
+                await AlbumService.CreateAlbumAsync(
+                    editingAlbum.Title,
+                    editingAlbum.Year,
+                    editingAlbum.Description ?? string.Empty,
+                    imageUrl,
+                    editingAlbum.IsPrivate,
+                    isOwner ? editingAlbum.IsExclusive : false
+                );
+            }
         }
         else
         {
@@ -667,7 +831,17 @@ else
                     editingAlbum.Title,
                     editingAlbum.Year,
                     editingAlbum.Description ?? string.Empty,
-                    editingAlbum.IsPrivate
+                    editingAlbum.IsPrivate,
+                    isOwner ? editingAlbum.IsExclusive : false
+                );
+            }
+            
+            // Update album access if exclusive
+            if (isOwner && editingAlbum.IsExclusive)
+            {
+                await AlbumService.UpdateAlbumAccessAsync(
+                    editingAlbum.Id,
+                    selectedAuthorizedUsers.Select(u => u.Id).ToList()
                 );
             }
         }
@@ -884,5 +1058,72 @@ else
         }
         
         return imageSrc;
+    }
+    
+    // Exclusive album member selection methods
+    private Task HandleExclusiveMemberSearchChanged(string searchTerm)
+    {
+        exclusiveMemberSearchTerm = searchTerm;
+        FilterAvailableMembersForExclusive();
+        return Task.CompletedTask;
+    }
+    
+    private void FilterAvailableMembersForExclusive()
+    {
+        if (string.IsNullOrWhiteSpace(exclusiveMemberSearchTerm))
+        {
+            filteredAvailableMembersForExclusive = new List<ApplicationUser>();
+            return;
+        }
+        
+        // Get list of already selected user IDs
+        var selectedUserIds = selectedAuthorizedUsers.Select(u => u.Id).ToHashSet();
+        
+        // Filter members who are not already selected
+        var search = exclusiveMemberSearchTerm.ToLower();
+        filteredAvailableMembersForExclusive = allMembersForExclusive
+            .Where(u => !selectedUserIds.Contains(u.Id))
+            .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
+                       (u.LastName?.ToLower().Contains(search) ?? false) ||
+                       (u.Nickname?.ToLower().Contains(search) ?? false))
+            .OrderBy(u => u.FirstName)
+            .Take(10) // Limit results for performance
+            .ToList();
+    }
+    
+    private void AddAuthorizedUser(ApplicationUser user)
+    {
+        if (!selectedAuthorizedUsers.Any(u => u.Id == user.Id))
+        {
+            selectedAuthorizedUsers.Add(user);
+            exclusiveMemberSearchTerm = string.Empty;
+            filteredAvailableMembersForExclusive = new List<ApplicationUser>();
+            StateHasChanged();
+        }
+    }
+    
+    private void RemoveAuthorizedUser(ApplicationUser user)
+    {
+        selectedAuthorizedUsers.RemoveAll(u => u.Id == user.Id);
+        StateHasChanged();
+    }
+    
+    private void HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            AddAuthorizedUser(member);
+        }
+    }
+    
+    private void OnExclusiveChanged()
+    {
+        // Clear search when exclusive checkbox is toggled
+        if (editingAlbum != null && !editingAlbum.IsExclusive)
+        {
+            exclusiveMemberSearchTerm = string.Empty;
+            filteredAvailableMembersForExclusive = new List<ApplicationUser>();
+        }
+        StateHasChanged();
     }
 }

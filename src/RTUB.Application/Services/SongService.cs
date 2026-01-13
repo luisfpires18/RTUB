@@ -22,6 +22,7 @@ public class SongService : ISongService
     private readonly ISongRepository _songRepository;
     private readonly ISongVideoRepository _songVideoRepository;
     private readonly ISongVideoStorageService _songVideoStorageService;
+    private readonly IAlbumRepository _albumRepository;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<SongService>? _logger;
     private readonly IPushNotificationFactory _pushNotificationFactory;
@@ -33,6 +34,7 @@ public class SongService : ISongService
         ISongRepository songRepository,
         ISongVideoRepository songVideoRepository,
         ISongVideoStorageService songVideoStorageService,
+        IAlbumRepository albumRepository,
         ApplicationDbContext context,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
@@ -43,6 +45,7 @@ public class SongService : ISongService
         _songRepository = songRepository;
         _songVideoRepository = songVideoRepository;
         _songVideoStorageService = songVideoStorageService;
+        _albumRepository = albumRepository;
         _context = context;
         _logger = logger;
         _pushNotificationFactory = pushNotificationFactory;
@@ -238,7 +241,7 @@ public class SongService : ISongService
         // Save to repository
         var createdVideo = await _songVideoRepository.AddAsync(songVideo);
 
-        // Send push notification to all users
+        // Send push notification to users
         try
         {
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
@@ -250,13 +253,26 @@ public class SongService : ISongService
                 uploaderName,
                 baseUrl);
 
-            // Get all users
-            var allUserIds = await _userManager.Users
-                .Select(u => u.Id)
-                .ToListAsync();
+            // Get the album to check if it's exclusive
+            var album = await _albumRepository.GetByIdAsync(song.AlbumId);
+            
+            List<string> targetUserIds;
+            if (album?.IsExclusive == true)
+            {
+                // For exclusive albums, only notify authorized users
+                var authorizedUserIds = await _albumRepository.GetAuthorizedUserIdsAsync(song.AlbumId);
+                targetUserIds = authorizedUserIds.ToList();
+            }
+            else
+            {
+                // For non-exclusive albums, notify all users
+                targetUserIds = await _userManager.Users
+                    .Select(u => u.Id)
+                    .ToListAsync();
+            }
 
             // Send to each user (excluding the uploader)
-            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
+            foreach (var userId in targetUserIds.Where(id => id != createdByUserId))
             {
                 await _pushNotificationService.SendToUserAsync(userId, notification);
             }
