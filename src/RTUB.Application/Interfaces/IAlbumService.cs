@@ -39,10 +39,12 @@ public interface IAlbumService
     Task<IEnumerable<string>> GetAuthorizedUserIdsAsync(int albumId);
 
     /// <summary>
-    /// Gets albums visible to a specific user (non-exclusive + exclusive where user has access)
+    /// Gets albums visible to a specific user (non-exclusive + exclusive where user has access).
+    /// Owners can see all albums regardless of exclusive status.
     /// </summary>
     /// <param name="userId">The user ID</param>
-    Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId);
+    /// <param name="isOwner">Whether the user has the Owner role (can see all exclusive albums)</param>
+    Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false);
 
     /// <summary>
     /// Checks if a user has access to an album

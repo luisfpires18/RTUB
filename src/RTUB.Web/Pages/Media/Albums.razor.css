@@ -207,26 +207,26 @@
 }
 
 /* Exclusive album badge styling */
-.badge.bg-info {
+.badge.bg-purple {
     font-size: 0.7rem;
     padding: 0.25rem 0.5rem;
 }
 
-.badge.bg-info i {
+.badge.bg-purple i {
     font-size: 0.7rem;
 }
 
 /* Exclusive checkbox styling */
 .rtub-checkbox-exclusive:checked {
-    background-color: var(--bs-info);
-    border-color: var(--bs-info);
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 /* Exclusive members section */
 .exclusive-members-section {
     padding: 1rem;
-    background-color: rgba(var(--bs-info-rgb), 0.05);
-    border: 1px solid rgba(var(--bs-info-rgb), 0.2);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
     border-radius: 8px;
 }
 
@@ -242,8 +242,8 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.25rem 0.5rem 0.25rem 0.25rem;
-    background-color: rgba(var(--bs-info-rgb), 0.15);
-    border: 1px solid rgba(var(--bs-info-rgb), 0.3);
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
     border-radius: 20px;
     font-size: 0.85rem;
     color: var(--bs-body-color);
@@ -300,7 +300,7 @@
 
 .member-item:hover,
 .member-item:focus {
-    background-color: rgba(var(--bs-info-rgb), 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .clickable-row {
@@ -308,12 +308,12 @@
 }
 
 .clickable-row:focus-visible {
-    outline: 2px solid var(--bs-info);
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
 @media (max-width: 576px) {
-    .badge.bg-info {
+    .badge.bg-purple {
         font-size: 0.65rem;
         padding: 0.2rem 0.4rem;
     }

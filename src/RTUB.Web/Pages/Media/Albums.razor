@@ -99,7 +99,7 @@ else
                             <div class="d-flex gap-1">
                                 @if (album.IsExclusive)
                                 {
-                                    <span class="badge bg-info text-dark" title="Álbum exclusivo">
+                                    <span class="badge bg-purple text-white" title="Álbum exclusivo">
                                         <i class="bi bi-star-fill"></i>
                                     </span>
                                 }
@@ -203,7 +203,7 @@ else
                                                @bind-Value="album!.IsExclusive"
                                                @bind-Value:after="OnExclusiveChanged" />
                                 <label class="form-check-label" for="albumIsExclusive">
-                                    <i class="bi bi-star text-info me-2"></i>Exclusivo (apenas membros selecionados)
+                                    <i class="bi bi-star text-primary me-2"></i>Exclusivo (apenas membros selecionados)
                                 </label>
                             </div>
                         </div>
@@ -213,7 +213,7 @@ else
                     {
                         <div class="mb-3 exclusive-members-section">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-people text-info me-2"></i>Membros com Acesso
+                                <i class="bi bi-people text-primary me-2"></i>Membros com Acesso
                             </label>
 
                             @* Selected members as chips *@
@@ -593,11 +593,13 @@ else
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        bool isOwner = user.IsInRole("Owner");
 
         if (isAuthenticated && !string.IsNullOrEmpty(currentUserId))
         {
             // Show albums the user has access to (non-exclusive + exclusive where user is authorized)
-            albums = (await AlbumService.GetAlbumsForUserAsync(currentUserId))
+            // Owners can see all albums
+            albums = (await AlbumService.GetAlbumsForUserAsync(currentUserId, isOwner))
                 .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
                 .ThenBy(a => a.Year)                       // Then order by year ascending
                 .ToList();

@@ -40,8 +40,18 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId)
+    public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false)
     {
+        // Owners can see all albums
+        if (isOwner)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .OrderByDescending(a => a.Year)
+                .ToListAsync();
+        }
+
+        // Regular users can see non-exclusive albums + exclusive albums where they are in the access list
         return await _dbSet
             .AsNoTracking()
             .Where(a => !a.IsExclusive || a.AlbumAccesses.Any(aa => aa.UserId == userId))

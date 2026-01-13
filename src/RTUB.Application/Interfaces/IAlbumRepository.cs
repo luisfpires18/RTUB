@@ -25,9 +25,11 @@ public interface IAlbumRepository : IRepository<Album>
     /// <summary>
     /// Gets albums visible to a specific user.
     /// Returns non-exclusive albums plus exclusive albums where the user is in the access list.
+    /// Owners can see all albums regardless of exclusive status.
     /// </summary>
     /// <param name="userId">The user ID to check access for</param>
-    Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId);
+    /// <param name="isOwner">Whether the user has the Owner role (can see all exclusive albums)</param>
+    Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false);
 
     /// <summary>
     /// Gets the list of user IDs authorized to access an exclusive album

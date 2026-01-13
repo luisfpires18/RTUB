@@ -123,9 +123,9 @@ public class AlbumService : IAlbumService
         return await _albumRepository.GetAuthorizedUserIdsAsync(albumId);
     }
 
-    public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId)
+    public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false)
     {
-        return await _albumRepository.GetAlbumsForUserAsync(userId);
+        return await _albumRepository.GetAlbumsForUserAsync(userId, isOwner);
     }
 
     public async Task<bool> HasAccessAsync(int albumId, string userId)
