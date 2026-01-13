@@ -82,29 +82,32 @@ public class MeetingRequestService : IMeetingRequestService
 
             var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, baseUrl);
 
-            // 1) Owners (role)
+            // 1) Owners (role) - extract IDs immediately to avoid tracking issues
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+            var ownerUserIds = ownerUsers.Select(u => u.Id).ToList();
 
             // 2) Load all users once with AsNoTracking to prevent accumulating tracked entities
             // which can cause issues during subsequent SaveChangesAsync calls
             var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
             // 3) Pick extra recipients based on meeting type (in memory, can use Positions safely)
-            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+            IEnumerable<string> positionRecipientIds = Enumerable.Empty<string>();
 
             switch (request.RequestedMeetingType)
             {
                 case MeetingType.ConselhoVeteranos:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos))
+                        .Select(u => u.Id);
                     break;
 
                 case MeetingType.AssembleiaGeralOrdinaria:
                 case MeetingType.AssembleiaGeralExtraordinaria:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia))
+                        .Select(u => u.Id);
                     break;
 
                 default:
@@ -113,9 +116,8 @@ public class MeetingRequestService : IMeetingRequestService
             }
 
             // 4) Union Owners + position-based recipients
-            var recipientUserIds = ownerUsers
-                .Concat(positionRecipients)
-                .Select(u => u.Id)
+            var recipientUserIds = ownerUserIds
+                .Concat(positionRecipientIds)
                 .Distinct()
                 .ToList();
 
@@ -162,55 +164,62 @@ public class MeetingRequestService : IMeetingRequestService
         {
             var notification = _pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
 
-            // 1) Owners (role)
+            // 1) Owners (role) - extract IDs immediately to avoid tracking issues
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+            var ownerUserIds = ownerUsers.Select(u => u.Id).ToList();
 
             // 2) Load all users once with AsNoTracking to prevent accumulating tracked entities
             // which can cause issues during subsequent SaveChangesAsync calls
             var allUsers = await _userManager.Users.AsNoTracking().ToListAsync();
 
             // 3) Pick extra recipients based on meeting type
-            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+            IEnumerable<string> positionRecipientIds = Enumerable.Empty<string>();
 
             switch (request.RequestedMeetingType)
             {
                 case MeetingType.ConselhoVeteranos:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos))
+                        .Select(u => u.Id);
                     break;
 
                 case MeetingType.AssembleiaGeralOrdinaria:
                 case MeetingType.AssembleiaGeralExtraordinaria:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
-                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia))
+                        .Select(u => u.Id);
                     break;
 
                 case MeetingType.ReuniaoDirecao:
-                    positionRecipients = allUsers
+                    positionRecipientIds = allUsers
                         .Where(u => u.Positions != null &&
                                     (u.Positions.Contains(Position.Magister) ||
-                                     u.Positions.Contains(Position.ViceMagister)));
+                                     u.Positions.Contains(Position.ViceMagister)))
+                        .Select(u => u.Id);
                     break;
 
                 default:
                     break;
             }
 
-            // 4) Union Owners + position-based recipients
-            var recipients = ownerUsers
-                .Concat(positionRecipients)
-                .DistinctBy(u => u.Id)
+            // 4) Union Owners + position-based recipients and get user info for logging
+            var recipientUserIds = ownerUserIds
+                .Concat(positionRecipientIds)
+                .Distinct()
                 .ToList();
 
+            // Build a lookup for logging purposes (using the untracked allUsers list)
+            var userLookup = allUsers.ToDictionary(u => u.Id, u => u.Nickname ?? u.UserName ?? u.Id);
+
             // 5) Send notifications
-            foreach (var recipient in recipients)
+            foreach (var userId in recipientUserIds)
             {
-                await _pushNotificationService.SendToUserAsync(recipient.Id, notification);
+                await _pushNotificationService.SendToUserAsync(userId, notification);
                 _logger.LogInformation(
                     "Push notification sent to {Username} about meeting request '{MeetingTitle}'",
-                    recipient.Nickname ?? recipient.UserName ?? recipient.Id,
+                    userLookup.GetValueOrDefault(userId, userId),
                     request.Title);
             }
 
