@@ -42,7 +42,7 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
         {
             // Determine file extension based on content type
             var extension = GetFileExtension(contentType, fileName);
-            
+
             // Generate object key with timestamp
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var objectKey = $"receipts/{_environment}/{transactionId}_{timestamp}{extension}";

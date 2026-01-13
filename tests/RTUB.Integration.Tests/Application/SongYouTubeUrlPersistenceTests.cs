@@ -44,6 +44,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             new SongRepository(_context),
             mockSongVideoRepository.Object,
             mockSongVideoStorageService.Object,
+            new AlbumRepository(_context),
             _context,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

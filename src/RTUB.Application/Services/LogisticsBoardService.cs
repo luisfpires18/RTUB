@@ -62,7 +62,7 @@ public class LogisticsBoardService : ILogisticsBoardService
         }
 
         var totalCount = await query.CountAsync();
-        
+
         var boards = await query
             .OrderByDescending(b => b.CreatedAt)
             .Skip((page - 1) * pageSize)

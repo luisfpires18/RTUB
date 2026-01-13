@@ -206,3 +206,123 @@
     }
 }
 
+/* Exclusive album badge styling */
+.badge.bg-purple {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.badge.bg-purple i {
+    font-size: 0.7rem;
+}
+
+/* Exclusive checkbox styling */
+.rtub-checkbox-exclusive:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* Exclusive members section */
+.exclusive-members-section {
+    padding: 1rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 8px;
+}
+
+/* Selected members chips */
+.selected-members-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--bs-body-color);
+}
+
+.member-chip-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.member-chip-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.member-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin-left: 0.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--bs-danger);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.member-chip-remove:hover {
+    background-color: rgba(var(--bs-danger-rgb), 0.2);
+}
+
+.member-chip-remove i {
+    font-size: 0.75rem;
+}
+
+/* Member list for selection (scoped version) */
+.member-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.member-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.member-item:hover,
+.member-item:focus {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.clickable-row {
+    outline: none;
+}
+
+.clickable-row:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+    .badge.bg-purple {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .member-chip-name {
+        max-width: 80px;
+    }
+    
+    .exclusive-members-section {
+        padding: 0.75rem;
+    }
+}

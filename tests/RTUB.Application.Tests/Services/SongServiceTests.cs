@@ -54,6 +54,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _songRepository,
             _mockSongVideoRepository.Object,
             _mockSongVideoStorageService.Object,
+            new AlbumRepository(_context),
             _context,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

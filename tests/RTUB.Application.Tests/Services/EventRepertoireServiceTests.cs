@@ -75,6 +75,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
             new SongRepository(_context),
             mockSongVideoRepository.Object,
             mockSongVideoStorageService.Object,
+            new AlbumRepository(_context),
             _context,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,

@@ -137,7 +137,7 @@ public class Repository<T> : IRepository<T> where T : class
         try
         {
             _context.ChangeTracker.AutoDetectChangesEnabled = false;
-            
+
             var trackedEntry = _context.ChangeTracker
                 .Entries<T>()
                 .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));

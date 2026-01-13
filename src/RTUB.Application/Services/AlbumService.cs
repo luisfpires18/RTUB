@@ -47,9 +47,9 @@ public class AlbumService : IAlbumService
         return await _albumRepository.GetAlbumWithSongsAsync(id);
     }
 
-    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false)
+    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false, bool isExclusive = false)
     {
-        var album = Album.Create(title, year, description, isPrivate);
+        var album = Album.Create(title, year, description, isPrivate, isExclusive);
         if (!string.IsNullOrEmpty(imageUrl))
         {
             album.SetCoverImage(imageUrl);
@@ -57,14 +57,80 @@ public class AlbumService : IAlbumService
         return await _albumRepository.AddAsync(album);
     }
 
-    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate)
+    public async Task<Album> CreateExclusiveAlbumAsync(string title, int? year, string? description, string? imageUrl, List<string> authorizedUserIds)
+    {
+        // Filter out any empty or null user IDs
+        var validUserIds = authorizedUserIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToList() ?? new List<string>();
+
+        // Create the album as exclusive
+        var album = await CreateAlbumAsync(title, year, description, imageUrl, isPrivate: false, isExclusive: true);
+
+        // Add authorized users to the access list (batch without saving each time)
+        foreach (var userId in validUserIds)
+        {
+            await _albumRepository.AddAlbumAccessAsync(album.Id, userId, saveChanges: false);
+        }
+
+        // Save all access entries in a single transaction
+        if (validUserIds.Count > 0)
+        {
+            await _albumRepository.SaveChangesAsync();
+        }
+
+        return album;
+    }
+
+    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false)
     {
         var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
-        album.UpdateDetails(title, year, description, isPrivate);
+        album.UpdateDetails(title, year, description, isPrivate, isExclusive);
         await _albumRepository.UpdateAsync(album);
+    }
+
+    public async Task UpdateAlbumAccessAsync(int albumId, List<string> authorizedUserIds)
+    {
+        var album = await _albumRepository.GetByIdAsync(albumId);
+        if (album == null)
+            throw new EntityNotFoundException(nameof(Album), albumId);
+
+        // Filter out any empty or null user IDs
+        var validUserIds = authorizedUserIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet() ?? new HashSet<string>();
+
+        // Get current authorized users
+        var currentUserIds = (await _albumRepository.GetAuthorizedUserIdsAsync(albumId)).ToHashSet();
+
+        // Remove users that are no longer authorized (batch without saving each time)
+        foreach (var userId in currentUserIds.Where(id => !validUserIds.Contains(id)))
+        {
+            await _albumRepository.RemoveAlbumAccessAsync(albumId, userId, saveChanges: false);
+        }
+
+        // Add new authorized users (batch without saving each time)
+        foreach (var userId in validUserIds.Where(id => !currentUserIds.Contains(id)))
+        {
+            await _albumRepository.AddAlbumAccessAsync(albumId, userId, saveChanges: false);
+        }
+
+        // Save all changes in a single transaction
+        await _albumRepository.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<string>> GetAuthorizedUserIdsAsync(int albumId)
+    {
+        return await _albumRepository.GetAuthorizedUserIdsAsync(albumId);
+    }
+
+    public async Task<IEnumerable<Album>> GetAlbumsForUserAsync(string userId, bool isOwner = false)
+    {
+        return await _albumRepository.GetAlbumsForUserAsync(userId, isOwner);
+    }
+
+    public async Task<bool> HasAccessAsync(int albumId, string userId)
+    {
+        return await _albumRepository.HasAccessAsync(albumId, userId);
     }
 
     public async Task DeleteAlbumAsync(int id)
@@ -88,8 +154,8 @@ public class AlbumService : IAlbumService
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
-        // Update album details
-        album.UpdateDetails(title, year, description, isPrivate);
+        // Update album details (preserve existing IsExclusive value)
+        album.UpdateDetails(title, year, description, isPrivate, album.IsExclusive);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
