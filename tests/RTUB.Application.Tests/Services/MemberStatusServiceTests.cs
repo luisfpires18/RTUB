@@ -1354,13 +1354,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var jan6 = new DateTime(2026, 1, 6);
         var jan8 = new DateTime(2026, 1, 8);
         var jan13 = new DateTime(2026, 1, 13);
-
+        
         foreach (var date in new[] { jan6, jan8, jan13 })
         {
             var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
             _context.Rehearsals.Add(rehearsal);
             await _context.SaveChangesAsync();
-
+            
             var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
             attendance.MarkAttendance(true);
             _context.RehearsalAttendances.Add(attendance);
@@ -1370,11 +1370,11 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var jan10Event = Event.Create("January Event", new DateTime(2026, 1, 10), "Location", EventType.Atuacao);
         _context.Events.Add(jan10Event);
         await _context.SaveChangesAsync();
-
-        var jan10Enrollment = new Enrollment
-        {
-            EventId = jan10Event.Id,
-            UserId = userId,
+        
+        var jan10Enrollment = new Enrollment 
+        { 
+            EventId = jan10Event.Id, 
+            UserId = userId, 
             WillAttend = true,
             EnrolledAt = DateTime.UtcNow
         };
@@ -1383,13 +1383,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create December 2025 rehearsals (2nd, 4th)
         var dec2 = new DateTime(2025, 12, 2);
         var dec4 = new DateTime(2025, 12, 4);
-
+        
         foreach (var date in new[] { dec2, dec4 })
         {
             var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
             _context.Rehearsals.Add(rehearsal);
             await _context.SaveChangesAsync();
-
+            
             var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
             attendance.MarkAttendance(true);
             _context.RehearsalAttendances.Add(attendance);
@@ -1401,11 +1401,11 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             var evt = Event.Create($"December Event {date:dd}", date, "Location", EventType.Atuacao);
             _context.Events.Add(evt);
             await _context.SaveChangesAsync();
-
-            var enrollment = new Enrollment
-            {
-                EventId = evt.Id,
-                UserId = userId,
+            
+            var enrollment = new Enrollment 
+            { 
+                EventId = evt.Id, 
+                UserId = userId, 
                 WillAttend = true,
                 EnrolledAt = DateTime.UtcNow
             };
@@ -1422,10 +1422,10 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Assert
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
-
+        
         // The member should still be retired because 2 < 3 consecutive months required
         result.IsRetired.Should().BeTrue("member should still be retired with only 2 consecutive months");
-
+        
         // Progress should show 2/3 (Jan + Dec only)
         result.ProgressMonths.Should().Be(2, "only January and December have activity, not November");
         result.ProgressTotalMonths.Should().Be(3);

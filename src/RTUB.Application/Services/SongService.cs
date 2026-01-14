@@ -255,7 +255,7 @@ public class SongService : ISongService
 
             // Get the album to check if it's exclusive
             var album = await _albumRepository.GetByIdAsync(song.AlbumId);
-
+            
             List<string> targetUserIds;
             if (album?.IsExclusive == true)
             {

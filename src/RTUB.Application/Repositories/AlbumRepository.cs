@@ -23,24 +23,6 @@ public class AlbumRepository : Repository<Album>, IAlbumRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Album>> GetReleasedAlbumsAsync()
-    {
-        return await _dbSet
-            .AsNoTracking()
-            .Where(a => !a.IsDraft)
-            .OrderByDescending(a => a.Year)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Album>> GetDraftAlbumsAsync()
-    {
-        return await _dbSet
-            .AsNoTracking()
-            .Where(a => a.IsDraft)
-            .OrderByDescending(a => a.Year)
-            .ToListAsync();
-    }
-
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
         return await _dbSet

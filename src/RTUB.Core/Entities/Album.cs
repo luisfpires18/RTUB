@@ -23,9 +23,6 @@ public class Album : BaseEntity
     // Exclusive album flag - when true, only users in AlbumAccess list can view
     public bool IsExclusive { get; set; } = false;
 
-    // Draft album flag - when true, album is not yet released
-    public bool IsDraft { get; set; } = false;
-
     // Image handling
     public string? ImageUrl { get; set; }
 
@@ -36,7 +33,7 @@ public class Album : BaseEntity
     // Private constructor for EF Core
     public Album() { }
 
-    public static Album Create(string title, int? year, string? description = null, bool isPrivate = false, bool isExclusive = false, bool isDraft = false)
+    public static Album Create(string title, int? year, string? description = null, bool isPrivate = false, bool isExclusive = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -50,12 +47,11 @@ public class Album : BaseEntity
             Year = year,
             Description = description,
             IsPrivate = isPrivate,
-            IsExclusive = isExclusive,
-            IsDraft = isDraft
+            IsExclusive = isExclusive
         };
     }
 
-    public void UpdateDetails(string title, int? year, string? description, bool isPrivate, bool isExclusive = false, bool isDraft = false)
+    public void UpdateDetails(string title, int? year, string? description, bool isPrivate, bool isExclusive = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -68,7 +64,6 @@ public class Album : BaseEntity
         Description = description;
         IsPrivate = isPrivate;
         IsExclusive = isExclusive;
-        IsDraft = isDraft;
     }
 
     public void SetCoverImage(string? url)

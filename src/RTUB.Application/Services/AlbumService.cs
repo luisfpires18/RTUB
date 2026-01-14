@@ -37,16 +37,6 @@ public class AlbumService : IAlbumService
         return await _albumRepository.GetPublicAlbumsAsync();
     }
 
-    public async Task<IEnumerable<Album>> GetReleasedAlbumsAsync()
-    {
-        return await _albumRepository.GetReleasedAlbumsAsync();
-    }
-
-    public async Task<IEnumerable<Album>> GetDraftAlbumsAsync()
-    {
-        return await _albumRepository.GetDraftAlbumsAsync();
-    }
-
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
         return await _albumRepository.GetAlbumsWithSongsAsync();
@@ -57,9 +47,9 @@ public class AlbumService : IAlbumService
         return await _albumRepository.GetAlbumWithSongsAsync(id);
     }
 
-    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false, bool isExclusive = false, bool isDraft = false)
+    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false, bool isExclusive = false)
     {
-        var album = Album.Create(title, year, description, isPrivate, isExclusive, isDraft);
+        var album = Album.Create(title, year, description, isPrivate, isExclusive);
         if (!string.IsNullOrEmpty(imageUrl))
         {
             album.SetCoverImage(imageUrl);
@@ -90,13 +80,13 @@ public class AlbumService : IAlbumService
         return album;
     }
 
-    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false, bool isDraft = false)
+    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false)
     {
         var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
-        album.UpdateDetails(title, year, description, isPrivate, isExclusive, isDraft);
+        album.UpdateDetails(title, year, description, isPrivate, isExclusive);
         await _albumRepository.UpdateAsync(album);
     }
 
@@ -164,8 +154,8 @@ public class AlbumService : IAlbumService
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
-        // Update album details (preserve existing IsExclusive and IsDraft values)
-        album.UpdateDetails(title, year, description, isPrivate, album.IsExclusive, album.IsDraft);
+        // Update album details (preserve existing IsExclusive value)
+        album.UpdateDetails(title, year, description, isPrivate, album.IsExclusive);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))

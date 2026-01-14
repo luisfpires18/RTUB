@@ -209,11 +209,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsDraft")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsExclusive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
