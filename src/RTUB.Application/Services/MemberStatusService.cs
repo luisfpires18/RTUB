@@ -139,6 +139,11 @@ public class MemberStatusService : IMemberStatusService
 
         await _context.SaveChangesAsync();
 
+        // Calculate activity months description for detailed logging
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, now);
+
         // Log state changes for existing records ONLY when values actually change
         // Creates both console logs and audit log entries for the tracing page
         if (!isNewRecord && result.HasAnyActivity)
@@ -148,10 +153,12 @@ public class MemberStatusService : IMemberStatusService
             {
                 if (wasRetired && !result.IsRetired)
                 {
-                    var changeDescription = "Retired => Active (achieved 3/3 consecutive months)";
+                    // Get detailed activity months for troubleshooting
+                    var activityMonths = await GetActivityMonthsDescriptionAsync(userId, now, hasActivityInCurrentMonth);
+                    var changeDescription = $"Retired => Active (achieved 3/3 consecutive months: {activityMonths})";
                     _logger.LogInformation("✅ {MemberName}: {Change}", memberName, changeDescription);
 
-                    // Create audit log entry
+                    // Create audit log entry with detailed information
                     await _auditLogService.AddAsync(new AuditLog
                     {
                         EntityType = "MemberStatus",
@@ -631,6 +638,47 @@ public class MemberStatusService : IMemberStatusService
         }
 
         return consecutiveMonths;
+    }
+
+    /// <summary>
+    /// Gets detailed information about which months have activity for diagnostic purposes
+    /// Used in audit logs when retirement status changes to help troubleshoot issues
+    /// </summary>
+    private async Task<string> GetActivityMonthsDescriptionAsync(string userId, DateTime referenceDate, bool hasActivityInCurrentMonth)
+    {
+        var monthsWithActivity = new List<string>();
+        var cultureInfo = System.Globalization.CultureInfo.GetCultureInfo("pt-PT");
+
+        if (hasActivityInCurrentMonth)
+        {
+            monthsWithActivity.Add(referenceDate.ToString("MMM yyyy", cultureInfo));
+        }
+
+        // Check previous 12 months
+        for (int i = 1; i <= 12; i++)
+        {
+            var targetDate = referenceDate.AddMonths(-i);
+            var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
+
+            var hasActivityInMonth = await HasActivityInPeriodAsync(userId, monthStart, monthEnd);
+            if (hasActivityInMonth)
+            {
+                monthsWithActivity.Add(targetDate.ToString("MMM yyyy", cultureInfo));
+            }
+            else if (monthsWithActivity.Any())
+            {
+                // Stop once we hit a gap (for consecutive reporting)
+                break;
+            }
+        }
+
+        if (!monthsWithActivity.Any())
+        {
+            return "no activity months found";
+        }
+
+        return string.Join(", ", monthsWithActivity);
     }
 
     /// <summary>
