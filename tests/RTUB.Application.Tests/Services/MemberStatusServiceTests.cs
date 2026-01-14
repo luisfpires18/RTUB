@@ -1219,8 +1219,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     public async Task GetMemberStatusAsync_MixOfApprovedAndUnapprovedRehearsalsCountsOnlyApproved()
     {
         // Arrange - Test that only approved rehearsals count toward consecutive months
-        // Scenario: User has activity in January (approved), December (approved), 
-        // and November (unapproved). Should show 2/3, not 3/3.
+        // Scenario: User has activity in current month (approved), previous month (approved), 
+        // and two months ago (unapproved). Should show 2/3, not 3/3.
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true; // Start as retired

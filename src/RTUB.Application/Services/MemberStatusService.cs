@@ -654,7 +654,9 @@ public class MemberStatusService : IMemberStatusService
             monthsWithActivity.Add(referenceDate.ToString("MMM yyyy", cultureInfo));
         }
 
-        // Check previous 12 months
+        // Check previous 12 months backwards from current month
+        // The loop intentionally checks from i=1 (last month) to i=12 (12 months ago)
+        // This ensures we find consecutive months starting from the most recent
         for (int i = 1; i <= 12; i++)
         {
             var targetDate = referenceDate.AddMonths(-i);
@@ -668,7 +670,8 @@ public class MemberStatusService : IMemberStatusService
             }
             else if (monthsWithActivity.Any())
             {
-                // Stop once we hit a gap (for consecutive reporting)
+                // Stop once we hit a gap - this only collects consecutive months for the report
+                // e.g., if current month + Dec + Nov have activity but Oct doesn't, we stop at Nov
                 break;
             }
         }
