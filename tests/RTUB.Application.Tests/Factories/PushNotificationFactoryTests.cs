@@ -217,9 +217,9 @@ public class PushNotificationFactoryTests
         var notification = _factory.CreateEventNotification(testEvent, isReminder: true, baseUrl);
 
         // Assert
-        // Since the event is today (0 days difference), Math.Ceiling returns 0
-        // But the implementation should handle it properly
-        Assert.Contains("dias", notification.Body);
+        // Since the event is today (0 days difference), it should say "hoje"
+        Assert.Contains("A atuação é hoje", notification.Body);
+        Assert.DoesNotContain("dias", notification.Body);
     }
 
     [Fact]
