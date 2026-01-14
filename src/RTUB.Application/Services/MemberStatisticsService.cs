@@ -186,10 +186,14 @@ public class MemberStatisticsService : IMemberStatisticsService
         var activities = new List<AttendedActivityDto>();
 
         // Get attended rehearsals
+        // Must match filters in MemberStatusService.HasActivityInPeriodAsync for consistency
         var rehearsals = await (
             from attendance in _context.RehearsalAttendances
             join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
-            where attendance.UserId == userId && attendance.Attended && rehearsal.Date < beforeDateOnly
+            where attendance.UserId == userId 
+                && attendance.Attended  // Only approved/confirmed attendance
+                && !rehearsal.IsCanceled  // Exclude canceled rehearsals
+                && rehearsal.Date < beforeDateOnly  // Only past rehearsals
             select new AttendedActivityDto
             {
                 Date = rehearsal.Date,
@@ -203,11 +207,15 @@ public class MemberStatisticsService : IMemberStatisticsService
         activities.AddRange(rehearsals);
 
         // Get attended events with event type information
+        // Must match filters in MemberStatusService.HasActivityInPeriodAsync for consistency
         var eventData = await (
             from enrollment in _context.Enrollments
             join evt in _context.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
-            where enrollment.UserId == userId && enrollment.WillAttend && eventEndDate < beforeDateOnly
+            where enrollment.UserId == userId 
+                && enrollment.WillAttend  // Only enrolled attendees
+                && !evt.IsCancelled  // Exclude canceled events
+                && eventEndDate < beforeDateOnly  // Only past events
             select new
             {
                 Date = evt.Date,

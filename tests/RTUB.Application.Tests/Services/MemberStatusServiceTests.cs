@@ -1168,6 +1168,111 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
+    public async Task GetMemberStatusAsync_UnapprovedRehearsalsDoNotCount()
+    {
+        // Arrange - CRITICAL BUG FIX TEST
+        // Test that rehearsals with Attended = false (not yet approved) are NOT counted
+        // This simulates when an admin creates a rehearsal but hasn't marked attendance yet
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired to test reactivation
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+
+        // Create 3 past rehearsals but with Attended = false (unapproved)
+        // If these counted, the user would become active (3/3)
+        var rehearsalDates = new[]
+        {
+            now.AddDays(-5), // Current month - unapproved
+            new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15), // Last month - unapproved
+            new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15), // 2 months ago - unapproved
+        };
+
+        foreach (var date in rehearsalDates)
+        {
+            var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
+            _context.Rehearsals.Add(rehearsal);
+            await _context.SaveChangesAsync();
+
+            // Create attendance but DO NOT mark as attended (Attended = false by default)
+            var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+            // attendance.Attended is false by default - simulating unapproved rehearsal
+            _context.RehearsalAttendances.Add(attendance);
+        }
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Unapproved rehearsals should NOT be counted
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeFalse(); // No approved activities
+        result.IsRetired.Should().BeTrue(); // Should stay retired
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_MixOfApprovedAndUnapprovedRehearsalsCountsOnlyApproved()
+    {
+        // Arrange - Test that only approved rehearsals count toward consecutive months
+        // Scenario: User has activity in January (approved), December (approved), 
+        // and November (unapproved). Should show 2/3, not 3/3.
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+
+        // Current month - APPROVED rehearsal (1 day ago)
+        var janRehearsal = Rehearsal.Create(now.AddDays(-1), "January Rehearsal");
+        _context.Rehearsals.Add(janRehearsal);
+        await _context.SaveChangesAsync();
+        var janAttendance = RehearsalAttendance.Create(janRehearsal.Id, userId);
+        janAttendance.MarkAttendance(true); // Approved
+        _context.RehearsalAttendances.Add(janAttendance);
+
+        // Last month (December) - APPROVED rehearsal
+        var decDate = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var decRehearsal = Rehearsal.Create(decDate, "December Rehearsal");
+        _context.Rehearsals.Add(decRehearsal);
+        await _context.SaveChangesAsync();
+        var decAttendance = RehearsalAttendance.Create(decRehearsal.Id, userId);
+        decAttendance.MarkAttendance(true); // Approved
+        _context.RehearsalAttendances.Add(decAttendance);
+
+        // 2 months ago (November) - UNAPPROVED rehearsal (should NOT count)
+        var novDate = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var novRehearsal = Rehearsal.Create(novDate, "November Rehearsal");
+        _context.Rehearsals.Add(novRehearsal);
+        await _context.SaveChangesAsync();
+        var novAttendance = RehearsalAttendance.Create(novRehearsal.Id, userId);
+        // NOT calling MarkAttendance - Attended = false (unapproved)
+        _context.RehearsalAttendances.Add(novAttendance);
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should only count approved months (Jan + Dec = 2)
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue(); // Should stay retired (only 2/3)
+        result.ProgressMonths.Should().Be(2); // Only Jan + Dec
+        result.ProgressTotalMonths.Should().Be(3);
+        result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
+    }
+
+    [Fact]
     public async Task GetMemberStatusesBatchAsync_RespectsOverrideRetiredFlag()
     {
         // Arrange - Test that batch query also respects OverrideRetired flag
