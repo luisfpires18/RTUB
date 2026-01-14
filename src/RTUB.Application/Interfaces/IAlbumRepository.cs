@@ -13,6 +13,16 @@ public interface IAlbumRepository : IRepository<Album>
     Task<IEnumerable<Album>> GetPublicAlbumsAsync();
 
     /// <summary>
+    /// Gets all released albums (IsDraft = false)
+    /// </summary>
+    Task<IEnumerable<Album>> GetReleasedAlbumsAsync();
+
+    /// <summary>
+    /// Gets all draft albums (IsDraft = true)
+    /// </summary>
+    Task<IEnumerable<Album>> GetDraftAlbumsAsync();
+
+    /// <summary>
     /// Gets all albums with their songs included
     /// </summary>
     Task<IEnumerable<Album>> GetAlbumsWithSongsAsync();

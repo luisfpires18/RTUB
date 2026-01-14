@@ -49,94 +49,203 @@
     </div>
 </div>
 
-@if (albums == null)
+@if (releasedAlbums == null)
 {
     <p>A carregar álbuns...</p>
 }
-else if (!albums.Any())
-{
-    <EmptyState Title="Nenhum album criado ainda"
-               Icon="bi-info-circle" />
-}
 else
 {
-    <div class="row">
-        @foreach (var album in paginatedAlbums)
-        {
-            <div class="col-md-4 col-lg-2 mb-4">
-                <div class="card album-card h-100">
-                    <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
-                        @if (!string.IsNullOrEmpty(album.CoverImageSrc))
-                        {
-                            <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
-                        }
-                        else
-                        {
-                            <div class="card-img-top music-square-placeholder">
-                                <i class="bi bi-disc music-icon-large"></i>
-                            </div>
-                        }
-                        <AuthorizeView Roles="Admin,Mod">
-                            <Authorized Context="modAuth">
-                                <div class="admin-overlay">
-                                    <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
-                                        <i class="bi bi-pencil music-icon-edit"></i>
-                                    </button>
-                                    <AuthorizeView Roles="Admin">
-                                        <Authorized Context="adminAuth">
-                                            <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
-                                                <i class="bi bi-trash music-icon-delete"></i>
-                                            </button>
-                                        </Authorized>
-                                    </AuthorizeView>
+    <!-- Released Albums Section -->
+    <h3 class="mb-3"><i class="bi bi-disc-fill me-2"></i>Álbuns Lançados</h3>
+    @if (!releasedAlbums.Any())
+    {
+        <EmptyState Title="Nenhum álbum lançado ainda"
+                   Icon="bi-info-circle" />
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var album in paginatedReleasedAlbums)
+            {
+                <div class="col-md-4 col-lg-2 mb-4">
+                    <div class="card album-card h-100">
+                        <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                            @if (!string.IsNullOrEmpty(album.CoverImageSrc))
+                            {
+                                <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
+                            }
+                            else
+                            {
+                                <div class="card-img-top music-square-placeholder">
+                                    <i class="bi bi-disc music-icon-large"></i>
                                 </div>
-                            </Authorized>
-                        </AuthorizeView>
-                    </div>
-                    <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h5 class="card-title music-text-light mb-0">@album.Title</h5>
-                            <div class="d-flex gap-1">
-                                @if (album.IsExclusive)
-                                {
-                                    <span class="badge bg-purple text-white" title="Álbum exclusivo">
-                                        <i class="bi bi-star-fill"></i>
-                                    </span>
-                                }
-                                @if (album.IsPrivate)
-                                {
-                                    <span class="badge bg-warning text-dark" title="Álbum privado">
-                                        <i class="bi bi-lock-fill"></i>
-                                    </span>
-                                }
-                            </div>
+                            }
+                            <AuthorizeView Roles="Admin,Mod">
+                                <Authorized Context="modAuth">
+                                    <div class="admin-overlay">
+                                        <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                            <i class="bi bi-pencil music-icon-edit"></i>
+                                        </button>
+                                        <AuthorizeView Roles="Admin">
+                                            <Authorized Context="adminAuth">
+                                                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                    <i class="bi bi-trash music-icon-delete"></i>
+                                                </button>
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
-                        @if (album.Year.HasValue)
-                        {
-                            <p class="card-text music-text-secondary">@album.Year.Value</p>
-                        }
-                        @if (!string.IsNullOrEmpty(album.Description))
-                        {
-                            <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
-                        }
-                        <div class="mt-auto">
-                            <small class="music-text-secondary">
-                                <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
-                            </small>
+                        <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h5 class="card-title music-text-light mb-0">@album.Title</h5>
+                                <div class="d-flex gap-1">
+                                    @if (album.IsDraft)
+                                    {
+                                        <span class="badge bg-secondary" title="Rascunho">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </span>
+                                    }
+                                    @if (album.IsExclusive)
+                                    {
+                                        <span class="badge bg-purple text-white" title="Álbum exclusivo">
+                                            <i class="bi bi-star-fill"></i>
+                                        </span>
+                                    }
+                                    @if (album.IsPrivate)
+                                    {
+                                        <span class="badge bg-warning text-dark" title="Álbum privado">
+                                            <i class="bi bi-lock-fill"></i>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            @if (album.Year.HasValue)
+                            {
+                                <p class="card-text music-text-secondary">@album.Year.Value</p>
+                            }
+                            @if (!string.IsNullOrEmpty(album.Description))
+                            {
+                                <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
+                            }
+                            <div class="mt-auto">
+                                <small class="music-text-secondary">
+                                    <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
 
-    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
-                    PageSize="@paginationHelper.PageSize"
-                    TotalItems="@albums.Count"
-                    ItemLabel="álbuns"
-                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-                    OnPageChanged="@HandlePageChange"
-                    OnPageSizeChanged="@HandlePageSizeChange" />
+        <TablePagination CurrentPage="@releasedPaginationHelper.CurrentPage"
+                        PageSize="@releasedPaginationHelper.PageSize"
+                        TotalItems="@releasedAlbums.Count"
+                        ItemLabel="álbuns lançados"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        OnPageChanged="@HandleReleasedPageChange"
+                        OnPageSizeChanged="@HandleReleasedPageSizeChange" />
+    }
+
+    <!-- Draft Albums Section (Admin/Mod only) -->
+    <AuthorizeView Roles="Admin,Mod">
+        <Authorized>
+            <h3 class="mb-3 mt-5"><i class="bi bi-pencil-square me-2"></i>Álbuns em Rascunho</h3>
+            @if (draftAlbums == null || !draftAlbums.Any())
+            {
+                <EmptyState Title="Nenhum álbum em rascunho"
+                           Icon="bi-pencil-square" />
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var album in paginatedDraftAlbums)
+                    {
+                        <div class="col-md-4 col-lg-2 mb-4">
+                            <div class="card album-card h-100">
+                                <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                                    @if (!string.IsNullOrEmpty(album.CoverImageSrc))
+                                    {
+                                        <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
+                                    }
+                                    else
+                                    {
+                                        <div class="card-img-top music-square-placeholder">
+                                            <i class="bi bi-disc music-icon-large"></i>
+                                        </div>
+                                    }
+                                    <AuthorizeView Roles="Admin,Mod">
+                                        <Authorized Context="modAuth2">
+                                            <div class="admin-overlay">
+                                                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                                    <i class="bi bi-pencil music-icon-edit"></i>
+                                                </button>
+                                                <AuthorizeView Roles="Admin">
+                                                    <Authorized Context="adminAuth2">
+                                                        <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                            <i class="bi bi-trash music-icon-delete"></i>
+                                                        </button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            </div>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </div>
+                                <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h5 class="card-title music-text-light mb-0">@album.Title</h5>
+                                        <div class="d-flex gap-1">
+                                            @if (album.IsDraft)
+                                            {
+                                                <span class="badge bg-secondary" title="Rascunho">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </span>
+                                            }
+                                            @if (album.IsExclusive)
+                                            {
+                                                <span class="badge bg-purple text-white" title="Álbum exclusivo">
+                                                    <i class="bi bi-star-fill"></i>
+                                                </span>
+                                            }
+                                            @if (album.IsPrivate)
+                                            {
+                                                <span class="badge bg-warning text-dark" title="Álbum privado">
+                                                    <i class="bi bi-lock-fill"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (album.Year.HasValue)
+                                    {
+                                        <p class="card-text music-text-secondary">@album.Year.Value</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(album.Description))
+                                    {
+                                        <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
+                                    }
+                                    <div class="mt-auto">
+                                        <small class="music-text-secondary">
+                                            <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <TablePagination CurrentPage="@draftPaginationHelper.CurrentPage"
+                                PageSize="@draftPaginationHelper.PageSize"
+                                TotalItems="@draftAlbums.Count"
+                                ItemLabel="álbuns em rascunho"
+                                PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                                OnPageChanged="@HandleDraftPageChange"
+                                OnPageSizeChanged="@HandleDraftPageSizeChange" />
+            }
+        </Authorized>
+    </AuthorizeView>
 }
 
 <!-- CRUD Modals -->
@@ -188,6 +297,17 @@ else
                         <InputCheckbox class="form-check-input rtub-checkbox-large" id="albumIsPrivate" @bind-Value="album!.IsPrivate" />
                         <label class="form-check-label" for="albumIsPrivate">
                             <i class="bi bi-lock text-primary me-2"></i>Privado (apenas membros autenticados)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="rtub-checkbox-wrapper">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input rtub-checkbox-large" id="albumIsDraft" @bind-Value="album!.IsDraft" />
+                        <label class="form-check-label" for="albumIsDraft">
+                            <i class="bi bi-pencil-square text-primary me-2"></i>Rascunho (não visível ao público)
                         </label>
                     </div>
                 </div>
@@ -496,10 +616,13 @@ else
 </Modal>
 
 @code {
-    private List<Album>? albums;
-    private List<Album> paginatedAlbums = new();
+    private List<Album>? releasedAlbums;
+    private List<Album>? draftAlbums;
+    private List<Album> paginatedReleasedAlbums = new();
+    private List<Album> paginatedDraftAlbums = new();
     private List<Song>? allSongs;
-    private PaginationHelper<Album> paginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Album> releasedPaginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Album> draftPaginationHelper = new() { PageSize = 6 };
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -589,28 +712,28 @@ else
 
     private async Task LoadAlbums()
     {
-        // Check if user is authenticated
+        // Check if user is authenticated and has Admin/Mod role for drafts
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
-        bool isOwner = user.IsInRole("Owner");
+        bool isAdminOrMod = user.IsInRole("Admin") || user.IsInRole("Mod");
 
-        if (isAuthenticated && !string.IsNullOrEmpty(currentUserId))
+        // Load released albums (visible to all users)
+        releasedAlbums = (await AlbumService.GetReleasedAlbumsAsync())
+            .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
+            .ThenBy(a => a.Year)                       // Then order by year ascending
+            .ToList();
+        
+        // Load draft albums (only for Admin/Mod)
+        if (isAdminOrMod)
         {
-            // Show albums the user has access to (non-exclusive + exclusive where user is authorized)
-            // Owners can see all albums
-            albums = (await AlbumService.GetAlbumsForUserAsync(currentUserId, isOwner))
-                .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
-                .ThenBy(a => a.Year)                       // Then order by year ascending
+            draftAlbums = (await AlbumService.GetDraftAlbumsAsync())
+                .OrderByDescending(a => a.Year.HasValue)
+                .ThenBy(a => a.Year)
                 .ToList();
         }
         else
         {
-            // Show only public albums for unauthenticated users
-            albums = (await AlbumService.GetPublicAlbumsAsync())
-                .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
-                .ThenBy(a => a.Year)                       // Then order by year ascending
-                .ToList();
+            draftAlbums = new List<Album>();
         }
         
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
@@ -619,26 +742,59 @@ else
 
     private void UpdatePagination()
     {
-        if (albums != null)
+        if (releasedAlbums != null)
         {
-            paginatedAlbums = paginationHelper.GetPageData(albums);
+            paginatedReleasedAlbums = releasedPaginationHelper.GetPageData(releasedAlbums);
+        }
+        if (draftAlbums != null)
+        {
+            paginatedDraftAlbums = draftPaginationHelper.GetPageData(draftAlbums);
         }
     }
 
-    private async Task HandlePageChange(int newPage)
+    private async Task HandleReleasedPageChange(int newPage)
     {
-        if (paginationHelper.GoToPage(newPage))
+        if (releasedPaginationHelper.GoToPage(newPage))
         {
-            UpdatePagination();
+            if (releasedAlbums != null)
+            {
+                paginatedReleasedAlbums = releasedPaginationHelper.GetPageData(releasedAlbums);
+            }
         }
         await Task.CompletedTask;
     }
 
-    private async Task HandlePageSizeChange(int newPageSize)
+    private async Task HandleReleasedPageSizeChange(int newPageSize)
     {
-        paginationHelper.PageSize = newPageSize;
-        paginationHelper.Reset();
-        UpdatePagination();
+        releasedPaginationHelper.PageSize = newPageSize;
+        releasedPaginationHelper.Reset();
+        if (releasedAlbums != null)
+        {
+            paginatedReleasedAlbums = releasedPaginationHelper.GetPageData(releasedAlbums);
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleDraftPageChange(int newPage)
+    {
+        if (draftPaginationHelper.GoToPage(newPage))
+        {
+            if (draftAlbums != null)
+            {
+                paginatedDraftAlbums = draftPaginationHelper.GetPageData(draftAlbums);
+            }
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleDraftPageSizeChange(int newPageSize)
+    {
+        draftPaginationHelper.PageSize = newPageSize;
+        draftPaginationHelper.Reset();
+        if (draftAlbums != null)
+        {
+            paginatedDraftAlbums = draftPaginationHelper.GetPageData(draftAlbums);
+        }
         await Task.CompletedTask;
     }
 
@@ -657,7 +813,8 @@ else
         isCreateMode = true;
         editingAlbum = new Album
         {
-            Year = DateTime.Now.Year
+            Year = DateTime.Now.Year,
+            IsDraft = false
         };
         uploadedImagePath = null;
         // Reset exclusive album state
@@ -678,7 +835,8 @@ else
             Year = album.Year,
             ImageUrl = album.ImageUrl,
             IsPrivate = album.IsPrivate,
-            IsExclusive = album.IsExclusive
+            IsExclusive = album.IsExclusive,
+            IsDraft = album.IsDraft
         };
         uploadedImagePath = null;
         
@@ -804,7 +962,8 @@ else
                     editingAlbum.Description ?? string.Empty,
                     imageUrl,
                     editingAlbum.IsPrivate,
-                    isOwner ? editingAlbum.IsExclusive : false
+                    isOwner ? editingAlbum.IsExclusive : false,
+                    editingAlbum.IsDraft
                 );
             }
         }
@@ -834,7 +993,8 @@ else
                     editingAlbum.Year,
                     editingAlbum.Description ?? string.Empty,
                     editingAlbum.IsPrivate,
-                    isOwner ? editingAlbum.IsExclusive : false
+                    isOwner ? editingAlbum.IsExclusive : false,
+                    editingAlbum.IsDraft
                 );
             }
             

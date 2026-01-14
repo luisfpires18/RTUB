@@ -24,12 +24,12 @@ public class MemberStatusService : IMemberStatusService
     /// Number of consecutive months with activity required to transition from RETIRED to ACTIVE
     /// </summary>
     private const int MonthsRequiredForReactivation = 3;
-    
+
     /// <summary>
     /// Number of consecutive months without activity required to transition from ACTIVE to RETIRED
     /// </summary>
     private const int MonthsWithoutActivityForRetirement = 6;
-    
+
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;

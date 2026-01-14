@@ -7,10 +7,19 @@ public interface IAlbumService
     Task<Album?> GetAlbumByIdAsync(int id);
     Task<IEnumerable<Album>> GetAllAlbumsAsync();
     Task<IEnumerable<Album>> GetPublicAlbumsAsync();
+    /// <summary>
+    /// Gets all released albums (IsDraft = false)
+    /// </summary>
+    Task<IEnumerable<Album>> GetReleasedAlbumsAsync();
+
+    /// <summary>
+    /// Gets all draft albums (IsDraft = true)
+    /// </summary>
+    Task<IEnumerable<Album>> GetDraftAlbumsAsync();
     Task<IEnumerable<Album>> GetAlbumsWithSongsAsync();
     Task<Album?> GetAlbumWithSongsAsync(int id);
-    Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false, bool isExclusive = false);
-    Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false);
+    Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false, bool isExclusive = false, bool isDraft = false);
+    Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false, bool isDraft = false);
     Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, bool isPrivate, Stream imageStream, string fileName, string contentType);
     Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType);
     Task DeleteAlbumAsync(int id);

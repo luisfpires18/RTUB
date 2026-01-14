@@ -23,6 +23,9 @@ public class AlbumConfiguration : IEntityTypeConfiguration<Album>
         builder.Property(a => a.IsExclusive)
             .HasDefaultValue(false);
 
+        builder.Property(a => a.IsDraft)
+            .HasDefaultValue(false);
+
         // Year is optional - removed .IsRequired() to match nullable int? in entity
 
         // Relationships
