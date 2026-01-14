@@ -1256,7 +1256,8 @@ else
                                 var daysText = GetDaysUntilEventText(selectedEventForEmail.Date);
                                 if (daysText != null)
                                 {
-                                    <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                                    var reminderText = daysText == "hoje" ? "A atuação é hoje" : $"A atuação é em {daysText}";
+                                    <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                                 }
                                 else
                                 {
@@ -1355,7 +1356,8 @@ else
                                 var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
                                 if (daysText != null)
                                 {
-                                    <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                                    var reminderText = daysText == "hoje" ? "A atuação é hoje" : $"A atuação é em {daysText}";
+                                    <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                                 }
                                 else
                                 {
@@ -3468,6 +3470,11 @@ else
         {
             return null; // Event is in the past
         }
+        if (daysUntil == 0)
+        {
+            return "hoje";
+        }
+
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
     }
     
@@ -4103,4 +4110,3 @@ else
         public List<Trophy> Trophies { get; set; } = new();
     }
 }
-

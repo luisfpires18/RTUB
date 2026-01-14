@@ -37,11 +37,12 @@ public class PushNotificationFactory : IPushNotificationFactory
         {
             // Create reminder notification
             var daysText = GetDaysUntilEventText(@event.Date);
+            var reminderPhrase = daysText == "hoje" ? "A atuação é hoje" : $"A atuação é em {daysText}";
 
             return new SendPushNotificationDto
             {
                 Title = $"Lembrete: {@event.Name}",
-                Body = $"A atuação é em {daysText} ({eventDateStr}) no {@event.Location}. Não te esqueças de confirmar a tua presença!",
+                Body = $"{reminderPhrase} ({eventDateStr}) no {@event.Location}. Não te esqueças de confirmar a tua presença!",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
                 Tag = $"event-reminder-{@event.Id}"
@@ -146,6 +147,11 @@ public class PushNotificationFactory : IPushNotificationFactory
         if (daysUntil < 0)
         {
             throw new ArgumentException("Cannot create reminder for past events", nameof(eventDate));
+        }
+
+        if (daysUntil == 0)
+        {
+            return "hoje";
         }
 
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
