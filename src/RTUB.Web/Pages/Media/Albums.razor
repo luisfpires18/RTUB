@@ -60,83 +60,169 @@ else if (!albums.Any())
 }
 else
 {
-    <div class="row">
-        @foreach (var album in paginatedAlbums)
-        {
-            <div class="col-md-4 col-lg-2 mb-4">
-                <div class="card album-card h-100">
-                    <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
-                        @if (!string.IsNullOrEmpty(album.CoverImageSrc))
-                        {
-                            <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
-                        }
-                        else
-                        {
-                            <div class="card-img-top music-square-placeholder">
-                                <i class="bi bi-disc music-icon-large"></i>
-                            </div>
-                        }
-                        <AuthorizeView Roles="Admin,Mod">
-                            <Authorized Context="modAuth">
-                                <div class="admin-overlay">
-                                    <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
-                                        <i class="bi bi-pencil music-icon-edit"></i>
-                                    </button>
-                                    <AuthorizeView Roles="Admin">
-                                        <Authorized Context="adminAuth">
-                                            <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
-                                                <i class="bi bi-trash music-icon-delete"></i>
-                                            </button>
-                                        </Authorized>
-                                    </AuthorizeView>
+    @* Public Albums Grid *@
+    @if (publicAlbums.Any())
+    {
+        <h3 class="mb-3"><i class="bi bi-globe"></i> Álbuns Públicos</h3>
+        <div class="row">
+            @foreach (var album in paginatedPublicAlbums)
+            {
+                <div class="col-md-4 col-lg-2 mb-4">
+                    <div class="card album-card h-100">
+                        <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                            @if (!string.IsNullOrEmpty(album.CoverImageSrc))
+                            {
+                                <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
+                            }
+                            else
+                            {
+                                <div class="card-img-top music-square-placeholder">
+                                    <i class="bi bi-disc music-icon-large"></i>
                                 </div>
-                            </Authorized>
-                        </AuthorizeView>
-                    </div>
-                    <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h5 class="card-title music-text-light mb-0">@album.Title</h5>
-                            <div class="d-flex gap-1">
-                                @if (album.IsExclusive)
-                                {
-                                    <span class="badge bg-purple text-white" title="Álbum exclusivo">
-                                        <i class="bi bi-star-fill"></i>
-                                    </span>
-                                }
-                                @if (album.IsPrivate)
-                                {
-                                    <span class="badge bg-warning text-dark" title="Álbum privado">
-                                        <i class="bi bi-lock-fill"></i>
-                                    </span>
-                                }
-                            </div>
+                            }
+                            <AuthorizeView Roles="Admin,Mod">
+                                <Authorized Context="modAuth">
+                                    <div class="admin-overlay">
+                                        <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                            <i class="bi bi-pencil music-icon-edit"></i>
+                                        </button>
+                                        <AuthorizeView Roles="Admin">
+                                            <Authorized Context="adminAuth">
+                                                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                    <i class="bi bi-trash music-icon-delete"></i>
+                                                </button>
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
-                        @if (album.Year.HasValue)
-                        {
-                            <p class="card-text music-text-secondary">@album.Year.Value</p>
-                        }
-                        @if (!string.IsNullOrEmpty(album.Description))
-                        {
-                            <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
-                        }
-                        <div class="mt-auto">
-                            <small class="music-text-secondary">
-                                <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
-                            </small>
+                        <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h5 class="card-title music-text-light mb-0">@album.Title</h5>
+                                <div class="d-flex gap-1">
+                                    @if (album.IsExclusive)
+                                    {
+                                        <span class="badge bg-purple text-white" title="Álbum exclusivo">
+                                            <i class="bi bi-star-fill"></i>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            @if (album.Year.HasValue)
+                            {
+                                <p class="card-text music-text-secondary">@album.Year.Value</p>
+                            }
+                            @if (!string.IsNullOrEmpty(album.Description))
+                            {
+                                <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
+                            }
+                            <div class="mt-auto">
+                                <small class="music-text-secondary">
+                                    <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
 
-    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
-                    PageSize="@paginationHelper.PageSize"
-                    TotalItems="@albums.Count"
-                    ItemLabel="álbuns"
-                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-                    OnPageChanged="@HandlePageChange"
-                    OnPageSizeChanged="@HandlePageSizeChange" />
+        <TablePagination CurrentPage="@publicPaginationHelper.CurrentPage"
+                        PageSize="@publicPaginationHelper.PageSize"
+                        TotalItems="@publicAlbums.Count"
+                        ItemLabel="álbuns"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        OnPageChanged="@HandlePublicPageChange"
+                        OnPageSizeChanged="@HandlePublicPageSizeChange" />
+    }
+
+    @* Private Albums Grid - Only visible to authenticated users *@
+    <AuthorizeView>
+        <Authorized>
+            @if (privateAlbums.Any())
+            {
+                <h3 class="mb-3 mt-4"><i class="bi bi-lock"></i> Álbuns Privados</h3>
+                <div class="row">
+                    @foreach (var album in paginatedPrivateAlbums)
+                    {
+                        <div class="col-md-4 col-lg-2 mb-4">
+                            <div class="card album-card h-100">
+                                <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                                    @if (!string.IsNullOrEmpty(album.CoverImageSrc))
+                                    {
+                                        <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
+                                    }
+                                    else
+                                    {
+                                        <div class="card-img-top music-square-placeholder">
+                                            <i class="bi bi-disc music-icon-large"></i>
+                                        </div>
+                                    }
+                                    <AuthorizeView Roles="Admin,Mod">
+                                        <Authorized Context="modAuth">
+                                            <div class="admin-overlay">
+                                                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                                    <i class="bi bi-pencil music-icon-edit"></i>
+                                                </button>
+                                                <AuthorizeView Roles="Admin">
+                                                    <Authorized Context="adminAuth">
+                                                        <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                            <i class="bi bi-trash music-icon-delete"></i>
+                                                        </button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            </div>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </div>
+                                <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h5 class="card-title music-text-light mb-0">@album.Title</h5>
+                                        <div class="d-flex gap-1">
+                                            @if (album.IsExclusive)
+                                            {
+                                                <span class="badge bg-purple text-white" title="Álbum exclusivo">
+                                                    <i class="bi bi-star-fill"></i>
+                                                </span>
+                                            }
+                                            @if (album.IsPrivate)
+                                            {
+                                                <span class="badge bg-warning text-dark" title="Álbum privado">
+                                                    <i class="bi bi-lock-fill"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (album.Year.HasValue)
+                                    {
+                                        <p class="card-text music-text-secondary">@album.Year.Value</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(album.Description))
+                                    {
+                                        <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
+                                    }
+                                    <div class="mt-auto">
+                                        <small class="music-text-secondary">
+                                            <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <TablePagination CurrentPage="@privatePaginationHelper.CurrentPage"
+                                PageSize="@privatePaginationHelper.PageSize"
+                                TotalItems="@privateAlbums.Count"
+                                ItemLabel="álbuns"
+                                PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                                OnPageChanged="@HandlePrivatePageChange"
+                                OnPageSizeChanged="@HandlePrivatePageSizeChange" />
+            }
+        </Authorized>
+    </AuthorizeView>
 }
 
 <!-- CRUD Modals -->
@@ -497,9 +583,13 @@ else
 
 @code {
     private List<Album>? albums;
-    private List<Album> paginatedAlbums = new();
+    private List<Album> publicAlbums = new();
+    private List<Album> privateAlbums = new();
+    private List<Album> paginatedPublicAlbums = new();
+    private List<Album> paginatedPrivateAlbums = new();
     private List<Song>? allSongs;
-    private PaginationHelper<Album> paginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Album> publicPaginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Album> privatePaginationHelper = new() { PageSize = 6 };
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -613,32 +703,67 @@ else
                 .ToList();
         }
         
-        allSongs = (await SongService.GetAllSongsAsync()).ToList();
-        UpdatePagination();
-    }
-
-    private void UpdatePagination()
-    {
-        if (albums != null)
+        // Separate albums into public and private lists in a single pass
+        publicAlbums = new List<Album>();
+        privateAlbums = new List<Album>();
+        foreach (var album in albums)
         {
-            paginatedAlbums = paginationHelper.GetPageData(albums);
+            if (album.IsPrivate)
+            {
+                privateAlbums.Add(album);
+            }
+            else
+            {
+                publicAlbums.Add(album);
+            }
         }
+        
+        allSongs = (await SongService.GetAllSongsAsync()).ToList();
+        UpdatePublicPagination();
+        UpdatePrivatePagination();
     }
 
-    private async Task HandlePageChange(int newPage)
+    private void UpdatePublicPagination()
     {
-        if (paginationHelper.GoToPage(newPage))
+        paginatedPublicAlbums = publicPaginationHelper.GetPageData(publicAlbums);
+    }
+
+    private void UpdatePrivatePagination()
+    {
+        paginatedPrivateAlbums = privatePaginationHelper.GetPageData(privateAlbums);
+    }
+
+    private async Task HandlePublicPageChange(int newPage)
+    {
+        if (publicPaginationHelper.GoToPage(newPage))
         {
-            UpdatePagination();
+            UpdatePublicPagination();
         }
         await Task.CompletedTask;
     }
 
-    private async Task HandlePageSizeChange(int newPageSize)
+    private async Task HandlePublicPageSizeChange(int newPageSize)
     {
-        paginationHelper.PageSize = newPageSize;
-        paginationHelper.Reset();
-        UpdatePagination();
+        publicPaginationHelper.PageSize = newPageSize;
+        publicPaginationHelper.Reset();
+        UpdatePublicPagination();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePrivatePageChange(int newPage)
+    {
+        if (privatePaginationHelper.GoToPage(newPage))
+        {
+            UpdatePrivatePagination();
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePrivatePageSizeChange(int newPageSize)
+    {
+        privatePaginationHelper.PageSize = newPageSize;
+        privatePaginationHelper.Reset();
+        UpdatePrivatePagination();
         await Task.CompletedTask;
     }
 
