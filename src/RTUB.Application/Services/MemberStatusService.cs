@@ -20,6 +20,16 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class MemberStatusService : IMemberStatusService
 {
+    /// <summary>
+    /// Number of consecutive months with activity required to transition from RETIRED to ACTIVE
+    /// </summary>
+    private const int MonthsRequiredForReactivation = 3;
+    
+    /// <summary>
+    /// Number of consecutive months without activity required to transition from ACTIVE to RETIRED
+    /// </summary>
+    private const int MonthsWithoutActivityForRetirement = 6;
+    
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
@@ -155,7 +165,7 @@ public class MemberStatusService : IMemberStatusService
                 {
                     // Get detailed activity months for troubleshooting
                     var (monthCount, activityMonths) = await GetActivityMonthsDescriptionAsync(userId, now, hasActivityInCurrentMonth);
-                    var changeDescription = $"Retired => Active (achieved {monthCount}/3 consecutive months: {activityMonths})";
+                    var changeDescription = $"Retired => Active (achieved {monthCount}/{MonthsRequiredForReactivation} consecutive months: {activityMonths})";
                     _logger.LogInformation("✅ {MemberName}: {Change}", memberName, changeDescription);
 
                     // Create audit log entry with detailed information
@@ -425,10 +435,10 @@ public class MemberStatusService : IMemberStatusService
             if (user.IsRetired)
             {
                 // Currently retired - check if should return to active
-                // Need 3 consecutive months of activity to become active
+                // Need consecutive months of activity to become active (see MonthsRequiredForReactivation)
                 // Count consecutive months WITH activity (starting from most recent completed month)
                 var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
-                if (consecutiveMonthsWithActivity >= 3)
+                if (consecutiveMonthsWithActivity >= MonthsRequiredForReactivation)
                 {
                     isRetired = false; // Return to active
 
@@ -446,7 +456,7 @@ public class MemberStatusService : IMemberStatusService
             else
             {
                 // Currently active - check if should become retired
-                // Need 6 consecutive months WITHOUT activity to become retired
+                // Need consecutive months WITHOUT activity to become retired (see MonthsWithoutActivityForRetirement)
 
                 // IMPORTANT: Check if retirement status was manually overridden by an admin
                 // If OverrideRetired is true, respect the manual activation and don't auto-retire
@@ -460,7 +470,7 @@ public class MemberStatusService : IMemberStatusService
                 {
                     // Count consecutive months WITHOUT activity (starting from most recent completed month)
                     var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
-                    if (consecutiveMonthsWithoutActivity >= 6)
+                    if (consecutiveMonthsWithoutActivity >= MonthsWithoutActivityForRetirement)
                     {
                         isRetired = true; // Become retired
                     }
@@ -495,18 +505,17 @@ public class MemberStatusService : IMemberStatusService
         {
             if (isRetired)
             {
-                // For retired members: show consecutive months toward reactivation (need 3 to become active)
+                // For retired members: show consecutive months toward reactivation
                 // Count consecutive months WITH activity starting from the most recent completed month
                 var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
                 progressMonths = consecutiveMonthsWithActivity;
-                progressTotalMonths = 3;
-                progressDescription = $"{consecutiveMonthsWithActivity}/3 meses de atividade consecutiva";
+                progressTotalMonths = MonthsRequiredForReactivation;
+                progressDescription = $"{consecutiveMonthsWithActivity}/{MonthsRequiredForReactivation} meses de atividade consecutiva";
             }
             else
             {
                 // For active members: show months until retirement
                 // Count consecutive months WITHOUT activity (starting from most recent completed month)
-                // 6 months without activity = retired
                 var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
 
                 // If the member hasn't participated in the current month yet, 
@@ -517,11 +526,11 @@ public class MemberStatusService : IMemberStatusService
                     consecutiveMonthsWithoutActivity++;
                 }
 
-                var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
+                var monthsUntilReform = MonthsWithoutActivityForRetirement - consecutiveMonthsWithoutActivity;
                 if (monthsUntilReform < 0) monthsUntilReform = 0;
 
                 progressMonths = monthsUntilReform;
-                progressTotalMonths = 6;
+                progressTotalMonths = MonthsWithoutActivityForRetirement;
                 progressDescription = monthsUntilReform > 0
                     ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
                     : "Próximo da reforma";
@@ -641,10 +650,13 @@ public class MemberStatusService : IMemberStatusService
     }
 
     /// <summary>
-    /// Gets detailed information about which months have activity for diagnostic purposes
-    /// Used in audit logs when retirement status changes to help troubleshoot issues
-    /// Returns a tuple: (monthCount, monthsDescription)
+    /// Gets detailed information about consecutive months with activity for diagnostic purposes.
+    /// Used in audit logs when retirement status changes to help troubleshoot issues.
     /// </summary>
+    /// <param name="userId">The user ID to check</param>
+    /// <param name="referenceDate">The reference date (typically DateTime.UtcNow)</param>
+    /// <param name="hasActivityInCurrentMonth">Whether the current month has activity</param>
+    /// <returns>A tuple containing (count of consecutive months, comma-separated list of month names)</returns>
     private async Task<(int count, string description)> GetActivityMonthsDescriptionAsync(string userId, DateTime referenceDate, bool hasActivityInCurrentMonth)
     {
         var monthsWithActivity = new List<string>();
@@ -978,17 +990,17 @@ public class MemberStatusService : IMemberStatusService
                 if (memberStatus.IsRetired)
                 {
                     // Currently cached as retired - check if should be active
-                    if (consecutiveMonthsWithActivity >= 3)
+                    if (consecutiveMonthsWithActivity >= MonthsRequiredForReactivation)
                     {
-                        isRetired = false; // Should be active (3+ consecutive months of activity)
+                        isRetired = false; // Should be active (consecutive months of activity met threshold)
                     }
                 }
                 else
                 {
                     // Currently cached as active - check if should be retired
-                    if (consecutiveMonthsWithoutActivity >= 6)
+                    if (consecutiveMonthsWithoutActivity >= MonthsWithoutActivityForRetirement)
                     {
-                        isRetired = true; // Should be retired (6+ consecutive months without activity)
+                        isRetired = true; // Should be retired (consecutive months without activity met threshold)
                     }
                 }
             }
@@ -997,10 +1009,10 @@ public class MemberStatusService : IMemberStatusService
             // Progress is informational and shows actual activity status
             if (isRetired)
             {
-                // Progress for retired members: X/3 months toward reactivation
+                // Progress for retired members: X/N months toward reactivation
                 progressMonths = consecutiveMonthsWithActivity;
-                progressTotalMonths = 3;
-                progressDescription = $"{consecutiveMonthsWithActivity}/3 meses de atividade consecutiva";
+                progressTotalMonths = MonthsRequiredForReactivation;
+                progressDescription = $"{consecutiveMonthsWithActivity}/{MonthsRequiredForReactivation} meses de atividade consecutiva";
             }
             else
             {
@@ -1012,11 +1024,11 @@ public class MemberStatusService : IMemberStatusService
                     displayMonthsWithoutActivity++;
                 }
 
-                var monthsUntilReform = 6 - displayMonthsWithoutActivity;
+                var monthsUntilReform = MonthsWithoutActivityForRetirement - displayMonthsWithoutActivity;
                 if (monthsUntilReform < 0) monthsUntilReform = 0;
 
                 progressMonths = monthsUntilReform;
-                progressTotalMonths = 6;
+                progressTotalMonths = MonthsWithoutActivityForRetirement;
                 progressDescription = monthsUntilReform > 0
                     ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
                     : "Próximo da reforma";
