@@ -101,12 +101,6 @@ else
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <h5 class="card-title music-text-light mb-0">@album.Title</h5>
                                 <div class="d-flex gap-1">
-                                    @if (album.IsDraft)
-                                    {
-                                        <span class="badge bg-secondary" title="Rascunho">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </span>
-                                    }
                                     @if (album.IsExclusive)
                                     {
                                         <span class="badge bg-purple text-white" title="Álbum exclusivo">
@@ -197,12 +191,9 @@ else
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <h5 class="card-title music-text-light mb-0">@album.Title</h5>
                                         <div class="d-flex gap-1">
-                                            @if (album.IsDraft)
-                                            {
-                                                <span class="badge bg-secondary" title="Rascunho">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </span>
-                                            }
+                                            <span class="badge bg-secondary" title="Rascunho">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </span>
                                             @if (album.IsExclusive)
                                             {
                                                 <span class="badge bg-purple text-white" title="Álbum exclusivo">
