@@ -910,10 +910,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? ResolveUserIdToNickname(enrollment.UserId);
                         var eventName = enrollment.Event?.Name
                             ?? Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId)?.Name;
+                        var attendStatus = enrollment.WillAttend ? "Vai" : "Não vai";
 
                         if (userName != null && eventName != null)
-                            return $"{userName} - {eventName}";
-                        return eventName ?? userName; // Return partial if one is missing
+                            return $"{userName} - {eventName} - {attendStatus}";
+                        if (eventName != null)
+                            return $"{eventName} - {attendStatus}";
+                        if (userName != null)
+                            return $"{userName} - {attendStatus}";
+                        return attendStatus; // Return at least the attendance status
                     }
                     break;
 
@@ -941,14 +946,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? ResolveUserIdToNickname(attendance.UserId);
                         var rehearsal = attendance.Rehearsal
                             ?? Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
+                        var attendStatus = attendance.WillAttend ? "Vai" : "Não vai";
 
                         if (userName != null && rehearsal != null)
-                            return $"{userName} - {rehearsal.Date:yyyy-MM-dd}";
-                        if (userName != null)
-                            return userName;
+                            return $"{userName} - {rehearsal.Date:yyyy-MM-dd} - {attendStatus}";
                         if (rehearsal != null)
-                            return rehearsal.Date.ToString("yyyy-MM-dd");
-                        return null; // Neither user name nor rehearsal found - will fall back to entity ID display
+                            return $"{rehearsal.Date:yyyy-MM-dd} - {attendStatus}";
+                        if (userName != null)
+                            return $"{userName} - {attendStatus}";
+                        return attendStatus; // Return at least the attendance status
                     }
                     break;
 
