@@ -1326,6 +1326,112 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         memberResult!.IsRetired.Should().BeFalse(); // Should stay active despite 8 months without activity
     }
 
+    /// <summary>
+    /// This test replicates the exact scenario reported by the user:
+    /// - Member "Jeans" is retired
+    /// - Activities in January 2026: 13th, 10th, 8th, 6th  
+    /// - Activities in December 2025: 11th, 4th, 4th, 2nd, 2nd
+    /// - NO activities in November 2025 or earlier
+    /// - Today is January 14, 2026
+    /// - Expected: 2/3 consecutive months (Jan + Dec)
+    /// - Bug showed: 3/3 consecutive months (incorrect)
+    /// </summary>
+    [Fact]
+    public async Task GetMemberStatusAsync_JeansScenario_ExactDatesJanDecOnly_Returns2Of3()
+    {
+        // Arrange - Replicate the exact scenario with fixed dates
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Jeans was retired
+        user.Nickname = "Jeans";
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Create January 2026 rehearsals (6th, 8th, 13th)
+        var jan6 = new DateTime(2026, 1, 6);
+        var jan8 = new DateTime(2026, 1, 8);
+        var jan13 = new DateTime(2026, 1, 13);
+        
+        foreach (var date in new[] { jan6, jan8, jan13 })
+        {
+            var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
+            _context.Rehearsals.Add(rehearsal);
+            await _context.SaveChangesAsync();
+            
+            var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+            attendance.MarkAttendance(true);
+            _context.RehearsalAttendances.Add(attendance);
+        }
+
+        // Create January 2026 event (10th)
+        var jan10Event = Event.Create("January Event", new DateTime(2026, 1, 10), "Location", EventType.Atuacao);
+        _context.Events.Add(jan10Event);
+        await _context.SaveChangesAsync();
+        
+        var jan10Enrollment = new Enrollment 
+        { 
+            EventId = jan10Event.Id, 
+            UserId = userId, 
+            WillAttend = true,
+            EnrolledAt = DateTime.UtcNow
+        };
+        _context.Enrollments.Add(jan10Enrollment);
+
+        // Create December 2025 rehearsals (2nd, 4th)
+        var dec2 = new DateTime(2025, 12, 2);
+        var dec4 = new DateTime(2025, 12, 4);
+        
+        foreach (var date in new[] { dec2, dec4 })
+        {
+            var rehearsal = Rehearsal.Create(date, $"Rehearsal on {date:yyyy-MM-dd}");
+            _context.Rehearsals.Add(rehearsal);
+            await _context.SaveChangesAsync();
+            
+            var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+            attendance.MarkAttendance(true);
+            _context.RehearsalAttendances.Add(attendance);
+        }
+
+        // Create December 2025 events (2nd, 4th, 11th)
+        foreach (var date in new[] { new DateTime(2025, 12, 2), new DateTime(2025, 12, 4), new DateTime(2025, 12, 11) })
+        {
+            var evt = Event.Create($"December Event {date:dd}", date, "Location", EventType.Atuacao);
+            _context.Events.Add(evt);
+            await _context.SaveChangesAsync();
+            
+            var enrollment = new Enrollment 
+            { 
+                EventId = evt.Id, 
+                UserId = userId, 
+                WillAttend = true,
+                EnrolledAt = DateTime.UtcNow
+            };
+            _context.Enrollments.Add(enrollment);
+        }
+
+        await _context.SaveChangesAsync();
+
+        // NO activities in November 2025 or earlier - intentionally empty
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        
+        // The member should still be retired because 2 < 3 consecutive months required
+        result.IsRetired.Should().BeTrue("member should still be retired with only 2 consecutive months");
+        
+        // Progress should show 2/3 (Jan + Dec only)
+        result.ProgressMonths.Should().Be(2, "only January and December have activity, not November");
+        result.ProgressTotalMonths.Should().Be(3);
+        result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
+    }
+
     private ApplicationUser CreateTestUser(string userId)
     {
         return new ApplicationUser

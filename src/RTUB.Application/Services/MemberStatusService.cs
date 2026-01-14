@@ -154,8 +154,8 @@ public class MemberStatusService : IMemberStatusService
                 if (wasRetired && !result.IsRetired)
                 {
                     // Get detailed activity months for troubleshooting
-                    var activityMonths = await GetActivityMonthsDescriptionAsync(userId, now, hasActivityInCurrentMonth);
-                    var changeDescription = $"Retired => Active (achieved 3/3 consecutive months: {activityMonths})";
+                    var (monthCount, activityMonths) = await GetActivityMonthsDescriptionAsync(userId, now, hasActivityInCurrentMonth);
+                    var changeDescription = $"Retired => Active (achieved {monthCount}/3 consecutive months: {activityMonths})";
                     _logger.LogInformation("✅ {MemberName}: {Change}", memberName, changeDescription);
 
                     // Create audit log entry with detailed information
@@ -643,8 +643,9 @@ public class MemberStatusService : IMemberStatusService
     /// <summary>
     /// Gets detailed information about which months have activity for diagnostic purposes
     /// Used in audit logs when retirement status changes to help troubleshoot issues
+    /// Returns a tuple: (monthCount, monthsDescription)
     /// </summary>
-    private async Task<string> GetActivityMonthsDescriptionAsync(string userId, DateTime referenceDate, bool hasActivityInCurrentMonth)
+    private async Task<(int count, string description)> GetActivityMonthsDescriptionAsync(string userId, DateTime referenceDate, bool hasActivityInCurrentMonth)
     {
         var monthsWithActivity = new List<string>();
         var cultureInfo = System.Globalization.CultureInfo.GetCultureInfo("pt-PT");
@@ -678,10 +679,10 @@ public class MemberStatusService : IMemberStatusService
 
         if (!monthsWithActivity.Any())
         {
-            return "no activity months found";
+            return (0, "no activity months found");
         }
 
-        return string.Join(", ", monthsWithActivity);
+        return (monthsWithActivity.Count, string.Join(", ", monthsWithActivity));
     }
 
     /// <summary>
