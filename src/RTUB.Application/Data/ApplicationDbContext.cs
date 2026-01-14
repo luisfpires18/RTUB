@@ -918,7 +918,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             return $"{eventName} - {attendStatus}";
                         if (userName != null)
                             return $"{userName} - {attendStatus}";
-                        return attendStatus; // Return at least the attendance status
+                        return null; // Neither user name nor event found - will fall back to entity ID display
                     }
                     break;
 
@@ -954,7 +954,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             return $"{rehearsal.Date:yyyy-MM-dd} - {attendStatus}";
                         if (userName != null)
                             return $"{userName} - {attendStatus}";
-                        return attendStatus; // Return at least the attendance status
+                        return null; // Neither user name nor rehearsal found - will fall back to entity ID display
                     }
                     break;
 
