@@ -6,14 +6,30 @@
         @if (ShowActions)
         {
             <div class="board-admin-overlay">
-                <button class="btn btn-sm music-btn-edit" @onclick="() => OnEdit.InvokeAsync(Board)" 
-                        @onclick:stopPropagation="true" title="Editar">
-                    <i class="bi bi-pencil music-icon-edit"></i>
-                </button>
-                <button class="btn btn-sm music-btn-delete" @onclick="() => OnDelete.InvokeAsync(Board)" 
-                        @onclick:stopPropagation="true" title="Eliminar">
-                    <i class="bi bi-trash music-icon-delete"></i>
-                </button>
+                <div class="board-admin-actions">
+                    <button class="btn btn-sm music-btn-edit" @onclick="() => OnEdit.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Editar">
+                        <i class="bi bi-pencil music-icon-edit"></i>
+                    </button>
+                    <button class="btn btn-sm music-btn-delete" @onclick="() => OnDelete.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Eliminar">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                </div>
+                @if (ShowFinishButton && !Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => OnFinish.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Concluir Quadro">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                }
+                @if (ShowFinishButton && Board.IsCompleted)
+                {
+                    <button class="btn btn-sm btn-warning" @onclick="() => OnReopen.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true" title="Reabrir Quadro">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                }
             </div>
         }
         <div class="board-icon-header">
@@ -55,20 +71,6 @@
                         title="Abrir Quadro">
                     <i class="bi bi-kanban"></i>
                 </button>
-                @if (ShowFinishButton && !Board.IsCompleted)
-                {
-                    <button class="btn btn-sm btn-success" @onclick="() => OnFinish.InvokeAsync(Board)" 
-                            @onclick:stopPropagation="true" title="Concluir Quadro">
-                        <i class="bi bi-check-lg"></i>
-                    </button>
-                }
-                @if (ShowFinishButton && Board.IsCompleted)
-                {
-                    <button class="btn btn-sm btn-warning" @onclick="() => OnReopen.InvokeAsync(Board)" 
-                            @onclick:stopPropagation="true" title="Reabrir Quadro">
-                        <i class="bi bi-arrow-counterclockwise"></i>
-                    </button>
-                }
             </div>
         </div>
     </div>
