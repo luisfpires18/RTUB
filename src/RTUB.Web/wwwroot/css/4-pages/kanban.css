@@ -268,21 +268,21 @@
     top: 6px;
     right: 6px;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
+    gap: 4px;
     z-index: 10;
     opacity: 0.85;
     transition: opacity 0.2s ease;
 }
 
-.board-admin-actions {
-    display: flex;
-    gap: 4px;
-}
-
 .logistics-board-card:hover .board-admin-overlay {
     opacity: 1;
+}
+
+.board-finish-action {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    z-index: 9;
 }
 
 /* Board actions section */
