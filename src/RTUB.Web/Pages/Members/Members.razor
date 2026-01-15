@@ -961,6 +961,17 @@ else
                                     LastRehearsalText="@rehearsalText"
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
+                        <ActionContent>
+                            @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
+                            {
+                                <button type="button" 
+                                        class="member-card-lite-action-btn" 
+                                        title="Tornar este membro ativo"
+                                        @onclick="() => OpenMakeActiveConfirmModal(member)">
+                                    <i class="bi bi-person-check-fill"></i>
+                                </button>
+                            }
+                        </ActionContent>
                         <StatusContent>
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {

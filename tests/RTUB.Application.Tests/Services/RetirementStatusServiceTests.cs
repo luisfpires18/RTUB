@@ -295,6 +295,163 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         result.LastActivityDate.Should().BeCloseTo(DateTime.UtcNow.AddMonths(-2), TimeSpan.FromDays(2));
     }
 
+    /// <summary>
+    /// This test replicates the exact bug scenario from the issue:
+    /// - Member "Jeans" is retired
+    /// - Has activity in January 2026 and December 2025 only (2 consecutive months)
+    /// - Should NOT become active (needs 3 consecutive months)
+    /// - The bug was that RetirementStatusService incorrectly allowed reactivation with < 3 months
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRetirementStatusAsync_RetiredMemberWithOnly2ConsecutiveMonths_StaysRetired()
+    {
+        // Arrange
+        var user = await CreateTestUser(MemberCategory.Tuno);
+        user.IsRetired = true; // Mark as retired
+        await _userProfileRepository.UpdateAsync(user);
+
+        var now = DateTime.UtcNow;
+
+        // Create activities in current month (Jan 2026 scenario)
+        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+
+        // Create activities in previous month (Dec 2025 scenario)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal2 = await CreateTestRehearsal(lastMonth);
+        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, lastMonth);
+
+        // NO activities in 2 months ago (Nov 2025 scenario) - this breaks the chain at 2 months
+
+        // Act
+        var result = await _retirementStatusService.EvaluateRetirementStatusAsync(user.Id);
+
+        // Assert - Should stay retired (only 2 consecutive months, needs 3)
+        result.Should().NotBeNull();
+        result.HasMinimumHistory.Should().BeTrue();
+        result.IsRetired.Should().BeTrue("member should stay retired with only 2 consecutive months of activity");
+    }
+
+    /// <summary>
+    /// Companion test to verify that 3 consecutive months DOES trigger reactivation
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRetirementStatusAsync_RetiredMemberWith3ConsecutiveMonths_BecomesActive()
+    {
+        // Arrange
+        var user = await CreateTestUser(MemberCategory.Tuno);
+        user.IsRetired = true; // Mark as retired
+        await _userProfileRepository.UpdateAsync(user);
+
+        var now = DateTime.UtcNow;
+
+        // Create activities in current month
+        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+
+        // Create activities in previous month
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal2 = await CreateTestRehearsal(lastMonth);
+        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, lastMonth);
+
+        // Create activities in 2 months ago - completes 3 consecutive months
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal3 = await CreateTestRehearsal(twoMonthsAgo);
+        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, twoMonthsAgo);
+
+        // Act
+        var result = await _retirementStatusService.EvaluateRetirementStatusAsync(user.Id);
+
+        // Assert - Should become active (3 consecutive months)
+        result.Should().NotBeNull();
+        result.HasMinimumHistory.Should().BeTrue();
+        result.IsRetired.Should().BeFalse("member should become active with 3 consecutive months of activity");
+    }
+
+    /// <summary>
+    /// Test that a gap in consecutive months stops the count (even if there's activity earlier)
+    /// </summary>
+    [Fact]
+    public async Task EvaluateRetirementStatusAsync_RetiredMemberWithGapInActivity_StaysRetired()
+    {
+        // Arrange
+        var user = await CreateTestUser(MemberCategory.Tuno);
+        user.IsRetired = true; // Mark as retired
+        await _userProfileRepository.UpdateAsync(user);
+
+        var now = DateTime.UtcNow;
+
+        // Create activities in current month
+        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+
+        // NO activity in previous month - creates a gap
+
+        // Create activities in 2 months ago
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal2 = await CreateTestRehearsal(twoMonthsAgo);
+        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, twoMonthsAgo);
+
+        // Create activities in 3 months ago
+        var threeMonthsAgo = new DateTime(now.AddMonths(-3).Year, now.AddMonths(-3).Month, 15);
+        var rehearsal3 = await CreateTestRehearsal(threeMonthsAgo);
+        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, threeMonthsAgo);
+
+        // Create activities in 4 months ago
+        var fourMonthsAgo = new DateTime(now.AddMonths(-4).Year, now.AddMonths(-4).Month, 15);
+        var rehearsal4 = await CreateTestRehearsal(fourMonthsAgo);
+        await CreateAttendedRehearsal(user.Id, rehearsal4.Id, fourMonthsAgo);
+
+        // Act
+        var result = await _retirementStatusService.EvaluateRetirementStatusAsync(user.Id);
+
+        // Assert - Should stay retired because consecutive count from current month is only 1
+        // (even though months 2-4 have 3 consecutive months)
+        result.Should().NotBeNull();
+        result.HasMinimumHistory.Should().BeTrue();
+        result.IsRetired.Should().BeTrue("member should stay retired because gap in activity breaks consecutive count");
+    }
+
+    /// <summary>
+    /// Test UpdateUserRetirementStatusAsync to verify it doesn't change a retired user
+    /// to active if they only have 2 consecutive months of activity
+    /// </summary>
+    [Fact]
+    public async Task UpdateUserRetirementStatusAsync_RetiredMemberWithOnly2Months_StaysRetired()
+    {
+        // Arrange
+        var user = await CreateTestUser(MemberCategory.Tuno);
+        user.IsRetired = true; // Mark as retired
+        await _userProfileRepository.UpdateAsync(user);
+
+        // Detach the user entity to simulate a fresh database query in UpdateUserRetirementStatusAsync.
+        // Without detaching, EF would return the same in-memory instance and the test wouldn't 
+        // accurately verify that the service reads the IsRetired flag from the database.
+        _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+
+        var now = DateTime.UtcNow;
+
+        // Create activities in current month
+        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+
+        // Create activities in previous month
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal2 = await CreateTestRehearsal(lastMonth);
+        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, lastMonth);
+
+        // NO activities in 2 months ago - only 2 consecutive months
+
+        // Act
+        var updated = await _retirementStatusService.UpdateUserRetirementStatusAsync(user.Id);
+
+        // Assert - Should NOT have updated (user should stay retired)
+        updated.Should().BeFalse("user should not be updated when only 2 consecutive months");
+
+        var updatedUser = await _userProfileRepository.FirstOrDefaultAsync(u => u.Id == user.Id);
+        updatedUser!.IsRetired.Should().BeTrue("user should remain retired");
+    }
+
     // Helper methods
     private async Task<ApplicationUser> CreateTestUser(MemberCategory category)
     {

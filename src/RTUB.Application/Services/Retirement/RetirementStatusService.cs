@@ -88,9 +88,10 @@ public class RetirementStatusService : IRetirementStatusService
 
         if (!allActivities.Any())
         {
-            // No activity history
+            // No activity history - preserve the user's current retirement status
+            // This allows administrators to manually set initial status for new members
             result.HasMinimumHistory = false;
-            result.IsRetired = false;
+            result.IsRetired = user.IsRetired;
             return result;
         }
 
@@ -104,19 +105,77 @@ public class RetirementStatusService : IRetirementStatusService
         var monthsSinceLastActivity = ((now.Year - lastActivityDate.Year) * 12) + (now.Month - lastActivityDate.Month);
         result.MonthsSinceLastActivity = monthsSinceLastActivity;
 
-        // Check if should be retired (6+ months without activity)
-        if (monthsSinceLastActivity >= MonthsToRetire)
-        {
-            result.IsRetired = true;
+        // Start with the user's CURRENT retirement status from the database
+        // This is critical for proper state transition logic
+        result.IsRetired = user.IsRetired;
 
-            // Check if should return to active (3 consecutive months with activity)
-            if (HasConsecutiveMonthsWithActivity(allActivities, now, ConsecutiveMonthsToReturn))
+        // State transition rules based on current status:
+        // 1. RETIRED → ACTIVE: requires 3 consecutive months with activity (from most recent)
+        // 2. ACTIVE → RETIRED: requires 6 consecutive months without any activity
+
+        if (user.IsRetired)
+        {
+            // Currently retired - check if should return to active
+            // Need 3 consecutive months WITH activity starting from most recent month
+            var consecutiveMonthsWithActivity = CountConsecutiveMonthsWithActivity(allActivities, now);
+            if (consecutiveMonthsWithActivity >= ConsecutiveMonthsToReturn)
             {
-                result.IsRetired = false;
+                result.IsRetired = false; // Return to active
+            }
+        }
+        else
+        {
+            // Currently active - check if should become retired
+            // Need 6 consecutive months WITHOUT activity
+            if (monthsSinceLastActivity >= MonthsToRetire)
+            {
+                result.IsRetired = true; // Become retired
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Counts the number of consecutive months that have at least one activity
+    /// starting from the most recent month and going backwards.
+    /// Used to determine if a retired member should return to active status.
+    /// Member needs 3 consecutive months to transition from RETIRED to ACTIVE.
+    /// Stops counting when a month without activity is found.
+    /// </summary>
+    private int CountConsecutiveMonthsWithActivity(List<DateTime> activities, DateTime referenceDate)
+    {
+        if (activities.Count == 0)
+        {
+            return 0;
+        }
+
+        // Get activities grouped by year-month
+        var activitiesByMonth = activities
+            .GroupBy(a => new { a.Year, a.Month })
+            .Select(g => new DateTime(g.Key.Year, g.Key.Month, 1))
+            .ToHashSet();
+
+        var currentMonth = new DateTime(referenceDate.Year, referenceDate.Month, 1);
+        int consecutiveCount = 0;
+
+        // Check from current month backwards
+        for (int i = 0; i < MaxMonthsToCheckForConsecutive; i++)
+        {
+            var checkMonth = currentMonth.AddMonths(-i);
+
+            if (activitiesByMonth.Contains(checkMonth))
+            {
+                consecutiveCount++;
+            }
+            else
+            {
+                // Stop counting when we find a month without activity (gap in consecutive months)
+                break;
+            }
+        }
+
+        return consecutiveCount;
     }
 
     public async Task<bool> UpdateUserRetirementStatusAsync(string userId)
@@ -140,53 +199,4 @@ public class RetirementStatusService : IRetirementStatusService
         return false;
     }
 
-    /// <summary>
-    /// Checks if there are N consecutive calendar months with at least one activity
-    /// Used to determine if a retired member should return to active status
-    /// </summary>
-    private bool HasConsecutiveMonthsWithActivity(List<DateTime> activities, DateTime referenceDate, int consecutiveMonths)
-    {
-        if (activities.Count == 0 || consecutiveMonths <= 0)
-        {
-            return false;
-        }
-
-        // Get activities grouped by year-month
-        var activitiesByMonth = activities
-            .GroupBy(a => new { a.Year, a.Month })
-            .Select(g => new DateTime(g.Key.Year, g.Key.Month, 1))
-            .OrderBy(d => d)
-            .ToList();
-
-        if (activitiesByMonth.Count < consecutiveMonths)
-        {
-            return false;
-        }
-
-        // Check for consecutive months ending at or near the reference date
-        // Look backwards from reference date to find consecutive months
-        var currentMonth = new DateTime(referenceDate.Year, referenceDate.Month, 1);
-        int consecutiveCount = 0;
-
-        for (int i = 0; i < MaxMonthsToCheckForConsecutive; i++)
-        {
-            var checkMonth = currentMonth.AddMonths(-i);
-
-            if (activitiesByMonth.Contains(checkMonth))
-            {
-                consecutiveCount++;
-                if (consecutiveCount >= consecutiveMonths)
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                // Break in consecutive months
-                consecutiveCount = 0;
-            }
-        }
-
-        return false;
-    }
 }
