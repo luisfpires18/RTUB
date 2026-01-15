@@ -492,7 +492,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             ["LeaderboardCommentLike"] = new List<string> { "UserId" },
             ["Post"] = new List<string> { "AuthorId" },
             ["Comment"] = new List<string> { "AuthorId" },
-            ["PushSubscription"] = new List<string> { "UserId" }
+            ["PushSubscription"] = new List<string> { "UserId" },
+            ["Question"] = new List<string> { "AuthorId", "AssignedMemberId" }
         };
 
         if (!entityUserIdFields.ContainsKey(entityType))
@@ -1180,6 +1181,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? ResolveUserIdToNickname(pushSubscription.UserId)
                             ?? pushSubscription.UserId;
                         return userName;
+                    }
+                    break;
+
+                case "Question":
+                    if (entry.Entity is Question question)
+                    {
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var authorName = question.Author?.Nickname
+                            ?? question.Author?.UserName
+                            ?? ResolveUserIdToNickname(question.AuthorId)
+                            ?? question.AuthorId;
+                        var assignedMemberName = question.AssignedMember?.Nickname
+                            ?? question.AssignedMember?.UserName
+                            ?? ResolveUserIdToNickname(question.AssignedMemberId)
+                            ?? question.AssignedMemberId;
+                        return $"{authorName} → {assignedMemberName}";
                     }
                     break;
             }
