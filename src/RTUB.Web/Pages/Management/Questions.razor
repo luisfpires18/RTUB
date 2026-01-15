@@ -80,15 +80,17 @@
 
                             <div class="post-card-content">
                                 <div class="post-card-header">
-                                    <h5 class="post-card-title d-flex align-items-center">
-                                        <span class="text-muted small me-2">Para:</span>
-                                        <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
-                                             class="rounded-circle me-2"
-                                             alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")"
-                                             style="width: 28px; height: 28px; object-fit: cover;" />
-                                        <span>@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
-                                        <span class="text-muted small ms-1">(@receiverRoleText)</span>
-                                    </h5>
+                                    <div class="post-card-recipient">
+                                        <div class="post-card-recipient-info">
+                                            <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
+                                                 class="post-card-recipient-avatar"
+                                                 alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
+                                            <div class="post-card-recipient-text">
+                                                <span class="post-card-recipient-name">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
+                                                <span class="post-card-recipient-role">(@receiverRoleText)</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <p class="post-card-body">

@@ -37,6 +37,8 @@
     flex-direction: column;
     gap: 0.75rem;
     overflow: hidden;
+    --recipient-avatar-size: 64px;
+    --recipient-gap: 0.5rem;
 }
 
 .post-card-header {
@@ -62,6 +64,46 @@
     overflow-wrap: anywhere;
 }
 
+.post-card-recipient {
+    display: flex;
+    align-items: center;
+    gap: var(--recipient-gap);
+    color: #e2e2e2;
+    flex-wrap: wrap;
+}
+
+.post-card-recipient-info {
+    display: flex;
+    align-items: center;
+    gap: var(--recipient-gap);
+    min-width: 0;
+}
+
+.post-card-recipient-avatar {
+    width: var(--recipient-avatar-size);
+    height: var(--recipient-avatar-size);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(110, 86, 207, 0.4);
+}
+
+.post-card-recipient-text {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.post-card-recipient-name {
+    font-weight: 600;
+    color: #e2e2e2;
+}
+
+.post-card-recipient-role {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
 .post-card-body {
     color: rgba(255, 255, 255, 0.7);
     line-height: 1.5;
@@ -75,6 +117,7 @@
     word-break: break-word;
     overflow-wrap: anywhere;
 }
+
 
 .post-card-footer {
     display: flex;
@@ -173,6 +216,7 @@
         align-items: flex-start;
         gap: 0.75rem;
     }
+
 
     .post-card-meta {
         flex-direction: column;
