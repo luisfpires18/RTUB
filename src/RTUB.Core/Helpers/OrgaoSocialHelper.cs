@@ -3,7 +3,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Helpers;
 
 /// <summary>
-/// Helper class for Orgãos Sociais group display names and position mappings
+/// Helper class for Órgãos Sociais group display names and position mappings
 /// </summary>
 public static class OrgaoSocialHelper
 {

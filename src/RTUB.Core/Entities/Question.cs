@@ -4,7 +4,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Represents a question posted to an Orgãos Sociais member
+/// Represents a question posted to an Órgãos Sociais member
 /// </summary>
 public class Question : BaseEntity
 {

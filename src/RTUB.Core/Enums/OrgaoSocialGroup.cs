@@ -1,7 +1,7 @@
 namespace RTUB.Core.Enums;
 
 /// <summary>
-/// Groups of Orgãos Sociais (organizational bodies)
+/// Groups of Órgãos Sociais (organizational bodies)
 /// Used for categorizing positions when assigning questions
 /// </summary>
 public enum OrgaoSocialGroup

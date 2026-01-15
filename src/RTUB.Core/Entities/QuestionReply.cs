@@ -18,7 +18,7 @@ public class QuestionReply : BaseEntity
     public string AuthorId { get; set; } = string.Empty;
 
     /// <summary>
-    /// True if this reply is from the assigned Orgãos Sociais member
+    /// True if this reply is from the assigned Órgãos Sociais member
     /// </summary>
     public bool IsFromAssignedMember { get; set; }
 
