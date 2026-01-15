@@ -965,6 +965,12 @@ else
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {
                                 <span class="badge badge-retired">REFORMADO</span>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-primary ms-2" 
+                                        title="Tornar este membro ativo"
+                                        @onclick="() => OpenMakeActiveConfirmModal(member)">
+                                    <i class="bi bi-person-check"></i> Tornar Ativo
+                                </button>
                             }
                             else
                             {
