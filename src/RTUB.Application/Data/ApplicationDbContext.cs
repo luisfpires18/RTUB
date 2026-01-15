@@ -333,7 +333,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Fields to exclude from logging (metadata fields)
         var excludedFields = new HashSet<string>
         {
-            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id"
+            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
+            "LastNotificationSent", // Question notification tracking - not business data
+            "IsAwaitingUserReply", // Question workflow state - not business data
+            "Status" // Question status changes are handled via entity display name
         };
 
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
@@ -492,7 +495,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             ["LeaderboardCommentLike"] = new List<string> { "UserId" },
             ["Post"] = new List<string> { "AuthorId" },
             ["Comment"] = new List<string> { "AuthorId" },
-            ["PushSubscription"] = new List<string> { "UserId" }
+            ["PushSubscription"] = new List<string> { "UserId" },
+            ["Question"] = new List<string> { "AuthorId", "AssignedMemberId" }
         };
 
         if (!entityUserIdFields.ContainsKey(entityType))
@@ -1180,6 +1184,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? ResolveUserIdToNickname(pushSubscription.UserId)
                             ?? pushSubscription.UserId;
                         return userName;
+                    }
+                    break;
+
+                case "Question":
+                    if (entry.Entity is Question question)
+                    {
+                        // Show the question title for display
+                        return question.Title;
                     }
                     break;
             }

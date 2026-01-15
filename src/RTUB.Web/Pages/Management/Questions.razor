@@ -93,6 +93,7 @@
                                     </div>
                                 </div>
 
+                                <h6 class="post-card-title mb-2">@question.Title</h6>
                                 <p class="post-card-body">
                                     @question.Content
                                 </p>
@@ -108,7 +109,7 @@
                                             @question.CreatedAt.ToString("dd MMM, HH:mm")
                                         </span>
                                     </div>
-                                    <div class="post-card-badges">
+                                    <div class="post-card-badges d-flex align-items-center gap-2">
                                         @if (question.Status == QuestionStatus.Closed)
                                         {
                                             <span class="badge bg-secondary">
@@ -133,6 +134,12 @@
                                                 <i class="bi bi-chat-dots"></i> Em Discussão
                                             </span>
                                         }
+                                        <button class="btn btn-sm btn-purple" 
+                                                @onclick="() => ShowFullContent(question)" 
+                                                @onclick:stopPropagation="true"
+                                                title="Ver pergunta completa">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -340,6 +347,15 @@
             }
 
             <div class="mb-3">
+                <label class="form-label">Título</label>
+                <InputText class="form-control" 
+                           @bind-Value="newQuestionModel.Title"
+                           placeholder="Resumo da sua pergunta..." 
+                           maxlength="100" />
+                <ValidationMessage For="@(() => newQuestionModel.Title)" />
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">A sua pergunta</label>
                 <InputTextArea class="form-control" 
                               rows="5" 
@@ -390,6 +406,42 @@
                ConfirmButtonClass="btn-primary"
                OnConfirm="SendReminder" />
 
+<!-- View Full Content Modal -->
+<Modal Show="@showFullContentModal"
+       ShowChanged="@((show) => showFullContentModal = show)"
+       Title="Pergunta Completa"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (questionToView != null)
+        {
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <img src="@(questionToView.Author.ProfilePictureSrc ?? "")"
+                         class="rounded-circle me-2"
+                         alt="@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")"
+                         style="width: 40px; height: 40px; object-fit: cover;" />
+                    <div>
+                        <strong>@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")</strong>
+                        <div class="text-muted small">@questionToView.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                    </div>
+                </div>
+                <div class="mb-2 text-muted small">
+                    <i class="bi bi-arrow-right me-1"></i>
+                    Para: <strong>@(questionToView.AssignedMember?.Nickname ?? questionToView.AssignedMember?.UserName)</strong>
+                </div>
+            </div>
+            <h5 class="mb-3">@questionToView.Title</h5>
+            <div class="p-3 bg-dark rounded" style="white-space: pre-wrap; word-break: break-word;">
+                @questionToView.Content
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showFullContentModal = false">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Question> questions = new();
     private ApplicationUser? currentUser;
@@ -415,9 +467,11 @@
     private bool showDeleteConfirm = false;
     private bool showCloseConfirm = false;
     private bool showReminderConfirm = false;
+    private bool showFullContentModal = false;
     private Question? questionToDelete;
     private Question? questionToClose;
     private Question? questionForReminder;
+    private Question? questionToView;
 
     protected override async Task OnInitializedAsync()
     {
@@ -544,6 +598,7 @@
             return;
 
         await QuestionService.CreateAsync(
+            newQuestionModel.Title,
             newQuestionModel.Content,
             currentUser.Id,
             selectedMember.Value.Position,
@@ -593,6 +648,8 @@
     private bool CanSubmitQuestion()
     {
         return selectedMember != null &&
+               !string.IsNullOrWhiteSpace(newQuestionModel.Title) &&
+               newQuestionModel.Title.Length <= 100 &&
                !string.IsNullOrWhiteSpace(newQuestionModel.Content) &&
                newQuestionModel.Content.Length >= 10;
     }
@@ -646,6 +703,12 @@
         }
     }
 
+    private void ShowFullContent(Question question)
+    {
+        questionToView = question;
+        showFullContentModal = true;
+    }
+
     private async Task HandleSearch(string term)
     {
         searchTerm = term;
@@ -668,6 +731,10 @@
 
     private class NewQuestionModel
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "O título é obrigatório")]
+        [System.ComponentModel.DataAnnotations.MaxLength(100, ErrorMessage = "O título deve ter no máximo 100 caracteres")]
+        public string Title { get; set; } = string.Empty;
+
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A pergunta é obrigatória")]
         [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
         public string Content { get; set; } = string.Empty;
