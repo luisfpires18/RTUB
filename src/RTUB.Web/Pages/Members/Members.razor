@@ -1482,6 +1482,20 @@ else
         if (leitoesIds.Any())
         {
             leitoesStatusData = await MemberStatusService.GetMemberStatusesBatchAsync(leitoesIds);
+            
+            // For any Leitões with null status (stale or missing), update their status to get fresh data
+            foreach (var leitaoId in leitoesIds.Where(id => leitoesStatusData.GetValueOrDefault(id) == null))
+            {
+                try
+                {
+                    var freshStatus = await MemberStatusService.UpdateMemberStatusAsync(leitaoId);
+                    leitoesStatusData[leitaoId] = freshStatus;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to update status for Leitão {UserId}", leitaoId);
+                }
+            }
         }
         else
         {
