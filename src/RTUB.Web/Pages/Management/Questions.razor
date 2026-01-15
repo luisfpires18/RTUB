@@ -62,10 +62,25 @@
                 {
                     var replyCount = GetReplyCount(question);
                     var isExpanded = expandedQuestionIds.Contains(question.Id);
+                    var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
+                    var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
                     
                     <div class="post-wrapper mb-3">
+                        <!-- Receiver info banner -->
+                        <div class="d-flex align-items-center p-2 border-bottom" style="background: linear-gradient(135deg, rgba(110, 86, 207, 0.15) 0%, rgba(110, 86, 207, 0.05) 100%);">
+                            <span class="text-muted small me-2">Para:</span>
+                            <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
+                                 class="rounded-circle me-2"
+                                 alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")"
+                                 style="width: 32px; height: 32px; object-fit: cover;" />
+                            <div>
+                                <span class="fw-bold">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
+                                <span class="text-muted small ms-1">(@receiverRoleText)</span>
+                            </div>
+                        </div>
+                        
                         <!-- Question Card as clickable header -->
-                        <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                        <div class="post-card" style="height: auto; border-top-left-radius: 0; border-top-right-radius: 0;" @onclick="() => ToggleQuestion(question.Id)">
                             <div class="post-card-avatar-section">
                                 <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                      class="post-card-avatar"
@@ -79,7 +94,7 @@
                             <div class="post-card-content">
                                 <div class="post-card-header">
                                     <h5 class="post-card-title">
-                                        @GetAssignedMemberDisplayText(question)
+                                        Pergunta
                                     </h5>
                                 </div>
 
@@ -184,7 +199,7 @@
                                                                         @(reply.Author.Nickname ?? reply.Author.UserName)
                                                                         @if (reply.IsFromAssignedMember)
                                                                         {
-                                                                            <span class="badge bg-primary ms-2">@PositionHelper.GetDisplayName(question.AssignedPosition)</span>
+                                                                            <span class="badge bg-primary ms-2">@receiverRoleText</span>
                                                                         }
                                                                     </div>
                                                                     <small class="text-muted">
@@ -266,7 +281,7 @@
             <div class="mb-3">
                 <label class="form-label">Pesquisar Membro dos Órgãos Sociais</label>
                 <SearchBar @bind-Value="memberSearchTerm"
-                           Placeholder="Pesquisar por nome ou alcunha..."
+                           Placeholder="Pesquisar por nome, alcunha ou cargo..."
                            OnSearch="OnMemberSearch"
                            OnClear="ClearMemberSelection"
                            Compact="true" />
@@ -291,8 +306,8 @@
                                         {
                                             <div><strong>@item.Member.FirstName @item.Member.LastName</strong></div>
                                         }
-                                        <div class="small text-primary">
-                                            @OrgaoSocialHelper.GetDisplayName(item.Group) - @PositionHelper.GetDisplayName(item.Position)
+                                        <div class="small text-white-50">
+                                            @GetRoleDisplayText(item.Group, item.Position)
                                         </div>
                                     </div>
                                 </div>
@@ -311,7 +326,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <strong>Membro Selecionado:</strong> @(selectedMember.Value.Member.Nickname ?? selectedMember.Value.Member.UserName)
-                                <div class="small">@OrgaoSocialHelper.GetDisplayName(selectedMember.Value.Group) - @PositionHelper.GetDisplayName(selectedMember.Value.Position)</div>
+                                <div class="small text-white-50">@GetRoleDisplayText(selectedMember.Value.Group, selectedMember.Value.Position)</div>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearMemberSelection">
                                 <i class="bi bi-x"></i>
@@ -468,6 +483,16 @@
         return $"{groupName} - {positionName} - {memberName}";
     }
 
+    private string GetRoleDisplayText(OrgaoSocialGroup group, Position position)
+    {
+        // Only show "Group - Position" for Direção members, otherwise just show position
+        if (group == OrgaoSocialGroup.Direcao)
+        {
+            return $"{OrgaoSocialHelper.GetDisplayName(group)} - {PositionHelper.GetDisplayName(position)}";
+        }
+        return PositionHelper.GetDisplayName(position);
+    }
+
     private void OpenCreateQuestionModal()
     {
         newQuestionModel = new NewQuestionModel();
@@ -496,7 +521,11 @@
             item => item.Member.FirstName ?? string.Empty,
             item => item.Member.LastName ?? string.Empty,
             item => $"{item.Member.FirstName ?? ""} {item.Member.LastName ?? ""}",
-            item => item.Member.Nickname ?? string.Empty
+            item => item.Member.Nickname ?? string.Empty,
+            // Allow search by role/position
+            item => PositionHelper.GetDisplayName(item.Position),
+            item => OrgaoSocialHelper.GetDisplayName(item.Group),
+            item => $"{OrgaoSocialHelper.GetDisplayName(item.Group)} {PositionHelper.GetDisplayName(item.Position)}"
         }, caseSensitive: false, accentSensitive: false);
     }
 
