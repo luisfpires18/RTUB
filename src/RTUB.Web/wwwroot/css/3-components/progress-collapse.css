@@ -38,7 +38,7 @@
     gap: 0.75rem;
     overflow: hidden;
     --recipient-label-width: 3.25rem;
-    --recipient-avatar-size: 28px;
+    --recipient-avatar-size: 64px;
     --recipient-gap: 0.5rem;
     --recipient-indent: calc(var(--recipient-label-width) + var(--recipient-avatar-size) + (var(--recipient-gap) * 2));
 }
