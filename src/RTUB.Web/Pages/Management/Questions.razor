@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
@@ -182,7 +184,7 @@
                                                                         @(reply.Author.Nickname ?? reply.Author.UserName)
                                                                         @if (reply.IsFromAssignedMember)
                                                                         {
-                                                                            <span class="badge bg-primary ms-2">Órgão Social</span>
+                                                                            <span class="badge bg-primary ms-2">@PositionHelper.GetDisplayName(question.AssignedPosition)</span>
                                                                         }
                                                                     </div>
                                                                     <small class="text-muted">
@@ -253,7 +255,7 @@
 
 <!-- Create Question Modal -->
 <Modal Show="@showCreateModal" 
-       ShowChanged="@((show) => showCreateModal = show)"
+       ShowChanged="@((show) => { showCreateModal = show; if (!show) ClearMemberSelection(); })"
        Title="Nova Pergunta"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -262,16 +264,61 @@
             <DataAnnotationsValidator />
             
             <div class="mb-3">
-                <label class="form-label">Selecione o Membro</label>
-                <select class="form-select" @bind="newQuestionModel.SelectedMemberKey">
-                    <option value="">-- Selecione um membro --</option>
-                    @foreach (var item in orgaoSocialMembers)
-                    {
-                        var key = $"{item.Member.Id}|{(int)item.Position}";
-                        var displayText = $"{OrgaoSocialHelper.GetDisplayName(item.Group)} - {PositionHelper.GetDisplayName(item.Position)} - {item.Member.Nickname ?? item.Member.UserName} ({item.Member.FirstName} {item.Member.LastName})";
-                        <option value="@key">@displayText</option>
-                    }
-                </select>
+                <label class="form-label">Pesquisar Membro dos Órgãos Sociais</label>
+                <SearchBar @bind-Value="memberSearchTerm"
+                           Placeholder="Pesquisar por nome ou alcunha..."
+                           OnSearch="OnMemberSearch"
+                           OnClear="ClearMemberSelection"
+                           Compact="true" />
+                
+                @if (filteredMembers.Any())
+                {
+                    <div class="member-list member-list-scrollable mt-2" style="max-height: 200px; overflow-y: auto;">
+                        @foreach (var item in filteredMembers.Take(10))
+                        {
+                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                 @onclick="() => SelectMember(item)">
+                                <div class="d-flex align-items-center">
+                                    <img src="@item.Member.ProfilePictureSrc" alt="@item.Member.GetDisplayName()"
+                                         class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover;" />
+                                    <div>
+                                        @if (!string.IsNullOrEmpty(item.Member.Nickname))
+                                        {
+                                            <div><strong>@item.Member.Nickname</strong></div>
+                                            <div class="text-muted small">@item.Member.FirstName @item.Member.LastName</div>
+                                        }
+                                        else
+                                        {
+                                            <div><strong>@item.Member.FirstName @item.Member.LastName</strong></div>
+                                        }
+                                        <div class="small text-primary">
+                                            @OrgaoSocialHelper.GetDisplayName(item.Group) - @PositionHelper.GetDisplayName(item.Position)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(memberSearchTerm) && selectedMember == null)
+                {
+                    <div class="alert alert-purple mt-2">Nenhum membro encontrado.</div>
+                }
+
+                @if (selectedMember != null)
+                {
+                    <div class="alert alert-purple mt-2">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <strong>Membro Selecionado:</strong> @(selectedMember.Value.Member.Nickname ?? selectedMember.Value.Member.UserName)
+                                <div class="small">@OrgaoSocialHelper.GetDisplayName(selectedMember.Value.Group) - @PositionHelper.GetDisplayName(selectedMember.Value.Position)</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearMemberSelection">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
             </div>
 
             @if (!orgaoSocialMembers.Any())
@@ -347,6 +394,12 @@
     private bool showCreateModal = false;
     private NewQuestionModel newQuestionModel = new();
     private List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> orgaoSocialMembers = new();
+    
+    // Member search for question creation
+    private string memberSearchTerm = string.Empty;
+    private List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> filteredMembers = new();
+    private (ApplicationUser Member, OrgaoSocialGroup Group, Position Position)? selectedMember;
+    private SearchHelper<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> memberSearchHelper = new();
 
     // Dialogs
     private bool showDeleteConfirm = false;
@@ -418,28 +471,62 @@
     private void OpenCreateQuestionModal()
     {
         newQuestionModel = new NewQuestionModel();
+        ClearMemberSelection();
         showCreateModal = true;
+    }
+
+    private void OnMemberSearch(string term)
+    {
+        memberSearchTerm = term;
+        FilterMembers();
+    }
+
+    private void FilterMembers()
+    {
+        if (string.IsNullOrEmpty(memberSearchTerm))
+        {
+            filteredMembers.Clear();
+            return;
+        }
+
+        memberSearchHelper.SearchTerm = memberSearchTerm;
+        
+        filteredMembers = memberSearchHelper.FilterMultiple(orgaoSocialMembers, new List<Func<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position), string>>
+        {
+            item => item.Member.FirstName ?? string.Empty,
+            item => item.Member.LastName ?? string.Empty,
+            item => $"{item.Member.FirstName ?? ""} {item.Member.LastName ?? ""}",
+            item => item.Member.Nickname ?? string.Empty
+        }, caseSensitive: false, accentSensitive: false);
+    }
+
+    private void SelectMember((ApplicationUser Member, OrgaoSocialGroup Group, Position Position) member)
+    {
+        selectedMember = member;
+        memberSearchTerm = member.Member.Nickname ?? $"{member.Member.FirstName} {member.Member.LastName}";
+        filteredMembers.Clear();
+    }
+
+    private void ClearMemberSelection()
+    {
+        selectedMember = null;
+        memberSearchTerm = string.Empty;
+        filteredMembers.Clear();
     }
 
     private async Task CreateQuestion()
     {
-        if (!CanSubmitQuestion() || currentUser == null)
+        if (!CanSubmitQuestion() || currentUser == null || selectedMember == null)
             return;
-
-        var parts = newQuestionModel.SelectedMemberKey.Split('|');
-        if (parts.Length != 2)
-            return;
-
-        var memberId = parts[0];
-        var position = (Position)int.Parse(parts[1]);
 
         await QuestionService.CreateAsync(
             newQuestionModel.Content,
             currentUser.Id,
-            position,
-            memberId);
+            selectedMember.Value.Position,
+            selectedMember.Value.Member.Id);
 
         showCreateModal = false;
+        ClearMemberSelection();
         await LoadQuestionsAsync();
         StateHasChanged();
     }
@@ -481,7 +568,7 @@
 
     private bool CanSubmitQuestion()
     {
-        return !string.IsNullOrWhiteSpace(newQuestionModel.SelectedMemberKey) &&
+        return selectedMember != null &&
                !string.IsNullOrWhiteSpace(newQuestionModel.Content) &&
                newQuestionModel.Content.Length >= 10;
     }
@@ -560,7 +647,5 @@
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A pergunta é obrigatória")]
         [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
         public string Content { get; set; } = string.Empty;
-
-        public string SelectedMemberKey { get; set; } = string.Empty;
     }
 }
