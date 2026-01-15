@@ -333,7 +333,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Fields to exclude from logging (metadata fields)
         var excludedFields = new HashSet<string>
         {
-            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id"
+            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
+            "LastNotificationSent" // Question notification tracking - not business data
         };
 
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field

@@ -63,13 +63,20 @@ public class QuestionService : IQuestionService
 
     public async Task<Question> CreateAsync(string content, string authorId, Position assignedPosition, string assignedMemberId)
     {
+        // Load users first so audit log can resolve their nicknames
+        var author = await _userManager.FindByIdAsync(authorId);
+        var assignedMember = await _userManager.FindByIdAsync(assignedMemberId);
+        var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
+
         var question = Question.Create(content, authorId, assignedPosition, assignedMemberId);
+        
+        // Set navigation properties for audit log display name resolution
+        if (author != null) question.Author = author;
+        if (assignedMember != null) question.AssignedMember = assignedMember;
+        
         await _questionRepository.AddAsync(question);
 
         // Send notification to assigned member
-        var author = await _userManager.FindByIdAsync(authorId);
-        var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
-
         var notification = new SendPushNotificationDto
         {
             Title = "Nova Pergunta",
