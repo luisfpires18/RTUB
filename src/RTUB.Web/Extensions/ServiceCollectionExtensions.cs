@@ -155,6 +155,18 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers question services for Orgãos Sociais Q&A
+    /// </summary>
+    public static IServiceCollection AddQuestionServices(this IServiceCollection services)
+    {
+        services.AddScoped<IQuestionRepository, QuestionRepository>();
+        services.AddScoped<IQuestionReplyRepository, QuestionReplyRepository>();
+        services.AddScoped<IQuestionService, QuestionService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers ranking and gamification services
     /// </summary>
     public static IServiceCollection AddRankingServices(this IServiceCollection services)

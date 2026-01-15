@@ -78,6 +78,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
 
+        // Configure Question Notification Scheduler
+        services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.QuestionNotificationOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -305,6 +309,7 @@ public class Program
         services.AddMeetingServices();
         services.AddInventoryServices();
         services.AddDiscussionServices();
+        services.AddQuestionServices();
         services.AddRankingServices();
         services.AddEmailServices();
         services.AddStorageServices();
@@ -344,6 +349,9 @@ public class Program
 
         // Background worker for sending pending request reminders
         services.AddHostedService<PendingRequestReminderService>();
+
+        // Background worker for sending question notification reminders
+        services.AddHostedService<QuestionNotificationBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();

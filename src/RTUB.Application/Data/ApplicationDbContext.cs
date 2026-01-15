@@ -104,6 +104,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GalleryMedia> GalleryMedia { get; set; }
     public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
 
+    // Questions DbSets
+    public DbSet<Question> Questions { get; set; }
+    public DbSet<QuestionReply> QuestionReplies { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
