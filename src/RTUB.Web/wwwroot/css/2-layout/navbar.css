@@ -125,6 +125,19 @@
 }
 
 @media (max-width: 991.98px) {
+  body:has(.navbar .offcanvas.show) {
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+  .navbar .offcanvas.show {
+    overscroll-behavior: contain;
+  }
+  .navbar .offcanvas.show .offcanvas-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
   .navbar .offcanvas {
     width: min(92vw, 360px);
   }
