@@ -9,10 +9,19 @@
 *@
 
 <div class="avatar-card" tabindex="0" @onkeydown="@HandleKeyDown">
+    <!-- Inactivity warning icon in top-left (for members without activity in current month) -->
+    @if (ShowInactivityWarning)
+    {
+        <div class="avatar-card-inactivity-warning" 
+             title="@InactivityWarningTooltip"
+             aria-label="@InactivityWarningTooltip">
+            <i class="bi bi-clock-history"></i>
+        </div>
+    }
     <!-- Definir Alcunha button in top-left (for Leitões, Admin only) -->
     @if (ShowSetNicknameButton)
     {
-        <button class="avatar-card-set-nickname-btn" 
+        <button class="avatar-card-set-nickname-btn @(ShowInactivityWarning ? "has-warning-icon" : "")" 
                 @onclick="@OnSetNickname" 
                 @onclick:stopPropagation="true"
                 title="@SetNicknameTooltip"
@@ -154,6 +163,12 @@
     
     [Parameter]
     public bool ShowSetNicknameButton { get; set; } = false;
+    
+    [Parameter]
+    public bool ShowInactivityWarning { get; set; } = false;
+
+    [Parameter]
+    public string InactivityWarningTooltip { get; set; } = "Não tem participado";
 
     [Parameter]
     public bool LazyLoad { get; set; } = true;
@@ -184,6 +199,7 @@
     private bool _previousShowEditButton;
     private bool _previousShowDeleteButton;
     private bool _previousShowSetNicknameButton;
+    private bool _previousShowInactivityWarning;
     private bool _previousImageLoaded;
     
     /// <summary>
@@ -200,6 +216,7 @@
             ShowEditButton != _previousShowEditButton ||
             ShowDeleteButton != _previousShowDeleteButton ||
             ShowSetNicknameButton != _previousShowSetNicknameButton ||
+            ShowInactivityWarning != _previousShowInactivityWarning ||
             imageLoaded != _previousImageLoaded)
         {
             _previousAvatarUrl = AvatarUrl;
@@ -210,6 +227,7 @@
             _previousShowEditButton = ShowEditButton;
             _previousShowDeleteButton = ShowDeleteButton;
             _previousShowSetNicknameButton = ShowSetNicknameButton;
+            _previousShowInactivityWarning = ShowInactivityWarning;
             _previousImageLoaded = imageLoaded;
             return true;
         }

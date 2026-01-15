@@ -214,6 +214,8 @@ else
         <div class="avatar-card-grid">
             @foreach (var user in paginatedLeitoes)
             {
+                var leitaoStatus = leitoesStatusData.GetValueOrDefault(user.Id);
+                var hasNoActivityThisMonth = leitaoStatus != null && !leitaoStatus.HasActivityInCurrentMonth;
                 <AvatarCard @key="user.Id"
                            AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
@@ -228,6 +230,7 @@ else
                            ShowEditButton="@(isAdmin)"
                            ShowDeleteButton="@(isAdmin)"
                            ShowSetNicknameButton="@isAdmin"
+                           ShowInactivityWarning="@hasNoActivityThisMonth"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
                            DeleteTooltip="Eliminar"
@@ -1214,6 +1217,9 @@ else
     private Dictionary<string, string> userPrimaryInstruments = new();
     private Dictionary<string, MemberInstrument?> userPrimaryInstrumentObjects = new();
     private Dictionary<string, List<MemberInstrument>> userAllInstruments = new(); // For filtering by all instruments
+    
+    // Leitões activity data for sorting and inactivity warnings
+    private Dictionary<string, MemberStatusResult?> leitoesStatusData = new();
 
     // Helper instances
     private SearchHelper<ApplicationUser> searchHelper = new();
@@ -1469,6 +1475,17 @@ else
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .ToList();
+        
+        // Load Leitões status data for sorting and inactivity warnings
+        var leitoesIds = users.Where(u => u.IsLeitao()).Select(u => u.Id).ToList();
+        if (leitoesIds.Any())
+        {
+            leitoesStatusData = await MemberStatusService.GetMemberStatusesBatchAsync(leitoesIds);
+        }
+        else
+        {
+            leitoesStatusData.Clear();
+        }
 
         FilterMembers();
     }
@@ -1682,9 +1699,15 @@ else
             ["Instrument"] = u => ""
         };
 
-        // Sort regular members and Leitões using SortableTableHelper
+        // Sort regular members using SortableTableHelper
         filteredRegularMembers = sortHelper.ApplySort(filteredRegularMembers, columnSelectors);
-        filteredLeitoes = sortHelper.ApplySort(filteredLeitoes, columnSelectors);
+        
+        // Sort Leitões by number of activities (descending) then by recent activity (most recent first)
+        // Members with no activity will appear last
+        filteredLeitoes = filteredLeitoes
+            .OrderByDescending(u => leitoesStatusData.GetValueOrDefault(u.Id)?.TotalActivitiesCount ?? 0)
+            .ThenByDescending(u => leitoesStatusData.GetValueOrDefault(u.Id)?.LastActivityDate ?? DateTime.MinValue)
+            .ToList();
 
         // Keep for backwards compatibility
         filteredUsers = filteredRegularMembers.Concat(filteredLeitoes).ToList();
