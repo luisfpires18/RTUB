@@ -66,21 +66,8 @@
                     var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
                     
                     <div class="post-wrapper mb-3">
-                        <!-- Receiver info banner -->
-                        <div class="d-flex align-items-center p-2 border-bottom" style="background: linear-gradient(135deg, rgba(110, 86, 207, 0.15) 0%, rgba(110, 86, 207, 0.05) 100%);">
-                            <span class="text-muted small me-2">Para:</span>
-                            <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
-                                 class="rounded-circle me-2"
-                                 alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")"
-                                 style="width: 32px; height: 32px; object-fit: cover;" />
-                            <div>
-                                <span class="fw-bold">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
-                                <span class="text-muted small ms-1">(@receiverRoleText)</span>
-                            </div>
-                        </div>
-                        
                         <!-- Question Card as clickable header -->
-                        <div class="post-card" style="height: auto; border-top-left-radius: 0; border-top-right-radius: 0;" @onclick="() => ToggleQuestion(question.Id)">
+                        <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
                             <div class="post-card-avatar-section">
                                 <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                      class="post-card-avatar"
@@ -93,8 +80,14 @@
 
                             <div class="post-card-content">
                                 <div class="post-card-header">
-                                    <h5 class="post-card-title">
-                                        Pergunta
+                                    <h5 class="post-card-title d-flex align-items-center">
+                                        <span class="text-muted small me-2">Para:</span>
+                                        <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
+                                             class="rounded-circle me-2"
+                                             alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")"
+                                             style="width: 28px; height: 28px; object-fit: cover;" />
+                                        <span>@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
+                                        <span class="text-muted small ms-1">(@receiverRoleText)</span>
                                     </h5>
                                 </div>
 
