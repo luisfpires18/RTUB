@@ -215,7 +215,8 @@ else
             @foreach (var user in paginatedLeitoes)
             {
                 var leitaoStatus = leitoesStatusData.GetValueOrDefault(user.Id);
-                var hasNoActivityThisMonth = leitaoStatus != null && !leitaoStatus.HasActivityInCurrentMonth;
+                // Show inactivity warning if: no status data (no activity ever) OR status exists but no activity in current month
+                var hasNoActivityThisMonth = leitaoStatus == null || !leitaoStatus.HasActivityInCurrentMonth;
                 <AvatarCard @key="user.Id"
                            AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
