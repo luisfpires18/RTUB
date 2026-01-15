@@ -68,6 +68,15 @@
                     <div class="post-wrapper mb-3">
                         <!-- Question Card as clickable header -->
                         <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                            <!-- View Full Content Button (top right) -->
+                            <button class="btn btn-sm btn-purple position-absolute" 
+                                    style="top: 0.5rem; right: 0.5rem; z-index: 10;"
+                                    @onclick="() => ShowFullContent(question)" 
+                                    @onclick:stopPropagation="true"
+                                    title="Ver pergunta completa">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            
                             <div class="post-card-avatar-section">
                                 <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                      class="post-card-avatar"
@@ -390,6 +399,41 @@
                ConfirmButtonClass="btn-primary"
                OnConfirm="SendReminder" />
 
+<!-- View Full Content Modal -->
+<Modal Show="@showFullContentModal"
+       ShowChanged="@((show) => showFullContentModal = show)"
+       Title="Pergunta Completa"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (questionToView != null)
+        {
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <img src="@(questionToView.Author.ProfilePictureSrc ?? "")"
+                         class="rounded-circle me-2"
+                         alt="@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")"
+                         style="width: 40px; height: 40px; object-fit: cover;" />
+                    <div>
+                        <strong>@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")</strong>
+                        <div class="text-muted small">@questionToView.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                    </div>
+                </div>
+                <div class="mb-2 text-muted small">
+                    <i class="bi bi-arrow-right me-1"></i>
+                    Para: <strong>@(questionToView.AssignedMember?.Nickname ?? questionToView.AssignedMember?.UserName)</strong>
+                </div>
+            </div>
+            <div class="p-3 bg-dark rounded" style="white-space: pre-wrap; word-break: break-word;">
+                @questionToView.Content
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showFullContentModal = false">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Question> questions = new();
     private ApplicationUser? currentUser;
@@ -415,9 +459,11 @@
     private bool showDeleteConfirm = false;
     private bool showCloseConfirm = false;
     private bool showReminderConfirm = false;
+    private bool showFullContentModal = false;
     private Question? questionToDelete;
     private Question? questionToClose;
     private Question? questionForReminder;
+    private Question? questionToView;
 
     protected override async Task OnInitializedAsync()
     {
@@ -644,6 +690,12 @@
             await QuestionService.SendManualReminderAsync(questionForReminder.Id, currentUser.Id);
             questionForReminder = null;
         }
+    }
+
+    private void ShowFullContent(Question question)
+    {
+        questionToView = question;
+        showFullContentModal = true;
     }
 
     private async Task HandleSearch(string term)
