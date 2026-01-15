@@ -41,6 +41,11 @@ public class QuestionService : IQuestionService
         return await _questionRepository.GetAllAsync(page, pageSize, searchTerm);
     }
 
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    {
+        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm);
+    }
+
     public async Task<int> GetCountAsync(string? searchTerm = null)
     {
         return await _questionRepository.GetCountAsync(searchTerm);
@@ -69,7 +74,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Nova Pergunta",
             Body = $"{authorName} fez uma pergunta para si: {TruncateContent(content, 100)}",
-            Url = $"{DefaultBaseUrl}/questions/{question.Id}",
+            Url = $"{DefaultBaseUrl}/questions",
             Tag = $"question-{question.Id}"
         };
 
@@ -109,7 +114,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Pergunta Respondida",
                 Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
-                Url = $"{DefaultBaseUrl}/questions/{questionId}",
+                Url = $"{DefaultBaseUrl}/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
@@ -129,7 +134,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Nova Resposta à Pergunta",
                 Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
-                Url = $"{DefaultBaseUrl}/questions/{questionId}",
+                Url = $"{DefaultBaseUrl}/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
@@ -184,7 +189,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Lembrete: Pergunta Pendente",
             Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Content, 100)}",
-            Url = $"{DefaultBaseUrl}/questions/{questionId}",
+            Url = $"{DefaultBaseUrl}/questions",
             Tag = $"question-reminder-{questionId}"
         };
 
@@ -226,6 +231,54 @@ public class QuestionService : IQuestionService
             .ToListAsync();
 
         return allUsers.Where(u => u.Positions != null && u.Positions.Contains(position));
+    }
+
+    public async Task<bool> CloseAsync(int questionId, string requestingUserId)
+    {
+        var question = await _questionRepository.GetByIdAsync(questionId);
+        if (question == null)
+        {
+            return false;
+        }
+
+        // Only the author can close their own questions
+        if (question.AuthorId != requestingUserId)
+        {
+            _logger.LogWarning(
+                "User {UserId} attempted to close question {QuestionId} owned by {AuthorId}",
+                requestingUserId, questionId, question.AuthorId);
+            return false;
+        }
+
+        question.Close();
+        await _questionRepository.UpdateAsync(question);
+        _logger.LogInformation(
+            "Question {QuestionId} closed by author {AuthorId}",
+            questionId, requestingUserId);
+        return true;
+    }
+
+    public async Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync()
+    {
+        var allUsers = await _userManager.Users
+            .AsNoTracking()
+            .ToListAsync();
+
+        var result = new List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>();
+
+        foreach (var group in OrgaoSocialHelper.GetAllGroups())
+        {
+            foreach (var position in OrgaoSocialHelper.GetPositionsForGroup(group))
+            {
+                var membersWithPosition = allUsers.Where(u => u.Positions != null && u.Positions.Contains(position));
+                foreach (var member in membersWithPosition)
+                {
+                    result.Add((member, group, position));
+                }
+            }
+        }
+
+        return result;
     }
 
     private static string TruncateContent(string content, int maxLength)

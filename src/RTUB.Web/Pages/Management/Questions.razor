@@ -1,5 +1,4 @@
 @page "/questions"
-@page "/questions/{QuestionId:int}"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -12,7 +11,6 @@
 @inject IQuestionService QuestionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
-@inject NavigationManager Navigation
 
 <PageTitle>Perguntas aos Órgãos Sociais</PageTitle>
 
@@ -26,12 +24,6 @@
         <!-- Page Header -->
         <div class="discussion-header mb-4">
             <div class="discussion-header-actions">
-                @if (selectedQuestion != null)
-                {
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateToList">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                }
             </div>
 
             <div class="discussion-header-title">
@@ -39,7 +31,7 @@
                 <p class="mb-0 text-muted">Faça perguntas aos membros dos Órgãos Sociais</p>
             </div>
 
-            @if (currentUser != null && selectedQuestion == null)
+            @if (currentUser != null)
             {
                 <div class="discussion-header-actions page-header-actions justify-content-end justify-content-lg-end">
                     <button class="btn btn-success" @onclick="OpenCreateQuestionModal" title="Criar Nova Pergunta">
@@ -49,261 +41,211 @@
             }
         </div>
 
-        @if (selectedQuestion != null)
+        <!-- Search Bar -->
+        <SearchBar @bind-Value="searchTerm"
+                   Placeholder="Pesquisar perguntas..."
+                   OnSearch="HandleSearch" />
+
+        <!-- Questions List -->
+        @if (questions == null || !questions.Any())
         {
-            <!-- Question Detail View -->
-            <div class="question-detail">
-                <div class="post-wrapper mb-3">
-                    <div class="post-card" style="height: auto; cursor: default;">
-                        <div class="post-card-avatar-section">
-                            <img src="@(selectedQuestion.Author.ProfilePictureSrc ?? "")"
-                                 class="post-card-avatar"
-                                 alt="@(selectedQuestion.Author.Nickname ?? selectedQuestion.Author.UserName ?? "Autor")" />
-                            <div class="post-card-author-info">
-                                <div class="post-card-author-name">@(selectedQuestion.Author.Nickname ?? selectedQuestion.Author.UserName ?? "Autor")</div>
-                                <small class="post-card-date">@selectedQuestion.CreatedAt.ToString("dd MMM yyyy, HH:mm")</small>
-                            </div>
-                        </div>
-
-                        <div class="post-card-content">
-                            <div class="post-card-header">
-                                <h5 class="post-card-title">Pergunta para: @(selectedQuestion.AssignedMember?.Nickname ?? selectedQuestion.AssignedMember?.UserName)</h5>
-                            </div>
-
-                            <p class="post-card-body" style="-webkit-line-clamp: unset; display: block;">
-                                @selectedQuestion.Content
-                            </p>
-
-                            <div class="post-card-footer">
-                                <div class="post-card-meta">
-                                    <span class="post-card-meta-item">
-                                        <i class="bi bi-person-badge"></i>
-                                        @PositionHelper.GetDisplayName(selectedQuestion.AssignedPosition)
-                                    </span>
-                                    <span class="post-card-meta-item">
-                                        <i class="bi bi-chat-left-dots"></i>
-                                        @(selectedQuestion.Replies?.Count ?? 0) respostas
-                                    </span>
-                                </div>
-                                <div class="post-card-badges">
-                                    @if (selectedQuestion.Status == QuestionStatus.Unanswered)
-                                    {
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="bi bi-hourglass-split"></i> Aguarda Resposta
-                                        </span>
-                                    }
-                                    else if (selectedQuestion.Status == QuestionStatus.Answered)
-                                    {
-                                        <span class="badge bg-success">
-                                            <i class="bi bi-check-circle"></i> Respondida
-                                        </span>
-                                    }
-                                    else if (selectedQuestion.Status == QuestionStatus.InDiscussion)
-                                    {
-                                        <span class="badge bg-info">
-                                            <i class="bi bi-chat-dots"></i> Em Discussão
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Author controls -->
-                        @if (IsQuestionAuthor(selectedQuestion))
-                        {
-                            <div class="post-card-admin-actions">
-                                <button class="btn btn-sm btn-outline-light"
-                                        @onclick="ShowReminderConfirm"
-                                        title="Enviar lembrete">
-                                    <i class="bi bi-bell text-white"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger"
-                                        @onclick="() => ShowDeleteConfirm(selectedQuestion)"
-                                        title="Eliminar">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <!-- Replies Section -->
-                <div class="comments-section mt-4">
-                    <h6 class="mb-3">
-                        <i class="bi bi-chat-left-text me-2"></i>Respostas (@(selectedQuestion.Replies?.Count ?? 0))
-                    </h6>
-                    
-                    @if (selectedQuestion.Replies == null || !selectedQuestion.Replies.Any())
-                    {
-                        <p class="text-muted"><em>Nenhuma resposta ainda.</em></p>
-                    }
-                    else
-                    {
-                        <div class="comments-list mb-3">
-                            @foreach (var reply in selectedQuestion.Replies.OrderBy(r => r.CreatedAt))
-                            {
-                                <div class="comment-item mb-2">
-                                    <div class="comment-header">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div class="d-flex align-items-center">
-                                                <img src="@(reply.Author.ProfilePictureSrc)"
-                                                     class="rounded-circle me-2"
-                                                     alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
-                                                     style="width: 36px; height: 36px; object-fit: cover;" />
-                                                <div>
-                                                    <div class="fw-bold">
-                                                        @(reply.Author.Nickname ?? reply.Author.UserName)
-                                                        @if (reply.IsFromAssignedMember)
-                                                        {
-                                                            <span class="badge bg-primary ms-2">Órgão Social</span>
-                                                        }
-                                                    </div>
-                                                    <small class="text-muted">
-                                                        @reply.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="comment-body">
-                                        <p class="mb-0" style="white-space: pre-line;">@reply.Content</p>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    <!-- Add Reply -->
-                    @if (CanReplyToQuestion(selectedQuestion))
-                    {
-                        <div class="mt-3">
-                            <CommentComposer OnSubmit="@(async (body) => await AddReply(body))" />
-                        </div>
-                    }
-                    else if (!CanReplyToQuestion(selectedQuestion) && currentUser != null)
-                    {
-                        <div class="alert alert-info mt-3 d-flex align-items-center">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <span>
-                                @if (selectedQuestion.IsAwaitingUserReply && !IsQuestionAuthor(selectedQuestion))
-                                {
-                                    <text>Aguardando resposta do autor da pergunta.</text>
-                                }
-                                else if (!selectedQuestion.IsAwaitingUserReply && !IsAssignedMember(selectedQuestion))
-                                {
-                                    <text>Apenas o membro designado pode responder a esta pergunta.</text>
-                                }
-                            </span>
-                        </div>
-                    }
-                </div>
-            </div>
+            <EmptyState Title="Nenhuma pergunta encontrada" 
+                       Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a fazer uma pergunta aos Órgãos Sociais!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
+                       Icon="bi-question-circle" />
         }
         else
         {
-            <!-- Search Bar -->
-            <SearchBar @bind-Value="searchTerm"
-                       Placeholder="Pesquisar perguntas..."
-                       OnSearch="HandleSearch" />
-
-            <!-- Questions List -->
-            @if (questions == null || !questions.Any())
-            {
-                <EmptyState Title="Nenhuma pergunta encontrada" 
-                           Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a fazer uma pergunta aos Órgãos Sociais!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
-                           Icon="bi-question-circle" />
-            }
-            else
-            {
-                <div class="posts-list">
-                    @foreach (var question in questions)
-                    {
-                        <div class="post-wrapper mb-3">
-                            <div class="post-card" @onclick="() => SelectQuestion(question.Id)">
-                                <div class="post-card-avatar-section">
-                                    <img src="@(question.Author.ProfilePictureSrc ?? "")"
-                                         class="post-card-avatar"
-                                         alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
-                                    <div class="post-card-author-info">
-                                        <div class="post-card-author-name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
-                                        <small class="post-card-date">@question.CreatedAt.ToString("dd MMM yyyy")</small>
-                                    </div>
-                                </div>
-
-                                <div class="post-card-content">
-                                    <div class="post-card-header">
-                                        <h5 class="post-card-title">
-                                            Para: @(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName) - @PositionHelper.GetDisplayName(question.AssignedPosition)
-                                        </h5>
-                                    </div>
-
-                                    <p class="post-card-body">
-                                        @question.Content
-                                    </p>
-
-                                    <div class="post-card-footer">
-                                        <div class="post-card-meta">
-                                            <span class="post-card-meta-item">
-                                                <i class="bi bi-clock"></i>
-                                                @question.CreatedAt.ToString("dd MMM, HH:mm")
-                                            </span>
-                                        </div>
-                                        <div class="post-card-badges">
-                                            @if (question.Status == QuestionStatus.Unanswered)
-                                            {
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-hourglass-split"></i> Aguarda
-                                                </span>
-                                            }
-                                            else if (question.Status == QuestionStatus.Answered)
-                                            {
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle"></i> Respondida
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-info">
-                                                    <i class="bi bi-chat-dots"></i> Em Discussão
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Author controls -->
-                                @if (IsQuestionAuthor(question))
-                                {
-                                    <div class="post-card-admin-actions" @onclick:stopPropagation="true">
-                                        <button class="btn btn-sm btn-outline-light"
-                                                @onclick="() => { selectedQuestion = question; ShowReminderConfirm(); }"
-                                                title="Enviar lembrete">
-                                            <i class="bi bi-bell text-white"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger"
-                                                @onclick="() => ShowDeleteConfirm(question)"
-                                                title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                @if (totalQuestions > pageSize)
+            <div class="posts-list">
+                @foreach (var question in questions)
                 {
-                    <div class="pagination-wrapper mt-4">
-                        <TablePagination CurrentPage="@currentPage"
-                                        PageSize="@pageSize"
-                                        TotalItems="@totalQuestions"
-                                        ItemLabel="perguntas"
-                                        PageSizeOptions="@(new[] { 20, 50, 100 })"
-                                        OnPageChanged="@HandlePageChange"
-                                        OnPageSizeChanged="@HandlePageSizeChange" />
+                    var replyCount = GetReplyCount(question);
+                    var isExpanded = expandedQuestionIds.Contains(question.Id);
+                    
+                    <div class="post-wrapper mb-3">
+                        <!-- Question Card as clickable header -->
+                        <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                            <div class="post-card-avatar-section">
+                                <img src="@(question.Author.ProfilePictureSrc ?? "")"
+                                     class="post-card-avatar"
+                                     alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
+                                <div class="post-card-author-info">
+                                    <div class="post-card-author-name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
+                                    <small class="post-card-date">@question.CreatedAt.ToString("dd MMM yyyy")</small>
+                                </div>
+                            </div>
+
+                            <div class="post-card-content">
+                                <div class="post-card-header">
+                                    <h5 class="post-card-title">
+                                        @GetAssignedMemberDisplayText(question)
+                                    </h5>
+                                </div>
+
+                                <p class="post-card-body">
+                                    @question.Content
+                                </p>
+
+                                <div class="post-card-footer">
+                                    <div class="post-card-meta">
+                                        <span class="post-card-meta-item">
+                                            <i class="bi bi-chat-left-dots"></i>
+                                            @replyCount respostas
+                                        </span>
+                                        <span class="post-card-meta-item">
+                                            <i class="bi bi-clock"></i>
+                                            @question.CreatedAt.ToString("dd MMM, HH:mm")
+                                        </span>
+                                    </div>
+                                    <div class="post-card-badges">
+                                        @if (question.Status == QuestionStatus.Closed)
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-check-circle-fill"></i> Fechada
+                                            </span>
+                                        }
+                                        else if (question.Status == QuestionStatus.Unanswered)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-hourglass-split"></i> Aguarda
+                                            </span>
+                                        }
+                                        else if (question.Status == QuestionStatus.Answered)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Respondida
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-chat-dots"></i> Em Discussão
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Author controls -->
+                            @if (IsQuestionAuthor(question))
+                            {
+                                <div class="post-card-admin-actions" @onclick:stopPropagation="true">
+                                    @if (question.Status != QuestionStatus.Closed)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success"
+                                                @onclick="() => ShowCloseConfirm(question)"
+                                                title="Fechar pergunta">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light"
+                                                @onclick="() => ShowReminderConfirm(question)"
+                                                title="Enviar lembrete">
+                                            <i class="bi bi-bell text-dark"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-danger"
+                                            @onclick="() => ShowDeleteConfirm(question)"
+                                            title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Expanded content (replies) -->
+                        @if (isExpanded)
+                        {
+                            <div class="post-expanded-content">
+                                <div class="comments-section">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-chat-left-text me-2"></i>Respostas (@replyCount)
+                                    </h6>
+                                    
+                                    @if (replyCount == 0)
+                                    {
+                                        <p class="text-muted"><em>Nenhuma resposta ainda.</em></p>
+                                    }
+                                    else
+                                    {
+                                        <div class="comments-list mb-3">
+                                            @foreach (var reply in question.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
+                                            {
+                                                <div class="comment-item mb-2">
+                                                    <div class="comment-header">
+                                                        <div class="d-flex align-items-center justify-content-between">
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="@(reply.Author.ProfilePictureSrc)"
+                                                                     class="rounded-circle me-2"
+                                                                     alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
+                                                                     style="width: 36px; height: 36px; object-fit: cover;" />
+                                                                <div>
+                                                                    <div class="fw-bold">
+                                                                        @(reply.Author.Nickname ?? reply.Author.UserName)
+                                                                        @if (reply.IsFromAssignedMember)
+                                                                        {
+                                                                            <span class="badge bg-primary ms-2">Órgão Social</span>
+                                                                        }
+                                                                    </div>
+                                                                    <small class="text-muted">
+                                                                        @reply.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="comment-body">
+                                                        <p class="mb-0" style="white-space: pre-line;">@reply.Content</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    <!-- Add Reply -->
+                                    @if (CanReplyToQuestion(question))
+                                    {
+                                        <div class="mt-3">
+                                            <CommentComposer OnSubmit="@(async (body) => await AddReply(question.Id, body))" />
+                                        </div>
+                                    }
+                                    else if (question.Status == QuestionStatus.Closed)
+                                    {
+                                        <EmptyState Title="Pergunta fechada" 
+                                                   Message="Esta pergunta foi fechada pelo autor. Não é possível adicionar novas respostas." 
+                                                   Icon="bi-lock" />
+                                    }
+                                    else if (currentUser != null)
+                                    {
+                                        @if (question.IsAwaitingUserReply && !IsQuestionAuthor(question))
+                                        {
+                                            <EmptyState Title="Aguardando resposta" 
+                                                       Message="Aguardando resposta do autor da pergunta." 
+                                                       Icon="bi-hourglass" />
+                                        }
+                                        else if (!question.IsAwaitingUserReply && !IsAssignedMember(question))
+                                        {
+                                            <EmptyState Title="Acesso restrito" 
+                                                       Message="Apenas o membro designado pode responder a esta pergunta." 
+                                                       Icon="bi-person-lock" />
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
+            </div>
+
+            @if (totalQuestions > pageSize)
+            {
+                <div class="pagination-wrapper mt-4">
+                    <TablePagination CurrentPage="@currentPage"
+                                    PageSize="@pageSize"
+                                    TotalItems="@totalQuestions"
+                                    ItemLabel="perguntas"
+                                    PageSizeOptions="@(new[] { 20, 50, 100 })"
+                                    OnPageChanged="@HandlePageChange"
+                                    OnPageSizeChanged="@HandlePageSizeChange" />
+                </div>
             }
         }
     }
@@ -320,48 +262,23 @@
             <DataAnnotationsValidator />
             
             <div class="mb-3">
-                <label class="form-label">Selecione o Órgão Social</label>
-                <select class="form-select" @bind="selectedGroup">
-                    <option value="">-- Selecione um grupo --</option>
-                    @foreach (var group in OrgaoSocialHelper.GetAllGroups())
+                <label class="form-label">Selecione o Membro</label>
+                <select class="form-select" @bind="newQuestionModel.SelectedMemberKey">
+                    <option value="">-- Selecione um membro --</option>
+                    @foreach (var item in orgaoSocialMembers)
                     {
-                        <option value="@group">@OrgaoSocialHelper.GetDisplayName(group)</option>
+                        var key = $"{item.Member.Id}|{(int)item.Position}";
+                        var displayText = $"{OrgaoSocialHelper.GetDisplayName(item.Group)} - {PositionHelper.GetDisplayName(item.Position)} - {item.Member.Nickname ?? item.Member.UserName} ({item.Member.FirstName} {item.Member.LastName})";
+                        <option value="@key">@displayText</option>
                     }
                 </select>
             </div>
 
-            @if (selectedGroup.HasValue)
-            {
-                <div class="mb-3">
-                    <label class="form-label">Selecione o Cargo</label>
-                    <select class="form-select" @bind="selectedPosition">
-                        <option value="">-- Selecione um cargo --</option>
-                        @foreach (var position in OrgaoSocialHelper.GetPositionsForGroup(selectedGroup.Value))
-                        {
-                            <option value="@position">@PositionHelper.GetDisplayName(position)</option>
-                        }
-                    </select>
-                </div>
-            }
-
-            @if (selectedPosition.HasValue && membersWithPosition.Any())
-            {
-                <div class="mb-3">
-                    <label class="form-label">Selecione o Membro</label>
-                    <select class="form-select" @bind="newQuestionModel.AssignedMemberId">
-                        <option value="">-- Selecione um membro --</option>
-                        @foreach (var member in membersWithPosition)
-                        {
-                            <option value="@member.Id">@(member.Nickname ?? member.UserName) - @PositionHelper.GetDisplayName(selectedPosition.Value)</option>
-                        }
-                    </select>
-                </div>
-            }
-            else if (selectedPosition.HasValue && !membersWithPosition.Any())
+            @if (!orgaoSocialMembers.Any())
             {
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle me-2"></i>
-                    Não há membros com este cargo no momento.
+                    Não há membros dos Órgãos Sociais no momento.
                 </div>
             }
 
@@ -396,6 +313,16 @@
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDelete" />
 
+<!-- Close Confirmation -->
+<ConfirmDialog Show="@showCloseConfirm"
+               ShowChanged="@((value) => showCloseConfirm = value)"
+               Title="Fechar Pergunta"
+               Message="Tem a certeza que deseja fechar esta pergunta? Depois de fechada, não serão aceites mais respostas."
+               ConfirmText="Fechar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-success"
+               OnConfirm="ConfirmClose" />
+
 <!-- Reminder Confirmation -->
 <ConfirmDialog Show="@showReminderConfirm"
                ShowChanged="@((value) => showReminderConfirm = value)"
@@ -407,53 +334,34 @@
                OnConfirm="SendReminder" />
 
 @code {
-    [Parameter]
-    public int? QuestionId { get; set; }
-
     private List<Question> questions = new();
-    private Question? selectedQuestion;
     private ApplicationUser? currentUser;
     private bool isLoading = true;
     private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 20;
     private int totalQuestions = 0;
+    private HashSet<int> expandedQuestionIds = new();
 
     // Create question modal
     private bool showCreateModal = false;
     private NewQuestionModel newQuestionModel = new();
-    private OrgaoSocialGroup? selectedGroup;
-    private Position? selectedPosition;
-    private List<ApplicationUser> membersWithPosition = new();
+    private List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> orgaoSocialMembers = new();
 
     // Dialogs
     private bool showDeleteConfirm = false;
+    private bool showCloseConfirm = false;
     private bool showReminderConfirm = false;
     private Question? questionToDelete;
+    private Question? questionToClose;
+    private Question? questionForReminder;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUserAsync();
         await LoadQuestionsAsync();
-        
-        if (QuestionId.HasValue)
-        {
-            await LoadQuestionDetailAsync(QuestionId.Value);
-        }
-        
+        await LoadOrgaoSocialMembersAsync();
         isLoading = false;
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (QuestionId.HasValue && (selectedQuestion == null || selectedQuestion.Id != QuestionId.Value))
-        {
-            await LoadQuestionDetailAsync(QuestionId.Value);
-        }
-        else if (!QuestionId.HasValue && selectedQuestion != null)
-        {
-            selectedQuestion = null;
-        }
     }
 
     private async Task LoadCurrentUserAsync()
@@ -470,74 +378,79 @@
     private async Task LoadQuestionsAsync()
     {
         totalQuestions = await QuestionService.GetCountAsync(searchTerm);
-        var loadedQuestions = await QuestionService.GetAllAsync(currentPage, pageSize, searchTerm);
+        var loadedQuestions = await QuestionService.GetAllWithRepliesAsync(currentPage, pageSize, searchTerm);
         questions = loadedQuestions.ToList();
     }
 
-    private async Task LoadQuestionDetailAsync(int questionId)
+    private async Task LoadOrgaoSocialMembersAsync()
     {
-        selectedQuestion = await QuestionService.GetByIdWithRepliesAsync(questionId);
-        if (selectedQuestion == null)
-        {
-            Navigation.NavigateTo("/questions");
-        }
+        var members = await QuestionService.GetAllOrgaoSocialMembersAsync();
+        orgaoSocialMembers = members.ToList();
     }
 
-    private async Task LoadMembersWithPositionAsync()
+    private void ToggleQuestion(int questionId)
     {
-        if (selectedPosition.HasValue)
+        if (expandedQuestionIds.Contains(questionId))
         {
-            var members = await QuestionService.GetMembersWithPositionAsync(selectedPosition.Value);
-            membersWithPosition = members.ToList();
+            expandedQuestionIds.Remove(questionId);
         }
         else
         {
-            membersWithPosition.Clear();
+            expandedQuestionIds.Add(questionId);
         }
     }
 
-    private void SelectQuestion(int questionId)
+    private int GetReplyCount(Question question)
     {
-        Navigation.NavigateTo($"/questions/{questionId}");
+        return question.Replies?.Count(r => !r.IsDeleted) ?? 0;
     }
 
-    private void NavigateToList()
+    private string GetAssignedMemberDisplayText(Question question)
     {
-        Navigation.NavigateTo("/questions");
+        var group = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
+        var groupName = group.HasValue ? OrgaoSocialHelper.GetDisplayName(group.Value) : "";
+        var positionName = PositionHelper.GetDisplayName(question.AssignedPosition);
+        var memberName = question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "";
+        
+        return $"{groupName} - {positionName} - {memberName}";
     }
 
     private void OpenCreateQuestionModal()
     {
         newQuestionModel = new NewQuestionModel();
-        selectedGroup = null;
-        selectedPosition = null;
-        membersWithPosition.Clear();
         showCreateModal = true;
     }
 
     private async Task CreateQuestion()
     {
-        if (!CanSubmitQuestion() || currentUser == null || !selectedPosition.HasValue)
+        if (!CanSubmitQuestion() || currentUser == null)
             return;
+
+        var parts = newQuestionModel.SelectedMemberKey.Split('|');
+        if (parts.Length != 2)
+            return;
+
+        var memberId = parts[0];
+        var position = (Position)int.Parse(parts[1]);
 
         await QuestionService.CreateAsync(
             newQuestionModel.Content,
             currentUser.Id,
-            selectedPosition.Value,
-            newQuestionModel.AssignedMemberId);
+            position,
+            memberId);
 
         showCreateModal = false;
         await LoadQuestionsAsync();
         StateHasChanged();
     }
 
-    private async Task AddReply(string body)
+    private async Task AddReply(int questionId, string body)
     {
-        if (selectedQuestion == null || currentUser == null)
+        if (currentUser == null)
             return;
 
-        await QuestionService.AddReplyAsync(selectedQuestion.Id, body, currentUser.Id);
-        await LoadQuestionDetailAsync(selectedQuestion.Id);
+        await QuestionService.AddReplyAsync(questionId, body, currentUser.Id);
+        await LoadQuestionsAsync();
         StateHasChanged();
     }
 
@@ -554,6 +467,7 @@
     private bool CanReplyToQuestion(Question question)
     {
         if (currentUser == null) return false;
+        if (question.Status == QuestionStatus.Closed) return false;
 
         // If awaiting user reply, only author can reply
         if (question.IsAwaitingUserReply)
@@ -567,8 +481,7 @@
 
     private bool CanSubmitQuestion()
     {
-        return selectedPosition.HasValue &&
-               !string.IsNullOrWhiteSpace(newQuestionModel.AssignedMemberId) &&
+        return !string.IsNullOrWhiteSpace(newQuestionModel.SelectedMemberKey) &&
                !string.IsNullOrWhiteSpace(newQuestionModel.Content) &&
                newQuestionModel.Content.Length >= 10;
     }
@@ -585,29 +498,40 @@
         {
             await QuestionService.DeleteAsync(questionToDelete.Id, currentUser.Id);
             questionToDelete = null;
-            
-            if (selectedQuestion != null)
-            {
-                Navigation.NavigateTo("/questions");
-            }
-            else
-            {
-                await LoadQuestionsAsync();
-            }
+            await LoadQuestionsAsync();
             StateHasChanged();
         }
     }
 
-    private void ShowReminderConfirm()
+    private void ShowCloseConfirm(Question question)
     {
+        questionToClose = question;
+        showCloseConfirm = true;
+    }
+
+    private async Task ConfirmClose()
+    {
+        if (questionToClose != null && currentUser != null)
+        {
+            await QuestionService.CloseAsync(questionToClose.Id, currentUser.Id);
+            questionToClose = null;
+            await LoadQuestionsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void ShowReminderConfirm(Question question)
+    {
+        questionForReminder = question;
         showReminderConfirm = true;
     }
 
     private async Task SendReminder()
     {
-        if (selectedQuestion != null && currentUser != null)
+        if (questionForReminder != null && currentUser != null)
         {
-            await QuestionService.SendManualReminderAsync(selectedQuestion.Id, currentUser.Id);
+            await QuestionService.SendManualReminderAsync(questionForReminder.Id, currentUser.Id);
+            questionForReminder = null;
         }
     }
 
@@ -631,26 +555,12 @@
         await LoadQuestionsAsync();
     }
 
-    // Watch for position selection changes
-    private Position? _lastPosition;
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (selectedPosition != _lastPosition)
-        {
-            _lastPosition = selectedPosition;
-            await LoadMembersWithPositionAsync();
-            StateHasChanged();
-        }
-    }
-
     private class NewQuestionModel
     {
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A pergunta é obrigatória")]
         [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
         public string Content { get; set; } = string.Empty;
 
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Selecione um membro")]
-        public string AssignedMemberId { get; set; } = string.Empty;
+        public string SelectedMemberKey { get; set; } = string.Empty;
     }
 }

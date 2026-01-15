@@ -110,4 +110,13 @@ public class Question : BaseEntity
         IsDeleted = true;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Closes the question, preventing further replies
+    /// </summary>
+    public void Close()
+    {
+        Status = QuestionStatus.Closed;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

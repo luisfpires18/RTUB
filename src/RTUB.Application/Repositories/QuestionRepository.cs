@@ -44,6 +44,34 @@ public class QuestionRepository : IQuestionRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    {
+        var query = _context.Questions
+            .AsNoTracking()
+            .Include(q => q.Author)
+            .Include(q => q.AssignedMember)
+            .Include(q => q.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
+                .ThenInclude(r => r.Author)
+            .Where(q => !q.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var lowerSearch = searchTerm.ToLower();
+            query = query.Where(q =>
+                q.Content.ToLower().Contains(lowerSearch) ||
+                q.Author.Nickname!.ToLower().Contains(lowerSearch) ||
+                q.Author.UserName!.ToLower().Contains(lowerSearch) ||
+                q.AssignedMember.Nickname!.ToLower().Contains(lowerSearch) ||
+                q.AssignedMember.UserName!.ToLower().Contains(lowerSearch));
+        }
+
+        return await query
+            .OrderByDescending(q => q.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
     public async Task<int> GetCountAsync(string? searchTerm = null)
     {
         var query = _context.Questions

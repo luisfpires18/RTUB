@@ -9,6 +9,11 @@ namespace RTUB.Application.Interfaces;
 public interface IQuestionService
 {
     /// <summary>
+    /// Gets all questions with pagination and includes replies
+    /// </summary>
+    Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null);
+
+    /// <summary>
     /// Gets all questions with pagination
     /// </summary>
     Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null);
@@ -44,6 +49,11 @@ public interface IQuestionService
     Task<bool> DeleteAsync(int questionId, string requestingUserId);
 
     /// <summary>
+    /// Closes a question. Only the author can close their own questions.
+    /// </summary>
+    Task<bool> CloseAsync(int questionId, string requestingUserId);
+
+    /// <summary>
     /// Sends a manual notification reminder for a question
     /// </summary>
     Task SendManualReminderAsync(int questionId, string requestingUserId);
@@ -62,4 +72,10 @@ public interface IQuestionService
     /// Gets all members with a specific position
     /// </summary>
     Task<IEnumerable<ApplicationUser>> GetMembersWithPositionAsync(Position position);
+
+    /// <summary>
+    /// Gets all members with Orgãos Sociais positions for the single dropdown
+    /// Returns tuple of (member, group, position)
+    /// </summary>
+    Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync();
 }
