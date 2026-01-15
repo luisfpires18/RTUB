@@ -37,10 +37,9 @@
     flex-direction: column;
     gap: 0.75rem;
     overflow: hidden;
-    --recipient-label-width: 3.25rem;
     --recipient-avatar-size: 64px;
     --recipient-gap: 0.5rem;
-    --recipient-indent: calc(var(--recipient-label-width) + var(--recipient-avatar-size) + (var(--recipient-gap) * 2));
+    --recipient-indent: calc(var(--recipient-avatar-size) + var(--recipient-gap));
 }
 
 .post-card-header {
@@ -72,15 +71,6 @@
     gap: var(--recipient-gap);
     color: #e2e2e2;
     flex-wrap: wrap;
-}
-
-.post-card-recipient-label {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    min-width: var(--recipient-label-width);
-    text-transform: uppercase;
 }
 
 .post-card-recipient-info {
