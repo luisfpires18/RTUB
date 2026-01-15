@@ -61,14 +61,14 @@ public class QuestionService : IQuestionService
         return await _questionRepository.GetByIdAsync(id);
     }
 
-    public async Task<Question> CreateAsync(string content, string authorId, Position assignedPosition, string assignedMemberId)
+    public async Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId)
     {
         // Load users first so audit log can resolve their nicknames
         var author = await _userManager.FindByIdAsync(authorId);
         var assignedMember = await _userManager.FindByIdAsync(assignedMemberId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
-        var question = Question.Create(content, authorId, assignedPosition, assignedMemberId);
+        var question = Question.Create(title, content, authorId, assignedPosition, assignedMemberId);
         
         // Set navigation properties for audit log display name resolution
         if (author != null) question.Author = author;
@@ -80,7 +80,7 @@ public class QuestionService : IQuestionService
         var notification = new SendPushNotificationDto
         {
             Title = "Nova Pergunta",
-            Body = $"{authorName} fez uma pergunta para si: {TruncateContent(content, 100)}",
+            Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
             Url = $"{DefaultBaseUrl}/questions",
             Tag = $"question-{question.Id}"
         };
@@ -91,8 +91,8 @@ public class QuestionService : IQuestionService
 
         var assignedMemberName = assignedMember?.Nickname ?? assignedMember?.UserName ?? "Membro";
         _logger.LogInformation(
-            "Question {QuestionId} created by {AuthorName} assigned to {AssignedMemberName}",
-            question.Id, authorName, assignedMemberName);
+            "Question '{QuestionTitle}' created by {AuthorName} assigned to {AssignedMemberName}",
+            question.Title, authorName, assignedMemberName);
 
         return question;
     }
@@ -116,8 +116,8 @@ public class QuestionService : IQuestionService
             var member = await _userManager.FindByIdAsync(authorId);
             var memberName = member?.Nickname ?? member?.UserName ?? "Membro";
             _logger.LogInformation(
-                "Question {QuestionId} answered by assigned member {MemberName}",
-                questionId, memberName);
+                "Question '{QuestionTitle}' answered by assigned member {MemberName}",
+                question.Title, memberName);
 
             // Notify the question author
             var notification = new SendPushNotificationDto
@@ -138,8 +138,8 @@ public class QuestionService : IQuestionService
             var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
             
             _logger.LogInformation(
-                "Question {QuestionId} user {AuthorName} replied, now in discussion",
-                questionId, authorName);
+                "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
+                question.Title, authorName);
 
             var notification = new SendPushNotificationDto
             {
@@ -171,8 +171,8 @@ public class QuestionService : IQuestionService
             var ownerUser = await _userManager.FindByIdAsync(question.AuthorId);
             var ownerName = ownerUser?.Nickname ?? ownerUser?.UserName ?? "Unknown";
             _logger.LogWarning(
-                "User {UserName} attempted to delete question {QuestionId} owned by {OwnerName}",
-                requestingUserName, questionId, ownerName);
+                "User {UserName} attempted to delete question '{QuestionTitle}' owned by {OwnerName}",
+                requestingUserName, question.Title, ownerName);
             return false;
         }
 
@@ -180,8 +180,8 @@ public class QuestionService : IQuestionService
         var authorName = author?.Nickname ?? author?.UserName ?? "Unknown";
         await _questionRepository.SoftDeleteAsync(questionId);
         _logger.LogInformation(
-            "Question {QuestionId} deleted by author {AuthorName}",
-            questionId, authorName);
+            "Question '{QuestionTitle}' deleted by author {AuthorName}",
+            question.Title, authorName);
         return true;
     }
 
@@ -205,7 +205,7 @@ public class QuestionService : IQuestionService
         var notification = new SendPushNotificationDto
         {
             Title = "Lembrete: Pergunta Pendente",
-            Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Content, 100)}",
+            Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
             Url = $"{DefaultBaseUrl}/questions",
             Tag = $"question-reminder-{questionId}"
         };
@@ -215,8 +215,8 @@ public class QuestionService : IQuestionService
         await _questionRepository.UpdateAsync(question);
 
         _logger.LogInformation(
-            "Manual reminder sent for question {QuestionId} by author {AuthorName}",
-            questionId, authorName);
+            "Manual reminder sent for question '{QuestionTitle}' by author {AuthorName}",
+            question.Title, authorName);
     }
 
     public async Task<bool> CanAnswerAsync(int questionId, string userId)
@@ -266,8 +266,8 @@ public class QuestionService : IQuestionService
             var ownerUser = await _userManager.FindByIdAsync(question.AuthorId);
             var ownerName = ownerUser?.Nickname ?? ownerUser?.UserName ?? "Unknown";
             _logger.LogWarning(
-                "User {UserName} attempted to close question {QuestionId} owned by {OwnerName}",
-                requestingUserName, questionId, ownerName);
+                "User {UserName} attempted to close question '{QuestionTitle}' owned by {OwnerName}",
+                requestingUserName, question.Title, ownerName);
             return false;
         }
 
@@ -276,8 +276,8 @@ public class QuestionService : IQuestionService
         question.Close();
         await _questionRepository.UpdateAsync(question);
         _logger.LogInformation(
-            "Question {QuestionId} closed by author {AuthorName}",
-            questionId, authorName);
+            "Question '{QuestionTitle}' closed by author {AuthorName}",
+            question.Title, authorName);
         return true;
     }
 

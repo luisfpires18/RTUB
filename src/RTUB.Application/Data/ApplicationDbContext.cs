@@ -334,7 +334,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var excludedFields = new HashSet<string>
         {
             "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
-            "LastNotificationSent" // Question notification tracking - not business data
+            "LastNotificationSent", // Question notification tracking - not business data
+            "IsAwaitingUserReply", // Question workflow state - not business data
+            "Status" // Question status changes are handled via entity display name
         };
 
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
@@ -1188,16 +1190,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Question":
                     if (entry.Entity is Question question)
                     {
-                        // Try navigation properties first (if loaded), then fall back to Local cache
-                        var authorName = question.Author?.Nickname
-                            ?? question.Author?.UserName
-                            ?? ResolveUserIdToNickname(question.AuthorId)
-                            ?? question.AuthorId;
-                        var assignedMemberName = question.AssignedMember?.Nickname
-                            ?? question.AssignedMember?.UserName
-                            ?? ResolveUserIdToNickname(question.AssignedMemberId)
-                            ?? question.AssignedMemberId;
-                        return $"{authorName} → {assignedMemberName}";
+                        // Show the question title for display
+                        return question.Title;
                     }
                     break;
             }

@@ -68,15 +68,6 @@
                     <div class="post-wrapper mb-3">
                         <!-- Question Card as clickable header -->
                         <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
-                            <!-- View Full Content Button (top right) -->
-                            <button class="btn btn-sm btn-purple position-absolute" 
-                                    style="top: 0.5rem; right: 0.5rem; z-index: 10;"
-                                    @onclick="() => ShowFullContent(question)" 
-                                    @onclick:stopPropagation="true"
-                                    title="Ver pergunta completa">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            
                             <div class="post-card-avatar-section">
                                 <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                      class="post-card-avatar"
@@ -102,6 +93,7 @@
                                     </div>
                                 </div>
 
+                                <h6 class="post-card-title mb-2">@question.Title</h6>
                                 <p class="post-card-body">
                                     @question.Content
                                 </p>
@@ -117,7 +109,7 @@
                                             @question.CreatedAt.ToString("dd MMM, HH:mm")
                                         </span>
                                     </div>
-                                    <div class="post-card-badges">
+                                    <div class="post-card-badges d-flex align-items-center gap-2">
                                         @if (question.Status == QuestionStatus.Closed)
                                         {
                                             <span class="badge bg-secondary">
@@ -142,6 +134,12 @@
                                                 <i class="bi bi-chat-dots"></i> Em Discussão
                                             </span>
                                         }
+                                        <button class="btn btn-sm btn-purple" 
+                                                @onclick="() => ShowFullContent(question)" 
+                                                @onclick:stopPropagation="true"
+                                                title="Ver pergunta completa">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -349,6 +347,15 @@
             }
 
             <div class="mb-3">
+                <label class="form-label">Título</label>
+                <InputText class="form-control" 
+                           @bind-Value="newQuestionModel.Title"
+                           placeholder="Resumo da sua pergunta..." 
+                           maxlength="100" />
+                <ValidationMessage For="@(() => newQuestionModel.Title)" />
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">A sua pergunta</label>
                 <InputTextArea class="form-control" 
                               rows="5" 
@@ -424,6 +431,7 @@
                     Para: <strong>@(questionToView.AssignedMember?.Nickname ?? questionToView.AssignedMember?.UserName)</strong>
                 </div>
             </div>
+            <h5 class="mb-3">@questionToView.Title</h5>
             <div class="p-3 bg-dark rounded" style="white-space: pre-wrap; word-break: break-word;">
                 @questionToView.Content
             </div>
@@ -590,6 +598,7 @@
             return;
 
         await QuestionService.CreateAsync(
+            newQuestionModel.Title,
             newQuestionModel.Content,
             currentUser.Id,
             selectedMember.Value.Position,
@@ -639,6 +648,8 @@
     private bool CanSubmitQuestion()
     {
         return selectedMember != null &&
+               !string.IsNullOrWhiteSpace(newQuestionModel.Title) &&
+               newQuestionModel.Title.Length <= 100 &&
                !string.IsNullOrWhiteSpace(newQuestionModel.Content) &&
                newQuestionModel.Content.Length >= 10;
     }
@@ -720,6 +731,10 @@
 
     private class NewQuestionModel
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "O título é obrigatório")]
+        [System.ComponentModel.DataAnnotations.MaxLength(100, ErrorMessage = "O título deve ter no máximo 100 caracteres")]
+        public string Title { get; set; } = string.Empty;
+
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A pergunta é obrigatória")]
         [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
         public string Content { get; set; } = string.Empty;

@@ -272,7 +272,7 @@ public class AuditLogDisplayNameTests : IDisposable
     }
 
     [Fact]
-    public async Task Question_Created_HasAuthorAndAssignedMemberDisplayName()
+    public async Task Question_Created_HasTitleDisplayName()
     {
         // Arrange
         _auditContext.SetUser("testuser", "test-user-id");
@@ -304,6 +304,7 @@ public class AuditLogDisplayNameTests : IDisposable
 
         // Act - Create Question with navigation properties loaded
         var question = Question.Create(
+            "Test Question Title",
             "This is a test question content",
             author.Id,
             Position.Magister,
@@ -319,7 +320,7 @@ public class AuditLogDisplayNameTests : IDisposable
             .FirstOrDefaultAsync();
 
         auditLog.Should().NotBeNull();
-        auditLog!.EntityDisplayName.Should().Be("Jeans → Malelo", "should show author and assigned member nicknames");
+        auditLog!.EntityDisplayName.Should().Be("Test Question Title", "should show the question title");
     }
 
     [Fact]
@@ -355,6 +356,7 @@ public class AuditLogDisplayNameTests : IDisposable
 
         // Act - Create Question with navigation properties loaded
         var question = Question.Create(
+            "Another Test Title",
             "This is a test question content",
             author.Id,
             Position.ViceMagister,

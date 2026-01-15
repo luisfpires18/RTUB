@@ -36,7 +36,7 @@ public interface IQuestionService
     /// <summary>
     /// Creates a new question
     /// </summary>
-    Task<Question> CreateAsync(string content, string authorId, Position assignedPosition, string assignedMemberId);
+    Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId);
 
     /// <summary>
     /// Adds a reply to a question

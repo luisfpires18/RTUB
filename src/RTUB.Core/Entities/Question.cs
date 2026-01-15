@@ -9,6 +9,10 @@ namespace RTUB.Core.Entities;
 public class Question : BaseEntity
 {
     [Required]
+    [MaxLength(100, ErrorMessage = "O título deve ter no máximo 100 caracteres")]
+    public string Title { get; set; } = string.Empty;
+
+    [Required]
     [MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
     public string Content { get; set; } = string.Empty;
 
@@ -51,8 +55,12 @@ public class Question : BaseEntity
     /// <summary>
     /// Factory method to create a new question
     /// </summary>
-    public static Question Create(string content, string authorId, Position assignedPosition, string assignedMemberId)
+    public static Question Create(string title, string content, string authorId, Position assignedPosition, string assignedMemberId)
     {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title is required", nameof(title));
+        if (title.Length > 100)
+            throw new ArgumentException("Title must be at most 100 characters", nameof(title));
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Content is required", nameof(content));
         if (content.Length < 10)
@@ -64,6 +72,7 @@ public class Question : BaseEntity
 
         return new Question
         {
+            Title = title,
             Content = content,
             AuthorId = authorId,
             AssignedPosition = assignedPosition,
