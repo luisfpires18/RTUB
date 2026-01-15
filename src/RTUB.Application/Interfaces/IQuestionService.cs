@@ -74,7 +74,7 @@ public interface IQuestionService
     Task<IEnumerable<ApplicationUser>> GetMembersWithPositionAsync(Position position);
 
     /// <summary>
-    /// Gets all members with Orgãos Sociais positions for the single dropdown
+    /// Gets all members with Órgãos Sociais positions for the single dropdown
     /// Returns tuple of (member, group, position)
     /// </summary>
     Task<IEnumerable<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>> GetAllOrgaoSocialMembersAsync();

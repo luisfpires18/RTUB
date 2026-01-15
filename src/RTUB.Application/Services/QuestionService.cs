@@ -266,14 +266,18 @@ public class QuestionService : IQuestionService
 
         var result = new List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)>();
 
-        foreach (var group in OrgaoSocialHelper.GetAllGroups())
+        // Iterate through users once and check their positions
+        foreach (var user in allUsers)
         {
-            foreach (var position in OrgaoSocialHelper.GetPositionsForGroup(group))
+            if (user.Positions == null || !user.Positions.Any())
+                continue;
+
+            foreach (var position in user.Positions)
             {
-                var membersWithPosition = allUsers.Where(u => u.Positions != null && u.Positions.Contains(position));
-                foreach (var member in membersWithPosition)
+                var group = OrgaoSocialHelper.GetGroupForPosition(position);
+                if (group.HasValue)
                 {
-                    result.Add((member, group, position));
+                    result.Add((user, group.Value, position));
                 }
             }
         }
