@@ -10,10 +10,13 @@
         @ActionContent
     }
     <div class="member-card-lite-header">
-        <img src="@AvatarUrl"
+        <img src="@GetAvatarSrc()"
              alt="@AltText"
              class="member-card-lite-avatar"
-             loading="lazy" />
+             width="44"
+             height="44"
+             loading="lazy"
+             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
         <div class="member-card-lite-title">
             <div class="member-card-lite-nickname">@Nickname</div>
             @if (!string.IsNullOrWhiteSpace(FullName))
@@ -169,4 +172,12 @@
     /// </summary>
     [Parameter]
     public RenderFragment? ActionContent { get; set; }
+
+    /// <summary>
+    /// Returns the avatar URL with fallback to default if empty or null.
+    /// </summary>
+    private string GetAvatarSrc()
+    {
+        return string.IsNullOrWhiteSpace(AvatarUrl) ? "/images/default-avatar.webp" : AvatarUrl;
+    }
 }
