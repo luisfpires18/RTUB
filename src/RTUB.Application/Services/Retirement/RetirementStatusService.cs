@@ -88,7 +88,8 @@ public class RetirementStatusService : IRetirementStatusService
 
         if (!allActivities.Any())
         {
-            // No activity history - keep current status (allows manual setting)
+            // No activity history - preserve the user's current retirement status
+            // This allows administrators to manually set initial status for new members
             result.HasMinimumHistory = false;
             result.IsRetired = user.IsRetired;
             return result;

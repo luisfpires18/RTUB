@@ -424,7 +424,9 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         user.IsRetired = true; // Mark as retired
         await _userProfileRepository.UpdateAsync(user);
 
-        // Detach the user to avoid tracking issues
+        // Detach the user entity to simulate a fresh database query in UpdateUserRetirementStatusAsync.
+        // Without detaching, EF would return the same in-memory instance and the test wouldn't 
+        // accurately verify that the service reads the IsRetired flag from the database.
         _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
 
         var now = DateTime.UtcNow;
