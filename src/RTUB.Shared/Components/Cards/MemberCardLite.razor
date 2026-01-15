@@ -5,6 +5,10 @@
 *@
 
 <div class="member-card-lite">
+    @if (ActionContent != null)
+    {
+        @ActionContent
+    }
     <div class="member-card-lite-header">
         <img src="@AvatarUrl"
              alt="@AltText"
@@ -158,4 +162,11 @@
     
     [Parameter]
     public RenderFragment? EncouragementContent { get; set; }
+
+    /// <summary>
+    /// Optional action content rendered at the top-right corner of the card.
+    /// Use with member-card-lite-action-btn class for consistent styling.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ActionContent { get; set; }
 }
