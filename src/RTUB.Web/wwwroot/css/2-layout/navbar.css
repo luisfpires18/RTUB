@@ -125,7 +125,7 @@
 }
 
 @media (max-width: 991.98px) {
-  body:has(.navbar .offcanvas.show) {
+  body.nav-offcanvas-open {
     overflow: hidden;
     overscroll-behavior: none;
     touch-action: none;
