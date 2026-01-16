@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,6 @@ public class QuestionService : IQuestionService
     private readonly IQuestionReplyRepository _replyRepository;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<QuestionService> _logger;
 
     public QuestionService(
@@ -27,14 +25,12 @@ public class QuestionService : IQuestionService
         IQuestionReplyRepository replyRepository,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor,
         ILogger<QuestionService> logger)
     {
         _questionRepository = questionRepository;
         _replyRepository = replyRepository;
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
-        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -83,7 +79,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Nova Pergunta",
             Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
-            Url = $"{GetBaseUrl()}/questions",
+            Url = "/questions",
             Tag = $"question-{question.Id}"
         };
 
@@ -126,7 +122,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Pergunta Respondida",
                 Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
-                Url = $"{GetBaseUrl()}/questions",
+                Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
@@ -147,7 +143,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Nova Resposta à Pergunta",
                 Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
-                Url = $"{GetBaseUrl()}/questions",
+                Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
@@ -208,7 +204,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Lembrete: Pergunta Pendente",
             Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
-            Url = $"{GetBaseUrl()}/questions",
+            Url = "/questions",
             Tag = $"question-reminder-{questionId}"
         };
 
@@ -317,15 +313,5 @@ public class QuestionService : IQuestionService
             return content;
         }
         return content[..(maxLength - 3)] + "...";
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        if (request != null)
-        {
-            return $"{request.Scheme}://{request.Host}";
-        }
-        return "https://rtub.azurewebsites.net"; // Fallback
     }
 }
