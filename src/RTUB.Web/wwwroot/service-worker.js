@@ -227,27 +227,40 @@ self.addEventListener('notificationclick', (event) => {
 
     // Get the URL to open from the notification data
     const urlToOpen = event.notification.data?.url || '/';
+    console.log('[Service Worker] Opening URL:', urlToOpen);
 
     // Focus on existing window or open new one
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
-                // Check if there's already a window open with this URL
+                console.log('[Service Worker] Found', clientList.length, 'open windows');
+                
+                // Check if there's already a window open with this exact URL
                 for (let i = 0; i < clientList.length; i++) {
                     const client = clientList[i];
                     if (client.url === urlToOpen && 'focus' in client) {
+                        console.log('[Service Worker] Found matching window, focusing');
                         return client.focus();
                     }
                 }
-                // Try to find any existing window and navigate it to the URL
+                
+                // Try to find any existing window and send a message to navigate
                 for (let i = 0; i < clientList.length; i++) {
                     const client = clientList[i];
-                    if ('focus' in client && 'navigate' in client) {
-                        return client.navigate(urlToOpen).then(c => c.focus());
+                    if ('focus' in client) {
+                        console.log('[Service Worker] Found window, sending navigate message');
+                        // Send a message to the client to navigate
+                        client.postMessage({ 
+                            type: 'rtub:navigate', 
+                            url: urlToOpen 
+                        });
+                        return client.focus();
                     }
                 }
+                
                 // If no window is open, open a new one
                 if (clients.openWindow) {
+                    console.log('[Service Worker] No window open, opening new one');
                     return clients.openWindow(urlToOpen);
                 }
             })
