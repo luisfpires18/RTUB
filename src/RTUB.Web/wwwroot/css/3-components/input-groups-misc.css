@@ -249,7 +249,8 @@
     margin-bottom: 1rem;
     transition: all 0.3s ease;
     cursor: pointer;
-    height: 200px;
+    min-height: 220px;
+    height: auto;
 }
 
 .post-card:hover {
