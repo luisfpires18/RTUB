@@ -509,6 +509,10 @@
     private bool _previousIsAdmin;
     private bool _previousIsPastRehearsal;
     private bool _previousHasPendingApprovals;
+    private string? _previousLocation;
+    private string? _previousTheme;
+    private string? _previousDescription;
+    private string? _previousNotes;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -521,6 +525,10 @@
         var hasAttendance = UserAttendance != null;
         var willAttend = UserAttendance?.WillAttend ?? false;
         var attended = UserAttendance?.Attended ?? false;
+        var location = Rehearsal?.Location;
+        var theme = Rehearsal?.Theme;
+        var description = Rehearsal?.Description;
+        var notes = Rehearsal?.Notes;
         
         if (rehearsalId != _previousRehearsalId ||
             isCanceled != _previousIsCanceled ||
@@ -530,7 +538,11 @@
             attended != _previousAttended ||
             IsAdmin != _previousIsAdmin ||
             IsPastRehearsal != _previousIsPastRehearsal ||
-            HasPendingApprovals != _previousHasPendingApprovals)
+            HasPendingApprovals != _previousHasPendingApprovals ||
+            location != _previousLocation ||
+            theme != _previousTheme ||
+            description != _previousDescription ||
+            notes != _previousNotes)
         {
             _previousRehearsalId = rehearsalId;
             _previousIsCanceled = isCanceled;
@@ -541,6 +553,10 @@
             _previousIsAdmin = IsAdmin;
             _previousIsPastRehearsal = IsPastRehearsal;
             _previousHasPendingApprovals = HasPendingApprovals;
+            _previousLocation = location;
+            _previousTheme = theme;
+            _previousDescription = description;
+            _previousNotes = notes;
             return true;
         }
         return false;
