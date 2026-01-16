@@ -67,7 +67,7 @@ public class QuestionService : IQuestionService
         return await _questionRepository.GetByIdAsync(id);
     }
 
-    public async Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId)
+    public async Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId, string baseUrl)
     {
         // Load users first so audit log can resolve their nicknames
         var author = await _userManager.FindByIdAsync(authorId);
@@ -83,8 +83,8 @@ public class QuestionService : IQuestionService
         await _questionRepository.AddAsync(question);
 
         // Send notification to assigned member using factory with absolute URL
-        var baseUrl = GetBaseUrl();
-        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, baseUrl);
+        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
+        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, effectiveBaseUrl);
 
         await _pushNotificationService.SendToUserAsync(assignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -98,7 +98,7 @@ public class QuestionService : IQuestionService
         return question;
     }
 
-    public async Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId)
+    public async Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId, string baseUrl)
     {
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
@@ -110,7 +110,7 @@ public class QuestionService : IQuestionService
         var reply = QuestionReply.Create(questionId, content, authorId, isFromAssignedMember);
         await _replyRepository.AddAsync(reply);
 
-        var baseUrl = GetBaseUrl();
+        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
 
         // Update question status based on who replied
         if (isFromAssignedMember)
@@ -123,7 +123,7 @@ public class QuestionService : IQuestionService
                 question.Title, memberName);
 
             // Notify the question author
-            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, baseUrl);
+            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, effectiveBaseUrl);
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
         }
         else if (authorId == question.AuthorId)
@@ -140,7 +140,7 @@ public class QuestionService : IQuestionService
 
             // Build the reply preview for the notification body
             var replyPreview = $"{authorName} respondeu à sua resposta: {content}";
-            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(replyPreview, reply.Id, baseUrl);
+            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(replyPreview, reply.Id, effectiveBaseUrl);
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
@@ -178,7 +178,7 @@ public class QuestionService : IQuestionService
         return true;
     }
 
-    public async Task SendManualReminderAsync(int questionId, string requestingUserId)
+    public async Task SendManualReminderAsync(int questionId, string requestingUserId, string baseUrl)
     {
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
@@ -195,8 +195,8 @@ public class QuestionService : IQuestionService
         var author = await _userManager.FindByIdAsync(requestingUserId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
-        var baseUrl = GetBaseUrl();
-        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, baseUrl);
+        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
+        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, effectiveBaseUrl);
 
         await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -297,16 +297,18 @@ public class QuestionService : IQuestionService
     }
 
     /// <summary>
-    /// Gets the base URL for building absolute notification URLs.
-    /// Falls back to a default if not configured.
+    /// Gets the effective base URL for building absolute notification URLs.
+    /// Uses the passed baseUrl (from Navigation.BaseUri) if provided, otherwise falls back to config.
     /// </summary>
-    private string GetBaseUrl()
+    private string GetEffectiveBaseUrl(string? passedBaseUrl)
     {
-        var baseUrl = _webPushOptions.GetEffectiveBaseUrl();
-        if (string.IsNullOrWhiteSpace(_webPushOptions.BaseUrl))
+        // Prefer the passed base URL (from Navigation.BaseUri in Blazor)
+        if (!string.IsNullOrWhiteSpace(passedBaseUrl))
         {
-            _logger.LogWarning("WebPush:BaseUrl is not configured. Using default for notification URLs.");
+            return passedBaseUrl.TrimEnd('/');
         }
-        return baseUrl;
+
+        // Fall back to configured base URL (for background service scenarios)
+        return _webPushOptions.GetEffectiveBaseUrl();
     }
 }

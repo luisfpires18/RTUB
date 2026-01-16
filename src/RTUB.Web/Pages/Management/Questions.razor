@@ -13,6 +13,7 @@
 @inject IQuestionService QuestionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
 
 <PageTitle>Perguntas aos Órgãos Sociais</PageTitle>
 
@@ -597,12 +598,14 @@
         if (!CanSubmitQuestion() || currentUser == null || selectedMember == null)
             return;
 
+        var baseUri = Navigation.BaseUri.TrimEnd('/');
         await QuestionService.CreateAsync(
             newQuestionModel.Title,
             newQuestionModel.Content,
             currentUser.Id,
             selectedMember.Value.Position,
-            selectedMember.Value.Member.Id);
+            selectedMember.Value.Member.Id,
+            baseUri);
 
         showCreateModal = false;
         ClearMemberSelection();
@@ -615,7 +618,8 @@
         if (currentUser == null)
             return;
 
-        await QuestionService.AddReplyAsync(questionId, body, currentUser.Id);
+        var baseUri = Navigation.BaseUri.TrimEnd('/');
+        await QuestionService.AddReplyAsync(questionId, body, currentUser.Id, baseUri);
         await LoadQuestionsAsync();
         StateHasChanged();
     }
@@ -698,7 +702,8 @@
     {
         if (questionForReminder != null && currentUser != null)
         {
-            await QuestionService.SendManualReminderAsync(questionForReminder.Id, currentUser.Id);
+            var baseUri = Navigation.BaseUri.TrimEnd('/');
+            await QuestionService.SendManualReminderAsync(questionForReminder.Id, currentUser.Id, baseUri);
             questionForReminder = null;
         }
     }
