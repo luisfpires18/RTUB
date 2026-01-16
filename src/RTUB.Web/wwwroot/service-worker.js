@@ -242,7 +242,7 @@ self.addEventListener('notificationclick', (event) => {
     // For PWA standalone mode, we need a different approach
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clientList) => {
+            .then(async (clientList) => {
                 console.log('[Service Worker] Found', clientList.length, 'open windows');
                 
                 // First, try to find an existing window that we can navigate
@@ -253,12 +253,16 @@ self.addEventListener('notificationclick', (event) => {
                     
                     // Check if this is an RTUB window (same origin)
                     if (client.url.startsWith(self.location.origin)) {
-                        console.log('[Service Worker] Found RTUB window, sending navigate message');
-                        // Send a message to the client to navigate
-                        client.postMessage({ 
-                            type: 'rtub:navigate', 
-                            url: urlToOpen 
-                        });
+                        console.log('[Service Worker] Found RTUB window, navigating');
+                        if ('navigate' in client) {
+                            await client.navigate(urlToOpen);
+                        } else {
+                            // Send a message to the client to navigate
+                            client.postMessage({
+                                type: 'rtub:navigate',
+                                url: urlToOpen
+                            });
+                        }
                         // Focus the window
                         if ('focus' in client) {
                             return client.focus();
