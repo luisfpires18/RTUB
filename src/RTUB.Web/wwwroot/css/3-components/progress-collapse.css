@@ -107,7 +107,7 @@
 .post-card-body {
     color: rgba(255, 255, 255, 0.7);
     line-height: 1.5;
-    flex: 1;
+    flex: 0 0 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
