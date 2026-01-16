@@ -245,6 +245,13 @@ self.addEventListener('notificationclick', (event) => {
     if (!urlToOpen.startsWith('http')) {
         urlToOpen = new URL(urlToOpen, self.location.origin).href;
     }
+    
+    // Security: Validate URL is same-origin to prevent open redirect
+    const urlObj = new URL(urlToOpen);
+    if (urlObj.origin !== self.location.origin) {
+        console.warn('[Service Worker] Blocked navigation to external URL:', urlToOpen);
+        urlToOpen = self.location.origin; // Fallback to root of same origin
+    }
     console.log('[Service Worker] Final URL to open:', urlToOpen);
 
     // For PWA standalone mode, we need a different approach
