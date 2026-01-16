@@ -326,6 +326,6 @@ public class QuestionService : IQuestionService
         {
             return $"{request.Scheme}://{request.Host}";
         }
-        return "https://rtub.pt"; // Fallback
+        return "https://rtub.azurewebsites.net"; // Fallback
     }
 }

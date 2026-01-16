@@ -19,7 +19,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
     private readonly QuestionNotificationOptions _options;
 
     private const int StartupDelaySeconds = 20;
-    private const string DefaultBaseUrl = "https://rtub.pt";
+    private const string DefaultBaseUrl = "https://rtub.azurewebsites.net";
 
     public QuestionNotificationBackgroundService(
         ILogger<QuestionNotificationBackgroundService> logger,
