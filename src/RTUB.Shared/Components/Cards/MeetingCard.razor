@@ -9,24 +9,22 @@
 
 <div class="card meeting-card h-100">
     <div class="meeting-card__top position-relative">
-        <div class="meeting-card__header-actions">
-            <div class="meeting-card__header-left">
-                <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
-                    @GetMeetingStatus()
-                </span>
-            </div>
-            <div class="meeting-card__header-right">
-                @if (IsAdmin)
-                {
-                    <button class="btn btn-sm music-btn-edit meeting-card__header-button" @onclick="HandleEdit" title="Editar">
-                        <i class="bi bi-pencil music-icon-edit"></i>
-                    </button>
-                    <button class="btn btn-sm music-btn-delete meeting-card__header-button" @onclick="HandleDelete" title="Eliminar">
-                        <i class="bi bi-trash music-icon-delete"></i>
-                    </button>
-                }
-            </div>
+        <div class="position-absolute top-0 start-0 p-2">
+            <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
+                @GetMeetingStatus()
+            </span>
         </div>
+        @if (IsAdmin)
+        {
+            <div class="admin-overlay">
+                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
         <div class="meeting-icon-header">
             <div class="meeting-icon-circle">
                 <i class="bi bi-calendar3"></i>
@@ -338,43 +336,6 @@
         color: var(--bs-link-color);
     }
 
-    .meeting-card__header-actions {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 0.5rem 0.75rem;
-        gap: 0.5rem;
-        z-index: 10;
-    }
-
-    .meeting-card__header-left,
-    .meeting-card__header-right {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .meeting-card__header-button {
-        --bs-btn-padding-y: 0.15rem;
-        --bs-btn-padding-x: 0.35rem;
-        --bs-btn-font-size: 0.75rem;
-        --bs-btn-line-height: 1.05;
-        padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
-        line-height: var(--bs-btn-line-height);
-        font-size: var(--bs-btn-font-size);
-        border-radius: 0.375rem;
-    }
-
-    .meeting-card__header-right {
-        margin-left: auto;
-        justify-content: flex-end;
-    }
-
     .meeting-status-badge-inline {
         display: inline-flex;
         align-items: center;
@@ -483,9 +444,5 @@
             font-size: 1.5rem;
         }
 
-        .meeting-card__header-actions {
-            flex-wrap: wrap;
-            align-items: flex-start;
-        }
     }
 </style>
