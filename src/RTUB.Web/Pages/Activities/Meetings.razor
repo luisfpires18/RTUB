@@ -176,7 +176,8 @@ else
                 {
                     <AuthorizeView Roles="Owner">
                         <Authorized Context="ownerContext">
-                            <MeetingRequestCard MeetingRequest="@request"
+                            <MeetingRequestCard @key="request.Id"
+                                               MeetingRequest="@request"
                                                IsAuthor="true"
                                                CanApproveReject="@CanApproveRejectRequests(request)"
                                                ShowReminder="true"
@@ -187,7 +188,8 @@ else
                                                OnSendReminder="@(() => SendMeetingRequestReminder(request))" />
                         </Authorized>
                         <NotAuthorized>
-                            <MeetingRequestCard MeetingRequest="@request"
+                            <MeetingRequestCard @key="request.Id"
+                                               MeetingRequest="@request"
                                                IsAuthor="@(request.AuthorUserId == currentUserId)"
                                                CanApproveReject="@CanApproveRejectRequests(request)"
                                                ShowReminder="@(request.AuthorUserId == currentUserId)"
@@ -1024,6 +1026,7 @@ else
         {
             if (isCreateMode)
             {
+                editingMeeting.Id = 0;
                 await MeetingService.CreateMeetingAsync(editingMeeting);
             }
             else
