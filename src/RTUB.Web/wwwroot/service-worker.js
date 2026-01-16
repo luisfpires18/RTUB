@@ -227,6 +227,10 @@ self.addEventListener('notificationclick', (event) => {
 
     // Get the URL to open from the notification data
     let urlToOpen = event.notification.data?.url || '/';
+    const notificationTag = event.notification.tag || '';
+    if ((!urlToOpen || urlToOpen === '/') && notificationTag.startsWith('question')) {
+        urlToOpen = '/questions';
+    }
     console.log('[Service Worker] Raw URL from notification:', urlToOpen);
     
     // Ensure the URL is absolute
