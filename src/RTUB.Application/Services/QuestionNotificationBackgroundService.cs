@@ -19,6 +19,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
     private readonly QuestionNotificationOptions _options;
 
     private const int StartupDelaySeconds = 20;
+    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public QuestionNotificationBackgroundService(
         ILogger<QuestionNotificationBackgroundService> logger,
@@ -100,7 +101,7 @@ public class QuestionNotificationBackgroundService : BackgroundService
                     Body = questionCount == 1
                         ? $"Tem uma pergunta à espera da sua resposta de {memberGroup.First().Author?.Nickname ?? "um membro"}"
                         : $"Tem {questionCount} perguntas à espera da sua resposta",
-                    Url = "/questions",
+                    Url = $"{DefaultBaseUrl}/questions",
                     Tag = "question-reminder"
                 };
 
