@@ -2,7 +2,7 @@
 // Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v7';
+const CACHE_VERSION = 'rtub-v8';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -203,7 +203,8 @@ self.addEventListener('push', (event) => {
                 badge: notificationData.badge,
                 tag: notificationData.tag,
                 data: {
-                    url: notificationData.url
+                    url: notificationData.url,
+                    tag: notificationData.tag
                 },
                 requireInteraction: false,
                 vibrate: [200, 100, 200]
@@ -225,20 +226,38 @@ self.addEventListener('notificationclick', (event) => {
     
     event.notification.close();
 
-    // Get the URL to open from the notification data
-    let urlToOpen = event.notification.data?.url || '/';
-    console.log('[Service Worker] Raw URL from notification:', urlToOpen);
+    // Get the URL and tag from notification data
+    const notificationPayload = event.notification.data || {};
+    let urlToOpen = notificationPayload.url || '/';
+    const notificationTag = notificationPayload.tag || event.notification.tag || '';
+    
+    // Fallback: if URL is missing or root, check tag to determine correct destination
+    if (!urlToOpen || urlToOpen === '/') {
+        if (notificationTag.startsWith('question')) {
+            urlToOpen = '/questions';
+        } else if (notificationTag.startsWith('message')) {
+            urlToOpen = '/messages';
+        }
+    }
+    console.log('[Service Worker] Raw URL from notification:', urlToOpen, 'Tag:', notificationTag);
     
     // Ensure the URL is absolute
     if (!urlToOpen.startsWith('http')) {
         urlToOpen = new URL(urlToOpen, self.location.origin).href;
+    }
+    
+    // Security: Validate URL is same-origin to prevent open redirect
+    const urlObj = new URL(urlToOpen);
+    if (urlObj.origin !== self.location.origin) {
+        console.warn('[Service Worker] Blocked navigation to external URL:', urlToOpen);
+        urlToOpen = self.location.origin; // Fallback to root of same origin
     }
     console.log('[Service Worker] Final URL to open:', urlToOpen);
 
     // For PWA standalone mode, we need a different approach
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clientList) => {
+            .then(async (clientList) => {
                 console.log('[Service Worker] Found', clientList.length, 'open windows');
                 
                 // First, try to find an existing window that we can navigate
@@ -249,8 +268,22 @@ self.addEventListener('notificationclick', (event) => {
                     
                     // Check if this is an RTUB window (same origin)
                     if (client.url.startsWith(self.location.origin)) {
-                        console.log('[Service Worker] Found RTUB window, sending navigate message');
-                        // Send a message to the client to navigate
+                        console.log('[Service Worker] Found RTUB window, navigating to:', urlToOpen);
+                        
+                        // Try to use client.navigate() if available (more reliable)
+                        if ('navigate' in client) {
+                            try {
+                                await client.navigate(urlToOpen);
+                                if ('focus' in client) {
+                                    return client.focus();
+                                }
+                                return;
+                            } catch (navError) {
+                                console.log('[Service Worker] client.navigate failed, falling back to postMessage:', navError);
+                            }
+                        }
+                        
+                        // Fallback: Send a message to the client to navigate
                         client.postMessage({ 
                             type: 'rtub:navigate', 
                             url: urlToOpen 

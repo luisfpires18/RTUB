@@ -206,4 +206,51 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a new question.
+    /// </summary>
+    /// <param name="questionTitle">Title of the question</param>
+    /// <param name="authorName">Name of the user who asked the question</param>
+    /// <param name="questionId">ID of the question</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a question reply.
+    /// </summary>
+    /// <param name="replyPreview">Preview of the reply content</param>
+    /// <param name="replyId">ID of the reply</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateQuestionReplyNotification(string replyPreview, int replyId, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a question reply from the assigned member.
+    /// </summary>
+    /// <param name="replyPreview">Preview of the reply content</param>
+    /// <param name="replyId">ID of the reply</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateQuestionAnsweredNotification(string replyPreview, int replyId, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a question reminder.
+    /// </summary>
+    /// <param name="questionTitle">Title of the question</param>
+    /// <param name="authorName">Name of the user who asked the question</param>
+    /// <param name="questionId">ID of the question</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateQuestionReminderNotification(string questionTitle, string authorName, int questionId, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for pending questions (background service).
+    /// </summary>
+    /// <param name="questionCount">Number of pending questions</param>
+    /// <param name="firstAuthorNickname">Nickname of the first question's author</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname, string baseUrl);
 }

@@ -74,11 +74,12 @@ public class QuestionService : IQuestionService
         
         await _questionRepository.AddAsync(question);
 
-        // Send notification to assigned member
+        // Send notification to assigned member - use simple relative URL like MessagingService does
         var notification = new SendPushNotificationDto
         {
             Title = "Nova Pergunta",
             Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
+            Icon = "/icons/rtub-logo-192.png",
             Url = "/questions",
             Tag = $"question-{question.Id}"
         };
@@ -117,11 +118,12 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' answered by assigned member {MemberName}",
                 question.Title, memberName);
 
-            // Notify the question author
+            // Notify the question author - use simple relative URL like MessagingService
             var notification = new SendPushNotificationDto
             {
                 Title = "Pergunta Respondida",
                 Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
+                Icon = "/icons/rtub-logo-192.png",
                 Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
@@ -139,10 +141,12 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
                 question.Title, authorName);
 
+            // Notify assigned member - use simple relative URL like MessagingService
             var notification = new SendPushNotificationDto
             {
                 Title = "Nova Resposta à Pergunta",
                 Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
+                Icon = "/icons/rtub-logo-192.png",
                 Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
@@ -200,10 +204,12 @@ public class QuestionService : IQuestionService
         var author = await _userManager.FindByIdAsync(requestingUserId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
+        // Send notification - use simple relative URL like MessagingService
         var notification = new SendPushNotificationDto
         {
             Title = "Lembrete: Pergunta Pendente",
             Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
+            Icon = "/icons/rtub-logo-192.png",
             Url = "/questions",
             Tag = $"question-reminder-{questionId}"
         };
