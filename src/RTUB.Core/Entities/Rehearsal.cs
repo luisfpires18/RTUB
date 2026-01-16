@@ -19,6 +19,9 @@ public class Rehearsal : BaseEntity
     [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
     public string? Theme { get; set; } // e.g., "Fado practice", "Christmas repertoire"
 
+    [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
+    public string? Description { get; set; }
+
     [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
     public string? Notes { get; set; }
 
@@ -51,13 +54,14 @@ public class Rehearsal : BaseEntity
     }
 
     // Business methods
-    public void UpdateDetails(string location, string? theme, string? notes)
+    public void UpdateDetails(string location, string? theme, string? description, string? notes)
     {
         if (string.IsNullOrWhiteSpace(location))
             throw new ArgumentException("A localização não pode estar vazia", nameof(location));
 
         Location = location;
         Theme = theme;
+        Description = description;
         Notes = notes;
     }
 

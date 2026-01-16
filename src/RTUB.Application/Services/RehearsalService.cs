@@ -51,13 +51,13 @@ public class RehearsalService : IRehearsalService
         return await _rehearsalRepository.AddAsync(rehearsal);
     }
 
-    public async Task UpdateRehearsalAsync(int id, string location, string? theme, string? notes)
+    public async Task UpdateRehearsalAsync(int id, string location, string? theme, string? description, string? notes)
     {
         var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
         if (rehearsal == null)
             throw new EntityNotFoundException(nameof(Rehearsal), id);
 
-        rehearsal.UpdateDetails(location, theme, notes);
+        rehearsal.UpdateDetails(location, theme, description, notes);
         await _rehearsalRepository.UpdateAsync(rehearsal);
     }
 
