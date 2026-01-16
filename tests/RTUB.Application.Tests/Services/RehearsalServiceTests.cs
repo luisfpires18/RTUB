@@ -154,12 +154,13 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        await _rehearsalService.UpdateRehearsalAsync(rehearsal.Id, "New Location", "New Theme", "New Notes");
+        await _rehearsalService.UpdateRehearsalAsync(rehearsal.Id, "New Location", "New Theme", "New Description", "New Notes");
 
         // Assert
         var updated = await _context.Rehearsals.FindAsync(rehearsal.Id);
         updated!.Location.Should().Be("New Location");
         updated.Theme.Should().Be("New Theme");
+        updated.Description.Should().Be("New Description");
         updated.Notes.Should().Be("New Notes");
     }
 
@@ -167,7 +168,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UpdateRehearsalAsync_NonExistingRehearsal_ThrowsException()
     {
         // Act & Assert
-        var act = async () => await _rehearsalService.UpdateRehearsalAsync(999, "Location", null, null);
+        var act = async () => await _rehearsalService.UpdateRehearsalAsync(999, "Location", null, null, null);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }

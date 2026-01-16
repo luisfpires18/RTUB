@@ -42,6 +42,7 @@ public static partial class SeedData
                 rehearsal.UpdateDetails(
                     rehearsal.Location,
                     rehearsal.Theme,
+                    null, // Description
                     "Ensaio focado em repertório de Natal"
                 );
             }

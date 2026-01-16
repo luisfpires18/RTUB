@@ -554,6 +554,12 @@ else
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
+                            <i class="bi bi-card-text text-primary me-2"></i>Descrição (opcional)
+                        </label>
+                        <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
                             <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
                         </label>
                         <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
@@ -689,6 +695,12 @@ else
                         <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
                     </label>
                     <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
+                    </label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="createRehearsalForm.Description" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
@@ -845,6 +857,12 @@ else
                             </label>
                             <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-card-text text-primary me-2"></i>Descrição (Opcional)
+                            </label>
+                            <InputTextArea class="form-control" rows="2" @bind-Value="rangeRehearsalForm.Description" />
+                        </div>
                         <p class="text-muted">
                             <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
                         </p>
@@ -891,6 +909,12 @@ else
                     <ProfileField Label="Tema"
                                   Value="@selectedRehearsal.Theme"
                                   Icon="bi-music-note-beamed" />
+                }
+                @if (!string.IsNullOrEmpty(selectedRehearsal.Description))
+                {
+                    <ProfileField Label="Descrição"
+                                  Value="@selectedRehearsal.Description"
+                                  Icon="bi-card-text" />
                 }
                 <ProfileField Label="Horário"
                               Value="@($"{selectedRehearsal.StartTime:hh\\:mm} - {selectedRehearsal.EndTime:hh\\:mm}")"
@@ -1197,6 +1221,7 @@ else
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
+    private string? editDescription;
     private string? editNotes;
     private string cancelRehearsalReason = string.Empty;
     private string? cancelRehearsalErrorMessage;
@@ -2114,6 +2139,7 @@ else
         editingRehearsal = rehearsal;
         editLocation = rehearsal.Location;
         editTheme = rehearsal.Theme;
+        editDescription = rehearsal.Description;
         editNotes = rehearsal.Notes;
         showEditModal = true;
     }
@@ -2128,9 +2154,10 @@ else
     {
         if (editingRehearsal != null)
         {
-            await RehearsalService.UpdateRehearsalAsync(editingRehearsal.Id, editLocation, editTheme, editNotes);
+            await RehearsalService.UpdateRehearsalAsync(editingRehearsal.Id, editLocation, editTheme, editDescription, editNotes);
             await LoadData();
             CloseEditModal();
+            StateHasChanged();
         }
     }
 
@@ -2894,6 +2921,9 @@ else
         [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
         public string? Theme { get; set; }
 
+        [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
+        public string? Description { get; set; }
+
         [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
         public string? Notes { get; set; }
     }
@@ -2912,6 +2942,9 @@ else
 
         [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
         public string? Theme { get; set; }
+
+        [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
+        public string? Description { get; set; }
     }
 
     private class AttendanceFormModel

@@ -11,9 +11,11 @@
         {
             <div class="rehearsal-card__header-actions">
                 <div class="rehearsal-card__header-left">
-                    @if (!IsPastRehearsal)
+                    @* Show cancel/uncancel buttons based on rehearsal state and timing *@
+                    @if (Rehearsal.IsCanceled)
                     {
-                        @if (Rehearsal.IsCanceled)
+                        @* Only show Uncancel button for FUTURE rehearsals *@
+                        @if (!IsPastRehearsal)
                         {
                             <button class="btn btn-sm btn-warning music-btn-uncancel rehearsal-card__header-button"
                                     @onclick="HandleUncancel"
@@ -21,16 +23,21 @@
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
                         }
-                        else
+                    }
+                    else
+                    {
+                        @* Show Cancel button for both past and future rehearsals *@
+                        @if (ShowCancelButton)
                         {
-                            @if (ShowCancelButton)
-                            {
-                                <button class="btn btn-sm btn-danger music-btn-cancel rehearsal-card__header-button"
-                                        @onclick="HandleCancel"
-                                        title="Cancelar ensaio">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                            }
+                            <button class="btn btn-sm btn-danger music-btn-cancel rehearsal-card__header-button"
+                                    @onclick="HandleCancel"
+                                    title="Cancelar ensaio">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                        @* Only show Push Notification button for FUTURE rehearsals *@
+                        @if (!IsPastRehearsal)
+                        {
                             <button class="btn btn-sm btn-admin-notification rehearsal-card__header-button"
                                     @onclick="HandleSendPushNotification"
                                     title="Notificar por push">
@@ -98,6 +105,14 @@
                 <div class="rehearsal-theme-row">
                     <span class="rehearsal-theme-label">Tema:</span>
                     <span class="rehearsal-theme-text">@Rehearsal.Theme</span>
+                </div>
+            }
+            
+            @if (!string.IsNullOrEmpty(Rehearsal.Description))
+            {
+                <div class="rehearsal-theme-row">
+                    <span class="rehearsal-theme-label">Descrição:</span>
+                    <span class="rehearsal-theme-text">@Rehearsal.Description</span>
                 </div>
             }
         </div>

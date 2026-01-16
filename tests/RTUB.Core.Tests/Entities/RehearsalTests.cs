@@ -90,14 +90,16 @@ public class RehearsalTests
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Original Location");
         var newLocation = "New Location";
         var newTheme = "New Theme";
+        var newDescription = "New Description";
         var newNotes = "New Notes";
 
         // Act
-        rehearsal.UpdateDetails(newLocation, newTheme, newNotes);
+        rehearsal.UpdateDetails(newLocation, newTheme, newDescription, newNotes);
 
         // Assert
         rehearsal.Location.Should().Be(newLocation);
         rehearsal.Theme.Should().Be(newTheme);
+        rehearsal.Description.Should().Be(newDescription);
         rehearsal.Notes.Should().Be(newNotes);
     }
 
@@ -108,7 +110,7 @@ public class RehearsalTests
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Original Location");
 
         // Act & Assert
-        var act = () => rehearsal.UpdateDetails("", "Theme", "Notes");
+        var act = () => rehearsal.UpdateDetails("", "Theme", "Description", "Notes");
         act.Should().Throw<ArgumentException>()
             .WithMessage("*Location*");
     }
