@@ -2,7 +2,7 @@
 // Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v6';
+const CACHE_VERSION = 'rtub-v7';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -235,25 +235,37 @@ self.addEventListener('notificationclick', (event) => {
     }
     console.log('[Service Worker] Final URL to open:', urlToOpen);
 
-    // For PWA, we need to handle navigation differently
+    // For PWA standalone mode, we need a different approach
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
                 console.log('[Service Worker] Found', clientList.length, 'open windows');
                 
-                // Check if there's already a window open with this exact URL
+                // First, try to find an existing window that we can navigate
+                // This is important for PWA mode where clients.openWindow might not work correctly
                 for (let i = 0; i < clientList.length; i++) {
                     const client = clientList[i];
-                    if (client.url === urlToOpen && 'focus' in client) {
-                        console.log('[Service Worker] Found matching window, focusing');
-                        return client.focus();
+                    console.log('[Service Worker] Client', i, 'URL:', client.url, 'visibilityState:', client.visibilityState);
+                    
+                    // Check if this is an RTUB window (same origin)
+                    if (client.url.startsWith(self.location.origin)) {
+                        console.log('[Service Worker] Found RTUB window, sending navigate message');
+                        // Send a message to the client to navigate
+                        client.postMessage({ 
+                            type: 'rtub:navigate', 
+                            url: urlToOpen 
+                        });
+                        // Focus the window
+                        if ('focus' in client) {
+                            return client.focus();
+                        }
+                        return;
                     }
                 }
                 
-                // Open the URL in a new window/tab - this works reliably in PWA mode
-                // The manifest's launch_handler will handle navigating existing windows
+                // No existing window found, open a new one
                 if (clients.openWindow) {
-                    console.log('[Service Worker] Opening URL with clients.openWindow:', urlToOpen);
+                    console.log('[Service Worker] No existing window, opening new one:', urlToOpen);
                     return clients.openWindow(urlToOpen);
                 }
             })
