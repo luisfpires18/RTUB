@@ -75,6 +75,7 @@
 @media (max-width: 768px) {
     .carousel-image {
         height: 250px;
+        object-fit: contain;
     }
 
     .carousel-caption {
@@ -101,6 +102,7 @@
 @media (max-width: 768px) and (orientation: landscape) {
     .carousel-image {
         height: 200px;
+        object-fit: contain;
     }
 }
 
@@ -135,6 +137,7 @@
 @media (max-width: 375px) {
     .carousel-image {
         height: 200px;
+        object-fit: contain;
     }
 
     .logo-main {
