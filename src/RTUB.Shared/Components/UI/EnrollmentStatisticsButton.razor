@@ -4,7 +4,9 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Core.Enums
 @inject IEnrollmentService EnrollmentService
+@inject IEventService EventService
 @inject UserManager<ApplicationUser> UserManager
 
 @*
@@ -31,16 +33,24 @@
            Centered="true">
         <BodyContent>
             <div class="mb-3">
-                <div class="row">
-                    <div class="col-md-4">
+                <div class="row g-2">
+                    <div class="col-md-3">
                         <label class="form-label">Data Início</label>
                         <input type="date" class="form-control" @bind="statsStartDate" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Data Fim</label>
                         <input type="date" class="form-control" @bind="statsEndDate" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Categoria</label>
+                        <FilterDropdown SelectedValue="@selectedCategoryFilter"
+                                        SelectedValueChanged="@(value => selectedCategoryFilter = value)"
+                                        OnChange="@FilterStats"
+                                        AllItemsLabel="Todos"
+                                        Options="@categoryFilterOptions" />
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100 d-block" @onclick="LoadStats">Carregar Estatísticas</button>
                     </div>
@@ -71,19 +81,33 @@
                                             AltText="@stat.DisplayName"
                                             Nickname="@stat.DisplayNickname"
                                             FullName="@stat.DisplayFullName">
+                                <CategoryContent>
+                                    @foreach (var category in stat.Categories)
+                                    {
+                                        <CategoryBadge Category="@category" />
+                                    }
+                                </CategoryContent>
                                 <PrimaryRowContent>
-                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
-                                        @if (stat.PastCount > 0)
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
+                                            @if (stat.PastCount > 0)
+                                            {
+                                                <span class="badge bg-success">@stat.PastCount Participações</span>
+                                            }
+                                            @if (stat.FutureCount > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@stat.FutureCount Por Participar</span>
+                                            }
+                                            @if (stat.FutureCount == 0 && stat.PastCount == 0)
+                                            {
+                                                <span class="text-muted">Sem participações</span>
+                                            }
+                                        </div>
+                                        @if (totalPastEventsInRange > 0 && stat.PastCount > 0)
                                         {
-                                            <span class="badge bg-success">@stat.PastCount Participações</span>
-                                        }
-                                        @if (stat.FutureCount > 0)
-                                        {
-                                            <span class="badge bg-warning text-dark">@stat.FutureCount Por Participar</span>
-                                        }
-                                        @if (stat.FutureCount == 0 && stat.PastCount == 0)
-                                        {
-                                            <span class="text-muted">Sem participações</span>
+                                            <div class="text-muted small">
+                                                @stat.AttendancePercentage.ToString("0.0")% de @totalPastEventsInRange atuações
+                                            </div>
                                         }
                                     </div>
                                 </PrimaryRowContent>
@@ -96,7 +120,7 @@
                                     PageSize="@statsPaginationHelper.PageSize"
                                     TotalItems="@filteredStatsUsers.Count"
                                     ItemLabel="membros"
-                                    PageSizeOptions="@(new[] { 9, 18, 27, 36 })"
+                                    PageSizeOptions="@(new[] { 15, 30, 45, 60 })"
                                     OnPageChanged="@HandleStatsPageChange"
                                     OnPageSizeChanged="@HandleStatsPageSizeChange" />
                 }
@@ -116,14 +140,45 @@
 
 @code {
     private bool showStatsModal = false;
-    private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
-    private DateTime statsEndDate = DateTime.Today.AddMonths(1);
+    
+    // Default dates set to current fiscal year (Sept 1 - Aug 31)
+    private DateTime statsStartDate = GetCurrentFiscalYearStart();
+    private DateTime statsEndDate = GetCurrentFiscalYearEnd();
+    
     private List<UserEnrollmentStats>? enrollmentStatsUsers;
     private List<UserEnrollmentStats> filteredStatsUsers = new();
     private List<UserEnrollmentStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
+    private string selectedCategoryFilter = string.Empty;
+    private int totalPastEventsInRange = 0;
     private SortableTableHelper<UserEnrollmentStats> statsSortHelper = new() { SortColumn = nameof(UserEnrollmentStats.PastCount), SortAscending = false };
-    private PaginationHelper<UserEnrollmentStats> statsPaginationHelper = new() { PageSize = 9 };
+    private PaginationHelper<UserEnrollmentStats> statsPaginationHelper = new() { PageSize = 15 };
+
+    // Category filter options
+    private IEnumerable<FilterDropdownOption> categoryFilterOptions => new[]
+    {
+        new FilterDropdownOption("Tuno", "Tunos"),
+        new FilterDropdownOption("Caloiro", "Caloiros"),
+        new FilterDropdownOption("Leitao", "Leitões")
+    };
+
+    /// <summary>
+    /// Gets the start date of the current fiscal year (September 1st)
+    /// </summary>
+    private static DateTime GetCurrentFiscalYearStart()
+    {
+        var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        return new DateTime(startYear, 9, 1);
+    }
+
+    /// <summary>
+    /// Gets the end date of the current fiscal year (August 31st of the following year)
+    /// </summary>
+    private static DateTime GetCurrentFiscalYearEnd()
+    {
+        var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        return new DateTime(startYear + 1, 8, 31);
+    }
 
     private void OpenStatsModal()
     {
@@ -148,6 +203,14 @@
                            e.Event.Date.Date <= statsEndDate.Date &&
                            e.WillAttend)
                 .ToList();
+
+            // Count total past events in range for percentage calculation
+            var allEvents = await EventService.GetAllEventsAsync();
+            totalPastEventsInRange = allEvents
+                .Count(e => e.Date.Date >= statsStartDate.Date && 
+                           e.Date.Date <= statsEndDate.Date && 
+                           e.Date.Date < DateTime.Today &&
+                           !e.IsCancelled);
 
             // Group by user and count future vs past
             var stats = filteredEnrollments
@@ -174,8 +237,10 @@
                         FirstName = user.FirstName ?? string.Empty,
                         LastName = user.LastName ?? string.Empty,
                         AvatarUrl = user.ProfilePictureSrc,
+                        Categories = user.Categories,
                         FutureCount = stat.FutureCount,
-                        PastCount = stat.PastCount
+                        PastCount = stat.PastCount,
+                        TotalPastEvents = totalPastEventsInRange
                     });
                 }
             }
@@ -199,18 +264,30 @@
             return;
         }
 
-        // Apply search
-        if (string.IsNullOrWhiteSpace(statsSearchTerm))
+        var filtered = enrollmentStatsUsers.AsEnumerable();
+
+        // Apply category filter
+        if (!string.IsNullOrEmpty(selectedCategoryFilter))
         {
-            filteredStatsUsers = enrollmentStatsUsers.ToList();
+            filtered = selectedCategoryFilter switch
+            {
+                "Tuno" => filtered.Where(s => s.Categories.Contains(MemberCategory.Tuno) || 
+                                             s.Categories.Contains(MemberCategory.Veterano) || 
+                                             s.Categories.Contains(MemberCategory.Tunossauro)),
+                "Caloiro" => filtered.Where(s => s.Categories.Contains(MemberCategory.Caloiro)),
+                "Leitao" => filtered.Where(s => s.Categories.Contains(MemberCategory.Leitao)),
+                _ => filtered
+            };
         }
-        else
+
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(statsSearchTerm))
         {
             var search = statsSearchTerm.ToLower();
-            filteredStatsUsers = enrollmentStatsUsers
-                .Where(s => s.SearchText.Contains(search))
-                .ToList();
+            filtered = filtered.Where(s => s.SearchText.Contains(search));
         }
+
+        filteredStatsUsers = filtered.ToList();
 
         // Apply sorting
         if (statsSortHelper.SortColumn == nameof(UserEnrollmentStats.PastCount))
@@ -234,6 +311,9 @@
             };
             filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
         }
+
+        // Reset pagination when filter changes
+        statsPaginationHelper.Reset();
 
         // Apply pagination
         paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
@@ -275,8 +355,10 @@
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
+        public List<MemberCategory> Categories { get; set; } = new();
         public int FutureCount { get; set; }
         public int PastCount { get; set; }
+        public int TotalPastEvents { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 
@@ -292,5 +374,7 @@
         public string DisplayName => !string.IsNullOrWhiteSpace(UserName) ? UserName : DisplayFullName;
 
         public string SearchText => $"{DisplayNickname} {DisplayFullName}".ToLower();
+
+        public double AttendancePercentage => TotalPastEvents > 0 ? (double)PastCount / TotalPastEvents * 100 : 0;
     }
 }

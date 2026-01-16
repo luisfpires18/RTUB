@@ -728,16 +728,24 @@ else
            Centered="true">
         <BodyContent>
             <div class="mb-3">
-                <div class="row">
-                    <div class="col-md-4">
+                <div class="row g-2">
+                    <div class="col-md-3">
                         <label class="form-label">Data Início</label>
                         <input type="date" class="form-control" @bind="statsStartDate" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Data Fim</label>
                         <input type="date" class="form-control" @bind="statsEndDate" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Categoria</label>
+                        <FilterDropdown SelectedValue="@selectedStatsCategoryFilter"
+                                        SelectedValueChanged="@(value => selectedStatsCategoryFilter = value)"
+                                        OnChange="@FilterStats"
+                                        AllItemsLabel="Todos"
+                                        Options="@statsCategoryFilterOptions" />
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100 d-block" @onclick="LoadStats">Carregar Estatísticas</button>
                     </div>
@@ -768,19 +776,33 @@ else
                                             AltText="@stat.DisplayName"
                                             Nickname="@stat.DisplayNickname"
                                             FullName="@stat.DisplayFullName">
+                                <CategoryContent>
+                                    @foreach (var category in stat.Categories)
+                                    {
+                                        <CategoryBadge Category="@category" />
+                                    }
+                                </CategoryContent>
                                 <PrimaryRowContent>
-                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
-                                        @if (stat.ApprovedCount > 0)
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
+                                            @if (stat.ApprovedCount > 0)
+                                            {
+                                                <span class="badge bg-success">@stat.ApprovedCount aprovado(s)</span>
+                                            }
+                                            @if (stat.PendingCount > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@stat.PendingCount pendente(s)</span>
+                                            }
+                                            @if (stat.PendingCount == 0 && stat.ApprovedCount == 0)
+                                            {
+                                                <span class="text-muted">Sem participações</span>
+                                            }
+                                        </div>
+                                        @if (totalPastRehearsalsInRange > 0 && stat.ApprovedCount > 0)
                                         {
-                                            <span class="badge bg-success">@stat.ApprovedCount aprovado(s)</span>
-                                        }
-                                        @if (stat.PendingCount > 0)
-                                        {
-                                            <span class="badge bg-warning text-dark">@stat.PendingCount pendente(s)</span>
-                                        }
-                                        @if (stat.PendingCount == 0 && stat.ApprovedCount == 0)
-                                        {
-                                            <span class="text-muted">Sem participações</span>
+                                            <div class="text-muted small">
+                                                @stat.AttendancePercentage.ToString("0.0")% de @totalPastRehearsalsInRange ensaios
+                                            </div>
                                         }
                                     </div>
                                 </PrimaryRowContent>
@@ -793,7 +815,7 @@ else
                                     PageSize="@statsPaginationHelper.PageSize"
                                     TotalItems="@filteredStatsUsers.Count"
                                     ItemLabel="membros"
-                                    PageSizeOptions="@(new[] { 9, 18, 27, 36 })"
+                                    PageSizeOptions="@(new[] { 15, 30, 45, 60 })"
                                     OnPageChanged="@HandleStatsPageChange"
                                     OnPageSizeChanged="@HandleStatsPageSizeChange" />
                 }
@@ -1284,14 +1306,42 @@ else
     private bool rangeFeedbackIsError = false;
 
     // Stats data
-    private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
-    private DateTime statsEndDate = DateTime.Today.AddMonths(1);
+    private DateTime statsStartDate = GetCurrentFiscalYearStart();
+    private DateTime statsEndDate = GetCurrentFiscalYearEnd();
+    private string selectedStatsCategoryFilter = string.Empty;
+    private int totalPastRehearsalsInRange = 0;
     private List<UserAttendanceStats>? attendanceStatsUsers;
     private List<UserAttendanceStats> filteredStatsUsers = new();
     private List<UserAttendanceStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
     private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.ApprovedCount), SortAscending = false };
-    private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 9 };
+    private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 15 };
+
+    // Category filter options for stats
+    private IEnumerable<FilterDropdownOption> statsCategoryFilterOptions => new[]
+    {
+        new FilterDropdownOption("Tuno", "Tunos"),
+        new FilterDropdownOption("Caloiro", "Caloiros"),
+        new FilterDropdownOption("Leitao", "Leitões")
+    };
+
+    /// <summary>
+    /// Gets the start date of the current fiscal year (September 1st)
+    /// </summary>
+    private static DateTime GetCurrentFiscalYearStart()
+    {
+        var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        return new DateTime(startYear, 9, 1);
+    }
+
+    /// <summary>
+    /// Gets the end date of the current fiscal year (August 31st of the following year)
+    /// </summary>
+    private static DateTime GetCurrentFiscalYearEnd()
+    {
+        var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        return new DateTime(startYear + 1, 8, 31);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -2401,6 +2451,10 @@ else
             // Get all rehearsals in the date range
             var rehearsals = await RehearsalService.GetRehearsalsAsync(statsStartDate, statsEndDate);
             var rehearsalIds = rehearsals.Select(r => r.Id).ToHashSet();
+
+            // Count total past rehearsals in range for percentage calculation (excluding cancelled)
+            totalPastRehearsalsInRange = rehearsals
+                .Count(r => r.Date.Date < DateTime.Today && !r.IsCanceled);
             
             // Get all attendances for these rehearsals
             var allAttendances = new List<RehearsalAttendance>();
@@ -2440,8 +2494,10 @@ else
                         FirstName = user.FirstName ?? string.Empty,
                         LastName = user.LastName ?? string.Empty,
                         AvatarUrl = user.ProfilePictureSrc,
+                        Categories = user.Categories,
                         PendingCount = stat.PendingCount,
-                        ApprovedCount = stat.ApprovedCount
+                        ApprovedCount = stat.ApprovedCount,
+                        TotalPastRehearsals = totalPastRehearsalsInRange
                     });
                 }
             }
@@ -2465,18 +2521,30 @@ else
             return;
         }
 
-        // Apply search
-        if (string.IsNullOrWhiteSpace(statsSearchTerm))
+        var filtered = attendanceStatsUsers.AsEnumerable();
+
+        // Apply category filter
+        if (!string.IsNullOrEmpty(selectedStatsCategoryFilter))
         {
-            filteredStatsUsers = attendanceStatsUsers.ToList();
+            filtered = selectedStatsCategoryFilter switch
+            {
+                "Tuno" => filtered.Where(s => s.Categories.Contains(MemberCategory.Tuno) || 
+                                             s.Categories.Contains(MemberCategory.Veterano) || 
+                                             s.Categories.Contains(MemberCategory.Tunossauro)),
+                "Caloiro" => filtered.Where(s => s.Categories.Contains(MemberCategory.Caloiro)),
+                "Leitao" => filtered.Where(s => s.Categories.Contains(MemberCategory.Leitao)),
+                _ => filtered
+            };
         }
-        else
+
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(statsSearchTerm))
         {
             var search = statsSearchTerm.ToLower();
-            filteredStatsUsers = attendanceStatsUsers
-                .Where(s => s.SearchText.Contains(search))
-                .ToList();
+            filtered = filtered.Where(s => s.SearchText.Contains(search));
         }
+
+        filteredStatsUsers = filtered.ToList();
 
         // Apply sorting
         var columnSelectors = new Dictionary<string, Func<UserAttendanceStats, IComparable>>
@@ -2485,6 +2553,9 @@ else
             { nameof(UserAttendanceStats.ApprovedCount), s => s.ApprovedCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
+
+        // Reset pagination when filter changes
+        statsPaginationHelper.Reset();
 
         // Apply pagination
         paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
@@ -2889,8 +2960,10 @@ else
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
+        public List<MemberCategory> Categories { get; set; } = new();
         public int PendingCount { get; set; }
         public int ApprovedCount { get; set; }
+        public int TotalPastRehearsals { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 
@@ -2906,6 +2979,8 @@ else
         public string DisplayName => !string.IsNullOrWhiteSpace(UserName) ? UserName : DisplayFullName;
 
         public string SearchText => $"{DisplayNickname} {DisplayFullName}".ToLower();
+
+        public double AttendancePercentage => TotalPastRehearsals > 0 ? (double)ApprovedCount / TotalPastRehearsals * 100 : 0;
     }
 
     // Form models for validation
