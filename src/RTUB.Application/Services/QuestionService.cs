@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -17,6 +19,8 @@ public class QuestionService : IQuestionService
     private readonly IQuestionRepository _questionRepository;
     private readonly IQuestionReplyRepository _replyRepository;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly WebPushOptions _webPushOptions;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<QuestionService> _logger;
 
@@ -24,12 +28,16 @@ public class QuestionService : IQuestionService
         IQuestionRepository questionRepository,
         IQuestionReplyRepository replyRepository,
         IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
+        IOptions<WebPushOptions> webPushOptions,
         UserManager<ApplicationUser> userManager,
         ILogger<QuestionService> logger)
     {
         _questionRepository = questionRepository;
         _replyRepository = replyRepository;
         _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _webPushOptions = webPushOptions.Value;
         _userManager = userManager;
         _logger = logger;
     }
@@ -74,14 +82,9 @@ public class QuestionService : IQuestionService
         
         await _questionRepository.AddAsync(question);
 
-        // Send notification to assigned member
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Nova Pergunta",
-            Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
-            Url = "/questions",
-            Tag = $"question-{question.Id}"
-        };
+        // Send notification to assigned member using factory with absolute URL
+        var baseUrl = GetBaseUrl();
+        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, baseUrl);
 
         await _pushNotificationService.SendToUserAsync(assignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -107,6 +110,8 @@ public class QuestionService : IQuestionService
         var reply = QuestionReply.Create(questionId, content, authorId, isFromAssignedMember);
         await _replyRepository.AddAsync(reply);
 
+        var baseUrl = GetBaseUrl();
+
         // Update question status based on who replied
         if (isFromAssignedMember)
         {
@@ -118,13 +123,7 @@ public class QuestionService : IQuestionService
                 question.Title, memberName);
 
             // Notify the question author
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Pergunta Respondida",
-                Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
-                Url = "/questions",
-                Tag = $"question-reply-{reply.Id}"
-            };
+            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, baseUrl);
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
         }
         else if (authorId == question.AuthorId)
@@ -139,13 +138,9 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
                 question.Title, authorName);
 
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Nova Resposta à Pergunta",
-                Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
-                Url = "/questions",
-                Tag = $"question-reply-{reply.Id}"
-            };
+            // Build the reply preview for the notification body
+            var replyPreview = $"{authorName} respondeu à sua resposta: {content}";
+            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(replyPreview, reply.Id, baseUrl);
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
@@ -200,13 +195,8 @@ public class QuestionService : IQuestionService
         var author = await _userManager.FindByIdAsync(requestingUserId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Lembrete: Pergunta Pendente",
-            Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
-            Url = "/questions",
-            Tag = $"question-reminder-{questionId}"
-        };
+        var baseUrl = GetBaseUrl();
+        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, baseUrl);
 
         await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -306,12 +296,17 @@ public class QuestionService : IQuestionService
         return result;
     }
 
-    private static string TruncateContent(string content, int maxLength)
+    /// <summary>
+    /// Gets the base URL for building absolute notification URLs.
+    /// Falls back to a default if not configured.
+    /// </summary>
+    private string GetBaseUrl()
     {
-        if (string.IsNullOrEmpty(content) || content.Length <= maxLength)
+        var baseUrl = _webPushOptions.GetEffectiveBaseUrl();
+        if (string.IsNullOrWhiteSpace(_webPushOptions.BaseUrl))
         {
-            return content;
+            _logger.LogWarning("WebPush:BaseUrl is not configured. Using default for notification URLs.");
         }
-        return content[..(maxLength - 3)] + "...";
+        return baseUrl;
     }
 }

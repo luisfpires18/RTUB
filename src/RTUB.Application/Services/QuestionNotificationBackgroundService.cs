@@ -70,6 +70,8 @@ public class QuestionNotificationBackgroundService : BackgroundService
         using var scope = _serviceScopeFactory.CreateScope();
         var questionRepository = scope.ServiceProvider.GetRequiredService<IQuestionRepository>();
         var pushNotificationService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
+        var pushNotificationFactory = scope.ServiceProvider.GetRequiredService<IPushNotificationFactory>();
+        var webPushOptions = scope.ServiceProvider.GetRequiredService<IOptions<WebPushOptions>>().Value;
 
         try
         {
@@ -84,6 +86,13 @@ public class QuestionNotificationBackgroundService : BackgroundService
 
             _logger.LogInformation("Found {Count} unanswered questions requiring notification", questionsList.Count);
 
+            // Get base URL for building absolute notification URLs
+            var baseUrl = webPushOptions.GetEffectiveBaseUrl();
+            if (string.IsNullOrWhiteSpace(webPushOptions.BaseUrl))
+            {
+                _logger.LogWarning("WebPush:BaseUrl is not configured. Using default for notification URLs.");
+            }
+
             // Group questions by assigned member to send consolidated notifications
             var questionsByMember = questionsList.GroupBy(q => q.AssignedMemberId);
 
@@ -93,16 +102,9 @@ public class QuestionNotificationBackgroundService : BackgroundService
 
                 var memberId = memberGroup.Key;
                 var questionCount = memberGroup.Count();
+                var firstAuthorNickname = memberGroup.First().Author?.Nickname;
 
-                var notification = new SendPushNotificationDto
-                {
-                    Title = questionCount == 1 ? "Pergunta Pendente" : $"{questionCount} Perguntas Pendentes",
-                    Body = questionCount == 1
-                        ? $"Tem uma pergunta à espera da sua resposta de {memberGroup.First().Author?.Nickname ?? "um membro"}"
-                        : $"Tem {questionCount} perguntas à espera da sua resposta",
-                    Url = "/questions",
-                    Tag = "question-reminder"
-                };
+                var notification = pushNotificationFactory.CreatePendingQuestionsNotification(questionCount, firstAuthorNickname, baseUrl);
 
                 await pushNotificationService.SendToUserAsync(memberId, notification);
 
