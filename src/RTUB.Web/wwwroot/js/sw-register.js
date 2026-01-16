@@ -11,6 +11,16 @@
         return;
     }
 
+    // Handle messages from the service worker (e.g., navigation from push notifications)
+    navigator.serviceWorker.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'rtub:navigate') {
+            console.log('[SW Register] Received navigate message:', event.data.url);
+            // Navigate to the URL using window.location
+            // This works for both regular and PWA mode
+            window.location.href = event.data.url;
+        }
+    });
+
     // Register service worker on page load
     window.addEventListener('load', function() {
         navigator.serviceWorker.register('/service-worker.js')

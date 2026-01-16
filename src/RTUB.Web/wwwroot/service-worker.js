@@ -2,7 +2,7 @@
 // Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v5';
+const CACHE_VERSION = 'rtub-v7';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -226,21 +226,46 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     // Get the URL to open from the notification data
-    const urlToOpen = event.notification.data?.url || '/';
+    let urlToOpen = event.notification.data?.url || '/';
+    console.log('[Service Worker] Raw URL from notification:', urlToOpen);
+    
+    // Ensure the URL is absolute
+    if (!urlToOpen.startsWith('http')) {
+        urlToOpen = new URL(urlToOpen, self.location.origin).href;
+    }
+    console.log('[Service Worker] Final URL to open:', urlToOpen);
 
-    // Focus on existing window or open new one
+    // For PWA standalone mode, we need a different approach
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
-                // Check if there's already a window open with this URL
+                console.log('[Service Worker] Found', clientList.length, 'open windows');
+                
+                // First, try to find an existing window that we can navigate
+                // This is important for PWA mode where clients.openWindow might not work correctly
                 for (let i = 0; i < clientList.length; i++) {
                     const client = clientList[i];
-                    if (client.url === urlToOpen && 'focus' in client) {
-                        return client.focus();
+                    console.log('[Service Worker] Client', i, 'URL:', client.url, 'visibilityState:', client.visibilityState);
+                    
+                    // Check if this is an RTUB window (same origin)
+                    if (client.url.startsWith(self.location.origin)) {
+                        console.log('[Service Worker] Found RTUB window, sending navigate message');
+                        // Send a message to the client to navigate
+                        client.postMessage({ 
+                            type: 'rtub:navigate', 
+                            url: urlToOpen 
+                        });
+                        // Focus the window
+                        if ('focus' in client) {
+                            return client.focus();
+                        }
+                        return;
                     }
                 }
-                // If no window is open, open a new one
+                
+                // No existing window found, open a new one
                 if (clients.openWindow) {
+                    console.log('[Service Worker] No existing window, opening new one:', urlToOpen);
                     return clients.openWindow(urlToOpen);
                 }
             })
