@@ -1,9 +1,11 @@
 @page "/"
 @rendermode InteractiveServer
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Components.Authorization
 @using RTUB.Application.Interfaces
 @inject ISlideshowService SlideshowService
 @inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <!-- Push Notification Prompt for PWA mode -->
 <PushNotificationPrompt />
@@ -177,8 +179,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load slides
-        slides = (await SlideshowService.GetActiveSlideshowsAsync()).ToList();
+        // Check if user is authenticated
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var isAuthenticated = authState.User?.Identity?.IsAuthenticated ?? false;
+
+        // Load slides based on authentication state
+        if (isAuthenticated)
+        {
+            // Authenticated users see all active slides (including exclusive ones)
+            slides = (await SlideshowService.GetActiveSlideshowsAsync()).ToList();
+        }
+        else
+        {
+            // Non-authenticated users only see public (non-exclusive) slides
+            slides = (await SlideshowService.GetActivePublicSlideshowsAsync()).ToList();
+        }
     }
 
     private void SelectSection(string section)

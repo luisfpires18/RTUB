@@ -39,6 +39,11 @@ public class SlideshowService : ISlideshowService
         return await _slideshowRepository.GetActiveSlideshowsAsync();
     }
 
+    public async Task<IEnumerable<Slideshow>> GetActivePublicSlideshowsAsync()
+    {
+        return await _slideshowRepository.GetActivePublicSlideshowsAsync();
+    }
+
     public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000, string? imageUrl = null)
     {
         var slideshow = Slideshow.Create(title, order, description, intervalMs);
@@ -49,7 +54,7 @@ public class SlideshowService : ISlideshowService
         return await _slideshowRepository.AddAsync(slideshow);
     }
 
-    public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive)
+    public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive, bool isExclusive)
     {
         var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
@@ -67,10 +72,13 @@ public class SlideshowService : ISlideshowService
             slideshow.Deactivate();
         }
 
+        // Update exclusive state
+        slideshow.SetExclusive(isExclusive);
+
         await _slideshowRepository.UpdateAsync(slideshow);
     }
 
-    public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
+    public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, bool isExclusive, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
@@ -88,6 +96,9 @@ public class SlideshowService : ISlideshowService
         {
             slideshow.Deactivate();
         }
+
+        // Update exclusive state
+        slideshow.SetExclusive(isExclusive);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))

@@ -141,6 +141,13 @@ else
                 </label>
             </div>
 
+            <div class="mb-3 form-check">
+                <InputCheckbox class="form-check-input" id="isExclusive" @bind-Value="slide!.IsExclusive" />
+                <label class="form-check-label" for="isExclusive">
+                    <i class="bi bi-lock text-primary me-2"></i>Exclusivo (apenas para utilizadores autenticados)
+                </label>
+            </div>
+
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
                 <button type="submit" class="btn btn-primary btn-primary-purple">@(isCreateMode ? "Adicionar" : "Guardar")</button>
@@ -227,7 +234,8 @@ else
             ImageUrl = string.Empty,
             Order = (AllItems?.Max(s => (int?)s.Order) ?? 0) + 1,
             IntervalMs = 5000,
-            IsActive = true
+            IsActive = true,
+            IsExclusive = false
         };
         showEditModal = true;
     }
@@ -246,6 +254,7 @@ else
             Order = slide.Order,
             IntervalMs = slide.IntervalMs,
             IsActive = slide.IsActive,
+            IsExclusive = slide.IsExclusive,
             CreatedAt = slide.CreatedAt
         };
         showEditModal = true;
@@ -334,10 +343,18 @@ else
                 imageUrl
             );
             
-            // Deactivate if needed (slides are created as active by default)
-            if (!editingSlide.IsActive)
+            // Update IsActive and IsExclusive if needed (slides are created as active and non-exclusive by default)
+            if (!editingSlide.IsActive || editingSlide.IsExclusive)
             {
-                await SlideshowService.DeactivateSlideshowAsync(newSlide.Id);
+                await SlideshowService.UpdateSlideshowAsync(
+                    newSlide.Id,
+                    newSlide.Title,
+                    newSlide.Description ?? string.Empty,
+                    newSlide.Order,
+                    newSlide.IntervalMs,
+                    editingSlide.IsActive,
+                    editingSlide.IsExclusive
+                );
             }
         }
         else
@@ -353,6 +370,7 @@ else
                     editingSlide.Order,
                     editingSlide.IntervalMs,
                     editingSlide.IsActive,
+                    editingSlide.IsExclusive,
                     stream,
                     croppedSlideshowImageFileName!,
                     "image/webp");
@@ -367,7 +385,8 @@ else
                     editingSlide.Description ?? string.Empty,
                     editingSlide.Order,
                     editingSlide.IntervalMs,
-                    editingSlide.IsActive
+                    editingSlide.IsActive,
+                    editingSlide.IsExclusive
                 );
             }
         }

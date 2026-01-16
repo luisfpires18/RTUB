@@ -140,6 +140,26 @@ public class SlideshowServiceTests
     }
 
     [Fact]
+    public async Task GetActivePublicSlideshowsAsync_ReturnsOnlyActivePublicSlideshows()
+    {
+        // Arrange
+        var slide1 = Slideshow.Create("Public 1", 1);
+        var slide2 = Slideshow.Create("Public 2", 2);
+        var publicSlideshows = new List<Slideshow> { slide1, slide2 };
+
+        _mockSlideshowRepository.Setup(r => r.GetActivePublicSlideshowsAsync())
+            .ReturnsAsync(publicSlideshows);
+
+        // Act
+        var result = (await _service.GetActivePublicSlideshowsAsync()).ToList();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(s => s.Id == slide1.Id);
+        result.Should().Contain(s => s.Id == slide2.Id);
+    }
+
+    [Fact]
     public async Task UpdateSlideshowAsync_WithValidData_UpdatesSlideshow()
     {
         // Arrange
@@ -148,13 +168,30 @@ public class SlideshowServiceTests
             .ReturnsAsync(slideshow);
 
         // Act
-        await _service.UpdateSlideshowAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true);
+        await _service.UpdateSlideshowAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, false);
 
         // Assert
         slideshow.Title.Should().Be("Updated");
         slideshow.Description.Should().Be("New desc");
         slideshow.Order.Should().Be(2);
         slideshow.IntervalMs.Should().Be(4000);
+        slideshow.IsExclusive.Should().BeFalse();
+        _mockSlideshowRepository.Verify(r => r.UpdateAsync(slideshow), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSlideshowAsync_WithIsExclusive_SetsIsExclusiveProperty()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Original", 1, "Old desc", 3000);
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
+            .ReturnsAsync(slideshow);
+
+        // Act
+        await _service.UpdateSlideshowAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, true);
+
+        // Assert
+        slideshow.IsExclusive.Should().BeTrue();
         _mockSlideshowRepository.Verify(r => r.UpdateAsync(slideshow), Times.Once);
     }
 
@@ -166,7 +203,7 @@ public class SlideshowServiceTests
             .ReturnsAsync((Slideshow?)null);
 
         // Act
-        var act = async () => await _service.UpdateSlideshowAsync(999, "Test", "Test", 1, 5000, true);
+        var act = async () => await _service.UpdateSlideshowAsync(999, "Test", "Test", 1, 5000, true, false);
 
         // Assert
         await act.Should().ThrowAsync<EntityNotFoundException>()
@@ -188,19 +225,42 @@ public class SlideshowServiceTests
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, imageStream, "test.webp", "image/webp");
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, false, imageStream, "test.webp", "image/webp");
 
         // Assert
         slideshow.Title.Should().Be("Updated");
         slideshow.Description.Should().Be("New desc");
         slideshow.Order.Should().Be(2);
         slideshow.IntervalMs.Should().Be(4000);
+        slideshow.IsExclusive.Should().BeFalse();
         slideshow.ImageUrl.Should().Be(imageUrl);
 
         // Verify image was uploaded with normalized title (not ID)
         _imageStorageServiceMock.Verify(
             x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "slideshows", "updated"),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSlideshowWithImageAsync_WithIsExclusive_SetsIsExclusiveProperty()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Original", 1, "Old desc", 3000);
+        var imageUrl = "https://example.com/test-image.webp";
+
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
+            .ReturnsAsync(slideshow);
+        _imageStorageServiceMock
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(imageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, true, imageStream, "test.webp", "image/webp");
+
+        // Assert
+        slideshow.IsExclusive.Should().BeTrue();
+        _mockSlideshowRepository.Verify(r => r.UpdateAsync(slideshow), Times.Once);
     }
 
     [Fact]
@@ -222,7 +282,7 @@ public class SlideshowServiceTests
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "New Title", "New desc", 2, 5000, true, imageStream, "test.webp", "image/webp");
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "New Title", "New desc", 2, 5000, true, false, imageStream, "test.webp", "image/webp");
 
         // Assert
         _imageStorageServiceMock.Verify(
@@ -240,7 +300,7 @@ public class SlideshowServiceTests
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
 
         // Act & Assert
-        var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, true, imageStream, "test.webp", "image/webp");
+        var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, true, false, imageStream, "test.webp", "image/webp");
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }

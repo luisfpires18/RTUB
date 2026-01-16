@@ -189,6 +189,43 @@ public class SlideshowTests
     }
 
     [Fact]
+    public void SetExclusive_True_SetsIsExclusiveToTrue()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Title", 1);
+
+        // Act
+        slideshow.SetExclusive(true);
+
+        // Assert
+        slideshow.IsExclusive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetExclusive_False_SetsIsExclusiveToFalse()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Title", 1);
+        slideshow.SetExclusive(true);
+
+        // Act
+        slideshow.SetExclusive(false);
+
+        // Assert
+        slideshow.IsExclusive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_SetsIsExclusiveToFalse()
+    {
+        // Act
+        var slideshow = Slideshow.Create("Title", 1);
+
+        // Assert
+        slideshow.IsExclusive.Should().BeFalse();
+    }
+
+    [Fact]
     public void GetImageSource_WithImageUrl_ReturnsImageUrl()
     {
         // Arrange
