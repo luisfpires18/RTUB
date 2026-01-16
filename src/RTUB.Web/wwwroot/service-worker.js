@@ -239,6 +239,13 @@ self.addEventListener('notificationclick', (event) => {
                         return client.focus();
                     }
                 }
+                // Try to find any existing window and navigate it to the URL
+                for (let i = 0; i < clientList.length; i++) {
+                    const client = clientList[i];
+                    if ('focus' in client && 'navigate' in client) {
+                        return client.navigate(urlToOpen).then(c => c.focus());
+                    }
+                }
                 // If no window is open, open a new one
                 if (clients.openWindow) {
                     return clients.openWindow(urlToOpen);
