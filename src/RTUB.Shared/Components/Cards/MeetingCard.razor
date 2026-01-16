@@ -8,34 +8,35 @@
 *@
 
 <div class="card meeting-card h-100">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-calendar3"></i>
-                <span>@GetMeetingTypeFullName()</span>
+    <div class="meeting-card__top position-relative">
+        <div class="position-absolute top-0 start-0 p-2">
+            <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
+                @GetMeetingStatus()
+            </span>
+        </div>
+        @if (IsAdmin)
+        {
+            <div class="admin-overlay">
+                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
-                    @GetMeetingStatus()
-                </span>
-                @if (IsAdmin)
-                {
-                    <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
-                        <i class="bi bi-pencil music-icon-edit"></i>
-                    </button>
-                    <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                        <i class="bi bi-trash music-icon-delete"></i>
-                    </button>
-                }
+        }
+        <div class="meeting-icon-header">
+            <div class="meeting-icon-circle">
+                <i class="bi bi-calendar3"></i>
             </div>
         </div>
     </div>
     <div class="card-body d-flex flex-column">
-        <h5 class="meeting-title mb-1">@Meeting.Title</h5>
-        <div class="d-flex align-items-center gap-2 mb-2">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <h5 class="meeting-title mb-0">@Meeting.Title</h5>
             <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
         </div>
-        
+
         <div class="meeting-info">
             <div class="meeting-info-row">
                 <i class="bi bi-calendar3 meeting-icon"></i>
@@ -44,12 +45,12 @@
                     <DateBadge Date="@Meeting.Date" />
                 </span>
             </div>
-            
+
             <div class="meeting-info-row">
                 <i class="bi bi-clock meeting-icon"></i>
                 <span class="meeting-text">@Meeting.Date.ToString("HH:mm")</span>
             </div>
-            
+
             @if (!string.IsNullOrEmpty(Meeting.Location))
             {
                 <div class="meeting-info-row">
@@ -58,7 +59,7 @@
                 </div>
             }
 
-           @if (Organizer != null && Organizer.Positions != null && Organizer.Positions.Any())
+            @if (Organizer != null && Organizer.Positions != null && Organizer.Positions.Any())
             {
                 <div class="meeting-info-row mb-2">
                     <i class="bi bi-person-badge meeting-icon"></i>
@@ -67,10 +68,10 @@
             }
         </div>
 
-        <div class="mt-auto pt-3">
-            <div class="d-flex justify-content-center align-items-center gap-2">
-                <button class="btn btn-sm btn-primary d-flex align-items-center gap-2" 
-                        @onclick="HandleViewDetails" 
+        <div class="meeting-actions mt-auto">
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
+                        @onclick="HandleViewDetails"
                         title="Ver Detalhes">
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
@@ -83,8 +84,8 @@
                         <i class="bi bi-envelope-fill"></i>
                         <span>Notificar</span>
                     </button>
-                    <button class="btn btn-sm btn-danger d-flex align-items-center gap-2" 
-                            @onclick="HandleCancel" 
+                    <button class="btn btn-sm btn-danger d-flex align-items-center gap-2"
+                            @onclick="HandleCancel"
                             title="Cancelar reunião">
                         <i class="bi bi-x-circle-fill"></i>
                         <span>Cancelar</span>
@@ -92,8 +93,8 @@
                 }
                 @if (IsAdmin && Meeting.IsCancelled)
                 {
-                    <button class="btn btn-sm btn-warning d-flex align-items-center gap-2" 
-                            @onclick="HandleUncancel" 
+                    <button class="btn btn-sm btn-warning d-flex align-items-center gap-2"
+                            @onclick="HandleUncancel"
                             title="Reverter cancelamento">
                         <i class="bi bi-arrow-counterclockwise"></i>
                         <span>Reverter</span>
@@ -101,8 +102,8 @@
                 }
             </div>
         </div>
-        </div>
     </div>
+</div>
 
 @code {
     /// <summary>
@@ -285,22 +286,54 @@
 
 <style>
     .meeting-card {
-        background: var(--card-bg-color);
-        border: 1px solid var(--card-border-color);
-        border-radius: 8px;
+        background-color: #151516;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem;
         overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .meeting-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(110, 86, 207, 0.3);
+        transform: translateY(-3px);
+        border-color: rgba(var(--bs-primary-rgb), 0.6);
+        box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
     }
 
-    .meeting-card .card-header {
-        background: rgba(var(--bs-primary-rgb), 0.1);
-        border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
-        padding: 0.75rem 1rem;
+    .meeting-card__top {
+        position: relative;
+        z-index: 2;
+    }
+
+    .meeting-icon-header {
+        width: 100%;
+        height: 110px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
+        border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+    }
+
+    .meeting-icon-circle {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background-color: rgba(var(--bs-primary-rgb), 0.2);
+        border: 2px solid var(--bs-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .meeting-card:hover .meeting-icon-circle {
+        background-color: rgba(var(--bs-primary-rgb), 0.3);
+        transform: scale(1.05);
+    }
+
+    .meeting-icon-circle i {
+        font-size: 1.875rem;
+        color: var(--bs-link-color);
     }
 
     .meeting-status-badge-inline {
@@ -341,26 +374,31 @@
     .meeting-info {
         display: flex;
         flex-direction: column;
-        gap: 14px;
-        margin-bottom: 1rem;
+        gap: 0.625rem;
+        margin-bottom: 0.75rem;
     }
 
     .meeting-info-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.5rem;
         color: var(--text-secondary);
-        font-size: 0.9rem;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        flex-wrap: wrap;
     }
 
     .meeting-icon {
         color: var(--bs-primary);
         font-size: 1rem;
         flex-shrink: 0;
+        width: 1.125rem;
+        text-align: center;
     }
 
     .meeting-text {
         flex: 1;
+        font-weight: 500;
     }
 
     .meeting-today-badge {
@@ -377,16 +415,14 @@
         text-transform: uppercase;
     }
 
+    .meeting-actions {
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+        margin-top: auto;
+    }
+
     /* Responsive adjustments */
     @@media (max-width: 576px) {
-        .meeting-card .d-flex.justify-content-center.gap-2 {
-            flex-direction: column;
-        }
-
-        .meeting-card .d-flex.justify-content-center.gap-2 .btn {
-            width: 100%;
-        }
-
         .meeting-title {
             font-size: 1rem;
         }
@@ -394,5 +430,19 @@
         .meeting-info-row {
             font-size: 0.85rem;
         }
+
+        .meeting-icon-header {
+            height: 90px;
+        }
+
+        .meeting-icon-circle {
+            width: 55px;
+            height: 55px;
+        }
+
+        .meeting-icon-circle i {
+            font-size: 1.5rem;
+        }
+
     }
 </style>
