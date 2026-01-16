@@ -20,8 +20,6 @@ public class QuestionService : IQuestionService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<QuestionService> _logger;
 
-    private const string DefaultBaseUrl = "https://rtub.pt";
-
     public QuestionService(
         IQuestionRepository questionRepository,
         IQuestionReplyRepository replyRepository,
@@ -81,7 +79,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Nova Pergunta",
             Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
-            Url = $"{DefaultBaseUrl}/questions",
+            Url = "/questions",
             Tag = $"question-{question.Id}"
         };
 
@@ -124,7 +122,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Pergunta Respondida",
                 Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
-                Url = $"{DefaultBaseUrl}/questions",
+                Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
@@ -145,7 +143,7 @@ public class QuestionService : IQuestionService
             {
                 Title = "Nova Resposta à Pergunta",
                 Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
-                Url = $"{DefaultBaseUrl}/questions",
+                Url = "/questions",
                 Tag = $"question-reply-{reply.Id}"
             };
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
@@ -206,7 +204,7 @@ public class QuestionService : IQuestionService
         {
             Title = "Lembrete: Pergunta Pendente",
             Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
-            Url = $"{DefaultBaseUrl}/questions",
+            Url = "/questions",
             Tag = $"question-reminder-{questionId}"
         };
 
