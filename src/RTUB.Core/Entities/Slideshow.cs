@@ -26,6 +26,11 @@ public class Slideshow : BaseEntity, IValidatableObject
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// When true, this slideshow is only visible to logged-in users
+    /// </summary>
+    public bool IsExclusive { get; set; } = false;
+
     // Private constructor for EF Core
     public Slideshow() { }
 
@@ -79,6 +84,11 @@ public class Slideshow : BaseEntity, IValidatableObject
     public void Deactivate()
     {
         IsActive = false;
+    }
+
+    public void SetExclusive(bool exclusive)
+    {
+        IsExclusive = exclusive;
     }
 
     public string GetImageSource()

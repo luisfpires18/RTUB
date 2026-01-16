@@ -2474,6 +2474,9 @@ namespace RTUB.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsExclusive")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 

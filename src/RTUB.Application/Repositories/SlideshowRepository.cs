@@ -22,4 +22,13 @@ public class SlideshowRepository : Repository<Slideshow>, ISlideshowRepository
             .OrderBy(s => s.Order)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Slideshow>> GetActivePublicSlideshowsAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(s => s.IsActive && !s.IsExclusive)
+            .OrderBy(s => s.Order)
+            .ToListAsync();
+    }
 }

@@ -54,6 +54,12 @@
                 <span class="badge @(Slide?.IsActive == true ? "bg-success" : "bg-secondary")">
                     @(Slide?.IsActive == true ? "Ativo" : "Inativo")
                 </span>
+                @if (Slide?.IsExclusive == true)
+                {
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-lock me-1"></i>Exclusivo
+                    </span>
+                }
             </div>
         </div>
         
