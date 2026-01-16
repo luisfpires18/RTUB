@@ -203,7 +203,8 @@ self.addEventListener('push', (event) => {
                 badge: notificationData.badge,
                 tag: notificationData.tag,
                 data: {
-                    url: notificationData.url
+                    url: notificationData.url,
+                    tag: notificationData.tag
                 },
                 requireInteraction: false,
                 vibrate: [200, 100, 200]
@@ -226,8 +227,9 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     // Get the URL to open from the notification data
-    let urlToOpen = event.notification.data?.url || '/';
-    const notificationTag = event.notification.tag || '';
+    const notificationPayload = event.notification.data || {};
+    let urlToOpen = notificationPayload.url || '/';
+    const notificationTag = notificationPayload.tag || event.notification.tag || '';
     if ((!urlToOpen || urlToOpen === '/') && notificationTag.startsWith('question')) {
         urlToOpen = '/questions';
     }
