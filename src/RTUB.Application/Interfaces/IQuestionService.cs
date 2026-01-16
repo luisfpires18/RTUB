@@ -36,22 +36,12 @@ public interface IQuestionService
     /// <summary>
     /// Creates a new question
     /// </summary>
-    /// <param name="title">Question title</param>
-    /// <param name="content">Question content</param>
-    /// <param name="authorId">Author user ID</param>
-    /// <param name="assignedPosition">Position of the assigned member</param>
-    /// <param name="assignedMemberId">Assigned member user ID</param>
-    /// <param name="baseUrl">Base URL for notification links (e.g., from Navigation.BaseUri)</param>
-    Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId, string baseUrl);
+    Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId);
 
     /// <summary>
     /// Adds a reply to a question
     /// </summary>
-    /// <param name="questionId">Question ID</param>
-    /// <param name="content">Reply content</param>
-    /// <param name="authorId">Author user ID</param>
-    /// <param name="baseUrl">Base URL for notification links (e.g., from Navigation.BaseUri)</param>
-    Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId, string baseUrl);
+    Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId);
 
     /// <summary>
     /// Deletes a question (soft delete). Only the author can delete their own questions.
@@ -66,10 +56,7 @@ public interface IQuestionService
     /// <summary>
     /// Sends a manual notification reminder for a question
     /// </summary>
-    /// <param name="questionId">Question ID</param>
-    /// <param name="requestingUserId">Requesting user ID</param>
-    /// <param name="baseUrl">Base URL for notification links (e.g., from Navigation.BaseUri)</param>
-    Task SendManualReminderAsync(int questionId, string requestingUserId, string baseUrl);
+    Task SendManualReminderAsync(int questionId, string requestingUserId);
 
     /// <summary>
     /// Checks if a user can answer a question (must be the assigned member)

@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -19,8 +17,6 @@ public class QuestionService : IQuestionService
     private readonly IQuestionRepository _questionRepository;
     private readonly IQuestionReplyRepository _replyRepository;
     private readonly IPushNotificationService _pushNotificationService;
-    private readonly IPushNotificationFactory _pushNotificationFactory;
-    private readonly WebPushOptions _webPushOptions;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<QuestionService> _logger;
 
@@ -28,16 +24,12 @@ public class QuestionService : IQuestionService
         IQuestionRepository questionRepository,
         IQuestionReplyRepository replyRepository,
         IPushNotificationService pushNotificationService,
-        IPushNotificationFactory pushNotificationFactory,
-        IOptions<WebPushOptions> webPushOptions,
         UserManager<ApplicationUser> userManager,
         ILogger<QuestionService> logger)
     {
         _questionRepository = questionRepository;
         _replyRepository = replyRepository;
         _pushNotificationService = pushNotificationService;
-        _pushNotificationFactory = pushNotificationFactory;
-        _webPushOptions = webPushOptions.Value;
         _userManager = userManager;
         _logger = logger;
     }
@@ -67,7 +59,7 @@ public class QuestionService : IQuestionService
         return await _questionRepository.GetByIdAsync(id);
     }
 
-    public async Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId, string baseUrl)
+    public async Task<Question> CreateAsync(string title, string content, string authorId, Position assignedPosition, string assignedMemberId)
     {
         // Load users first so audit log can resolve their nicknames
         var author = await _userManager.FindByIdAsync(authorId);
@@ -82,9 +74,15 @@ public class QuestionService : IQuestionService
         
         await _questionRepository.AddAsync(question);
 
-        // Send notification to assigned member using factory with absolute URL
-        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
-        var notification = _pushNotificationFactory.CreateNewQuestionNotification(title, authorName, question.Id, effectiveBaseUrl);
+        // Send notification to assigned member - use simple relative URL like MessagingService does
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Nova Pergunta",
+            Body = $"{authorName} fez uma pergunta para si: {TruncateContent(title, 100)}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = "/questions",
+            Tag = $"question-{question.Id}"
+        };
 
         await _pushNotificationService.SendToUserAsync(assignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -98,7 +96,7 @@ public class QuestionService : IQuestionService
         return question;
     }
 
-    public async Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId, string baseUrl)
+    public async Task<QuestionReply> AddReplyAsync(int questionId, string content, string authorId)
     {
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
@@ -110,8 +108,6 @@ public class QuestionService : IQuestionService
         var reply = QuestionReply.Create(questionId, content, authorId, isFromAssignedMember);
         await _replyRepository.AddAsync(reply);
 
-        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
-
         // Update question status based on who replied
         if (isFromAssignedMember)
         {
@@ -122,8 +118,15 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' answered by assigned member {MemberName}",
                 question.Title, memberName);
 
-            // Notify the question author
-            var notification = _pushNotificationFactory.CreateQuestionAnsweredNotification(content, reply.Id, effectiveBaseUrl);
+            // Notify the question author - use simple relative URL like MessagingService
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Pergunta Respondida",
+                Body = $"A sua pergunta foi respondida: {TruncateContent(content, 100)}",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = "/questions",
+                Tag = $"question-reply-{reply.Id}"
+            };
             await _pushNotificationService.SendToUserAsync(question.AuthorId, notification);
         }
         else if (authorId == question.AuthorId)
@@ -138,9 +141,15 @@ public class QuestionService : IQuestionService
                 "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
                 question.Title, authorName);
 
-            // Build the reply preview for the notification body
-            var replyPreview = $"{authorName} respondeu à sua resposta: {content}";
-            var notification = _pushNotificationFactory.CreateQuestionReplyNotification(replyPreview, reply.Id, effectiveBaseUrl);
+            // Notify assigned member - use simple relative URL like MessagingService
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Nova Resposta à Pergunta",
+                Body = $"{authorName} respondeu à sua resposta: {TruncateContent(content, 100)}",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = "/questions",
+                Tag = $"question-reply-{reply.Id}"
+            };
             await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         }
 
@@ -178,7 +187,7 @@ public class QuestionService : IQuestionService
         return true;
     }
 
-    public async Task SendManualReminderAsync(int questionId, string requestingUserId, string baseUrl)
+    public async Task SendManualReminderAsync(int questionId, string requestingUserId)
     {
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
@@ -195,8 +204,15 @@ public class QuestionService : IQuestionService
         var author = await _userManager.FindByIdAsync(requestingUserId);
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
-        var effectiveBaseUrl = GetEffectiveBaseUrl(baseUrl);
-        var notification = _pushNotificationFactory.CreateQuestionReminderNotification(question.Title, authorName, questionId, effectiveBaseUrl);
+        // Send notification - use simple relative URL like MessagingService
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Lembrete: Pergunta Pendente",
+            Body = $"{authorName} enviou um lembrete para a sua pergunta: {TruncateContent(question.Title, 100)}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = "/questions",
+            Tag = $"question-reminder-{questionId}"
+        };
 
         await _pushNotificationService.SendToUserAsync(question.AssignedMemberId, notification);
         question.UpdateLastNotificationSent();
@@ -296,19 +312,12 @@ public class QuestionService : IQuestionService
         return result;
     }
 
-    /// <summary>
-    /// Gets the effective base URL for building absolute notification URLs.
-    /// Uses the passed baseUrl (from Navigation.BaseUri) if provided, otherwise falls back to config.
-    /// </summary>
-    private string GetEffectiveBaseUrl(string? passedBaseUrl)
+    private static string TruncateContent(string content, int maxLength)
     {
-        // Prefer the passed base URL (from Navigation.BaseUri in Blazor)
-        if (!string.IsNullOrWhiteSpace(passedBaseUrl))
+        if (string.IsNullOrEmpty(content) || content.Length <= maxLength)
         {
-            return passedBaseUrl.TrimEnd('/');
+            return content;
         }
-
-        // Fall back to configured base URL (for background service scenarios)
-        return _webPushOptions.GetEffectiveBaseUrl();
+        return content[..(maxLength - 3)] + "...";
     }
 }
