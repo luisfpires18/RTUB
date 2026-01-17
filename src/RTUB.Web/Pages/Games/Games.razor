@@ -272,17 +272,7 @@
         try
         {
             allGames = await GameService.GetAllGamesAsync();
-            
-            // Filter games: hide MembersOnly games from Leitao users (unless they're admin)
-            if (isLeitao && !isAdmin)
-            {
-                filteredGames = allGames.Where(g => !g.MembersOnly).ToList();
-            }
-            else
-            {
-                filteredGames = allGames;
-            }
-            
+            filteredGames = FilterGamesByUserCategory(allGames);
             ApplyPagination();
         }
         finally
@@ -290,6 +280,18 @@
             loading = false;
             StateHasChanged();
         }
+    }
+
+    private List<GameDto> FilterGamesByUserCategory(List<GameDto> games)
+    {
+        // Leitao users cannot see members-only games (unless they're admin)
+        if (isLeitao && !isAdmin)
+        {
+            return games.Where(g => !g.MembersOnly).ToList();
+        }
+        
+        // All other users (including admins) see all games
+        return games;
     }
 
     private void ApplyPagination()
