@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 64">
+  <!-- Borat - Player Character -->
+  <!-- Legs -->
+  <rect x="10" y="48" width="7" height="16" fill="#3498db"/>
+  <rect x="23" y="48" width="7" height="16" fill="#3498db"/>
+  
+  <!-- Body (green shirt) -->
+  <rect x="6" y="22" width="28" height="28" rx="4" fill="#2ecc71"/>
+  <rect x="8" y="22" width="24" height="4" fill="#27ae60"/>
+  
+  <!-- Arms -->
+  <rect x="0" y="24" width="8" height="20" rx="3" fill="#f5deb3"/>
+  <rect x="32" y="24" width="8" height="20" rx="3" fill="#f5deb3"/>
+  
+  <!-- Head -->
+  <circle cx="20" cy="12" r="12" fill="#f5deb3"/>
+  
+  <!-- Hair (dark, messy) -->
+  <path d="M8,10 Q12,2 20,4 Q28,2 32,10" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="3"/>
+  <ellipse cx="8" cy="10" rx="3" ry="5" fill="#1a1a1a"/>
+  <ellipse cx="32" cy="10" rx="3" ry="5" fill="#1a1a1a"/>
+  
+  <!-- Eyes -->
+  <circle cx="15" cy="10" r="2.5" fill="white"/>
+  <circle cx="25" cy="10" r="2.5" fill="white"/>
+  <circle cx="15" cy="10" r="1.5" fill="#333"/>
+  <circle cx="25" cy="10" r="1.5" fill="#333"/>
+  
+  <!-- Eyebrows (thick) -->
+  <rect x="12" y="5" width="7" height="2" fill="#1a1a1a" rx="1"/>
+  <rect x="21" y="5" width="7" height="2" fill="#1a1a1a" rx="1"/>
+  
+  <!-- Mustache -->
+  <path d="M11,17 Q20,24 29,17" fill="#1a1a1a"/>
+  <ellipse cx="20" cy="17" rx="6" ry="3" fill="#1a1a1a"/>
+  
+  <!-- Mouth (smile) -->
+  <path d="M15,20 Q20,23 25,20" fill="none" stroke="#a0522d" stroke-width="1"/>
+</svg>
