@@ -14,13 +14,20 @@
         <div class="reconnect-icon">
             <i class="bi bi-wifi-off"></i>
         </div>
+        <div class="reconnect-logo" aria-hidden="true">
+            <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+        </div>
         <h3 class="reconnect-title">Ligação Perdida</h3>
-        <p class="reconnect-message">A tentar restabelecer a ligação ao servidor...</p>
+        <p class="reconnect-message reconnect-message-default">A tentar restabelecer a ligação ao servidor...</p>
+        <p class="reconnect-message reconnect-message-pwa">Sem ligação. A aplicação vai tentar reconectar automaticamente.</p>
         <div class="reconnect-spinner">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">A restabelecer ligação...</span>
             </div>
         </div>
+        <button class="btn btn-primary reconnect-reload" type="button" onclick="location.reload()">
+            Recarregar
+        </button>
     </div>
 </div>
 

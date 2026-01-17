@@ -20,6 +20,12 @@
     display: flex;
 }
 
+/* Loading state - show logo */
+:global(body.components-reconnect-show) .reconnect-logo {
+    display: flex;
+    justify-content: center;
+}
+
 .reconnect-content {
     background: white;
     border-radius: 12px;
@@ -47,9 +53,31 @@
     margin-bottom: 1.5rem;
 }
 
+.reconnect-logo {
+    display: none;
+    margin: 1rem 0 1.25rem;
+}
+
+.reconnect-logo img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+}
+
+.reconnect-message-pwa {
+    display: none;
+}
+
 .reconnect-spinner {
     display: flex;
     justify-content: center;
+}
+
+.reconnect-reload {
+    display: none;
+    margin-top: 1.5rem;
+    padding: 0.6rem 1.6rem;
+    font-weight: 600;
 }
 
 /* Failed and rejected states - common styles */
@@ -73,4 +101,66 @@
 
 :global(body.components-reconnect-rejected) .reconnect-title::after {
     content: " - Rejeitada";
+}
+
+/* PWA-specific styling */
+:global(html.pwa-mode) .reconnect-modal {
+    background: rgba(6, 10, 20, 0.9);
+    backdrop-filter: blur(6px);
+}
+
+:global(html.pwa-mode) .reconnect-content {
+    background: #0f1118;
+    color: #ffffff;
+    border-radius: 18px;
+    max-width: 320px;
+    padding: 2.25rem 1.75rem;
+    border: 2px solid #7c4dff;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+}
+
+:global(html.pwa-mode) .reconnect-title {
+    color: #ffffff;
+}
+
+:global(html.pwa-mode) .reconnect-message-default {
+    display: none;
+}
+
+:global(html.pwa-mode) .reconnect-message-pwa {
+    display: block;
+    color: #ffffff;
+}
+
+:global(html.pwa-mode) .reconnect-icon {
+    color: #ffffff;
+}
+
+:global(html.pwa-mode) .reconnect-message {
+    color: #ffffff;
+}
+
+:global(html.pwa-mode) .reconnect-reload {
+    background: #6f42c1;
+    border-color: #6f42c1;
+}
+
+:global(html.pwa-mode) .reconnect-reload:hover,
+:global(html.pwa-mode) .reconnect-reload:focus {
+    background: #5b34a1;
+    border-color: #5b34a1;
+}
+
+:global(html.pwa-mode body.components-reconnect-failed) .reconnect-reload,
+:global(html.pwa-mode body.components-reconnect-rejected) .reconnect-reload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:global(html.pwa-mode body.components-reconnect-failed) .reconnect-message::after,
+:global(html.pwa-mode body.components-reconnect-rejected) .reconnect-message::after {
+    content: " Toque em recarregar para voltar a entrar.";
+    color: #f2b8b5;
+    font-weight: 600;
 }
