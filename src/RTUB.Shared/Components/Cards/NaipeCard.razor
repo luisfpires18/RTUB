@@ -12,13 +12,13 @@
             <div class="naipe-admin-overlay">
                 @if (CanEdit)
                 {
-                    <button class="btn btn-sm btn-light" @onclick="OnEdit" title="Editar">
+                    <button class="btn btn-sm admin-btn-edit" @onclick="OnEdit" @onclick:stopPropagation="true" title="Editar">
                         <i class="bi bi-pencil"></i>
                     </button>
                 }
                 @if (CanDelete)
                 {
-                    <button class="btn btn-sm btn-danger" @onclick="OnDelete" title="Eliminar">
+                    <button class="btn btn-sm admin-btn-delete" @onclick="OnDelete" @onclick:stopPropagation="true" title="Eliminar">
                         <i class="bi bi-trash"></i>
                     </button>
                 }

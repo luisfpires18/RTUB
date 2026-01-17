@@ -23,15 +23,11 @@
         </div>
 
         <div class="page-header-actions justify-content-lg-end">
-            <AuthorizeView Roles="Owner">
-                <Authorized>
-                    <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
-                        <i class="bi bi-sliders"></i> Configurar
-                    </a>
-                </Authorized>
-            </AuthorizeView>
             @if (isAdmin)
             {
+                <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
+                    <i class="bi bi-sliders"></i> Configurar
+                </a>
                 <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
                     <i class="bi bi-camera-video"></i> Adicionar Vídeo
                 </button>
@@ -110,100 +106,109 @@ else
     </div>
 
     <!-- Pagination -->
-    @if (filteredContent.Count > pageSize)
-    {
-        <TablePagination TotalItems="@filteredContent.Count"
-                        PageSize="@pageSize"
-                        CurrentPage="@currentPage"
-                        OnPageChanged="@HandlePageChanged" />
-    }
+    <TablePagination TotalItems="@filteredContent.Count"
+                     PageSize="@pageSize"
+                     CurrentPage="@currentPage"
+                     ItemLabel="conteúdos"
+                     PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                     OnPageChanged="@HandlePageChanged"
+                     OnPageSizeChanged="@HandlePageSizeChanged" />
 }
 
 <!-- View Content Modal -->
-<Modal @bind-Show="showViewModal" Size="Modal.ModalSize.ExtraLarge" Title="@viewingContent?.Title">
-    <BodyContent>
-        @if (viewingContent != null)
-        {
-            <!-- Media Display -->
-            <div class="naipe-view-media mb-4">
+@if (viewingContent != null)
+{
+    <DetailsModal Show="@showViewModal"
+                  ShowChanged="@((bool show) => showViewModal = show)"
+                  Title="Detalhes do Conteúdo"
+                  HeaderTitle="@viewingContent.Title"
+                  IconClass="@(viewingContent.IsVideo ? "bi-camera-video" : "bi-image")"
+                  Size="Modal.ModalSize.ExtraLarge"
+                  OnClose="@CloseViewModal">
+        <BadgesContent>
+            <span class="badge bg-primary">
+                <i class="bi bi-music-note"></i> @StatusHelper.GetInstrumentDisplay(viewingContent.InstrumentType)
+            </span>
+            <span class="badge bg-primary">
+                <i class="bi bi-@(viewingContent.IsVideo ? "camera-video" : "image")"></i> @(viewingContent.IsVideo ? "Vídeo" : "Imagem")
+            </span>
+        </BadgesContent>
+        <Sections>
+            <!-- Media Display Section -->
+            <InfoSection SectionTitle="@(viewingContent.IsVideo ? "Vídeo" : "Imagem")"
+                        IconClass="@(viewingContent.IsVideo ? "bi-play-circle" : "bi-image")"
+                        CssClass="mb-4">
                 @if (viewingContent.IsVideo)
                 {
-                    <video controls class="w-100" style="max-height: 500px; background: #000;">
+                    <video controls class="w-100 rounded" style="max-height: 400px; background: #000;">
                         <source src="@viewingContent.Url" type="@viewingContent.MimeType">
                         O seu navegador não suporta a reprodução de vídeo.
                     </video>
                 }
                 else
                 {
-                    <img src="@viewingContent.Url" alt="@viewingContent.Title" class="img-fluid w-100" style="max-height: 600px; object-fit: contain; background: #000;" />
+                    <img src="@viewingContent.Url" alt="@viewingContent.Title" 
+                         class="img-fluid w-100 rounded" 
+                         style="max-height: 500px; object-fit: contain; background: #000;" />
                 }
-            </div>
+            </InfoSection>
 
-            <!-- Description -->
+            <!-- Description Section -->
             @if (!string.IsNullOrWhiteSpace(viewingContent.Description))
             {
-                <div class="naipe-view-description mb-4">
-                    <h5><i class="bi bi-info-circle"></i> Descrição</h5>
-                    <p class="text-light-theme">@viewingContent.Description</p>
-                </div>
+                <InfoSection SectionTitle="Descrição"
+                            IconClass="bi-file-text"
+                            CssClass="mb-4">
+                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingContent.Description</p>
+                </InfoSection>
             }
 
-            <!-- Metadata -->
-            <div class="naipe-view-metadata mb-4 d-flex gap-3 flex-wrap">
-                <div class="badge bg-purple">
-                    <i class="bi bi-music-note"></i> @StatusHelper.GetInstrumentDisplay(viewingContent.InstrumentType)
-                </div>
-                <div class="badge bg-secondary">
-                    <i class="bi bi-eye"></i> @viewingContent.PlayCount visualizações
-                </div>
-                <div class="badge bg-secondary">
-                    <i class="bi bi-person"></i> Por @viewingContent.CreatedByUserName
-                </div>
-                <div class="badge bg-secondary">
-                    <i class="bi bi-calendar"></i> @viewingContent.CreatedAt.ToString("dd/MM/yyyy")
-                </div>
-            </div>
+            <!-- Metadata Section -->
+            <InfoSection SectionTitle="Informação"
+                        IconClass="bi-info-circle-fill"
+                        CssClass="mb-4">
+                <ProfileField Label="Visualizações" Value="@viewingContent.PlayCount.ToString()" Icon="bi-eye" />
+                <ProfileField Label="Criado por" Value="@viewingContent.CreatedByUserName" Icon="bi-person" />
+                <ProfileField Label="Data de Criação" Value="@viewingContent.CreatedAt.ToString("dd/MM/yyyy HH:mm")" Icon="bi-calendar" />
+            </InfoSection>
 
             <!-- Comments Section -->
-            <div class="naipe-comments-section">
-                <h5 class="mb-3">
-                    <i class="bi bi-chat-dots"></i> Comentários (@comments.Count)
-                </h5>
-
+            <InfoSection SectionTitle="@($"Comentários ({comments.Count})")"
+                        IconClass="bi-chat-left-text"
+                        CssClass="mb-3">
                 <!-- Add Comment Form -->
-                <div class="add-comment-form mb-4">
-                    <EditForm Model="@newCommentText" OnValidSubmit="@AddComment">
-                        <div class="input-group">
-                            <InputTextArea class="form-control" 
-                                          @bind-Value="newCommentText" 
-                                          placeholder="Adicionar comentário..." 
-                                          rows="2" />
-                            <button type="submit" class="btn btn-purple" disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
-                                @if (isAddingComment)
-                                {
-                                    <span class="spinner-border spinner-border-sm" role="status"></span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-send"></i>
-                                }
-                            </button>
-                        </div>
-                    </EditForm>
+                <div class="add-comment-form mb-3">
+                    <textarea class="form-control mb-2" 
+                              rows="2" 
+                              placeholder="Escrever um comentário..."
+                              maxlength="1000"
+                              @bind="newCommentText"></textarea>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
+                        <button class="btn btn-primary btn-sm" 
+                                @onclick="AddComment"
+                                disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                            @if (isAddingComment)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Publicar
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Comments List -->
                 @if (loadingComments)
                 {
                     <div class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">A carregar comentários...</span>
+                        </div>
                     </div>
                 }
                 else if (!comments.Any())
                 {
-                    <EmptyState Title="Sem comentários"
-                               Icon="bi-chat"
-                               Message="Seja o primeiro a comentar!" />
+                    <p class="text-muted text-center py-3">Ainda não há comentários</p>
                 }
                 else
                 {
@@ -214,13 +219,10 @@ else
                         }
                     </div>
                 }
-            </div>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Fechar</button>
-    </FooterContent>
-</Modal>
+            </InfoSection>
+        </Sections>
+    </DetailsModal>
+}
 
 <!-- Create/Edit Modal -->
 <Modal @bind-Show="showCreateEditModal" Size="Modal.ModalSize.Large" Title="@(editingContent == null ? (isVideoMode ? "Adicionar Vídeo" : "Adicionar Imagem") : "Editar Conteúdo")">
@@ -456,6 +458,13 @@ else
     private void HandlePageChanged(int page)
     {
         currentPage = page;
+        ApplyFilters();
+    }
+
+    private void HandlePageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
         ApplyFilters();
     }
 

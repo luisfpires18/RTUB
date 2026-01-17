@@ -7,7 +7,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Enums
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Owner")]
+@attribute [Authorize(Roles = "Admin")]
 @inject INaipeService NaipeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
@@ -38,149 +38,233 @@
 }
 else
 {
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-music-note-list me-2"></i>Tipos de Instrumento</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-4">Configure a visibilidade, ordem e imagem de cada tipo de instrumento. As alterações são guardadas automaticamente.</p>
-            
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px;">Imagem</th>
-                            <th>Tipo de Instrumento</th>
-                            <th style="width: 120px;">Ordem</th>
-                            <th style="width: 120px;">Visível</th>
-                            <th style="width: 150px;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var config in typeConfigs)
+    <div class="alert alert-info identity-alert-info mb-4">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <strong>Dica:</strong> Números de ordem menores aparecem primeiro. Tipos ocultos não são mostrados na página Naipes.
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-6 g-3">
+        @foreach (var config in typeConfigs)
+        {
+            <div class="col">
+                <div class="naipe-type-card @(!config.IsVisible ? "is-hidden" : "")">
+                    <!-- Edit button -->
+                    <button class="btn btn-sm admin-btn-edit naipe-type-edit-btn" 
+                            @onclick="() => OpenEditModal(config)" 
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+
+                    <!-- Image/Icon -->
+                    <div class="naipe-type-image-wrapper">
+                        @if (!string.IsNullOrEmpty(config.PictureUrl))
                         {
-                            <tr class="@(!config.IsVisible ? "opacity-50" : "")">
-                                <td>
-                                    @if (!string.IsNullOrEmpty(config.PictureUrl))
-                                    {
-                                        <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" 
-                                             class="rounded-circle" 
-                                             style="width: 50px; height: 50px; object-fit: cover; border: 2px solid var(--bs-primary);" />
-                                    }
-                                    else
-                                    {
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
-                                             style="width: 50px; height: 50px; background-color: var(--bs-primary);">
-                                            <i class="bi bi-music-note text-white fs-5"></i>
-                                        </div>
-                                    }
-                                </td>
-                                <td>
-                                    <strong class="fs-5">@config.InstrumentTypeName</strong>
-                                    @if (!config.IsVisible)
-                                    {
-                                        <span class="badge bg-secondary ms-2">Oculto</span>
-                                    }
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control" 
-                                           value="@config.SortOrder" 
-                                           @onchange="@(e => UpdateSortOrder(config, int.TryParse(e.Value?.ToString(), out var v) ? v : 0))"
-                                           min="0" max="999" />
-                                </td>
-                                <td>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch"
-                                               id="visible-@config.Id"
-                                               checked="@config.IsVisible"
-                                               @onchange="@(e => UpdateVisibility(config, (bool)(e.Value ?? false)))" />
-                                        <label class="form-check-label" for="visible-@config.Id">
-                                            @(config.IsVisible ? "Sim" : "Não")
-                                        </label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-purple" @onclick="() => OpenImageUploadModal(config)" title="Alterar imagem">
-                                        <i class="bi bi-camera"></i> Imagem
-                                    </button>
-                                    @if (!string.IsNullOrEmpty(config.PictureUrl))
-                                    {
-                                        <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => RemoveImage(config)" title="Remover imagem">
-                                            <i class="bi bi-x"></i>
-                                        </button>
-                                    }
-                                </td>
-                            </tr>
+                            <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" class="naipe-type-image" />
                         }
-                    </tbody>
-                </table>
+                        else
+                        {
+                            <div class="naipe-type-placeholder">
+                                <i class="bi bi-music-note"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Name -->
+                    <div class="naipe-type-name">@config.InstrumentTypeName</div>
+
+                    <!-- Badges -->
+                    <div class="naipe-type-badges">
+                        <span class="badge bg-primary">Ordem: @config.SortOrder</span>
+                        @if (!config.IsVisible)
+                        {
+                            <span class="badge bg-secondary">Oculto</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Visível</span>
+                        }
+                    </div>
+                </div>
             </div>
-            
-            <div class="alert alert-info mt-4 identity-alert-info">
-                <i class="bi bi-info-circle-fill me-2"></i>
-                <strong>Dica:</strong> Números de ordem menores aparecem primeiro. Tipos ocultos não são mostrados na página Naipes.
-            </div>
-        </div>
+        }
     </div>
 }
 
-<!-- Image Upload Modal -->
-<Modal @bind-Show="showImageModal" Title="@($"Imagem para {editingConfig?.InstrumentTypeName}")">
+<!-- Edit Modal -->
+<Modal @bind-Show="showEditModal" Title="@($"Editar {editingConfig?.InstrumentTypeName}")">
     <BodyContent>
-        <div class="mb-3">
-            <label class="form-label">Selecione uma imagem para este tipo de instrumento</label>
-            <div class="localized-file-picker">
-                <InputFile id="@imageInputId" 
-                           @key="imageUploadKey"
-                           class="d-none" 
-                           OnChange="HandleImageSelected" 
-                           accept="image/*" />
-                <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
-                    <i class="bi bi-upload me-2"></i>Escolher imagem
-                </label>
-                <span class="localized-file-name">@(selectedFileName ?? "Nenhuma imagem selecionada")</span>
-            </div>
-            <small class="text-muted d-block mt-1">
-                <i class="bi bi-info-circle me-1"></i>Formatos suportados: JPG, PNG, WebP. Tamanho máximo: 5MB
-            </small>
-        </div>
-        @if (editingConfig?.PictureUrl != null)
+        @if (editingConfig != null)
         {
-            <div class="mt-3 text-center">
-                <small class="text-muted d-block mb-2">Imagem atual:</small>
-                <img src="@editingConfig.PictureUrl" alt="Current" 
-                     class="img-thumbnail rounded-circle" 
-                     style="width: 120px; height: 120px; object-fit: cover;" />
+            <!-- Current Image Preview -->
+            <div class="mb-4 text-center">
+                @if (!string.IsNullOrEmpty(editingConfig.PictureUrl))
+                {
+                    <img src="@editingConfig.PictureUrl" alt="@editingConfig.InstrumentTypeName" 
+                         class="rounded-circle mb-2" 
+                         style="width: 100px; height: 100px; object-fit: cover; border: 3px solid var(--bs-primary);" />
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveCurrentImage">
+                            <i class="bi bi-trash me-1"></i>Remover Imagem
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                         style="width: 100px; height: 100px; background-color: var(--bs-primary);">
+                        <i class="bi bi-music-note text-white" style="font-size: 2.5rem;"></i>
+                    </div>
+                }
+            </div>
+
+            <!-- Image Upload -->
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                <div class="localized-file-picker">
+                    <InputFile id="@imageInputId" 
+                               @key="imageUploadKey"
+                               class="d-none" 
+                               OnChange="HandleImageSelected" 
+                               accept="image/*" />
+                    <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
+                        <i class="bi bi-upload me-2"></i>Escolher imagem
+                    </label>
+                    <span class="localized-file-name">@(selectedFileName ?? "Nenhuma imagem selecionada")</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle me-1"></i>Formatos suportados: JPG, PNG, WebP. Tamanho máximo: 5MB
+                </small>
+            </div>
+
+            <!-- Sort Order -->
+            <div class="mb-3">
+                <label class="form-label">Ordem de Exibição</label>
+                <input type="number" class="form-control" 
+                       @bind="editFormSortOrder" 
+                       min="0" max="999" />
+                <small class="text-muted d-block mt-1">Números menores aparecem primeiro.</small>
+            </div>
+
+            <!-- Visibility -->
+            <div class="mb-3">
+                <label class="form-label">Visibilidade</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="edit-visibility"
+                           @bind="editFormIsVisible" />
+                    <label class="form-check-label" for="edit-visibility">
+                        @(editFormIsVisible ? "Visível na página Naipes" : "Oculto na página Naipes")
+                    </label>
+                </div>
             </div>
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseImageModal">Cancelar</button>
-        <button type="button" class="btn btn-purple" @onclick="UploadImage" disabled="@(selectedFile == null || uploading)">
-            @if (uploading)
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="button" class="btn btn-purple" @onclick="SaveEdit" disabled="@saving">
+            @if (saving)
             {
                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                 <span>A guardar...</span>
             }
             else
             {
-                <i class="bi bi-upload me-1"></i>
-                <span>Guardar Imagem</span>
+                <i class="bi bi-check-lg me-1"></i>
+                <span>Guardar</span>
             }
         </button>
     </FooterContent>
 </Modal>
 
+<style>
+    .naipe-type-card {
+        background-color: #151516;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        position: relative;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .naipe-type-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--bs-primary);
+    }
+
+    .naipe-type-card.is-hidden {
+        opacity: 0.5;
+    }
+
+    .naipe-type-edit-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 10;
+    }
+
+    .naipe-type-image-wrapper {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 0.75rem;
+    }
+
+    .naipe-type-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--bs-primary);
+    }
+
+    .naipe-type-placeholder {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: var(--bs-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .naipe-type-placeholder i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    .naipe-type-name {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+        color: #e2e2e2;
+    }
+
+    .naipe-type-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .naipe-type-badges .badge {
+        font-size: 0.7rem;
+    }
+</style>
+
 @code {
     private bool loading = true;
     private List<NaipeTypeConfigDto> typeConfigs = new();
     
-    // Image upload state
-    private bool showImageModal = false;
+    // Edit modal state
+    private bool showEditModal = false;
     private NaipeTypeConfigDto? editingConfig;
+    private int editFormSortOrder;
+    private bool editFormIsVisible;
+    private bool saving = false;
+    
+    // Image upload state
     private IBrowserFile? selectedFile;
     private string? selectedFileName;
-    private bool uploading = false;
     private Guid imageUploadKey = Guid.NewGuid();
     private string imageInputId = $"naipe-type-image-{Guid.NewGuid():N}";
 
@@ -204,49 +288,20 @@ else
         }
     }
 
-    private async Task UpdateSortOrder(NaipeTypeConfigDto config, int newOrder)
-    {
-        try
-        {
-            await NaipeService.UpdateTypeConfigAsync(config.Id, config.PictureUrl, config.IsVisible, newOrder);
-            config.SortOrder = newOrder;
-            
-            // Re-sort the list
-            typeConfigs = typeConfigs.OrderBy(c => c.SortOrder).ThenBy(c => c.InstrumentTypeName).ToList();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao atualizar ordem: {ex.Message}");
-        }
-    }
-
-    private async Task UpdateVisibility(NaipeTypeConfigDto config, bool isVisible)
-    {
-        try
-        {
-            await NaipeService.UpdateTypeConfigAsync(config.Id, config.PictureUrl, isVisible, config.SortOrder);
-            config.IsVisible = isVisible;
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao atualizar visibilidade: {ex.Message}");
-        }
-    }
-
-    private void OpenImageUploadModal(NaipeTypeConfigDto config)
+    private void OpenEditModal(NaipeTypeConfigDto config)
     {
         editingConfig = config;
+        editFormSortOrder = config.SortOrder;
+        editFormIsVisible = config.IsVisible;
         selectedFile = null;
         selectedFileName = null;
         imageUploadKey = Guid.NewGuid();
-        showImageModal = true;
+        showEditModal = true;
     }
 
-    private void CloseImageModal()
+    private void CloseEditModal()
     {
-        showImageModal = false;
+        showEditModal = false;
         editingConfig = null;
         selectedFile = null;
         selectedFileName = null;
@@ -269,46 +324,65 @@ else
         StateHasChanged();
     }
 
-    private async Task UploadImage()
+    private async Task SaveEdit()
     {
-        if (editingConfig == null || selectedFile == null)
+        if (editingConfig == null)
             return;
 
-        uploading = true;
+        saving = true;
         try
         {
-            var maxFileSize = 5 * 1024 * 1024L;
-            using var browserStream = selectedFile.OpenReadStream(maxFileSize);
-            using var memoryStream = new MemoryStream();
-            await browserStream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
+            string? newPictureUrl = editingConfig.PictureUrl;
 
-            var newUrl = await NaipeService.UploadTypeConfigPictureAsync(
-                editingConfig.Id,
-                memoryStream,
-                selectedFile.Name,
-                selectedFile.ContentType
-            );
+            // Upload new image if selected
+            if (selectedFile != null)
+            {
+                var maxFileSize = 5 * 1024 * 1024L;
+                using var browserStream = selectedFile.OpenReadStream(maxFileSize);
+                using var memoryStream = new MemoryStream();
+                await browserStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
 
-            editingConfig.PictureUrl = newUrl;
-            CloseImageModal();
+                newPictureUrl = await NaipeService.UploadTypeConfigPictureAsync(
+                    editingConfig.Id,
+                    memoryStream,
+                    selectedFile.Name,
+                    selectedFile.ContentType
+                );
+            }
+
+            // Update the config
+            await NaipeService.UpdateTypeConfigAsync(editingConfig.Id, newPictureUrl, editFormIsVisible, editFormSortOrder);
+            
+            // Update local state
+            editingConfig.PictureUrl = newPictureUrl;
+            editingConfig.IsVisible = editFormIsVisible;
+            editingConfig.SortOrder = editFormSortOrder;
+            
+            // Re-sort the list
+            typeConfigs = typeConfigs.OrderBy(c => c.SortOrder).ThenBy(c => c.InstrumentTypeName).ToList();
+            
+            CloseEditModal();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao carregar imagem: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao guardar: {ex.Message}");
         }
         finally
         {
-            uploading = false;
+            saving = false;
         }
     }
 
-    private async Task RemoveImage(NaipeTypeConfigDto config)
+    private async Task RemoveCurrentImage()
     {
+        if (editingConfig == null)
+            return;
+
         try
         {
-            await NaipeService.UpdateTypeConfigAsync(config.Id, null, config.IsVisible, config.SortOrder);
-            config.PictureUrl = null;
+            await NaipeService.UpdateTypeConfigAsync(editingConfig.Id, null, editingConfig.IsVisible, editingConfig.SortOrder);
+            editingConfig.PictureUrl = null;
             StateHasChanged();
         }
         catch (Exception ex)
