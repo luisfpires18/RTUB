@@ -268,7 +268,7 @@ const bmrGame = (function () {
                     x: x,
                     width: holeWidth
                 });
-                x += holeWidth + 50 * scaleX;
+                x += holeWidth + 80 * scaleX; // More space after holes
             } else if (element < 0.30) {
                 // Pipe
                 const pipeWidth = 50 * scaleX;
@@ -279,7 +279,7 @@ const bmrGame = (function () {
                     width: pipeWidth,
                     height: pipeHeight
                 });
-                x += pipeWidth + (100 + Math.random() * 100) * scaleX;
+                x += pipeWidth + (120 + Math.random() * 100) * scaleX; // More space after pipes
             } else if (element < 0.45) {
                 // Platform with possible question box
                 const platformWidth = (80 + Math.random() * 80) * scaleX;
@@ -292,7 +292,7 @@ const bmrGame = (function () {
                     height: PLATFORM_HEIGHT * scaleY
                 });
                 
-                // 50% chance to add question box above platform
+                // 50% chance to add question box above platform (no overlap possible since it's above)
                 if (Math.random() > 0.5) {
                     questionBoxes.push({
                         x: x + platformWidth / 2 - 16 * scaleX,
@@ -303,17 +303,36 @@ const bmrGame = (function () {
                     });
                 }
                 
-                x += platformWidth + (80 + Math.random() * 80) * scaleX;
+                x += platformWidth + (100 + Math.random() * 80) * scaleX;
             } else if (element < 0.55) {
-                // Question box at ground level (floating)
-                questionBoxes.push({
-                    x: x,
-                    y: groundY - (100 + Math.random() * 60) * scaleY,
-                    width: 32 * scaleX,
-                    height: 32 * scaleY,
-                    used: false
-                });
-                x += (100 + Math.random() * 100) * scaleX;
+                // Question box at ground level (floating) - check no overlap with pipes/holes
+                const boxX = x;
+                const boxY = groundY - (100 + Math.random() * 60) * scaleY;
+                const boxWidth = 32 * scaleX;
+                const boxHeight = 32 * scaleY;
+                
+                // Check if box would overlap with any existing pipes
+                const overlapsWithPipe = pipes.some(pipe => 
+                    boxX < pipe.x + pipe.width + 20 * scaleX && 
+                    boxX + boxWidth > pipe.x - 20 * scaleX &&
+                    boxY + boxHeight > pipe.y
+                );
+                
+                // Check if box would be over a hole
+                const overlapsWithHole = holes.some(hole =>
+                    boxX + boxWidth > hole.x && boxX < hole.x + hole.width
+                );
+                
+                if (!overlapsWithPipe && !overlapsWithHole) {
+                    questionBoxes.push({
+                        x: boxX,
+                        y: boxY,
+                        width: boxWidth,
+                        height: boxHeight,
+                        used: false
+                    });
+                }
+                x += (120 + Math.random() * 100) * scaleX;
             } else {
                 // Empty space
                 x += (80 + Math.random() * 120) * scaleX;
@@ -718,12 +737,18 @@ const bmrGame = (function () {
     
     function checkHoleCollision() {
         const scaledWidth = player.width * scaleX;
+        const scaledHeight = player.height * scaleY;
         const playerCenterX = player.x + scaledWidth / 2;
+        const playerBottom = player.y + scaledHeight;
         
         for (const hole of holes) {
-            if (playerCenterX > hole.x && playerCenterX < hole.x + hole.width) {
-                // Player is over a hole
-                return true;
+            // Check if player center is over the hole
+            if (playerCenterX > hole.x + 10 * scaleX && playerCenterX < hole.x + hole.width - 10 * scaleX) {
+                // Only trigger death if player has fallen to ground level or below
+                // This allows jumping over holes
+                if (playerBottom >= groundY - 5 * scaleY) {
+                    return true;
+                }
             }
         }
         return false;
