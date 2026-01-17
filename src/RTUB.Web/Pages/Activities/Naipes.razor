@@ -60,15 +60,6 @@
     </div>
 </div>
 
-<!-- Search and Pagination Controls -->
-<div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-3">
-    <div class="flex-grow-1 filter-search-container">
-        <SearchBar @bind-Value="searchTerm"
-                   Placeholder="Pesquisar por título ou descrição..."
-                   OnSearch="@HandleSearchChanged" />
-    </div>
-</div>
-
 <!-- Content Grid -->
 @if (loading)
 {
@@ -85,7 +76,7 @@ else if (!selectedInstrument.HasValue)
                 Icon="bi-music-note-list"
                 Message="Selecione um tipo de instrumento acima para ver o conteúdo educativo disponível." />
 }
-else if (!filteredContent.Any())
+else if (!contentForInstrument.Any())
 {
     <EmptyState Title="Nenhum conteúdo encontrado"
                 Icon="bi-inbox"
@@ -93,27 +84,45 @@ else if (!filteredContent.Any())
 }
 else
 {
-    <div class="naipe-grid mb-3">
-        @foreach (var content in paginatedContent)
-        {
-            <NaipeCard Content="@content"
-                       PlayCount="@content.PlayCount"
-                       CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
-                       CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
-                       OnView="@(() => OpenViewModal(content))"
-                       OnEdit="@(() => OpenEditModal(content))"
-                       OnDelete="@(() => OpenDeleteConfirmation(content))" />
-        }
+    <!-- Search Bar - only shown when instrument is selected and has content -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-3">
+        <div class="flex-grow-1 filter-search-container">
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar por título ou descrição..."
+                       OnSearch="@HandleSearchChanged" />
+        </div>
     </div>
 
-    <!-- Pagination -->
-    <TablePagination TotalItems="@filteredContent.Count"
-                     PageSize="@pageSize"
-                     CurrentPage="@currentPage"
-                     ItemLabel="conteúdos"
-                     PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
-                     OnPageChanged="@HandlePageChanged"
-                     OnPageSizeChanged="@HandlePageSizeChanged" />
+    @if (!paginatedContent.Any() && !string.IsNullOrWhiteSpace(searchTerm))
+    {
+        <EmptyState Title="Nenhum resultado"
+                    Icon="bi-search"
+                    Message="@($"Não foram encontrados conteúdos para \"{searchTerm}\".")" />
+    }
+    else
+    {
+        <div class="naipe-grid mb-3">
+            @foreach (var content in paginatedContent)
+            {
+                <NaipeCard Content="@content"
+                           PlayCount="@content.PlayCount"
+                           CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           OnView="@(() => OpenViewModal(content))"
+                           OnEdit="@(() => OpenEditModal(content))"
+                           OnDelete="@(() => OpenDeleteConfirmation(content))" />
+            }
+        </div>
+
+        <!-- Pagination -->
+        <TablePagination TotalItems="@filteredContent.Count"
+                         PageSize="@pageSize"
+                         CurrentPage="@currentPage"
+                         ItemLabel="conteúdos"
+                         PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                         OnPageChanged="@HandlePageChanged"
+                         OnPageSizeChanged="@HandlePageSizeChanged" />
+    }
 }
 
 <!-- View Content Modal -->
@@ -336,6 +345,7 @@ else
     private List<NaipeContentDto> allContent = new();
     private List<NaipeContentDto> filteredContent = new();
     private List<NaipeContentDto> paginatedContent = new();
+    private List<NaipeContentDto> contentForInstrument = new(); // Content for selected instrument (no search filter)
     private InstrumentType? selectedInstrument = null;
     private string searchTerm = string.Empty;
     
@@ -426,15 +436,18 @@ else
 
     private void ApplyFilters()
     {
-        filteredContent = allContent;
-
-        // Filter by instrument type
+        // First, get content for the selected instrument (no search filter)
         if (selectedInstrument.HasValue)
         {
-            filteredContent = filteredContent.Where(c => c.InstrumentType == selectedInstrument.Value).ToList();
+            contentForInstrument = allContent.Where(c => c.InstrumentType == selectedInstrument.Value).ToList();
+        }
+        else
+        {
+            contentForInstrument = new List<NaipeContentDto>();
         }
 
-        // Filter by search term
+        // Apply search filter
+        filteredContent = contentForInstrument;
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.ToLower();
@@ -687,7 +700,9 @@ else
                     editingContent.Id,
                     contentForm.Title,
                     contentForm.Description,
-                    contentForm.SortOrder
+                    contentForm.SortOrder,
+                    currentUserId!,
+                    isAdmin
                 );
 
                 // Update local copy
@@ -740,7 +755,7 @@ else
 
         try
         {
-            await NaipeService.DeleteContentAsync(contentToDelete.Id);
+            await NaipeService.DeleteContentAsync(contentToDelete.Id, currentUserId!, isAdmin);
             allContent.Remove(contentToDelete);
             ApplyFilters();
             contentToDelete = null;

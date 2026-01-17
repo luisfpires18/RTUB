@@ -29,14 +29,14 @@ public interface INaipeService
     Task<NaipeContentDto> CreateContentAsync(InstrumentType type, string title, string? description, Stream fileStream, string fileName, string mimeType, bool isVideo, decimal sortOrder, string userId);
 
     /// <summary>
-    /// Update existing content
+    /// Update existing content (only owner or admin can update)
     /// </summary>
-    Task UpdateContentAsync(int id, string title, string? description, decimal sortOrder);
+    Task UpdateContentAsync(int id, string title, string? description, decimal sortOrder, string userId, bool isAdmin);
 
     /// <summary>
-    /// Delete content
+    /// Delete content (only owner or admin can delete)
     /// </summary>
-    Task DeleteContentAsync(int id);
+    Task DeleteContentAsync(int id, string userId, bool isAdmin);
 
     /// <summary>
     /// Increment play/view count for content

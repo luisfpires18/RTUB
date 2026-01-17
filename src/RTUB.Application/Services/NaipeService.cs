@@ -107,21 +107,19 @@ public class NaipeService : INaipeService
         return MapToDto(createdContent);
     }
 
-    public async Task UpdateContentAsync(int id, string title, string? description, decimal sortOrder)
+    public async Task UpdateContentAsync(int id, string title, string? description, decimal sortOrder, string userId, bool isAdmin)
     {
         var content = await _naipeContentRepository.GetByIdAsync(id);
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
         // Only owner or admin can update content
-        var currentUserId = _auditContext.UserId;
-        var isOwner = content.CreatedByUserId == currentUserId;
-        var isAdminUser = await IsUserAdminAsync(currentUserId);
+        var isOwner = content.CreatedByUserId == userId;
         
-        if (!isOwner && !isAdminUser)
+        if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can update naipe content.");
 
-        var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
+        var user = await _userManager.FindByIdAsync(userId);
 
         content.Update(title, description, sortOrder);
         await _naipeContentRepository.UpdateAsync(content);
@@ -135,21 +133,19 @@ public class NaipeService : INaipeService
         );
     }
 
-    public async Task DeleteContentAsync(int id)
+    public async Task DeleteContentAsync(int id, string userId, bool isAdmin)
     {
         var content = await _naipeContentRepository.GetByIdAsync(id);
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
         // Only owner or admin can delete content
-        var currentUserId = _auditContext.UserId;
-        var isOwner = content.CreatedByUserId == currentUserId;
-        var isAdminUser = await IsUserAdminAsync(currentUserId);
+        var isOwner = content.CreatedByUserId == userId;
         
-        if (!isOwner && !isAdminUser)
+        if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can delete naipe content.");
 
-        var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
+        var user = await _userManager.FindByIdAsync(userId);
         var contentType = content.IsVideo ? "Video" : "Image";
         var contentTitle = content.Title;
         var instrumentType = content.InstrumentType;
