@@ -59,6 +59,19 @@
                     @(Transaction.Type == "Income" ? "+" : "-")€@Transaction.Amount.ToString("N2")
                 </span>
             </div>
+            <div class="transaction-info-row">
+                <i class="bi bi-person transaction-icon"></i>
+                <span class="transaction-label">Criado por</span>
+                <span class="transaction-text">@FormatField(Transaction.CreatedBy)</span>
+            </div>
+            @if (HasUpdatedBy)
+            {
+                <div class="transaction-info-row">
+                    <i class="bi bi-person-check transaction-icon"></i>
+                    <span class="transaction-label">Atualizado por</span>
+                    <span class="transaction-text">@FormatField(Transaction.UpdatedBy)</span>
+                </div>
+            }
         </div>
 
         @if (HasFooterActions)
@@ -98,6 +111,7 @@
 
     private bool HasFooterActions => !string.IsNullOrEmpty(Transaction.ReceiptUrl);
     private bool IsExpense => Transaction.Type != "Income";
+    private bool HasUpdatedBy => !string.IsNullOrWhiteSpace(Transaction.UpdatedBy);
 
     private async Task HandleEdit()
     {
