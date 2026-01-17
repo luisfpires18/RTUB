@@ -637,6 +637,13 @@ else
     {
         if (currentUserId == null)
             return;
+
+        // Only admins can create/edit content
+        if (!isAdmin)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas administradores podem criar ou editar conteúdo.");
+            return;
+        }
         
         // Validate file is selected for new content
         if (editingContent == null && selectedFile == null)
@@ -723,6 +730,13 @@ else
     {
         if (contentToDelete == null)
             return;
+
+        // Only admins can delete content
+        if (!isAdmin)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas administradores podem eliminar conteúdo.");
+            return;
+        }
 
         try
         {

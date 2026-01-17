@@ -77,6 +77,10 @@ public class NaipeService : INaipeService
         if (user == null)
             throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
+        // Only admins can create content
+        if (!await IsUserAdminAsync(userId))
+            throw new UnauthorizedAccessException("Only administrators can create naipe content.");
+
         // Upload file to Cloudflare R2
         string url;
         if (isVideo)
@@ -111,7 +115,12 @@ public class NaipeService : INaipeService
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
-        var user = await _userManager.FindByIdAsync(_auditContext.UserId ?? string.Empty);
+        // Only admins can update content
+        var currentUserId = _auditContext.UserId;
+        if (!await IsUserAdminAsync(currentUserId))
+            throw new UnauthorizedAccessException("Only administrators can update naipe content.");
+
+        var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
 
         content.Update(title, description, sortOrder);
         await _naipeContentRepository.UpdateAsync(content);
@@ -131,7 +140,12 @@ public class NaipeService : INaipeService
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
-        var user = await _userManager.FindByIdAsync(_auditContext.UserId ?? string.Empty);
+        // Only admins can delete content
+        var currentUserId = _auditContext.UserId;
+        if (!await IsUserAdminAsync(currentUserId))
+            throw new UnauthorizedAccessException("Only administrators can delete naipe content.");
+
+        var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
         var contentType = content.IsVideo ? "Video" : "Image";
         var contentTitle = content.Title;
         var instrumentType = content.InstrumentType;
