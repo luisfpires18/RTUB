@@ -401,14 +401,10 @@ public class GameScoreServiceTests
             .ReturnsAsync((GameScore s) => s);
 
         _mockGameScoreRepository
-            .Setup(r => r.SaveChangesAsync())
-            .ThrowsAsync(new DbUpdateException("UNIQUE constraint failed"));
-
-        _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
             .Returns(Task.CompletedTask);
 
-        // Setup SaveChangesAsync to succeed on second call (after update)
+        // Setup SaveChangesAsync to fail on first call (insert) and succeed on second call (update)
         var saveCallCount = 0;
         _mockGameScoreRepository
             .Setup(r => r.SaveChangesAsync())
