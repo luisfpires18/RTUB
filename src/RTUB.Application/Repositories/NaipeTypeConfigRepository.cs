@@ -1,0 +1,42 @@
+using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+
+namespace RTUB.Application.Repositories;
+
+/// <summary>
+/// Repository implementation for NaipeTypeConfig entity
+/// </summary>
+public class NaipeTypeConfigRepository : Repository<NaipeTypeConfig>, INaipeTypeConfigRepository
+{
+    public NaipeTypeConfigRepository(ApplicationDbContext context) : base(context)
+    {
+    }
+
+    public async Task<List<NaipeTypeConfig>> GetAllOrderedAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.InstrumentType)
+            .ToListAsync();
+    }
+
+    public async Task<List<NaipeTypeConfig>> GetVisibleOrderedAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => c.IsVisible)
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.InstrumentType)
+            .ToListAsync();
+    }
+
+    public async Task<NaipeTypeConfig?> GetByInstrumentTypeAsync(InstrumentType type)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(c => c.InstrumentType == type);
+    }
+}

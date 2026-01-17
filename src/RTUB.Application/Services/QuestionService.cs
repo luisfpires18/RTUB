@@ -67,11 +67,11 @@ public class QuestionService : IQuestionService
         var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
 
         var question = Question.Create(title, content, authorId, assignedPosition, assignedMemberId);
-        
+
         // Set navigation properties for audit log display name resolution
         if (author != null) question.Author = author;
         if (assignedMember != null) question.AssignedMember = assignedMember;
-        
+
         await _questionRepository.AddAsync(question);
 
         // Send notification to assigned member - use simple relative URL like MessagingService does
@@ -132,11 +132,11 @@ public class QuestionService : IQuestionService
         else if (authorId == question.AuthorId)
         {
             question.MarkAsInDiscussion();
-            
+
             // Notify the assigned member
             var author = await _userManager.FindByIdAsync(authorId);
             var authorName = author?.Nickname ?? author?.UserName ?? "Membro";
-            
+
             _logger.LogInformation(
                 "Question '{QuestionTitle}' user {AuthorName} replied, now in discussion",
                 question.Title, authorName);

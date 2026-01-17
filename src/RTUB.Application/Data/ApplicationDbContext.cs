@@ -108,6 +108,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Question> Questions { get; set; }
     public DbSet<QuestionReply> QuestionReplies { get; set; }
 
+    // Naipes (Educational Content) DbSets
+    public DbSet<NaipeContent> NaipeContents => Set<NaipeContent>();
+    public DbSet<NaipeComment> NaipeComments => Set<NaipeComment>();
+    public DbSet<NaipePlayCount> NaipePlayCounts => Set<NaipePlayCount>();
+    public DbSet<NaipeTypeConfig> NaipeTypeConfigs => Set<NaipeTypeConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

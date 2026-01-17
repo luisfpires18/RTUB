@@ -62,6 +62,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISongVideoRepository, SongVideoRepository>();
         services.AddScoped<IEventVideoRepository, EventVideoRepository>();
         services.AddScoped<IGalleryMediaRepository, GalleryMediaRepository>();
+        services.AddScoped<INaipeContentRepository, NaipeContentRepository>();
+        services.AddScoped<INaipeCommentRepository, NaipeCommentRepository>();
+        services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
 
         return services;
     }
@@ -90,6 +93,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IRetirementStatusService, RetirementStatusService>();
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
+        services.AddScoped<INaipeService, NaipeService>();
 
         return services;
     }
@@ -205,6 +209,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventVideoStorageService, CloudflareEventVideoStorageService>();
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
         services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
+        services.AddScoped<INaipeMediaStorageService, CloudflareNaipeMediaStorageService>();
 
         return services;
     }

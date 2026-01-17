@@ -190,7 +190,7 @@ public class MemberStatisticsService : IMemberStatisticsService
         var rehearsals = await (
             from attendance in _context.RehearsalAttendances
             join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
-            where attendance.UserId == userId 
+            where attendance.UserId == userId
                 && attendance.Attended  // Only approved/confirmed attendance
                 && !rehearsal.IsCanceled  // Exclude canceled rehearsals
                 && rehearsal.Date < beforeDateOnly  // Only past rehearsals
@@ -212,7 +212,7 @@ public class MemberStatisticsService : IMemberStatisticsService
             from enrollment in _context.Enrollments
             join evt in _context.Events on enrollment.EventId equals evt.Id
             let eventEndDate = (evt.EndDate ?? evt.Date).Date
-            where enrollment.UserId == userId 
+            where enrollment.UserId == userId
                 && enrollment.WillAttend  // Only enrolled attendees
                 && !evt.IsCancelled  // Exclude canceled events
                 && eventEndDate < beforeDateOnly  // Only past events

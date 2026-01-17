@@ -1,0 +1,785 @@
+@page "/naipes"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Application.DTOs
+@using RTUB.Shared
+@using RTUB.Core.Enums
+@attribute [Authorize]
+@inject INaipeService NaipeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-music-player"></i> Naipes</h1>
+            <p class="lead page-header-subtitle mb-0 text-light-theme">Conteúdo educativo para cada naipe (vídeos e imagens).</p>
+        </div>
+
+        <div class="page-header-actions justify-content-lg-end">
+            @if (isAdmin)
+            {
+                <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
+                    <i class="bi bi-sliders"></i> Configurar
+                </a>
+            }
+            <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
+                <i class="bi bi-camera-video"></i> Adicionar Vídeo
+            </button>
+            <button class="btn btn-success" @onclick="() => OpenCreateModal(false)" title="Adicionar Imagem">
+                <i class="bi bi-image"></i> Adicionar Imagem
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Instrument Type Selector -->
+<div class="instrument-selector-wrapper mb-4">
+    <div class="instrument-selector d-flex flex-nowrap overflow-auto py-3 gap-2">
+        @foreach (var config in typeConfigs)
+        {
+            <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")"
+                    @onclick="() => SelectInstrument(config.InstrumentType)">
+                @if (!string.IsNullOrEmpty(config.PictureUrl))
+                {
+                    <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" class="instrument-selector-image" />
+                }
+                else
+                {
+                    <i class="bi bi-music-note"></i>
+                }
+                <span>@config.InstrumentTypeName</span>
+            </button>
+        }
+    </div>
+</div>
+
+<!-- Content Grid -->
+@if (loading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+        <p class="mt-3">A carregar conteúdo...</p>
+    </div>
+}
+else if (!selectedInstrument.HasValue)
+{
+    <EmptyState Title="Selecione um Instrumento"
+                Icon="bi-music-note-list"
+                Message="Selecione um tipo de instrumento acima para ver o conteúdo educativo disponível." />
+}
+else if (!contentForInstrument.Any())
+{
+    <EmptyState Title="Nenhum conteúdo encontrado"
+                Icon="bi-inbox"
+                Message="@($"Não há conteúdo para {StatusHelper.GetInstrumentDisplay(selectedInstrument.Value)}.")" />
+}
+else
+{
+    <!-- Search Bar - only shown when instrument is selected and has content -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap mb-3">
+        <div class="flex-grow-1 filter-search-container">
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar por título ou descrição..."
+                       OnSearch="@HandleSearchChanged" />
+        </div>
+    </div>
+
+    @if (!paginatedContent.Any() && !string.IsNullOrWhiteSpace(searchTerm))
+    {
+        <EmptyState Title="Nenhum resultado"
+                    Icon="bi-search"
+                    Message="@($"Não foram encontrados conteúdos para \"{searchTerm}\".")" />
+    }
+    else
+    {
+        <div class="naipe-grid mb-3">
+            @foreach (var content in paginatedContent)
+            {
+                <NaipeCard Content="@content"
+                           PlayCount="@content.PlayCount"
+                           CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           OnView="@(() => OpenViewModal(content))"
+                           OnEdit="@(() => OpenEditModal(content))"
+                           OnDelete="@(() => OpenDeleteConfirmation(content))" />
+            }
+        </div>
+
+        <!-- Pagination -->
+        <TablePagination TotalItems="@filteredContent.Count"
+                         PageSize="@pageSize"
+                         CurrentPage="@currentPage"
+                         ItemLabel="conteúdos"
+                         PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                         OnPageChanged="@HandlePageChanged"
+                         OnPageSizeChanged="@HandlePageSizeChanged" />
+    }
+}
+
+<!-- View Content Modal -->
+@if (viewingContent != null)
+{
+    <DetailsModal Show="@showViewModal"
+                  ShowChanged="@((bool show) => showViewModal = show)"
+                  Title="Detalhes do Conteúdo"
+                  HeaderTitle="@viewingContent.Title"
+                  Size="Modal.ModalSize.ExtraLarge"
+                  OnClose="@CloseViewModal">
+        <BadgesContent>
+            <span class="badge bg-primary">
+                <i class="bi bi-music-note"></i> @StatusHelper.GetInstrumentDisplay(viewingContent.InstrumentType)
+            </span>
+            <span class="badge bg-primary">
+                <i class="bi bi-@(viewingContent.IsVideo ? "camera-video" : "image")"></i> @(viewingContent.IsVideo ? "Vídeo" : "Imagem")
+            </span>
+        </BadgesContent>
+        <Sections>
+            <!-- Media Display Section -->
+            <InfoSection SectionTitle="@(viewingContent.IsVideo ? "Vídeo" : "Imagem")"
+                        IconClass="@(viewingContent.IsVideo ? "bi-play-circle" : "bi-image")"
+                        CssClass="mb-4">
+                @if (viewingContent.IsVideo)
+                {
+                    <video controls class="w-100 rounded" style="max-height: 400px; background: #000;" @onplay="OnVideoPlayed">
+                        <source src="@viewingContent.Url" type="@viewingContent.MimeType">
+                        O seu navegador não suporta a reprodução de vídeo.
+                    </video>
+                }
+                else
+                {
+                    <img src="@viewingContent.Url" alt="@viewingContent.Title" 
+                         class="img-fluid w-100 rounded" 
+                         style="max-height: 500px; object-fit: contain; background: #000;" />
+                }
+            </InfoSection>
+
+            <!-- Description Section -->
+            @if (!string.IsNullOrWhiteSpace(viewingContent.Description))
+            {
+                <InfoSection SectionTitle="Descrição"
+                            IconClass="bi-file-text"
+                            CssClass="mb-4">
+                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingContent.Description</p>
+                </InfoSection>
+            }
+
+            <!-- Metadata Section -->
+            <InfoSection SectionTitle="Informação"
+                        IconClass="bi-info-circle-fill"
+                        CssClass="mb-4">
+                <ProfileField Label="Visualizações" Value="@viewingContent.PlayCount.ToString()" Icon="bi-eye" />
+                <ProfileField Label="Criado por" Value="@viewingContent.CreatedByUserName" Icon="bi-person" />
+            </InfoSection>
+
+            <!-- Comments Section -->
+            <InfoSection SectionTitle="@($"Comentários ({comments.Count})")"
+                        IconClass="bi-chat-left-text"
+                        CssClass="mb-3">
+                <!-- Add Comment Form -->
+                <div class="add-comment-form mb-3">
+                    <textarea class="form-control mb-2" 
+                              rows="2" 
+                              placeholder="Escrever um comentário..."
+                              maxlength="1000"
+                              @bind="newCommentText"></textarea>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
+                        <button class="btn btn-primary btn-sm" 
+                                @onclick="AddComment"
+                                disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                            @if (isAddingComment)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Publicar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Comments List -->
+                @if (loadingComments)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">A carregar comentários...</span>
+                        </div>
+                    </div>
+                }
+                else if (!comments.Any())
+                {
+                    <p class="text-muted text-center py-3">Ainda não há comentários</p>
+                }
+                else
+                {
+                    <div class="comments-list">
+                        @foreach (var comment in comments.OrderByDescending(c => c.CreatedAt))
+                        {
+                            <NaipeCommentItem Comment="@comment" OnDelete="@DeleteComment" />
+                        }
+                    </div>
+                }
+            </InfoSection>
+        </Sections>
+    </DetailsModal>
+}
+
+<!-- Create/Edit Modal -->
+<Modal @bind-Show="showCreateEditModal" Size="Modal.ModalSize.Large" Title="@(editingContent == null ? (isVideoMode ? "Adicionar Vídeo" : "Adicionar Imagem") : "Editar Conteúdo")">
+    <BodyContent>
+        <EditForm Model="@contentForm" OnValidSubmit="@SaveContent">
+            <DataAnnotationsValidator />
+            
+            @if (editingContent == null)
+            {
+                <!-- Instrument Type -->
+                <div class="mb-3">
+                    <label class="form-label">Instrumento *</label>
+                    <InputSelect class="form-select" @bind-Value="contentForm.InstrumentType">
+                        @foreach (var type in Enum.GetValues<InstrumentType>())
+                        {
+                            <option value="@type">@StatusHelper.GetInstrumentDisplay(type)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => contentForm.InstrumentType)" />
+                </div>
+
+                <!-- File Upload -->
+                <div class="mb-3">
+                    <label class="form-label">Ficheiro @(isVideoMode ? "de Vídeo" : "de Imagem") *</label>
+                    <div class="localized-file-picker">
+                        <InputFile id="@fileInputId" 
+                                   @key="fileUploadKey"
+                                   class="d-none" 
+                                   OnChange="@HandleFileSelection" 
+                                   accept="@(isVideoMode ? "video/*" : "image/*")" 
+                                   aria-label="@(isVideoMode ? "Escolher vídeo" : "Escolher imagem")" />
+                        <label class="btn btn-outline-secondary localized-file-button" for="@fileInputId">
+                            <i class="bi bi-upload me-2"></i>@(isVideoMode ? "Escolher vídeo" : "Escolher imagem")
+                        </label>
+                        <span class="localized-file-name">
+                            @if (selectedFile != null)
+                            {
+                                <text>Ficheiro selecionado ✓</text>
+                            }
+                            else
+                            {
+                                <text>Nenhum ficheiro selecionado</text>
+                            }
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-info-circle me-1"></i>Tamanho máximo: @(isVideoMode ? "100MB" : "10MB")
+                    </small>
+                    @if (selectedFile == null)
+                    {
+                        <div class="text-danger small mt-1">O ficheiro é obrigatório</div>
+                    }
+                </div>
+            }
+
+            <!-- Title -->
+            <div class="mb-3">
+                <label class="form-label">Título *</label>
+                <InputText class="form-control" @bind-Value="contentForm.Title" placeholder="Ex: Técnica de dedilhado" />
+                <ValidationMessage For="@(() => contentForm.Title)" />
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <InputTextArea class="form-control" @bind-Value="contentForm.Description" rows="3" placeholder="Descrição opcional do conteúdo..." />
+                <ValidationMessage For="@(() => contentForm.Description)" />
+            </div>
+
+            <!-- Sort Order -->
+            <div class="mb-3">
+                <label class="form-label">Ordem de Exibição *</label>
+                <InputNumber class="form-control" @bind-Value="contentForm.SortOrder" step="0.1" />
+                <ValidationMessage For="@(() => contentForm.SortOrder)" />
+                <small class="form-text text-muted">Números menores aparecem primeiro. Use decimais (1.5, 2.5) para inserir entre itens existentes.</small>
+            </div>
+
+            <div class="modal-footer px-0 pb-0">
+                <button type="button" class="btn btn-secondary" @onclick="CloseCreateEditModal">Cancelar</button>
+                <button type="submit" class="btn btn-purple" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        <span>A guardar...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-check-lg"></i>
+                        <span>Guardar</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDialog @bind-Show="showDeleteConfirm"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza que deseja eliminar \"{contentToDelete?.Title}\"?")"
+               WarningMessage="Esta ação não pode ser revertida. Todos os comentários associados também serão eliminados."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="@ConfirmDelete" />
+
+@code {
+    // State
+    private bool loading = true;
+    private bool isAdmin = false;
+    private string? currentUserId;
+    private List<NaipeContentDto> allContent = new();
+    private List<NaipeContentDto> filteredContent = new();
+    private List<NaipeContentDto> paginatedContent = new();
+    private List<NaipeContentDto> contentForInstrument = new(); // Content for selected instrument (no search filter)
+    private InstrumentType? selectedInstrument = null;
+    private string searchTerm = string.Empty;
+    
+    // Type configs for instrument selector
+    private List<NaipeTypeConfigDto> typeConfigs = new();
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 12;
+
+    // Modal visibility states
+    private bool showViewModal = false;
+    private bool showCreateEditModal = false;
+    private bool showDeleteConfirm = false;
+
+    // View Modal State
+    private NaipeContentDto? viewingContent = null;
+    private List<NaipeCommentDto> comments = new();
+    private bool loadingComments = false;
+    private string newCommentText = string.Empty;
+    private bool isAddingComment = false;
+
+    // Create/Edit Modal State
+    private NaipeContentDto? editingContent = null;
+    private ContentFormModel contentForm = new();
+    private bool isVideoMode = true;
+    private bool isSaving = false;
+    
+    // File upload state
+    private IBrowserFile? selectedFile = null;
+    private string? selectedFileName = null;
+    private Guid fileUploadKey = Guid.NewGuid();
+    private string fileInputId = $"naipe-file-{Guid.NewGuid():N}";
+
+    // Delete State
+    private NaipeContentDto? contentToDelete = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+                isAdmin = user.IsInRole("Admin");
+            }
+        }
+
+        await LoadContent();
+    }
+
+    private async Task LoadContent()
+    {
+        loading = true;
+        try
+        {
+            // Initialize type configs if needed (first time setup)
+            await NaipeService.InitializeTypeConfigsAsync();
+            
+            // Load visible type configs and content
+            typeConfigs = await NaipeService.GetVisibleTypeConfigsAsync();
+            allContent = await NaipeService.GetAllContentAsync();
+            ApplyFilters();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void SelectInstrument(InstrumentType? type)
+    {
+        selectedInstrument = type;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void HandleSearchChanged(string search)
+    {
+        searchTerm = search;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        // First, get content for the selected instrument (no search filter)
+        if (selectedInstrument.HasValue)
+        {
+            contentForInstrument = allContent.Where(c => c.InstrumentType == selectedInstrument.Value).ToList();
+        }
+        else
+        {
+            contentForInstrument = new List<NaipeContentDto>();
+        }
+
+        // Apply search filter
+        filteredContent = contentForInstrument;
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            filteredContent = filteredContent.Where(c =>
+                c.Title.ToLower().Contains(search) ||
+                (c.Description?.ToLower().Contains(search) ?? false)
+            ).ToList();
+        }
+
+        // Sort by SortOrder
+        filteredContent = filteredContent.OrderBy(c => c.SortOrder).ThenBy(c => c.CreatedAt).ToList();
+
+        // Apply pagination
+        paginatedContent = filteredContent
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void HandlePageChanged(int page)
+    {
+        currentPage = page;
+        ApplyFilters();
+    }
+
+    private void HandlePageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        ApplyFilters();
+    }
+
+    // View Modal Methods
+    private async Task OpenViewModal(NaipeContentDto content)
+    {
+        viewingContent = content;
+        newCommentText = string.Empty;
+        hasIncrementedPlayCount = false;
+        
+        showViewModal = true;
+
+        // Load comments
+        await LoadComments(content.Id);
+    }
+    
+    private bool hasIncrementedPlayCount = false;
+    
+    private async Task OnVideoPlayed()
+    {
+        // Only increment once per modal open
+        if (hasIncrementedPlayCount || viewingContent == null || currentUserId == null)
+            return;
+            
+        hasIncrementedPlayCount = true;
+        
+        await NaipeService.IncrementPlayCountAsync(viewingContent.Id, currentUserId);
+        
+        // Update local play count (viewingContent is same reference as item in allContent)
+        viewingContent.PlayCount++;
+        
+        StateHasChanged();
+    }
+
+    private async Task LoadComments(int contentId)
+    {
+        loadingComments = true;
+        try
+        {
+            comments = await NaipeService.GetCommentsAsync(contentId, currentUserId);
+        }
+        finally
+        {
+            loadingComments = false;
+        }
+    }
+
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(newCommentText) || viewingContent == null || currentUserId == null)
+            return;
+
+        isAddingComment = true;
+        try
+        {
+            var newComment = await NaipeService.AddCommentAsync(viewingContent.Id, currentUserId, newCommentText.Trim());
+            comments.Add(newComment);
+            
+            // Update comment count
+            var item = allContent.FirstOrDefault(c => c.Id == viewingContent.Id);
+            if (item != null)
+            {
+                item.CommentCount++;
+            }
+            viewingContent.CommentCount++;
+
+            newCommentText = string.Empty;
+        }
+        finally
+        {
+            isAddingComment = false;
+        }
+    }
+
+    private async Task DeleteComment(int commentId)
+    {
+        if (currentUserId == null || viewingContent == null)
+            return;
+
+        try
+        {
+            await NaipeService.DeleteCommentAsync(commentId, currentUserId, isAdmin);
+            
+            comments.RemoveAll(c => c.Id == commentId);
+            
+            // Update comment count
+            var item = allContent.FirstOrDefault(c => c.Id == viewingContent.Id);
+            if (item != null)
+            {
+                item.CommentCount--;
+            }
+            if (viewingContent != null)
+            {
+                viewingContent.CommentCount--;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar comentário: {ex.Message}");
+        }
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        viewingContent = null;
+        comments.Clear();
+    }
+
+    // Create/Edit Modal Methods
+    private void OpenCreateModal(bool isVideo)
+    {
+        isVideoMode = isVideo;
+        editingContent = null;
+        selectedFile = null;
+        selectedFileName = null;
+        fileUploadKey = Guid.NewGuid();
+        contentForm = new ContentFormModel
+        {
+            InstrumentType = selectedInstrument ?? InstrumentType.Guitarra,
+            SortOrder = allContent.Any() ? allContent.Max(c => c.SortOrder) + 1 : 1
+        };
+        showCreateEditModal = true;
+    }
+
+    private void OpenEditModal(NaipeContentDto content)
+    {
+        editingContent = content;
+        isVideoMode = content.IsVideo;
+        selectedFile = null;
+        selectedFileName = null;
+        contentForm = new ContentFormModel
+        {
+            Title = content.Title,
+            Description = content.Description,
+            SortOrder = content.SortOrder,
+            InstrumentType = content.InstrumentType
+        };
+        showCreateEditModal = true;
+    }
+    
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var maxFileSize = isVideoMode ? 100 * 1024 * 1024L : 10 * 1024 * 1024L; // 100MB for video, 10MB for image
+        
+        if (file.Size > maxFileSize)
+        {
+            selectedFile = null;
+            selectedFileName = null;
+            return;
+        }
+        
+        selectedFile = file;
+        selectedFileName = file.Name;
+        
+        // Auto-generate default title: "Guitarra_Video_1" or "Guitarra_Imagem_1"
+        if (string.IsNullOrWhiteSpace(contentForm.Title))
+        {
+            var instrumentName = StatusHelper.GetInstrumentDisplay(contentForm.InstrumentType);
+            var contentType = isVideoMode ? "Video" : "Imagem";
+            var existingCount = allContent.Count(c => c.InstrumentType == contentForm.InstrumentType && c.IsVideo == isVideoMode);
+            var nextNumber = existingCount + 1;
+            contentForm.Title = $"{instrumentName}_{contentType}_{nextNumber}";
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task SaveContent()
+    {
+        if (currentUserId == null)
+            return;
+
+        // For edit: verify ownership (owner or admin)
+        if (editingContent != null && !isAdmin && editingContent.CreatedByUserId != currentUserId)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem editar.");
+            return;
+        }
+        
+        // Validate file is selected for new content
+        if (editingContent == null && selectedFile == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Por favor, selecione um ficheiro.");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            if (editingContent == null)
+            {
+                // Create new content with file upload
+                var maxFileSize = isVideoMode ? 100 * 1024 * 1024L : 10 * 1024 * 1024L;
+                
+                // Read file into MemoryStream before any state changes
+                using var browserStream = selectedFile!.OpenReadStream(maxFileSize);
+                using var memoryStream = new MemoryStream();
+                await browserStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                
+                var newContent = await NaipeService.CreateContentAsync(
+                    contentForm.InstrumentType,
+                    contentForm.Title,
+                    contentForm.Description,
+                    memoryStream,
+                    selectedFile.Name,
+                    selectedFile.ContentType,
+                    isVideoMode,
+                    contentForm.SortOrder,
+                    currentUserId
+                );
+                
+                allContent.Add(newContent);
+            }
+            else
+            {
+                // Update existing content
+                await NaipeService.UpdateContentAsync(
+                    editingContent.Id,
+                    contentForm.Title,
+                    contentForm.Description,
+                    contentForm.SortOrder,
+                    currentUserId!,
+                    isAdmin
+                );
+
+                // Update local copy
+                editingContent.Title = contentForm.Title;
+                editingContent.Description = contentForm.Description;
+                editingContent.SortOrder = contentForm.SortOrder;
+            }
+
+            ApplyFilters();
+            CloseCreateEditModal();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao guardar: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CloseCreateEditModal()
+    {
+        showCreateEditModal = false;
+        editingContent = null;
+        contentForm = new();
+        selectedFile = null;
+        selectedFileName = null;
+        fileUploadKey = Guid.NewGuid();
+    }
+
+    // Delete Methods
+    private void OpenDeleteConfirmation(NaipeContentDto content)
+    {
+        contentToDelete = content;
+        showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (contentToDelete == null)
+            return;
+
+        // Only owner or admin can delete content
+        if (!isAdmin && contentToDelete.CreatedByUserId != currentUserId)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem eliminar.");
+            return;
+        }
+
+        try
+        {
+            await NaipeService.DeleteContentAsync(contentToDelete.Id, currentUserId!, isAdmin);
+            allContent.Remove(contentToDelete);
+            ApplyFilters();
+            contentToDelete = null;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar: {ex.Message}");
+        }
+    }
+
+    // Form Model
+    private class ContentFormModel
+    {
+        [Required(ErrorMessage = "O instrumento é obrigatório")]
+        public InstrumentType InstrumentType { get; set; }
+
+        [Required(ErrorMessage = "O título é obrigatório")]
+        [StringLength(200, ErrorMessage = "O título não pode ter mais de 200 caracteres")]
+        public string Title { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        [Required(ErrorMessage = "A ordem é obrigatória")]
+        [Range(0.1, 999.9, ErrorMessage = "A ordem deve estar entre 0.1 e 999.9")]
+        public decimal SortOrder { get; set; } = 1;
+    }
+}
