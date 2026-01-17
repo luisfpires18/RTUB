@@ -344,8 +344,8 @@
 
 /* Instrument selector image */
 .instrument-selector-image {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(var(--bs-primary-rgb), 0.3);
