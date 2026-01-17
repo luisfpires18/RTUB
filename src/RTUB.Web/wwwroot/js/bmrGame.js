@@ -1,6 +1,7 @@
 /**
  * BMR - Bebe mais Rui - HTML5 Canvas Platformer Game
- * Player controls Borat, jumping on platforms, collecting beers, and dodging Fat Ladies.
+ * Player controls Borat, jumping on platforms, collecting beers, stomping Fat Ladies.
+ * Endless mode with pipes, holes, question boxes, and super beers!
  */
 const bmrGame = (function () {
     let canvas = null;
@@ -10,14 +11,16 @@ const bmrGame = (function () {
     let config = {
         startingHealth: 100,
         invulnerabilityMs: 1500,
-        jumpStrength: 450,
+        jumpStrength: 650,
         gravity: 1200,
         moveSpeed: 200,
         beerPoints: 10,
+        superBeerPoints: 50,
+        powerUpDurationMs: 5000,
         difficultyScaling: {
-            baseSpawnRate: 2.5,
-            spawnRateDecreasePerLevel: 0.1,
-            minSpawnRate: 0.5,
+            baseSpawnRate: 3.5,
+            spawnRateDecreasePerLevel: 0.15,
+            minSpawnRate: 1.0,
             enemySpeedIncreasePerLevel: 5,
             platformGapIncreasePerLevel: 5
         },
@@ -26,10 +29,9 @@ const bmrGame = (function () {
     
     let gameRunning = false;
     let health = 100;
-    let level = 1;
     let points = 0;
     let distanceTraveled = 0;
-    let maxLevelReached = 1;
+    let enemiesStomped = 0;
     
     // Player state
     const player = {
@@ -38,19 +40,25 @@ const bmrGame = (function () {
         direction: 0,
         onGround: false,
         invulnerable: false,
-        invulnerableUntil: 0
+        invulnerableUntil: 0,
+        powerUp: false, // 5-second immunity from question box
+        powerUpUntil: 0
     };
     
     // Game objects
     let platforms = [];
     let enemies = [];
     let beers = [];
+    let pipes = [];
+    let holes = [];
+    let questionBoxes = [];
     let lastFrameTime = 0;
     let animationId = null;
     let keysPressed = {};
     let nextEnemySpawnTime = 0;
     let nextBeerSpawnTime = 0;
     let cameraX = 0;
+    let worldGenX = 0; // Track how far we've generated the world
     
     // Sprites
     let sprites = {
@@ -67,7 +75,6 @@ const bmrGame = (function () {
     const PLATFORM_HEIGHT = 15;
     const BASE_WIDTH = 800;
     const BASE_HEIGHT = 600;
-    const DISTANCE_PER_LEVEL = 250; // Reduced for faster level progression
     let scaleX = 1;
     let scaleY = 1;
     
@@ -224,37 +231,113 @@ const bmrGame = (function () {
         drawGround();
     }
 
-    function generateInitialPlatforms() {
-        platforms = [];
-        // Add some initial platforms (scaled) - reachable heights (350-480, which is 40-170 below ground)
-        const platformPositions = [
-            { x: 150, y: 450, width: 120 },
-            { x: 350, y: 400, width: 140 },
-            { x: 550, y: 430, width: 120 },
-            { x: 750, y: 380, width: 160 },
-            { x: 950, y: 420, width: 120 },
-            { x: 1150, y: 390, width: 140 }
-        ];
+    function generateInitialWorld() {
+        // Generate initial world section
+        worldGenX = 0;
+        generateWorldSection(0, 1500 * scaleX);
+    }
+    
+    function generateWorldAhead() {
+        // Generate world ahead of player
+        const generateAheadDistance = cameraX + canvas.width + 800 * scaleX;
         
-        platformPositions.forEach(p => {
-            platforms.push({
-                x: p.x * scaleX,
-                y: p.y * scaleY,
-                width: p.width * scaleX,
-                height: PLATFORM_HEIGHT * scaleY
-            });
-        });
+        if (worldGenX < generateAheadDistance) {
+            generateWorldSection(worldGenX, generateAheadDistance);
+            worldGenX = generateAheadDistance;
+        }
+        
+        // Remove objects too far behind camera
+        const removeThreshold = cameraX - 300 * scaleX;
+        platforms = platforms.filter(p => p.x + p.width > removeThreshold);
+        pipes = pipes.filter(p => p.x + p.width > removeThreshold);
+        holes = holes.filter(h => h.x + h.width > removeThreshold);
+        questionBoxes = questionBoxes.filter(b => b.x + b.width > removeThreshold);
+    }
+    
+    function generateWorldSection(startX, endX) {
+        let x = startX;
+        
+        while (x < endX) {
+            // Random world element
+            const element = Math.random();
+            
+            if (element < 0.15 && x > 300 * scaleX) {
+                // Hole (15% chance, not at start)
+                const holeWidth = (60 + Math.random() * 60) * scaleX;
+                holes.push({
+                    x: x,
+                    width: holeWidth
+                });
+                x += holeWidth + 50 * scaleX;
+            } else if (element < 0.30) {
+                // Pipe
+                const pipeWidth = 50 * scaleX;
+                const pipeHeight = (60 + Math.random() * 80) * scaleY;
+                pipes.push({
+                    x: x,
+                    y: groundY - pipeHeight,
+                    width: pipeWidth,
+                    height: pipeHeight
+                });
+                x += pipeWidth + (100 + Math.random() * 100) * scaleX;
+            } else if (element < 0.45) {
+                // Platform with possible question box
+                const platformWidth = (80 + Math.random() * 80) * scaleX;
+                const platformY = (350 + Math.random() * 120) * scaleY;
+                
+                platforms.push({
+                    x: x,
+                    y: platformY,
+                    width: platformWidth,
+                    height: PLATFORM_HEIGHT * scaleY
+                });
+                
+                // 50% chance to add question box above platform
+                if (Math.random() > 0.5) {
+                    questionBoxes.push({
+                        x: x + platformWidth / 2 - 16 * scaleX,
+                        y: platformY - 80 * scaleY,
+                        width: 32 * scaleX,
+                        height: 32 * scaleY,
+                        used: false
+                    });
+                }
+                
+                x += platformWidth + (80 + Math.random() * 80) * scaleX;
+            } else if (element < 0.55) {
+                // Question box at ground level (floating)
+                questionBoxes.push({
+                    x: x,
+                    y: groundY - (100 + Math.random() * 60) * scaleY,
+                    width: 32 * scaleX,
+                    height: 32 * scaleY,
+                    used: false
+                });
+                x += (100 + Math.random() * 100) * scaleX;
+            } else {
+                // Empty space
+                x += (80 + Math.random() * 120) * scaleX;
+            }
+        }
+    }
+    
+    function updateQuestionBoxes() {
+        // Animation for used boxes could go here
     }
 
     function start() {
         health = config.startingHealth;
-        level = 1;
         points = 0;
         distanceTraveled = 0;
-        maxLevelReached = 1;
+        enemiesStomped = 0;
         cameraX = 0;
+        worldGenX = 0;
         enemies = [];
         beers = [];
+        pipes = [];
+        holes = [];
+        questionBoxes = [];
+        platforms = [];
         nextEnemySpawnTime = 0;
         nextBeerSpawnTime = 0;
         
@@ -266,8 +349,10 @@ const bmrGame = (function () {
         player.onGround = true;
         player.invulnerable = false;
         player.invulnerableUntil = 0;
+        player.powerUp = false;
+        player.powerUpUntil = 0;
         
-        generateInitialPlatforms();
+        generateInitialWorld();
         
         gameRunning = true;
         lastFrameTime = performance.now();
@@ -289,33 +374,37 @@ const bmrGame = (function () {
     }
 
     function update(dt, currentTime) {
-        // Level progression based on distance traveled (fixed distance per level for consistent gameplay)
-        // distanceTraveled is in scaled units, so we divide by scaleX to get base units
-        const baseDistance = distanceTraveled / scaleX;
-        const newLevel = Math.floor(baseDistance / DISTANCE_PER_LEVEL) + 1;
-        if (newLevel > level) {
-            level = newLevel;
-            maxLevelReached = Math.max(maxLevelReached, level);
-        }
+        // Endless mode - no level progression, just endless fun
         
         // Update invulnerability
         if (player.invulnerable && currentTime >= player.invulnerableUntil) {
             player.invulnerable = false;
         }
         
-        updatePlayer(dt);
+        // Update power-up
+        if (player.powerUp && currentTime >= player.powerUpUntil) {
+            player.powerUp = false;
+        }
+        
+        updatePlayer(dt, currentTime);
         updateCamera();
         spawnEnemies(dt);
         spawnBeers(dt);
         updateEnemies(dt);
         updateBeers();
-        generatePlatformsAhead();
+        updateQuestionBoxes();
+        generateWorldAhead();
         checkCollisions(currentTime);
+        
+        // Check if player fell in a hole
+        if (checkHoleCollision()) {
+            health = 0;
+        }
         
         if (health <= 0) endGame();
     }
 
-    function updatePlayer(dt) {
+    function updatePlayer(dt, currentTime) {
         const scaledWidth = player.width * scaleX;
         const scaledHeight = player.height * scaleY;
         
@@ -327,15 +416,16 @@ const bmrGame = (function () {
         player.vy += config.gravity * scaleY * dt;
         player.y += player.vy * dt;
         
-        // Ground collision
-        if (player.y + scaledHeight >= groundY) {
+        // Ground collision (check if not in a hole)
+        const inHole = checkHoleCollision();
+        if (!inHole && player.y + scaledHeight >= groundY) {
             player.y = groundY - scaledHeight;
             player.vy = 0;
             player.onGround = true;
         }
         
         // Platform collisions
-        player.onGround = player.y + scaledHeight >= groundY;
+        player.onGround = !inHole && player.y + scaledHeight >= groundY;
         
         for (const platform of platforms) {
             if (checkPlatformCollision({x: player.x, y: player.y, width: scaledWidth, height: scaledHeight}, platform)) {
@@ -348,12 +438,53 @@ const bmrGame = (function () {
             }
         }
         
+        // Pipe top collision (can stand on pipes)
+        for (const pipe of pipes) {
+            const pipeTop = {x: pipe.x, y: pipe.y, width: pipe.width, height: 10 * scaleY};
+            if (checkPlatformCollision({x: player.x, y: player.y, width: scaledWidth, height: scaledHeight}, pipeTop)) {
+                if (player.vy > 0 && player.y + scaledHeight - player.vy * dt <= pipe.y) {
+                    player.y = pipe.y - scaledHeight;
+                    player.vy = 0;
+                    player.onGround = true;
+                }
+            }
+        }
+        
+        // Question box collision (hit from below)
+        for (const box of questionBoxes) {
+            if (!box.used) {
+                const playerTop = player.y;
+                const boxBottom = box.y + box.height;
+                const horizontalOverlap = player.x < box.x + box.width && player.x + scaledWidth > box.x;
+                
+                if (horizontalOverlap && player.vy < 0 && playerTop <= boxBottom && playerTop > boxBottom - 20 * scaleY) {
+                    // Hit the box from below!
+                    box.used = true;
+                    player.vy = 0;
+                    
+                    // Random reward: beer, super beer, or power-up
+                    const reward = Math.random();
+                    if (reward < 0.4) {
+                        // Regular beer
+                        points += config.beerPoints;
+                    } else if (reward < 0.7) {
+                        // Super beer
+                        points += config.superBeerPoints;
+                    } else {
+                        // Power-up: 5 seconds immunity
+                        player.powerUp = true;
+                        player.powerUpUntil = currentTime + config.powerUpDurationMs;
+                    }
+                }
+            }
+        }
+        
         // Keep player in bounds (left side)
         if (player.x < cameraX) {
             player.x = cameraX;
         }
         
-        // Track distance for progression
+        // Track distance for scoring
         distanceTraveled = Math.max(distanceTraveled, player.x);
     }
 
@@ -374,11 +505,7 @@ const bmrGame = (function () {
         nextEnemySpawnTime -= dt;
         
         if (nextEnemySpawnTime <= 0) {
-            const spawnRate = Math.max(
-                config.difficultyScaling.minSpawnRate,
-                config.difficultyScaling.baseSpawnRate - (level - 1) * config.difficultyScaling.spawnRateDecreasePerLevel
-            );
-            // Add some randomness to spawn timing to prevent regular patterns
+            const spawnRate = config.difficultyScaling.baseSpawnRate;
             nextEnemySpawnTime = spawnRate + Math.random() * 1.0;
             
             // Select enemy tier based on spawn weights
@@ -388,51 +515,24 @@ const bmrGame = (function () {
                 const scaledWidth = enemySize.width * scaleX;
                 const scaledHeight = enemySize.height * scaleY;
                 
-                // Find a valid spawn location: either ground or a platform that's ahead of the camera
-                let spawnX = 0;
+                // Spawn ahead of camera on ground (not in holes)
+                let spawnX = cameraX + canvas.width + (100 + Math.random() * 300) * scaleX;
                 let spawnY = groundY;
-                let patrolStartX = 0;
-                let patrolEndX = 0;
-                let validSpawn = false;
+                let patrolStartX = spawnX - 100 * scaleX;
+                let patrolEndX = spawnX + 100 * scaleX;
                 
-                // First, try to spawn on a platform ahead of camera
-                const platformsAhead = platforms.filter(p => p.x > cameraX + canvas.width * 0.5);
-                
-                if (platformsAhead.length > 0 && Math.random() > 0.4) {
-                    // 60% chance to spawn on a platform if available
-                    const platform = platformsAhead[Math.floor(Math.random() * platformsAhead.length)];
-                    
-                    // Spawn in the middle of the platform
-                    spawnX = platform.x + platform.width / 2 - scaledWidth / 2;
-                    spawnY = platform.y;
-                    
-                    // Constrain patrol to platform bounds
-                    patrolStartX = platform.x;
-                    patrolEndX = platform.x + platform.width - scaledWidth;
-                    
-                    // Ensure patrol range is valid
-                    if (patrolEndX > patrolStartX) {
-                        validSpawn = true;
+                // Make sure not spawning in a hole
+                let inHole = false;
+                for (const hole of holes) {
+                    if (spawnX > hole.x - scaledWidth && spawnX < hole.x + hole.width) {
+                        inHole = true;
+                        break;
                     }
                 }
                 
-                // Otherwise spawn on ground
-                if (!validSpawn) {
-                    const minSpawnDistance = 300 * scaleX;
-                    const maxSpawnDistance = 600 * scaleX;
-                    spawnX = cameraX + canvas.width + minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
-                    spawnY = groundY;
-                    
-                    // Ground patrol - wider range
-                    const patrolRange = (150 + Math.random() * 100) * scaleX;
-                    patrolStartX = spawnX - patrolRange;
-                    patrolEndX = spawnX + patrolRange;
-                    validSpawn = true;
-                }
-                
-                if (validSpawn) {
+                if (!inHole) {
                     // Check if too close to existing enemies
-                    const minEnemyDistance = 100 * scaleX;
+                    const minEnemyDistance = 80 * scaleX;
                     let tooClose = false;
                     for (const enemy of enemies) {
                         const distance = Math.abs(enemy.x - spawnX);
@@ -443,19 +543,16 @@ const bmrGame = (function () {
                     }
                     
                     if (!tooClose) {
-                        const speedMultiplier = 1 + (level - 1) * config.difficultyScaling.enemySpeedIncreasePerLevel / 100;
-                        
                         enemies.push({
                             x: spawnX,
                             y: spawnY - scaledHeight,
                             width: scaledWidth,
                             height: scaledHeight,
                             tier: tier,
-                            speed: tier.speed * speedMultiplier * scaleX,
-                            direction: -1, // Patrol left initially
+                            speed: tier.speed * scaleX,
+                            direction: -1,
                             patrolStartX: patrolStartX,
-                            patrolEndX: patrolEndX,
-                            platformY: spawnY // Remember the platform/ground Y for staying on it
+                            patrolEndX: patrolEndX
                         });
                     }
                 }
@@ -491,27 +588,36 @@ const bmrGame = (function () {
         nextBeerSpawnTime -= dt;
         
         if (nextBeerSpawnTime <= 0) {
-            nextBeerSpawnTime = 1.5 + Math.random(); // Random interval
+            nextBeerSpawnTime = 2.0 + Math.random() * 1.5;
             
             // Spawn beer ahead of camera
             const spawnX = cameraX + canvas.width + (50 + Math.random() * 300) * scaleX;
             
-            // Place on platform or floating
-            let spawnY = groundY - (60 + Math.random() * 100) * scaleY;
-            for (const platform of platforms) {
-                if (Math.abs(platform.x + platform.width / 2 - spawnX) < 100 * scaleX) {
-                    spawnY = platform.y - 40 * scaleY;
+            // Check not spawning in a hole
+            let inHole = false;
+            for (const hole of holes) {
+                if (spawnX > hole.x && spawnX < hole.x + hole.width) {
+                    inHole = true;
                     break;
                 }
             }
             
-            beers.push({
-                x: spawnX,
-                y: spawnY,
-                width: 24 * scaleX,
-                height: 32 * scaleY,
-                collected: false
-            });
+            if (!inHole) {
+                // Place floating or on platform
+                let spawnY = groundY - (60 + Math.random() * 100) * scaleY;
+                
+                // 20% chance for super beer
+                const isSuper = Math.random() < 0.2;
+                
+                beers.push({
+                    x: spawnX,
+                    y: spawnY,
+                    width: (isSuper ? 32 : 24) * scaleX,
+                    height: (isSuper ? 40 : 32) * scaleY,
+                    collected: false,
+                    isSuper: isSuper
+                });
+            }
         }
     }
 
@@ -546,54 +652,31 @@ const bmrGame = (function () {
         }
     }
 
-    function generatePlatformsAhead() {
-        // Generate new platforms as player moves
-        const generateAheadDistance = cameraX + canvas.width + 500 * scaleX;
-        const lastPlatform = platforms.length > 0 ? platforms[platforms.length - 1] : null;
-        
-        if (!lastPlatform || lastPlatform.x + lastPlatform.width < generateAheadDistance) {
-            // Platform gap scales with level - starts small, increases with level
-            const baseGap = (60 + (level - 1) * config.difficultyScaling.platformGapIncreasePerLevel) * scaleX;
-            const startX = lastPlatform ? lastPlatform.x + lastPlatform.width + baseGap : generateAheadDistance;
-            
-            // Add a few platforms - closer together at lower levels
-            const platformSpacing = (100 + Math.random() * 50 + (level - 1) * 10) * scaleX;
-            
-            for (let i = 0; i < 3; i++) {
-                const x = startX + i * platformSpacing;
-                // Platforms at reachable heights - max jump reaches ~200 units above ground
-                // Keep platforms between 350-480 (70-170 above ground at 520)
-                const y = (350 + Math.random() * 130) * scaleY;
-                // Wider platforms at lower levels for easier gameplay
-                const baseWidth = 100 - (level - 1) * 5;
-                const width = Math.max(60, baseWidth + Math.random() * 60) * scaleX;
-                
-                platforms.push({
-                    x: x,
-                    y: y,
-                    width: width,
-                    height: PLATFORM_HEIGHT * scaleY
-                });
-            }
-        }
-        
-        // Remove platforms too far behind camera
-        for (let i = platforms.length - 1; i >= 0; i--) {
-            if (platforms[i].x + platforms[i].width < cameraX - 200 * scaleX) {
-                platforms.splice(i, 1);
-            }
-        }
-    }
-
     function checkCollisions(currentTime) {
         const scaledWidth = player.width * scaleX;
         const scaledHeight = player.height * scaleY;
         const playerRect = {x: player.x, y: player.y, width: scaledWidth, height: scaledHeight};
         
-        // Check enemy collisions
-        if (!player.invulnerable) {
-            for (const enemy of enemies) {
-                if (rectsIntersect(playerRect, enemy)) {
+        // Check enemy collisions with stomp mechanic
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            if (rectsIntersect(playerRect, enemy)) {
+                // Check if player is stomping (falling onto enemy from above)
+                const playerBottom = player.y + scaledHeight;
+                const enemyTop = enemy.y;
+                const playerWasFalling = player.vy > 0;
+                const landingOnTop = playerBottom <= enemyTop + 20 * scaleY;
+                
+                if (playerWasFalling && landingOnTop) {
+                    // STOMP! Kill the enemy
+                    enemies.splice(i, 1);
+                    enemiesStomped++;
+                    points += 20; // Bonus for stomping
+                    
+                    // Bounce up after stomp
+                    player.vy = -config.jumpStrength * scaleY * 0.6;
+                } else if (!player.invulnerable && !player.powerUp) {
+                    // Player takes damage (unless powered up)
                     health -= enemy.tier.damage;
                     player.invulnerable = true;
                     player.invulnerableUntil = currentTime + config.invulnerabilityMs;
@@ -601,7 +684,6 @@ const bmrGame = (function () {
                     // Knockback (scaled)
                     player.vx = -200 * scaleX;
                     player.vy = -150 * scaleY;
-                    break;
                 }
             }
         }
@@ -610,9 +692,41 @@ const bmrGame = (function () {
         for (const beer of beers) {
             if (!beer.collected && rectsIntersect(playerRect, beer)) {
                 beer.collected = true;
-                points += config.beerPoints;
+                if (beer.isSuper) {
+                    points += config.superBeerPoints;
+                } else {
+                    points += config.beerPoints;
+                }
             }
         }
+        
+        // Check pipe collision (can't walk through pipes)
+        for (const pipe of pipes) {
+            if (rectsIntersect(playerRect, pipe)) {
+                // Push player out of pipe
+                const overlapLeft = (player.x + scaledWidth) - pipe.x;
+                const overlapRight = (pipe.x + pipe.width) - player.x;
+                
+                if (overlapLeft < overlapRight && overlapLeft > 0) {
+                    player.x = pipe.x - scaledWidth;
+                } else if (overlapRight > 0) {
+                    player.x = pipe.x + pipe.width;
+                }
+            }
+        }
+    }
+    
+    function checkHoleCollision() {
+        const scaledWidth = player.width * scaleX;
+        const playerCenterX = player.x + scaledWidth / 2;
+        
+        for (const hole of holes) {
+            if (playerCenterX > hole.x && playerCenterX < hole.x + hole.width) {
+                // Player is over a hole
+                return true;
+            }
+        }
+        return false;
     }
 
     function rectsIntersect(a, b) {
@@ -631,10 +745,18 @@ const bmrGame = (function () {
         ctx.translate(-cameraX, 0);
         
         drawGround();
+        drawHoles();
+        drawPipes();
         drawPlatforms();
+        drawQuestionBoxes();
         drawBeers();
         drawEnemies();
         drawPlayer();
+        
+        // Draw power-up indicator
+        if (player.powerUp) {
+            drawPowerUpAura();
+        }
         
         ctx.restore();
     }
@@ -661,25 +783,129 @@ const bmrGame = (function () {
     }
 
     function drawGround() {
-        // Draw ground extending beyond camera
+        // Draw ground extending beyond camera, but skip holes
         const groundStart = Math.floor(cameraX / (100 * scaleX)) * (100 * scaleX) - 100 * scaleX;
         const groundEnd = cameraX + canvas.width + 100 * scaleX;
         
+        // Draw ground in segments, skipping holes
+        let currentX = groundStart;
+        
+        // Sort holes by x position for proper rendering
+        const sortedHoles = [...holes].sort((a, b) => a.x - b.x);
+        
+        for (const hole of sortedHoles) {
+            if (hole.x > currentX && hole.x < groundEnd) {
+                // Draw ground segment before hole
+                const segmentEnd = Math.min(hole.x, groundEnd);
+                if (segmentEnd > currentX) {
+                    drawGroundSegment(currentX, segmentEnd);
+                }
+                currentX = hole.x + hole.width;
+            }
+        }
+        
+        // Draw remaining ground after last hole
+        if (currentX < groundEnd) {
+            drawGroundSegment(currentX, groundEnd);
+        }
+    }
+    
+    function drawGroundSegment(startX, endX) {
+        const width = endX - startX;
+        if (width <= 0) return;
+        
         ctx.fillStyle = '#5a7a6a';
-        ctx.fillRect(groundStart, groundY, groundEnd - groundStart, canvas.height - groundY);
+        ctx.fillRect(startX, groundY, width, canvas.height - groundY + cameraX);
         
         ctx.fillStyle = '#6a8a7a';
-        ctx.fillRect(groundStart, groundY - 4 * scaleY, groundEnd - groundStart, 8 * scaleY);
+        ctx.fillRect(startX, groundY - 4 * scaleY, width, 8 * scaleY);
         
         // Grass tufts
         ctx.fillStyle = '#7a9a8a';
-        for (let x = groundStart; x < groundEnd; x += 60 * scaleX) {
+        for (let x = startX; x < endX; x += 60 * scaleX) {
             ctx.beginPath();
             ctx.moveTo(x, groundY);
             ctx.lineTo(x + 5 * scaleX, groundY - 10 * scaleY);
             ctx.lineTo(x + 10 * scaleX, groundY);
             ctx.fill();
         }
+    }
+    
+    function drawHoles() {
+        // Draw dark void for holes
+        for (const hole of holes) {
+            if (hole.x + hole.width > cameraX && hole.x < cameraX + canvas.width) {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(hole.x, groundY, hole.width, canvas.height - groundY + 100);
+            }
+        }
+    }
+    
+    function drawPipes() {
+        for (const pipe of pipes) {
+            if (pipe.x + pipe.width > cameraX && pipe.x < cameraX + canvas.width) {
+                // Pipe body (green like Mario)
+                ctx.fillStyle = '#2e8b57';
+                ctx.fillRect(pipe.x + 4 * scaleX, pipe.y + 20 * scaleY, pipe.width - 8 * scaleX, pipe.height - 20 * scaleY);
+                
+                // Pipe top (wider)
+                ctx.fillStyle = '#3cb371';
+                ctx.fillRect(pipe.x, pipe.y, pipe.width, 20 * scaleY);
+                
+                // Pipe highlight
+                ctx.fillStyle = '#48d178';
+                ctx.fillRect(pipe.x + 2 * scaleX, pipe.y + 2 * scaleY, 6 * scaleX, 16 * scaleY);
+                
+                // Pipe dark side
+                ctx.fillStyle = '#228b22';
+                ctx.fillRect(pipe.x + pipe.width - 8 * scaleX, pipe.y + 2 * scaleY, 6 * scaleX, 16 * scaleY);
+            }
+        }
+    }
+    
+    function drawQuestionBoxes() {
+        for (const box of questionBoxes) {
+            if (box.x + box.width > cameraX && box.x < cameraX + canvas.width) {
+                if (box.used) {
+                    // Used box (gray)
+                    ctx.fillStyle = '#666666';
+                    ctx.fillRect(box.x, box.y, box.width, box.height);
+                    ctx.strokeStyle = '#444444';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                } else {
+                    // Active question box (yellow/gold)
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillRect(box.x, box.y, box.width, box.height);
+                    ctx.strokeStyle = '#b8860b';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    
+                    // Question mark
+                    ctx.fillStyle = '#8b4513';
+                    ctx.font = `bold ${20 * scaleY}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('?', box.x + box.width / 2, box.y + box.height / 2);
+                }
+            }
+        }
+    }
+    
+    function drawPowerUpAura() {
+        // Draw golden glow around player when powered up
+        const scaledWidth = player.width * scaleX;
+        const scaledHeight = player.height * scaleY;
+        const centerX = player.x + scaledWidth / 2;
+        const centerY = player.y + scaledHeight / 2;
+        
+        ctx.save();
+        ctx.globalAlpha = 0.3 + Math.sin(performance.now() / 100) * 0.2;
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, scaledWidth * 0.8, scaledHeight * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 
     function drawPlatforms() {
@@ -838,7 +1064,20 @@ const bmrGame = (function () {
             
             // Only draw visible beers
             if (beer.x + beer.width > cameraX && beer.x < cameraX + canvas.width) {
-                if (spritesLoaded && sprites.beer.complete) {
+                if (beer.isSuper) {
+                    // Super beer - golden with sparkles
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillRect(beer.x + 2 * scaleX, beer.y + 6 * scaleY, beer.width - 6 * scaleX, beer.height - 8 * scaleY);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.ellipse(beer.x + beer.width/2, beer.y + 8 * scaleY, beer.width/2 - 2 * scaleX, 5 * scaleY, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Star decoration
+                    ctx.fillStyle = '#ffff00';
+                    ctx.font = `${12 * scaleY}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('★', beer.x + beer.width/2, beer.y - 5 * scaleY);
+                } else if (spritesLoaded && sprites.beer.complete) {
                     ctx.drawImage(sprites.beer, beer.x, beer.y, beer.width, beer.height);
                 } else {
                     // Fallback: draw simple beer mug
@@ -855,7 +1094,8 @@ const bmrGame = (function () {
 
     function updateDotNetStats() {
         if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('UpdateStats', health, level, points);
+            // Endless mode - no levels, just show points
+            dotNetRef.invokeMethodAsync('UpdateStats', health, 1, points);
         }
     }
 
@@ -866,7 +1106,8 @@ const bmrGame = (function () {
             animationId = null;
         }
         if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('OnGameOver', points, maxLevelReached);
+            // Endless mode - report enemies stomped as "level"
+            dotNetRef.invokeMethodAsync('OnGameOver', points, enemiesStomped);
         }
     }
 

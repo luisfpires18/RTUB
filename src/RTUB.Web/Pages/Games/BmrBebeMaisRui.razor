@@ -38,11 +38,6 @@
             <span class="stat-label">Vida</span>
         </div>
         <div class="stat-item">
-            <i class="bi bi-lightning-fill text-warning"></i>
-            <span class="stat-value">@level</span>
-            <span class="stat-label">Nível</span>
-        </div>
-        <div class="stat-item">
             <i class="bi bi-star-fill text-primary"></i>
             <span class="stat-value">@points</span>
             <span class="stat-label">Pontos</span>
@@ -57,13 +52,14 @@
             <div class="game-overlay">
                 <div class="overlay-content">
                     <h3>BMR — Bebe mais Rui</h3>
-                    <p class="mb-3">Joga como Borat e coleciona cervejas enquanto evitas as Fat Ladies!</p>
+                    <p class="mb-3">Joga como Borat! Coleciona cervejas, salta em cima das Fat Ladies para as derrotar, e bate nas caixas mistério!</p>
                     <ul class="game-instructions">
                         <li><i class="bi bi-keyboard me-2"></i>Usa <kbd>A</kbd>/<kbd>D</kbd> ou <kbd>←</kbd>/<kbd>→</kbd> para mover</li>
                         <li><i class="bi bi-arrow-up me-2"></i>Usa <kbd>W</kbd>, <kbd>↑</kbd> ou <kbd>Espaço</kbd> para saltar</li>
                         <li><i class="bi bi-phone me-2"></i>No telemóvel, usa os botões no ecrã</li>
-                        <li><i class="bi bi-heart me-2"></i>Tens @GameConfig.Value.StartingHealth de vida</li>
-                        <li><i class="bi bi-cup-straw me-2"></i>Ganha @GameConfig.Value.BeerPoints pontos por cada cerveja</li>
+                        <li><i class="bi bi-bullseye me-2"></i>Salta na cabeça dos inimigos para os derrotar!</li>
+                        <li><i class="bi bi-box me-2"></i>Bate nas caixas <span style="color: gold;">?</span> para ganhar prémios!</li>
+                        <li><i class="bi bi-cup-straw me-2"></i>Super cervejas douradas valem mais pontos!</li>
                     </ul>
                     <button class="btn btn-primary btn-lg" @onclick="StartGame">
                         <i class="bi bi-play-fill me-1"></i>Iniciar Jogo
@@ -83,8 +79,8 @@
                             <span class="final-stat-label">Pontos</span>
                         </div>
                         <div class="final-stat">
-                            <span class="final-stat-value">@finalLevel</span>
-                            <span class="final-stat-label">Nível Máximo</span>
+                            <span class="final-stat-value">@enemiesStomped</span>
+                            <span class="final-stat-label">Inimigos Derrotados</span>
                         </div>
                     </div>
                     @if (scoreSaved)
@@ -129,11 +125,10 @@
     private bool gameStarted = false;
     private bool gameOver = false;
     private int health = 100;
-    private int level = 1;
     private int points = 0;
     
     private int finalPoints = 0;
-    private int finalLevel = 0;
+    private int enemiesStomped = 0;
     
     private bool savingScore = false;
     private bool scoreSaved = false;
@@ -168,6 +163,8 @@
                 gravity = GameConfig.Value.Gravity,
                 moveSpeed = GameConfig.Value.MoveSpeed,
                 beerPoints = GameConfig.Value.BeerPoints,
+                superBeerPoints = 50,
+                powerUpDurationMs = 5000,
                 difficultyScaling = new
                 {
                     baseSpawnRate = GameConfig.Value.DifficultyScaling.BaseSpawnRate,
@@ -196,7 +193,6 @@
         gameOver = false;
         scoreSaved = false;
         health = GameConfig.Value.StartingHealth;
-        level = 1;
         points = 0;
         
         StateHasChanged();
@@ -213,21 +209,20 @@
     private async Task Jump() => await JSRuntime.InvokeVoidAsync("bmrGame.jump");
 
     [JSInvokable]
-    public void UpdateStats(int newHealth, int newLevel, int newPoints)
+    public void UpdateStats(int newHealth, int unused, int newPoints)
     {
         health = newHealth;
-        level = newLevel;
         points = newPoints;
         StateHasChanged();
     }
 
     [JSInvokable]
-    public async Task OnGameOver(int finalPts, int maxLvl)
+    public async Task OnGameOver(int finalPts, int stomped)
     {
         gameOver = true;
         gameStarted = false;
         finalPoints = finalPts;
-        finalLevel = maxLvl;
+        enemiesStomped = stomped;
         StateHasChanged();
 
         if (!string.IsNullOrEmpty(currentUserId))
@@ -237,7 +232,7 @@
             
             try
             {
-                await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, finalLevel, TimeSpan.Zero);
+                await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, stomped, TimeSpan.Zero);
                 scoreSaved = true;
             }
             catch { }
