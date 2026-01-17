@@ -1,7 +1,6 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -223,20 +222,12 @@
                 })
                 .ToList();
 
-            // Load all users at once to ensure Categories are loaded correctly
-            // Using Users query with AsNoTracking ensures EF Core properly materializes primitive collections
-            var userIds = stats.Select(s => s.UserId).ToList();
-            var allUsers = await UserManager.Users
-                .AsNoTracking()
-                .Where(u => userIds.Contains(u.Id))
-                .ToListAsync();
-            var userLookup = allUsers.ToDictionary(u => u.Id);
-
             enrollmentStatsUsers = new List<UserEnrollmentStats>();
             
             foreach (var stat in stats)
             {
-                if (userLookup.TryGetValue(stat.UserId, out var user))
+                var user = await UserManager.FindByIdAsync(stat.UserId);
+                if (user != null)
                 {
                     enrollmentStatsUsers.Add(new UserEnrollmentStats
                     {
@@ -246,7 +237,7 @@
                         FirstName = user.FirstName ?? string.Empty,
                         LastName = user.LastName ?? string.Empty,
                         AvatarUrl = user.ProfilePictureSrc,
-                        Categories = StatusHelper.GetDisplayCategories(user),
+                        Categories = user.Categories,
                         FutureCount = stat.FutureCount,
                         PastCount = stat.PastCount,
                         TotalPastEvents = totalPastEventsInRange
