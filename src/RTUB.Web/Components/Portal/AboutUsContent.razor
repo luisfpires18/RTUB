@@ -231,14 +231,30 @@
         // Load previous 3 events (most recent first)
         previousEvents = (await EventService.GetPastEventsAsync(3)).ToList();
         
-        // Load video and trophy counts for each event
-        foreach (var evt in previousEvents)
+        // Load video and trophy counts in parallel for better performance
+        var videoCountTasks = previousEvents.Select(async evt =>
         {
             var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
-            eventVideoCounts[evt.Id] = videos.Count();
-            
+            return (EventId: evt.Id, Count: videos.Count());
+        });
+        
+        var trophyCountTasks = previousEvents.Select(async evt =>
+        {
             var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
-            eventTrophyCounts[evt.Id] = trophies.Count();
+            return (EventId: evt.Id, Count: trophies.Count());
+        });
+        
+        var videoResults = await Task.WhenAll(videoCountTasks);
+        var trophyResults = await Task.WhenAll(trophyCountTasks);
+        
+        foreach (var result in videoResults)
+        {
+            eventVideoCounts[result.EventId] = result.Count;
+        }
+        
+        foreach (var result in trophyResults)
+        {
+            eventTrophyCounts[result.EventId] = result.Count;
         }
     }
 

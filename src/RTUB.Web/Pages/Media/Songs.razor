@@ -719,13 +719,22 @@ else
             var songIds = songs.Select(s => s.Id).ToList();
             songPlayCounts = await SongService.GetPlayCountsForSongsAsync(songIds);
             
-            // Load video counts for each song
-            foreach (var song in songs)
+            // Load video counts in parallel for better performance
+            var videoCountTasks = songs.Select(async song =>
             {
                 var videos = await SongService.GetVideosBySongIdAsync(song.Id);
-                songVideoCounts[song.Id] = videos.Count();
-                
-                // Calculate link count (Spotify + YouTube URLs)
+                return (SongId: song.Id, Count: videos.Count());
+            });
+            
+            var videoCountResults = await Task.WhenAll(videoCountTasks);
+            foreach (var result in videoCountResults)
+            {
+                songVideoCounts[result.SongId] = result.Count;
+            }
+            
+            // Calculate link counts (synchronous - no DB calls needed)
+            foreach (var song in songs)
+            {
                 var linkCount = 0;
                 if (!string.IsNullOrEmpty(song.SpotifyUrl)) linkCount++;
                 linkCount += song.YouTubeUrls?.Count ?? 0;

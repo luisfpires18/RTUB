@@ -1976,15 +1976,22 @@ else
 
     private async Task LoadEventVideoCounts()
     {
-        // Load video counts for all past events
+        // Load video counts for all past events using parallel loading
         var counts = new Dictionary<int, int>();
         
         if (allEvents != null)
         {
-            foreach (var evt in allEvents.Where(e => e.Date < DateTime.Today))
+            var pastEvents = allEvents.Where(e => e.Date < DateTime.Today).ToList();
+            var tasks = pastEvents.Select(async evt =>
             {
                 var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
-                counts[evt.Id] = videos.Count();
+                return (EventId: evt.Id, Count: videos.Count());
+            });
+            
+            var results = await Task.WhenAll(tasks);
+            foreach (var result in results)
+            {
+                counts[result.EventId] = result.Count;
             }
         }
         
@@ -1993,15 +2000,22 @@ else
 
     private async Task LoadEventTrophyCounts()
     {
-        // Load trophy counts for all past festival events
+        // Load trophy counts for all past festival events using parallel loading
         var counts = new Dictionary<int, int>();
         
         if (allEvents != null)
         {
-            foreach (var evt in allEvents.Where(e => e.Date < DateTime.Today && e.Type == EventType.Festival))
+            var pastFestivalEvents = allEvents.Where(e => e.Date < DateTime.Today && e.Type == EventType.Festival).ToList();
+            var tasks = pastFestivalEvents.Select(async evt =>
             {
                 var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
-                counts[evt.Id] = trophies.Count();
+                return (EventId: evt.Id, Count: trophies.Count());
+            });
+            
+            var results = await Task.WhenAll(tasks);
+            foreach (var result in results)
+            {
+                counts[result.EventId] = result.Count;
             }
         }
         
