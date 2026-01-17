@@ -77,9 +77,7 @@ public class NaipeService : INaipeService
         if (user == null)
             throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
-        // Only admins can create content
-        if (!await IsUserAdminAsync(userId))
-            throw new UnauthorizedAccessException("Only administrators can create naipe content.");
+        // Any logged-in user can create content
 
         // Upload file to Cloudflare R2
         string url;
@@ -115,10 +113,13 @@ public class NaipeService : INaipeService
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
-        // Only admins can update content
+        // Only owner or admin can update content
         var currentUserId = _auditContext.UserId;
-        if (!await IsUserAdminAsync(currentUserId))
-            throw new UnauthorizedAccessException("Only administrators can update naipe content.");
+        var isOwner = content.CreatedByUserId == currentUserId;
+        var isAdminUser = await IsUserAdminAsync(currentUserId);
+        
+        if (!isOwner && !isAdminUser)
+            throw new UnauthorizedAccessException("Only the content owner or administrators can update naipe content.");
 
         var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
 
@@ -140,10 +141,13 @@ public class NaipeService : INaipeService
         if (content == null)
             throw new EntityNotFoundException(nameof(NaipeContent), id);
 
-        // Only admins can delete content
+        // Only owner or admin can delete content
         var currentUserId = _auditContext.UserId;
-        if (!await IsUserAdminAsync(currentUserId))
-            throw new UnauthorizedAccessException("Only administrators can delete naipe content.");
+        var isOwner = content.CreatedByUserId == currentUserId;
+        var isAdminUser = await IsUserAdminAsync(currentUserId);
+        
+        if (!isOwner && !isAdminUser)
+            throw new UnauthorizedAccessException("Only the content owner or administrators can delete naipe content.");
 
         var user = await _userManager.FindByIdAsync(currentUserId ?? string.Empty);
         var contentType = content.IsVideo ? "Video" : "Image";
@@ -301,6 +305,7 @@ public class NaipeService : INaipeService
             MimeType = content.MimeType,
             IsVideo = content.IsVideo,
             SortOrder = content.SortOrder,
+            CreatedByUserId = content.CreatedByUserId,
             CreatedByUserName = content.CreatedByUser?.Nickname ?? content.CreatedByUser?.UserName ?? "Unknown",
             CreatedAt = content.CreatedAt,
             PlayCount = content.PlayCounts?.Count ?? 0,

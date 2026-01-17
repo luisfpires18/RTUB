@@ -28,13 +28,13 @@
                 <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
                     <i class="bi bi-sliders"></i> Configurar
                 </a>
-                <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
-                    <i class="bi bi-camera-video"></i> Adicionar Vídeo
-                </button>
-                <button class="btn btn-success" @onclick="() => OpenCreateModal(false)" title="Adicionar Imagem">
-                    <i class="bi bi-image"></i> Adicionar Imagem
-                </button>
             }
+            <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
+                <i class="bi bi-camera-video"></i> Adicionar Vídeo
+            </button>
+            <button class="btn btn-success" @onclick="() => OpenCreateModal(false)" title="Adicionar Imagem">
+                <i class="bi bi-image"></i> Adicionar Imagem
+            </button>
         </div>
     </div>
 </div>
@@ -98,8 +98,8 @@ else
         {
             <NaipeCard Content="@content"
                        PlayCount="@content.PlayCount"
-                       CanEdit="@isAdmin"
-                       CanDelete="@isAdmin"
+                       CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                       CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
                        OnView="@(() => OpenViewModal(content))"
                        OnEdit="@(() => OpenEditModal(content))"
                        OnDelete="@(() => OpenDeleteConfirmation(content))" />
@@ -638,10 +638,10 @@ else
         if (currentUserId == null)
             return;
 
-        // Only admins can create/edit content
-        if (!isAdmin)
+        // For edit: verify ownership (owner or admin)
+        if (editingContent != null && !isAdmin && editingContent.CreatedByUserId != currentUserId)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Apenas administradores podem criar ou editar conteúdo.");
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem editar.");
             return;
         }
         
@@ -731,10 +731,10 @@ else
         if (contentToDelete == null)
             return;
 
-        // Only admins can delete content
-        if (!isAdmin)
+        // Only owner or admin can delete content
+        if (!isAdmin && contentToDelete.CreatedByUserId != currentUserId)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Apenas administradores podem eliminar conteúdo.");
+            await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem eliminar.");
             return;
         }
 

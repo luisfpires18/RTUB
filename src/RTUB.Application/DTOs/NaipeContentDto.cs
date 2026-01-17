@@ -15,6 +15,7 @@ public class NaipeContentDto
     public string MimeType { get; set; } = string.Empty;
     public bool IsVideo { get; set; }
     public decimal SortOrder { get; set; }
+    public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int PlayCount { get; set; }
