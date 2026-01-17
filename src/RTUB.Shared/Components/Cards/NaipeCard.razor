@@ -1,0 +1,114 @@
+@namespace RTUB.Shared
+@using RTUB.Application.DTOs
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+<div class="naipe-card">
+    <!-- Header with media preview or icon -->
+    <div class="naipe-header">
+        @if (CanEdit || CanDelete)
+        {
+            <div class="naipe-admin-overlay">
+                @if (CanEdit)
+                {
+                    <button class="btn btn-sm btn-light" @onclick="OnEdit" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                @if (CanDelete)
+                {
+                    <button class="btn btn-sm btn-danger" @onclick="OnDelete" title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        }
+        
+        @if (Content.IsVideo)
+        {
+            <!-- Video thumbnail - use poster or placeholder -->
+            <div class="naipe-media-preview video">
+                <i class="bi bi-play-circle naipe-play-icon"></i>
+                <span class="naipe-media-badge badge bg-purple">
+                    <i class="bi bi-camera-video"></i> Vídeo
+                </span>
+            </div>
+        }
+        else
+        {
+            <!-- Image preview -->
+            <div class="naipe-media-preview image">
+                <img src="@Content.Url" alt="@Content.Title" class="naipe-image" loading="lazy" />
+                <span class="naipe-media-badge badge bg-purple">
+                    <i class="bi bi-image"></i> Imagem
+                </span>
+            </div>
+        }
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+        <!-- Instrument Type Badge -->
+        <div class="naipe-instrument-badge mb-2">
+            <span class="badge bg-purple">
+                <i class="bi bi-music-note"></i> @StatusHelper.GetInstrumentDisplay(Content.InstrumentType)
+            </span>
+        </div>
+
+        <!-- Title -->
+        <h5 class="naipe-title">@Content.Title</h5>
+
+        <!-- Description Snippet -->
+        @if (!string.IsNullOrWhiteSpace(Content.Description))
+        {
+            <p class="naipe-description">@GetDescriptionSnippet()</p>
+        }
+
+        <!-- Metadata Row -->
+        <div class="naipe-metadata">
+            <div class="naipe-metadata-item">
+                <i class="bi bi-eye text-primary"></i>
+                <span>@PlayCount</span>
+            </div>
+            <div class="naipe-metadata-item">
+                <i class="bi bi-chat-dots text-primary"></i>
+                <span>@Content.CommentCount</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="naipe-actions">
+        <button class="btn btn-purple btn-sm w-100" @onclick="OnView">
+            <i class="bi bi-@(Content.IsVideo ? "play-circle" : "eye")"></i>
+            <span>@(Content.IsVideo ? "Ver Vídeo" : "Ver Imagem")</span>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public NaipeContentDto Content { get; set; } = null!;
+    [Parameter] public int PlayCount { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool CanDelete { get; set; }
+    [Parameter] public EventCallback OnView { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    private string GetDescriptionSnippet()
+    {
+        if (string.IsNullOrWhiteSpace(Content.Description))
+            return string.Empty;
+
+        const int maxLength = 100;
+        return Content.Description.Length > maxLength
+            ? Content.Description.Substring(0, maxLength) + "..."
+            : Content.Description;
+    }
+
+    protected override bool ShouldRender()
+    {
+        // Only re-render when content changes
+        return true;
+    }
+}

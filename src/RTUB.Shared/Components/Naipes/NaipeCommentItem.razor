@@ -1,0 +1,84 @@
+@namespace RTUB.Shared
+@using RTUB.Application.DTOs
+
+<div class="comment-item">
+    <div class="comment-header">
+        <div class="comment-author-info">
+            <!-- Author Avatar -->
+            @if (!string.IsNullOrWhiteSpace(Comment.AuthorAvatarUrl))
+            {
+                <img src="@Comment.AuthorAvatarUrl" alt="@Comment.AuthorName" class="comment-avatar" />
+            }
+            else
+            {
+                <div class="comment-avatar-placeholder">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+            }
+
+            <!-- Author Name and Date -->
+            <div class="comment-meta">
+                <span class="comment-author-name">@Comment.AuthorName</span>
+                <span class="comment-date">@GetRelativeTime(Comment.CreatedAt)</span>
+            </div>
+        </div>
+
+        <!-- Delete Button -->
+        @if (Comment.CanDelete)
+        {
+            <button class="btn btn-sm btn-outline-danger comment-delete-btn"
+                    @onclick="HandleDelete"
+                    disabled="@IsProcessing"
+                    title="Eliminar comentário">
+                <i class="bi bi-trash"></i>
+            </button>
+        }
+    </div>
+
+    <!-- Comment Text -->
+    <div class="comment-body">
+        <p class="comment-text">@Comment.Text</p>
+    </div>
+</div>
+
+@code {
+    [Parameter] public NaipeCommentDto Comment { get; set; } = null!;
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    private bool IsProcessing { get; set; }
+
+    private async Task HandleDelete()
+    {
+        if (IsProcessing) return;
+
+        IsProcessing = true;
+        try
+        {
+            await OnDelete.InvokeAsync(Comment.Id);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime.ToUniversalTime();
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Agora mesmo";
+        if (timeSpan.TotalMinutes < 60)
+            return $"Há {(int)timeSpan.TotalMinutes} min";
+        if (timeSpan.TotalHours < 24)
+            return $"Há {(int)timeSpan.TotalHours}h";
+        if (timeSpan.TotalDays < 7)
+            return $"Há {(int)timeSpan.TotalDays}d";
+        if (timeSpan.TotalDays < 30)
+            return $"Há {(int)(timeSpan.TotalDays / 7)} sem";
+        if (timeSpan.TotalDays < 365)
+            return $"Há {(int)(timeSpan.TotalDays / 30)} mês" + ((int)(timeSpan.TotalDays / 30) > 1 ? "es" : "");
+
+        return dateTime.ToString("dd/MM/yyyy");
+    }
+}
