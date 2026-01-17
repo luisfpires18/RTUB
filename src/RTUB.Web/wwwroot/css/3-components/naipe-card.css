@@ -316,7 +316,7 @@
 }
 
 .instrument-selector-item span {
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -503,7 +503,7 @@
   }
 
   .instrument-selector-item span {
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
   }
 
   .comment-avatar,
