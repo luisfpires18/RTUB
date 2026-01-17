@@ -44,4 +44,30 @@ public class GameScore : BaseEntity
             TimeSurvived = timeSurvived
         };
     }
+
+    /// <summary>
+    /// Updates the score values if the new score is better
+    /// A score is considered better if it has more points, or same points but higher level
+    /// </summary>
+    /// <returns>True if the score was updated, false if the existing score was better</returns>
+    public bool UpdateIfBetter(int points, int maxLevel, TimeSpan timeSurvived)
+    {
+        if (points < 0)
+            throw new ArgumentException("Points cannot be negative", nameof(points));
+        if (maxLevel < 0)
+            throw new ArgumentException("Max level cannot be negative", nameof(maxLevel));
+
+        // A score is better if it has more points, or same points with higher level
+        var isBetter = points > Points || (points == Points && maxLevel > MaxLevel);
+        
+        if (isBetter)
+        {
+            Points = points;
+            MaxLevel = maxLevel;
+            TimeSurvived = timeSurvived;
+            return true;
+        }
+        
+        return false;
+    }
 }

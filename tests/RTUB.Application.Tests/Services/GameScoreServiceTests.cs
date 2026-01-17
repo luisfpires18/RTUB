@@ -141,7 +141,7 @@ public class GameScoreServiceTests
     }
 
     [Fact]
-    public async Task SubmitScoreAsync_CreatesNewScore()
+    public async Task SubmitScoreAsync_CreatesNewScore_WhenNoExistingScore()
     {
         // Arrange
         var userId = "test-user-id";
@@ -149,6 +149,11 @@ public class GameScoreServiceTests
         var points = 50;
         var maxLevel = 3;
         var timeSurvived = TimeSpan.FromMinutes(2);
+
+        // No existing score
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync((GameScore?)null);
 
         GameScore? capturedScore = null;
         _mockGameScoreRepository
@@ -175,7 +180,87 @@ public class GameScoreServiceTests
     }
 
     [Fact]
-    public async Task SubmitScoreAsync_CallsRepositoryMethods()
+    public async Task SubmitScoreAsync_UpdatesExistingScore_WhenNewScoreIsBetter()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var gameKey = "test-game";
+        var existingScore = CreateScore(userId, 50, 2, null);
+        
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync(existingScore);
+        _mockGameScoreRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
+            .Returns(Task.CompletedTask);
+        _mockGameScoreRepository
+            .Setup(r => r.SaveChangesAsync())
+            .ReturnsAsync(1);
+
+        // Act - submit a better score (more points)
+        var result = await _service.SubmitScoreAsync(userId, gameKey, 100, 5, TimeSpan.FromMinutes(3));
+
+        // Assert
+        result.Points.Should().Be(100);
+        result.MaxLevel.Should().Be(5);
+        _mockGameScoreRepository.Verify(r => r.UpdateAsync(existingScore), Times.Once);
+        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitScoreAsync_DoesNotUpdate_WhenNewScoreIsWorse()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var gameKey = "test-game";
+        var existingScore = CreateScore(userId, 100, 5, null);
+        
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync(existingScore);
+
+        // Act - submit a worse score (fewer points)
+        var result = await _service.SubmitScoreAsync(userId, gameKey, 50, 2, TimeSpan.FromMinutes(1));
+
+        // Assert - score should remain unchanged
+        result.Points.Should().Be(100);
+        result.MaxLevel.Should().Be(5);
+        _mockGameScoreRepository.Verify(r => r.UpdateAsync(It.IsAny<GameScore>()), Times.Never);
+        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Never);
+        _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitScoreAsync_UpdatesWhenSamePointsButHigherLevel()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var gameKey = "test-game";
+        var existingScore = CreateScore(userId, 100, 3, null);
+        
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync(existingScore);
+        _mockGameScoreRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
+            .Returns(Task.CompletedTask);
+        _mockGameScoreRepository
+            .Setup(r => r.SaveChangesAsync())
+            .ReturnsAsync(1);
+
+        // Act - same points but higher level
+        var result = await _service.SubmitScoreAsync(userId, gameKey, 100, 7, TimeSpan.FromMinutes(2));
+
+        // Assert
+        result.Points.Should().Be(100);
+        result.MaxLevel.Should().Be(7);
+        _mockGameScoreRepository.Verify(r => r.UpdateAsync(existingScore), Times.Once);
+        _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitScoreAsync_CallsRepositoryMethods_WhenNoExistingScore()
     {
         // Arrange
         var userId = "user1";
@@ -184,6 +269,9 @@ public class GameScoreServiceTests
         var maxLevel = 5;
         var timeSurvived = TimeSpan.FromMinutes(3);
 
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync((GameScore?)null);
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
             .ReturnsAsync((GameScore s) => s);

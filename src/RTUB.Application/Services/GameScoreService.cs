@@ -19,6 +19,21 @@ public class GameScoreService : IGameScoreService
 
     public async Task<GameScore> SubmitScoreAsync(string userId, string gameKey, int points, int maxLevel, TimeSpan timeSurvived)
     {
+        // Check if user already has a score for this game
+        var existingScore = await _repository.GetUserScoreAsync(userId, gameKey);
+        
+        if (existingScore != null)
+        {
+            // Update only if the new score is better
+            if (existingScore.UpdateIfBetter(points, maxLevel, timeSurvived))
+            {
+                await _repository.UpdateAsync(existingScore);
+                await _repository.SaveChangesAsync();
+            }
+            return existingScore;
+        }
+        
+        // Create new score if none exists
         var score = GameScore.Create(userId, gameKey, points, maxLevel, timeSurvived);
         await _repository.AddAsync(score);
         await _repository.SaveChangesAsync();
