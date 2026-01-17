@@ -1,0 +1,144 @@
+/* Games page styles */
+
+/* Games grid layout */
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Game card styles */
+.game-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(63, 42, 134, 0.3);
+}
+
+/* Game image styles */
+.game-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background-color: #1a1a1b;
+    transition: opacity 0.3s ease;
+}
+
+.game-image-placeholder {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2a2a2d 0%, #1a1a1b 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.game-icon-large {
+    font-size: 4rem;
+    color: var(--bs-primary);
+    opacity: 0.5;
+}
+
+.game-card-clickable {
+    cursor: pointer;
+}
+
+.game-card-clickable:hover .game-image {
+    opacity: 0.85;
+}
+
+/* Game text styles */
+.game-text-light {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.game-text-secondary {
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Game card buttons */
+.game-card .btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.game-card .btn i {
+    font-size: 1rem;
+    margin-right: 0.25rem;
+}
+
+.game-card .btn-success {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+}
+
+.game-card .btn-success:hover {
+    background-color: #198754;
+    border-color: #198754;
+    transform: scale(1.02);
+}
+
+.game-card .btn-purple {
+    background-color: var(--bs-purple);
+    border-color: var(--bs-purple);
+    color: white;
+}
+
+.game-card .btn-purple:hover {
+    background-color: #5a3fb8;
+    border-color: #5a3fb8;
+    transform: scale(1.02);
+}
+
+/* Leaderboard modal styles */
+.leaderboard-container {
+    min-height: 300px;
+    padding: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 767.98px) {
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .game-card .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .game-icon-large {
+        font-size: 3rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023.98px) {
+    .games-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1399.98px) {
+    .games-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1400px) {
+    .games-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

@@ -1,0 +1,343 @@
+@page "/games/avoid-questions"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<PageTitle>Evitar Perguntas - RTUB</PageTitle>
+
+<div class="avoid-questions-game-container">
+    <div class="game-header mb-3">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-controller"></i> Evitar Perguntas</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">Evita as perguntas dos órgãos sociais!</p>
+            </div>
+            <div class="d-flex gap-2">
+                @if (gameState == GameState.Playing)
+                {
+                    <button class="btn btn-warning" @onclick="PauseGame" title="Pausar">
+                        <i class="bi bi-pause-fill"></i> Pausar
+                    </button>
+                }
+                <button class="btn btn-secondary" @onclick="BackToGames" title="Voltar aos Jogos">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Stats Display (Always visible when playing or paused) -->
+    @if (gameState == GameState.Playing || gameState == GameState.Paused)
+    {
+        <div class="game-stats mb-3">
+            <div class="stat-item">
+                <i class="bi bi-trophy-fill"></i>
+                <span class="stat-label">Pontuação:</span>
+                <span class="stat-value">@currentScore</span>
+            </div>
+            <div class="stat-item">
+                <i class="bi bi-graph-up"></i>
+                <span class="stat-label">Nível:</span>
+                <span class="stat-value">@currentLevel</span>
+            </div>
+            <div class="stat-item">
+                <i class="bi bi-heart-fill"></i>
+                <span class="stat-label">Vidas:</span>
+                <span class="stat-value">
+                    @for (int i = 0; i < currentLives; i++)
+                    {
+                        <i class="bi bi-heart-fill text-danger"></i>
+                    }
+                    @for (int i = currentLives; i < 5; i++)
+                    {
+                        <i class="bi bi-heart text-muted"></i>
+                    }
+                </span>
+            </div>
+        </div>
+    }
+
+    <!-- Game Canvas Container -->
+    <div class="game-canvas-wrapper">
+        <canvas id="avoidQuestionsCanvas" class="game-canvas"></canvas>
+
+        <!-- Start Menu Overlay -->
+        @if (gameState == GameState.Menu)
+        {
+            <div class="game-overlay">
+                <div class="game-overlay-content">
+                    <h2 class="mb-3"><i class="bi bi-controller"></i> Evitar Perguntas</h2>
+                    <p class="mb-4">
+                        Use as teclas <kbd>←</kbd> <kbd>→</kbd> para mover o teu personagem e evitar as perguntas dos órgãos sociais!
+                    </p>
+                    <div class="game-instructions mb-4">
+                        <h5 class="mb-3">Como Jogar:</h5>
+                        <ul class="text-start">
+                            <li>Use as setas esquerda/direita para mover</li>
+                            <li>Evite as perguntas que caem</li>
+                            <li>+1 ponto por cada pergunta evitada</li>
+                            <li>5 vidas - cada colisão perde 1 vida</li>
+                            <li>Novo nível a cada 60 segundos</li>
+                            <li>A dificuldade aumenta com cada nível</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-success btn-lg" @onclick="StartGame">
+                        <i class="bi bi-play-fill"></i> Iniciar Jogo
+                    </button>
+                </div>
+            </div>
+        }
+
+        <!-- Pause Overlay -->
+        @if (gameState == GameState.Paused)
+        {
+            <div class="game-overlay">
+                <div class="game-overlay-content">
+                    <h2 class="mb-4"><i class="bi bi-pause-fill"></i> Jogo Pausado</h2>
+                    <div class="d-flex flex-column gap-3">
+                        <button class="btn btn-success btn-lg" @onclick="ResumeGame">
+                            <i class="bi bi-play-fill"></i> Continuar
+                        </button>
+                        <button class="btn btn-secondary" @onclick="RestartGame">
+                            <i class="bi bi-arrow-clockwise"></i> Reiniciar
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="BackToGames">
+                            <i class="bi bi-arrow-left"></i> Voltar aos Jogos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Game Over Overlay -->
+        @if (gameState == GameState.GameOver)
+        {
+            <div class="game-overlay">
+                <div class="game-overlay-content">
+                    <h2 class="mb-3"><i class="bi bi-x-circle-fill text-danger"></i> Game Over</h2>
+                    <div class="game-over-stats mb-4">
+                        <div class="final-stat">
+                            <span class="final-stat-label">Pontuação Final:</span>
+                            <span class="final-stat-value">@finalScore</span>
+                        </div>
+                        <div class="final-stat">
+                            <span class="final-stat-label">Nível Alcançado:</span>
+                            <span class="final-stat-value">@finalLevel</span>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column gap-3">
+                        <button class="btn btn-success btn-lg" @onclick="RestartGame">
+                            <i class="bi bi-arrow-clockwise"></i> Jogar Novamente
+                        </button>
+                        <button class="btn btn-secondary" @onclick="BackToGames">
+                            <i class="bi bi-arrow-left"></i> Voltar aos Jogos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Mobile Controls (Touch) -->
+        <div class="mobile-controls d-md-none">
+            <button class="btn btn-mobile-control" 
+                    @ontouchstart="() => MoveLeft()" 
+                    @ontouchstart:preventDefault
+                    @ontouchend="() => StopMove()" 
+                    @ontouchend:preventDefault
+                    @onmousedown="() => MoveLeft()" 
+                    @onmouseup="() => StopMove()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <button class="btn btn-mobile-control" 
+                    @ontouchstart="() => MoveRight()" 
+                    @ontouchstart:preventDefault
+                    @ontouchend="() => StopMove()" 
+                    @ontouchend:preventDefault
+                    @onmousedown="() => MoveRight()" 
+                    @onmouseup="() => StopMove()">
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Instructions (Below canvas) -->
+    <div class="game-info mt-3">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill"></i>
+            <strong>Dica:</strong> Pressione <kbd>ESC</kbd> para pausar o jogo a qualquer momento.
+        </div>
+    </div>
+</div>
+
+@code {
+    private enum GameState
+    {
+        Menu,
+        Playing,
+        Paused,
+        GameOver
+    }
+
+    private GameState gameState = GameState.Menu;
+    private IJSObjectReference? gameModule;
+    private DotNetObjectReference<AvoidQuestionsGame>? dotNetRef;
+
+    // Game state variables
+    private int currentScore = 0;
+    private int currentLevel = 1;
+    private int currentLives = 5;
+    private int finalScore = 0;
+    private int finalLevel = 1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load the game JavaScript module
+                gameModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "import", "/js/avoidQuestionsGame.js");
+
+                // Create .NET reference for callbacks
+                dotNetRef = DotNetObjectReference.Create(this);
+
+                // Initialize the game
+                await gameModule.InvokeVoidAsync("initGame", "avoidQuestionsCanvas", dotNetRef);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing game: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task StartGame()
+    {
+        if (gameModule != null)
+        {
+            gameState = GameState.Playing;
+            currentScore = 0;
+            currentLevel = 1;
+            currentLives = 5;
+            await gameModule.InvokeVoidAsync("startGame");
+            StateHasChanged();
+        }
+    }
+
+    private async Task PauseGame()
+    {
+        if (gameModule != null && gameState == GameState.Playing)
+        {
+            gameState = GameState.Paused;
+            await gameModule.InvokeVoidAsync("pauseGame");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResumeGame()
+    {
+        if (gameModule != null && gameState == GameState.Paused)
+        {
+            gameState = GameState.Playing;
+            await gameModule.InvokeVoidAsync("resumeGame");
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestartGame()
+    {
+        if (gameModule != null)
+        {
+            gameState = GameState.Playing;
+            currentScore = 0;
+            currentLevel = 1;
+            currentLives = 5;
+            await gameModule.InvokeVoidAsync("startGame");
+            StateHasChanged();
+        }
+    }
+
+    private void BackToGames()
+    {
+        NavigationManager.NavigateTo("/games");
+    }
+
+    // Mobile control methods
+    private async Task MoveLeft()
+    {
+        if (gameModule != null && gameState == GameState.Playing)
+        {
+            await gameModule.InvokeVoidAsync("setPlayerDirection", -1);
+        }
+    }
+
+    private async Task MoveRight()
+    {
+        if (gameModule != null && gameState == GameState.Playing)
+        {
+            await gameModule.InvokeVoidAsync("setPlayerDirection", 1);
+        }
+    }
+
+    private async Task StopMove()
+    {
+        if (gameModule != null && gameState == GameState.Playing)
+        {
+            await gameModule.InvokeVoidAsync("setPlayerDirection", 0);
+        }
+    }
+
+    // JavaScript interop callbacks
+    [JSInvokable]
+    public void OnGameOver(int score, int level)
+    {
+        gameState = GameState.GameOver;
+        finalScore = score;
+        finalLevel = level;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnScoreUpdate(int score)
+    {
+        currentScore = score;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnLevelUp(int level)
+    {
+        currentLevel = level;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnLivesUpdate(int lives)
+    {
+        currentLives = lives;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (gameModule != null)
+        {
+            try
+            {
+                await gameModule.InvokeVoidAsync("destroyGame");
+                await gameModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore errors during disposal
+            }
+        }
+
+        dotNetRef?.Dispose();
+    }
+}

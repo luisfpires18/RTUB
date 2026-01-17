@@ -1,0 +1,89 @@
+@namespace RTUB.Shared
+@*
+    GameCard Component
+    Reusable card for displaying game information
+*@
+
+<div class="card game-card h-100">
+    <div class="position-relative game-card-clickable" @onclick="HandlePlayClick">
+        @if (!string.IsNullOrEmpty(ImageUrl))
+        {
+            <img src="@ImageUrl" class="card-img-top game-image" alt="@Title" loading="lazy">
+        }
+        else
+        {
+            <div class="card-img-top game-image-placeholder">
+                <i class="bi bi-controller game-icon-large"></i>
+            </div>
+        }
+    </div>
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title game-text-light mb-2">@Title</h5>
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <p class="card-text small flex-grow-1 game-text-secondary mb-3">@Description</p>
+        }
+        <div class="mt-auto d-flex gap-2">
+            <button class="btn btn-success flex-fill" @onclick="HandlePlayClick" title="Jogar">
+                <i class="bi bi-play-fill"></i> Jogar
+            </button>
+            <button class="btn btn-purple flex-fill" @onclick="HandleLeaderboardClick" title="Ver Classificação">
+                <i class="bi bi-trophy-fill"></i> Classificação
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Game ID
+    /// </summary>
+    [Parameter]
+    public int GameId { get; set; }
+
+    /// <summary>
+    /// Game title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Game description
+    /// </summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Game image URL
+    /// </summary>
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Callback when the Play button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<int> OnPlay { get; set; }
+
+    /// <summary>
+    /// Callback when the Leaderboard button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<int> OnLeaderboard { get; set; }
+
+    private async Task HandlePlayClick()
+    {
+        if (OnPlay.HasDelegate)
+        {
+            await OnPlay.InvokeAsync(GameId);
+        }
+    }
+
+    private async Task HandleLeaderboardClick()
+    {
+        if (OnLeaderboard.HasDelegate)
+        {
+            await OnLeaderboard.InvokeAsync(GameId);
+        }
+    }
+}

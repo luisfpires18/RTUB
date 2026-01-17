@@ -1,0 +1,178 @@
+@page "/games"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Helpers
+@using RTUB.Shared
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-controller"></i> Jogos</h1>
+            <p class="lead page-header-subtitle mb-0 text-light-theme">Diverte-te com os nossos jogos!</p>
+        </div>
+    </div>
+</div>
+
+@if (games == null)
+{
+    <p>A carregar jogos...</p>
+}
+else if (!games.Any())
+{
+    <EmptyState Title="Nenhum jogo disponível ainda"
+               Icon="bi-controller" 
+               Message="Brevemente teremos jogos disponíveis!" />
+}
+else
+{
+    <div class="games-grid">
+        @foreach (var game in paginatedGames)
+        {
+            <GameCard GameId="@game.Id"
+                     Title="@game.Title"
+                     Description="@game.Description"
+                     ImageUrl="@game.ImageUrl"
+                     OnPlay="HandlePlayGame"
+                     OnLeaderboard="HandleShowLeaderboard" />
+        }
+    </div>
+
+    @if (games.Count > paginationHelper.PageSize)
+    {
+        <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                        PageSize="@paginationHelper.PageSize"
+                        TotalItems="@games.Count"
+                        ItemLabel="jogos"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        OnPageChanged="@HandlePageChange"
+                        OnPageSizeChanged="@HandlePageSizeChange" />
+    }
+}
+
+<!-- Leaderboard Modal -->
+<Modal Show="@showLeaderboardModal"
+       ShowChanged="@((value) => showLeaderboardModal = value)"
+       Title="@($"Classificação - {selectedGameTitle}")"
+       Size="Modal.ModalSize.Large"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (isLoadingLeaderboard)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="leaderboard-container">
+                <EmptyState Title="Classificação em breve"
+                           Icon="bi-trophy" 
+                           Message="A funcionalidade de classificação será implementada em breve!" />
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseLeaderboardModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    // Simple game model for now
+    private class Game
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public string Route { get; set; } = string.Empty;
+    }
+
+    private List<Game>? games;
+    private List<Game> paginatedGames = new();
+    private PaginationHelper<Game> paginationHelper = new() { PageSize = 6 };
+    
+    private bool showLeaderboardModal = false;
+    private bool isLoadingLeaderboard = false;
+    private string selectedGameTitle = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        LoadGames();
+    }
+
+    private void LoadGames()
+    {
+        // For now, hardcoded list with one game
+        // In the future, this could be loaded from a database
+        games = new List<Game>
+        {
+            new Game
+            {
+                Id = 1,
+                Title = "Evitar Perguntas",
+                Description = "Evita as perguntas dos órgãos sociais! Use as teclas ← → para mover o teu personagem.",
+                ImageUrl = null, // Can be set to a game thumbnail later
+                Route = "/games/avoid-questions"
+            }
+        };
+
+        UpdatePagination();
+    }
+
+    private void UpdatePagination()
+    {
+        if (games != null)
+        {
+            paginatedGames = paginationHelper.GetPageData(games);
+        }
+    }
+
+    private Task HandlePageChange(int newPage)
+    {
+        if (paginationHelper.GoToPage(newPage))
+        {
+            UpdatePagination();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        UpdatePagination();
+        return Task.CompletedTask;
+    }
+
+    private void HandlePlayGame(int gameId)
+    {
+        var game = games?.FirstOrDefault(g => g.Id == gameId);
+        if (game != null && !string.IsNullOrEmpty(game.Route))
+        {
+            NavigationManager.NavigateTo(game.Route);
+        }
+    }
+
+    private void HandleShowLeaderboard(int gameId)
+    {
+        var game = games?.FirstOrDefault(g => g.Id == gameId);
+        if (game != null)
+        {
+            selectedGameTitle = game.Title;
+            showLeaderboardModal = true;
+            isLoadingLeaderboard = false; // Set to false immediately since we have no data to load yet
+        }
+    }
+
+    private void CloseLeaderboardModal()
+    {
+        showLeaderboardModal = false;
+        selectedGameTitle = string.Empty;
+    }
+}
