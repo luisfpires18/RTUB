@@ -10,6 +10,24 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Remove duplicate records before creating unique index
+            // Keep only the record with the highest Points for each user/game combination
+            migrationBuilder.Sql(@"
+                DELETE FROM GameScores 
+                WHERE Id NOT IN (
+                    SELECT MIN(gs.Id) 
+                    FROM GameScores gs
+                    INNER JOIN (
+                        SELECT UserId, GameKey, MAX(Points) as MaxPoints
+                        FROM GameScores
+                        GROUP BY UserId, GameKey
+                    ) best ON gs.UserId = best.UserId 
+                        AND gs.GameKey = best.GameKey 
+                        AND gs.Points = best.MaxPoints
+                    GROUP BY gs.UserId, gs.GameKey
+                )
+            ");
+
             migrationBuilder.DropIndex(
                 name: "IX_GameScores_UserId_GameKey",
                 table: "GameScores");
