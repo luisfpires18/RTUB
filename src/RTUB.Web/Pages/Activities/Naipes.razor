@@ -42,11 +42,6 @@
 <!-- Instrument Type Selector -->
 <div class="instrument-selector-wrapper mb-4">
     <div class="instrument-selector d-flex flex-nowrap overflow-auto py-3 gap-2">
-        <button class="instrument-selector-item @(selectedInstrument == null ? "active" : "")"
-                @onclick="() => SelectInstrument(null)">
-            <i class="bi bi-grid-3x3-gap"></i>
-            <span>Todos</span>
-        </button>
         @foreach (var config in typeConfigs)
         {
             <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")"
@@ -84,11 +79,17 @@
         <p class="mt-3">A carregar conteúdo...</p>
     </div>
 }
+else if (!selectedInstrument.HasValue)
+{
+    <EmptyState Title="Selecione um Instrumento"
+                Icon="bi-music-note-list"
+                Message="Selecione um tipo de instrumento acima para ver o conteúdo educativo disponível." />
+}
 else if (!filteredContent.Any())
 {
     <EmptyState Title="Nenhum conteúdo encontrado"
                 Icon="bi-inbox"
-                Message="@(selectedInstrument.HasValue ? $"Não há conteúdo para {StatusHelper.GetInstrumentDisplay(selectedInstrument.Value)}." : "Não há conteúdo disponível.")" />
+                Message="@($"Não há conteúdo para {StatusHelper.GetInstrumentDisplay(selectedInstrument.Value)}.")" />
 }
 else
 {
@@ -256,9 +257,9 @@ else
                             <i class="bi bi-upload me-2"></i>@(isVideoMode ? "Escolher vídeo" : "Escolher imagem")
                         </label>
                         <span class="localized-file-name">
-                            @if (!string.IsNullOrEmpty(selectedFileName))
+                            @if (selectedFile != null)
                             {
-                                <text>@selectedFileName</text>
+                                <text>Ficheiro selecionado ✓</text>
                             }
                             else
                             {
