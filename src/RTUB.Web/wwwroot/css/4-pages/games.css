@@ -108,6 +108,117 @@
     padding: 1rem;
 }
 
+/* Game Leaderboard Styles */
+.game-leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.leaderboard-entry {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.leaderboard-entry:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(63, 42, 134, 0.2);
+}
+
+.leaderboard-entry.rank-1 {
+    border-color: #ffd700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.leaderboard-entry.rank-2 {
+    border-color: #c0c0c0;
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.leaderboard-entry.rank-3 {
+    border-color: #cd7f32;
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.rank-position {
+    min-width: 40px;
+    text-align: center;
+}
+
+.rank-medal {
+    font-size: 1.5rem;
+}
+
+.rank-number {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.player-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+}
+
+.player-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.score-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.score-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--bs-warning);
+}
+
+.score-level {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.score-date {
+    min-width: 100px;
+    text-align: right;
+}
+
 /* Responsive design */
 @media (max-width: 767.98px) {
     .games-grid {
@@ -122,6 +233,25 @@
 
     .game-icon-large {
         font-size: 3rem;
+    }
+    
+    /* Leaderboard responsive */
+    .leaderboard-entry {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .score-date {
+        display: none;
+    }
+    
+    .player-info {
+        flex: 1 1 60%;
+    }
+    
+    .score-info {
+        flex-direction: row;
+        gap: 1rem;
     }
 }
 

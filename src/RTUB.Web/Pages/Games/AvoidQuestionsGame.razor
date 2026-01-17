@@ -2,9 +2,16 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.JSInterop
+@using RTUB.Application.Data
+@using RTUB.Application.Interfaces
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IGameScoreService GameScoreService
 @implements IAsyncDisposable
 
 <PageTitle>Evitar Perguntas - RTUB</PageTitle>
@@ -294,11 +301,31 @@
 
     // JavaScript interop callbacks
     [JSInvokable]
-    public void OnGameOver(int score, int level)
+    public async Task OnGameOver(int score, int level)
     {
         gameState = GameState.GameOver;
         finalScore = score;
         finalLevel = level;
+        
+        // Save the score to the leaderboard
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var currentUser = await UserManager.GetUserAsync(user);
+                if (currentUser != null)
+                {
+                    await GameScoreService.RecordScoreAsync(currentUser.Id, "avoid-questions", score, level);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving game score: {ex.Message}");
+        }
+        
         StateHasChanged();
     }
 

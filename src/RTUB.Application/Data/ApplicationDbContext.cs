@@ -108,6 +108,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Question> Questions { get; set; }
     public DbSet<QuestionReply> QuestionReplies { get; set; }
 
+    // Game Scores DbSet
+    public DbSet<GameScore> GameScores { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

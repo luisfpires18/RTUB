@@ -4,9 +4,12 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using RTUB.Application.Helpers
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
 @using RTUB.Shared
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IGameScoreService GameScoreService
 
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
@@ -68,12 +71,60 @@ else
                 </div>
             </div>
         }
-        else
+        else if (leaderboardScores == null || !leaderboardScores.Any())
         {
             <div class="leaderboard-container">
-                <EmptyState Title="Classificação em breve"
+                <EmptyState Title="Nenhuma pontuação registada"
                            Icon="bi-trophy" 
-                           Message="A funcionalidade de classificação será implementada em breve!" />
+                           Message="Sê o primeiro a jogar e conquista o primeiro lugar!" />
+            </div>
+        }
+        else
+        {
+            <div class="game-leaderboard">
+                @foreach (var score in leaderboardScores)
+                {
+                    <div class="leaderboard-entry @(score.Rank <= 3 ? $"rank-{score.Rank}" : "")">
+                        <div class="rank-position">
+                            @if (score.Rank == 1)
+                            {
+                                <span class="rank-medal gold">🥇</span>
+                            }
+                            else if (score.Rank == 2)
+                            {
+                                <span class="rank-medal silver">🥈</span>
+                            }
+                            else if (score.Rank == 3)
+                            {
+                                <span class="rank-medal bronze">🥉</span>
+                            }
+                            else
+                            {
+                                <span class="rank-number">#@score.Rank</span>
+                            }
+                        </div>
+                        <div class="player-info">
+                            <img src="@(score.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
+                                 alt="@score.Username" 
+                                 class="player-avatar"
+                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                            <span class="player-name">@score.Username</span>
+                        </div>
+                        <div class="score-info">
+                            <div class="score-main">
+                                <i class="bi bi-trophy-fill text-warning"></i>
+                                <span class="score-value">@score.Score pts</span>
+                            </div>
+                            <div class="score-level">
+                                <i class="bi bi-graph-up text-info"></i>
+                                <span>Nível @score.Level</span>
+                            </div>
+                        </div>
+                        <div class="score-date">
+                            <small class="text-muted">@score.PlayedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+                    </div>
+                }
             </div>
         }
     </BodyContent>
@@ -87,6 +138,7 @@ else
     private class Game
     {
         public int Id { get; set; }
+        public string GameId { get; set; } = string.Empty; // For database lookups
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
@@ -100,6 +152,8 @@ else
     private bool showLeaderboardModal = false;
     private bool isLoadingLeaderboard = false;
     private string selectedGameTitle = string.Empty;
+    private string selectedGameId = string.Empty;
+    private IEnumerable<GameScoreDto>? leaderboardScores;
 
     protected override void OnInitialized()
     {
@@ -115,6 +169,7 @@ else
             new Game
             {
                 Id = 1,
+                GameId = "avoid-questions",
                 Title = "Evitar Perguntas",
                 Description = "Evita as perguntas dos órgãos sociais! Use as teclas ← → para mover o teu personagem.",
                 ImageUrl = null, // Can be set to a game thumbnail later
@@ -159,14 +214,32 @@ else
         }
     }
 
-    private void HandleShowLeaderboard(int gameId)
+    private async Task HandleShowLeaderboard(int gameId)
     {
         var game = games?.FirstOrDefault(g => g.Id == gameId);
         if (game != null)
         {
             selectedGameTitle = game.Title;
+            selectedGameId = game.GameId;
             showLeaderboardModal = true;
-            isLoadingLeaderboard = false; // Set to false immediately since we have no data to load yet
+            isLoadingLeaderboard = true;
+            leaderboardScores = null;
+            StateHasChanged();
+            
+            try
+            {
+                leaderboardScores = await GameScoreService.GetLeaderboardAsync(game.GameId, 20);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading leaderboard: {ex.Message}");
+                leaderboardScores = Enumerable.Empty<GameScoreDto>();
+            }
+            finally
+            {
+                isLoadingLeaderboard = false;
+                StateHasChanged();
+            }
         }
     }
 
@@ -174,5 +247,7 @@ else
     {
         showLeaderboardModal = false;
         selectedGameTitle = string.Empty;
+        selectedGameId = string.Empty;
+        leaderboardScores = null;
     }
 }
