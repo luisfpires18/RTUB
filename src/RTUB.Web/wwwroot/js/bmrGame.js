@@ -234,12 +234,14 @@ const bmrGame = (function () {
     function generateInitialWorld() {
         // Generate initial world section
         worldGenX = 0;
-        generateWorldSection(0, 1500 * scaleX);
+        const initialEndX = 1200 * scaleX;
+        generateWorldSection(0, initialEndX);
+        worldGenX = initialEndX;
     }
     
     function generateWorldAhead() {
-        // Generate world ahead of player
-        const generateAheadDistance = cameraX + canvas.width + 800 * scaleX;
+        // Generate world ahead of player (only when needed)
+        const generateAheadDistance = cameraX + canvas.width + 600 * scaleX;
         
         if (worldGenX < generateAheadDistance) {
             generateWorldSection(worldGenX, generateAheadDistance);
@@ -247,7 +249,7 @@ const bmrGame = (function () {
         }
         
         // Remove objects too far behind camera
-        const removeThreshold = cameraX - 300 * scaleX;
+        const removeThreshold = cameraX - 200 * scaleX;
         platforms = platforms.filter(p => p.x + p.width > removeThreshold);
         pipes = pipes.filter(p => p.x + p.width > removeThreshold);
         holes = holes.filter(h => h.x + h.width > removeThreshold);
@@ -255,35 +257,54 @@ const bmrGame = (function () {
     }
     
     function generateWorldSection(startX, endX) {
-        let x = startX;
+        // Use a fixed grid size for consistent spacing
+        const GRID_SIZE = 100 * scaleX;
+        
+        // Align start to grid
+        let x = Math.ceil(startX / GRID_SIZE) * GRID_SIZE;
+        
+        // Track boxes spawned this section to limit them
+        let boxesInSection = 0;
+        const maxBoxesPerSection = 3;
         
         while (x < endX) {
-            // Random world element
+            // Check if we already have something at this position
+            const hasElementNearby = 
+                pipes.some(p => Math.abs(p.x - x) < GRID_SIZE * 0.8) ||
+                holes.some(h => Math.abs(h.x - x) < GRID_SIZE * 0.8) ||
+                platforms.some(p => Math.abs(p.x - x) < GRID_SIZE * 0.8);
+            
+            if (hasElementNearby) {
+                x += GRID_SIZE;
+                continue;
+            }
+            
+            // Random world element with clear probabilities
             const element = Math.random();
             
-            if (element < 0.15 && x > 300 * scaleX) {
-                // Hole (15% chance, not at start)
-                const holeWidth = (60 + Math.random() * 60) * scaleX;
+            if (element < 0.12 && x > 400 * scaleX) {
+                // Hole (12% chance, not at start)
+                const holeWidth = (70 + Math.random() * 50) * scaleX;
                 holes.push({
                     x: x,
                     width: holeWidth
                 });
-                x += holeWidth + 80 * scaleX; // More space after holes
-            } else if (element < 0.30) {
-                // Pipe
+                x += holeWidth + GRID_SIZE * 1.5; // Good space after holes
+            } else if (element < 0.28) {
+                // Pipe (16% chance)
                 const pipeWidth = 50 * scaleX;
-                const pipeHeight = (60 + Math.random() * 80) * scaleY;
+                const pipeHeight = (70 + Math.random() * 60) * scaleY;
                 pipes.push({
                     x: x,
                     y: groundY - pipeHeight,
                     width: pipeWidth,
                     height: pipeHeight
                 });
-                x += pipeWidth + (120 + Math.random() * 100) * scaleX; // More space after pipes
-            } else if (element < 0.45) {
-                // Platform with possible question box
-                const platformWidth = (80 + Math.random() * 80) * scaleX;
-                const platformY = (350 + Math.random() * 120) * scaleY;
+                x += pipeWidth + GRID_SIZE * 1.5; // Good space after pipes
+            } else if (element < 0.42) {
+                // Platform (14% chance)
+                const platformWidth = (90 + Math.random() * 60) * scaleX;
+                const platformY = (360 + Math.random() * 100) * scaleY;
                 
                 platforms.push({
                     x: x,
@@ -292,35 +313,35 @@ const bmrGame = (function () {
                     height: PLATFORM_HEIGHT * scaleY
                 });
                 
-                // 50% chance to add question box above platform (no overlap possible since it's above)
-                if (Math.random() > 0.5) {
+                // 40% chance to add question box above platform (limited)
+                if (Math.random() < 0.4 && boxesInSection < maxBoxesPerSection) {
                     questionBoxes.push({
                         x: x + platformWidth / 2 - 16 * scaleX,
-                        y: platformY - 80 * scaleY,
+                        y: platformY - 70 * scaleY,
                         width: 32 * scaleX,
                         height: 32 * scaleY,
                         used: false
                     });
+                    boxesInSection++;
                 }
                 
-                x += platformWidth + (100 + Math.random() * 80) * scaleX;
-            } else if (element < 0.55) {
-                // Question box at ground level (floating) - check no overlap with pipes/holes
+                x += platformWidth + GRID_SIZE;
+            } else if (element < 0.50 && boxesInSection < maxBoxesPerSection) {
+                // Floating question box (8% chance, limited)
                 const boxX = x;
-                const boxY = groundY - (100 + Math.random() * 60) * scaleY;
+                const boxY = groundY - (110 + Math.random() * 40) * scaleY;
                 const boxWidth = 32 * scaleX;
                 const boxHeight = 32 * scaleY;
                 
-                // Check if box would overlap with any existing pipes
+                // Check no overlap with pipes
                 const overlapsWithPipe = pipes.some(pipe => 
-                    boxX < pipe.x + pipe.width + 20 * scaleX && 
-                    boxX + boxWidth > pipe.x - 20 * scaleX &&
-                    boxY + boxHeight > pipe.y
+                    boxX < pipe.x + pipe.width + 30 * scaleX && 
+                    boxX + boxWidth > pipe.x - 30 * scaleX
                 );
                 
-                // Check if box would be over a hole
+                // Check not over a hole
                 const overlapsWithHole = holes.some(hole =>
-                    boxX + boxWidth > hole.x && boxX < hole.x + hole.width
+                    boxX + boxWidth > hole.x - 20 * scaleX && boxX < hole.x + hole.width + 20 * scaleX
                 );
                 
                 if (!overlapsWithPipe && !overlapsWithHole) {
@@ -331,11 +352,12 @@ const bmrGame = (function () {
                         height: boxHeight,
                         used: false
                     });
+                    boxesInSection++;
                 }
-                x += (120 + Math.random() * 100) * scaleX;
+                x += GRID_SIZE * 1.5;
             } else {
-                // Empty space
-                x += (80 + Math.random() * 120) * scaleX;
+                // Empty space (50% chance)
+                x += GRID_SIZE * (0.8 + Math.random() * 0.6);
             }
         }
     }
