@@ -41,7 +41,7 @@
 
 <!-- Instrument Type Selector -->
 <div class="instrument-selector-wrapper mb-4">
-    <div class="instrument-selector d-flex flex-nowrap overflow-auto py-3 gap-2">
+    <div class="instrument-selector py-3">
         @foreach (var config in typeConfigs)
         {
             <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")"
