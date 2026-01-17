@@ -304,7 +304,7 @@
   width: 100%;
   flex: 0 0 calc((100% - 5rem) / 6);
   aspect-ratio: 1 / 1;
-  padding: 0.9rem 1.15rem;
+  padding: 0.75rem 1rem;
   background-color: rgba(21, 21, 22, 0.6);
   border: 2px solid rgba(var(--bs-primary-rgb), 0.3);
   border-radius: 0.5rem;
@@ -322,7 +322,7 @@
 }
 
 .instrument-selector-item span {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -349,8 +349,8 @@
 
 /* Instrument selector image */
 .instrument-selector-image {
-  width: 72px;
-  height: 72px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(var(--bs-primary-rgb), 0.3);
@@ -519,7 +519,7 @@
 @media (max-width: 576px) {
   .instrument-selector-item {
     max-width: none;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.85rem;
   }
 
   .instrument-selector-item i {
@@ -527,7 +527,7 @@
   }
 
   .instrument-selector-item span {
-    font-size: 0.9375rem;
+    font-size: 1rem;
   }
 
   .comment-avatar,
