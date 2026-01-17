@@ -62,7 +62,7 @@ const bmrGame = (function () {
     let spritesLoaded = false;
 
     // Game world dimensions (scaled to canvas)
-    const BASE_groundY = 520;
+    const BASE_GROUND_Y = 520;
     let groundY = 520;
     const PLATFORM_HEIGHT = 15;
     const BASE_WIDTH = 800;
