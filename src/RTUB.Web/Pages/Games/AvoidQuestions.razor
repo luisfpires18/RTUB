@@ -18,11 +18,18 @@
 @attribute [Authorize]
 
 <div class="avoid-questions-container">
-    <div class="game-header">
-        <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
-            <i class="bi bi-arrow-left me-1"></i>Voltar
-        </button>
-        <h2><i class="bi bi-controller me-2"></i>Evitar Perguntas</h2>
+    <!-- Page Header (matching EventEnrollments layout) -->
+    <div class="d-flex flex-column gap-3 mb-4 page-header-block">
+        <div class="d-flex align-items-center gap-3 page-header-row">
+            <button class="btn btn-outline-secondary btn-sm back-button" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="page-header-text flex-grow-1 text-center">
+                <h1 class="mb-0"><i class="bi bi-controller"></i> Evitar Perguntas</h1>
+            </div>
+            <!-- Empty element to balance the layout -->
+            <div style="width: 38px;"></div>
+        </div>
     </div>
 
     <div class="game-stats">

@@ -62,52 +62,88 @@
     margin: 0 auto;
 }
 
-.leaderboard-list {
-    max-height: 400px;
-    overflow-y: auto;
+/* Stats card grid for leaderboard (copied from Albums.razor.css) */
+.stats-card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.leaderboard-item {
-    background-color: #1a1a1b;
-    border: 1px solid #343536;
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #1e1e1e;
     border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    transition: all 0.2s ease;
 }
 
-.leaderboard-item.top-1 {
-    border-color: #ffc107;
-    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, #1a1a1b 100%);
+.stats-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
+    background-color: #252525;
 }
 
-.leaderboard-item.top-2 {
-    border-color: #6c757d;
-}
-
-.leaderboard-item.top-3 {
-    border-color: #cd7f32;
-}
-
-.position-badge {
-    width: 40px;
+.stats-card-position {
+    flex-shrink: 0;
+    width: 50px;
     text-align: center;
+    font-size: 1.5rem;
 }
 
-.position-number {
+.stats-medal {
+    font-size: 2rem;
+}
+
+.stats-position {
     font-size: 1.25rem;
-    font-weight: bold;
-    color: #6c757d;
+    font-weight: 600;
+    color: #ffffff;
 }
 
-.leaderboard-avatar {
-    width: 40px;
-    height: 40px;
+.stats-card-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.stats-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-card-subtitle {
+    font-size: 0.875rem;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-card-count {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+}
+
+.stats-card-count i {
+    font-size: 1.5rem;
+}
+
+.stats-avatar {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
-}
-
-.text-bronze {
-    color: #cd7f32 !important;
+    flex-shrink: 0;
 }
 
 @media (max-width: 576px) {
@@ -122,5 +158,39 @@
     
     .game-buttons-container {
         flex-direction: column;
+    }
+    
+    .stats-card {
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .stats-card-position {
+        width: 40px;
+    }
+    
+    .stats-medal {
+        font-size: 1.5rem;
+    }
+    
+    .stats-card-title {
+        font-size: 0.9rem;
+    }
+    
+    .stats-card-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .stats-card-count {
+        font-size: 1rem;
+    }
+    
+    .stats-card-count i {
+        font-size: 1.25rem;
+    }
+    
+    .stats-avatar {
+        width: 40px;
+        height: 40px;
     }
 }

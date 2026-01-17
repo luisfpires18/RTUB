@@ -143,7 +143,9 @@ const avoidQuestionsGame = (function () {
     function update(dt) {
         timeElapsed += dt;
         
-        const newLevel = Math.floor(timeElapsed / config.levelDurationSeconds) + 1;
+        // Progressive level scaling: 30s, 45s, 60s, 75s, etc.
+        // Base duration is 30s, increases by 15s per level
+        const newLevel = calculateLevel(timeElapsed);
         if (newLevel > level) {
             level = newLevel;
             maxLevelReached = Math.max(maxLevelReached, level);
@@ -155,6 +157,26 @@ const avoidQuestionsGame = (function () {
         checkCollisions();
         
         if (lives <= 0) endGame();
+    }
+    
+    // Calculate level based on progressive time thresholds
+    // Level 1->2: 30s, Level 2->3: 45s, Level 3->4: 60s, etc.
+    function calculateLevel(elapsed) {
+        let cumulativeTime = 0;
+        let lvl = 1;
+        let baseDuration = 30; // First level duration
+        let increment = 15;    // Increase per level
+        
+        while (true) {
+            const levelDuration = baseDuration + (lvl - 1) * increment;
+            if (elapsed < cumulativeTime + levelDuration) {
+                return lvl;
+            }
+            cumulativeTime += levelDuration;
+            lvl++;
+            // Safety cap to prevent infinite loop
+            if (lvl > 100) return lvl;
+        }
     }
 
     function updatePlayer(dt) {
