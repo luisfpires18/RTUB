@@ -112,6 +112,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NaipeContent> NaipeContents => Set<NaipeContent>();
     public DbSet<NaipeComment> NaipeComments => Set<NaipeComment>();
     public DbSet<NaipePlayCount> NaipePlayCounts => Set<NaipePlayCount>();
+    public DbSet<NaipeTypeConfig> NaipeTypeConfigs => Set<NaipeTypeConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

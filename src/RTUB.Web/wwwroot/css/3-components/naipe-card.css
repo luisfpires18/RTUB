@@ -370,6 +370,26 @@
   color: var(--bs-link-color);
 }
 
+/* Instrument selector image */
+.instrument-selector-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.instrument-selector-item:hover .instrument-selector-image {
+  transform: scale(1.1);
+  border-color: var(--bs-primary);
+}
+
+.instrument-selector-item.active .instrument-selector-image {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.4);
+}
+
 /* View Modal Styles */
 .naipe-view-media {
   background-color: #000;

@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryMediaRepository, GalleryMediaRepository>();
         services.AddScoped<INaipeContentRepository, NaipeContentRepository>();
         services.AddScoped<INaipeCommentRepository, NaipeCommentRepository>();
+        services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
 
         return services;
     }

@@ -62,4 +62,33 @@ public interface INaipeService
     /// Delete a comment (soft delete)
     /// </summary>
     Task DeleteCommentAsync(int commentId, string userId, bool isAdmin);
+
+    // ========================
+    // Naipe Type Configuration
+    // ========================
+
+    /// <summary>
+    /// Get all instrument type configurations
+    /// </summary>
+    Task<List<NaipeTypeConfigDto>> GetAllTypeConfigsAsync();
+
+    /// <summary>
+    /// Get visible instrument type configurations ordered by sort order
+    /// </summary>
+    Task<List<NaipeTypeConfigDto>> GetVisibleTypeConfigsAsync();
+
+    /// <summary>
+    /// Initialize default configs for all instrument types (called once on first access)
+    /// </summary>
+    Task InitializeTypeConfigsAsync();
+
+    /// <summary>
+    /// Update a type configuration
+    /// </summary>
+    Task UpdateTypeConfigAsync(int id, string? pictureUrl, bool isVisible, int sortOrder);
+
+    /// <summary>
+    /// Update type config picture via file upload
+    /// </summary>
+    Task<string> UploadTypeConfigPictureAsync(int id, Stream fileStream, string fileName, string contentType);
 }

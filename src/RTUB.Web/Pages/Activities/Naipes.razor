@@ -22,17 +22,24 @@
             <p class="lead page-header-subtitle mb-0 text-light-theme">Conteúdo educativo para cada naipe (vídeos e imagens).</p>
         </div>
 
-        @if (isAdmin)
-        {
-            <div class="page-header-actions justify-content-lg-end">
+        <div class="page-header-actions justify-content-lg-end">
+            <AuthorizeView Roles="Owner">
+                <Authorized>
+                    <a href="/naipes/config" class="btn btn-outline-secondary" title="Configurar Naipes">
+                        <i class="bi bi-sliders"></i> Configurar
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+            @if (isAdmin)
+            {
                 <button class="btn btn-success" @onclick="() => OpenCreateModal(true)" title="Adicionar Vídeo">
                     <i class="bi bi-camera-video"></i> Adicionar Vídeo
                 </button>
                 <button class="btn btn-success" @onclick="() => OpenCreateModal(false)" title="Adicionar Imagem">
                     <i class="bi bi-image"></i> Adicionar Imagem
                 </button>
-            </div>
-        }
+            }
+        </div>
     </div>
 </div>
 
@@ -44,12 +51,19 @@
             <i class="bi bi-grid-3x3-gap"></i>
             <span>Todos</span>
         </button>
-        @foreach (var type in Enum.GetValues<InstrumentType>())
+        @foreach (var config in typeConfigs)
         {
-            <button class="instrument-selector-item @(selectedInstrument == type ? "active" : "")"
-                    @onclick="() => SelectInstrument(type)">
-                <i class="bi bi-music-note"></i>
-                <span>@StatusHelper.GetInstrumentDisplay(type)</span>
+            <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")"
+                    @onclick="() => SelectInstrument(config.InstrumentType)">
+                @if (!string.IsNullOrEmpty(config.PictureUrl))
+                {
+                    <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" class="instrument-selector-image" />
+                }
+                else
+                {
+                    <i class="bi bi-music-note"></i>
+                }
+                <span>@config.InstrumentTypeName</span>
             </button>
         }
     </div>
@@ -323,6 +337,9 @@ else
     private List<NaipeContentDto> paginatedContent = new();
     private InstrumentType? selectedInstrument = null;
     private string searchTerm = string.Empty;
+    
+    // Type configs for instrument selector
+    private List<NaipeTypeConfigDto> typeConfigs = new();
 
     // Pagination
     private int currentPage = 1;
@@ -378,6 +395,11 @@ else
         loading = true;
         try
         {
+            // Initialize type configs if needed (first time setup)
+            await NaipeService.InitializeTypeConfigsAsync();
+            
+            // Load visible type configs and content
+            typeConfigs = await NaipeService.GetVisibleTypeConfigsAsync();
             allContent = await NaipeService.GetAllContentAsync();
             ApplyFilters();
         }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -19,6 +20,7 @@ public class NaipeService : INaipeService
 {
     private readonly INaipeContentRepository _naipeContentRepository;
     private readonly INaipeCommentRepository _naipeCommentRepository;
+    private readonly INaipeTypeConfigRepository _naipeTypeConfigRepository;
     private readonly INaipeMediaStorageService _naipeMediaStorageService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
@@ -28,6 +30,7 @@ public class NaipeService : INaipeService
     public NaipeService(
         INaipeContentRepository naipeContentRepository,
         INaipeCommentRepository naipeCommentRepository,
+        INaipeTypeConfigRepository naipeTypeConfigRepository,
         INaipeMediaStorageService naipeMediaStorageService,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
@@ -36,6 +39,7 @@ public class NaipeService : INaipeService
     {
         _naipeContentRepository = naipeContentRepository;
         _naipeCommentRepository = naipeCommentRepository;
+        _naipeTypeConfigRepository = naipeTypeConfigRepository;
         _naipeMediaStorageService = naipeMediaStorageService;
         _userManager = userManager;
         _context = context;
@@ -303,5 +307,85 @@ public class NaipeService : INaipeService
         {
             // Silently fail - audit logging should not break the application
         }
+    }
+
+    // ========================
+    // Naipe Type Configuration Methods
+    // ========================
+
+    public async Task<List<NaipeTypeConfigDto>> GetAllTypeConfigsAsync()
+    {
+        var configs = await _naipeTypeConfigRepository.GetAllOrderedAsync();
+        return configs.Select(MapTypeConfigToDto).ToList();
+    }
+
+    public async Task<List<NaipeTypeConfigDto>> GetVisibleTypeConfigsAsync()
+    {
+        var configs = await _naipeTypeConfigRepository.GetVisibleOrderedAsync();
+        return configs.Select(MapTypeConfigToDto).ToList();
+    }
+
+    public async Task InitializeTypeConfigsAsync()
+    {
+        // Check if any configs exist
+        var existingConfigs = await _naipeTypeConfigRepository.GetAllOrderedAsync();
+        var existingTypes = existingConfigs.Select(c => c.InstrumentType).ToHashSet();
+
+        // Create configs for any missing types
+        var allTypes = Enum.GetValues<InstrumentType>();
+        var sortOrder = existingConfigs.Any() ? existingConfigs.Max(c => c.SortOrder) + 1 : 0;
+
+        foreach (var type in allTypes)
+        {
+            if (!existingTypes.Contains(type))
+            {
+                var config = NaipeTypeConfig.Create(type, sortOrder++);
+                await _naipeTypeConfigRepository.AddAsync(config);
+            }
+        }
+    }
+
+    public async Task UpdateTypeConfigAsync(int id, string? pictureUrl, bool isVisible, int sortOrder)
+    {
+        var config = await _naipeTypeConfigRepository.GetByIdAsync(id);
+        if (config == null)
+            throw new EntityNotFoundException(nameof(NaipeTypeConfig), id);
+
+        config.Update(pictureUrl, isVisible, sortOrder);
+        await _naipeTypeConfigRepository.UpdateAsync(config);
+    }
+
+    public async Task<string> UploadTypeConfigPictureAsync(int id, Stream fileStream, string fileName, string contentType)
+    {
+        var config = await _naipeTypeConfigRepository.GetByIdAsync(id);
+        if (config == null)
+            throw new EntityNotFoundException(nameof(NaipeTypeConfig), id);
+
+        // Upload image to Cloudflare R2
+        var url = await _naipeMediaStorageService.UploadImageAsync(fileStream, fileName, contentType, $"typeconfig_{config.InstrumentType}");
+
+        // Delete old picture if exists
+        if (!string.IsNullOrEmpty(config.PictureUrl))
+        {
+            await _naipeMediaStorageService.DeleteMediaAsync(config.PictureUrl);
+        }
+
+        config.Update(url, config.IsVisible, config.SortOrder);
+        await _naipeTypeConfigRepository.UpdateAsync(config);
+
+        return url;
+    }
+
+    private NaipeTypeConfigDto MapTypeConfigToDto(NaipeTypeConfig config)
+    {
+        return new NaipeTypeConfigDto
+        {
+            Id = config.Id,
+            InstrumentType = config.InstrumentType,
+            InstrumentTypeName = StatusHelper.GetInstrumentDisplay(config.InstrumentType),
+            PictureUrl = config.PictureUrl,
+            IsVisible = config.IsVisible,
+            SortOrder = config.SortOrder
+        };
     }
 }
