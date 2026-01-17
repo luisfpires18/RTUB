@@ -1,0 +1,230 @@
+@page "/games"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Shared
+@inject NavigationManager NavigationManager
+@inject IGameScoreService GameScoreService
+@attribute [Authorize]
+
+<div class="games-container">
+    <div class="games-header">
+        <h2><i class="bi bi-controller"></i> Jogos</h2>
+        <p class="text-white-opacity">Diverte-te com os jogos da RTUB e compete pelo melhor lugar na classificação!</p>
+    </div>
+
+    <div class="games-grid">
+        @foreach (var game in paginatedGames)
+        {
+            <GameCard 
+                Title="@game.Title"
+                Description="@game.Description"
+                ImageUrl="@game.ImageUrl"
+                GameKey="@game.Key"
+                ComingSoon="@game.ComingSoon"
+                OnPlay="@(() => NavigateToGame(game.PlayRoute))"
+                OnShowLeaderboard="@(() => OpenLeaderboardModal(game.Key, game.Title))" />
+        }
+    </div>
+
+    @if (allGames.Count > pageSize)
+    {
+        <div class="mt-4">
+            <TablePagination CurrentPage="@currentPage"
+                             PageSize="@pageSize"
+                             TotalItems="@allGames.Count"
+                             ItemLabel="jogos"
+                             PageSizeOptions="@(new[] { 6, 12, 18 })"
+                             OnPageChanged="@HandlePageChanged"
+                             OnPageSizeChanged="@HandlePageSizeChanged" />
+        </div>
+    }
+</div>
+
+@if (showLeaderboardModal)
+{
+    <Modal Show="@showLeaderboardModal"
+           ShowChanged="@OnLeaderboardModalShowChanged"
+           Title="@($"Classificação - {selectedGameTitle}")"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            @if (leaderboardLoading)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (leaderboardScores == null || !leaderboardScores.Any())
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-trophy display-4 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">Ainda não há pontuações para este jogo.</p>
+                    <p class="text-white-opacity">Sê o primeiro a jogar e entra na classificação!</p>
+                </div>
+            }
+            else
+            {
+                <div class="leaderboard-list">
+                    @foreach (var score in leaderboardScores)
+                    {
+                        <div class="leaderboard-item d-flex align-items-center py-2 @(score.Position <= 3 ? $"top-{score.Position}" : "")">
+                            <div class="position-badge me-3">
+                                @if (score.Position == 1)
+                                {
+                                    <i class="bi bi-trophy-fill text-warning fs-4"></i>
+                                }
+                                else if (score.Position == 2)
+                                {
+                                    <i class="bi bi-trophy-fill text-secondary fs-4"></i>
+                                }
+                                else if (score.Position == 3)
+                                {
+                                    <i class="bi bi-trophy-fill text-bronze fs-4"></i>
+                                }
+                                else
+                                {
+                                    <span class="position-number">@score.Position</span>
+                                }
+                            </div>
+                            <img src="@(score.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
+                                 alt="@(score.UserNickname ?? score.UserName)" 
+                                 class="leaderboard-avatar me-3"
+                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">@(score.UserNickname ?? score.UserName)</div>
+                                <small class="text-white-opacity">
+                                    Nível @score.MaxLevel • @FormatTimeSurvived(score.TimeSurvived)
+                                </small>
+                            </div>
+                            <div class="score-value text-primary fw-bold">
+                                @score.Points pts
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseLeaderboardModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    private List<GameInfo> allGames = new();
+    private List<GameInfo> paginatedGames = new();
+    private int currentPage = 1;
+    private int pageSize = 6;
+
+    private bool showLeaderboardModal = false;
+    private bool leaderboardLoading = false;
+    private string selectedGameKey = string.Empty;
+    private string selectedGameTitle = string.Empty;
+    private List<GameScoreDto>? leaderboardScores;
+
+    protected override void OnInitialized()
+    {
+        allGames = new List<GameInfo>
+        {
+            new GameInfo
+            {
+                Key = "avoid-questions",
+                Title = "Evitar Perguntas",
+                Description = "Joga como um Magister e evita as perguntas dos membros que caem do céu. Sobrevive o máximo tempo possível!",
+                ImageUrl = "/sprites/games/avoid-questions-thumb.svg",
+                PlayRoute = "/games/avoid-questions",
+                ComingSoon = false
+            }
+        };
+
+        ApplyPagination();
+    }
+
+    private void ApplyPagination()
+    {
+        var skip = (currentPage - 1) * pageSize;
+        paginatedGames = allGames.Skip(skip).Take(pageSize).ToList();
+    }
+
+    private Task HandlePageChanged(int newPage)
+    {
+        currentPage = newPage;
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+
+    private void NavigateToGame(string? playRoute)
+    {
+        if (!string.IsNullOrEmpty(playRoute))
+        {
+            NavigationManager.NavigateTo(playRoute);
+        }
+    }
+
+    private async Task OpenLeaderboardModal(string gameKey, string gameTitle)
+    {
+        selectedGameKey = gameKey;
+        selectedGameTitle = gameTitle;
+        showLeaderboardModal = true;
+        leaderboardLoading = true;
+        leaderboardScores = null;
+        StateHasChanged();
+
+        try
+        {
+            leaderboardScores = await GameScoreService.GetLeaderboardAsync(gameKey, 10);
+        }
+        catch
+        {
+            leaderboardScores = new List<GameScoreDto>();
+        }
+        finally
+        {
+            leaderboardLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnLeaderboardModalShowChanged(bool show)
+    {
+        showLeaderboardModal = show;
+        if (!show) CloseLeaderboardModal();
+    }
+
+    private void CloseLeaderboardModal()
+    {
+        showLeaderboardModal = false;
+        selectedGameKey = string.Empty;
+        selectedGameTitle = string.Empty;
+        leaderboardScores = null;
+    }
+
+    private string FormatTimeSurvived(TimeSpan time)
+    {
+        if (time.TotalMinutes >= 1)
+            return $"{(int)time.TotalMinutes}m {time.Seconds}s";
+        return $"{time.Seconds}s";
+    }
+
+    private class GameInfo
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? PlayRoute { get; set; }
+        public bool ComingSoon { get; set; }
+    }
+}

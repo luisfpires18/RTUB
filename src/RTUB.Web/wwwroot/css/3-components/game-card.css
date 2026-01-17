@@ -1,0 +1,126 @@
+.game-card {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.game-image {
+    height: 180px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.game-image-placeholder {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2d2d30 0%, #1a1a1b 100%);
+}
+
+.game-icon-large {
+    font-size: 4rem;
+    color: var(--bs-primary);
+    opacity: 0.5;
+}
+
+.game-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.game-btn {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.games-header {
+    margin-bottom: 2rem;
+}
+
+.games-header h2 {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.games-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.leaderboard-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.leaderboard-item {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.leaderboard-item.top-1 {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, #1a1a1b 100%);
+}
+
+.leaderboard-item.top-2 {
+    border-color: #6c757d;
+}
+
+.leaderboard-item.top-3 {
+    border-color: #cd7f32;
+}
+
+.position-badge {
+    width: 40px;
+    text-align: center;
+}
+
+.position-number {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.leaderboard-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.text-bronze {
+    color: #cd7f32 !important;
+}
+
+@media (max-width: 576px) {
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .game-image, .game-image-placeholder {
+        height: 150px;
+    }
+    
+    .game-buttons-container {
+        flex-direction: column;
+    }
+}
