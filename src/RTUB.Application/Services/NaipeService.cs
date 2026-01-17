@@ -165,16 +165,7 @@ public class NaipeService : INaipeService
             .ToListAsync();
 
         // Check if current user is admin
-        bool isAdmin = false;
-        if (!string.IsNullOrEmpty(currentUserId))
-        {
-            var currentUser = await _userManager.FindByIdAsync(currentUserId);
-            if (currentUser != null)
-            {
-                var roles = await _userManager.GetRolesAsync(currentUser);
-                isAdmin = roles.Contains("Admin") || roles.Contains("Owner");
-            }
-        }
+        bool isAdmin = await IsUserAdminAsync(currentUserId);
 
         return comments.Select(c => new NaipeCommentDto
         {
@@ -204,9 +195,6 @@ public class NaipeService : INaipeService
         if (author == null)
             throw new EntityNotFoundException(nameof(ApplicationUser), authorId);
 
-        var roles = await _userManager.GetRolesAsync(author);
-        var isAdmin = roles.Contains("Admin") || roles.Contains("Owner");
-
         return new NaipeCommentDto
         {
             Id = createdComment.Id,
@@ -234,6 +222,18 @@ public class NaipeService : INaipeService
     }
 
     // Helper methods
+    private async Task<bool> IsUserAdminAsync(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return false;
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return false;
+
+        var roles = await _userManager.GetRolesAsync(user);
+        return roles.Contains("Admin") || roles.Contains("Owner");
+    }
     private bool CanDeleteComment(NaipeComment comment, string userId, bool isAdmin)
     {
         // Admin/Owner can delete any comment
