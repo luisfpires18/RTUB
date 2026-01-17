@@ -2,7 +2,7 @@
 // Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v8';
+const CACHE_VERSION = 'rtub-v9';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
