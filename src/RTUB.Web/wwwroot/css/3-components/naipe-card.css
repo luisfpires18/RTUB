@@ -76,34 +76,6 @@
   transform: scale(1.05);
 }
 
-.naipe-video-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s ease;
-}
-
-.naipe-card:hover .naipe-video-overlay {
-  opacity: 0.5;
-}
-
-.naipe-play-icon {
-  font-size: 4rem;
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
-}
-
-.naipe-card:hover .naipe-play-icon {
-  transform: scale(1.1);
-  color: var(--bs-primary);
-}
-
 .naipe-image {
   width: 100%;
   height: 100%;
@@ -208,6 +180,8 @@
 .naipe-actions {
   padding: 0.75rem 1rem;
   border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+  display: flex;
+  justify-content: center;
 }
 
 .naipe-actions .btn {
@@ -216,6 +190,7 @@
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
+  padding: 0.5rem 0.75rem;
 }
 
 .naipe-actions .btn:hover {
@@ -276,10 +251,6 @@
 @media (max-width: 768px) {
   .naipe-header {
     height: 140px;
-  }
-
-  .naipe-play-icon {
-    font-size: 3rem;
   }
 
   .naipe-title {

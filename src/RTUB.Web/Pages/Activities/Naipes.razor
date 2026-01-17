@@ -491,13 +491,8 @@ else
         
         await NaipeService.IncrementPlayCountAsync(viewingContent.Id, currentUserId);
         
-        // Update local play count
+        // Update local play count (viewingContent is same reference as item in allContent)
         viewingContent.PlayCount++;
-        var item = allContent.FirstOrDefault(c => c.Id == viewingContent.Id);
-        if (item != null)
-        {
-            item.PlayCount++;
-        }
         
         StateHasChanged();
     }

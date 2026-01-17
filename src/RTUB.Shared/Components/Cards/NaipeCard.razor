@@ -32,9 +32,6 @@
                 <video class="naipe-video-preview" muted preload="metadata" @onmouseenter="PlayPreview" @onmouseleave="PausePreview" @ref="videoElement">
                     <source src="@Content.Url" type="@Content.MimeType" />
                 </video>
-                <div class="naipe-video-overlay">
-                    <i class="bi bi-play-circle naipe-play-icon"></i>
-                </div>
                 <span class="naipe-media-badge badge bg-purple">
                     <i class="bi bi-camera-video"></i> Vídeo
                 </span>
@@ -85,9 +82,8 @@
 
     <!-- Actions -->
     <div class="naipe-actions">
-        <button class="btn btn-purple btn-sm w-100" @onclick="OnView">
+        <button class="btn btn-purple btn-sm" @onclick="OnView" title="@(Content.IsVideo ? "Ver Vídeo" : "Ver Imagem")">
             <i class="bi bi-@(Content.IsVideo ? "play-circle" : "eye")"></i>
-            <span>@(Content.IsVideo ? "Ver Vídeo" : "Ver Imagem")</span>
         </button>
     </div>
 </div>
