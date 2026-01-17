@@ -224,9 +224,10 @@
                 .ToList();
 
             // Load all users at once to ensure Categories are loaded correctly
-            // Using Users query ensures EF Core properly materializes the collections
+            // Using Users query with AsNoTracking ensures EF Core properly materializes primitive collections
             var userIds = stats.Select(s => s.UserId).ToList();
             var allUsers = await UserManager.Users
+                .AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
                 .ToListAsync();
             var userLookup = allUsers.ToDictionary(u => u.Id);

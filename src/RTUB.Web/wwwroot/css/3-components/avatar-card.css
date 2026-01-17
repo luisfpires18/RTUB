@@ -119,6 +119,52 @@
     outline-offset: 2px;
 }
 
+/* Top-left expel/reactivate button */
+.avatar-card-expel-btn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+/* Adjust position when set nickname button is present */
+.avatar-card-expel-btn.has-nickname-btn {
+    left: 2.75rem;
+}
+
+.avatar-card-expel-btn:hover,
+.avatar-card-expel-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.avatar-card-expel-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Reactivate button variant (green) */
+.avatar-card-expel-btn-reactivate {
+    background-color: rgba(25, 135, 84, 0.95);
+}
+
+.avatar-card-expel-btn-reactivate:hover,
+.avatar-card-expel-btn-reactivate:focus {
+    background-color: rgb(20, 108, 67);
+}
+
 /* Top-left inactivity warning icon */
 .avatar-card-inactivity-warning {
     position: absolute;
@@ -424,6 +470,7 @@
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
     .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
         width: 32px;
         height: 32px;
@@ -440,7 +487,16 @@
         top: 0.375rem;
     }
     
+    .avatar-card-expel-btn {
+        left: 0.375rem;
+        top: 0.375rem;
+    }
+    
     .avatar-card-set-nickname-btn.has-warning-icon {
+        left: 2.5rem;
+    }
+    
+    .avatar-card-expel-btn.has-nickname-btn {
         left: 2.5rem;
     }
     
@@ -469,6 +525,7 @@
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
     .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
         width: 30px;
         height: 30px;
@@ -501,6 +558,7 @@
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
     .avatar-card-set-nickname-btn,
+    .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
         width: 26px;
         height: 26px;
@@ -509,6 +567,10 @@
 
     .avatar-card-edit-btn {
         right: 2.25rem;
+    }
+    
+    .avatar-card-expel-btn.has-nickname-btn {
+        left: 2rem;
     }
     
     .avatar-card-set-nickname-btn.has-warning-icon {
@@ -528,10 +590,7 @@
     justify-content: center;
     gap: 0.375rem;
     font-size: 0.75rem;
-    color: #ffc107;
-    background-color: rgba(255, 193, 7, 0.15);
-    border-radius: 0.375rem;
-    padding: 0.375rem 0.5rem;
+    color: #ffffff;
     margin-top: 0.25rem;
 }
 

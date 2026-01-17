@@ -21,6 +21,31 @@
         </button>
     }
     
+    <!-- Expel/Reactivate button in top-left (next to set nickname) -->
+    @if (ShowExpelButton)
+    {
+        @if (IsExpelled)
+        {
+            <button class="avatar-card-expel-btn avatar-card-expel-btn-reactivate @(ShowSetNicknameButton ? "has-nickname-btn" : "")" 
+                    @onclick="@OnReactivate"
+                    @onclick:stopPropagation="true"
+                    title="Reativar membro"
+                    aria-label="Reativar membro">
+                <i class="bi bi-person-check"></i>
+            </button>
+        }
+        else
+        {
+            <button class="avatar-card-expel-btn @(ShowSetNicknameButton ? "has-nickname-btn" : "")" 
+                    @onclick="@OnExpel"
+                    @onclick:stopPropagation="true"
+                    title="Expulsar membro"
+                    aria-label="Expulsar membro">
+                <i class="bi bi-person-x"></i>
+            </button>
+        }
+    }
+    
     <!-- Edit & Delete buttons in top-right -->
     @if (ShowEditButton)
     {
@@ -110,7 +135,7 @@
         }
     </div>
 
-    <!-- View button and expulsion button below the card -->
+    <!-- View button below the card -->
     <div class="avatar-card-actions">
         <button class="btn btn-sm btn-purple" 
                 @onclick="@OnView"
@@ -118,30 +143,6 @@
                 aria-label="@ViewTooltip">
             <i class="bi bi-eye"></i> @ViewButtonText
         </button>
-        
-        @if (ShowExpelButton)
-        {
-            @if (IsExpelled)
-            {
-                <button class="btn btn-sm btn-success" 
-                        @onclick="@OnReactivate"
-                        @onclick:stopPropagation="true"
-                        title="Reativar membro"
-                        aria-label="Reativar membro">
-                    <i class="bi bi-person-check"></i>
-                </button>
-            }
-            else
-            {
-                <button class="btn btn-sm btn-danger" 
-                        @onclick="@OnExpel"
-                        @onclick:stopPropagation="true"
-                        title="Expulsar membro"
-                        aria-label="Expulsar membro">
-                    <i class="bi bi-person-x"></i>
-                </button>
-            }
-        }
     </div>
 </div>
 
