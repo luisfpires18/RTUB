@@ -251,11 +251,28 @@ const avoidQuestionsGame = (function () {
         }
     }
 
+    function drawRoundRect(x, y, width, height, radius) {
+        // Polyfill for roundRect (Safari < 15.4, older browsers)
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, width, height, radius);
+        } else {
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.arcTo(x + width, y, x + width, y + radius, radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+            ctx.lineTo(x + radius, y + height);
+            ctx.arcTo(x, y + height, x, y + height - radius, radius);
+            ctx.lineTo(x, y + radius);
+            ctx.arcTo(x, y, x + radius, y, radius);
+        }
+    }
+
     function drawQuestions() {
         for (const q of questions) {
             ctx.fillStyle = '#e94560';
             ctx.beginPath();
-            ctx.roundRect(q.x, q.y, q.width, q.height, 8);
+            drawRoundRect(q.x, q.y, q.width, q.height, 8);
             ctx.fill();
             
             ctx.fillStyle = '#ffffff';

@@ -121,6 +121,8 @@
 </div>
 
 @code {
+    private const string GameKey = "avoid-questions";
+    
     private bool gameStarted = false;
     private bool gameOver = false;
     private int lives = 5;
@@ -222,7 +224,7 @@
             
             try
             {
-                await GameScoreService.SubmitScoreAsync(currentUserId, "avoid-questions", finalPoints, finalLevel, TimeSpan.FromSeconds(finalTime));
+                await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, finalLevel, TimeSpan.FromSeconds(finalTime));
                 scoreSaved = true;
             }
             catch { }
