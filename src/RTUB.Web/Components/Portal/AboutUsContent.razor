@@ -39,6 +39,8 @@
                 <div class="col-md-4">
                     <EventCard Event="@evt"
                                EnrollmentCount="0"
+                               VideoCount="@(eventVideoCounts.GetValueOrDefault(evt.Id, 0))"
+                               TrophyCount="@(eventTrophyCounts.GetValueOrDefault(evt.Id, 0))"
                                IsAdmin="false"
                                IsPastEvent="true"
                                ShowOnlyTrophy="true"
@@ -216,6 +218,10 @@
     private Event? selectedEventForVideos;
     private List<EventVideo>? eventVideos = null;
     private int? selectedVideoId = null;
+    
+    // Counts for video and trophy display
+    private Dictionary<int, int> eventVideoCounts = new();
+    private Dictionary<int, int> eventTrophyCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,6 +230,16 @@
 
         // Load previous 3 events (most recent first)
         previousEvents = (await EventService.GetPastEventsAsync(3)).ToList();
+        
+        // Load video and trophy counts for each event
+        foreach (var evt in previousEvents)
+        {
+            var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
+            eventVideoCounts[evt.Id] = videos.Count();
+            
+            var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
+            eventTrophyCounts[evt.Id] = trophies.Count();
+        }
     }
 
     private async Task LoadAboutUs()

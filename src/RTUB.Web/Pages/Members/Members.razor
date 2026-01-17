@@ -228,9 +228,13 @@ else
                            OnEdit="@(() => OpenEditModal(user))"
                            OnDelete="@(() => OpenDeleteModal(user))"
                            OnSetNickname="@(() => OpenSetNicknameModal(user))"
+                           OnExpel="@(() => OpenExpelConfirmModal(user))"
+                           OnReactivate="@(() => OpenReactivateConfirmModal(user))"
                            ShowEditButton="@(isAdmin)"
                            ShowDeleteButton="@(isAdmin)"
                            ShowSetNicknameButton="@isAdmin"
+                           ShowExpelButton="@isAdmin"
+                           IsExpelled="@user.IsExpelled"
                            ShowInactivityWarning="@hasNoActivityThisMonth"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
@@ -257,7 +261,7 @@ else
 }
 
 <!-- Create/Edit Modal -->
-<Modal Show="@showEditModal" 
+<Modal Show="@showEditModal"
        ShowChanged="@((bool show) => showEditModal = show)"
        Title="@(isCreateMode ? "Adicionar Novo Membro" : "Editar Membro")" 
        Size="Modal.ModalSize.Large"
@@ -580,6 +584,31 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="DeleteMember"
                OnCancel="CloseDeleteModal" />
+
+<!-- Expel Confirmation Modal -->
+<ConfirmDialog Show="@showExpelConfirmModal"
+               ShowChanged="@((bool show) => showExpelConfirmModal = show)"
+               Title="Expulsar Membro"
+               Message="@($"Tem certeza que deseja expulsar {expellingUser?.GetDisplayName()}? O membro não conseguirá fazer login.")"
+               WarningMessage="O membro pode ser reativado mais tarde."
+               ConfirmText="Expulsar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ExpelMemberAsync"
+               OnCancel="CloseExpelConfirmModal"
+               Disabled="@isExpelling" />
+
+<!-- Reactivate Confirmation Modal -->
+<ConfirmDialog Show="@showReactivateConfirmModal"
+               ShowChanged="@((bool show) => showReactivateConfirmModal = show)"
+               Title="Reativar Membro"
+               Message="@($"Tem certeza que deseja reativar {reactivatingUser?.GetDisplayName()}? O membro poderá fazer login novamente.")"
+               ConfirmText="Reativar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-success"
+               OnConfirm="ReactivateMemberAsync"
+               OnCancel="CloseReactivateConfirmModal"
+               Disabled="@isReactivating" />
 
 <!-- View Details Modal -->
 @if (viewingUser != null)
@@ -1311,6 +1340,14 @@ else
     private bool showMakeActiveConfirmModal = false;
     private ApplicationUser? memberToMakeActive = null;
     private bool isMakingActive = false;
+    
+    // Expel/Reactivate confirmation modals
+    private bool showExpelConfirmModal = false;
+    private bool showReactivateConfirmModal = false;
+    private ApplicationUser? expellingUser = null;
+    private ApplicationUser? reactivatingUser = null;
+    private bool isExpelling = false;
+    private bool isReactivating = false;
     
     // Helper class for active members data
     public class ActiveMemberData
@@ -3501,6 +3538,162 @@ else
         {
             isMakingActive = false;
             CloseMakeActiveConfirmModal();
+            StateHasChanged();
+        }
+    }
+    
+    // Expel/Reactivate methods for Leitões
+    
+    /// <summary>
+    /// Opens the expel confirmation dialog
+    /// </summary>
+    private void OpenExpelConfirmModal(ApplicationUser user)
+    {
+        expellingUser = user;
+        showExpelConfirmModal = true;
+    }
+    
+    /// <summary>
+    /// Closes the expel confirmation dialog
+    /// </summary>
+    private void CloseExpelConfirmModal()
+    {
+        showExpelConfirmModal = false;
+        expellingUser = null;
+    }
+    
+    /// <summary>
+    /// Opens the reactivate confirmation dialog
+    /// </summary>
+    private void OpenReactivateConfirmModal(ApplicationUser user)
+    {
+        reactivatingUser = user;
+        showReactivateConfirmModal = true;
+    }
+    
+    /// <summary>
+    /// Closes the reactivate confirmation dialog
+    /// </summary>
+    private void CloseReactivateConfirmModal()
+    {
+        showReactivateConfirmModal = false;
+        reactivatingUser = null;
+    }
+    
+    /// <summary>
+    /// Expels a member, preventing them from logging in
+    /// </summary>
+    private async Task ExpelMemberAsync()
+    {
+        if (expellingUser == null || isExpelling)
+        {
+            return;
+        }
+        
+        isExpelling = true;
+        StateHasChanged();
+        
+        try
+        {
+            var userId = expellingUser.Id;
+            
+            await SetAuditContextToCurrentUser();
+            
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.IsExpelled = true;
+                var updateResult = await UserManager.UpdateAsync(dbUser);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogError("Failed to expel user {UserId}: {Errors}", 
+                        userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    return;
+                }
+                
+                // Update local state
+                expellingUser.IsExpelled = true;
+                
+                var userInList = users?.FirstOrDefault(u => u.Id == userId);
+                if (userInList != null)
+                {
+                    userInList.IsExpelled = true;
+                }
+                
+                // Reapply filters to update the display
+                FilterMembers();
+                
+                _logger.LogInformation("Member {UserId} ({MemberName}) was expelled by admin", 
+                    userId, expellingUser.GetDisplayName());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error expelling member {UserId}", expellingUser?.Id);
+        }
+        finally
+        {
+            isExpelling = false;
+            CloseExpelConfirmModal();
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
+    /// Reactivates an expelled member, allowing them to login again
+    /// </summary>
+    private async Task ReactivateMemberAsync()
+    {
+        if (reactivatingUser == null || isReactivating)
+        {
+            return;
+        }
+        
+        isReactivating = true;
+        StateHasChanged();
+        
+        try
+        {
+            var userId = reactivatingUser.Id;
+            
+            await SetAuditContextToCurrentUser();
+            
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.IsExpelled = false;
+                var updateResult = await UserManager.UpdateAsync(dbUser);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogError("Failed to reactivate user {UserId}: {Errors}", 
+                        userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    return;
+                }
+                
+                // Update local state
+                reactivatingUser.IsExpelled = false;
+                
+                var userInList = users?.FirstOrDefault(u => u.Id == userId);
+                if (userInList != null)
+                {
+                    userInList.IsExpelled = false;
+                }
+                
+                // Reapply filters to update the display
+                FilterMembers();
+                
+                _logger.LogInformation("Member {UserId} ({MemberName}) was reactivated by admin", 
+                    userId, reactivatingUser.GetDisplayName());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reactivating member {UserId}", reactivatingUser?.Id);
+        }
+        finally
+        {
+            isReactivating = false;
+            CloseReactivateConfirmModal();
             StateHasChanged();
         }
     }

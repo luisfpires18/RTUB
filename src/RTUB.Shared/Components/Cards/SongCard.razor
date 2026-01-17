@@ -116,9 +116,10 @@
                 }
                 @if (hasLinks)
                 {
-                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewLinks" title="Ver Links">
+                    <button class="btn btn-sm btn-purple song-action-btn song-action-btn-with-count" @onclick="HandleViewLinks" title="Ver Links">
                         <i class="bi bi-link-45deg"></i>
                         <span class="action-label">Links</span>
+                        <span class="song-action-count">@LinkCount</span>
                     </button>
                 }
                 else
@@ -131,9 +132,10 @@
 
                 <AuthorizeView>
                     <Authorized>
-                        <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
+                        <button class="btn btn-sm btn-purple song-action-btn song-action-btn-with-count" @onclick="HandleViewVideos" title="Ver Vídeos">
                             <i class="bi bi-camera-video-fill"></i>
                             <span class="action-label">Vídeos</span>
+                            <span class="song-action-count">@VideoCount</span>
                         </button>
                      </Authorized>
                 </AuthorizeView>
@@ -155,6 +157,18 @@
     /// </summary>
     [Parameter]
     public int PlayCount { get; set; }
+
+    /// <summary>
+    /// The number of links (Spotify + YouTube) for this song
+    /// </summary>
+    [Parameter]
+    public int LinkCount { get; set; }
+
+    /// <summary>
+    /// The number of videos for this song
+    /// </summary>
+    [Parameter]
+    public int VideoCount { get; set; }
 
     /// <summary>
     /// Whether the current user can edit the song
@@ -280,6 +294,8 @@
     private bool _previousCanDelete;
     private bool _previousHasVideos;
     private int _previousPlayCount;
+    private int _previousLinkCount;
+    private int _previousVideoCount;
     private string? _previousTitle;
     private int? _previousTrackNumber;
     private string? _previousLyricAuthor;
@@ -307,6 +323,8 @@
             CanDelete != _previousCanDelete ||
             hasVideos != _previousHasVideos ||
             PlayCount != _previousPlayCount ||
+            LinkCount != _previousLinkCount ||
+            VideoCount != _previousVideoCount ||
             title != _previousTitle ||
             trackNumber != _previousTrackNumber ||
             lyricAuthor != _previousLyricAuthor ||
@@ -319,6 +337,8 @@
             _previousCanDelete = CanDelete;
             _previousHasVideos = hasVideos;
             _previousPlayCount = PlayCount;
+            _previousLinkCount = LinkCount;
+            _previousVideoCount = VideoCount;
             _previousTitle = title;
             _previousTrackNumber = trackNumber;
             _previousLyricAuthor = lyricAuthor;

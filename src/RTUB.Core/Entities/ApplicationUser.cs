@@ -55,6 +55,9 @@ public class ApplicationUser : IdentityUser
     // Retirement status - tracks if active members have been inactive 6+ months
     public bool IsRetired { get; set; } = false;
 
+    // Expulsion status - tracks if member has been expelled and cannot login
+    public bool IsExpelled { get; set; } = false;
+
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }

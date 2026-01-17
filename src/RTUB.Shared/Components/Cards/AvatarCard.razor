@@ -8,20 +8,11 @@
     Reuses hierarchy card visual without connectors
 *@
 
-<div class="avatar-card" tabindex="0" @onkeydown="@HandleKeyDown">
-    <!-- Inactivity warning icon in top-left (for members without activity in current month) -->
-    @if (ShowInactivityWarning)
-    {
-        <div class="avatar-card-inactivity-warning" 
-             title="@InactivityWarningTooltip"
-             aria-label="@InactivityWarningTooltip">
-            <i class="bi bi-clock-history"></i>
-        </div>
-    }
+<div class="avatar-card @(IsExpelled ? "avatar-card-expelled" : "")" tabindex="0" @onkeydown="@HandleKeyDown">
     <!-- Definir Alcunha button in top-left (for Leitões, Admin only) -->
     @if (ShowSetNicknameButton)
     {
-        <button class="avatar-card-set-nickname-btn @(ShowInactivityWarning ? "has-warning-icon" : "")" 
+        <button class="avatar-card-set-nickname-btn" 
                 @onclick="@OnSetNickname" 
                 @onclick:stopPropagation="true"
                 title="@SetNicknameTooltip"
@@ -106,9 +97,20 @@
                 <i class="bi bi-music-note"></i> @InstrumentText
             </div>
         }
+
+        <!-- Inactivity warning (between instrument and action buttons) -->
+        @if (ShowInactivityWarning)
+        {
+            <div class="avatar-card-inactivity-indicator" 
+                 title="@InactivityWarningTooltip"
+                 aria-label="@InactivityWarningTooltip">
+                <i class="bi bi-clock-history"></i>
+                <span>Não tem participado</span>
+            </div>
+        }
     </div>
 
-    <!-- View button below the card -->
+    <!-- View button and expulsion button below the card -->
     <div class="avatar-card-actions">
         <button class="btn btn-sm btn-purple" 
                 @onclick="@OnView"
@@ -116,6 +118,30 @@
                 aria-label="@ViewTooltip">
             <i class="bi bi-eye"></i> @ViewButtonText
         </button>
+        
+        @if (ShowExpelButton)
+        {
+            @if (IsExpelled)
+            {
+                <button class="btn btn-sm btn-success" 
+                        @onclick="@OnReactivate"
+                        @onclick:stopPropagation="true"
+                        title="Reativar membro"
+                        aria-label="Reativar membro">
+                    <i class="bi bi-person-check"></i>
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-danger" 
+                        @onclick="@OnExpel"
+                        @onclick:stopPropagation="true"
+                        title="Expulsar membro"
+                        aria-label="Expulsar membro">
+                    <i class="bi bi-person-x"></i>
+                </button>
+            }
+        }
     </div>
 </div>
 
@@ -188,6 +214,18 @@
     [Parameter]
     public string SetNicknameTooltip { get; set; } = "Definir Alcunha";
 
+    [Parameter]
+    public bool ShowExpelButton { get; set; } = false;
+
+    [Parameter]
+    public bool IsExpelled { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnExpel { get; set; }
+
+    [Parameter]
+    public EventCallback OnReactivate { get; set; }
+
     private bool imageLoaded = false;
     
     // Track previous state for ShouldRender optimization
@@ -200,6 +238,8 @@
     private bool _previousShowDeleteButton;
     private bool _previousShowSetNicknameButton;
     private bool _previousShowInactivityWarning;
+    private bool _previousShowExpelButton;
+    private bool _previousIsExpelled;
     private bool _previousImageLoaded;
     
     /// <summary>
@@ -217,6 +257,8 @@
             ShowDeleteButton != _previousShowDeleteButton ||
             ShowSetNicknameButton != _previousShowSetNicknameButton ||
             ShowInactivityWarning != _previousShowInactivityWarning ||
+            ShowExpelButton != _previousShowExpelButton ||
+            IsExpelled != _previousIsExpelled ||
             imageLoaded != _previousImageLoaded)
         {
             _previousAvatarUrl = AvatarUrl;
@@ -228,6 +270,8 @@
             _previousShowDeleteButton = ShowDeleteButton;
             _previousShowSetNicknameButton = ShowSetNicknameButton;
             _previousShowInactivityWarning = ShowInactivityWarning;
+            _previousShowExpelButton = ShowExpelButton;
+            _previousIsExpelled = IsExpelled;
             _previousImageLoaded = imageLoaded;
             return true;
         }

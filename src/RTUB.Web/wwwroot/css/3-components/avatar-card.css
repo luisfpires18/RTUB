@@ -520,3 +520,41 @@
         padding: 0.35rem 0.6rem;
     }
 }
+
+/* Inactivity indicator (inline version) */
+.avatar-card-inactivity-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.15);
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.avatar-card-inactivity-indicator i {
+    font-size: 0.85rem;
+}
+
+/* Expelled card styling - grayscale */
+.avatar-card-expelled {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+
+.avatar-card-expelled:hover,
+.avatar-card-expelled:focus {
+    filter: grayscale(90%);
+    opacity: 0.85;
+}
+
+/* Action buttons row with multiple buttons */
+.avatar-card-actions {
+    padding: 0 1rem 1rem 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}

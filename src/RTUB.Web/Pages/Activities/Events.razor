@@ -199,6 +199,8 @@ else
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                            RepertoireCount="@GetRepertoireCount(eventItem.Id)"
                                            DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                           VideoCount="@GetVideoCount(eventItem.Id)"
+                                           TrophyCount="@GetTrophyCount(eventItem.Id)"
                                            IsAdmin="true"
                                            IsPastEvent="true"
                                            ShowTrophy="true"
@@ -219,6 +221,8 @@ else
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                            RepertoireCount="@GetRepertoireCount(eventItem.Id)"
                                            DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                           VideoCount="@GetVideoCount(eventItem.Id)"
+                                           TrophyCount="@GetTrophyCount(eventItem.Id)"
                                            IsAdmin="false"
                                            IsPastEvent="true"
                                            ShowTrophy="true"
@@ -238,6 +242,8 @@ else
                                    EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                    RepertoireCount="@GetRepertoireCount(eventItem.Id)"
                                    DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                   VideoCount="@GetVideoCount(eventItem.Id)"
+                                   TrophyCount="@GetTrophyCount(eventItem.Id)"
                                    IsAdmin="false"
                                    IsPastEvent="true"
                                    ShowButtons="false"
@@ -1488,6 +1494,8 @@ else
     private List<Enrollment>? eventEnrollments;
     private List<EventRepertoire>? eventRepertoires;
     private Dictionary<int, int>? discussionPostCounts; // eventId -> post count
+    private Dictionary<int, int> eventVideoCounts = new(); // eventId -> video count
+    private Dictionary<int, int> eventTrophyCounts = new(); // eventId -> trophy count
     private ApplicationUser? currentUser;
     private List<MemberInstrument>? currentUserInstruments;
     private List<InstrumentType>? availableInstruments;
@@ -1695,6 +1703,8 @@ else
         await LoadEnrollments();
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
+        await LoadEventVideoCounts();
+        await LoadEventTrophyCounts();
         await LoadCurrentUser();
         
         isInitializing = false;
@@ -1964,6 +1974,40 @@ else
         discussionPostCounts = counts;
     }
 
+    private async Task LoadEventVideoCounts()
+    {
+        // Load video counts for all past events
+        var counts = new Dictionary<int, int>();
+        
+        if (allEvents != null)
+        {
+            foreach (var evt in allEvents.Where(e => e.Date < DateTime.Today))
+            {
+                var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
+                counts[evt.Id] = videos.Count();
+            }
+        }
+        
+        eventVideoCounts = counts;
+    }
+
+    private async Task LoadEventTrophyCounts()
+    {
+        // Load trophy counts for all past festival events
+        var counts = new Dictionary<int, int>();
+        
+        if (allEvents != null)
+        {
+            foreach (var evt in allEvents.Where(e => e.Date < DateTime.Today && e.Type == EventType.Festival))
+            {
+                var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
+                counts[evt.Id] = trophies.Count();
+            }
+        }
+        
+        eventTrophyCounts = counts;
+    }
+
     private void FilterPreviousEvents()
     {
         if (allEvents == null)
@@ -2055,6 +2099,16 @@ else
     {
         if (discussionPostCounts == null) return 0;
         return discussionPostCounts.TryGetValue(eventId, out var count) ? count : 0;
+    }
+
+    private int GetVideoCount(int eventId)
+    {
+        return eventVideoCounts.TryGetValue(eventId, out var count) ? count : 0;
+    }
+
+    private int GetTrophyCount(int eventId)
+    {
+        return eventTrophyCounts.TryGetValue(eventId, out var count) ? count : 0;
     }
 
     private void OpenCreateModal()

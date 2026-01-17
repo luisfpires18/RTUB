@@ -95,6 +95,8 @@ else
             {
                 <SongCard Song="@song"
                          PlayCount="@(songPlayCounts.ContainsKey(song.Id) ? songPlayCounts[song.Id] : 0)"
+                         LinkCount="@(songLinkCounts.ContainsKey(song.Id) ? songLinkCounts[song.Id] : 0)"
+                         VideoCount="@(songVideoCounts.ContainsKey(song.Id) ? songVideoCounts[song.Id] : 0)"
                          CanEdit="@canEditSongs"
                          CanDelete="@canDeleteSongs"
                          OnPlay="@(() => PlaySong(song))"
@@ -591,6 +593,8 @@ else
     private List<Song>? songs;
     private string searchTerm = string.Empty;
     private Dictionary<int, int> songPlayCounts = new();
+    private Dictionary<int, int> songVideoCounts = new(); // Track video count per song
+    private Dictionary<int, int> songLinkCounts = new(); // Track link count per song
     private Dictionary<int, DateTime> lastPlayTimes = new(); // Track last play time per song
     
     private IEnumerable<Song> filteredSongs => songs?.Where(s =>
@@ -709,11 +713,24 @@ else
             .OrderBy(s => s.TrackNumber)
             .ToList();
         
-        // Load play counts for all songs
+        // Load play counts, video counts, and link counts for all songs
         if (songs.Any())
         {
             var songIds = songs.Select(s => s.Id).ToList();
             songPlayCounts = await SongService.GetPlayCountsForSongsAsync(songIds);
+            
+            // Load video counts for each song
+            foreach (var song in songs)
+            {
+                var videos = await SongService.GetVideosBySongIdAsync(song.Id);
+                songVideoCounts[song.Id] = videos.Count();
+                
+                // Calculate link count (Spotify + YouTube URLs)
+                var linkCount = 0;
+                if (!string.IsNullOrEmpty(song.SpotifyUrl)) linkCount++;
+                linkCount += song.YouTubeUrls?.Count ?? 0;
+                songLinkCounts[song.Id] = linkCount;
+            }
         }
     }
 

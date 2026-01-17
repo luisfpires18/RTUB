@@ -144,16 +144,18 @@
                 <div class="event-buttons-container">
                     @if (Event.Type == EventType.Festival)
                     {
-                        <button class="btn event-icon-btn btn-warning" 
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-warning" 
                                 @onclick="OnViewTrophies" 
                                 title="Prémios">
                             <i class="bi bi-trophy-fill"></i>
+                            <span class="enrollment-count-centered">@TrophyCount</span>
                         </button>
                     }
-                    <button class="btn event-icon-btn btn-outline-secondary" 
+                    <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                             @onclick="OnViewVideos" 
                             title="Vídeos">
                         <i class="bi bi-camera-video"></i>
+                        <span class="enrollment-count-centered">@VideoCount</span>
                     </button>
                 </div>
             </div>
@@ -285,18 +287,20 @@
                             <!-- Trophy button (for Festival events only) -->
                             @if (ShowTrophy && Event.Type == EventType.Festival)
                             {
-                                <button class="btn event-icon-btn btn-warning"
+                                <button class="btn event-icon-btn event-icon-btn-with-count btn-warning"
                                         @onclick="OnViewTrophies"
                                         title="Prémios">
                                     <i class="bi bi-trophy-fill"></i>
+                                    <span class="enrollment-count-centered">@TrophyCount</span>
                                 </button>
                             }
 
                             <!-- Videos button (for all past events) -->
-                            <button class="btn event-icon-btn btn-outline-secondary"
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
                                     @onclick="OnViewVideos"
                                     title="Vídeos">
                                 <i class="bi bi-camera-video"></i>
+                                <span class="enrollment-count-centered">@VideoCount</span>
                             </button>
                         </div>
                         
@@ -349,6 +353,18 @@
     /// </summary>
     [Parameter]
     public int DiscussionCount { get; set; }
+
+    /// <summary>
+    /// Total number of videos for this event
+    /// </summary>
+    [Parameter]
+    public int VideoCount { get; set; }
+
+    /// <summary>
+    /// Total number of trophies for this event
+    /// </summary>
+    [Parameter]
+    public int TrophyCount { get; set; }
 
     /// <summary>
     /// Whether the current user has admin privileges
@@ -507,6 +523,8 @@
     private int _previousEnrollmentCount;
     private int _previousRepertoireCount;
     private int _previousDiscussionCount;
+    private int _previousVideoCount;
+    private int _previousTrophyCount;
     private bool _previousHasEnrollment;
     private bool _previousWillAttend;
     private bool _previousIsAdmin;
@@ -532,6 +550,8 @@
             EnrollmentCount != _previousEnrollmentCount ||
             RepertoireCount != _previousRepertoireCount ||
             DiscussionCount != _previousDiscussionCount ||
+            VideoCount != _previousVideoCount ||
+            TrophyCount != _previousTrophyCount ||
             hasEnrollment != _previousHasEnrollment ||
             willAttend != _previousWillAttend ||
             IsAdmin != _previousIsAdmin ||
@@ -544,6 +564,8 @@
             _previousEnrollmentCount = EnrollmentCount;
             _previousRepertoireCount = RepertoireCount;
             _previousDiscussionCount = DiscussionCount;
+            _previousVideoCount = VideoCount;
+            _previousTrophyCount = TrophyCount;
             _previousHasEnrollment = hasEnrollment;
             _previousWillAttend = willAttend;
             _previousIsAdmin = IsAdmin;
