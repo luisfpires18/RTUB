@@ -296,21 +296,79 @@ const avoidQuestionsGame = (function () {
             ctx.beginPath();
             drawRoundRect(q.x, q.y, q.width, q.height, 8);
             ctx.fill();
-            
+
+            const padding = 8;
+            const maxWidth = q.width - padding * 2;
+            const maxHeight = q.height - padding * 2;
+            const fontResult = fitTextToBox(q.text, maxWidth, maxHeight, 12, 9);
+
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 12px Arial';
+            ctx.font = `bold ${fontResult.fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
-            let text = q.text;
-            if (ctx.measureText(text).width > q.width - 10) {
-                while (ctx.measureText(text + '...').width > q.width - 10 && text.length > 0) {
-                    text = text.slice(0, -1);
-                }
-                text += '...';
-            }
-            ctx.fillText(text, q.x + q.width / 2, q.y + q.height / 2);
+
+            const lineHeight = fontResult.fontSize + 2;
+            const totalHeight = fontResult.lines.length * lineHeight;
+            const startY = q.y + q.height / 2 - totalHeight / 2 + lineHeight / 2;
+            fontResult.lines.forEach((line, index) => {
+                ctx.fillText(line, q.x + q.width / 2, startY + index * lineHeight);
+            });
         }
+    }
+
+    function fitTextToBox(text, maxWidth, maxHeight, startSize, minSize) {
+        let fontSize = startSize;
+        let lines = [];
+
+        while (fontSize >= minSize) {
+            ctx.font = `bold ${fontSize}px Arial`;
+            lines = wrapText(text, maxWidth);
+            const lineHeight = fontSize + 2;
+            if (lines.length * lineHeight <= maxHeight) {
+                return { fontSize, lines };
+            }
+            fontSize -= 1;
+        }
+
+        ctx.font = `bold ${minSize}px Arial`;
+        lines = wrapText(text, maxWidth);
+        const maxLines = Math.max(1, Math.floor(maxHeight / (minSize + 2)));
+        if (lines.length > maxLines) {
+            lines = lines.slice(0, maxLines);
+            const lastIndex = lines.length - 1;
+            let trimmed = lines[lastIndex];
+            while (ctx.measureText(`${trimmed}...`).width > maxWidth && trimmed.length > 0) {
+                trimmed = trimmed.slice(0, -1);
+            }
+            lines[lastIndex] = `${trimmed}...`;
+        }
+
+        return { fontSize: minSize, lines };
+    }
+
+    function wrapText(text, maxWidth) {
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+
+        words.forEach((word) => {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            if (ctx.measureText(testLine).width <= maxWidth) {
+                currentLine = testLine;
+                return;
+            }
+
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            currentLine = word;
+        });
+
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+
+        return lines;
     }
 
     function drawPlayer() {

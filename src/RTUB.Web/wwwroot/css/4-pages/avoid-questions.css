@@ -195,6 +195,25 @@
     .game-header h2 {
         font-size: 1.25rem;
     }
+
+    .game-overlay {
+        align-items: stretch;
+        padding: 0.75rem;
+    }
+
+    .overlay-content {
+        max-height: 100%;
+        overflow-y: auto;
+        padding: 1.25rem;
+    }
+
+    .overlay-content h3 {
+        font-size: 1.25rem;
+    }
+
+    .game-instructions li {
+        font-size: 0.95rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -219,5 +238,17 @@
     
     .final-stat-value {
         font-size: 1.5rem;
+    }
+
+    .game-overlay {
+        padding: 0.5rem;
+    }
+
+    .overlay-content {
+        padding: 1rem;
+    }
+
+    .game-instructions li {
+        font-size: 0.9rem;
     }
 }
