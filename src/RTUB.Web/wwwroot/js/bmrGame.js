@@ -14,7 +14,6 @@ const bmrGame = (function () {
         gravity: 1200,
         moveSpeed: 200,
         beerPoints: 10,
-        levelUpSeconds: 30,
         difficultyScaling: {
             baseSpawnRate: 2.5,
             spawnRateDecreasePerLevel: 0.1,
@@ -63,10 +62,12 @@ const bmrGame = (function () {
     let spritesLoaded = false;
 
     // Game world dimensions (scaled to canvas)
-    let GROUND_Y = 520;
+    const BASE_groundY = 520;
+    let groundY = 520;
     const PLATFORM_HEIGHT = 15;
     const BASE_WIDTH = 800;
     const BASE_HEIGHT = 600;
+    const DISTANCE_PER_LEVEL = 500; // Fixed distance per level for consistent progression
     let scaleX = 1;
     let scaleY = 1;
     
@@ -116,7 +117,7 @@ const bmrGame = (function () {
         scaleY = newHeight / BASE_HEIGHT;
         
         // Update ground level based on scale
-        GROUND_Y = 520 * scaleY;
+        groundY = BASE_GROUND_Y * scaleY;
         
         // Redraw if not running
         if (!gameRunning) {
@@ -258,7 +259,7 @@ const bmrGame = (function () {
         nextBeerSpawnTime = 0;
         
         player.x = 100 * scaleX;
-        player.y = GROUND_Y - player.height * scaleY;
+        player.y = groundY - player.height * scaleY;
         player.vx = 0;
         player.vy = 0;
         player.direction = 0;
@@ -288,9 +289,10 @@ const bmrGame = (function () {
     }
 
     function update(dt, currentTime) {
-        // Level progression based on distance traveled (every 500 units = 1 level up)
-        const distancePerLevel = 500 * scaleX;
-        const newLevel = Math.floor(distanceTraveled / distancePerLevel) + 1;
+        // Level progression based on distance traveled (fixed distance per level for consistent gameplay)
+        // distanceTraveled is in scaled units, so we divide by scaleX to get base units
+        const baseDistance = distanceTraveled / scaleX;
+        const newLevel = Math.floor(baseDistance / DISTANCE_PER_LEVEL) + 1;
         if (newLevel > level) {
             level = newLevel;
             maxLevelReached = Math.max(maxLevelReached, level);
@@ -326,14 +328,14 @@ const bmrGame = (function () {
         player.y += player.vy * dt;
         
         // Ground collision
-        if (player.y + scaledHeight >= GROUND_Y) {
-            player.y = GROUND_Y - scaledHeight;
+        if (player.y + scaledHeight >= groundY) {
+            player.y = groundY - scaledHeight;
             player.vy = 0;
             player.onGround = true;
         }
         
         // Platform collisions
-        player.onGround = player.y + scaledHeight >= GROUND_Y;
+        player.onGround = player.y + scaledHeight >= groundY;
         
         for (const platform of platforms) {
             if (checkPlatformCollision({x: player.x, y: player.y, width: scaledWidth, height: scaledHeight}, platform)) {
@@ -385,7 +387,7 @@ const bmrGame = (function () {
                 const spawnX = cameraX + canvas.width + 50 + Math.random() * 200;
                 
                 // Find a platform or ground to spawn on
-                let spawnY = GROUND_Y;
+                let spawnY = groundY;
                 for (const platform of platforms) {
                     if (platform.x <= spawnX && platform.x + platform.width >= spawnX) {
                         spawnY = platform.y;
@@ -450,7 +452,7 @@ const bmrGame = (function () {
             const spawnX = cameraX + canvas.width + (50 + Math.random() * 300) * scaleX;
             
             // Place on platform or floating
-            let spawnY = GROUND_Y - (60 + Math.random() * 100) * scaleY;
+            let spawnY = groundY - (60 + Math.random() * 100) * scaleY;
             for (const platform of platforms) {
                 if (Math.abs(platform.x + platform.width / 2 - spawnX) < 100 * scaleX) {
                     spawnY = platform.y - 40 * scaleY;
@@ -612,18 +614,18 @@ const bmrGame = (function () {
         const groundEnd = cameraX + canvas.width + 100 * scaleX;
         
         ctx.fillStyle = '#5a7a6a';
-        ctx.fillRect(groundStart, GROUND_Y, groundEnd - groundStart, canvas.height - GROUND_Y);
+        ctx.fillRect(groundStart, groundY, groundEnd - groundStart, canvas.height - groundY);
         
         ctx.fillStyle = '#6a8a7a';
-        ctx.fillRect(groundStart, GROUND_Y - 4 * scaleY, groundEnd - groundStart, 8 * scaleY);
+        ctx.fillRect(groundStart, groundY - 4 * scaleY, groundEnd - groundStart, 8 * scaleY);
         
         // Grass tufts
         ctx.fillStyle = '#7a9a8a';
         for (let x = groundStart; x < groundEnd; x += 60 * scaleX) {
             ctx.beginPath();
-            ctx.moveTo(x, GROUND_Y);
-            ctx.lineTo(x + 5 * scaleX, GROUND_Y - 10 * scaleY);
-            ctx.lineTo(x + 10 * scaleX, GROUND_Y);
+            ctx.moveTo(x, groundY);
+            ctx.lineTo(x + 5 * scaleX, groundY - 10 * scaleY);
+            ctx.lineTo(x + 10 * scaleX, groundY);
             ctx.fill();
         }
     }
