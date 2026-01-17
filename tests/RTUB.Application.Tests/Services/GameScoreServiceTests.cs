@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -369,6 +370,112 @@ public class GameScoreServiceTests
         result.Should().NotBeNull();
         result!.UserName.Should().Be("Unknown");
         result.UserNickname.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SubmitScoreAsync_HandlesRaceCondition_WhenDbUpdateExceptionThrown()
+    {
+        // Arrange - simulate race condition where concurrent insert fails
+        var userId = "test-user-id";
+        var gameKey = "test-game";
+        var points = 100;
+        var maxLevel = 5;
+        var timeSurvived = TimeSpan.FromMinutes(3);
+
+        // First call returns null (no existing score)
+        // After DbUpdateException, second call returns the score that was inserted concurrently
+        var existingScore = CreateScore(userId, 50, 2, null);
+        var callCount = 0;
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                // First call: no existing score (triggers insert attempt)
+                // Second call: return the concurrently inserted score
+                return callCount == 1 ? null : existingScore;
+            });
+
+        _mockGameScoreRepository
+            .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
+            .ReturnsAsync((GameScore s) => s);
+
+        _mockGameScoreRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
+            .Returns(Task.CompletedTask);
+
+        // Setup SaveChangesAsync to fail on first call (insert) and succeed on second call (update)
+        var saveCallCount = 0;
+        _mockGameScoreRepository
+            .Setup(r => r.SaveChangesAsync())
+            .Returns(() =>
+            {
+                saveCallCount++;
+                if (saveCallCount == 1)
+                {
+                    throw new DbUpdateException("UNIQUE constraint failed");
+                }
+                return Task.FromResult(1);
+            });
+
+        // Act
+        var result = await _service.SubmitScoreAsync(userId, gameKey, points, maxLevel, timeSurvived);
+
+        // Assert - should have fetched and updated the concurrent score
+        result.Should().BeSameAs(existingScore);
+        result.Points.Should().Be(100); // Updated with better score
+        result.MaxLevel.Should().Be(5);
+        _mockGameScoreRepository.Verify(r => r.GetUserScoreAsync(userId, gameKey), Times.Exactly(2));
+        _mockGameScoreRepository.Verify(r => r.UpdateAsync(existingScore), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitScoreAsync_HandlesRaceCondition_KeepsExistingScore_WhenConcurrentScoreIsBetter()
+    {
+        // Arrange - simulate race condition where concurrent score is better
+        var userId = "test-user-id";
+        var gameKey = "test-game";
+        var newPoints = 50;  // New score is worse
+        var newMaxLevel = 2;
+        var newTimeSurvived = TimeSpan.FromMinutes(1);
+
+        // Existing concurrent score is better
+        var existingScore = CreateScore(userId, 100, 5, null);
+        var callCount = 0;
+        _mockGameScoreRepository
+            .Setup(r => r.GetUserScoreAsync(userId, gameKey))
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return callCount == 1 ? null : existingScore;
+            });
+
+        _mockGameScoreRepository
+            .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
+            .ReturnsAsync((GameScore s) => s);
+
+        var saveCallCount = 0;
+        _mockGameScoreRepository
+            .Setup(r => r.SaveChangesAsync())
+            .Returns(() =>
+            {
+                saveCallCount++;
+                if (saveCallCount == 1)
+                {
+                    throw new DbUpdateException("UNIQUE constraint failed");
+                }
+                return Task.FromResult(1);
+            });
+
+        // Act
+        var result = await _service.SubmitScoreAsync(userId, gameKey, newPoints, newMaxLevel, newTimeSurvived);
+
+        // Assert - should keep the better existing score
+        result.Should().BeSameAs(existingScore);
+        result.Points.Should().Be(100); // Kept original better score
+        result.MaxLevel.Should().Be(5);
+        _mockGameScoreRepository.Verify(r => r.GetUserScoreAsync(userId, gameKey), Times.Exactly(2));
+        _mockGameScoreRepository.Verify(r => r.UpdateAsync(It.IsAny<GameScore>()), Times.Never);
     }
 
     private static ApplicationUser CreateTestUser(string id, string userName, string nickname)

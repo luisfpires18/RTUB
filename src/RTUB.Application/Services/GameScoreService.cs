@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -35,9 +36,31 @@ public class GameScoreService : IGameScoreService
         
         // Create new score if none exists
         var score = GameScore.Create(userId, gameKey, points, maxLevel, timeSurvived);
-        await _repository.AddAsync(score);
-        await _repository.SaveChangesAsync();
-        return score;
+        
+        try
+        {
+            await _repository.AddAsync(score);
+            await _repository.SaveChangesAsync();
+            return score;
+        }
+        catch (DbUpdateException)
+        {
+            // Handle race condition: another request may have inserted the score concurrently
+            // Re-fetch the existing score and update it if necessary
+            var concurrentScore = await _repository.GetUserScoreAsync(userId, gameKey);
+            if (concurrentScore != null)
+            {
+                if (concurrentScore.UpdateIfBetter(points, maxLevel, timeSurvived))
+                {
+                    await _repository.UpdateAsync(concurrentScore);
+                    await _repository.SaveChangesAsync();
+                }
+                return concurrentScore;
+            }
+            
+            // If still no score found, re-throw the original exception
+            throw;
+        }
     }
 
     public async Task<List<GameScoreDto>> GetLeaderboardAsync(string gameKey, int count = 10)
