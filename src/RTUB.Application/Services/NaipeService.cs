@@ -22,6 +22,8 @@ public class NaipeService : INaipeService
     private readonly INaipeCommentRepository _naipeCommentRepository;
     private readonly INaipeTypeConfigRepository _naipeTypeConfigRepository;
     private readonly INaipeMediaStorageService _naipeMediaStorageService;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
@@ -32,6 +34,8 @@ public class NaipeService : INaipeService
         INaipeCommentRepository naipeCommentRepository,
         INaipeTypeConfigRepository naipeTypeConfigRepository,
         INaipeMediaStorageService naipeMediaStorageService,
+        IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         AuditContext auditContext,
@@ -41,6 +45,8 @@ public class NaipeService : INaipeService
         _naipeCommentRepository = naipeCommentRepository;
         _naipeTypeConfigRepository = naipeTypeConfigRepository;
         _naipeMediaStorageService = naipeMediaStorageService;
+        _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
         _userManager = userManager;
         _context = context;
         _auditContext = auditContext;
@@ -92,6 +98,9 @@ public class NaipeService : INaipeService
             createdContent.Title,
             $"{(isVideo ? "Video" : "Image")} '{createdContent.Title}' created for {type} by {user.Nickname ?? user.UserName}"
         );
+
+        // Send push notification to all subscribed users
+        await SendNaipeContentPushNotificationAsync(title, type, isVideo);
 
         return MapToDto(createdContent);
     }
@@ -387,5 +396,43 @@ public class NaipeService : INaipeService
             IsVisible = config.IsVisible,
             SortOrder = config.SortOrder
         };
+    }
+
+    /// <summary>
+    /// Sends a push notification to all subscribed users when new naipe content is created.
+    /// </summary>
+    private async Task SendNaipeContentPushNotificationAsync(string contentTitle, InstrumentType instrumentType, bool isVideo)
+    {
+        try
+        {
+            var instrumentTypeName = StatusHelper.GetInstrumentDisplay(instrumentType);
+            var baseUrl = GetBaseUrl();
+            
+            var notification = _pushNotificationFactory.CreateNaipeContentNotification(
+                contentTitle,
+                instrumentTypeName,
+                isVideo,
+                baseUrl
+            );
+
+            await _pushNotificationService.BroadcastAsync(notification);
+        }
+        catch
+        {
+            // Silently fail - push notifications should not break content creation
+        }
+    }
+
+    /// <summary>
+    /// Gets the base URL from the current HTTP context.
+    /// </summary>
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

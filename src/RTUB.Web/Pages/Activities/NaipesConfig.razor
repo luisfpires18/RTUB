@@ -249,6 +249,30 @@ else
     .naipe-type-badges .badge {
         font-size: 0.7rem;
     }
+
+    /* Mobile optimizations */
+    @@media (max-width: 576px) {
+        .naipe-type-card {
+            padding: 0.75rem;
+        }
+
+        .naipe-type-image-wrapper {
+            width: 60px;
+            height: 60px;
+        }
+
+        .naipe-type-placeholder i {
+            font-size: 1.5rem;
+        }
+
+        .naipe-type-name {
+            font-size: 0.875rem;
+        }
+
+        .naipe-type-badges .badge {
+            font-size: 0.625rem;
+        }
+    }
 </style>
 
 @code {

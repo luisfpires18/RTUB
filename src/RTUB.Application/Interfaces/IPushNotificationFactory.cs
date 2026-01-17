@@ -253,4 +253,15 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreatePendingQuestionsNotification(int questionCount, string? firstAuthorNickname, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when new naipe content (video or image) is published.
+    /// Sent to all subscribed users.
+    /// </summary>
+    /// <param name="contentTitle">The title of the content</param>
+    /// <param name="instrumentTypeName">The display name of the instrument type</param>
+    /// <param name="isVideo">True if the content is a video, false if it's an image</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, string instrumentTypeName, bool isVideo, string baseUrl);
 }

@@ -704,4 +704,26 @@ public class PushNotificationFactory : IPushNotificationFactory
         }
         return content[..(maxLength - 3)] + "...";
     }
+
+    /// <summary>
+    /// Creates a push notification when new naipe content (video or image) is published.
+    /// </summary>
+    public SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, string instrumentTypeName, bool isVideo, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentTitle);
+        ArgumentException.ThrowIfNullOrWhiteSpace(instrumentTypeName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var naipesUrl = $"{baseUrl.TrimEnd('/')}/naipes";
+        var contentType = isVideo ? "vídeo" : "imagem";
+
+        return new SendPushNotificationDto
+        {
+            Title = $"Novo {contentType} em {instrumentTypeName}",
+            Body = $"\"{TruncateContent(contentTitle, 60)}\" foi adicionado aos Naipes",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = naipesUrl,
+            Tag = $"naipe-content-{instrumentTypeName.ToLower().Replace(" ", "-")}"
+        };
+    }
 }
