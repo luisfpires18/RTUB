@@ -26,8 +26,9 @@
         <!-- Delete Button -->
         @if (Comment.CanDelete)
         {
-            <button class="btn btn-sm btn-outline-danger comment-delete-btn"
+            <button class="btn btn-sm admin-btn-delete comment-delete-btn"
                     @onclick="HandleDelete"
+                    @onclick:stopPropagation="true"
                     disabled="@IsProcessing"
                     title="Eliminar comentário">
                 <i class="bi bi-trash"></i>

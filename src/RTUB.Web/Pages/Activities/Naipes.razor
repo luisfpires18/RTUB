@@ -122,7 +122,6 @@ else
                   ShowChanged="@((bool show) => showViewModal = show)"
                   Title="Detalhes do Conteúdo"
                   HeaderTitle="@viewingContent.Title"
-                  IconClass="@(viewingContent.IsVideo ? "bi-camera-video" : "bi-image")"
                   Size="Modal.ModalSize.ExtraLarge"
                   OnClose="@CloseViewModal">
         <BadgesContent>
@@ -140,7 +139,7 @@ else
                         CssClass="mb-4">
                 @if (viewingContent.IsVideo)
                 {
-                    <video controls class="w-100 rounded" style="max-height: 400px; background: #000;">
+                    <video controls class="w-100 rounded" style="max-height: 400px; background: #000;" @onplay="OnVideoPlayed">
                         <source src="@viewingContent.Url" type="@viewingContent.MimeType">
                         O seu navegador não suporta a reprodução de vídeo.
                     </video>
@@ -169,7 +168,6 @@ else
                         CssClass="mb-4">
                 <ProfileField Label="Visualizações" Value="@viewingContent.PlayCount.ToString()" Icon="bi-eye" />
                 <ProfileField Label="Criado por" Value="@viewingContent.CreatedByUserName" Icon="bi-person" />
-                <ProfileField Label="Data de Criação" Value="@viewingContent.CreatedAt.ToString("dd/MM/yyyy HH:mm")" Icon="bi-calendar" />
             </InfoSection>
 
             <!-- Comments Section -->
@@ -473,24 +471,35 @@ else
     {
         viewingContent = content;
         newCommentText = string.Empty;
+        hasIncrementedPlayCount = false;
         
         showViewModal = true;
 
-        // Increment play count
-        if (currentUserId != null)
-        {
-            await NaipeService.IncrementPlayCountAsync(content.Id, currentUserId);
-            
-            // Update local play count
-            var item = allContent.FirstOrDefault(c => c.Id == content.Id);
-            if (item != null)
-            {
-                item.PlayCount++;
-            }
-        }
-
         // Load comments
         await LoadComments(content.Id);
+    }
+    
+    private bool hasIncrementedPlayCount = false;
+    
+    private async Task OnVideoPlayed()
+    {
+        // Only increment once per modal open
+        if (hasIncrementedPlayCount || viewingContent == null || currentUserId == null)
+            return;
+            
+        hasIncrementedPlayCount = true;
+        
+        await NaipeService.IncrementPlayCountAsync(viewingContent.Id, currentUserId);
+        
+        // Update local play count
+        viewingContent.PlayCount++;
+        var item = allContent.FirstOrDefault(c => c.Id == viewingContent.Id);
+        if (item != null)
+        {
+            item.PlayCount++;
+        }
+        
+        StateHasChanged();
     }
 
     private async Task LoadComments(int contentId)
