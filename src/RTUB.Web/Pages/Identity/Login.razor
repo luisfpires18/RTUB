@@ -14,6 +14,13 @@
         {
             <div class="alert alert-danger">Conta bloqueada.</div>
         }
+        @if (NavigationManager.Uri.Contains("error=Expelled"))
+        {
+            <div class="alert alert-danger">
+                <strong>Conta suspensa.</strong> A sua conta foi expulsa da RTUB. 
+                Por favor contacte a administração se acredita que isto foi um erro.
+            </div>
+        }
 
         <form method="post" action="/auth/login" @formname="LoginForm">
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />

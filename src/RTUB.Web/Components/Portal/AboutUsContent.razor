@@ -39,6 +39,8 @@
                 <div class="col-md-4">
                     <EventCard Event="@evt"
                                EnrollmentCount="0"
+                               VideoCount="@(eventVideoCounts.GetValueOrDefault(evt.Id, 0))"
+                               TrophyCount="@(eventTrophyCounts.GetValueOrDefault(evt.Id, 0))"
                                IsAdmin="false"
                                IsPastEvent="true"
                                ShowOnlyTrophy="true"
@@ -216,6 +218,10 @@
     private Event? selectedEventForVideos;
     private List<EventVideo>? eventVideos = null;
     private int? selectedVideoId = null;
+    
+    // Counts for video and trophy display
+    private Dictionary<int, int> eventVideoCounts = new();
+    private Dictionary<int, int> eventTrophyCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,6 +230,32 @@
 
         // Load previous 3 events (most recent first)
         previousEvents = (await EventService.GetPastEventsAsync(3)).ToList();
+        
+        // Load video and trophy counts in parallel for better performance
+        var videoCountTasks = previousEvents.Select(async evt =>
+        {
+            var videos = await EventService.GetVideosByEventIdAsync(evt.Id);
+            return (EventId: evt.Id, Count: videos.Count());
+        });
+        
+        var trophyCountTasks = previousEvents.Select(async evt =>
+        {
+            var trophies = await TrophyService.GetByEventIdAsync(evt.Id);
+            return (EventId: evt.Id, Count: trophies.Count());
+        });
+        
+        var videoResults = await Task.WhenAll(videoCountTasks);
+        var trophyResults = await Task.WhenAll(trophyCountTasks);
+        
+        foreach (var result in videoResults)
+        {
+            eventVideoCounts[result.EventId] = result.Count;
+        }
+        
+        foreach (var result in trophyResults)
+        {
+            eventTrophyCounts[result.EventId] = result.Count;
+        }
     }
 
     private async Task LoadAboutUs()

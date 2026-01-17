@@ -135,8 +135,16 @@
                                     <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-star text-primary me-2"></i>Nome de Tuna
                                     </label>
-                                    <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
-                                    <ValidationMessage For="@(() => editUser.Nickname)" />
+                                    @if (user!.IsOnlyLeitao())
+                                    {
+                                        <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." disabled />
+                                        <small class="text-white-opacity">O nome de tuna só pode ser definido após a passagem a Caloiro.</small>
+                                    }
+                                    else
+                                    {
+                                        <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
+                                        <ValidationMessage For="@(() => editUser.Nickname)" />
+                                    }
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-white-full fw-semibold">

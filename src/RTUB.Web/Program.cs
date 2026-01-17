@@ -621,6 +621,12 @@ public class Program
                 return Results.Redirect("/login?error=Locked");
             }
 
+            // Check if member has been expelled
+            if (user.IsExpelled)
+            {
+                return Results.Redirect("/login?error=Expelled");
+            }
+
             // Check password is valid BEFORE updating last login date to avoid race condition
             // We need to verify credentials first, then update the timestamp BEFORE signing in
             // to ensure the LastLoginDate is persisted before the user can make any requests
