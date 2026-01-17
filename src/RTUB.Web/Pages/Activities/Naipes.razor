@@ -78,7 +78,7 @@ else if (!filteredContent.Any())
 {
     <EmptyState Title="Nenhum conteúdo encontrado"
                 Icon="bi-inbox"
-                Description="@(selectedInstrument.HasValue ? $"Não há conteúdo para {StatusHelper.GetInstrumentDisplay(selectedInstrument.Value)}." : "Não há conteúdo disponível.")" />
+                Message="@(selectedInstrument.HasValue ? $"Não há conteúdo para {StatusHelper.GetInstrumentDisplay(selectedInstrument.Value)}." : "Não há conteúdo disponível.")" />
 }
 else
 {
@@ -189,7 +189,7 @@ else
                 {
                     <EmptyState Title="Sem comentários"
                                Icon="bi-chat"
-                               Description="Seja o primeiro a comentar!" />
+                               Message="Seja o primeiro a comentar!" />
                 }
                 else
                 {
