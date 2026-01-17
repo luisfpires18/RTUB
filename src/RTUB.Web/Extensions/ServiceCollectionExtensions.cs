@@ -208,6 +208,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventVideoStorageService, CloudflareEventVideoStorageService>();
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
         services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
+        services.AddScoped<INaipeMediaStorageService, CloudflareNaipeMediaStorageService>();
 
         return services;
     }

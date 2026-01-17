@@ -228,12 +228,37 @@ else
                     <ValidationMessage For="@(() => contentForm.InstrumentType)" />
                 </div>
 
-                <!-- URL -->
+                <!-- File Upload -->
                 <div class="mb-3">
-                    <label class="form-label">URL @(isVideoMode ? "do Vídeo" : "da Imagem") *</label>
-                    <InputText class="form-control" @bind-Value="contentForm.Url" placeholder="https://..." />
-                    <ValidationMessage For="@(() => contentForm.Url)" />
-                    <small class="form-text text-muted">Cole o URL direto do ficheiro hospedado.</small>
+                    <label class="form-label">Ficheiro @(isVideoMode ? "de Vídeo" : "de Imagem") *</label>
+                    <div class="localized-file-picker">
+                        <InputFile id="@fileInputId" 
+                                   @key="fileUploadKey"
+                                   class="d-none" 
+                                   OnChange="@HandleFileSelection" 
+                                   accept="@(isVideoMode ? "video/*" : "image/*")" 
+                                   aria-label="@(isVideoMode ? "Escolher vídeo" : "Escolher imagem")" />
+                        <label class="btn btn-outline-secondary localized-file-button" for="@fileInputId">
+                            <i class="bi bi-upload me-2"></i>@(isVideoMode ? "Escolher vídeo" : "Escolher imagem")
+                        </label>
+                        <span class="localized-file-name">
+                            @if (!string.IsNullOrEmpty(selectedFileName))
+                            {
+                                <text>@selectedFileName</text>
+                            }
+                            else
+                            {
+                                <text>Nenhum ficheiro selecionado</text>
+                            }
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-info-circle me-1"></i>Tamanho máximo: @(isVideoMode ? "100MB" : "10MB")
+                    </small>
+                    @if (selectedFile == null)
+                    {
+                        <div class="text-danger small mt-1">O ficheiro é obrigatório</div>
+                    }
                 </div>
             }
 
@@ -320,6 +345,12 @@ else
     private ContentFormModel contentForm = new();
     private bool isVideoMode = true;
     private bool isSaving = false;
+    
+    // File upload state
+    private IBrowserFile? selectedFile = null;
+    private string? selectedFileName = null;
+    private Guid fileUploadKey = Guid.NewGuid();
+    private string fileInputId = $"naipe-file-{Guid.NewGuid():N}";
 
     // Delete State
     private NaipeContentDto? contentToDelete = null;
@@ -511,6 +542,9 @@ else
     {
         isVideoMode = isVideo;
         editingContent = null;
+        selectedFile = null;
+        selectedFileName = null;
+        fileUploadKey = Guid.NewGuid();
         contentForm = new ContentFormModel
         {
             InstrumentType = selectedInstrument ?? InstrumentType.Guitarra,
@@ -523,35 +557,76 @@ else
     {
         editingContent = content;
         isVideoMode = content.IsVideo;
+        selectedFile = null;
+        selectedFileName = null;
         contentForm = new ContentFormModel
         {
             Title = content.Title,
             Description = content.Description,
             SortOrder = content.SortOrder,
-            InstrumentType = content.InstrumentType,
-            Url = content.Url
+            InstrumentType = content.InstrumentType
         };
         showCreateEditModal = true;
+    }
+    
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var maxFileSize = isVideoMode ? 100 * 1024 * 1024L : 10 * 1024 * 1024L; // 100MB for video, 10MB for image
+        
+        if (file.Size > maxFileSize)
+        {
+            selectedFile = null;
+            selectedFileName = null;
+            return;
+        }
+        
+        selectedFile = file;
+        selectedFileName = file.Name;
+        
+        // Auto-generate title from filename if empty
+        if (string.IsNullOrWhiteSpace(contentForm.Title))
+        {
+            var titleFromFileName = Path.GetFileNameWithoutExtension(file.Name);
+            contentForm.Title = titleFromFileName;
+        }
+        
+        StateHasChanged();
     }
 
     private async Task SaveContent()
     {
         if (currentUserId == null)
             return;
+        
+        // Validate file is selected for new content
+        if (editingContent == null && selectedFile == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Por favor, selecione um ficheiro.");
+            return;
+        }
 
         isSaving = true;
         try
         {
             if (editingContent == null)
             {
-                // Create new content
-                var mimeType = isVideoMode ? "video/mp4" : "image/jpeg";
+                // Create new content with file upload
+                var maxFileSize = isVideoMode ? 100 * 1024 * 1024L : 10 * 1024 * 1024L;
+                
+                // Read file into MemoryStream before any state changes
+                using var browserStream = selectedFile!.OpenReadStream(maxFileSize);
+                using var memoryStream = new MemoryStream();
+                await browserStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                
                 var newContent = await NaipeService.CreateContentAsync(
                     contentForm.InstrumentType,
                     contentForm.Title,
                     contentForm.Description,
-                    contentForm.Url,
-                    mimeType,
+                    memoryStream,
+                    selectedFile.Name,
+                    selectedFile.ContentType,
                     isVideoMode,
                     contentForm.SortOrder,
                     currentUserId
@@ -593,6 +668,9 @@ else
         showCreateEditModal = false;
         editingContent = null;
         contentForm = new();
+        selectedFile = null;
+        selectedFileName = null;
+        fileUploadKey = Guid.NewGuid();
     }
 
     // Delete Methods
@@ -631,10 +709,6 @@ else
         public string Title { get; set; } = string.Empty;
 
         public string? Description { get; set; }
-
-        [Required(ErrorMessage = "A URL é obrigatória")]
-        [Url(ErrorMessage = "URL inválida")]
-        public string Url { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "A ordem é obrigatória")]
         [Range(0.1, 999.9, ErrorMessage = "A ordem deve estar entre 0.1 e 999.9")]

@@ -24,9 +24,9 @@ public interface INaipeService
     Task<NaipeContentDto?> GetContentByIdAsync(int id);
 
     /// <summary>
-    /// Create new content (video or image)
+    /// Create new content (video or image) with file upload
     /// </summary>
-    Task<NaipeContentDto> CreateContentAsync(InstrumentType type, string title, string? description, string url, string mimeType, bool isVideo, decimal sortOrder, string userId);
+    Task<NaipeContentDto> CreateContentAsync(InstrumentType type, string title, string? description, Stream fileStream, string fileName, string mimeType, bool isVideo, decimal sortOrder, string userId);
 
     /// <summary>
     /// Update existing content

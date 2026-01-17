@@ -19,6 +19,7 @@ public class NaipeService : INaipeService
 {
     private readonly INaipeContentRepository _naipeContentRepository;
     private readonly INaipeCommentRepository _naipeCommentRepository;
+    private readonly INaipeMediaStorageService _naipeMediaStorageService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
@@ -27,6 +28,7 @@ public class NaipeService : INaipeService
     public NaipeService(
         INaipeContentRepository naipeContentRepository,
         INaipeCommentRepository naipeCommentRepository,
+        INaipeMediaStorageService naipeMediaStorageService,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         AuditContext auditContext,
@@ -34,6 +36,7 @@ public class NaipeService : INaipeService
     {
         _naipeContentRepository = naipeContentRepository;
         _naipeCommentRepository = naipeCommentRepository;
+        _naipeMediaStorageService = naipeMediaStorageService;
         _userManager = userManager;
         _context = context;
         _auditContext = auditContext;
@@ -58,11 +61,22 @@ public class NaipeService : INaipeService
         return content == null ? null : MapToDto(content);
     }
 
-    public async Task<NaipeContentDto> CreateContentAsync(InstrumentType type, string title, string? description, string url, string mimeType, bool isVideo, decimal sortOrder, string userId)
+    public async Task<NaipeContentDto> CreateContentAsync(InstrumentType type, string title, string? description, Stream fileStream, string fileName, string mimeType, bool isVideo, decimal sortOrder, string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             throw new EntityNotFoundException(nameof(ApplicationUser), userId);
+
+        // Upload file to Cloudflare R2
+        string url;
+        if (isVideo)
+        {
+            url = await _naipeMediaStorageService.UploadVideoAsync(fileStream, fileName, mimeType, type.ToString());
+        }
+        else
+        {
+            url = await _naipeMediaStorageService.UploadImageAsync(fileStream, fileName, mimeType, type.ToString());
+        }
 
         var content = NaipeContent.Create(type, title, url, mimeType, isVideo, sortOrder, userId, description);
         var createdContent = await _naipeContentRepository.AddAsync(content);
@@ -108,6 +122,10 @@ public class NaipeService : INaipeService
         var contentType = content.IsVideo ? "Video" : "Image";
         var contentTitle = content.Title;
         var instrumentType = content.InstrumentType;
+        var mediaUrl = content.Url;
+
+        // Delete media from Cloudflare R2
+        await _naipeMediaStorageService.DeleteMediaAsync(mediaUrl);
 
         await _naipeContentRepository.DeleteAsync(content);
 
