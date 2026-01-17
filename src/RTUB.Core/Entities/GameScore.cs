@@ -57,10 +57,7 @@ public class GameScore : BaseEntity
         if (maxLevel < 0)
             throw new ArgumentException("Max level cannot be negative", nameof(maxLevel));
 
-        // A score is better if it has more points, or same points with higher level
-        var isBetter = points > Points || (points == Points && maxLevel > MaxLevel);
-        
-        if (isBetter)
+        if (IsScoreBetter(points, maxLevel))
         {
             Points = points;
             MaxLevel = maxLevel;
@@ -69,5 +66,14 @@ public class GameScore : BaseEntity
         }
         
         return false;
+    }
+
+    /// <summary>
+    /// Determines if the new score is better than the current score.
+    /// A score is better if it has more points, or same points with higher level.
+    /// </summary>
+    private bool IsScoreBetter(int newPoints, int newMaxLevel)
+    {
+        return newPoints > Points || (newPoints == Points && newMaxLevel > MaxLevel);
     }
 }
