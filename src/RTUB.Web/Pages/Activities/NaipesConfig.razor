@@ -59,7 +59,7 @@ else
                     <div class="naipe-type-image-wrapper">
                         @if (!string.IsNullOrEmpty(config.PictureUrl))
                         {
-                            <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" class="naipe-type-image" />
+                            <img src="@GetImageUrl(config.PictureUrl)" alt="@config.InstrumentTypeName" class="naipe-type-image" />
                         }
                         else
                         {
@@ -99,7 +99,7 @@ else
             <div class="mb-4 text-center">
                 @if (!string.IsNullOrEmpty(editingConfig.PictureUrl))
                 {
-                    <img src="@editingConfig.PictureUrl" alt="@editingConfig.InstrumentTypeName" 
+                    <img src="@GetImageUrl(editingConfig.PictureUrl)" alt="@editingConfig.InstrumentTypeName" 
                          class="rounded-circle mb-2" 
                          style="width: 100px; height: 100px; object-fit: cover; border: 3px solid var(--bs-primary);" />
                     <div>
@@ -291,6 +291,7 @@ else
     private string? selectedFileName;
     private Guid imageUploadKey = Guid.NewGuid();
     private string imageInputId = $"naipe-type-image-{Guid.NewGuid():N}";
+    private int imageRefreshTrigger = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -373,6 +374,9 @@ else
                     selectedFile.Name,
                     selectedFile.ContentType
                 );
+                
+                // Increment trigger to force browser to re-fetch the image
+                imageRefreshTrigger++;
             }
 
             // Update the config
@@ -407,11 +411,26 @@ else
         {
             await NaipeService.UpdateTypeConfigAsync(editingConfig.Id, null, editingConfig.IsVisible, editingConfig.SortOrder);
             editingConfig.PictureUrl = null;
+            imageRefreshTrigger++;
             StateHasChanged();
         }
         catch (Exception ex)
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Erro ao remover imagem: {ex.Message}");
         }
+    }
+
+    private string GetImageUrl(string? imageSrc)
+    {
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?r={imageRefreshTrigger}";
+        }
+        
+        return imageSrc;
     }
 }
