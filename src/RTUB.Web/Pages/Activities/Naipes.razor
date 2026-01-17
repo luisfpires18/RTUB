@@ -584,11 +584,14 @@ else
         selectedFile = file;
         selectedFileName = file.Name;
         
-        // Auto-generate title from filename if empty
+        // Auto-generate default title: "Guitarra_Video_1" or "Guitarra_Imagem_1"
         if (string.IsNullOrWhiteSpace(contentForm.Title))
         {
-            var titleFromFileName = Path.GetFileNameWithoutExtension(file.Name);
-            contentForm.Title = titleFromFileName;
+            var instrumentName = StatusHelper.GetInstrumentDisplay(contentForm.InstrumentType);
+            var contentType = isVideoMode ? "Video" : "Imagem";
+            var existingCount = allContent.Count(c => c.InstrumentType == contentForm.InstrumentType && c.IsVideo == isVideoMode);
+            var nextNumber = existingCount + 1;
+            contentForm.Title = $"{instrumentName}_{contentType}_{nextNumber}";
         }
         
         StateHasChanged();

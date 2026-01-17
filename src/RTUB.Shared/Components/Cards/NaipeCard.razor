@@ -2,8 +2,9 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Enums
 @using RTUB.Application.Helpers
+@using Microsoft.JSInterop
 
-<div class="naipe-card">
+<div class="naipe-card" data-naipe-id="@Content.Id">
     <!-- Header with media preview or icon -->
     <div class="naipe-header">
         @if (CanEdit || CanDelete)
@@ -26,9 +27,14 @@
         
         @if (Content.IsVideo)
         {
-            <!-- Video thumbnail - use poster or placeholder -->
+            <!-- Video preview with muted video -->
             <div class="naipe-media-preview video">
-                <i class="bi bi-play-circle naipe-play-icon"></i>
+                <video class="naipe-video-preview" muted preload="metadata" @onmouseenter="PlayPreview" @onmouseleave="PausePreview" @ref="videoElement">
+                    <source src="@Content.Url" type="@Content.MimeType" />
+                </video>
+                <div class="naipe-video-overlay">
+                    <i class="bi bi-play-circle naipe-play-icon"></i>
+                </div>
                 <span class="naipe-media-badge badge bg-purple">
                     <i class="bi bi-camera-video"></i> Vídeo
                 </span>
@@ -56,7 +62,7 @@
         </div>
 
         <!-- Title -->
-        <h5 class="naipe-title">@Content.Title</h5>
+        <h5 class="naipe-title" title="@Content.Title">@GetTitleSnippet()</h5>
 
         <!-- Description Snippet -->
         @if (!string.IsNullOrWhiteSpace(Content.Description))
@@ -94,16 +100,61 @@
     [Parameter] public EventCallback OnView { get; set; }
     [Parameter] public EventCallback OnEdit { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
+    
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    
+    private ElementReference videoElement;
+    
+    private string GetTitleSnippet()
+    {
+        if (string.IsNullOrWhiteSpace(Content.Title))
+            return string.Empty;
+
+        const int maxLength = 40;
+        return Content.Title.Length > maxLength
+            ? Content.Title.Substring(0, maxLength) + "..."
+            : Content.Title;
+    }
 
     private string GetDescriptionSnippet()
     {
         if (string.IsNullOrWhiteSpace(Content.Description))
             return string.Empty;
 
-        const int maxLength = 100;
+        const int maxLength = 80;
         return Content.Description.Length > maxLength
             ? Content.Description.Substring(0, maxLength) + "..."
             : Content.Description;
+    }
+    
+    private async Task PlayPreview()
+    {
+        if (Content.IsVideo)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-naipe-id=\"{Content.Id}\"] video')?.play()");
+            }
+            catch
+            {
+                // Ignore errors - preview is optional
+            }
+        }
+    }
+    
+    private async Task PausePreview()
+    {
+        if (Content.IsVideo)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-naipe-id=\"{Content.Id}\"] video')?.pause()");
+            }
+            catch
+            {
+                // Ignore errors - preview is optional
+            }
+        }
     }
 
     protected override bool ShouldRender()
