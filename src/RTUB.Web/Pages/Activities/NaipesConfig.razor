@@ -30,24 +30,24 @@
 @if (loading)
 {
     <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border" style="color: var(--bs-primary);" role="status">
             <span class="visually-hidden">A carregar...</span>
         </div>
-        <p class="mt-3">A carregar configurações...</p>
+        <p class="mt-3 text-muted">A carregar configurações...</p>
     </div>
 }
 else
 {
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-music-note-list text-primary me-2"></i>Tipos de Instrumento</h5>
+            <h5 class="mb-0"><i class="bi bi-music-note-list me-2"></i>Tipos de Instrumento</h5>
         </div>
         <div class="card-body">
             <p class="text-muted mb-4">Configure a visibilidade, ordem e imagem de cada tipo de instrumento. As alterações são guardadas automaticamente.</p>
             
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead class="table-dark">
+                    <thead>
                         <tr>
                             <th style="width: 80px;">Imagem</th>
                             <th>Tipo de Instrumento</th>
@@ -59,18 +59,18 @@ else
                     <tbody>
                         @foreach (var config in typeConfigs)
                         {
-                            <tr class="@(!config.IsVisible ? "table-secondary" : "")">
+                            <tr class="@(!config.IsVisible ? "opacity-50" : "")">
                                 <td>
                                     @if (!string.IsNullOrEmpty(config.PictureUrl))
                                     {
                                         <img src="@config.PictureUrl" alt="@config.InstrumentTypeName" 
-                                             class="rounded-circle border border-2 border-primary" 
-                                             style="width: 50px; height: 50px; object-fit: cover;" />
+                                             class="rounded-circle" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border: 2px solid var(--bs-primary);" />
                                     }
                                     else
                                     {
-                                        <div class="rounded-circle bg-purple d-flex align-items-center justify-content-center" 
-                                             style="width: 50px; height: 50px;">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 50px; height: 50px; background-color: var(--bs-primary);">
                                             <i class="bi bi-music-note text-white fs-5"></i>
                                         </div>
                                     }
@@ -116,7 +116,7 @@ else
                 </table>
             </div>
             
-            <div class="alert alert-info mt-4">
+            <div class="alert alert-info mt-4 identity-alert-info">
                 <i class="bi bi-info-circle-fill me-2"></i>
                 <strong>Dica:</strong> Números de ordem menores aparecem primeiro. Tipos ocultos não são mostrados na página Naipes.
             </div>
