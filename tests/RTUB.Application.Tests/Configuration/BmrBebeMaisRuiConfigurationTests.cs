@@ -35,9 +35,9 @@ public class BmrBebeMaisRuiConfigurationTests
 
         // Assert
         config.DifficultyScaling.Should().NotBeNull();
-        config.DifficultyScaling.BaseSpawnRate.Should().Be(2.5);
-        config.DifficultyScaling.SpawnRateDecreasePerLevel.Should().Be(0.1);
-        config.DifficultyScaling.MinSpawnRate.Should().Be(0.5);
+        config.DifficultyScaling.BaseSpawnRate.Should().Be(3.5);
+        config.DifficultyScaling.SpawnRateDecreasePerLevel.Should().Be(0.15);
+        config.DifficultyScaling.MinSpawnRate.Should().Be(1.0);
         config.DifficultyScaling.EnemySpeedIncreasePerLevel.Should().Be(5);
         config.DifficultyScaling.PlatformGapIncreasePerLevel.Should().Be(5);
     }

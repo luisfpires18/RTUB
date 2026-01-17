@@ -67,17 +67,17 @@ public class DifficultyScalingConfig
     /// <summary>
     /// Base spawn rate in seconds between enemy spawns
     /// </summary>
-    public double BaseSpawnRate { get; set; } = 2.5;
+    public double BaseSpawnRate { get; set; } = 3.5;
 
     /// <summary>
     /// Spawn rate decrease per level (faster spawns)
     /// </summary>
-    public double SpawnRateDecreasePerLevel { get; set; } = 0.1;
+    public double SpawnRateDecreasePerLevel { get; set; } = 0.15;
 
     /// <summary>
     /// Minimum spawn rate (cannot go lower)
     /// </summary>
-    public double MinSpawnRate { get; set; } = 0.5;
+    public double MinSpawnRate { get; set; } = 1.0;
 
     /// <summary>
     /// Enemy speed increase percentage per level

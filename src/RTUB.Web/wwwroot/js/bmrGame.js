@@ -378,13 +378,34 @@ const bmrGame = (function () {
                 config.difficultyScaling.minSpawnRate,
                 config.difficultyScaling.baseSpawnRate - (level - 1) * config.difficultyScaling.spawnRateDecreasePerLevel
             );
-            nextEnemySpawnTime = spawnRate;
+            // Add some randomness to spawn timing to prevent regular patterns
+            nextEnemySpawnTime = spawnRate + Math.random() * 1.0;
             
             // Select enemy tier based on spawn weights
             const tier = selectEnemyTier();
             if (tier) {
-                // Spawn enemy ahead of camera
-                const spawnX = cameraX + canvas.width + 50 + Math.random() * 200;
+                // Spawn enemy ahead of camera with more spread
+                const minSpawnDistance = 300 * scaleX; // Minimum distance from camera edge
+                const maxSpawnDistance = 600 * scaleX; // Maximum distance from camera edge
+                let spawnX = cameraX + canvas.width + minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+                
+                // Check if too close to existing enemies and adjust spawn position
+                const minEnemyDistance = 150 * scaleX;
+                let attempts = 0;
+                while (attempts < 5) {
+                    let tooClose = false;
+                    for (const enemy of enemies) {
+                        const distance = Math.abs(enemy.x - spawnX);
+                        if (distance < minEnemyDistance) {
+                            tooClose = true;
+                            // Move spawn position further right
+                            spawnX += minEnemyDistance;
+                            break;
+                        }
+                    }
+                    if (!tooClose) break;
+                    attempts++;
+                }
                 
                 // Find a platform or ground to spawn on
                 let spawnY = groundY;
@@ -400,8 +421,8 @@ const bmrGame = (function () {
                 const scaledHeight = enemySize.height * scaleY;
                 const speedMultiplier = 1 + (level - 1) * config.difficultyScaling.enemySpeedIncreasePerLevel / 100;
                 
-                // Larger patrol range for more movement (300-400 units each direction)
-                const patrolRange = 300 + Math.random() * 100;
+                // Patrol range scaled - enemies walk within their spawn area
+                const patrolRange = (200 + Math.random() * 150) * scaleX;
                 
                 enemies.push({
                     x: spawnX,
