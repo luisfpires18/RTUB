@@ -1,11 +1,18 @@
 @page "/games"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
+@using RTUB.Application.Data
+@using RTUB.Core.Enums
 @using RTUB.Shared
 @inject NavigationManager NavigationManager
 @inject IGameScoreService GameScoreService
+@inject IGameService GameService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
 @attribute [Authorize]
 
 <div class="games-container">
@@ -14,33 +21,106 @@
         <p class="text-white-opacity">Diverte-te com os jogos da RTUB e compete pelo melhor lugar na classificação!</p>
     </div>
 
-    <div class="games-grid">
-        @foreach (var game in paginatedGames)
-        {
-            <GameCard 
-                Title="@game.Title"
-                Description="@game.Description"
-                ImageUrl="@game.ImageUrl"
-                GameKey="@game.Key"
-                ComingSoon="@game.ComingSoon"
-                OnPlay="@(() => NavigateToGame(game.PlayRoute))"
-                OnShowLeaderboard="@(() => OpenLeaderboardModal(game.Key, game.Title))" />
-        }
-    </div>
-
-    @if (allGames.Count > pageSize)
+    @if (loading)
     {
-        <div class="mt-4">
-            <TablePagination CurrentPage="@currentPage"
-                             PageSize="@pageSize"
-                             TotalItems="@allGames.Count"
-                             ItemLabel="jogos"
-                             PageSizeOptions="@(new[] { 6, 12, 18 })"
-                             OnPageChanged="@HandlePageChanged"
-                             OnPageSizeChanged="@HandlePageSizeChanged" />
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A carregar...</span>
+            </div>
         </div>
     }
+    else if (!filteredGames.Any())
+    {
+        <EmptyState Title="Sem jogos disponíveis"
+                    Message="Neste momento não temos jogos disponíveis."
+                    Icon="bi-controller" />
+    }
+    else
+    {
+        <div class="games-grid">
+            @foreach (var game in paginatedGames)
+            {
+                <GameCard 
+                    Title="@game.Title"
+                    Description="@game.Description"
+                    ImageUrl="@game.ImageUrl"
+                    GameKey="@game.Key"
+                    ComingSoon="@game.IsComingSoon"
+                    MembersOnly="@game.MembersOnly"
+                    ShowAdminControls="@isAdmin"
+                    OnPlay="@(() => NavigateToGame(game.PlayRoute))"
+                    OnShowLeaderboard="@(() => OpenLeaderboardModal(game.Key, game.Title))"
+                    OnEdit="@(() => OpenEditModal(game))" />
+            }
+        </div>
+
+        @if (filteredGames.Count > pageSize)
+        {
+            <div class="mt-4">
+                <TablePagination CurrentPage="@currentPage"
+                                 PageSize="@pageSize"
+                                 TotalItems="@filteredGames.Count"
+                                 ItemLabel="jogos"
+                                 PageSizeOptions="@(new[] { 6, 12, 18 })"
+                                 OnPageChanged="@HandlePageChanged"
+                                 OnPageSizeChanged="@HandlePageSizeChanged" />
+            </div>
+        }
+    }
 </div>
+
+<!-- Edit Game Modal -->
+@if (showEditModal && editingGame != null)
+{
+    <Modal Show="@showEditModal"
+           ShowChanged="@OnEditModalShowChanged"
+           Title="Editar Jogo"
+           Size="Modal.ModalSize.Default"
+           Centered="true">
+        <BodyContent>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-controller text-primary me-2"></i>Título
+                </label>
+                <input type="text" class="form-control" @bind="editingGame.Title" readonly />
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                </label>
+                <textarea class="form-control" rows="3" @bind="editingGame.Description" placeholder="Descrição do jogo..."></textarea>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="gameComingSoon" @bind="editingGame.IsComingSoon" />
+                    <label class="form-check-label" for="gameComingSoon">
+                        <i class="bi bi-clock text-warning me-2"></i>Em Breve (desativa o botão Jogar)
+                    </label>
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="gameMembersOnly" @bind="editingGame.MembersOnly" />
+                    <label class="form-check-label" for="gameMembersOnly">
+                        <i class="bi bi-people-fill text-info me-2"></i>Apenas Membros (oculta de Leitões)
+                    </label>
+                </div>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+            <button type="button" class="btn btn-success" @onclick="SaveGame" disabled="@saving">
+                @if (saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                }
+                Guardar
+            </button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Leaderboard Modal (keep existing) -->
 
 @if (showLeaderboardModal)
 {
@@ -68,7 +148,6 @@
             }
             else
             {
-                <!-- Search bar -->
                 <div class="mb-3">
                     <SearchBar @bind-Value="leaderboardSearchTerm"
                                Placeholder="Pesquisar jogador..."
@@ -142,44 +221,81 @@
 }
 
 @code {
-    private List<GameInfo> allGames = new();
-    private List<GameInfo> paginatedGames = new();
+    private List<GameDto> allGames = new();
+    private List<GameDto> filteredGames = new();
+    private List<GameDto> paginatedGames = new();
     private int currentPage = 1;
     private int pageSize = 6;
+    private bool loading = true;
+    private bool isAdmin = false;
+    private bool isLeitao = false;
 
+    // Edit modal state
+    private bool showEditModal = false;
+    private bool saving = false;
+    private GameDto? editingGame;
+
+    // Leaderboard modal state
     private bool showLeaderboardModal = false;
     private bool leaderboardLoading = false;
     private string selectedGameKey = string.Empty;
     private string selectedGameTitle = string.Empty;
     private List<GameScoreDto>? leaderboardScores;
-    
-    // Leaderboard pagination and search
     private string leaderboardSearchTerm = string.Empty;
     private int leaderboardPage = 1;
     private int leaderboardPageSize = 10;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        allGames = new List<GameInfo>
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        isAdmin = user.IsInRole("Admin");
+        
+        if (user.Identity?.IsAuthenticated == true)
         {
-            new GameInfo
+            var currentUser = await UserManager.GetUserAsync(user);
+            if (currentUser != null)
             {
-                Key = "avoid-questions",
-                Title = "Evitar Perguntas",
-                Description = "Joga como um Magister e evita as perguntas dos membros que caem do céu. Sobrevive o máximo tempo possível!",
-                ImageUrl = "/sprites/games/avoid-questions-thumb.svg",
-                PlayRoute = "/games/avoid-questions",
-                ComingSoon = false
+                isLeitao = currentUser.Categories.Contains(MemberCategory.Leitao);
             }
-        };
+        }
+        
+        await LoadGames();
+    }
 
-        ApplyPagination();
+    private async Task LoadGames()
+    {
+        loading = true;
+        StateHasChanged();
+        
+        try
+        {
+            allGames = await GameService.GetAllGamesAsync();
+            
+            // Filter games: hide MembersOnly games from Leitao users (unless they're admin)
+            if (isLeitao && !isAdmin)
+            {
+                filteredGames = allGames.Where(g => !g.MembersOnly).ToList();
+            }
+            else
+            {
+                filteredGames = allGames;
+            }
+            
+            ApplyPagination();
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
     }
 
     private void ApplyPagination()
     {
         var skip = (currentPage - 1) * pageSize;
-        paginatedGames = allGames.Skip(skip).Take(pageSize).ToList();
+        paginatedGames = filteredGames.Skip(skip).Take(pageSize).ToList();
     }
 
     private Task HandlePageChanged(int newPage)
@@ -205,6 +321,64 @@
         }
     }
 
+    // Edit modal methods
+    private void OpenEditModal(GameDto game)
+    {
+        editingGame = new GameDto
+        {
+            Id = game.Id,
+            Key = game.Key,
+            Title = game.Title,
+            Description = game.Description,
+            ImageUrl = game.ImageUrl,
+            PlayRoute = game.PlayRoute,
+            IsComingSoon = game.IsComingSoon,
+            MembersOnly = game.MembersOnly,
+            IsActive = game.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void OnEditModalShowChanged(bool show)
+    {
+        showEditModal = show;
+        if (!show) CloseEditModal();
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingGame = null;
+    }
+
+    private async Task SaveGame()
+    {
+        if (editingGame == null) return;
+        
+        saving = true;
+        StateHasChanged();
+        
+        try
+        {
+            await GameService.UpdateGameAsync(
+                editingGame.Id,
+                editingGame.Title,
+                editingGame.Description,
+                editingGame.IsComingSoon,
+                editingGame.MembersOnly
+            );
+            
+            await LoadGames();
+            CloseEditModal();
+        }
+        finally
+        {
+            saving = false;
+            StateHasChanged();
+        }
+    }
+
+    // Leaderboard modal methods
     private async Task OpenLeaderboardModal(string gameKey, string gameTitle)
     {
         selectedGameKey = gameKey;
@@ -287,15 +461,5 @@
         if (time.TotalMinutes >= 1)
             return $"{(int)time.TotalMinutes}m {time.Seconds}s";
         return $"{time.Seconds}s";
-    }
-
-    private class GameInfo
-    {
-        public string Key { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? ImageUrl { get; set; }
-        public string? PlayRoute { get; set; }
-        public bool ComingSoon { get; set; }
     }
 }
