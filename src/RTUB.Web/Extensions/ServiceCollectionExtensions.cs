@@ -65,6 +65,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentRepository, NaipeContentRepository>();
         services.AddScoped<INaipeCommentRepository, NaipeCommentRepository>();
         services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
+        services.AddScoped<IGameScoreRepository, GameScoreRepository>();
+        services.AddScoped<IGameRepository, GameRepository>();
 
         return services;
     }
@@ -176,6 +178,17 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRankingServices(this IServiceCollection services)
     {
         services.AddScoped<IRankingService, RankingService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers game services
+    /// </summary>
+    public static IServiceCollection AddGameServices(this IServiceCollection services)
+    {
+        services.AddScoped<IGameScoreService, GameScoreService>();
+        services.AddScoped<IGameService, GameService>();
 
         return services;
     }

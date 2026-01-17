@@ -114,6 +114,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NaipePlayCount> NaipePlayCounts => Set<NaipePlayCount>();
     public DbSet<NaipeTypeConfig> NaipeTypeConfigs => Set<NaipeTypeConfig>();
 
+    // Game Scores DbSet
+    public DbSet<GameScore> GameScores { get; set; }
+
+    // Games DbSet
+    public DbSet<Game> Games { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

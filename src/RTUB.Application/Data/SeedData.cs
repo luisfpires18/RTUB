@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -18,6 +19,10 @@ public static partial class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
+
+        // Seed default games (runs even for existing databases)
+        await gameService.SeedDefaultGamesAsync();
 
         if (await dbContext.Users.AnyAsync())
         {
@@ -40,6 +45,7 @@ public static partial class SeedData
 
         await SeedMembersAsync(configuration, dbContext, userManager, isEmptyDb);
 
+       
         if (isEmptyDb)
         {
             return;

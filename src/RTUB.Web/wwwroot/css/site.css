@@ -80,6 +80,7 @@
 @import url('3-components/document-card.css');
 @import url('3-components/folder-card.css');
 @import url('3-components/naipe-card.css');
+@import url('3-components/game-card.css');
 
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');
@@ -103,3 +104,4 @@
 @import url('4-pages/account-security.css');
 @import url('4-pages/roles.css');
 @import url('4-pages/finance-reports.css');
+@import url('4-pages/avoid-questions.css');

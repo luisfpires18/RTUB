@@ -82,6 +82,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.QuestionNotificationOptions.SectionName));
 
+        // Configure Games
+        services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -311,6 +315,7 @@ public class Program
         services.AddDiscussionServices();
         services.AddQuestionServices();
         services.AddRankingServices();
+        services.AddGameServices();
         services.AddEmailServices();
         services.AddStorageServices();
         services.AddMemberQueryServices();
@@ -464,7 +469,7 @@ public class Program
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
-
+                    
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();

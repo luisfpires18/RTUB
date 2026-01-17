@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260117134636_AddGameScoreIndexes")]
+    partial class AddGameScoreIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -1091,63 +1094,6 @@ namespace RTUB.Migrations
                     b.ToTable("GalleryMediaPersonTags", (string)null);
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.Game", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsComingSoon")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("MembersOnly")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PlayRoute")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("Games");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
                 {
                     b.Property<int>("Id")
@@ -1857,200 +1803,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_Message_ConversationId_CreatedAt");
 
                     b.ToTable("Messages");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("NaipeContentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("IX_NaipeComment_AuthorId");
-
-                    b.HasIndex("NaipeContentId", "DeletedAt", "CreatedAt")
-                        .HasDatabaseName("IX_NaipeComment_NaipeContentId_DeletedAt_CreatedAt");
-
-                    b.ToTable("NaipeComments");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeContent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("InstrumentType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsVideo")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("MimeType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("SortOrder")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId")
-                        .HasDatabaseName("IX_NaipeContent_CreatedByUserId");
-
-                    b.HasIndex("InstrumentType")
-                        .HasDatabaseName("IX_NaipeContent_InstrumentType");
-
-                    b.HasIndex("InstrumentType", "SortOrder")
-                        .HasDatabaseName("IX_NaipeContent_InstrumentType_SortOrder");
-
-                    b.ToTable("NaipeContents", (string)null);
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipePlayCount", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("NaipeContentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("PlayedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NaipeContentId")
-                        .HasDatabaseName("IX_NaipePlayCount_NaipeContentId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_NaipePlayCount_UserId");
-
-                    b.ToTable("NaipePlayCounts");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeTypeConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("InstrumentType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsVisible")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("PictureUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InstrumentType")
-                        .IsUnique();
-
-                    b.HasIndex("SortOrder");
-
-                    b.ToTable("NaipeTypeConfigs", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
@@ -3472,54 +3224,6 @@ namespace RTUB.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeComment", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.NaipeContent", "NaipeContent")
-                        .WithMany("Comments")
-                        .HasForeignKey("NaipeContentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("NaipeContent");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeContent", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipePlayCount", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.NaipeContent", "NaipeContent")
-                        .WithMany("PlayCounts")
-                        .HasForeignKey("NaipeContentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("NaipeContent");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
@@ -3783,13 +3487,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
                 {
                     b.Navigation("Cards");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.NaipeContent", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("PlayCounts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
