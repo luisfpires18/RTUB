@@ -20,7 +20,7 @@ public class BmrBebeMaisRuiConfiguration
     /// <summary>
     /// Jump strength (vertical velocity)
     /// </summary>
-    public double JumpStrength { get; set; } = 450;
+    public double JumpStrength { get; set; } = 650;
 
     /// <summary>
     /// Gravity force applied to player

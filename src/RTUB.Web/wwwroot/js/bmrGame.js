@@ -67,7 +67,7 @@ const bmrGame = (function () {
     const PLATFORM_HEIGHT = 15;
     const BASE_WIDTH = 800;
     const BASE_HEIGHT = 600;
-    const DISTANCE_PER_LEVEL = 500; // Fixed distance per level for consistent progression
+    const DISTANCE_PER_LEVEL = 250; // Reduced for faster level progression
     let scaleX = 1;
     let scaleY = 1;
     
@@ -226,14 +226,14 @@ const bmrGame = (function () {
 
     function generateInitialPlatforms() {
         platforms = [];
-        // Add some initial platforms (scaled)
+        // Add some initial platforms (scaled) - reachable heights (350-480, which is 40-170 below ground)
         const platformPositions = [
-            { x: 150, y: 420, width: 100 },
-            { x: 350, y: 350, width: 120 },
-            { x: 550, y: 400, width: 100 },
-            { x: 700, y: 320, width: 140 },
-            { x: 900, y: 380, width: 100 },
-            { x: 1100, y: 340, width: 120 }
+            { x: 150, y: 450, width: 120 },
+            { x: 350, y: 400, width: 140 },
+            { x: 550, y: 430, width: 120 },
+            { x: 750, y: 380, width: 160 },
+            { x: 950, y: 420, width: 120 },
+            { x: 1150, y: 390, width: 140 }
         ];
         
         platformPositions.forEach(p => {
@@ -384,57 +384,81 @@ const bmrGame = (function () {
             // Select enemy tier based on spawn weights
             const tier = selectEnemyTier();
             if (tier) {
-                // Spawn enemy ahead of camera with more spread
-                const minSpawnDistance = 300 * scaleX; // Minimum distance from camera edge
-                const maxSpawnDistance = 600 * scaleX; // Maximum distance from camera edge
-                let spawnX = cameraX + canvas.width + minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+                const enemySize = getEnemySize(tier.name);
+                const scaledWidth = enemySize.width * scaleX;
+                const scaledHeight = enemySize.height * scaleY;
                 
-                // Check if too close to existing enemies and adjust spawn position
-                const minEnemyDistance = 150 * scaleX;
-                let attempts = 0;
-                while (attempts < 5) {
+                // Find a valid spawn location: either ground or a platform that's ahead of the camera
+                let spawnX = 0;
+                let spawnY = groundY;
+                let patrolStartX = 0;
+                let patrolEndX = 0;
+                let validSpawn = false;
+                
+                // First, try to spawn on a platform ahead of camera
+                const platformsAhead = platforms.filter(p => p.x > cameraX + canvas.width * 0.5);
+                
+                if (platformsAhead.length > 0 && Math.random() > 0.4) {
+                    // 60% chance to spawn on a platform if available
+                    const platform = platformsAhead[Math.floor(Math.random() * platformsAhead.length)];
+                    
+                    // Spawn in the middle of the platform
+                    spawnX = platform.x + platform.width / 2 - scaledWidth / 2;
+                    spawnY = platform.y;
+                    
+                    // Constrain patrol to platform bounds
+                    patrolStartX = platform.x;
+                    patrolEndX = platform.x + platform.width - scaledWidth;
+                    
+                    // Ensure patrol range is valid
+                    if (patrolEndX > patrolStartX) {
+                        validSpawn = true;
+                    }
+                }
+                
+                // Otherwise spawn on ground
+                if (!validSpawn) {
+                    const minSpawnDistance = 300 * scaleX;
+                    const maxSpawnDistance = 600 * scaleX;
+                    spawnX = cameraX + canvas.width + minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+                    spawnY = groundY;
+                    
+                    // Ground patrol - wider range
+                    const patrolRange = (150 + Math.random() * 100) * scaleX;
+                    patrolStartX = spawnX - patrolRange;
+                    patrolEndX = spawnX + patrolRange;
+                    validSpawn = true;
+                }
+                
+                if (validSpawn) {
+                    // Check if too close to existing enemies
+                    const minEnemyDistance = 100 * scaleX;
                     let tooClose = false;
                     for (const enemy of enemies) {
                         const distance = Math.abs(enemy.x - spawnX);
                         if (distance < minEnemyDistance) {
                             tooClose = true;
-                            // Move spawn position further right
-                            spawnX += minEnemyDistance;
                             break;
                         }
                     }
-                    if (!tooClose) break;
-                    attempts++;
-                }
-                
-                // Find a platform or ground to spawn on
-                let spawnY = groundY;
-                for (const platform of platforms) {
-                    if (platform.x <= spawnX && platform.x + platform.width >= spawnX) {
-                        spawnY = platform.y;
-                        break;
+                    
+                    if (!tooClose) {
+                        const speedMultiplier = 1 + (level - 1) * config.difficultyScaling.enemySpeedIncreasePerLevel / 100;
+                        
+                        enemies.push({
+                            x: spawnX,
+                            y: spawnY - scaledHeight,
+                            width: scaledWidth,
+                            height: scaledHeight,
+                            tier: tier,
+                            speed: tier.speed * speedMultiplier * scaleX,
+                            direction: -1, // Patrol left initially
+                            patrolStartX: patrolStartX,
+                            patrolEndX: patrolEndX,
+                            platformY: spawnY // Remember the platform/ground Y for staying on it
+                        });
                     }
                 }
-                
-                const enemySize = getEnemySize(tier.name);
-                const scaledWidth = enemySize.width * scaleX;
-                const scaledHeight = enemySize.height * scaleY;
-                const speedMultiplier = 1 + (level - 1) * config.difficultyScaling.enemySpeedIncreasePerLevel / 100;
-                
-                // Patrol range scaled - enemies walk within their spawn area
-                const patrolRange = (200 + Math.random() * 150) * scaleX;
-                
-                enemies.push({
-                    x: spawnX,
-                    y: spawnY - scaledHeight,
-                    width: scaledWidth,
-                    height: scaledHeight,
-                    tier: tier,
-                    speed: tier.speed * speedMultiplier * scaleX,
-                    direction: -1, // Patrol left initially
-                    patrolStartX: spawnX - patrolRange,
-                    patrolEndX: spawnX + patrolRange
-                });
             }
         }
     }
@@ -528,14 +552,21 @@ const bmrGame = (function () {
         const lastPlatform = platforms.length > 0 ? platforms[platforms.length - 1] : null;
         
         if (!lastPlatform || lastPlatform.x + lastPlatform.width < generateAheadDistance) {
-            const startX = lastPlatform ? lastPlatform.x + lastPlatform.width + (80 + Math.random() * 100) * scaleX : generateAheadDistance;
-            const baseGap = (80 + (level - 1) * config.difficultyScaling.platformGapIncreasePerLevel) * scaleX;
+            // Platform gap scales with level - starts small, increases with level
+            const baseGap = (60 + (level - 1) * config.difficultyScaling.platformGapIncreasePerLevel) * scaleX;
+            const startX = lastPlatform ? lastPlatform.x + lastPlatform.width + baseGap : generateAheadDistance;
             
-            // Add a few platforms
+            // Add a few platforms - closer together at lower levels
+            const platformSpacing = (100 + Math.random() * 50 + (level - 1) * 10) * scaleX;
+            
             for (let i = 0; i < 3; i++) {
-                const x = startX + i * ((150 + Math.random() * 100) * scaleX + baseGap);
-                const y = (300 + Math.random() * 180) * scaleY; // Random height between 300-480 (scaled)
-                const width = (80 + Math.random() * 80) * scaleX;
+                const x = startX + i * platformSpacing;
+                // Platforms at reachable heights - max jump reaches ~200 units above ground
+                // Keep platforms between 350-480 (70-170 above ground at 520)
+                const y = (350 + Math.random() * 130) * scaleY;
+                // Wider platforms at lower levels for easier gameplay
+                const baseWidth = 100 - (level - 1) * 5;
+                const width = Math.max(60, baseWidth + Math.random() * 60) * scaleX;
                 
                 platforms.push({
                     x: x,

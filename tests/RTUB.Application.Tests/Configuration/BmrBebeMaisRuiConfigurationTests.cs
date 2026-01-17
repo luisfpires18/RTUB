@@ -20,7 +20,7 @@ public class BmrBebeMaisRuiConfigurationTests
         // Assert
         config.StartingHealth.Should().Be(100, "StartingHealth should be 100 by default");
         config.InvulnerabilityMs.Should().Be(1500, "InvulnerabilityMs should be 1500 by default");
-        config.JumpStrength.Should().Be(450, "JumpStrength should be 450 by default");
+        config.JumpStrength.Should().Be(650, "JumpStrength should be 650 by default");
         config.Gravity.Should().Be(1200, "Gravity should be 1200 by default");
         config.MoveSpeed.Should().Be(200, "MoveSpeed should be 200 by default");
         config.BeerPoints.Should().Be(10, "BeerPoints should be 10 by default");
@@ -151,7 +151,7 @@ public class BmrBebeMaisRuiConfigurationTests
         // Assert - should use default values
         config.StartingHealth.Should().Be(100);
         config.InvulnerabilityMs.Should().Be(1500);
-        config.JumpStrength.Should().Be(450);
+        config.JumpStrength.Should().Be(650);
         config.Gravity.Should().Be(1200);
         config.MoveSpeed.Should().Be(200);
         config.BeerPoints.Should().Be(10);
