@@ -77,14 +77,15 @@
                     <div class="member-card-lite-grid">
                         @foreach (var stat in paginatedStatsUsers)
                         {
-                            <MemberCardLite AvatarUrl="@stat.AvatarUrl"
+                            <MemberCardLite @key="stat.UserId"
+                                            AvatarUrl="@stat.AvatarUrl"
                                             AltText="@stat.DisplayName"
                                             Nickname="@stat.DisplayNickname"
                                             FullName="@stat.DisplayFullName">
                                 <CategoryContent>
                                     @foreach (var category in stat.Categories)
                                     {
-                                        <CategoryBadge Category="@category" />
+                                        <CategoryBadge @key="@($"category-{stat.UserId}-{category}")" Category="@category" />
                                     }
                                 </CategoryContent>
                                 <PrimaryRowContent>
