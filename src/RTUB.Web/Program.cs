@@ -470,10 +470,6 @@ public class Program
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
                     
-                    // Seed default games (runs even for existing databases)
-                    var gameService = sp.GetRequiredService<IGameService>();
-                    await gameService.SeedDefaultGamesAsync();
-
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
