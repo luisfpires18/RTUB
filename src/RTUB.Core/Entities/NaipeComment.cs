@@ -15,7 +15,6 @@ public class NaipeComment : BaseEntity
     public string AuthorId { get; set; } = string.Empty;
 
     [Required]
-    [MinLength(1, ErrorMessage = "O comentário deve ter pelo menos 1 caractere")]
     [MaxLength(1000, ErrorMessage = "O comentário não pode exceder 1000 caracteres")]
     public string Text { get; set; } = string.Empty;
 
