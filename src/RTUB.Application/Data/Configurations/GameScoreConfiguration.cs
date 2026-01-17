@@ -17,8 +17,9 @@ public class GameScoreConfiguration : IEntityTypeConfiguration<GameScore>
         builder.HasIndex(e => new { e.GameKey, e.Points, e.MaxLevel })
             .HasDatabaseName("IX_GameScores_GameKey_Points_MaxLevel");
 
-        // Index for user-specific score queries (e.g., "show my best score")
+        // Unique index for user-specific score - ensures only one score per user per game
         builder.HasIndex(e => new { e.UserId, e.GameKey })
+            .IsUnique()
             .HasDatabaseName("IX_GameScores_UserId_GameKey");
     }
 }

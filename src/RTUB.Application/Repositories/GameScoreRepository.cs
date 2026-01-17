@@ -35,4 +35,12 @@ public class GameScoreRepository : Repository<GameScore>, IGameScoreRepository
             .ThenByDescending(s => s.MaxLevel)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<GameScore?> GetUserScoreAsync(string userId, string gameKey)
+    {
+        return await _context.GameScores
+            .Include(s => s.User)
+            .Where(s => s.UserId == userId && s.GameKey == gameKey)
+            .FirstOrDefaultAsync();
+    }
 }
