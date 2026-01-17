@@ -225,6 +225,20 @@
   font-weight: 500;
 }
 
+/* Small count badge for song action buttons */
+.song-count-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.5rem;
+  min-width: 1rem;
+  text-align: center;
+  margin-left: 0.15rem;
+  line-height: 1;
+}
+
 /* Song action buttons with count badges */
 .song-action-btn-with-count {
   position: relative;

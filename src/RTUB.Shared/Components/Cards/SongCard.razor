@@ -116,9 +116,13 @@
                 }
                 @if (hasLinks)
                 {
-                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewLinks" title="Ver Links">
+                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewLinks" title="Ver Links (@LinkCount)">
                         <i class="bi bi-link-45deg"></i>
-                        <span class="action-label">Links (@LinkCount)</span>
+                        <span class="action-label">Links</span>
+                        @if (LinkCount > 0)
+                        {
+                            <span class="song-count-badge">@LinkCount</span>
+                        }
                     </button>
                 }
                 else
@@ -131,9 +135,13 @@
 
                 <AuthorizeView>
                     <Authorized>
-                        <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
+                        <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos (@VideoCount)">
                             <i class="bi bi-camera-video-fill"></i>
-                            <span class="action-label">Vídeos (@VideoCount)</span>
+                            <span class="action-label">Vídeos</span>
+                            @if (VideoCount > 0)
+                            {
+                                <span class="song-count-badge">@VideoCount</span>
+                            }
                         </button>
                      </Authorized>
                 </AuthorizeView>
