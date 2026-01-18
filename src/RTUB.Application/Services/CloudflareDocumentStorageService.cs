@@ -121,23 +121,27 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             {
                 response = await _s3Client.ListObjectsV2Async(request);
 
-                foreach (var obj in response.S3Objects)
+                // S3Objects can be null if the folder doesn't exist
+                if (response.S3Objects != null)
                 {
-                    // Skip the folder marker itself
-                    if (obj.Key.EndsWith("/"))
-                        continue;
-
-                    var fileName = Path.GetFileName(obj.Key);
-                    var extension = Path.GetExtension(obj.Key);
-
-                    documents.Add(new DocumentMetadata
+                    foreach (var obj in response.S3Objects)
                     {
-                        FileName = fileName,
-                        FilePath = obj.Key,
-                        SizeBytes = obj.Size ?? 0,
-                        LastModified = obj.LastModified ?? DateTime.UtcNow,
-                        Extension = extension
-                    });
+                        // Skip the folder marker itself
+                        if (obj.Key.EndsWith("/"))
+                            continue;
+
+                        var fileName = Path.GetFileName(obj.Key);
+                        var extension = Path.GetExtension(obj.Key);
+
+                        documents.Add(new DocumentMetadata
+                        {
+                            FileName = fileName,
+                            FilePath = obj.Key,
+                            SizeBytes = obj.Size ?? 0,
+                            LastModified = obj.LastModified ?? DateTime.UtcNow,
+                            Extension = extension
+                        });
+                    }
                 }
 
                 request.ContinuationToken = response.NextContinuationToken;

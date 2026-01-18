@@ -591,17 +591,9 @@ else
             
             uploadSuccess = $"Ficheiro '{selectedFile.Name}' carregado com sucesso!";
             
-            // Reload documents for this folder
-            // Extract folder name from path like "docs/Development/FolderName/" -> "FolderName"
-            var folderName = selectedFolderPath
-                .Replace($"docs/{HostEnvironment.EnvironmentName}/", "")
-                .TrimEnd('/');
-            
-            if (folderDocuments.ContainsKey(folderName))
-            {
-                folderDocuments[folderName] = await DocumentStorageService.ListDocumentsInFolderAsync(selectedFolderPath);
-                StateHasChanged();
-            }
+            // Reload all documentation to apply fiscal year filters consistently
+            await LoadDocumentation();
+            StateHasChanged();
             
             // Auto-close after 2 seconds
             await Task.Delay(2000);
@@ -680,19 +672,9 @@ else
             await SetAuditContextToCurrentUser();
             await DocumentStorageService.DeleteDocumentAsync(documentToDelete.FilePath);
             
-            // Reload documents for the folder containing this document
-            // Extract folder name from path like "docs/Development/FolderName/file.pdf" -> "FolderName"
-            var pathParts = documentToDelete.FilePath.Split('/');
-            if (pathParts.Length >= 3)
-            {
-                var folderName = pathParts[2]; // Index 2 is the folder name after docs/Environment/
-                if (folderDocuments.ContainsKey(folderName))
-                {
-                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folderName}";
-                    folderDocuments[folderName] = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
-                    StateHasChanged();
-                }
-            }
+            // Reload all documentation to apply fiscal year filters consistently
+            await LoadDocumentation();
+            StateHasChanged();
         }
         catch (Exception ex)
         {

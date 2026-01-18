@@ -241,6 +241,9 @@ public class LogisticsCardService : ILogisticsCardService
         // Build folder path: docs/{EnvironmentName}/Logistics/{BoardName}/
         var folderPath = $"docs/{environmentName}/Logistics/{sanitizedBoardName}/";
 
+        // Ensure folder exists before listing (prevents null reference when folder hasn't been created yet)
+        await _documentStorageService.CreateFolderAsync(folderPath);
+
         // List all documents in the folder
         return await _documentStorageService.ListDocumentsInFolderAsync(folderPath);
     }
