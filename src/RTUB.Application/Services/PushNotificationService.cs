@@ -227,8 +227,7 @@ public class PushNotificationService : IPushNotificationService
             tag = notification.Tag
         });
 
-        var attempt = 0;
-        while (true)
+        for (var attempt = 0; attempt <= MaxRetryAttempts; attempt++)
         {
             try
             {
@@ -245,10 +244,9 @@ public class PushNotificationService : IPushNotificationService
             }
             catch (Exception ex) when (IsTransientError(ex) && attempt < MaxRetryAttempts)
             {
-                attempt++;
-                var delay = TimeSpan.FromMilliseconds(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
+                var delay = TimeSpan.FromMilliseconds(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt));
                 _logger.LogWarning(ex, "Transient error sending push notification to subscription {SubscriptionId}, retrying (attempt {Attempt}/{MaxAttempts}) after {Delay}ms",
-                    subscription.Id, attempt, MaxRetryAttempts, delay.TotalMilliseconds);
+                    subscription.Id, attempt + 1, MaxRetryAttempts, delay.TotalMilliseconds);
                 await Task.Delay(delay);
             }
             catch (Exception ex)
@@ -262,23 +260,26 @@ public class PushNotificationService : IPushNotificationService
     /// <summary>
     /// Determines if an exception represents a transient error that should be retried
     /// </summary>
-    private static bool IsTransientError(Exception ex)
+    private static bool IsTransientError(Exception? ex)
     {
-        // Check for HttpRequestException which wraps network errors
-        if (ex is HttpRequestException)
-            return true;
+        // Iterate through exception chain to check for transient errors
+        while (ex != null)
+        {
+            // Check for HttpRequestException which wraps network errors
+            if (ex is HttpRequestException)
+                return true;
 
-        // Check for IOException (e.g., Broken pipe)
-        if (ex is IOException)
-            return true;
+            // Check for IOException (e.g., Broken pipe)
+            if (ex is IOException)
+                return true;
 
-        // Check for SocketException
-        if (ex is SocketException)
-            return true;
+            // Check for SocketException
+            if (ex is SocketException)
+                return true;
 
-        // Check inner exceptions for transient errors
-        if (ex.InnerException != null)
-            return IsTransientError(ex.InnerException);
+            // Move to inner exception
+            ex = ex.InnerException;
+        }
 
         return false;
     }
