@@ -180,7 +180,7 @@
                                                 }
                                                 @if (card.AssignedToUser != null)
                                                 {
-                                                    <div class="badge bg-secondary mt-1">
+                                                    <div class="badge bg-primary mt-1">
                                                         <i class="bi bi-person"></i> @card.AssignedToUser.UserName
                                                     </div>
                                                 }
@@ -569,7 +569,7 @@
                             <div class="d-flex flex-wrap gap-2 mb-2">
                                 @foreach (var assignment in cardAssignments)
                                 {
-                                    <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
+                                    <span class="badge bg-primary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
                                         <i class="bi bi-person me-1"></i> @assignment.User.GetDisplayName()
                                         <button type="button" class="btn-close btn-close-white ms-2" 
                                                 style="font-size: 0.6rem; padding: 0;" @onclick="() => RemoveAssignment(assignment)"></button>
@@ -718,7 +718,7 @@
                                    @bind="reminderUserSearchTerm" @bind:event="oninput" />
                         </div>
                         
-                        @if (!string.IsNullOrEmpty(reminderUserSearchTerm) && filteredReminderUsers != null && filteredReminderUsers.Any())
+                        @if (filteredReminderUsers != null && filteredReminderUsers.Any())
                         {
                             <div class="member-list member-list-scrollable mb-3" style="max-height: 200px; overflow-y: auto;">
                                 @foreach (var user in filteredReminderUsers.Take(20))
@@ -752,7 +752,7 @@
                         
                         @if (selectedReminderUserIds.Any())
                         {
-                            <div class="alert alert-info">
+                            <div class="alert alert-primary">
                                 <strong>@selectedReminderUserIds.Count utilizador(es) selecionado(s)</strong>
                             </div>
                         }
@@ -878,7 +878,7 @@
     private List<string> selectedReminderUserIds = new();
     private string? reminderErrorMessage = null;
     private List<ApplicationUser>? filteredReminderUsers => users?.Where(u => 
-        !string.IsNullOrEmpty(reminderUserSearchTerm) && 
+        string.IsNullOrEmpty(reminderUserSearchTerm) ||
         ((u.UserName != null && u.UserName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.FirstName != null && u.FirstName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.LastName != null && u.LastName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
