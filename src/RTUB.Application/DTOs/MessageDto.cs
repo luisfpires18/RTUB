@@ -22,4 +22,10 @@ public class MessageDto
     /// Used for group chat read receipts
     /// </summary>
     public string ReadBy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// List of user IDs who are recipients of this message (all participants except the sender).
+    /// Used for real-time notification filtering to ensure only actual recipients receive updates.
+    /// </summary>
+    public List<string> RecipientIds { get; set; } = [];
 }

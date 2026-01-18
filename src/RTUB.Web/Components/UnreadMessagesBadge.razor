@@ -138,8 +138,15 @@
 
     private async Task HandleMessageReceived(MessageDto message)
     {
-        // Only update if the message is from someone else (not current user)
-        if (message.SenderId != currentUserId)
+        // Only update if the current user is an actual recipient of this message
+        // (i.e., they are in the RecipientIds list and are not the sender)
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return;
+        }
+
+        if (message.SenderId != currentUserId && 
+            message.RecipientIds.Contains(currentUserId))
         {
             await InvokeAsync(async () =>
             {

@@ -749,6 +749,10 @@
             // Lock body scroll on mobile when messages page loads
             // This prevents double-scroll issues on mobile devices
             await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
+            
+            // Clear all message notifications when entering the messages page
+            // This ensures notifications are dismissed in PWA/browser mode
+            await ClearAllMessageNotificationsAsync();
         }
         
         if (shouldScrollToBottom)
@@ -888,6 +892,9 @@
         {
             await MessagingService.MarkConversationAsReadAsync(selectedConversation.Id, currentUserId);
             selectedConversation.UnreadCount = 0;
+            
+            // Clear notifications for this conversation in PWA/browser
+            await ClearNotificationAsync(selectedConversation.Id);
         }
         else
         {
@@ -1248,6 +1255,46 @@
         await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottom", messageThreadBody);
     }
 
+    /// <summary>
+    /// Clears message notifications for a specific conversation.
+    /// Handles JS interop errors gracefully.
+    /// </summary>
+    private async Task ClearNotificationAsync(int conversationId)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("rtubUnreadMessages.clearNotification", conversationId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // JavaScript runtime is disconnected - expected during navigation
+        }
+        catch (InvalidOperationException)
+        {
+            // JS interop not available - expected during SSR
+        }
+    }
+
+    /// <summary>
+    /// Clears all message notifications.
+    /// Handles JS interop errors gracefully.
+    /// </summary>
+    private async Task ClearAllMessageNotificationsAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("rtubUnreadMessages.clearAllMessageNotifications");
+        }
+        catch (JSDisconnectedException)
+        {
+            // JavaScript runtime is disconnected - expected during navigation
+        }
+        catch (InvalidOperationException)
+        {
+            // JS interop not available - expected during SSR
+        }
+    }
+
     // ========== SignalR Integration ==========
     
     private Dictionary<string, string> typingUsers = new();
@@ -1280,6 +1327,16 @@
 
     private async Task HandleMessageReceived(MessageDto message)
     {
+        // Only process this message if the current user is involved (either as sender or recipient)
+        var isCurrentUserSender = message.SenderId == currentUserId;
+        var isCurrentUserRecipient = message.RecipientIds.Contains(currentUserId);
+        
+        if (!isCurrentUserSender && !isCurrentUserRecipient)
+        {
+            // This message is not for the current user, ignore it
+            return;
+        }
+
         await InvokeAsync(async () =>
         {
             bool needsConversationReload = false;
@@ -1297,7 +1354,7 @@
                         // Skip updating preview if message is from current user (already updated in SendMessage)
                         // and only update if the incoming message is strictly newer than the current preview
                         // Use > to prevent messages with identical timestamps from overwriting each other
-                        if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
+                        if (!isCurrentUserSender && message.CreatedAt > conversation.LastMessageAt)
                         {
                             conversation.LastMessageAt = message.CreatedAt;
                             // Truncate the preview if it exceeds the max length
@@ -1308,7 +1365,7 @@
                         }
                         
                         // Only increment unread count if this is not the current conversation AND it's not from the current user
-                        if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                        if (selectedConversation?.Id != message.ConversationId && !isCurrentUserSender)
                         {
                             conversation.UnreadCount++;
                         }
@@ -1357,7 +1414,7 @@
                     
                     // For messages sent by current user, always scroll to bottom
                     // For messages received from others, only scroll if user is near bottom
-                    if (message.SenderId == currentUserId)
+                    if (isCurrentUserSender)
                     {
                         shouldScrollToBottom = true;
                     }
@@ -1368,16 +1425,20 @@
                 }
 
                 // If message is from another user, mark as read
-                if (message.SenderId != currentUserId)
+                if (!isCurrentUserSender)
                 {
                     await MessagingService.MarkConversationAsReadAsync(message.ConversationId, currentUserId);
+                    
+                    // Clear notifications for this conversation in PWA/browser
+                    await ClearNotificationAsync(message.ConversationId);
+                    
                     UnreadMessagesBadge.RequestRefresh();
                 }
             }
             else
             {
                 // Message is for a different conversation - notify badge
-                if (message.SenderId != currentUserId)
+                if (!isCurrentUserSender)
                 {
                     UnreadMessagesBadge.RequestRefresh();
                 }
@@ -1595,6 +1656,9 @@
             
                 // Mark as read
                 await MessagingService.MarkConversationAsReadAsync(conversationId, currentUserId);
+                
+                // Clear notifications for this conversation in PWA/browser
+                await ClearNotificationAsync(conversationId);
                 
                 // Update conversation unread count
                 selectedConversation.UnreadCount = 0;
