@@ -64,6 +64,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LogisticsBoard> LogisticsBoards { get; set; }
     public DbSet<LogisticsList> LogisticsLists { get; set; }
     public DbSet<LogisticsCard> LogisticsCards { get; set; }
+    public DbSet<LogisticsCardAssignment> LogisticsCardAssignments { get; set; }
+    public DbSet<LogisticsCardReminder> LogisticsCardReminders { get; set; }
 
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }

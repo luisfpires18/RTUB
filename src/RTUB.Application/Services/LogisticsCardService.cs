@@ -1,4 +1,5 @@
 using RTUB.Application.Interfaces;
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
@@ -15,11 +16,22 @@ public class LogisticsCardService : ILogisticsCardService
 {
     private readonly ILogisticsCardRepository _cardRepository;
     private readonly IEventRepository _eventRepository;
+    private readonly IDocumentStorageService _documentStorageService;
+    private readonly IRepository<LogisticsCardAssignment> _assignmentRepository;
+    private readonly IRepository<LogisticsCardReminder> _reminderRepository;
 
-    public LogisticsCardService(ILogisticsCardRepository cardRepository, IEventRepository eventRepository)
+    public LogisticsCardService(
+        ILogisticsCardRepository cardRepository, 
+        IEventRepository eventRepository,
+        IDocumentStorageService documentStorageService,
+        IRepository<LogisticsCardAssignment> assignmentRepository,
+        IRepository<LogisticsCardReminder> reminderRepository)
     {
         _cardRepository = cardRepository;
         _eventRepository = eventRepository;
+        _documentStorageService = documentStorageService;
+        _assignmentRepository = assignmentRepository;
+        _reminderRepository = reminderRepository;
     }
 
     public async Task<LogisticsCard?> GetCardByIdAsync(int id)
@@ -159,5 +171,132 @@ public class LogisticsCardService : ILogisticsCardService
 
         card.SetAttachments(attachmentsJson);
         await _cardRepository.UpdateAsync(card);
+    }
+
+    public async Task AddCardAssignmentAsync(int cardId, string userId)
+    {
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {cardId} não encontrado");
+
+        // Check if assignment already exists
+        var existingAssignment = await _assignmentRepository.Query()
+            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId);
+
+        if (existingAssignment != null)
+            throw new InvalidOperationException($"Utilizador já está atribuído a este cartão");
+
+        var assignment = LogisticsCardAssignment.Create(cardId, userId);
+        await _assignmentRepository.AddAsync(assignment);
+    }
+
+    public async Task RemoveCardAssignmentAsync(int cardId, string userId)
+    {
+        var assignment = await _assignmentRepository.Query()
+            .FirstOrDefaultAsync(a => a.CardId == cardId && a.UserId == userId);
+
+        if (assignment == null)
+            throw new InvalidOperationException($"Atribuição não encontrada");
+
+        await _assignmentRepository.DeleteAsync(assignment);
+    }
+
+    public async Task<IEnumerable<LogisticsCardAssignment>> GetCardAssignmentsAsync(int cardId)
+    {
+        return await _assignmentRepository.Query()
+            .Include(a => a.User)
+            .Where(a => a.CardId == cardId)
+            .ToListAsync();
+    }
+
+    public async Task<string> UploadCardAttachmentAsync(int cardId, string boardName, string fileName, Stream fileStream, string contentType, string environmentName)
+    {
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {cardId} não encontrado");
+
+        // Sanitize board name to prevent directory traversal attacks
+        var sanitizedBoardName = SanitizePathComponent(boardName);
+
+        // Build folder path: docs/{EnvironmentName}/Logistics/{BoardName}/
+        var folderPath = $"docs/{environmentName}/Logistics/{sanitizedBoardName}/";
+
+        // Ensure folder exists
+        await _documentStorageService.CreateFolderAsync(folderPath);
+
+        // Upload the document
+        return await _documentStorageService.UploadDocumentAsync(folderPath, fileName, fileStream, contentType);
+    }
+
+    public async Task<List<DocumentMetadata>> GetCardAttachmentsAsync(int cardId, string boardName, string environmentName)
+    {
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {cardId} não encontrado");
+
+        // Sanitize board name to prevent directory traversal attacks
+        var sanitizedBoardName = SanitizePathComponent(boardName);
+
+        // Build folder path: docs/{EnvironmentName}/Logistics/{BoardName}/
+        var folderPath = $"docs/{environmentName}/Logistics/{sanitizedBoardName}/";
+
+        // List all documents in the folder
+        return await _documentStorageService.ListDocumentsInFolderAsync(folderPath);
+    }
+
+    public async Task DeleteCardAttachmentAsync(string documentPath)
+    {
+        await _documentStorageService.DeleteDocumentAsync(documentPath);
+    }
+    
+    /// <summary>
+    /// Sanitizes a path component to prevent directory traversal attacks
+    /// </summary>
+    private static string SanitizePathComponent(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+        
+        // Remove any path traversal attempts and invalid path characters
+        var sanitized = input.Replace("..", "")
+                            .Replace("/", "")
+                            .Replace("\\", "")
+                            .Replace(":", "")
+                            .Replace("*", "")
+                            .Replace("?", "")
+                            .Replace("\"", "")
+                            .Replace("<", "")
+                            .Replace(">", "")
+                            .Replace("|", "");
+        
+        return sanitized;
+    }
+
+    public async Task<LogisticsCardReminder> CreateCardReminderAsync(int cardId, ReminderFrequency frequency, string targetUserIds, DateTime nextReminderDate)
+    {
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {cardId} não encontrado");
+
+        var reminder = LogisticsCardReminder.Create(cardId, frequency, targetUserIds, nextReminderDate);
+        return await _reminderRepository.AddAsync(reminder);
+    }
+
+    public async Task<IEnumerable<LogisticsCardReminder>> GetCardRemindersAsync(int cardId)
+    {
+        return await _reminderRepository.Query()
+            .Where(r => r.CardId == cardId && r.IsActive)
+            .OrderBy(r => r.NextReminderDate)
+            .ToListAsync();
+    }
+
+    public async Task DeactivateCardReminderAsync(int reminderId)
+    {
+        var reminder = await _reminderRepository.GetByIdAsync(reminderId);
+        if (reminder == null)
+            throw new InvalidOperationException($"Lembrete com ID {reminderId} não encontrado");
+
+        reminder.Deactivate();
+        await _reminderRepository.UpdateAsync(reminder);
     }
 }

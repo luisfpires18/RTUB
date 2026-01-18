@@ -7,6 +7,8 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Application.Extensions
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
@@ -15,6 +17,8 @@
 @inject ILogisticsListService ListService
 @inject ILogisticsCardService CardService
 @inject IEventService EventService
+@inject IDocumentStorageService DocumentStorageService
+@inject IConfiguration Configuration
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
@@ -36,7 +40,7 @@
         else
         {
             <div class="logistics-board-header mb-4">
-                <!-- Top row: Back button on left, Title centered, Add List on right -->
+                <!-- Top row: Back button on left, Title centered, Add List and Create Reminder on right -->
                 <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                     <a href="/logistics" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Voltar
@@ -45,13 +49,18 @@
                         <i class="bi bi-kanban text-primary me-2"></i>
                         <span>@board.Name</span>
                     </h1>
-                    <AuthorizeView Roles="Admin" Context="adminAuthContext">
-                        <Authorized>
-                            <button class="btn btn-success" @onclick="OpenCreateListModal">
-                                <i class="bi bi-plus-lg"></i> Adicionar Lista
-                            </button>
-                        </Authorized>
-                    </AuthorizeView>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-info" @onclick="OpenCreateReminderModal">
+                            <i class="bi bi-bell"></i> Criar Lembrete
+                        </button>
+                        <AuthorizeView Roles="Admin" Context="adminAuthContext">
+                            <Authorized>
+                                <button class="btn btn-success" @onclick="OpenCreateListModal">
+                                    <i class="bi bi-plus-lg"></i> Adicionar Lista
+                                </button>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
                 </div>
                 
                 @if (!string.IsNullOrWhiteSpace(board.Description))
@@ -127,7 +136,7 @@
                                     <div class="kanban-card @GetCardStatusClass(card.Status) @(isAdmin || isMod ? "clickable" : "")" 
                                          data-card-id="@card.Id" 
                                          draggable="true"
-                                         @onclick="() => { if (isAdmin || isMod) OpenCardDetailsModal(card); }">
+                                         @onclick="async () => { if (isAdmin || isMod) await OpenCardDetailsModal(card); }">
                                         <div class="card-status-bar @GetCardStatusBarClass(card.Status)">
                                             <i class="bi bi-@GetCardStatusIcon(card.Status) me-1"></i>
                                             @GetCardStatusText(card.Status)
@@ -505,22 +514,22 @@
                         <label class="form-label fw-bold text-white">
                             <i class="bi bi-paperclip me-2 text-primary"></i>Anexos
                         </label>
-                        @if (uploadedFiles != null && uploadedFiles.Any())
+                        @if (documentAttachments != null && documentAttachments.Any())
                         {
                             <div class="list-group mb-2 rounded">
-                                @foreach (var file in uploadedFiles)
+                                @foreach (var doc in documentAttachments)
                                 {
                                     <div class="list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary">
-                                        <span class="cursor-pointer" @onclick="() => DownloadFile(file)" title="Clique para descarregar">
-                                            <i class="bi bi-file-earmark-@GetFileIcon(file.Name) text-primary me-2"></i>
-                                            @file.Name
-                                            <small class="text-light-theme ms-2">(@FormatFileSize(file.Size))</small>
+                                        <span class="cursor-pointer" @onclick="() => DownloadDocument(doc)" title="Clique para descarregar">
+                                            <i class="bi bi-file-earmark-@GetFileIcon(doc.FileName) text-primary me-2"></i>
+                                            @doc.FileName
+                                            <small class="text-light-theme ms-2">(@FormatFileSize(doc.SizeBytes))</small>
                                         </span>
                                         <div class="d-flex gap-1">
-                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => DownloadFile(file)" title="Descarregar">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => DownloadDocument(doc)" title="Descarregar">
                                                 <i class="bi bi-download"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="async () => await RemoveFile(file)" title="Eliminar">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="async () => await RemoveDocument(doc)" title="Eliminar">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -537,7 +546,7 @@
                                 <InputFile id="@logisticsFileInputId"
                                            class="d-none"
                                            OnChange="HandleFileSelected"
-                                           accept=".pdf,.docx,.doc,.xlsx,.xls,.txt"
+                                           accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.png,.jpg,.jpeg"
                                            aria-label="Escolher ficheiro" />
                                 <label class="btn btn-outline-secondary localized-file-button" for="@logisticsFileInputId">
                                     <i class="bi bi-upload me-2"></i>Escolher ficheiro
@@ -553,44 +562,55 @@
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold text-white">
-                            <i class="bi bi-person me-2 text-primary"></i>Membro Atribuído
+                            <i class="bi bi-people me-2 text-primary"></i>Membros Atribuídos
                         </label>
-                        @if (selectedCard?.AssignedToUser != null)
+                        @if (cardAssignments != null && cardAssignments.Any())
                         {
                             <div class="d-flex flex-wrap gap-2 mb-2">
-                                <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
-                                    <i class="bi bi-person me-1"></i> @selectedCard.AssignedToUser.UserName
-                                    <button type="button" class="btn-close btn-close-white ms-2" 
-                                            style="font-size: 0.6rem; padding: 0;" @onclick="RemoveAssignedUser"></button>
-                                </span>
+                                @foreach (var assignment in cardAssignments)
+                                {
+                                    <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
+                                        <i class="bi bi-person me-1"></i> @assignment.User.GetDisplayName()
+                                        <button type="button" class="btn-close btn-close-white ms-2" 
+                                                style="font-size: 0.6rem; padding: 0;" @onclick="() => RemoveAssignment(assignment)"></button>
+                                    </span>
+                                }
                             </div>
                         }
                         else
                         {
                             <p class="text-light-theme small mb-2">Nenhum membro atribuído</p>
                         }
-                        @if (selectedCard?.AssignedToUser == null)
-                        {
-                            <div class="input-group input-group-sm position-relative">
-                                <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
-                                       @bind="memberSearchTerm" @bind:event="oninput" />
-                                @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
-                                {
-                                    <div class="position-absolute w-100 bg-dark rounded" style="top: 100%; z-index: 1000;">
-                                        <div class="list-group" style="max-height: 200px; overflow-y: auto;">
-                                            @foreach (var user in filteredMembersForAssignment.Take(10))
-                                            {
-                                                var userName = user.UserName ?? user.Email ?? string.Empty;
-                                                <button type="button" class="list-group-item list-group-item-action bg-dark border-secondary d-flex align-items-center" 
-                                                        @onclick="() => AssignUser(user)">
-                                                    <i class="bi bi-person text-primary me-2"></i> @userName
-                                                </button>
-                                            }
-                                        </div>
+                        <div class="input-group input-group-sm position-relative">
+                            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                                   @bind="memberSearchTerm" @bind:event="oninput" />
+                            @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
+                            {
+                                <div class="position-absolute w-100 bg-dark rounded" style="top: 100%; z-index: 1000;">
+                                    <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                        @foreach (var user in filteredMembersForAssignment.Take(10))
+                                        {
+                                            <button type="button" class="list-group-item list-group-item-action bg-dark border-secondary d-flex align-items-center" 
+                                                    @onclick="() => AssignUser(user)">
+                                                <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
+                                                     class="member-avatar-small me-2" style="width: 24px; height: 24px; border-radius: 50%;" />
+                                                <div>
+                                                    @if (!string.IsNullOrEmpty(user.Nickname))
+                                                    {
+                                                        <div><strong>@user.Nickname</strong></div>
+                                                        <div class="text-muted small">@user.FirstName @user.LastName</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div>@user.GetDisplayName()</div>
+                                                    }
+                                                </div>
+                                            </button>
+                                        }
                                     </div>
-                                }
-                            </div>
-                        }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
@@ -631,6 +651,120 @@
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDeleteCard"
                OnCancel="CloseDeleteCardModal" />
+
+@* Create Reminder Modal *@
+@if (showCreateReminderModal)
+{
+    <div class="modal fade show d-block logistics-modal" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary" style="background: rgba(var(--bs-primary-rgb), 0.1);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-bell me-2"></i>Criar Lembrete
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseCreateReminderModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-card-checklist text-primary me-2"></i>Selecionar Cartão
+                        </label>
+                        <select class="form-select" @bind="selectedReminderCardId">
+                            <option value="">-- Selecione um cartão --</option>
+                            @if (lists != null)
+                            {
+                                @foreach (var list in lists.OrderBy(l => l.Position))
+                                {
+                                    @foreach (var card in list.Cards.OrderBy(c => c.Position))
+                                    {
+                                        <option value="@card.Id">@list.Name - @card.Title</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-clock text-primary me-2"></i>Frequência
+                        </label>
+                        <select class="form-select" @bind="selectedReminderFrequency">
+                            <option value="@((int)ReminderFrequency.OneTime)">Uma vez</option>
+                            <option value="@((int)ReminderFrequency.Daily)">Diariamente</option>
+                            <option value="@((int)ReminderFrequency.Weekly)">Semanalmente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar text-primary me-2"></i>Primeira Data do Lembrete
+                        </label>
+                        <input type="datetime-local" class="form-control" @bind="nextReminderDate" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-people text-primary"></i>
+                            <span>Utilizadores</span>
+                        </label>
+                        <div class="reminder-user-search-container">
+                            <input type="text" class="form-control mb-2" placeholder="Pesquisar utilizador por nome ou alcunha..." 
+                                   @bind="reminderUserSearchTerm" @bind:event="oninput" />
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(reminderUserSearchTerm) && filteredReminderUsers != null && filteredReminderUsers.Any())
+                        {
+                            <div class="member-list member-list-scrollable mb-3" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var user in filteredReminderUsers.Take(20))
+                                {
+                                    var isSelected = selectedReminderUserIds.Contains(user.Id);
+                                    <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "bg-primary bg-opacity-25" : "")"
+                                         @onclick="() => ToggleReminderUser(user.Id)">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
+                                                 class="member-avatar-small me-2" style="width: 32px; height: 32px; border-radius: 50%;" />
+                                            <div class="flex-grow-1">
+                                                @if (!string.IsNullOrEmpty(user.Nickname))
+                                                {
+                                                    <div><strong>@user.Nickname</strong></div>
+                                                    <div class="text-muted small">@user.FirstName @user.LastName</div>
+                                                }
+                                                else
+                                                {
+                                                    <div><strong>@user.FirstName @user.LastName</strong></div>
+                                                }
+                                            </div>
+                                            @if (isSelected)
+                                            {
+                                                <i class="bi bi-check-circle-fill text-primary"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        
+                        @if (selectedReminderUserIds.Any())
+                        {
+                            <div class="alert alert-info">
+                                <strong>@selectedReminderUserIds.Count utilizador(es) selecionado(s)</strong>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCreateReminderModal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveReminder" 
+                            disabled="@(string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())">
+                        <i class="bi bi-check-circle me-2"></i>Criar Lembrete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     // Helper classes (private to avoid naming conflicts)
@@ -715,9 +849,34 @@
     private bool isAdmin = false;
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
-        (selectedCard == null || selectedCard.AssignedToUserId != u.Id) &&
+        (cardAssignments == null || !cardAssignments.Any(a => a.UserId == u.Id)) &&
         ((u.UserName != null && u.UserName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.FirstName != null && u.FirstName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.LastName != null && u.LastName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Nickname != null && u.Nickname.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.Email != null && u.Email.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
+
+    // Card assignments
+    private List<LogisticsCardAssignment>? cardAssignments;
+
+    // Document attachments
+    private List<DocumentMetadata>? documentAttachments;
+    private string environmentName = string.Empty;
+
+    // Create Reminder modal state
+    private bool showCreateReminderModal = false;
+    private string selectedReminderCardId = string.Empty;
+    private int selectedReminderFrequency = (int)ReminderFrequency.OneTime;
+    private DateTime nextReminderDate = DateTime.Now.AddDays(1);
+    private string reminderUserSearchTerm = string.Empty;
+    private List<string> selectedReminderUserIds = new();
+    private List<ApplicationUser>? filteredReminderUsers => users?.Where(u => 
+        !string.IsNullOrEmpty(reminderUserSearchTerm) && 
+        ((u.UserName != null && u.UserName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.FirstName != null && u.FirstName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.LastName != null && u.LastName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Nickname != null && u.Nickname.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Email != null && u.Email.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
 
     // Delete modal state
     private bool showDeleteListModal = false;
@@ -728,6 +887,7 @@
     protected override async Task OnInitializedAsync()
     {
         await CheckUserRole();
+        environmentName = Configuration["Environment:Name"] ?? "Production";
         await LoadData();
     }
 
@@ -944,7 +1104,7 @@
     }
 
     // Card details modal
-    private void OpenCardDetailsModal(LogisticsCard card)
+    private async Task OpenCardDetailsModal(LogisticsCard card)
     {
         selectedCard = card;
         
@@ -987,7 +1147,16 @@
             catch { }
         }
         
-        // Parse uploaded files from description
+        // Load card assignments
+        cardAssignments = (await CardService.GetCardAssignmentsAsync(card.Id)).ToList();
+        
+        // Load document attachments from storage
+        if (board != null)
+        {
+            documentAttachments = await CardService.GetCardAttachmentsAsync(card.Id, board.Name, environmentName);
+        }
+        
+        // Parse uploaded files from description (legacy support - to be migrated)
         uploadedFiles = new List<FileItem>();
         cardDetailsText = card.Description ?? string.Empty;
         if (cardDetailsText.Contains("<!-- FILES:"))
@@ -1125,7 +1294,7 @@
 
     private async Task UploadFile()
     {
-        if (selectedFile == null || selectedCard == null) return;
+        if (selectedFile == null || selectedCard == null || board == null) return;
 
         try
         {
@@ -1135,22 +1304,41 @@
                 return;
             }
 
-            using var memoryStream = new MemoryStream();
-            await selectedFile.OpenReadStream(MaxFileSize).CopyToAsync(memoryStream);
-            var base64 = Convert.ToBase64String(memoryStream.ToArray());
-
-            uploadedFiles ??= new List<FileItem>();
-            uploadedFiles.Add(new FileItem
+            // Validate file type - only allow specific types
+            var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                Name = selectedFile.Name,
-                Size = selectedFile.Size,
-                Base64Data = base64,
-                ContentType = selectedFile.ContentType
-            });
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "text/plain",
+                "image/png",
+                "image/jpeg",
+                "image/jpg"
+            };
+
+            if (!allowedContentTypes.Contains(selectedFile.ContentType))
+            {
+                // Invalid file type - could add user notification here
+                return;
+            }
+
+            using var stream = selectedFile.OpenReadStream(MaxFileSize);
+            await CardService.UploadCardAttachmentAsync(
+                selectedCard.Id, 
+                board.Name, 
+                selectedFile.Name, 
+                stream, 
+                selectedFile.ContentType, 
+                environmentName);
 
             selectedFile = null;
             logisticsFileName = null;
-            await SaveFiles();
+            
+            // Reload attachments
+            documentAttachments = await CardService.GetCardAttachmentsAsync(selectedCard.Id, board.Name, environmentName);
+            StateHasChanged();
         }
         catch (Exception)
         {
@@ -1158,6 +1346,39 @@
         }
     }
 
+    private async Task RemoveDocument(DocumentMetadata doc)
+    {
+        if (selectedCard == null || board == null) return;
+        
+        try
+        {
+            await CardService.DeleteCardAttachmentAsync(doc.FilePath);
+            documentAttachments = await CardService.GetCardAttachmentsAsync(selectedCard.Id, board.Name, environmentName);
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private async Task DownloadDocument(DocumentMetadata doc)
+    {
+        try
+        {
+            var url = await DocumentStorageService.GetDocumentUrlAsync(doc.FilePath, forceDownload: true);
+            if (url != null)
+            {
+                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error - could add user notification here
+        }
+    }
+
+    // Legacy support for old base64-stored files (can be removed once all files are migrated)
     private async Task RemoveFile(FileItem file)
     {
         uploadedFiles?.Remove(file);
@@ -1230,13 +1451,39 @@
     private async Task AssignUser(ApplicationUser user)
     {
         if (selectedCard == null) return;
-        await CardService.AssignCardToUserAsync(selectedCard.Id, user.Id);
-        selectedCard.AssignedToUserId = user.Id;
-        selectedCard.AssignedToUser = user;
-        memberSearchTerm = string.Empty;
-        await LoadData();
+        
+        try
+        {
+            await CardService.AddCardAssignmentAsync(selectedCard.Id, user.Id);
+            cardAssignments = (await CardService.GetCardAssignmentsAsync(selectedCard.Id)).ToList();
+            memberSearchTerm = string.Empty;
+            await LoadData();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // Handle error - assignment already exists
+        }
     }
 
+    private async Task RemoveAssignment(LogisticsCardAssignment assignment)
+    {
+        if (selectedCard == null) return;
+        
+        try
+        {
+            await CardService.RemoveCardAssignmentAsync(selectedCard.Id, assignment.UserId);
+            cardAssignments = (await CardService.GetCardAssignmentsAsync(selectedCard.Id)).ToList();
+            await LoadData();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    // Legacy method for backward compatibility with old single-assignment system
     private async Task RemoveAssignedUser()
     {
         if (selectedCard == null) return;
@@ -1415,5 +1662,60 @@
             CardStatus.Todo => "TODO",
             _ => "TODO"
         };
+    }
+
+    // Create Reminder Modal Methods
+    private void OpenCreateReminderModal()
+    {
+        showCreateReminderModal = true;
+        selectedReminderCardId = string.Empty;
+        selectedReminderFrequency = (int)ReminderFrequency.OneTime;
+        nextReminderDate = DateTime.Now.AddDays(1);
+        reminderUserSearchTerm = string.Empty;
+        selectedReminderUserIds = new List<string>();
+    }
+
+    private void CloseCreateReminderModal()
+    {
+        showCreateReminderModal = false;
+    }
+
+    private void ToggleReminderUser(string userId)
+    {
+        if (selectedReminderUserIds.Contains(userId))
+        {
+            selectedReminderUserIds.Remove(userId);
+        }
+        else
+        {
+            selectedReminderUserIds.Add(userId);
+        }
+    }
+
+    private async Task SaveReminder()
+    {
+        if (string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())
+            return;
+
+        try
+        {
+            if (!int.TryParse(selectedReminderCardId, out var cardId))
+            {
+                // Invalid card ID format
+                return;
+            }
+            
+            var frequency = (ReminderFrequency)selectedReminderFrequency;
+            var targetUserIds = string.Join(",", selectedReminderUserIds);
+
+            await CardService.CreateCardReminderAsync(cardId, frequency, targetUserIds, nextReminderDate);
+            
+            CloseCreateReminderModal();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
     }
 }

@@ -32,7 +32,10 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         _context = _fixture.CreateContext();
         var cardRepo = new LogisticsCardRepository(_context);
         var eventRepo = new EventRepository(_context);
-        _service = new LogisticsCardService(cardRepo, eventRepo);
+        var documentStorageService = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>().Object;
+        var assignmentRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardAssignment>>().Object;
+        var reminderRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardReminder>>().Object;
+        _service = new LogisticsCardService(cardRepo, eventRepo, documentStorageService, assignmentRepo, reminderRepo);
     }
 
     [Fact]

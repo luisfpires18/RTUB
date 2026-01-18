@@ -783,4 +783,25 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = "weekly-summary"
         };
     }
+
+    /// <summary>
+    /// Creates a push notification for a logistics card reminder.
+    /// </summary>
+    public SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{card.ListId}";
+        
+        return new SendPushNotificationDto
+        {
+            Title = $"Lembrete: {card.Title}",
+            Body = $"Tarefa no quadro \"{boardName}\": {TruncateContent(card.Description, 100)}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = logisticsUrl,
+            Tag = $"card-reminder-{card.Id}"
+        };
+    }
 }

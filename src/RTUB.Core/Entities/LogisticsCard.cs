@@ -50,6 +50,8 @@ public class LogisticsCard : BaseEntity
     public virtual LogisticsList List { get; set; } = null!;
     public virtual Event? Event { get; set; }
     public virtual ApplicationUser? AssignedToUser { get; set; }
+    public virtual ICollection<LogisticsCardAssignment> Assignments { get; set; } = new List<LogisticsCardAssignment>();
+    public virtual ICollection<LogisticsCardReminder> Reminders { get; set; } = new List<LogisticsCardReminder>();
 
     // Private constructor for EF Core
     public LogisticsCard() { }
