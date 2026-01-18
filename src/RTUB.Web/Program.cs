@@ -86,6 +86,9 @@ public class Program
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
 
+        services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";

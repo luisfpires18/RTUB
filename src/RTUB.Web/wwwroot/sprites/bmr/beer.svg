@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32">
+  <!-- Beer Mug Collectible -->
+  <!-- Mug body -->
+  <rect x="4" y="8" width="14" height="22" rx="3" fill="#f4a460"/>
+  <rect x="5" y="9" width="12" height="20" rx="2" fill="#daa520"/>
+  
+  <!-- Beer liquid -->
+  <rect x="6" y="12" width="10" height="15" fill="#ffd700"/>
+  
+  <!-- Foam -->
+  <ellipse cx="11" cy="12" rx="6" ry="4" fill="#fffacd"/>
+  <circle cx="8" cy="10" r="3" fill="#fff"/>
+  <circle cx="14" cy="10" r="3" fill="#fff"/>
+  <circle cx="11" cy="9" r="2.5" fill="#fff"/>
+  <circle cx="6" cy="11" r="2" fill="#fffacd"/>
+  <circle cx="16" cy="11" r="2" fill="#fffacd"/>
+  
+  <!-- Handle -->
+  <path d="M18,14 Q24,14 24,20 Q24,26 18,26" fill="none" stroke="#f4a460" stroke-width="4"/>
+  <path d="M18,16 Q22,16 22,20 Q22,24 18,24" fill="none" stroke="#daa520" stroke-width="2"/>
+  
+  <!-- Bubbles in beer -->
+  <circle cx="9" cy="18" r="1" fill="#fff" opacity="0.6"/>
+  <circle cx="13" cy="22" r="1.2" fill="#fff" opacity="0.6"/>
+  <circle cx="10" cy="24" r="0.8" fill="#fff" opacity="0.6"/>
+  <circle cx="12" cy="16" r="0.6" fill="#fff" opacity="0.6"/>
+  
+  <!-- Highlight -->
+  <rect x="7" y="14" width="2" height="8" rx="1" fill="#fff" opacity="0.3"/>
+</svg>

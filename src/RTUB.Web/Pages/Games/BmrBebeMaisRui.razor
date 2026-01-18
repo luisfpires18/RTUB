@@ -1,0 +1,252 @@
+@page "/games/bmr-bebe-mais-rui"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
+@using System.Text.Json
+@using RTUB.Application.Configuration
+@using RTUB.Application.Data
+@using RTUB.Application.Interfaces
+@inject IJSRuntime JSRuntime
+@inject IOptions<BmrBebeMaisRuiConfiguration> GameConfig
+@inject IGameScoreService GameScoreService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+@attribute [Authorize]
+
+<div class="bmr-container">
+    <!-- Page Header -->
+    <div class="d-flex flex-column gap-3 mb-4 page-header-block">
+        <div class="d-flex align-items-center gap-3 page-header-row">
+            <button class="btn btn-outline-secondary btn-sm back-button" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="page-header-text flex-grow-1 text-center">
+                <h1 class="mb-0"><i class="bi bi-controller"></i> BMR — Bebe mais Rui</h1>
+            </div>
+            <div style="width: 38px;"></div>
+        </div>
+    </div>
+
+    <div class="game-stats">
+        <div class="stat-item">
+            <i class="bi bi-heart-fill text-danger"></i>
+            <span class="stat-value">@health</span>
+            <span class="stat-label">Vida</span>
+        </div>
+        <div class="stat-item">
+            <i class="bi bi-star-fill text-primary"></i>
+            <span class="stat-value">@points</span>
+            <span class="stat-label">Pontos</span>
+        </div>
+    </div>
+
+    <div class="game-canvas-wrapper">
+        <canvas id="bmrGameCanvas" width="800" height="600"></canvas>
+        
+        @if (!gameStarted)
+        {
+            <div class="game-overlay">
+                <div class="overlay-content">
+                    <h3>BMR — Bebe mais Rui</h3>
+                    <p class="mb-3">Joga como Borat! Coleciona cervejas, salta em cima das Fat Ladies para as derrotar, e bate nas caixas mistério!</p>
+                    <ul class="game-instructions">
+                        <li><i class="bi bi-keyboard me-2"></i>Usa <kbd>A</kbd>/<kbd>D</kbd> ou <kbd>←</kbd>/<kbd>→</kbd> para mover</li>
+                        <li><i class="bi bi-arrow-up me-2"></i>Usa <kbd>W</kbd>, <kbd>↑</kbd> ou <kbd>Espaço</kbd> para saltar</li>
+                        <li><i class="bi bi-phone me-2"></i>No telemóvel, usa os botões no ecrã</li>
+                        <li><i class="bi bi-bullseye me-2"></i>Salta na cabeça dos inimigos para os derrotar!</li>
+                        <li><i class="bi bi-box me-2"></i>Bate nas caixas <span style="color: gold;">?</span> para ganhar prémios!</li>
+                        <li><i class="bi bi-cup-straw me-2"></i>Super cervejas douradas valem mais pontos!</li>
+                    </ul>
+                    <button class="btn btn-primary btn-lg" @onclick="StartGame">
+                        <i class="bi bi-play-fill me-1"></i>Iniciar Jogo
+                    </button>
+                </div>
+            </div>
+        }
+        
+        @if (gameOver)
+        {
+            <div class="game-overlay game-over-overlay">
+                <div class="overlay-content">
+                    <h3 class="text-danger">Fim de Jogo!</h3>
+                    <div class="final-stats mb-4">
+                        <div class="final-stat">
+                            <span class="final-stat-value">@finalPoints</span>
+                            <span class="final-stat-label">Pontos</span>
+                        </div>
+                        <div class="final-stat">
+                            <span class="final-stat-value">@enemiesStomped</span>
+                            <span class="final-stat-label">Inimigos Derrotados</span>
+                        </div>
+                    </div>
+                    @if (scoreSaved)
+                    {
+                        <p class="text-success mb-3"><i class="bi bi-check-circle me-1"></i>Pontuação guardada!</p>
+                    }
+                    else if (savingScore)
+                    {
+                        <p class="text-muted mb-3"><i class="bi bi-hourglass-split me-1"></i>A guardar pontuação...</p>
+                    }
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="btn btn-primary" @onclick="RestartGame">
+                            <i class="bi bi-arrow-repeat me-1"></i>Jogar Novamente
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="GoBack">
+                            <i class="bi bi-arrow-left me-1"></i>Voltar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="game-controls-mobile">
+        <div class="control-row control-row-move">
+            <button class="control-btn control-left" @ontouchstart="@(() => StartMoveLeft())" @ontouchend="@(() => StopMove())" @onmousedown="@(() => StartMoveLeft())" @onmouseup="@(() => StopMove())">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button class="control-btn control-jump" @ontouchstart="@(() => Jump())" @onmousedown="@(() => Jump())">
+                <i class="bi bi-chevron-up"></i>
+            </button>
+            <button class="control-btn control-right" @ontouchstart="@(() => StartMoveRight())" @ontouchend="@(() => StopMove())" @onmousedown="@(() => StartMoveRight())" @onmouseup="@(() => StopMove())">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string GameKey = "bmr-bebe-mais-rui";
+    
+    private bool gameStarted = false;
+    private bool gameOver = false;
+    private int health = 100;
+    private int points = 0;
+    
+    private int finalPoints = 0;
+    private int enemiesStomped = 0;
+    
+    private bool savingScore = false;
+    private bool scoreSaved = false;
+    
+    private string? currentUserId;
+    private DotNetObjectReference<BmrBebeMaisRui>? objRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var currentUser = await UserManager.GetUserAsync(user);
+            currentUserId = currentUser?.Id;
+        }
+        
+        health = GameConfig.Value.StartingHealth;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            
+            var configJson = JsonSerializer.Serialize(new
+            {
+                startingHealth = GameConfig.Value.StartingHealth,
+                invulnerabilityMs = GameConfig.Value.InvulnerabilityMs,
+                jumpStrength = GameConfig.Value.JumpStrength,
+                gravity = GameConfig.Value.Gravity,
+                moveSpeed = GameConfig.Value.MoveSpeed,
+                beerPoints = GameConfig.Value.BeerPoints,
+                superBeerPoints = 50,
+                powerUpDurationMs = 5000,
+                difficultyScaling = new
+                {
+                    baseSpawnRate = GameConfig.Value.DifficultyScaling.BaseSpawnRate,
+                    spawnRateDecreasePerLevel = GameConfig.Value.DifficultyScaling.SpawnRateDecreasePerLevel,
+                    minSpawnRate = GameConfig.Value.DifficultyScaling.MinSpawnRate,
+                    enemySpeedIncreasePerLevel = GameConfig.Value.DifficultyScaling.EnemySpeedIncreasePerLevel,
+                    platformGapIncreasePerLevel = GameConfig.Value.DifficultyScaling.PlatformGapIncreasePerLevel
+                },
+                enemyTiers = GameConfig.Value.EnemyTiers.Select(t => new
+                {
+                    name = t.Name,
+                    damage = t.Damage,
+                    speed = t.Speed,
+                    spawnWeight = t.SpawnWeight,
+                    spritePath = t.SpritePath
+                }).ToList()
+            });
+            
+            await JSRuntime.InvokeVoidAsync("bmrGame.init", "bmrGameCanvas", objRef, configJson);
+        }
+    }
+
+    private async Task StartGame()
+    {
+        gameStarted = true;
+        gameOver = false;
+        scoreSaved = false;
+        health = GameConfig.Value.StartingHealth;
+        points = 0;
+        
+        StateHasChanged();
+        await JSRuntime.InvokeVoidAsync("bmrGame.start");
+    }
+
+    private async Task RestartGame() => await StartGame();
+
+    private void GoBack() => NavigationManager.NavigateTo("/games");
+
+    private async Task StartMoveLeft() => await JSRuntime.InvokeVoidAsync("bmrGame.startMove", -1);
+    private async Task StartMoveRight() => await JSRuntime.InvokeVoidAsync("bmrGame.startMove", 1);
+    private async Task StopMove() => await JSRuntime.InvokeVoidAsync("bmrGame.stopMove");
+    private async Task Jump() => await JSRuntime.InvokeVoidAsync("bmrGame.jump");
+
+    [JSInvokable]
+    public void UpdateStats(int newHealth, int unused, int newPoints)
+    {
+        health = newHealth;
+        points = newPoints;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnGameOver(int finalPts, int stomped)
+    {
+        gameOver = true;
+        gameStarted = false;
+        finalPoints = finalPts;
+        enemiesStomped = stomped;
+        StateHasChanged();
+
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            savingScore = true;
+            StateHasChanged();
+            
+            try
+            {
+                await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, stomped, TimeSpan.Zero);
+                scoreSaved = true;
+            }
+            catch { }
+            finally
+            {
+                savingScore = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JSRuntime.InvokeVoidAsync("bmrGame.dispose"); } catch { }
+        objRef?.Dispose();
+    }
+}
