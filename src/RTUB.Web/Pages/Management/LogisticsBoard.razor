@@ -136,7 +136,7 @@
                                     <div class="kanban-card @GetCardStatusClass(card.Status) @(isAdmin || isMod ? "clickable" : "")" 
                                          data-card-id="@card.Id" 
                                          draggable="true"
-                                         @onclick="async () => { if (isAdmin || isMod) await OpenCardDetailsModal(card); }">
+                                         @onclick="() => HandleCardClick(card)">
                                         <div class="card-status-bar @GetCardStatusBarClass(card.Status)">
                                             <i class="bi bi-@GetCardStatusIcon(card.Status) me-1"></i>
                                             @GetCardStatusText(card.Status)
@@ -665,6 +665,12 @@
                     <button type="button" class="btn-close" @onclick="CloseCreateReminderModal"></button>
                 </div>
                 <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(reminderErrorMessage))
+                    {
+                        <div class="alert alert-danger mb-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@reminderErrorMessage
+                        </div>
+                    }
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-card-checklist text-primary me-2"></i>Selecionar Cartão
@@ -870,6 +876,7 @@
     private DateTime nextReminderDate = DateTime.Now.AddDays(1);
     private string reminderUserSearchTerm = string.Empty;
     private List<string> selectedReminderUserIds = new();
+    private string? reminderErrorMessage = null;
     private List<ApplicationUser>? filteredReminderUsers => users?.Where(u => 
         !string.IsNullOrEmpty(reminderUserSearchTerm) && 
         ((u.UserName != null && u.UserName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
@@ -1100,6 +1107,15 @@
         catch (Exception)
         {
             // Handle error
+        }
+    }
+
+    // Handle card click - extracted for better readability
+    private async Task HandleCardClick(LogisticsCard card)
+    {
+        if (isAdmin || isMod)
+        {
+            await OpenCardDetailsModal(card);
         }
     }
 
@@ -1673,11 +1689,13 @@
         nextReminderDate = DateTime.Now.AddDays(1);
         reminderUserSearchTerm = string.Empty;
         selectedReminderUserIds = new List<string>();
+        reminderErrorMessage = null;
     }
 
     private void CloseCreateReminderModal()
     {
         showCreateReminderModal = false;
+        reminderErrorMessage = null;
     }
 
     private void ToggleReminderUser(string userId)
@@ -1694,6 +1712,8 @@
 
     private async Task SaveReminder()
     {
+        reminderErrorMessage = null;
+        
         if (string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())
             return;
 
@@ -1701,7 +1721,7 @@
         {
             if (!int.TryParse(selectedReminderCardId, out var cardId))
             {
-                // Invalid card ID format
+                reminderErrorMessage = "Selecção de cartão inválida. Por favor, selecione um cartão válido.";
                 return;
             }
             
@@ -1713,9 +1733,9 @@
             CloseCreateReminderModal();
             StateHasChanged();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error
+            reminderErrorMessage = $"Erro ao criar lembrete: {ex.Message}";
         }
     }
 }

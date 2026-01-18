@@ -787,13 +787,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a push notification for a logistics card reminder.
     /// </summary>
-    public SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, string baseUrl)
+    public SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
-        var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{card.ListId}";
+        var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{boardId}";
         
         return new SendPushNotificationDto
         {

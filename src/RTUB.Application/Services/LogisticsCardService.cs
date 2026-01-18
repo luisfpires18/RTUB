@@ -4,6 +4,7 @@ using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace RTUB.Application.Services;
 
@@ -250,24 +251,31 @@ public class LogisticsCardService : ILogisticsCardService
     }
     
     /// <summary>
+    /// Regex pattern for allowed path characters: alphanumeric, hyphen, underscore, space, and common accented Portuguese characters
+    /// </summary>
+    private static readonly Regex SafePathRegex = new(@"[^a-zA-Z0-9\-_\s\u00C0-\u00FF]", RegexOptions.Compiled);
+    
+    /// <summary>
     /// Sanitizes a path component to prevent directory traversal attacks
+    /// Uses regex-based approach for robust security
     /// </summary>
     private static string SanitizePathComponent(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
             return string.Empty;
         
-        // Remove any path traversal attempts and invalid path characters
-        var sanitized = input.Replace("..", "")
-                            .Replace("/", "")
-                            .Replace("\\", "")
-                            .Replace(":", "")
-                            .Replace("*", "")
-                            .Replace("?", "")
-                            .Replace("\"", "")
-                            .Replace("<", "")
-                            .Replace(">", "")
-                            .Replace("|", "");
+        // First, replace directory traversal patterns
+        var sanitized = input.Replace("..", "");
+        
+        // Then remove all characters that are not allowed using regex
+        sanitized = SafePathRegex.Replace(sanitized, "");
+        
+        // Trim and ensure we have a valid result
+        sanitized = sanitized.Trim();
+        
+        // If completely empty after sanitization, use a fallback
+        if (string.IsNullOrEmpty(sanitized))
+            return "unnamed";
         
         return sanitized;
     }
