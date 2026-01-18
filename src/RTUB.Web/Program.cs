@@ -82,6 +82,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.QuestionNotificationOptions.SectionName));
 
+        // Configure Weekly Notification Scheduler
+        services.Configure<RTUB.Application.Configuration.WeeklyNotificationOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.WeeklyNotificationOptions.SectionName));
+
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -360,6 +364,9 @@ public class Program
 
         // Background worker for sending question notification reminders
         services.AddHostedService<QuestionNotificationBackgroundService>();
+
+        // Background worker for sending weekly notifications on Monday
+        services.AddHostedService<WeeklyNotificationBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
