@@ -48,4 +48,10 @@ public class SongRepository : Repository<Song>, ISongRepository
             .Include(s => s.YouTubeUrls)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
+
+    public async Task DeleteYouTubeUrlAsync(SongYouTubeUrl youtubeUrl)
+    {
+        _context.Set<SongYouTubeUrl>().Remove(youtubeUrl);
+        await _context.SaveChangesAsync();
+    }
 }

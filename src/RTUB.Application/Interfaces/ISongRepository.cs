@@ -34,4 +34,10 @@ public interface ISongRepository : IRepository<Song>
     /// <param name="id">Song ID</param>
     /// <returns>Tracked song entity, or null if not found</returns>
     Task<Song?> GetSongForUpdateAsync(int id);
+
+    /// <summary>
+    /// Deletes a YouTube URL from a song
+    /// </summary>
+    /// <param name="youtubeUrl">The YouTube URL entity to delete</param>
+    Task DeleteYouTubeUrlAsync(SongYouTubeUrl youtubeUrl);
 }
