@@ -17,10 +17,4 @@ public class WeeklyNotificationOptions
     /// Default is 09:00
     /// </summary>
     public string ScheduledTime { get; set; } = "09:00";
-
-    /// <summary>
-    /// The base URL of the application (e.g., "https://rtub.pt")
-    /// Used for generating notification URLs
-    /// </summary>
-    public string BaseUrl { get; set; } = "https://rtub.pt";
 }

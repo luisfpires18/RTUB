@@ -21,6 +21,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
     private DateTime _lastRunDate = DateTime.MinValue;
 
     private const int StartupDelaySeconds = 20;
+    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public WeeklyNotificationBackgroundService(
         ILogger<WeeklyNotificationBackgroundService> logger,
@@ -128,7 +129,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 eventCount, rehearsalCount, meetingCount);
 
             // Create notification with summary
-            var baseUrl = _options.BaseUrl;
+            var baseUrl = DefaultBaseUrl;
             var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
                 eventCount, rehearsalCount, meetingCount, baseUrl);
 

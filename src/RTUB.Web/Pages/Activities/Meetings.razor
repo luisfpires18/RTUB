@@ -1929,9 +1929,21 @@ else
                 .Where(u => !u.IsLeitao())
                 .ToList();
         }
+        else if (meeting.Type == MeetingType.ReuniaoDirecao)
+        {
+            // Direção meetings: Only Direção members (Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro)
+            return allUsers
+                .Where(u => u.Positions != null && 
+                           (u.Positions.Contains(Position.Magister) ||
+                            u.Positions.Contains(Position.ViceMagister) ||
+                            u.Positions.Contains(Position.Secretario) ||
+                            u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                            u.Positions.Contains(Position.SegundoTesoureiro)))
+                .ToList();
+        }
         else
         {
-            // Other meeting types: all users
+            // Default: all users (should not happen with current MeetingType enum)
             return allUsers.ToList();
         }
     }
