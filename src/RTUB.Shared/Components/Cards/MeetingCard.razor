@@ -80,9 +80,15 @@
                 {
                     <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                             @onclick="HandleSendEmail"
-                            title="Enviar notificação da reunião">
+                            title="Enviar notificação por email">
                         <i class="bi bi-envelope-fill"></i>
-                        <span>Notificar</span>
+                        <span>Email</span>
+                    </button>
+                    <button class="btn btn-sm btn-primary btn-primary-purple d-flex align-items-center gap-2"
+                            @onclick="HandleSendPushNotification"
+                            title="Enviar notificação push">
+                        <i class="bi bi-bell-fill"></i>
+                        <span>Push</span>
                     </button>
                     <button class="btn btn-sm btn-danger d-flex align-items-center gap-2"
                             @onclick="HandleCancel"
@@ -149,6 +155,12 @@
     public EventCallback OnSendEmail { get; set; }
 
     /// <summary>
+    /// Callback when the send push notification button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendPushNotification { get; set; }
+
+    /// <summary>
     /// Callback when the cancel button is clicked
     /// </summary>
     [Parameter]
@@ -189,6 +201,14 @@
         if (OnSendEmail.HasDelegate)
         {
             await OnSendEmail.InvokeAsync();
+        }
+    }
+
+    private async Task HandleSendPushNotification()
+    {
+        if (OnSendPushNotification.HasDelegate)
+        {
+            await OnSendPushNotification.InvokeAsync();
         }
     }
 

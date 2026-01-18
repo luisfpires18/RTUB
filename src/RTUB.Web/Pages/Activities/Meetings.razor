@@ -18,6 +18,8 @@
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject IFiscalYearService FiscalYearService
+@inject IPushNotificationFactory PushNotificationFactory
+@inject IPushNotificationService PushNotificationService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -114,6 +116,7 @@ else
                         OnDelete="@(() => OpenDeleteModal(meeting))"
                         OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
                         OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
+                        OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
                         OnCancel="@(() => OpenCancelMeetingModal(meeting))"
                         OnUncancel="@(() => UncancelMeeting(meeting))" />
         }
@@ -732,6 +735,73 @@ else
         </button>
     </FooterContent>
 </Modal>
+
+<!-- Push Notification Modal -->
+<Modal Show="@showPushNotificationModal"
+       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+       Title="Enviar notificação push da reunião"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedMeetingForPush != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes da Reunião:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Tipo:</strong> @GetMeetingTypeFullName(selectedMeetingForPush.Type)</div>
+                    <div><strong>Título:</strong> @selectedMeetingForPush.Title</div>
+                    <div><strong>Data:</strong> @selectedMeetingForPush.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    @if (!string.IsNullOrEmpty(selectedMeetingForPush.Location))
+                    {
+                        <div><strong>Local:</strong> @selectedMeetingForPush.Location</div>
+                    }
+                </div>
+            </div>
+
+            @if (pushLoadingRecipients)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(pushErrorMessage))
+            {
+                <Alert Message="@pushErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => pushErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <p class="text-white-full">Será enviada uma notificação push para todos os membros elegíveis para esta reunião.</p>
+                    
+                    @if (pushRecipientCount > 0)
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> @pushRecipientCount @(pushRecipientCount == 1 ? "membro receberá" : "membros receberão") esta notificação.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Nenhum membro elegível encontrado.
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingPushNotification" disabled="@(pushRecipientCount == 0)">
+            <i class="bi bi-bell-fill"></i> Enviar Notificação Push
+        </button>
+    </FooterContent>
+</Modal>
 }
 
 @code {
@@ -791,6 +861,13 @@ else
     private int cancelMeetingTotalCount = 0;
     private bool cancelMeetingLoadingSubscribers = false;
     private string? cancelMeetingErrorMessage;
+    
+    // Push notification modal variables
+    private bool showPushNotificationModal = false;
+    private Meeting? selectedMeetingForPush;
+    private int pushRecipientCount = 0;
+    private bool pushLoadingRecipients = false;
+    private string? pushErrorMessage;
     
     // Meeting request variables
     private List<MeetingRequest> meetingRequests = new();
@@ -1538,6 +1615,134 @@ else
         {
             // Could show an error message here
             Console.WriteLine($"Error uncanceling meeting: {ex.Message}");
+        }
+    }
+    
+    // Push notification methods
+    private async Task OpenPushNotificationModal(Meeting meeting)
+    {
+        selectedMeetingForPush = meeting;
+        pushLoadingRecipients = true;
+        pushErrorMessage = null;
+        showPushNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            
+            // Build recipient list based on meeting type (same logic as email notification)
+            List<ApplicationUser> recipients;
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV meetings: Veterano + Tunossauro + Magister
+                recipients = allUsers
+                    .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
+                    .ToList();
+            }
+            else if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+            {
+                // AGO/AGE meetings: All members EXCEPT Leitão
+                recipients = allUsers
+                    .Where(u => !u.IsLeitao())
+                    .ToList();
+            }
+            else
+            {
+                // Other meeting types: all users
+                recipients = allUsers.ToList();
+            }
+            
+            pushRecipientCount = recipients.Count;
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+        }
+        finally
+        {
+            pushLoadingRecipients = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePushNotificationModal()
+    {
+        showPushNotificationModal = false;
+        selectedMeetingForPush = null;
+        pushRecipientCount = 0;
+        pushErrorMessage = null;
+    }
+
+    private async Task SendMeetingPushNotification()
+    {
+        if (selectedMeetingForPush == null || pushRecipientCount == 0)
+        {
+            ClosePushNotificationModal();
+            return;
+        }
+
+        pushLoadingRecipients = true;
+        pushErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            
+            // Build recipient list based on meeting type
+            List<ApplicationUser> recipients;
+            if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos)
+            {
+                recipients = allUsers
+                    .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
+                    .ToList();
+            }
+            else if (selectedMeetingForPush.Type == MeetingType.AssembleiaGeralOrdinaria || selectedMeetingForPush.Type == MeetingType.AssembleiaGeralExtraordinaria)
+            {
+                recipients = allUsers
+                    .Where(u => !u.IsLeitao())
+                    .ToList();
+            }
+            else
+            {
+                recipients = allUsers.ToList();
+            }
+            
+            // Use the base URL from Navigation
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            
+            // Create the notification
+            var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, baseUrl);
+
+            // Send to each recipient
+            var sentCount = 0;
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await PushNotificationService.SendToUserAsync(recipient.Id, notification);
+                    sentCount++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to send push notification to {recipient.Id}: {ex.Message}");
+                }
+            }
+
+            // Success - close modal and reload
+            pushErrorMessage = null;
+            ClosePushNotificationModal();
+            await LoadMeetingsAsync();
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao enviar notificações push: {ex.Message}";
+        }
+        finally
+        {
+            pushLoadingRecipients = false;
+            StateHasChanged();
         }
     }
     
