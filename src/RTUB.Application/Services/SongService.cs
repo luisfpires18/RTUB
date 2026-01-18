@@ -174,8 +174,8 @@ public class SongService : ISongService
         var youtubeUrl = song.YouTubeUrls.FirstOrDefault(y => CanonicalizeUrl(y.Url) == canonicalUrl);
         if (youtubeUrl != null)
         {
-            song.YouTubeUrls.Remove(youtubeUrl);
-            await _songRepository.UpdateAsync(song);
+            // Use repository method to ensure consistent data access pattern
+            await _songRepository.DeleteYouTubeUrlAsync(youtubeUrl);
         }
         else
         {
