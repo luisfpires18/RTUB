@@ -133,38 +133,59 @@ const bmrGame = (function () {
     }
 
     function loadSprites() {
-        // Load player sprite
-        sprites.player = new Image();
-        sprites.player.src = '/sprites/bmr/player.svg';
-        
-        // Load background
-        sprites.background = new Image();
-        sprites.background.src = '/sprites/bmr/background.svg';
-        
-        // Load beer
-        sprites.beer = new Image();
-        sprites.beer.src = '/sprites/bmr/beer.svg';
-        
-        // Load enemy sprites
-        if (config.enemyTiers && config.enemyTiers.length > 0) {
-            config.enemyTiers.forEach(tier => {
-                sprites.enemies[tier.name] = new Image();
-                sprites.enemies[tier.name].src = tier.spritePath;
-            });
-        }
+        // Cache busting timestamp to force reload of sprites
+        const cacheBuster = '?v=' + Date.now();
         
         // Track loaded sprites
         let loaded = 0;
-        const total = 3 + Object.keys(sprites.enemies).length;
-        const onLoad = () => {
+        let total = 3;
+        
+        const onLoad = (name) => () => {
+            console.log('[BMR] Sprite loaded:', name);
             loaded++;
-            if (loaded >= total) spritesLoaded = true;
+            if (loaded >= total) {
+                spritesLoaded = true;
+                console.log('[BMR] All sprites loaded successfully');
+            }
         };
         
-        sprites.player.onload = onLoad;
-        sprites.background.onload = onLoad;
-        sprites.beer.onload = onLoad;
-        Object.values(sprites.enemies).forEach(img => img.onload = onLoad);
+        const onError = (name, img) => () => {
+            console.warn('[BMR] Failed to load sprite:', name, '- using fallback');
+            img.failed = true;
+            loaded++;
+            if (loaded >= total) {
+                spritesLoaded = true;
+            }
+        };
+        
+        // Load player sprite
+        sprites.player = new Image();
+        sprites.player.onload = onLoad('player');
+        sprites.player.onerror = onError('player', sprites.player);
+        sprites.player.src = '/sprites/bmr/player.svg' + cacheBuster;
+        
+        // Load background
+        sprites.background = new Image();
+        sprites.background.onload = onLoad('background');
+        sprites.background.onerror = onError('background', sprites.background);
+        sprites.background.src = '/sprites/bmr/background.svg' + cacheBuster;
+        
+        // Load beer
+        sprites.beer = new Image();
+        sprites.beer.onload = onLoad('beer');
+        sprites.beer.onerror = onError('beer', sprites.beer);
+        sprites.beer.src = '/sprites/bmr/beer.svg' + cacheBuster;
+        
+        // Load enemy sprites
+        if (config.enemyTiers && config.enemyTiers.length > 0) {
+            total += config.enemyTiers.length;
+            config.enemyTiers.forEach(tier => {
+                sprites.enemies[tier.name] = new Image();
+                sprites.enemies[tier.name].onload = onLoad('enemy_' + tier.name);
+                sprites.enemies[tier.name].onerror = onError('enemy_' + tier.name, sprites.enemies[tier.name]);
+                sprites.enemies[tier.name].src = tier.spritePath + cacheBuster;
+            });
+        }
     }
 
     function setupInputHandlers() {
@@ -809,7 +830,7 @@ const bmrGame = (function () {
     }
 
     function drawBackground() {
-        if (spritesLoaded && sprites.background.complete) {
+        if (spritesLoaded && sprites.background.complete && !sprites.background.failed) {
             // Tile background with parallax effect
             const parallaxX = -cameraX * 0.3;
             const bgWidth = sprites.background.width || canvas.width;
@@ -996,7 +1017,7 @@ const bmrGame = (function () {
             if (Math.floor(performance.now() / 100) % 2 === 0) return;
         }
         
-        if (spritesLoaded && sprites.player.complete) {
+        if (spritesLoaded && sprites.player.complete && !sprites.player.failed) {
             ctx.save();
             if (player.direction === -1) {
                 // Flip horizontally when moving left
@@ -1058,7 +1079,7 @@ const bmrGame = (function () {
             // Only draw visible enemies
             if (enemy.x + enemy.width > cameraX && enemy.x < cameraX + canvas.width) {
                 const sprite = sprites.enemies[enemy.tier.name];
-                if (spritesLoaded && sprite && sprite.complete) {
+                if (spritesLoaded && sprite && sprite.complete && !sprite.failed) {
                     ctx.save();
                     if (enemy.direction === 1) {
                         // Flip horizontally when moving right
@@ -1124,7 +1145,7 @@ const bmrGame = (function () {
                     ctx.font = `${12 * scaleY}px Arial`;
                     ctx.textAlign = 'center';
                     ctx.fillText('★', beer.x + beer.width/2, beer.y - 5 * scaleY);
-                } else if (spritesLoaded && sprites.beer.complete) {
+                } else if (spritesLoaded && sprites.beer.complete && !sprites.beer.failed) {
                     ctx.drawImage(sprites.beer, beer.x, beer.y, beer.width, beer.height);
                 } else {
                     // Fallback: draw simple beer mug
