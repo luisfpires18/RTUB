@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Text.Json;
 using WebPush;
 using RTUB.Application.Configuration;
@@ -16,6 +18,9 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class PushNotificationService : IPushNotificationService
 {
+    private const int MaxRetryAttempts = 3;
+    private static readonly TimeSpan InitialRetryDelay = TimeSpan.FromMilliseconds(200);
+
     private readonly IPushSubscriptionRepository _subscriptionRepository;
     private readonly IConversationRepository _conversationRepository;
     private readonly IMessageRepository _messageRepository;
@@ -204,38 +209,78 @@ public class PushNotificationService : IPushNotificationService
     /// <summary>
     /// Sends a push notification to a specific subscription
     /// Handles failures and removes invalid subscriptions
+    /// Implements retry logic for transient network errors
     /// </summary>
     private async Task SendNotificationAsync(Core.Entities.PushSubscription subscription, SendPushNotificationDto notification)
     {
-        try
-        {
-            var pushSubscription = new WebPush.PushSubscription(
-                subscription.Endpoint,
-                subscription.P256dh,
-                subscription.Auth);
+        var pushSubscription = new WebPush.PushSubscription(
+            subscription.Endpoint,
+            subscription.P256dh,
+            subscription.Auth);
 
-            var payload = JsonSerializer.Serialize(new
+        var payload = JsonSerializer.Serialize(new
+        {
+            title = notification.Title,
+            body = notification.Body,
+            icon = notification.Icon ?? "/icons/rtub-logo-192.png",
+            url = notification.Url ?? "/",
+            tag = notification.Tag
+        });
+
+        var attempt = 0;
+        while (true)
+        {
+            try
             {
-                title = notification.Title,
-                body = notification.Body,
-                icon = notification.Icon ?? "/icons/rtub-logo-192.png",
-                url = notification.Url ?? "/",
-                tag = notification.Tag
-            });
+                await _webPushClient.SendNotificationAsync(pushSubscription, payload);
+                return; // Success, exit the method
+            }
+            catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
+                                               ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Subscription is no longer valid, remove it
+                _logger.LogWarning("Push subscription {SubscriptionId} is no longer valid, removing it", subscription.Id);
+                await _subscriptionRepository.DeleteAsync(subscription);
+                return;
+            }
+            catch (Exception ex) when (IsTransientError(ex) && attempt < MaxRetryAttempts)
+            {
+                attempt++;
+                var delay = TimeSpan.FromMilliseconds(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
+                _logger.LogWarning(ex, "Transient error sending push notification to subscription {SubscriptionId}, retrying (attempt {Attempt}/{MaxAttempts}) after {Delay}ms",
+                    subscription.Id, attempt, MaxRetryAttempts, delay.TotalMilliseconds);
+                await Task.Delay(delay);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending push notification to subscription {SubscriptionId}", subscription.Id);
+                return;
+            }
+        }
+    }
 
-            await _webPushClient.SendNotificationAsync(pushSubscription, payload);
-        }
-        catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
-                                           ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            // Subscription is no longer valid, remove it
-            _logger.LogWarning("Push subscription {SubscriptionId} is no longer valid, removing it", subscription.Id);
-            await _subscriptionRepository.DeleteAsync(subscription);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending push notification to subscription {SubscriptionId}", subscription.Id);
-        }
+    /// <summary>
+    /// Determines if an exception represents a transient error that should be retried
+    /// </summary>
+    private static bool IsTransientError(Exception ex)
+    {
+        // Check for HttpRequestException which wraps network errors
+        if (ex is HttpRequestException)
+            return true;
+
+        // Check for IOException (e.g., Broken pipe)
+        if (ex is IOException)
+            return true;
+
+        // Check for SocketException
+        if (ex is SocketException)
+            return true;
+
+        // Check inner exceptions for transient errors
+        if (ex.InnerException != null)
+            return IsTransientError(ex.InnerException);
+
+        return false;
     }
 
     /// <summary>
