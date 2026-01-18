@@ -128,7 +128,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 eventCount, rehearsalCount, meetingCount);
 
             // Create notification with summary
-            var baseUrl = "https://rtub.pt"; // Fallback URL since we don't have HttpContext
+            var baseUrl = _options.BaseUrl;
             var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
                 eventCount, rehearsalCount, meetingCount, baseUrl);
 

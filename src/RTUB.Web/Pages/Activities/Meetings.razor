@@ -23,6 +23,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject ILogger<Meetings> Logger
 
 @if (currentUser != null && currentUser.IsLeitao())
 {
@@ -1630,34 +1631,13 @@ else
         try
         {
             var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            
-            // Build recipient list based on meeting type (same logic as email notification)
-            List<ApplicationUser> recipients;
-            if (meeting.Type == MeetingType.ConselhoVeteranos)
-            {
-                // CV meetings: Veterano + Tunossauro + Magister
-                recipients = allUsers
-                    .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
-                    .ToList();
-            }
-            else if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
-            {
-                // AGO/AGE meetings: All members EXCEPT Leitão
-                recipients = allUsers
-                    .Where(u => !u.IsLeitao())
-                    .ToList();
-            }
-            else
-            {
-                // Other meeting types: all users
-                recipients = allUsers.ToList();
-            }
-            
+            var recipients = GetEligibleMeetingRecipients(meeting, allUsers);
             pushRecipientCount = recipients.Count;
         }
         catch (Exception ex)
         {
             pushErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+            Logger.LogError(ex, "Error loading push notification recipients for meeting {MeetingId}", meeting.Id);
         }
         finally
         {
@@ -1689,25 +1669,7 @@ else
         try
         {
             var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            
-            // Build recipient list based on meeting type
-            List<ApplicationUser> recipients;
-            if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos)
-            {
-                recipients = allUsers
-                    .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
-                    .ToList();
-            }
-            else if (selectedMeetingForPush.Type == MeetingType.AssembleiaGeralOrdinaria || selectedMeetingForPush.Type == MeetingType.AssembleiaGeralExtraordinaria)
-            {
-                recipients = allUsers
-                    .Where(u => !u.IsLeitao())
-                    .ToList();
-            }
-            else
-            {
-                recipients = allUsers.ToList();
-            }
+            var recipients = GetEligibleMeetingRecipients(selectedMeetingForPush, allUsers);
             
             // Use the base URL from Navigation
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
@@ -1726,9 +1688,13 @@ else
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to send push notification to {recipient.Id}: {ex.Message}");
+                    Logger.LogWarning(ex, "Failed to send push notification to user {UserId} for meeting {MeetingId}", 
+                        recipient.Id, selectedMeetingForPush.Id);
                 }
             }
+
+            Logger.LogInformation("Sent push notification for meeting {MeetingId} to {SentCount}/{TotalCount} recipients",
+                selectedMeetingForPush.Id, sentCount, recipients.Count);
 
             // Success - close modal and reload
             pushErrorMessage = null;
@@ -1738,6 +1704,7 @@ else
         catch (Exception ex)
         {
             pushErrorMessage = $"Erro ao enviar notificações push: {ex.Message}";
+            Logger.LogError(ex, "Error sending push notifications for meeting {MeetingId}", selectedMeetingForPush?.Id);
         }
         finally
         {
@@ -1941,6 +1908,32 @@ else
                currentUser.Positions.Contains(Position.Secretario) ||
                currentUser.Positions.Contains(Position.PrimeiroTesoureiro) ||
                currentUser.Positions.Contains(Position.SegundoTesoureiro);
+    }
+    
+    /// <summary>
+    /// Gets the list of eligible recipients for a meeting based on its type
+    /// </summary>
+    private List<ApplicationUser> GetEligibleMeetingRecipients(Meeting meeting, List<ApplicationUser> allUsers)
+    {
+        if (meeting.Type == MeetingType.ConselhoVeteranos)
+        {
+            // CV meetings: Veterano + Tunossauro + Magister
+            return allUsers
+                .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
+                .ToList();
+        }
+        else if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+        {
+            // AGO/AGE meetings: All members EXCEPT Leitão
+            return allUsers
+                .Where(u => !u.IsLeitao())
+                .ToList();
+        }
+        else
+        {
+            // Other meeting types: all users
+            return allUsers.ToList();
+        }
     }
     
     private bool CanViewCVRequests()
