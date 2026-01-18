@@ -227,7 +227,8 @@ public class PushNotificationService : IPushNotificationService
             tag = notification.Tag
         });
 
-        for (var attempt = 0; attempt <= MaxRetryAttempts; attempt++)
+        // Total attempts = 1 initial + MaxRetryAttempts retries
+        for (var attempt = 1; attempt <= MaxRetryAttempts + 1; attempt++)
         {
             try
             {
@@ -242,11 +243,11 @@ public class PushNotificationService : IPushNotificationService
                 await _subscriptionRepository.DeleteAsync(subscription);
                 return;
             }
-            catch (Exception ex) when (IsTransientError(ex) && attempt < MaxRetryAttempts)
+            catch (Exception ex) when (IsTransientError(ex) && attempt <= MaxRetryAttempts)
             {
-                var delay = TimeSpan.FromMilliseconds(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                _logger.LogWarning(ex, "Transient error sending push notification to subscription {SubscriptionId}, retrying (attempt {Attempt}/{MaxAttempts}) after {Delay}ms",
-                    subscription.Id, attempt + 1, MaxRetryAttempts, delay.TotalMilliseconds);
+                var delay = TimeSpan.FromMilliseconds(InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
+                _logger.LogWarning(ex, "Transient error sending push notification to subscription {SubscriptionId}, retry {RetryAttempt} of {MaxRetries} after {Delay}ms",
+                    subscription.Id, attempt, MaxRetryAttempts, delay.TotalMilliseconds);
                 await Task.Delay(delay);
             }
             catch (Exception ex)
