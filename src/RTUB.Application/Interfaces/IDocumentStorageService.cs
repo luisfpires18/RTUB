@@ -30,6 +30,13 @@ public interface IDocumentStorageService
     Task<List<string>> ListFoldersAsync(string prefix = "docs/");
 
     /// <summary>
+    /// Lists all subfolders within a given folder path (without adding environment prefix)
+    /// </summary>
+    /// <param name="folderPath">The full folder path to search (e.g., "docs/Production/Logistics/")</param>
+    /// <returns>List of subfolder names (not full paths)</returns>
+    Task<List<string>> ListSubfoldersAsync(string folderPath);
+
+    /// <summary>
     /// Lists all documents in a specific folder
     /// </summary>
     /// <param name="folderPath">The folder path to search (e.g., "docs/General/")</param>

@@ -81,6 +81,39 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         }
     }
 
+    public async Task<List<string>> ListSubfoldersAsync(string folderPath)
+    {
+        try
+        {
+            // Ensure folder path ends with /
+            if (!folderPath.EndsWith("/"))
+            {
+                folderPath += "/";
+            }
+
+            var commonPrefixes = await ListCommonPrefixesAsync(folderPath);
+
+            // Extract folder names from prefixes
+            var folders = new List<string>();
+            foreach (var commonPrefix in commonPrefixes)
+            {
+                // Extract folder name from prefix
+                var folderName = commonPrefix.TrimEnd('/').Substring(folderPath.Length);
+                if (!string.IsNullOrEmpty(folderName))
+                {
+                    folders.Add(folderName);
+                }
+            }
+
+            return folders;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing subfolders in {FolderPath}", folderPath);
+            return [];
+        }
+    }
+
     public async Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath)
     {
         try
