@@ -110,7 +110,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
             // Get all rehearsals for the current week
             var rehearsals = await context.Rehearsals
                 .AsNoTracking()
-                .Where(r => r.Date >= weekStart && r.Date <= weekEnd && !r.IsCancelled)
+                .Where(r => r.Date >= weekStart && r.Date <= weekEnd && !r.IsCanceled)
                 .ToListAsync(cancellationToken);
 
             // Get all meetings for the current week
