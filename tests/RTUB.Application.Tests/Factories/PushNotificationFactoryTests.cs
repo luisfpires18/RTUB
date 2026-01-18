@@ -555,4 +555,134 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.Equal("https://rtub.example.com/events", notification.Url);
     }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithAllActivities_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventCount = 2;
+        var rehearsalCount = 3;
+        var meetingCount = 1;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Resumo Semanal", notification.Title);
+        Assert.Equal("Esta semana tens: 2 atuações, 3 ensaios, 1 reunião", notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("weekly-summary", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithOnlyEvents_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventCount = 1;
+        var rehearsalCount = 0;
+        var meetingCount = 0;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Resumo Semanal", notification.Title);
+        Assert.Equal("Esta semana tens: 1 atuação", notification.Body);
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithOnlyRehearsals_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventCount = 0;
+        var rehearsalCount = 2;
+        var meetingCount = 0;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Resumo Semanal", notification.Title);
+        Assert.Equal("Esta semana tens: 2 ensaios", notification.Body);
+        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithOnlyMeetings_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventCount = 0;
+        var rehearsalCount = 0;
+        var meetingCount = 2;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Resumo Semanal", notification.Title);
+        Assert.Equal("Esta semana tens: 2 reuniões", notification.Body);
+        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithNoActivities_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventCount = 0;
+        var rehearsalCount = 0;
+        var meetingCount = 0;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Resumo Semanal", notification.Title);
+        Assert.Equal("Não há atividades agendadas para esta semana.", notification.Body);
+        Assert.Equal("https://rtub.example.com", notification.Url);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_WithSingularCounts_UsesCorrectGrammar()
+    {
+        // Arrange
+        var eventCount = 1;
+        var rehearsalCount = 1;
+        var meetingCount = 1;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Esta semana tens: 1 atuação, 1 ensaio, 1 reunião", notification.Body);
+    }
+
+    [Fact]
+    public void CreateWeeklySummaryNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
+    {
+        // Arrange
+        var eventCount = 1;
+        var rehearsalCount = 0;
+        var meetingCount = 0;
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreateWeeklySummaryNotification(eventCount, rehearsalCount, meetingCount, baseUrl);
+
+        // Assert
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+    }
 }

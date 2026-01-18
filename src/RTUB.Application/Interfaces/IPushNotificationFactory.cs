@@ -264,4 +264,15 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateNaipeContentNotification(string contentTitle, string instrumentTypeName, bool isVideo, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for weekly summary of events, rehearsals, and meetings.
+    /// Sent to all users every Monday.
+    /// </summary>
+    /// <param name="eventCount">Number of events this week</param>
+    /// <param name="rehearsalCount">Number of rehearsals this week</param>
+    /// <param name="meetingCount">Number of meetings this week</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl);
 }

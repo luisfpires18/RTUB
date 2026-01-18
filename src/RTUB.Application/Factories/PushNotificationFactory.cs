@@ -726,4 +726,61 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"naipe-content-{instrumentTypeName.ToLower().Replace(" ", "-")}"
         };
     }
+
+    /// <summary>
+    /// Creates a push notification for weekly summary of events, rehearsals, and meetings.
+    /// </summary>
+    public SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var totalCount = eventCount + rehearsalCount + meetingCount;
+        
+        // Build activity summary
+        var activities = new List<string>();
+        if (eventCount > 0)
+        {
+            activities.Add(eventCount == 1 ? "1 atuação" : $"{eventCount} atuações");
+        }
+        if (rehearsalCount > 0)
+        {
+            activities.Add(rehearsalCount == 1 ? "1 ensaio" : $"{rehearsalCount} ensaios");
+        }
+        if (meetingCount > 0)
+        {
+            activities.Add(meetingCount == 1 ? "1 reunião" : $"{meetingCount} reuniões");
+        }
+
+        var activitySummary = string.Join(", ", activities);
+        
+        // Determine the URL to navigate to based on what's scheduled
+        string url;
+        if (eventCount > 0)
+        {
+            url = $"{baseUrl.TrimEnd('/')}/events";
+        }
+        else if (rehearsalCount > 0)
+        {
+            url = $"{baseUrl.TrimEnd('/')}/rehearsals";
+        }
+        else if (meetingCount > 0)
+        {
+            url = $"{baseUrl.TrimEnd('/')}/meetings";
+        }
+        else
+        {
+            url = baseUrl.TrimEnd('/');
+        }
+
+        return new SendPushNotificationDto
+        {
+            Title = "Resumo Semanal",
+            Body = totalCount == 0 
+                ? "Não há atividades agendadas para esta semana." 
+                : $"Esta semana tens: {activitySummary}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = url,
+            Tag = "weekly-summary"
+        };
+    }
 }
