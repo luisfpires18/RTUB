@@ -777,28 +777,36 @@ else
             }
             else
             {
-                <div class="mb-3">
-                    <p class="text-white-full">Será enviada uma notificação push para todos os membros elegíveis para esta reunião.</p>
-                    
-                    @if (pushRecipientCount > 0)
-                    {
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> @pushRecipientCount @(pushRecipientCount == 1 ? "membro receberá" : "membros receberão") esta notificação.
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> Nenhum membro elegível encontrado.
-                        </div>
-                    }
-                </div>
+                @if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
+                        <select class="form-select" @bind="selectedPushTunoId">
+                            <option value="">-- Selecionar Tuno --</option>
+                            @foreach (var tuno in pushTunoUsers)
+                            {
+                                <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                            }
+                        </select>
+                        <small class="text-muted">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</small>
+                    </div>
+                }
+                
+                <EmailRecipientsPreview 
+                    SubscribedUsers="@(pushRecipients ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Destinatários:"
+                    ShowNonSubscribedUsers="false"
+                    MaxHeight="200px"
+                    InfoBadgeText="@($"{pushRecipientCount} membros receberão esta notificação push.")"
+                    AdditionalUserInfoFunc="@(selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos ? new Func<ApplicationUser, string>(GetYearsAsTunoDisplay) : null)"
+                    ShowEmptySubscribedMessage="true"
+                    EmptySubscribedMessage="Nenhum destinatário encontrado." />
             }
         }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingPushNotification" disabled="@(pushRecipientCount == 0)">
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingPushNotification" disabled="@(pushRecipients == null || !pushRecipients.Any())">
             <i class="bi bi-bell-fill"></i> Enviar Notificação Push
         </button>
     </FooterContent>
@@ -866,9 +874,12 @@ else
     // Push notification modal variables
     private bool showPushNotificationModal = false;
     private Meeting? selectedMeetingForPush;
+    private List<ApplicationUser>? pushRecipients;
+    private List<ApplicationUser>? pushTunoUsers;
     private int pushRecipientCount = 0;
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
+    private string selectedPushTunoId = string.Empty;
     
     // Meeting request variables
     private List<MeetingRequest> meetingRequests = new();
@@ -1625,14 +1636,65 @@ else
         selectedMeetingForPush = meeting;
         pushLoadingRecipients = true;
         pushErrorMessage = null;
+        selectedPushTunoId = string.Empty;
         showPushNotificationModal = true;
         StateHasChanged();
 
         try
         {
             var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            var recipients = GetEligibleMeetingRecipients(meeting, allUsers);
-            pushRecipientCount = recipients.Count;
+            
+            // Build recipient list based on meeting type (same logic as email, but without subscription filter)
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV meetings: Veterano + Tunossauro + Magister
+                pushRecipients = allUsers
+                    .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+
+                // Get list of Tuno users for selection (only Tunos who haven't reached Veterano yet)
+                pushTunoUsers = allUsers
+                    .Where(u => u.CurrentRole == "TUNO")
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+            }
+            else if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+            {
+                // AGO/AGE meetings: All members EXCEPT Leitão
+                pushRecipients = allUsers
+                    .Where(u => !u.IsLeitao())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                pushTunoUsers = null;
+            }
+            else if (meeting.Type == MeetingType.ReuniaoDirecao)
+            {
+                // Direção meetings: Only Direção members
+                pushRecipients = allUsers
+                    .Where(u => u.Positions != null && 
+                               (u.Positions.Contains(Position.Magister) ||
+                                u.Positions.Contains(Position.ViceMagister) ||
+                                u.Positions.Contains(Position.Secretario) ||
+                                u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                                u.Positions.Contains(Position.SegundoTesoureiro)))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                pushTunoUsers = null;
+            }
+            else
+            {
+                // Default: all users
+                pushRecipients = allUsers
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                pushTunoUsers = null;
+            }
+            
+            pushRecipientCount = pushRecipients.Count;
         }
         catch (Exception ex)
         {
@@ -1650,13 +1712,16 @@ else
     {
         showPushNotificationModal = false;
         selectedMeetingForPush = null;
+        pushRecipients = null;
+        pushTunoUsers = null;
         pushRecipientCount = 0;
         pushErrorMessage = null;
+        selectedPushTunoId = string.Empty;
     }
 
     private async Task SendMeetingPushNotification()
     {
-        if (selectedMeetingForPush == null || pushRecipientCount == 0)
+        if (selectedMeetingForPush == null || pushRecipients == null || !pushRecipients.Any())
         {
             ClosePushNotificationModal();
             return;
@@ -1668,18 +1733,30 @@ else
 
         try
         {
-            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
-            var recipients = GetEligibleMeetingRecipients(selectedMeetingForPush, allUsers);
-            
             // Use the base URL from Navigation
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
             
             // Create the notification
             var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, baseUrl);
 
+            // Build final recipient list
+            var finalRecipients = pushRecipients.ToList();
+            
+            // Add selected Tuno if applicable for CV meetings
+            if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos && 
+                !string.IsNullOrEmpty(selectedPushTunoId) && 
+                pushTunoUsers != null)
+            {
+                var selectedTuno = pushTunoUsers.FirstOrDefault(t => t.Id == selectedPushTunoId);
+                if (selectedTuno != null && !finalRecipients.Any(r => r.Id == selectedTuno.Id))
+                {
+                    finalRecipients.Add(selectedTuno);
+                }
+            }
+
             // Send to each recipient
             var sentCount = 0;
-            foreach (var recipient in recipients)
+            foreach (var recipient in finalRecipients)
             {
                 try
                 {
@@ -1694,7 +1771,7 @@ else
             }
 
             Logger.LogInformation("Sent push notification for meeting {MeetingId} to {SentCount}/{TotalCount} recipients",
-                selectedMeetingForPush.Id, sentCount, recipients.Count);
+                selectedMeetingForPush.Id, sentCount, finalRecipients.Count);
 
             // Success - close modal and reload
             pushErrorMessage = null;
