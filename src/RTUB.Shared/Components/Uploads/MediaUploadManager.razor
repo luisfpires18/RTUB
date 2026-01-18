@@ -23,7 +23,7 @@
             <br />
             @if (IsVideo(CurrentMediaUrl))
             {
-                <video controls class="img-thumbnail mt-1 @PreviewCssClass" style="max-width: 300px;">
+                <video muted preload="metadata" class="img-thumbnail mt-1 @PreviewCssClass" style="max-width: 300px;">
                     <source src="@CurrentMediaUrl" />
                 </video>
             }
@@ -109,6 +109,11 @@
     private bool IsVideo(string? url)
     {
         if (string.IsNullOrEmpty(url)) return false;
+        
+        // Check for data URLs with video MIME type
+        if (url.StartsWith("data:video/", StringComparison.OrdinalIgnoreCase))
+            return true;
+        
         var videoExtensions = new[] { ".mp4", ".webm", ".ogg", ".mov", ".avi" };
         return videoExtensions.Any(ext => url.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }

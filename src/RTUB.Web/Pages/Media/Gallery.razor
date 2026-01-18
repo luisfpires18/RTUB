@@ -687,13 +687,14 @@ else
     {
         selectedFile = file;
 
-        // Generate preview for images
-        if (selectedFile.ContentType.StartsWith("image/"))
+        // Generate preview for images and videos
+        if (selectedFile.ContentType.StartsWith("image/") || selectedFile.ContentType.StartsWith("video/"))
         {
             try
             {
+                var maxSize = selectedFile.ContentType.StartsWith("video/") ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
                 var buffer = new byte[selectedFile.Size];
-                using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                using var stream = selectedFile.OpenReadStream(maxAllowedSize: maxSize);
                 await stream.ReadAsync(buffer);
                 var base64 = Convert.ToBase64String(buffer);
                 uploadModel.PreviewUrl = $"data:{selectedFile.ContentType};base64,{base64}";
