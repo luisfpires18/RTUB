@@ -215,6 +215,8 @@ public class MessagingService : IMessagingService
         await _conversationRepository.UpdateAsync(conversation);
 
         // System messages have a single recipient
+        // Note: receiverId is passed as currentUserId for the DTO's IsRead perspective calculation
+        // (system messages have null SenderId, so IsRead will be calculated from receiver's perspective)
         var recipientIds = new List<string> { receiverId };
 
         return MapMessageToDto(message, receiverId, null, recipientIds);

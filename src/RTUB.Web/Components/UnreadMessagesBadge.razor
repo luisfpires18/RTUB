@@ -140,8 +140,13 @@
     {
         // Only update if the current user is an actual recipient of this message
         // (i.e., they are in the RecipientIds list and are not the sender)
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return;
+        }
+
         if (message.SenderId != currentUserId && 
-            message.RecipientIds.Contains(currentUserId!))
+            message.RecipientIds.Contains(currentUserId))
         {
             await InvokeAsync(async () =>
             {
