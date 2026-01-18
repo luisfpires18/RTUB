@@ -428,7 +428,8 @@ else
                 else
                 {
                     // Regular folder - list documents directly
-                    documents = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
+                    var regularDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
+                    documents.AddRange(regularDocs);
                 }
                 
                 return new { Folder = folder, Documents = documents };

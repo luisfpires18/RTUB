@@ -113,11 +113,15 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             var folders = new List<string>();
             foreach (var commonPrefix in commonPrefixes)
             {
-                // Extract folder name from prefix (e.g., "docs/Production/Logistics/BoardName/" -> "BoardName")
-                var folderName = commonPrefix.TrimEnd('/').Substring(folderPath.Length);
-                if (!string.IsNullOrEmpty(folderName))
+                // Ensure the prefix is long enough before extracting folder name
+                var trimmedPrefix = commonPrefix.TrimEnd('/');
+                if (trimmedPrefix.Length > folderPath.Length)
                 {
-                    folders.Add(folderName);
+                    var folderName = trimmedPrefix.Substring(folderPath.Length);
+                    if (!string.IsNullOrEmpty(folderName))
+                    {
+                        folders.Add(folderName);
+                    }
                 }
             }
 
