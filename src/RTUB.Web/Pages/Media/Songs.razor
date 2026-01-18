@@ -940,22 +940,23 @@ else
             await SongService.SetSongLyricsAsync(editingSong.Id, editingSong.Lyrics);
 
             // Update YouTube URLs - remove old ones and add new ones
+            // Use case-insensitive comparison to match service layer canonicalization
             var oldUrls = existing.YouTubeUrls?.Select(y => y.Url).ToList() ?? new List<string>();
             var newUrls = editingYouTubeUrls.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u.Trim()).ToList();
 
-            // Remove URLs that are no longer in the list
+            // Remove URLs that are no longer in the list (case-insensitive comparison)
             foreach (var oldUrl in oldUrls)
             {
-                if (!newUrls.Contains(oldUrl))
+                if (!newUrls.Any(n => string.Equals(n, oldUrl, StringComparison.OrdinalIgnoreCase)))
                 {
                     await SongService.RemoveYouTubeUrlAsync(editingSong.Id, oldUrl);
                 }
             }
 
-            // Add new URLs that weren't in the old list
+            // Add new URLs that weren't in the old list (case-insensitive comparison)
             foreach (var newUrl in newUrls)
             {
-                if (!oldUrls.Contains(newUrl))
+                if (!oldUrls.Any(o => string.Equals(o, newUrl, StringComparison.OrdinalIgnoreCase)))
                 {
                     await SongService.AddYouTubeUrlAsync(editingSong.Id, newUrl);
                 }
