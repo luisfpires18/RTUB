@@ -131,8 +131,11 @@ public class MessagingService : IMessagingService
         // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
         var sender = await _userManager.FindByIdAsync(senderId);
 
-        // Create DTO for broadcasting with sender info
-        var resultDto = MapMessageToDto(message, senderId, sender);
+        // Get recipient IDs (all participants except the sender) for real-time notification filtering
+        var recipientIds = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
+
+        // Create DTO for broadcasting with sender info and recipient IDs
+        var resultDto = MapMessageToDto(message, senderId, sender, recipientIds);
 
         // Broadcast message via SignalR to all participants in the conversation
         if (_messagesHubService != null)
@@ -211,7 +214,10 @@ public class MessagingService : IMessagingService
         conversation.LastMessageId = message.Id;
         await _conversationRepository.UpdateAsync(conversation);
 
-        return MapMessageToDto(message, receiverId);
+        // System messages have a single recipient
+        var recipientIds = new List<string> { receiverId };
+
+        return MapMessageToDto(message, receiverId, null, recipientIds);
     }
 
     public async Task MarkConversationAsReadAsync(int conversationId, string userId)
@@ -360,8 +366,11 @@ public class MessagingService : IMessagingService
         // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
         var sender = await _userManager.FindByIdAsync(senderId);
 
-        // Create DTO for broadcasting with sender info
-        var messageDto = MapMessageToDto(message, senderId, sender);
+        // Get recipient IDs (all participants except the sender) for real-time notification filtering
+        var recipientIds = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
+
+        // Create DTO for broadcasting with sender info and recipient IDs
+        var messageDto = MapMessageToDto(message, senderId, sender, recipientIds);
 
         // Broadcast message via SignalR to all participants in the conversation
         if (_messagesHubService != null)
@@ -376,12 +385,10 @@ public class MessagingService : IMessagingService
             var messagePreview = body.Length > MessagePreviewMaxLength ? $"{body[..MessagePreviewMaxLength]}..." : body;
             var groupName = conversation.Title ?? "Grupo";
 
-            var otherParticipants = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
+            // Batch fetch muted status for all recipients in one query
+            var mutedUserIds = await _settingsRepository.GetMutedUserIdsAsync(conversationId, recipientIds);
 
-            // Batch fetch muted status for all participants in one query
-            var mutedUserIds = await _settingsRepository.GetMutedUserIdsAsync(conversationId, otherParticipants);
-
-            // Send push notifications in parallel to non-muted participants
+            // Send push notifications in parallel to non-muted recipients
             var notification = new SendPushNotificationDto
             {
                 Title = $"Nova mensagem no grupo {groupName}",
@@ -391,7 +398,7 @@ public class MessagingService : IMessagingService
                 Tag = $"message-{conversationId}"
             };
 
-            var pushTasks = otherParticipants
+            var pushTasks = recipientIds
                 .Where(participantId => !mutedUserIds.Contains(participantId))
                 .Select(participantId => _pushNotificationService.SendPushOnlyAsync(participantId, notification));
 
@@ -554,7 +561,7 @@ public class MessagingService : IMessagingService
         return dto;
     }
 
-    private MessageDto MapMessageToDto(Message message, string currentUserId, ApplicationUser? senderOverride = null)
+    private MessageDto MapMessageToDto(Message message, string currentUserId, ApplicationUser? senderOverride = null, List<string>? recipientIds = null)
     {
         // Determine IsRead based on the perspective:
         // - For messages SENT by current user: true if any recipient has read it
@@ -573,7 +580,8 @@ public class MessagingService : IMessagingService
             CreatedAt = message.CreatedAt,
             IsRead = isRead,
             Link = message.Link,
-            ReadBy = message.ReadBy
+            ReadBy = message.ReadBy,
+            RecipientIds = recipientIds ?? []
         };
 
         // Use senderOverride if provided, otherwise fall back to message.Sender navigation property

@@ -1280,6 +1280,16 @@
 
     private async Task HandleMessageReceived(MessageDto message)
     {
+        // Only process this message if the current user is involved (either as sender or recipient)
+        var isCurrentUserSender = message.SenderId == currentUserId;
+        var isCurrentUserRecipient = message.RecipientIds.Contains(currentUserId);
+        
+        if (!isCurrentUserSender && !isCurrentUserRecipient)
+        {
+            // This message is not for the current user, ignore it
+            return;
+        }
+
         await InvokeAsync(async () =>
         {
             bool needsConversationReload = false;
@@ -1297,7 +1307,7 @@
                         // Skip updating preview if message is from current user (already updated in SendMessage)
                         // and only update if the incoming message is strictly newer than the current preview
                         // Use > to prevent messages with identical timestamps from overwriting each other
-                        if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
+                        if (!isCurrentUserSender && message.CreatedAt > conversation.LastMessageAt)
                         {
                             conversation.LastMessageAt = message.CreatedAt;
                             // Truncate the preview if it exceeds the max length
@@ -1308,7 +1318,7 @@
                         }
                         
                         // Only increment unread count if this is not the current conversation AND it's not from the current user
-                        if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                        if (selectedConversation?.Id != message.ConversationId && !isCurrentUserSender)
                         {
                             conversation.UnreadCount++;
                         }
@@ -1357,7 +1367,7 @@
                     
                     // For messages sent by current user, always scroll to bottom
                     // For messages received from others, only scroll if user is near bottom
-                    if (message.SenderId == currentUserId)
+                    if (isCurrentUserSender)
                     {
                         shouldScrollToBottom = true;
                     }
@@ -1368,7 +1378,7 @@
                 }
 
                 // If message is from another user, mark as read
-                if (message.SenderId != currentUserId)
+                if (!isCurrentUserSender)
                 {
                     await MessagingService.MarkConversationAsReadAsync(message.ConversationId, currentUserId);
                     UnreadMessagesBadge.RequestRefresh();
@@ -1377,7 +1387,7 @@
             else
             {
                 // Message is for a different conversation - notify badge
-                if (message.SenderId != currentUserId)
+                if (!isCurrentUserSender)
                 {
                     UnreadMessagesBadge.RequestRefresh();
                 }
