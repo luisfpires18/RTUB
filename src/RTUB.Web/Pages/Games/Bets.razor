@@ -690,7 +690,14 @@
     private void OpenCreateModal()
     {
         isCreateMode = true;
-        editingBet = Bet.Create("", DateTime.Now.AddDays(7), BetCategory.DECISION);
+        editingBet = new Bet
+        {
+            Title = string.Empty,
+            Description = string.Empty,
+            Location = string.Empty,
+            DateTime = DateTime.Now.AddDays(7),
+            BetCategory = BetCategory.DECISION
+        };
         selectedImageFile = null;
         showEditModal = true;
     }
