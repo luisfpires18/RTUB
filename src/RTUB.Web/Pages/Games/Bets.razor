@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
+@using RTUB.Application.Utilities
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
@@ -482,6 +483,16 @@
     </BodyContent>
 </Modal>
 
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1.5"
+              AspectRatioHelp="As imagens de apostas são exibidas em proporção 3:2 para melhor apresentação"
+              ImageFormat="image/webp"
+              ImageQuality="0.85" />
+
 @code {
     // User and auth
     private ApplicationUser? currentUser;
@@ -520,6 +531,13 @@
     private Bet? selectedBet;
     private ImageUploadManager? imageUploadManager;
     private IBrowserFile? selectedImageFile;
+    
+    // Image Cropper
+    private ImageCropper? imageCropper;
+    private bool showCropperModal = false;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "bet-image.webp";
+    private string? uploadedImagePath;
 
     // Place Bet
     private int selectedBetOptionId = 0;
@@ -699,6 +717,8 @@
             BetCategory = BetCategory.DECISION
         };
         selectedImageFile = null;
+        croppedImageBytes = null;
+        uploadedImagePath = null;
         showEditModal = true;
     }
 
@@ -707,6 +727,8 @@
         isCreateMode = false;
         editingBet = bet;
         selectedImageFile = null;
+        croppedImageBytes = null;
+        uploadedImagePath = null;
         showEditModal = true;
     }
 
@@ -715,6 +737,8 @@
         showEditModal = false;
         editingBet = null;
         selectedImageFile = null;
+        croppedImageBytes = null;
+        uploadedImagePath = null;
     }
 
     private async Task SaveBet()
@@ -724,27 +748,33 @@
         isSaving = true;
         try
         {
-            // Handle image upload if new image selected
-            if (selectedImageFile != null)
-            {
-                // Upload image to storage
-                using var stream = selectedImageFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-                var imagePath = await ImageStorageService.UploadImageAsync(
-                    stream,
-                    selectedImageFile.Name,
-                    selectedImageFile.ContentType,
-                    "bets",
-                    editingBet.Id.ToString()
-                );
-                editingBet.SetImage(imagePath);
-            }
-
             if (isCreateMode)
             {
+                // Upload image BEFORE creating entity to include in single Create audit log
+                string? imageUrl = null;
+                if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedImageBytes);
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
+                    imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
+                }
+
+                if (imageUrl != null)
+                {
+                    editingBet.SetImage(imageUrl);
+                }
                 await BetService.CreateBetAsync(editingBet);
             }
             else
             {
+                // Check if we're updating with new image
+                if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
+                {
+                    using var stream = new MemoryStream(croppedImageBytes);
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
+                    editingBet.SetImage(imageUrl);
+                }
                 await BetService.UpdateBetAsync(editingBet);
             }
 
@@ -882,6 +912,52 @@
 
     private async Task HandleImageSelected(IBrowserFile file)
     {
-        selectedImageFile = file;
+        try
+        {
+            if (file != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (file.Size > maxFileSize)
+                {
+                    return;
+                }
+
+                selectedImageFile = file;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedImageFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private void OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (editingBet != null && croppedImageData != null && croppedImageData.Length > 0)
+            {
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
+                uploadedImagePath = "uploaded";
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
     }
 }
