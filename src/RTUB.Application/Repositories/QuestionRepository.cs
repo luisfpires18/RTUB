@@ -63,11 +63,9 @@ public class QuestionRepository : IQuestionRepository
         query = ApplyFilters(query, searchTerm, statuses, assignedMemberId);
 
         query = orderByLatestActivity
-            ? query.OrderByDescending(q => q.Replies
-                .Where(r => !r.IsDeleted)
-                .Select(r => (DateTime?)r.CreatedAt)
-                .DefaultIfEmpty(q.CreatedAt)
-                .Max())
+            ? query.OrderByDescending(q =>
+                q.Replies.Where(r => !r.IsDeleted)
+                    .Max(r => (DateTime?)r.CreatedAt) ?? q.CreatedAt)
             : query.OrderByDescending(q => q.CreatedAt);
 
         return await query
