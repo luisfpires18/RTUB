@@ -120,6 +120,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Games DbSet
     public DbSet<Game> Games { get; set; }
 
+    // Betting DbSets
+    public DbSet<Bet> Bets { get; set; }
+    public DbSet<BetOption> BetOptions { get; set; }
+    public DbSet<UserBet> UserBets { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

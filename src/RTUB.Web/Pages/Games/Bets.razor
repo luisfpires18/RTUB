@@ -1,0 +1,880 @@
+@page "/bets"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@inject IBetService BetService
+@inject IDiscussionService DiscussionService
+@inject IPostService PostService
+@inject IImageStorageService ImageStorageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [Authorize]
+
+<PageTitle>Apostas - RTUB</PageTitle>
+
+<div class="bets-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-cash-coin"></i> Apostas</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">
+                    Próximas apostas e resultados anteriores.
+                    @if (currentUser != null)
+                    {
+                        <br />
+                        <span class="badge bg-success mt-2">
+                            <i class="bi bi-coin me-1"></i>
+                            Saldo: @currentUser.FidelisBalance.ToString("F2") Fidelis
+                        </span>
+                    }
+                </p>
+            </div>
+
+            <div class="page-header-actions justify-content-lg-end">
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
+                            <i class="bi bi-plus-lg"></i> Adicionar Aposta
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </div>
+
+    @if (futureBets == null || pastBets == null)
+    {
+        <LoadingSpinner />
+    }
+    else if (!futureBets.Any() && !pastBets.Any())
+    {
+        <EmptyState Title="Nenhuma aposta encontrada"
+                    Message="Ainda não há apostas disponíveis. Aguarde novidades!"
+                    Icon="bi-cash-coin" />
+    }
+    else
+    {
+        @* Future Bets Section *@
+        @if (futureBets.Any())
+        {
+            <div class="mb-4">
+                <h2 class="mb-3">Apostas Futuras</h2>
+                <div class="row">
+                    @foreach (var bet in paginatedFutureBets)
+                    {
+                        <div class="col-md-4 mb-4" @key="bet.Id">
+                            @{
+                                var userBet = GetUserBet(bet.Id);
+                                var betOptions = GetBetOptions(bet.Id);
+                                var discussionCount = GetDiscussionCount(bet.Id);
+                            }
+                            <BetCard Bet="@bet"
+                                     UserBet="@userBet"
+                                     BetOptions="@betOptions"
+                                     DiscussionCount="@discussionCount"
+                                     IsAdmin="@isAdmin"
+                                     IsPastBet="false"
+                                     OnEdit="@(() => OpenEditModal(bet))"
+                                     OnDelete="@(() => OpenDeleteModal(bet))"
+                                     OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
+                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                     OnViewDiscussion="@(() => NavigateToDiscussion(bet))" />
+                        </div>
+                    }
+                </div>
+
+                @if (futureBets.Count > futureBetsPageSize)
+                {
+                    <TablePagination CurrentPage="@futureBetsCurrentPage"
+                                     PageSize="@futureBetsPageSize"
+                                     TotalItems="@futureBets.Count"
+                                     ItemLabel="apostas"
+                                     PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
+                                     OnPageChanged="@HandleFutureBetsPageChange"
+                                     OnPageSizeChanged="@HandleFutureBetsPageSizeChange" />
+                }
+            </div>
+        }
+
+        @* Previous Bets Section *@
+        <hr class="my-5" />
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Apostas Anteriores</h2>
+        </div>
+
+        <SearchBar @bind-Value="pastBetsSearch"
+                   Placeholder="Pesquisar apostas anteriores..."
+                   OnSearch="@HandlePastBetsSearch" />
+
+        @if (!filteredPastBets.Any())
+        {
+            <EmptyState Title="Nenhuma aposta anterior encontrada"
+                        Message="Não existem apostas passadas para mostrar."
+                        Icon="bi-calendar-x" />
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var bet in paginatedPastBets)
+                {
+                    <div class="col-md-4 mb-4" @key="bet.Id">
+                        @{
+                            var userBet = GetUserBet(bet.Id);
+                            var betOptions = GetBetOptions(bet.Id);
+                            var discussionCount = GetDiscussionCount(bet.Id);
+                        }
+                        <BetCard Bet="@bet"
+                                 UserBet="@userBet"
+                                 BetOptions="@betOptions"
+                                 DiscussionCount="@discussionCount"
+                                 IsAdmin="@isAdmin"
+                                 IsPastBet="true"
+                                 OnEdit="@(() => OpenEditModal(bet))"
+                                 OnDelete="@(() => OpenDeleteModal(bet))"
+                                 OnResolve="@(() => OpenResolveModal(bet))"
+                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                 OnViewDiscussion="@(() => NavigateToDiscussion(bet))" />
+                    </div>
+                }
+            </div>
+
+            @if (filteredPastBets.Count > pastBetsPageSize)
+            {
+                <TablePagination CurrentPage="@pastBetsCurrentPage"
+                                 PageSize="@pastBetsPageSize"
+                                 TotalItems="@filteredPastBets.Count"
+                                 ItemLabel="apostas"
+                                 PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
+                                 OnPageChanged="@HandlePastBetsPageChange"
+                                 OnPageSizeChanged="@HandlePastBetsPageSizeChange" />
+            }
+        }
+    }
+</div>
+
+@* Create/Edit Bet Modal *@
+<Modal Show="@showEditModal"
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Title="@(isCreateMode ? "Criar Nova Aposta" : "Editar Aposta")"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (editingBet != null)
+        {
+            <EditForm Model="editingBet" OnValidSubmit="SaveBet">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-cash-coin text-primary me-2"></i>Título da Aposta
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingBet.Title" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
+                        </label>
+                        <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="editingBet.DateTime" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag text-primary me-2"></i>Categoria
+                        </label>
+                        <InputSelect class="form-select" @bind-Value="editingBet.BetCategory">
+                            <option value="@BetCategory.MATCH">Duelo (entre dois membros)</option>
+                            <option value="@BetCategory.DECISION">Decisão (opções personalizadas)</option>
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingBet.Location" />
+                </div>
+
+                <ImageUploadManager @ref="imageUploadManager"
+                                    Label="Imagem da Aposta"
+                                    CurrentImageUrl="@(!string.IsNullOrEmpty(editingBet.ImageSrc) ? GetBetImageUrl(editingBet.ImageSrc) : null)"
+                                    ShowCurrentImage="true"
+                                    PreviewCssClass="slideshow-preview"
+                                    OnFileSelected="HandleImageSelected" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                    </label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="editingBet.Description" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@* Delete Confirmation Modal *@
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((bool show) => showDeleteModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza de que pretende eliminar a aposta {deletingBet?.Title}?")"
+               WarningMessage="Esta ação não pode ser anulada e todos os participantes serão reembolsados."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteBet"
+               OnCancel="CloseDeleteModal" />
+
+@* Place Bet Modal *@
+<Modal Show="@showPlaceBetModal"
+       ShowChanged="@((bool show) => showPlaceBetModal = show)"
+       Title="@($"Apostar - {selectedBet?.Title}")"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (selectedBet != null && currentUser != null)
+        {
+            <div class="mb-3">
+                <div class="alert alert-info">
+                    <i class="bi bi-coin me-2"></i>
+                    <strong>Saldo Atual:</strong> @currentUser.FidelisBalance.ToString("F2") Fidelis
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-list-check text-primary me-2"></i>Opção
+                </label>
+                <select class="form-select" @bind="selectedBetOptionId">
+                    <option value="0">Selecione uma opção...</option>
+                    @foreach (var option in GetBetOptions(selectedBet.Id))
+                    {
+                        <option value="@option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-cash text-primary me-2"></i>Montante de Fidelis
+                </label>
+                <input type="number" class="form-control" @bind="betAmount" min="0.01" step="0.01" max="@currentUser.FidelisBalance" />
+                @if (selectedBetOptionId > 0 && betAmount > 0)
+                {
+                    var selectedOption = GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == selectedBetOptionId);
+                    if (selectedOption != null)
+                    {
+                        var potentialWinnings = betAmount * selectedOption.Odds;
+                        <small class="text-success">
+                            <i class="bi bi-trophy me-1"></i>
+                            Ganhos potenciais: @potentialWinnings.ToString("F2") Fidelis
+                        </small>
+                    }
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="ClosePlaceBetModal">Cancelar</button>
+                <button type="button" class="btn btn-success" @onclick="PlaceBet" disabled="@(isSaving || selectedBetOptionId == 0 || betAmount <= 0 || betAmount > currentUser.FidelisBalance)">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    Apostar
+                </button>
+            </div>
+        }
+    </BodyContent>
+</Modal>
+
+@* Bet Details Modal *@
+<Modal Show="@showDetailsModal"
+       ShowChanged="@((bool show) => showDetailsModal = show)"
+       Title="@selectedBet?.Title"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (selectedBet != null)
+        {
+            <div class="bet-details">
+                @if (!string.IsNullOrEmpty(selectedBet.ImageSrc))
+                {
+                    <div class="mb-3">
+                        <img src="@GetBetImageUrl(selectedBet.ImageSrc)" alt="@selectedBet.Title" class="img-fluid rounded" />
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <h5><i class="bi bi-calendar me-2"></i>Data e Hora</h5>
+                    <p>@selectedBet.DateTime.ToString("dd MMM yyyy, HH:mm")h</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(selectedBet.Location))
+                {
+                    <div class="mb-3">
+                        <h5><i class="bi bi-geo-alt me-2"></i>Localização</h5>
+                        <p>@selectedBet.Location</p>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <h5><i class="bi bi-tag me-2"></i>Categoria</h5>
+                    <p>
+                        @if (selectedBet.BetCategory == BetCategory.MATCH)
+                        {
+                            <span class="badge bg-primary">Duelo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Decisão</span>
+                        }
+                    </p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(selectedBet.Description))
+                {
+                    <div class="mb-3">
+                        <h5><i class="bi bi-text-paragraph me-2"></i>Descrição</h5>
+                        <p>@selectedBet.Description</p>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <h5><i class="bi bi-list-check me-2"></i>Opções de Aposta</h5>
+                    @foreach (var option in GetBetOptions(selectedBet.Id))
+                    {
+                        var isWinning = selectedBet.WinningOptionId.HasValue && selectedBet.WinningOptionId.Value == option.Id;
+                        var isUserOption = GetUserBet(selectedBet.Id)?.BetOptionId == option.Id;
+                        var optionClass = isWinning ? "alert-success" : (isUserOption ? "alert-info" : "alert-secondary");
+                        
+                        <div class="alert @optionClass mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    @option.Title
+                                    @if (isWinning)
+                                    {
+                                        <i class="bi bi-trophy-fill text-warning ms-2"></i>
+                                    }
+                                    @if (isUserOption && !isWinning)
+                                    {
+                                        <i class="bi bi-person-fill text-info ms-2"></i>
+                                    }
+                                </span>
+                                <span class="badge bg-warning text-dark">Odds: @option.Odds.ToString("F2")x</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @{
+                    var userBetDetails = GetUserBet(selectedBet.Id);
+                }
+                @if (userBetDetails != null)
+                {
+                    <div class="mb-3">
+                        <h5><i class="bi bi-cash-coin me-2"></i>A Sua Aposta</h5>
+                        <div class="alert alert-primary">
+                            <p class="mb-1">
+                                <strong>Opção:</strong> @GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == userBetDetails.BetOptionId)?.Title
+                            </p>
+                            <p class="mb-1">
+                                <strong>Montante:</strong> @userBetDetails.FidelisAmount.ToString("F2") Fidelis
+                            </p>
+                            <p class="mb-0">
+                                <strong>Estado:</strong>
+                                @if (userBetDetails.IsWon.HasValue)
+                                {
+                                    @if (userBetDetails.IsWon.Value)
+                                    {
+                                        <span class="badge bg-success ms-1">
+                                            <i class="bi bi-trophy-fill me-1"></i>
+                                            Ganhou @userBetDetails.FidelisWinnings.ToString("F2") Fidelis
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger ms-1">
+                                            <i class="bi bi-x-circle-fill me-1"></i>
+                                            Perdeu
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary ms-1">
+                                        <i class="bi bi-clock-fill me-1"></i>
+                                        Pendente
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@* Resolve Bet Modal (Admin Only) *@
+<Modal Show="@showResolveModal"
+       ShowChanged="@((bool show) => showResolveModal = show)"
+       Title="@($"Resolver Aposta - {selectedBet?.Title}")"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (selectedBet != null)
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Atenção:</strong> Esta ação irá determinar os vencedores e distribuir os prémios. Não poderá ser revertida.
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-trophy text-primary me-2"></i>Opção Vencedora
+                </label>
+                <select class="form-select" @bind="selectedWinningOptionId">
+                    <option value="0">Selecione a opção vencedora...</option>
+                    @foreach (var option in GetBetOptions(selectedBet.Id))
+                    {
+                        <option value="@option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="CloseResolveModal">Cancelar</button>
+                <button type="button" class="btn btn-warning" @onclick="ResolveBet" disabled="@(isSaving || selectedWinningOptionId == 0)">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    Resolver Aposta
+                </button>
+            </div>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    // User and auth
+    private ApplicationUser? currentUser;
+    private bool isAdmin = false;
+
+    // Bets data
+    private List<Bet> futureBets = new();
+    private List<Bet> pastBets = new();
+    private List<Bet> filteredPastBets = new();
+    private Dictionary<int, UserBet?> userBetsCache = new();
+    private Dictionary<int, List<BetOption>> betOptionsCache = new();
+    private Dictionary<int, int> discussionCountsCache = new();
+
+    // Pagination
+    private int futureBetsCurrentPage = 1;
+    private int futureBetsPageSize = 9;
+    private List<Bet> paginatedFutureBets = new();
+
+    private int pastBetsCurrentPage = 1;
+    private int pastBetsPageSize = 9;
+    private List<Bet> paginatedPastBets = new();
+    private string pastBetsSearch = string.Empty;
+
+    // Modals
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showPlaceBetModal = false;
+    private bool showDetailsModal = false;
+    private bool showResolveModal = false;
+    private bool isCreateMode = false;
+    private bool isSaving = false;
+
+    // Edit/Create
+    private Bet? editingBet;
+    private Bet? deletingBet;
+    private Bet? selectedBet;
+    private ImageUploadManager? imageUploadManager;
+    private IBrowserFile? selectedImageFile;
+
+    // Place Bet
+    private int selectedBetOptionId = 0;
+    private decimal betAmount = 0;
+
+    // Resolve Bet
+    private int selectedWinningOptionId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            isAdmin = user.IsInRole("Admin");
+        }
+
+        await LoadBets();
+    }
+
+    private async Task LoadBets()
+    {
+        try
+        {
+            var futureBetsTask = BetService.GetFutureBetsAsync();
+            var pastBetsTask = BetService.GetPastBetsAsync();
+
+            await Task.WhenAll(futureBetsTask, pastBetsTask);
+
+            futureBets = (await futureBetsTask).OrderBy(b => b.DateTime).ToList();
+            pastBets = (await pastBetsTask).OrderByDescending(b => b.DateTime).ToList();
+            filteredPastBets = pastBets;
+
+            // Load user bets and options for all bets
+            if (currentUser != null)
+            {
+                var userBets = await BetService.GetUserBetsAsync(currentUser.Id);
+                userBetsCache = userBets.ToDictionary(ub => ub.BetId, ub => (UserBet?)ub);
+            }
+
+            // Load bet options for all bets
+            foreach (var bet in futureBets.Concat(pastBets))
+            {
+                var options = await BetService.GetBetOptionsAsync(bet.Id);
+                betOptionsCache[bet.Id] = options.ToList();
+                
+                // Load discussion count
+                discussionCountsCache[bet.Id] = await GetDiscussionPostCount(bet.Id);
+            }
+
+            ApplyFutureBetsPagination();
+            ApplyPastBetsFiltersAndPagination();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            Console.WriteLine($"Error loading bets: {ex.Message}");
+        }
+    }
+
+    private void ApplyFutureBetsPagination()
+    {
+        var skip = (futureBetsCurrentPage - 1) * futureBetsPageSize;
+        paginatedFutureBets = futureBets.Skip(skip).Take(futureBetsPageSize).ToList();
+    }
+
+    private void ApplyPastBetsFiltersAndPagination()
+    {
+        filteredPastBets = pastBets;
+
+        if (!string.IsNullOrWhiteSpace(pastBetsSearch))
+        {
+            var search = pastBetsSearch.ToLower();
+            filteredPastBets = pastBets.Where(b =>
+                b.Title.ToLower().Contains(search) ||
+                b.Description.ToLower().Contains(search) ||
+                b.Location.ToLower().Contains(search)
+            ).ToList();
+        }
+
+        var skip = (pastBetsCurrentPage - 1) * pastBetsPageSize;
+        paginatedPastBets = filteredPastBets.Skip(skip).Take(pastBetsPageSize).ToList();
+    }
+
+    private UserBet? GetUserBet(int betId)
+    {
+        return userBetsCache.TryGetValue(betId, out var userBet) ? userBet : null;
+    }
+
+    private List<BetOption> GetBetOptions(int betId)
+    {
+        return betOptionsCache.TryGetValue(betId, out var options) ? options : new List<BetOption>();
+    }
+
+    private int GetDiscussionCount(int betId)
+    {
+        return discussionCountsCache.TryGetValue(betId, out var count) ? count : 0;
+    }
+
+    private async Task<int> GetDiscussionPostCount(int betId)
+    {
+        try
+        {
+            var bet = await BetService.GetBetByIdAsync(betId);
+            if (bet?.Discussion != null)
+            {
+                return await PostService.GetCountByDiscussionIdAsync(bet.Discussion.Id);
+            }
+        }
+        catch { }
+        return 0;
+    }
+
+    private string GetBetImageUrl(string? imageSrc)
+    {
+        if (string.IsNullOrEmpty(imageSrc)) return "/images/default-bet.webp";
+        return imageSrc;
+    }
+
+    // Navigation
+    private void NavigateToDiscussion(Bet bet)
+    {
+        Navigation.NavigateTo($"/bets/{bet.Id}/discussion");
+    }
+
+    // Pagination handlers
+    private Task HandleFutureBetsPageChange(int newPage)
+    {
+        futureBetsCurrentPage = newPage;
+        ApplyFutureBetsPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleFutureBetsPageSizeChange(int newPageSize)
+    {
+        futureBetsPageSize = newPageSize;
+        futureBetsCurrentPage = 1;
+        ApplyFutureBetsPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePastBetsPageChange(int newPage)
+    {
+        pastBetsCurrentPage = newPage;
+        ApplyPastBetsFiltersAndPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePastBetsPageSizeChange(int newPageSize)
+    {
+        pastBetsPageSize = newPageSize;
+        pastBetsCurrentPage = 1;
+        ApplyPastBetsFiltersAndPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePastBetsSearch(string searchTerm)
+    {
+        pastBetsSearch = searchTerm;
+        pastBetsCurrentPage = 1;
+        ApplyPastBetsFiltersAndPagination();
+        return Task.CompletedTask;
+    }
+
+    // Modal handlers
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingBet = Bet.Create("", DateTime.Now.AddDays(7), BetCategory.DECISION);
+        selectedImageFile = null;
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(Bet bet)
+    {
+        isCreateMode = false;
+        editingBet = bet;
+        selectedImageFile = null;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingBet = null;
+        selectedImageFile = null;
+    }
+
+    private async Task SaveBet()
+    {
+        if (editingBet == null) return;
+
+        isSaving = true;
+        try
+        {
+            // Handle image upload if new image selected
+            if (selectedImageFile != null)
+            {
+                // Upload image to storage
+                using var stream = selectedImageFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                var imagePath = await ImageStorageService.UploadImageAsync(
+                    stream,
+                    selectedImageFile.Name,
+                    selectedImageFile.ContentType,
+                    "bets",
+                    editingBet.Id.ToString()
+                );
+                editingBet.SetImage(imagePath);
+            }
+
+            if (isCreateMode)
+            {
+                await BetService.CreateBetAsync(editingBet);
+            }
+            else
+            {
+                await BetService.UpdateBetAsync(editingBet);
+            }
+
+            await LoadBets();
+            CloseEditModal();
+        }
+        catch (Exception ex)
+        {
+            // Show error to user
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao guardar aposta: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OpenDeleteModal(Bet bet)
+    {
+        deletingBet = bet;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingBet = null;
+    }
+
+    private async Task DeleteBet()
+    {
+        if (deletingBet == null) return;
+
+        try
+        {
+            await BetService.DeleteBetAsync(deletingBet.Id);
+            await LoadBets();
+            CloseDeleteModal();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar aposta: {ex.Message}");
+        }
+    }
+
+    private void OpenPlaceBetModal(Bet bet)
+    {
+        selectedBet = bet;
+        selectedBetOptionId = 0;
+        betAmount = 0;
+        showPlaceBetModal = true;
+    }
+
+    private void ClosePlaceBetModal()
+    {
+        showPlaceBetModal = false;
+        selectedBet = null;
+        selectedBetOptionId = 0;
+        betAmount = 0;
+    }
+
+    private async Task PlaceBet()
+    {
+        if (selectedBet == null || currentUser == null || selectedBetOptionId == 0 || betAmount <= 0) return;
+
+        isSaving = true;
+        try
+        {
+            await BetService.PlaceBetAsync(currentUser.Id, selectedBet.Id, selectedBetOptionId, betAmount);
+            
+            // Reload current user to update Fidelis balance
+            currentUser = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
+            
+            await LoadBets();
+            ClosePlaceBetModal();
+            await JSRuntime.InvokeVoidAsync("alert", "Aposta realizada com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao realizar aposta: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OpenBetDetailsModal(Bet bet)
+    {
+        selectedBet = bet;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedBet = null;
+    }
+
+    private void OpenResolveModal(Bet bet)
+    {
+        selectedBet = bet;
+        selectedWinningOptionId = 0;
+        showResolveModal = true;
+    }
+
+    private void CloseResolveModal()
+    {
+        showResolveModal = false;
+        selectedBet = null;
+        selectedWinningOptionId = 0;
+    }
+
+    private async Task ResolveBet()
+    {
+        if (selectedBet == null || selectedWinningOptionId == 0) return;
+
+        isSaving = true;
+        try
+        {
+            await BetService.ResolveBetAsync(selectedBet.Id, selectedWinningOptionId);
+            await LoadBets();
+            CloseResolveModal();
+            await JSRuntime.InvokeVoidAsync("alert", "Aposta resolvida com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao resolver aposta: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task HandleImageSelected(IBrowserFile file)
+    {
+        selectedImageFile = file;
+    }
+}
