@@ -60,6 +60,7 @@ public class BetRepository : Repository<Bet>, IBetRepository
                 .ThenInclude(ub => ub.User)
             .Include(b => b.UserBets)
                 .ThenInclude(ub => ub.BetOption)
+            .Include(b => b.Discussion)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
 }
