@@ -558,6 +558,18 @@
                                 <i class="bi bi-upload"></i>
                             </button>
                         </div>
+                        @if (!string.IsNullOrEmpty(uploadErrorMessage))
+                        {
+                            <div class="alert alert-danger mt-2 mb-1 py-2">
+                                <i class="bi bi-exclamation-triangle me-2"></i>@uploadErrorMessage
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(uploadSuccessMessage))
+                        {
+                            <div class="alert alert-success mt-2 mb-1 py-2">
+                                <i class="bi bi-check-circle me-2"></i>@uploadSuccessMessage
+                            </div>
+                        }
                         <small class="text-muted">Formatos suportados: PDF, Word, Excel, TXT (max. 10MB)</small>
                     </div>
                     
@@ -869,6 +881,8 @@
     // Document attachments
     private List<DocumentMetadata>? documentAttachments;
     private string environmentName = string.Empty;
+    private string? uploadErrorMessage = null;
+    private string? uploadSuccessMessage = null;
 
     // Create Reminder modal state
     private bool showCreateReminderModal = false;
@@ -1124,6 +1138,8 @@
     private async Task OpenCardDetailsModal(LogisticsCard card)
     {
         selectedCard = card;
+        uploadErrorMessage = null;
+        uploadSuccessMessage = null;
         
         // Parse labels
         cardLabels = new List<LabelItem>();
@@ -1313,11 +1329,14 @@
     {
         if (selectedFile == null || selectedCard == null || board == null) return;
 
+        uploadErrorMessage = null;
+        uploadSuccessMessage = null;
+
         try
         {
             if (selectedFile.Size > MaxFileSize)
             {
-                // File too large - could add error handling here
+                uploadErrorMessage = "O ficheiro é demasiado grande. Tamanho máximo: 10MB";
                 return;
             }
 
@@ -1337,19 +1356,21 @@
 
             if (!allowedContentTypes.Contains(selectedFile.ContentType))
             {
-                // Invalid file type - could add user notification here
+                uploadErrorMessage = "Tipo de ficheiro não suportado. Formatos permitidos: PDF, Word, Excel, TXT, PNG, JPG";
                 return;
             }
 
+            var fileName = selectedFile.Name;
             using var stream = selectedFile.OpenReadStream(MaxFileSize);
             await CardService.UploadCardAttachmentAsync(
                 selectedCard.Id, 
                 board.Name, 
-                selectedFile.Name, 
+                fileName, 
                 stream, 
                 selectedFile.ContentType, 
                 environmentName);
 
+            uploadSuccessMessage = $"Ficheiro '{fileName}' carregado com sucesso!";
             selectedFile = null;
             logisticsFileName = null;
             
@@ -1357,9 +1378,9 @@
             documentAttachments = await CardService.GetCardAttachmentsAsync(selectedCard.Id, board.Name, environmentName);
             StateHasChanged();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error - file too large or other issues
+            uploadErrorMessage = $"Erro ao carregar ficheiro: {ex.Message}";
         }
     }
 
