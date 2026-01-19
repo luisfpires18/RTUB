@@ -87,8 +87,7 @@
                                      OnEdit="@(() => OpenEditModal(bet))"
                                      OnDelete="@(() => OpenDeleteModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
-                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))"
-                                     OnViewDiscussion="@(() => NavigateToDiscussion(bet))" />
+                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
                         </div>
                     }
                 </div>
@@ -143,8 +142,7 @@
                                  OnEdit="@(() => OpenEditModal(bet))"
                                  OnDelete="@(() => OpenDeleteModal(bet))"
                                  OnResolve="@(() => OpenResolveModal(bet))"
-                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))"
-                                 OnViewDiscussion="@(() => NavigateToDiscussion(bet))" />
+                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
                     </div>
                 }
             </div>
@@ -311,136 +309,174 @@
     </BodyContent>
 </Modal>
 
-@* Bet Details Modal *@
-<Modal Show="@showDetailsModal"
-       ShowChanged="@((bool show) => showDetailsModal = show)"
-       Title="@selectedBet?.Title"
-       Size="Modal.ModalSize.Large"
-       Centered="true">
-    <BodyContent>
+@* Bet Details Modal (with Discussion) *@
+<DetailsModal Show="@showDetailsModal" 
+              ShowChanged="@((bool show) => showDetailsModal = show)"
+              Title="Detalhes da Aposta" 
+              HeaderTitle="@(selectedBet?.Title ?? "")"
+              ImageUrl="@(selectedBet != null && !string.IsNullOrEmpty(selectedBet.ImageSrc) ? GetBetImageUrl(selectedBet.ImageSrc) : null)"
+              IconClass="@(selectedBet != null && string.IsNullOrEmpty(selectedBet.ImageSrc) ? "bi-cash-coin" : null)"
+              UseRectangularImage="true"
+              OnClose="CloseDetailsModal">
+    <BadgesContent>
         @if (selectedBet != null)
         {
-            <div class="bet-details">
-                @if (!string.IsNullOrEmpty(selectedBet.ImageSrc))
-                {
-                    <div class="mb-3">
-                        <img src="@GetBetImageUrl(selectedBet.ImageSrc)" alt="@selectedBet.Title" class="img-fluid rounded" />
-                    </div>
-                }
-
-                <div class="mb-3">
-                    <h5><i class="bi bi-calendar me-2"></i>Data e Hora</h5>
-                    <p>@selectedBet.DateTime.ToString("dd MMM yyyy, HH:mm'h'")</p>
-                </div>
-
+            @if (selectedBet.BetCategory == BetCategory.MATCH)
+            {
+                <span class="badge bg-primary">Duelo</span>
+            }
+            else
+            {
+                <span class="badge bg-success">Decisão</span>
+            }
+            @if (selectedBet.IsCancelled)
+            {
+                <span class="badge bg-danger">Cancelado</span>
+            }
+            else if (selectedBet.WinningOptionId.HasValue)
+            {
+                <span class="badge bg-info">Resolvido</span>
+            }
+        }
+    </BadgesContent>
+    <Sections>
+        @if (selectedBet != null)
+        {
+            <!-- Bet Information Section -->
+            <InfoSection SectionTitle="Informações da Aposta" 
+                        IconClass="bi-info-circle-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Data e Hora" Value="@selectedBet.DateTime.ToString("dd MMM yyyy, HH:mm'h'")" Icon="bi-calendar-fill" />
                 @if (!string.IsNullOrEmpty(selectedBet.Location))
                 {
-                    <div class="mb-3">
-                        <h5><i class="bi bi-geo-alt me-2"></i>Localização</h5>
-                        <p>@selectedBet.Location</p>
-                    </div>
+                    <ProfileField Label="Localização" Value="@selectedBet.Location" Icon="bi-geo-alt-fill" />
                 }
-
-                <div class="mb-3">
-                    <h5><i class="bi bi-tag me-2"></i>Categoria</h5>
-                    <p>
-                        @if (selectedBet.BetCategory == BetCategory.MATCH)
-                        {
-                            <span class="badge bg-primary">Duelo</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-success">Decisão</span>
-                        }
-                    </p>
-                </div>
-
                 @if (!string.IsNullOrEmpty(selectedBet.Description))
                 {
-                    <div class="mb-3">
-                        <h5><i class="bi bi-text-paragraph me-2"></i>Descrição</h5>
-                        <p>@selectedBet.Description</p>
+                    <ProfileField Label="Descrição" Value="@selectedBet.Description" Icon="bi-text-paragraph" />
+                }
+            </InfoSection>
+
+            <!-- Bet Options Section -->
+            <InfoSection SectionTitle="Opções de Aposta" 
+                        IconClass="bi-list-check" 
+                        CssClass="mb-4">
+                @foreach (var option in GetBetOptions(selectedBet.Id))
+                {
+                    var isWinning = selectedBet.WinningOptionId.HasValue && selectedBet.WinningOptionId.Value == option.Id;
+                    var isUserOption = GetUserBet(selectedBet.Id)?.BetOptionId == option.Id;
+                    var optionClass = isWinning ? "alert-success" : (isUserOption ? "alert-info" : "alert-secondary");
+                    
+                    <div class="alert @optionClass mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                @option.Title
+                                @if (isWinning)
+                                {
+                                    <i class="bi bi-trophy-fill text-warning ms-2"></i>
+                                }
+                                @if (isUserOption && !isWinning)
+                                {
+                                    <i class="bi bi-person-fill text-info ms-2"></i>
+                                }
+                            </span>
+                            <span class="badge bg-warning text-dark">Odds: @option.Odds.ToString("F2")x</span>
+                        </div>
                     </div>
                 }
+            </InfoSection>
 
-                <div class="mb-3">
-                    <h5><i class="bi bi-list-check me-2"></i>Opções de Aposta</h5>
-                    @foreach (var option in GetBetOptions(selectedBet.Id))
-                    {
-                        var isWinning = selectedBet.WinningOptionId.HasValue && selectedBet.WinningOptionId.Value == option.Id;
-                        var isUserOption = GetUserBet(selectedBet.Id)?.BetOptionId == option.Id;
-                        var optionClass = isWinning ? "alert-success" : (isUserOption ? "alert-info" : "alert-secondary");
-                        
-                        <div class="alert @optionClass mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>
-                                    @option.Title
-                                    @if (isWinning)
-                                    {
-                                        <i class="bi bi-trophy-fill text-warning ms-2"></i>
-                                    }
-                                    @if (isUserOption && !isWinning)
-                                    {
-                                        <i class="bi bi-person-fill text-info ms-2"></i>
-                                    }
-                                </span>
-                                <span class="badge bg-warning text-dark">Odds: @option.Odds.ToString("F2")x</span>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                @{
-                    var userBetDetails = GetUserBet(selectedBet.Id);
-                }
-                @if (userBetDetails != null)
-                {
-                    <div class="mb-3">
-                        <h5><i class="bi bi-cash-coin me-2"></i>A Sua Aposta</h5>
-                        <div class="alert alert-primary">
-                            <p class="mb-1">
-                                <strong>Opção:</strong> @GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == userBetDetails.BetOptionId)?.Title
-                            </p>
-                            <p class="mb-1">
-                                <strong>Montante:</strong> @userBetDetails.FidelisAmount.ToString("F2") Fidelis
-                            </p>
-                            <p class="mb-0">
-                                <strong>Estado:</strong>
-                                @if (userBetDetails.IsWon.HasValue)
+            @if (GetUserBet(selectedBet.Id) != null)
+            {
+                <!-- User's Bet Section -->
+                <InfoSection SectionTitle="A Sua Aposta" 
+                            IconClass="bi-cash-coin" 
+                            CssClass="mb-4">
+                    <div class="alert alert-primary">
+                        <p class="mb-1">
+                            <strong>Opção:</strong> @GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == GetUserBet(selectedBet.Id)!.BetOptionId)?.Title
+                        </p>
+                        <p class="mb-1">
+                            <strong>Montante:</strong> @GetUserBet(selectedBet.Id)!.FidelisAmount.ToString("F2") Fidelis
+                        </p>
+                        <p class="mb-0">
+                            <strong>Estado:</strong>
+                            @if (GetUserBet(selectedBet.Id)!.IsWon.HasValue)
+                            {
+                                @if (GetUserBet(selectedBet.Id)!.IsWon == true)
                                 {
-                                    @if (userBetDetails.IsWon.Value)
-                                    {
-                                        <span class="badge bg-success ms-1">
-                                            <i class="bi bi-trophy-fill me-1"></i>
-                                            Ganhou @userBetDetails.FidelisWinnings.ToString("F2") Fidelis
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger ms-1">
-                                            <i class="bi bi-x-circle-fill me-1"></i>
-                                            Perdeu
-                                        </span>
-                                    }
+                                    <span class="badge bg-success ms-1">
+                                        <i class="bi bi-trophy-fill me-1"></i>
+                                        Ganhou @GetUserBet(selectedBet.Id)!.FidelisWinnings.ToString("F2") Fidelis
+                                    </span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary ms-1">
-                                        <i class="bi bi-clock-fill me-1"></i>
-                                        Pendente
+                                    <span class="badge bg-danger ms-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i>
+                                        Perdeu
                                     </span>
                                 }
-                            </p>
-                        </div>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary ms-1">
+                                    <i class="bi bi-clock-fill me-1"></i>
+                                    Pendente
+                                </span>
+                            }
+                        </p>
+                    </div>
+                </InfoSection>
+            }
+
+            <!-- Discussion Section -->
+            <InfoSection SectionTitle="Discussão" 
+                        IconClass="bi-chat-dots" 
+                        CssClass="mb-3">
+                @if (detailsPosts == null)
+                {
+                    <p class="text-muted">A carregar...</p>
+                }
+                else if (!detailsPosts.Any())
+                {
+                    <p class="text-muted mb-3"><em>Nenhum comentário ainda. Seja o primeiro a comentar!</em></p>
+                }
+                else
+                {
+                    <div class="posts-list mb-3" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var post in detailsPosts)
+                        {
+                            <div class="post-item mb-2 p-2 rounded bg-dark-subtle">
+                                <div class="d-flex align-items-center mb-1">
+                                    <img src="@(post.Author?.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
+                                         alt="@(post.Author?.Nickname ?? "Utilizador")" 
+                                         class="rounded-circle me-2" 
+                                         style="width: 28px; height: 28px; object-fit: cover;" />
+                                    <strong class="me-2">@(post.Author?.Nickname ?? post.Author?.UserName ?? "Utilizador")</strong>
+                                    <small class="text-muted">@post.CreatedAt.ToString("dd MMM, HH:mm")</small>
+                                </div>
+                                <p class="mb-0 text-white-full" style="white-space: pre-line;">@post.Body</p>
+                            </div>
+                        }
                     </div>
                 }
-            </div>
+                
+                <!-- Add Comment -->
+                <div class="mt-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Escrever comentário..." 
+                               @bind="newPostBody" @bind:event="oninput"
+                               @onkeypress="@(async (e) => { if (e.Key == "Enter") await AddPost(); })" />
+                        <button class="btn btn-primary" @onclick="AddPost" disabled="@(string.IsNullOrWhiteSpace(newPostBody))">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </InfoSection>
         }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
-    </FooterContent>
-</Modal>
+    </Sections>
+</DetailsModal>
 
 @* Resolve Bet Modal (Admin Only) *@
 <Modal Show="@showResolveModal"
@@ -545,6 +581,10 @@
 
     // Resolve Bet
     private int selectedWinningOptionId = 0;
+    
+    // Discussion in Details Modal
+    private List<Post>? detailsPosts;
+    private string newPostBody = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -657,12 +697,6 @@
     {
         if (string.IsNullOrEmpty(imageSrc)) return "/images/default-bet.webp";
         return imageSrc;
-    }
-
-    // Navigation
-    private void NavigateToDiscussion(Bet bet)
-    {
-        Navigation.NavigateTo($"/bets/{bet.Id}/discussion");
     }
 
     // Pagination handlers
@@ -862,16 +896,80 @@
         }
     }
 
-    private void OpenBetDetailsModal(Bet bet)
+    private async Task OpenBetDetailsModal(Bet bet)
     {
         selectedBet = bet;
+        detailsPosts = null;
+        newPostBody = string.Empty;
         showDetailsModal = true;
+        
+        // Load discussion posts
+        await LoadDetailsDiscussion();
     }
 
     private void CloseDetailsModal()
     {
         showDetailsModal = false;
         selectedBet = null;
+        detailsPosts = null;
+        newPostBody = string.Empty;
+    }
+    
+    private async Task LoadDetailsDiscussion()
+    {
+        if (selectedBet == null) return;
+        
+        try
+        {
+            // Get or create discussion for the bet
+            var discussion = await DiscussionService.GetOrCreateForEventAsync(selectedBet.Id);
+            if (discussion != null)
+            {
+                var posts = await PostService.GetByDiscussionIdAsync(discussion.Id, 1, 10);
+                detailsPosts = posts.OrderByDescending(p => p.CreatedAt).ToList();
+            }
+            else
+            {
+                detailsPosts = new List<Post>();
+            }
+        }
+        catch
+        {
+            detailsPosts = new List<Post>();
+        }
+        StateHasChanged();
+    }
+    
+    private async Task AddPost()
+    {
+        if (selectedBet == null || string.IsNullOrWhiteSpace(newPostBody) || currentUser == null) return;
+        
+        try
+        {
+            // Get or create discussion for the bet
+            var discussion = await DiscussionService.GetOrCreateForEventAsync(selectedBet.Id);
+            if (discussion != null)
+            {
+                await PostService.CreateAsync(
+                    discussionId: discussion.Id,
+                    authorId: currentUser.Id,
+                    title: "",
+                    body: newPostBody.Trim()
+                );
+                
+                newPostBody = string.Empty;
+                
+                // Reload discussion posts
+                await LoadDetailsDiscussion();
+                
+                // Update discussion count cache
+                discussionCountsCache[selectedBet.Id] = (discussionCountsCache.GetValueOrDefault(selectedBet.Id, 0)) + 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao adicionar comentário: {ex.Message}");
+        }
     }
 
     private void OpenResolveModal(Bet bet)

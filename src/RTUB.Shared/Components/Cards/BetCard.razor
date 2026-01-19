@@ -194,19 +194,15 @@
                     {
                         <!-- Bet action buttons row -->
                         <div class="event-buttons-container mb-2">
-                            <!-- View Details button -->
-                            <button class="btn event-icon-btn btn-outline-secondary" 
+                            <!-- View Details button (includes discussion) -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                     @onclick="OnViewDetails" 
-                                    title="Detalhes">
+                                    title="Ver Detalhes e Discussão">
                                 <i class="bi bi-eye"></i>
-                            </button>
-
-                            <!-- Discussion button with count -->
-                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info" 
-                                    @onclick="OnViewDiscussion" 
-                                    title="Discussão">
-                                <i class="bi bi-chat-dots"></i>
-                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                                @if (DiscussionCount > 0)
+                                {
+                                    <span class="enrollment-count-centered">@DiscussionCount</span>
+                                }
                             </button>
                         </div>
 
@@ -241,19 +237,15 @@
                 <!-- Past bet buttons -->
                 <div class="enrollment-section mt-auto p-2 rounded">
                     <div class="event-buttons-container">
-                        <!-- View Details button -->
-                        <button class="btn event-icon-btn btn-outline-secondary"
+                        <!-- View Details button (includes discussion) -->
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
                                 @onclick="OnViewDetails"
-                                title="Detalhes">
+                                title="Ver Detalhes e Discussão">
                             <i class="bi bi-eye"></i>
-                        </button>
-
-                        <!-- Discussion button with count -->
-                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info"
-                                @onclick="OnViewDiscussion"
-                                title="Discussão">
-                            <i class="bi bi-chat-dots"></i>
-                            <span class="enrollment-count-centered">@DiscussionCount</span>
+                            @if (DiscussionCount > 0)
+                            {
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                            }
                         </button>
                     </div>
                 </div>
