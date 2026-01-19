@@ -84,117 +84,117 @@
                 }
                 else
                 {
-                    <div class="question-grid">
+                    <div class="questions-grid">
                         @foreach (var question in openPaginatedQuestions)
                         {
                             var replyCount = GetReplyCount(question);
                             var isExpanded = expandedQuestionIds.Contains(question.Id);
                             var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
                             var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
-                            
-                            <div class="question-card-wrapper">
-                                <div class="card question-card h-100" @onclick="() => ToggleQuestion(question.Id)">
-                                    <div class="question-card__top position-relative">
-                                        <div class="question-card__badge">
-                                            @if (question.Status == QuestionStatus.Closed)
-                                            {
-                                                <span class="badge bg-secondary">
-                                                    <i class="bi bi-check-circle-fill"></i> Fechada
-                                                </span>
-                                            }
-                                            else if (question.Status == QuestionStatus.Unanswered)
-                                            {
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-hourglass-split"></i> Aguarda
-                                                </span>
-                                            }
-                                            else if (question.Status == QuestionStatus.Answered)
-                                            {
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle"></i> Respondida
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-info">
-                                                    <i class="bi bi-chat-dots"></i> Em Discussão
-                                                </span>
-                                            }
-                                        </div>
 
-                                        @if (IsQuestionAuthor(question))
-                                        {
-                                            <div class="question-card__delete" @onclick:stopPropagation="true">
-                                                <button class="btn btn-sm btn-danger"
-                                                        @onclick="() => ShowDeleteConfirm(question)"
-                                                        title="Eliminar">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        }
+                            <div class="post-wrapper mb-3">
+                                <!-- Question Card as clickable header -->
+                                <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                                    <div class="post-card-avatar-section">
+                                        <img src="@(question.Author.ProfilePictureSrc ?? "")"
+                                             class="post-card-avatar"
+                                             alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
+                                        <div class="post-card-author-info">
+                                            <div class="post-card-author-name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
+                                            <small class="post-card-date">@question.CreatedAt.ToString("dd MMM yyyy")</small>
+                                        </div>
                                     </div>
 
-                                    <div class="card-body d-flex flex-column">
-                                        <div class="question-card__meta">
-                                            <div class="question-card__person">
-                                                <img src="@(question.Author.ProfilePictureSrc ?? "")"
-                                                     class="question-card__avatar"
-                                                     alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
-                                                <div>
-                                                    <div class="question-card__name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
-                                                    <small class="text-muted">@question.CreatedAt.ToString("dd MMM yyyy")</small>
-                                                </div>
-                                            </div>
-                                            <div class="question-card__person question-card__recipient">
-                                                <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
-                                                     class="question-card__avatar"
-                                                     alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
-                                                <div class="text-end">
-                                                    <div class="question-card__name">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</div>
-                                                    <small class="text-muted">@receiverRoleText</small>
+                                    <div class="post-card-content">
+                                        <div class="post-card-header">
+                                            <div class="post-card-recipient">
+                                                <div class="post-card-recipient-info">
+                                                    <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
+                                                         class="post-card-recipient-avatar"
+                                                         alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
+                                                    <div class="post-card-recipient-text">
+                                                        <span class="post-card-recipient-name">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
+                                                        <span class="post-card-recipient-role">(@receiverRoleText)</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <h6 class="question-card__title mb-2">@question.Title</h6>
-                                        <p class="question-card__body">
+                                        <h6 class="post-card-title mb-2">@question.Title</h6>
+                                        <p class="post-card-body">
                                             @question.Content
                                         </p>
 
-                                        <div class="question-card__footer mt-auto">
-                                            <div class="question-card__stats">
-                                                <span class="question-card__meta-item">
+                                        <div class="post-card-footer">
+                                            <div class="post-card-meta">
+                                                <span class="post-card-meta-item">
                                                     <i class="bi bi-chat-left-dots"></i>
                                                     @replyCount respostas
                                                 </span>
-                                                <span class="question-card__meta-item">
+                                                <span class="post-card-meta-item">
                                                     <i class="bi bi-clock"></i>
                                                     @question.CreatedAt.ToString("dd MMM, HH:mm")
                                                 </span>
                                             </div>
-
-                                            <div class="question-card__actions" @onclick:stopPropagation="true">
-                                                <button class="btn btn-sm btn-purple"
-                                                        @onclick="() => ShowFullContent(question)"
+                                            <div class="post-card-badges d-flex align-items-center gap-2">
+                                                @if (question.Status == QuestionStatus.Closed)
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-check-circle-fill"></i> Fechada
+                                                    </span>
+                                                }
+                                                else if (question.Status == QuestionStatus.Unanswered)
+                                                {
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="bi bi-hourglass-split"></i> Aguarda
+                                                    </span>
+                                                }
+                                                else if (question.Status == QuestionStatus.Answered)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Respondida
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-chat-dots"></i> Em Discussão
+                                                    </span>
+                                                }
+                                                <button class="btn btn-sm btn-purple" 
+                                                        @onclick="() => ShowFullContent(question)" 
+                                                        @onclick:stopPropagation="true"
                                                         title="Ver pergunta completa">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                @if (IsQuestionAuthor(question) && question.Status != QuestionStatus.Closed)
-                                                {
-                                                    <button class="btn btn-sm btn-outline-success"
-                                                            @onclick="() => ShowCloseConfirm(question)"
-                                                            title="Fechar pergunta">
-                                                        <i class="bi bi-check-lg"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-light"
-                                                            @onclick="() => ShowReminderConfirm(question)"
-                                                            title="Enviar lembrete">
-                                                        <i class="bi bi-bell text-dark"></i>
-                                                    </button>
-                                                }
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Author controls -->
+                                    @if (IsQuestionAuthor(question))
+                                    {
+                                        <div class="post-card-admin-actions" @onclick:stopPropagation="true">
+                                            @if (question.Status != QuestionStatus.Closed)
+                                            {
+                                                <button class="btn btn-sm btn-outline-success"
+                                                        @onclick="() => ShowCloseConfirm(question)"
+                                                        title="Fechar pergunta">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light"
+                                                        @onclick="() => ShowReminderConfirm(question)"
+                                                        title="Enviar lembrete">
+                                                    <i class="bi bi-bell text-dark"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-danger"
+                                                    @onclick="() => ShowDeleteConfirm(question)"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
 
                                 @if (isExpanded)
@@ -308,7 +308,7 @@
                 }
                 else
                 {
-                    <div class="question-grid">
+                    <div class="questions-grid">
                         @foreach (var question in closedPaginatedQuestions)
                         {
                             var replyCount = GetReplyCount(question);
@@ -316,75 +316,75 @@
                             var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
                             var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
 
-                            <div class="question-card-wrapper">
-                                <div class="card question-card h-100" @onclick="() => ToggleQuestion(question.Id)">
-                                    <div class="question-card__top position-relative">
-                                        <div class="question-card__badge">
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-check-circle-fill"></i> Fechada
-                                            </span>
+                            <div class="post-wrapper mb-3">
+                                <!-- Question Card as clickable header -->
+                                <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                                    <div class="post-card-avatar-section">
+                                        <img src="@(question.Author.ProfilePictureSrc ?? "")"
+                                             class="post-card-avatar"
+                                             alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
+                                        <div class="post-card-author-info">
+                                            <div class="post-card-author-name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
+                                            <small class="post-card-date">@question.CreatedAt.ToString("dd MMM yyyy")</small>
                                         </div>
-
-                                        @if (IsQuestionAuthor(question))
-                                        {
-                                            <div class="question-card__delete" @onclick:stopPropagation="true">
-                                                <button class="btn btn-sm btn-danger"
-                                                        @onclick="() => ShowDeleteConfirm(question)"
-                                                        title="Eliminar">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        }
                                     </div>
 
-                                    <div class="card-body d-flex flex-column">
-                                        <div class="question-card__meta">
-                                            <div class="question-card__person">
-                                                <img src="@(question.Author.ProfilePictureSrc ?? "")"
-                                                     class="question-card__avatar"
-                                                     alt="@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")" />
-                                                <div>
-                                                    <div class="question-card__name">@(question.Author.Nickname ?? question.Author.UserName ?? "Autor")</div>
-                                                    <small class="text-muted">@question.CreatedAt.ToString("dd MMM yyyy")</small>
-                                                </div>
-                                            </div>
-                                            <div class="question-card__person question-card__recipient">
-                                                <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
-                                                     class="question-card__avatar"
-                                                     alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
-                                                <div class="text-end">
-                                                    <div class="question-card__name">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</div>
-                                                    <small class="text-muted">@receiverRoleText</small>
+                                    <div class="post-card-content">
+                                        <div class="post-card-header">
+                                            <div class="post-card-recipient">
+                                                <div class="post-card-recipient-info">
+                                                    <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
+                                                         class="post-card-recipient-avatar"
+                                                         alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
+                                                    <div class="post-card-recipient-text">
+                                                        <span class="post-card-recipient-name">@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName)</span>
+                                                        <span class="post-card-recipient-role">(@receiverRoleText)</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <h6 class="question-card__title mb-2">@question.Title</h6>
-                                        <p class="question-card__body">
+                                        <h6 class="post-card-title mb-2">@question.Title</h6>
+                                        <p class="post-card-body">
                                             @question.Content
                                         </p>
 
-                                        <div class="question-card__footer mt-auto">
-                                            <div class="question-card__stats">
-                                                <span class="question-card__meta-item">
+                                        <div class="post-card-footer">
+                                            <div class="post-card-meta">
+                                                <span class="post-card-meta-item">
                                                     <i class="bi bi-chat-left-dots"></i>
                                                     @replyCount respostas
                                                 </span>
-                                                <span class="question-card__meta-item">
+                                                <span class="post-card-meta-item">
                                                     <i class="bi bi-clock"></i>
                                                     @question.CreatedAt.ToString("dd MMM, HH:mm")
                                                 </span>
                                             </div>
-
-                                            <div class="question-card__actions" @onclick:stopPropagation="true">
-                                                <button class="btn btn-sm btn-purple"
-                                                        @onclick="() => ShowFullContent(question)"
+                                            <div class="post-card-badges d-flex align-items-center gap-2">
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-check-circle-fill"></i> Fechada
+                                                </span>
+                                                <button class="btn btn-sm btn-purple" 
+                                                        @onclick="() => ShowFullContent(question)" 
+                                                        @onclick:stopPropagation="true"
                                                         title="Ver pergunta completa">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Author controls -->
+                                    @if (IsQuestionAuthor(question))
+                                    {
+                                        <div class="post-card-admin-actions" @onclick:stopPropagation="true">
+                                            <button class="btn btn-sm btn-danger"
+                                                    @onclick="() => ShowDeleteConfirm(question)"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
 
                                 @if (isExpanded)
