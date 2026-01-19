@@ -20,6 +20,58 @@
     gap: 1.5rem;
 }
 
+.questions-grid .post-card {
+    flex-direction: column;
+    height: auto;
+}
+
+.questions-grid .post-card-avatar-section {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    padding: 1rem;
+}
+
+.questions-grid .post-card-avatar {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0;
+    margin-right: 0.75rem;
+}
+
+.questions-grid .post-card-author-info {
+    text-align: left;
+    flex: 1;
+}
+
+.questions-grid .post-card-author-name {
+    padding: 0;
+}
+
+.questions-grid .post-card-content {
+    padding: 1rem;
+}
+
+.questions-grid .post-card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.questions-grid .post-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.questions-grid .post-card-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.questions-grid .post-card-badges {
+    align-self: flex-end;
+}
+
 @media (min-width: 768px) {
     .questions-filters {
         flex-direction: row;
