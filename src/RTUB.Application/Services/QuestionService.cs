@@ -104,7 +104,25 @@ public class QuestionService : IQuestionService
             throw new InvalidOperationException($"Question {questionId} not found");
         }
 
-        var isFromAssignedMember = authorId == question.AssignedMemberId;
+        var isAuthor = authorId == question.AuthorId;
+        var isAssignedMember = authorId == question.AssignedMemberId;
+
+        if (!isAuthor && !isAssignedMember)
+        {
+            throw new InvalidOperationException("User is not allowed to reply to this question.");
+        }
+
+        if (question.IsAwaitingUserReply && !isAuthor)
+        {
+            throw new InvalidOperationException("Question is awaiting a reply from the author.");
+        }
+
+        if (!question.IsAwaitingUserReply && !isAssignedMember)
+        {
+            throw new InvalidOperationException("Question is awaiting a reply from the assigned member.");
+        }
+
+        var isFromAssignedMember = isAssignedMember;
         var reply = QuestionReply.Create(questionId, content, authorId, isFromAssignedMember);
         await _replyRepository.AddAsync(reply);
 
