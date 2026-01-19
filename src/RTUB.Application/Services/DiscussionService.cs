@@ -35,10 +35,4 @@ public class DiscussionService : IDiscussionService
     {
         return await GetByEventIdAsync(eventId) ?? await CreateForEventAsync(eventId);
     }
-
-    public async Task<Discussion> CreateForBetAsync(int betId)
-    {
-        var discussion = Discussion.CreateForBet(betId);
-        return await _discussionRepository.AddAsync(discussion);
-    }
 }

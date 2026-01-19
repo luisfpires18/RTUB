@@ -40,7 +40,6 @@ public class Bet : BaseEntity
     // Navigation properties
     public virtual ICollection<BetOption> Options { get; set; } = new List<BetOption>();
     public virtual ICollection<UserBet> UserBets { get; set; } = new List<UserBet>();
-    public virtual Discussion? Discussion { get; set; }
 
     // Public constructor for EF Core and form initialization
     public Bet() { }

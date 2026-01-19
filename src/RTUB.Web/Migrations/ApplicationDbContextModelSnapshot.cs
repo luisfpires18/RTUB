@@ -883,9 +883,6 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("BetId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -902,9 +899,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BetId")
-                        .IsUnique();
 
                     b.HasIndex("EventId")
                         .IsUnique();
@@ -3636,17 +3630,11 @@ namespace RTUB.Migrations
 
             modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
                 {
-                    b.HasOne("RTUB.Core.Entities.Bet", "Bet")
-                        .WithOne("Discussion")
-                        .HasForeignKey("RTUB.Core.Entities.Discussion", "BetId");
-
                     b.HasOne("RTUB.Core.Entities.Event", "Event")
                         .WithMany()
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Bet");
 
                     b.Navigation("Event");
                 });
@@ -4243,8 +4231,6 @@ namespace RTUB.Migrations
 
             modelBuilder.Entity("RTUB.Core.Entities.Bet", b =>
                 {
-                    b.Navigation("Discussion");
-
                     b.Navigation("Options");
 
                     b.Navigation("UserBets");
