@@ -12,6 +12,7 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @inject IBetService BetService
+@inject IBetOptionRepository BetOptionRepository
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
 @inject IImageStorageService ImageStorageService
@@ -723,10 +724,9 @@
         
         try
         {
-            // Load all users for member selection - in production, consider pagination
-            // For now, limit to first 100 active users ordered by name
+            // Load all users for member selection - include ALL members (expelled, retired, etc.)
+            // For now, limit to first 100 users ordered by name
             allMembers = await UserManager.Users
-                .Where(u => !u.IsExpelled && !u.IsRetired)
                 .OrderBy(u => u.FirstName)
                 .ThenBy(u => u.LastName)
                 .Take(100)
@@ -954,7 +954,43 @@
                 {
                     editingBet.SetImage(imageUrl);
                 }
-                await BetService.CreateBetAsync(editingBet);
+                
+                // Create the bet first
+                var createdBet = await BetService.CreateBetAsync(editingBet);
+                
+                // Create a discussion for the bet (FK BetId is on Discussion table)
+                await DiscussionService.CreateForBetAsync(createdBet.Id);
+                
+                // If MATCH category, create bet options for the selected members
+                if (editingBet.BetCategory == BetCategory.MATCH && selectedMatchMembers.Count == 2)
+                {
+                    var member1 = selectedMatchMembers[0];
+                    var member2 = selectedMatchMembers[1];
+                    
+                    // Use TryGetValue to avoid double dictionary lookup
+                    var odds1 = memberOdds.TryGetValue(member1.Id, out var odds1Value) ? odds1Value : DEFAULT_MATCH_ODDS;
+                    var odds2 = memberOdds.TryGetValue(member2.Id, out var odds2Value) ? odds2Value : DEFAULT_MATCH_ODDS;
+                    
+                    // Create option for member1 winning (includes both member IDs for reference)
+                    var option1 = BetOption.CreateMatchOption(
+                        betId: createdBet.Id,
+                        title: $"{member1.GetDisplayName()} vence",
+                        odds: odds1,
+                        memberAId: member1.Id,
+                        memberBId: member2.Id
+                    );
+                    await BetOptionRepository.AddAsync(option1);
+                    
+                    // Create option for member2 winning
+                    var option2 = BetOption.CreateMatchOption(
+                        betId: createdBet.Id,
+                        title: $"{member2.GetDisplayName()} vence",
+                        odds: odds2,
+                        memberAId: member2.Id,
+                        memberBId: member1.Id
+                    );
+                    await BetOptionRepository.AddAsync(option2);
+                }
             }
             else
             {
