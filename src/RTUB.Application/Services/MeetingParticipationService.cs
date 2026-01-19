@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -86,5 +87,22 @@ public class MeetingParticipationService : IMeetingParticipationService
             throw new EntityNotFoundException(nameof(MeetingParticipation), id);
 
         await _participationRepository.DeleteAsync(id);
+    }
+
+    public async Task<Dictionary<int, int>> GetParticipationCountsByMeetingIdsAsync(IEnumerable<int> meetingIds)
+    {
+        var meetingIdList = meetingIds.ToList();
+        if (!meetingIdList.Any())
+            return new Dictionary<int, int>();
+
+        // Use a single query to get all participation counts
+        var counts = await _participationRepository.Query()
+            .AsNoTracking()
+            .Where(p => meetingIdList.Contains(p.MeetingId) && p.WillAttend)
+            .GroupBy(p => p.MeetingId)
+            .Select(g => new { MeetingId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MeetingId, x => x.Count);
+
+        return counts;
     }
 }

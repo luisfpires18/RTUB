@@ -105,16 +105,16 @@
                     <!-- Row 2: VOU/NAO VOU action buttons -->
                     <div class="event-buttons-container">
                         <!-- Green "Vou" button -->
-                        <button class="btn event-icon-btn btn-going @(UserParticipation?.WillAttend == true ? "btn-selected" : (UserParticipation != null && !UserParticipation.WillAttend ? "btn-secondary-small" : ""))" 
+                        <button class="btn event-icon-btn btn-going @GetGoingButtonClass()" 
                                 @onclick="OnParticipateGoing" 
-                                title="@(UserParticipation?.WillAttend == true ? "Editar participação" : "Vou participar")">
+                                title="@GetGoingButtonTitle()">
                             <i class="bi bi-check-circle-fill"></i>
                         </button>
                         
                         <!-- Red "Não vou" button -->
-                        <button class="btn event-icon-btn btn-not-going @(UserParticipation != null && !UserParticipation.WillAttend ? "btn-selected" : (UserParticipation?.WillAttend == true ? "btn-secondary-small" : ""))" 
+                        <button class="btn event-icon-btn btn-not-going @GetNotGoingButtonClass()" 
                                 @onclick="OnParticipateNotGoing" 
-                                title="@(UserParticipation != null && !UserParticipation.WillAttend ? "Editar impossibilidade" : "Não vou participar")">
+                                title="@GetNotGoingButtonTitle()">
                             <i class="bi bi-x-circle-fill"></i>
                         </button>
                     </div>
@@ -397,6 +397,38 @@
             MeetingType.ReuniaoDirecao => "bg-info",  // Light blue for board meetings
             _ => "bg-secondary"
         };
+    }
+    
+    private string GetGoingButtonClass()
+    {
+        if (UserParticipation?.WillAttend == true)
+            return "btn-selected";
+        if (UserParticipation != null && !UserParticipation.WillAttend)
+            return "btn-secondary-small";
+        return string.Empty;
+    }
+    
+    private string GetNotGoingButtonClass()
+    {
+        if (UserParticipation != null && !UserParticipation.WillAttend)
+            return "btn-selected";
+        if (UserParticipation?.WillAttend == true)
+            return "btn-secondary-small";
+        return string.Empty;
+    }
+    
+    private string GetGoingButtonTitle()
+    {
+        return UserParticipation?.WillAttend == true 
+            ? "Editar participação" 
+            : "Vou participar";
+    }
+    
+    private string GetNotGoingButtonTitle()
+    {
+        return UserParticipation != null && !UserParticipation.WillAttend 
+            ? "Editar impossibilidade" 
+            : "Não vou participar";
     }
 }
 

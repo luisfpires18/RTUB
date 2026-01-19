@@ -1017,6 +1017,7 @@ else
     private MeetingParticipation? participationForm;
     private List<MeetingParticipation> allParticipations = new();
     private Dictionary<int, List<MeetingParticipation>> participationsByMeeting = new();
+    private Dictionary<int, int> participationCountsByMeeting = new();
     
     // Participants list modal variables
     private bool showParticipantsModal = false;
@@ -1129,6 +1130,10 @@ else
             participationsByMeeting = allParticipations
                 .GroupBy(p => p.MeetingId)
                 .ToDictionary(g => g.Key, g => g.ToList());
+            
+            // Load participation counts for all displayed meetings in a single query
+            var meetingIds = meetings.Select(m => m.Id).ToList();
+            participationCountsByMeeting = await MeetingParticipationService.GetParticipationCountsByMeetingIdsAsync(meetingIds);
         }
         catch (Exception ex)
         {
@@ -1147,11 +1152,10 @@ else
 
     private int GetParticipationCount(int meetingId)
     {
-        // This returns a quick estimate; for accuracy we'd need to load all participations per meeting
-        // For now, we use the user's participation as an indicator (at least 1 if they participate)
-        var userParticipation = GetUserParticipation(meetingId);
-        if (userParticipation != null && userParticipation.WillAttend)
-            return 1;
+        if (participationCountsByMeeting.TryGetValue(meetingId, out var count))
+        {
+            return count;
+        }
         return 0;
     }
 
