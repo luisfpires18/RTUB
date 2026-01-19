@@ -1,0 +1,170 @@
+@namespace RTUB.Shared
+@*
+    MeetingParticipationModal Component
+    Simplified modal for meeting participation (no instrument-related fields)
+    Supports "WillAttend" selection with notes
+*@
+
+<Modal Show="@Show" 
+       ShowChanged="@ShowChanged"
+       Title="@Title" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <EditForm Model="@this" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+
+            @* Will Attend Selection *@
+            @if (ShowWillAttend)
+            {
+                <div class="mb-4 participation-willattend">
+                    <label class="form-label text-white-full fw-semibold d-flex align-items-center gap-2">
+                        <i class="bi bi-person-check text-primary"></i>
+                        <span>Vais participar?</span>
+                    </label>
+                    <div class="event-buttons-container justify-content-start">
+                        <button type="button"
+                                class="btn event-icon-btn btn-going @(WillAttend ? "btn-selected" : "btn-secondary-small")"
+                                @onclick="@(() => OnWillAttendChanged(true))">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span class="btn-label">Vou</span>
+                        </button>
+                        <button type="button"
+                                class="btn event-icon-btn btn-not-going @(!WillAttend ? "btn-selected" : "btn-secondary-small")"
+                                @onclick="@(() => OnWillAttendChanged(false))">
+                            <i class="bi bi-x-circle-fill"></i>
+                            <span class="btn-label">Não vou</span>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* Notes section *@
+            @if (WillAttend)
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
+                    </label>
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Motivo (opcional)
+                    </label>
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
+                </div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-primary-purple">@SubmitButtonText</button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+@code {
+    /// <summary>
+    /// Controls whether the modal is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Modal title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Participação";
+
+    /// <summary>
+    /// Whether to show the "Vais participar?" section
+    /// </summary>
+    [Parameter]
+    public bool ShowWillAttend { get; set; } = false;
+
+    /// <summary>
+    /// Whether the user will attend
+    /// </summary>
+    [Parameter]
+    public bool WillAttend { get; set; } = true;
+
+    /// <summary>
+    /// Whether the user will attend changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> WillAttendChanged { get; set; }
+
+    /// <summary>
+    /// Notes text
+    /// </summary>
+    [Parameter]
+    public string Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Notes changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> NotesChanged { get; set; }
+
+    /// <summary>
+    /// Number of rows for notes textarea
+    /// </summary>
+    [Parameter]
+    public int NotesRows { get; set; } = 4;
+
+    /// <summary>
+    /// Placeholder for notes textarea
+    /// </summary>
+    [Parameter]
+    public string NotesPlaceholder { get; set; } = "Informações adicionais...";
+
+    /// <summary>
+    /// Text for submit button
+    /// </summary>
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Callback when form is submitted
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+
+    /// <summary>
+    /// Callback when modal is cancelled
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private async Task OnWillAttendChanged(bool value)
+    {
+        WillAttend = value;
+        await WillAttendChanged.InvokeAsync(value);
+    }
+
+    private async Task OnNotesChanged()
+    {
+        await NotesChanged.InvokeAsync(Notes);
+    }
+
+    private async Task HandleSubmit()
+    {
+        await OnSubmit.InvokeAsync();
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        await ShowChanged.InvokeAsync(false);
+    }
+}
