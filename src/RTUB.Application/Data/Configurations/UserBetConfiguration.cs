@@ -61,6 +61,6 @@ public class UserBetConfiguration : IEntityTypeConfiguration<UserBet>
         builder.HasOne(ub => ub.BetOption)
             .WithMany()
             .HasForeignKey(ub => ub.BetOptionId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete conflicts
+            .OnDelete(DeleteBehavior.Cascade); // Allow cascade delete when BetOption is deleted
     }
 }

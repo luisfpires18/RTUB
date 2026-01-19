@@ -100,16 +100,9 @@ public class BetService : IBetService
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), id);
 
-        // Delete all user bets first (they have RESTRICT FK to BetOptions, so must be deleted before options)
-        await _userBetRepository.DeleteByBetIdAsync(id);
-        
-        // Delete all bet options
-        await _betOptionRepository.DeleteByBetIdAsync(id);
-
-        // Delete all bet comments
-        await _betCommentRepository.DeleteByBetIdAsync(id);
-
-        // Finally delete the bet itself
+        // With CASCADE delete configured on all FK relationships:
+        // - Deleting Bet cascades to BetOptions, UserBets, and BetComments
+        // - Deleting BetOptions cascades to UserBets (via FK_UserBets_BetOptions_BetOptionId)
         await _betRepository.DeleteAsync(id);
     }
 
