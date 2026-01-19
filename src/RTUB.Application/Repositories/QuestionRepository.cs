@@ -153,7 +153,26 @@ public class QuestionRepository : IQuestionRepository
 
     public async Task UpdateAsync(Question question)
     {
-        _context.Questions.Update(question);
+        var entry = _context.Entry(question);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.ChangeTracker.TrackGraph(question, node =>
+            {
+                if (node.Entry.Entity is Question)
+                {
+                    node.Entry.State = EntityState.Modified;
+                }
+                else
+                {
+                    node.Entry.State = EntityState.Detached;
+                }
+            });
+        }
+        else
+        {
+            entry.State = EntityState.Modified;
+        }
+
         await _context.SaveChangesAsync();
     }
 
