@@ -101,7 +101,7 @@
                     <i class="bi @(IsAuthor ? "bi-reply-fill" : "bi-eye")"></i>
                     <span>@(IsAuthor ? "Responder" : "Ver")</span>
                 </button>
-                @if (IsAuthor && Question.Status != QuestionStatus.Closed && !Question.IsAwaitingUserReply && Question.AssignedMemberId != Question.AuthorId)
+                @if (ShowNotify)
                 {
                     <button class="btn btn-sm btn-light d-flex align-items-center gap-2"
                             @onclick="HandleNotify"
@@ -179,6 +179,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnNotify { get; set; }
+
+    /// <summary>
+    /// Whether the notify button should be shown
+    /// </summary>
+    [Parameter]
+    public bool ShowNotify { get; set; }
 
     /// <summary>
     /// Callback when the close button is clicked
