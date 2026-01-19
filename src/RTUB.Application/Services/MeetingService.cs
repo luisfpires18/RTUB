@@ -214,10 +214,12 @@ public class MeetingService : IMeetingService
             var role = user.CurrentRole;
             var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
 
-            // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
+            // Allow CV meetings for Veterans, Tunossauros, Magister position holders,
+            // AND users who are designated as TunoRepresentative for a specific meeting
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
             {
-                query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
+                // Filter CV meetings but allow those where user is the TunoRepresentative
+                query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos || m.TunoRepresentativeUserId == userId);
             }
 
             // Filter out Assembleia Geral meetings if user is Leitão (not an associated member)

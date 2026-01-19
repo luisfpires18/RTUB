@@ -913,7 +913,8 @@ else
                                 Notes="@participation.Notes"
                                 AltText="@participation.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@CanDeleteParticipation(participation)">
+                                ShowDeleteButton="@CanDeleteParticipation(participation)"
+                                OnDelete="@(() => OpenDeleteParticipationModal(participation))">
                                 <BadgeContent>
                                     @if (participation.User != null)
                                     {
@@ -952,7 +953,8 @@ else
                                 Notes="@participation.Notes"
                                 AltText="@participation.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@CanDeleteParticipation(participation)">
+                                ShowDeleteButton="@CanDeleteParticipation(participation)"
+                                OnDelete="@(() => OpenDeleteParticipationModal(participation))">
                                 <BadgeContent>
                                     @if (participation.User != null)
                                     {
@@ -1062,6 +1064,27 @@ else
     </Modal>
 }
 
+<!-- Delete Participation Confirmation Modal -->
+<Modal Show="@showDeleteParticipationModal"
+       ShowChanged="@((bool show) => showDeleteParticipationModal = show)"
+       Title="Confirmar Eliminação"
+       Size="Modal.ModalSize.Small"
+       Centered="true">
+    <BodyContent>
+        @if (deletingParticipation != null)
+        {
+            <p>Tem a certeza que quer remover a participação de <strong>@(deletingParticipation.User?.Nickname ?? "este membro")</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteParticipationModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteParticipation">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Meeting> meetings = new();
     private bool isLoading = true;
@@ -1147,6 +1170,10 @@ else
     private bool showParticipantsModal = false;
     private Meeting? selectedMeetingForParticipants;
     private List<MeetingParticipation>? meetingParticipations;
+    
+    // Delete participation modal variables
+    private bool showDeleteParticipationModal = false;
+    private MeetingParticipation? deletingParticipation;
     
     // Add member to participation variables (for admins)
     private string addMemberToParticipationSearchTerm = "";
@@ -1437,6 +1464,8 @@ else
         var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
         tunoUsersForMeetingForm = allUsers
             .Where(u => u.CurrentRole == "TUNO")
+            // Exclude users with Magister position from representative list
+            .Where(u => u.Positions == null || !u.Positions.Contains(Position.Magister))
             .OrderBy(u => u.Nickname ?? u.FirstName)
             .ToList();
     }
@@ -2836,6 +2865,45 @@ else
         // Users can only delete their own participation or admins can delete any
         if (isOwner) return true;
         return participation.UserId == currentUserId;
+    }
+    
+    private void OpenDeleteParticipationModal(MeetingParticipation participation)
+    {
+        deletingParticipation = participation;
+        showDeleteParticipationModal = true;
+    }
+    
+    private void CloseDeleteParticipationModal()
+    {
+        showDeleteParticipationModal = false;
+        deletingParticipation = null;
+    }
+    
+    private async Task ConfirmDeleteParticipation()
+    {
+        if (deletingParticipation == null) return;
+        
+        try
+        {
+            await MeetingParticipationService.DeleteParticipationAsync(deletingParticipation.Id);
+            
+            // Refresh the participation list
+            if (selectedMeetingForParticipants != null)
+            {
+                await OpenParticipantsModal(selectedMeetingForParticipants);
+            }
+            
+            // Also refresh participation counts
+            await LoadParticipationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting participation {ParticipationId}", deletingParticipation.Id);
+        }
+        finally
+        {
+            CloseDeleteParticipationModal();
+        }
     }
     
     // Add member to participation methods (Admin only)
