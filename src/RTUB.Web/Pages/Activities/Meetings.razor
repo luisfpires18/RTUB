@@ -100,44 +100,103 @@ else
         <LoadingSpinner />
     </div>
 }
-else if (!meetings.Any())
-{
-    <EmptyState 
-        Title="Nenhuma reunião encontrada." 
-        Icon="bi-info-circle" />
-}
 else
 {
-    <div class="meeting-grid">
-        @foreach (var meeting in meetings)
+    <!-- Upcoming Meetings Section -->
+    <div class="mb-4">
+        <h2 class="mb-3"><i class="bi bi-calendar-event text-primary me-2"></i>Próximas Reuniões</h2>
+        
+        @if (!upcomingMeetings.Any())
         {
-            <MeetingCard Meeting="@meeting"
-                        Organizer="@meeting.Organizer"
-                        IsAdmin="@CanManageMeeting(meeting)"
-                        UserParticipation="@GetUserParticipation(meeting.Id)"
-                        ParticipationCount="@GetParticipationCount(meeting.Id)"
-                        OnEdit="@(() => OpenEditModal(meeting))"
-                        OnDelete="@(() => OpenDeleteModal(meeting))"
-                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
-                        OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
-                        OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
-                        OnCancel="@(() => OpenCancelMeetingModal(meeting))"
-                        OnUncancel="@(() => UncancelMeeting(meeting))"
-                        OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
-                        OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
-                        OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
+            <EmptyState 
+                Title="Nenhuma reunião agendada." 
+                Icon="bi-calendar-x" />
+        }
+        else
+        {
+            <div class="meeting-grid">
+                @foreach (var meeting in upcomingMeetings)
+                {
+                    <MeetingCard Meeting="@meeting"
+                                Organizer="@meeting.Organizer"
+                                IsAdmin="@CanManageMeeting(meeting)"
+                                UserParticipation="@GetUserParticipation(meeting.Id)"
+                                ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                OnEdit="@(() => OpenEditModal(meeting))"
+                                OnDelete="@(() => OpenDeleteModal(meeting))"
+                                OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                                OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
+                                OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
+                                OnCancel="@(() => OpenCancelMeetingModal(meeting))"
+                                OnUncancel="@(() => UncancelMeeting(meeting))"
+                                OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
+                                OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
+                }
+            </div>
+
+            @if (totalCount > pageSize)
+            {
+                <TablePagination 
+                    CurrentPage="@currentPage"
+                    PageSize="@pageSize"
+                    TotalItems="@totalCount"
+                    ItemLabel="reuniões agendadas"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="ChangePage"
+                    OnPageSizeChanged="ChangePageSize" />
+            }
         }
     </div>
+    
+    <!-- Past Meetings Section -->
+    <hr class="my-5" />
+    
+    <div class="mb-4">
+        <h2 class="mb-3"><i class="bi bi-calendar-check text-success me-2"></i>Reuniões Realizadas</h2>
+        
+        @if (!pastMeetings.Any())
+        {
+            <EmptyState 
+                Title="Nenhuma reunião realizada." 
+                Icon="bi-calendar-x" />
+        }
+        else
+        {
+            <div class="meeting-grid">
+                @foreach (var meeting in pastMeetings)
+                {
+                    <MeetingCard Meeting="@meeting"
+                                Organizer="@meeting.Organizer"
+                                IsAdmin="@CanManageMeeting(meeting)"
+                                UserParticipation="@GetUserParticipation(meeting.Id)"
+                                ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                OnEdit="@(() => OpenEditModal(meeting))"
+                                OnDelete="@(() => OpenDeleteModal(meeting))"
+                                OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                                OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
+                                OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
+                                OnCancel="@(() => OpenCancelMeetingModal(meeting))"
+                                OnUncancel="@(() => UncancelMeeting(meeting))"
+                                OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
+                                OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
+                }
+            </div>
 
-    <!-- Pagination -->
-    <TablePagination 
-        CurrentPage="@currentPage"
-        PageSize="@pageSize"
-        TotalItems="@totalCount"
-        ItemLabel="reuniões"
-        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+            @if (pastMeetingsTotalCount > pastMeetingsPageSize)
+            {
+                <TablePagination 
+                    CurrentPage="@pastMeetingsCurrentPage"
+                    PageSize="@pastMeetingsPageSize"
+                    TotalItems="@pastMeetingsTotalCount"
+                    ItemLabel="reuniões realizadas"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="ChangePastMeetingsPage"
+                    OnPageSizeChanged="ChangePastMeetingsPageSize" />
+            }
+        }
+    </div>
 }
 
 <!-- Meeting Requests Section (CV and AG) -->
@@ -1087,11 +1146,18 @@ else
 
 @code {
     private List<Meeting> meetings = new();
+    private List<Meeting> upcomingMeetings = new();
+    private List<Meeting> pastMeetings = new();
     private bool isLoading = true;
     private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 12;
     private int totalCount = 0;
+    
+    // Pagination for past meetings
+    private int pastMeetingsCurrentPage = 1;
+    private int pastMeetingsPageSize = 12;
+    private int pastMeetingsTotalCount = 0;
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -1334,14 +1400,37 @@ else
                     .ToList();
             }
             
-            totalCount = allMeetings.Count;
+            var today = DateTime.Today;
             
-            // Apply pagination
-            meetings = allMeetings
+            // Split into upcoming and past meetings
+            var allUpcoming = allMeetings
+                .Where(m => m.Date.Date >= today)
+                .OrderBy(m => m.Date)
+                .ToList();
+                
+            var allPast = allMeetings
+                .Where(m => m.Date.Date < today)
                 .OrderByDescending(m => m.Date)
+                .ToList();
+            
+            // Update counts
+            totalCount = allUpcoming.Count;
+            pastMeetingsTotalCount = allPast.Count;
+            
+            // Apply pagination for upcoming meetings
+            upcomingMeetings = allUpcoming
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
+                
+            // Apply pagination for past meetings
+            pastMeetings = allPast
+                .Skip((pastMeetingsCurrentPage - 1) * pastMeetingsPageSize)
+                .Take(pastMeetingsPageSize)
+                .ToList();
+            
+            // Keep the combined list for backward compatibility
+            meetings = upcomingMeetings.Concat(pastMeetings).ToList();
         }
         finally
         {
@@ -1353,6 +1442,7 @@ else
     {
         searchTerm = newSearchTerm;
         currentPage = 1; // Reset to first page on search
+        pastMeetingsCurrentPage = 1; // Also reset past meetings pagination
         await LoadMeetingsAsync();
     }
 
@@ -1368,10 +1458,24 @@ else
         currentPage = 1; // Reset to first page
         await LoadMeetingsAsync();
     }
+    
+    private async Task ChangePastMeetingsPage(int newPage)
+    {
+        pastMeetingsCurrentPage = newPage;
+        await LoadMeetingsAsync();
+    }
+    
+    private async Task ChangePastMeetingsPageSize(int newPageSize)
+    {
+        pastMeetingsPageSize = newPageSize;
+        pastMeetingsCurrentPage = 1; // Reset to first page
+        await LoadMeetingsAsync();
+    }
 
     private async Task OnFiscalYearChanged()
     {
         currentPage = 1;
+        pastMeetingsCurrentPage = 1;
         requestCurrentPage = 1;
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();

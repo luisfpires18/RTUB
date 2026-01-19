@@ -60,6 +60,7 @@ public class MeetingService : IMeetingService
         // Apply pagination using extension method
         return await query
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .PaginateAsync(pageNumber, pageSize);
     }
 
@@ -68,6 +69,7 @@ public class MeetingService : IMeetingService
         var meeting = await _context.Meetings
             .AsNoTracking()
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (meeting == null)
