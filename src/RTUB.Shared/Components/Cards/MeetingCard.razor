@@ -9,10 +9,10 @@
 
 <div class="card meeting-card h-100">
     <div class="meeting-card__top position-relative">
-        @* Status badges - Show participation status if user has participated, otherwise show meeting status *@
-        <div class="position-absolute top-0 start-0 p-2">
-            @if (UserParticipation != null)
-            {
+        @* VOU/NAO VOU badges at top left - only show if user has participated *@
+        @if (UserParticipation != null)
+        {
+            <div class="position-absolute top-0 start-0 p-2">
                 @if (UserParticipation.WillAttend)
                 {
                     <span class="badge bg-success fs-6">
@@ -25,13 +25,13 @@
                         <i class="bi bi-x-circle-fill me-1"></i>@(IsMeetingCompleted() ? "NÃO FUI" : "NÃO VOU")
                     </span>
                 }
-            }
-            else
-            {
-                <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
-                    @GetMeetingStatus()
-                </span>
-            }
+            </div>
+        }
+        @* Status badges (Realizada/Agendada/Cancelada) at bottom left *@
+        <div class="position-absolute bottom-0 start-0 p-2">
+            <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
+                @GetMeetingStatus()
+            </span>
         </div>
         @if (IsAdmin)
         {
@@ -83,6 +83,14 @@
                 <div class="meeting-info-row mb-2">
                     <i class="bi bi-person-badge meeting-icon"></i>
                     <span class="meeting-text">Organizador: @Organizer.Nickname, @PositionHelper.GetDisplayName(Organizer.Positions.First())</span>
+                </div>
+            }
+
+            @if (Meeting.Type == MeetingType.ConselhoVeteranos && Meeting.TunoRepresentative != null)
+            {
+                <div class="meeting-info-row mb-2">
+                    <i class="bi bi-person-badge meeting-icon text-warning"></i>
+                    <span class="meeting-text">Representante: @Meeting.TunoRepresentative.Nickname</span>
                 </div>
             }
         </div>

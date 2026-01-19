@@ -156,6 +156,7 @@ public class MeetingService : IMeetingService
         existingMeeting.Location = meeting.Location;
         existingMeeting.Statement = meeting.Statement;
         existingMeeting.OrganizerUserId = meeting.OrganizerUserId;
+        existingMeeting.TunoRepresentativeUserId = meeting.TunoRepresentativeUserId;
         existingMeeting.IsCancelled = meeting.IsCancelled;
         existingMeeting.CancellationReason = meeting.CancellationReason;
 

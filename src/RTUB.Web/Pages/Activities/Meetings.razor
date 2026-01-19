@@ -991,7 +991,7 @@ else
                         @if (!string.IsNullOrEmpty(addMemberToParticipationFeedbackMessage) && !addMemberToParticipationFeedbackIsError)
                         {
                             <Alert Type="Alert.AlertType.Success"
-                                   Title="@addMemberToParticipationFeedbackMessage"
+                                   Message="@addMemberToParticipationFeedbackMessage"
                                    Dismissible="true"
                                    OnDismiss="ClearAddMemberToParticipationFeedback"
                                    AdditionalClasses="mb-2" />
@@ -1001,7 +1001,7 @@ else
                         @if (!string.IsNullOrEmpty(addMemberToParticipationFeedbackMessage) && addMemberToParticipationFeedbackIsError)
                         {
                             <Alert Type="Alert.AlertType.Error"
-                                   Title="@addMemberToParticipationFeedbackMessage"
+                                   Message="@addMemberToParticipationFeedbackMessage"
                                    Dismissible="true"
                                    OnDismiss="ClearAddMemberToParticipationFeedback"
                                    AdditionalClasses="mb-2" />
@@ -2865,6 +2865,8 @@ else
         var search = addMemberToParticipationSearchTerm.ToLower();
         filteredAvailableMembersForParticipation = allMembersForParticipation
             .Where(u => !existingParticipantIds.Contains(u.Id))
+            // Filter out Leitoes and Caloiros - they should not be added to meeting participations
+            .Where(u => u.Categories != null && !u.Categories.Contains(MemberCategory.Leitao) && !u.Categories.Contains(MemberCategory.Caloiro))
             .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
                        (u.LastName?.ToLower().Contains(search) ?? false) ||
                        (u.Nickname?.ToLower().Contains(search) ?? false))
