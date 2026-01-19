@@ -726,19 +726,40 @@
                             <i class="bi bi-people text-primary"></i>
                             <span>Utilizadores</span>
                         </label>
+                        
+                        @* Selected members as chips *@
+                        @if (selectedReminderUserIds.Any())
+                        {
+                            <div class="selected-members-chips mb-2">
+                                @foreach (var userId in selectedReminderUserIds.ToList())
+                                {
+                                    var user = users?.FirstOrDefault(u => u.Id == userId);
+                                    if (user != null)
+                                    {
+                                        <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
+                                            <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
+                                            <span class="member-chip-name">@user.GetDisplayName()</span>
+                                            <button type="button" class="member-chip-remove" @onclick="() => RemoveReminderUser(userId)" title="Remover utilizador" aria-label="Remover @user.GetDisplayName()">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </span>
+                                    }
+                                }
+                            </div>
+                        }
+                        
                         <div class="reminder-user-search-container">
                             <input type="text" class="form-control mb-2" placeholder="Pesquisar utilizador por nome ou alcunha..." 
                                    @bind="reminderUserSearchTerm" @bind:event="oninput" />
                         </div>
                         
-                        @if (filteredReminderUsers != null && filteredReminderUsers.Any())
+                        @if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm) && filteredAvailableReminderUsers != null && filteredAvailableReminderUsers.Any())
                         {
                             <div class="member-list member-list-scrollable mb-3" style="max-height: 200px; overflow-y: auto;">
-                                @foreach (var user in filteredReminderUsers.Take(20))
+                                @foreach (var user in filteredAvailableReminderUsers.Take(10))
                                 {
-                                    var isSelected = selectedReminderUserIds.Contains(user.Id);
-                                    <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "bg-primary bg-opacity-25" : "")"
-                                         @onclick="() => ToggleReminderUser(user.Id)">
+                                    <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                         @onclick="() => AddReminderUser(user.Id)">
                                         <div class="d-flex align-items-center">
                                             <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
                                                  class="member-avatar-small me-2" style="width: 32px; height: 32px; border-radius: 50%;" />
@@ -753,21 +774,14 @@
                                                     <div><strong>@user.FirstName @user.LastName</strong></div>
                                                 }
                                             </div>
-                                            @if (isSelected)
-                                            {
-                                                <i class="bi bi-check-circle-fill text-primary"></i>
-                                            }
                                         </div>
                                     </div>
                                 }
                             </div>
                         }
-                        
-                        @if (selectedReminderUserIds.Any())
+                        else if (!string.IsNullOrWhiteSpace(reminderUserSearchTerm))
                         {
-                            <div class="alert alert-primary">
-                                <strong>@selectedReminderUserIds.Count utilizador(es) selecionado(s)</strong>
-                            </div>
+                            <p class="text-muted small">Nenhum utilizador encontrado.</p>
                         }
                     </div>
                 </div>
@@ -775,7 +789,7 @@
                     <button type="button" class="btn btn-secondary" @onclick="CloseCreateReminderModal">
                         <i class="bi bi-x-circle me-2"></i>Cancelar
                     </button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveReminder" 
+                    <button type="button" class="btn btn-purple" @onclick="SaveReminder" 
                             disabled="@(string.IsNullOrEmpty(selectedReminderCardId) || !selectedReminderUserIds.Any())">
                         <i class="bi bi-check-circle me-2"></i>Criar Lembrete
                     </button>
@@ -892,13 +906,18 @@
     private string reminderUserSearchTerm = string.Empty;
     private List<string> selectedReminderUserIds = new();
     private string? reminderErrorMessage = null;
-    private List<ApplicationUser>? filteredReminderUsers => users?.Where(u => 
-        string.IsNullOrEmpty(reminderUserSearchTerm) ||
+    
+    // Filter users that are NOT already selected (for adding new users)
+    private List<ApplicationUser>? filteredAvailableReminderUsers => users?.Where(u => 
+        !selectedReminderUserIds.Contains(u.Id) &&
+        !string.IsNullOrWhiteSpace(reminderUserSearchTerm) &&
         ((u.UserName != null && u.UserName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.FirstName != null && u.FirstName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.LastName != null && u.LastName.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.Nickname != null && u.Nickname.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
-        (u.Email != null && u.Email.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
+        (u.Email != null && u.Email.Contains(reminderUserSearchTerm, StringComparison.OrdinalIgnoreCase))))
+        .OrderBy(u => u.FirstName)
+        .ToList();
 
     // Delete modal state
     private bool showDeleteListModal = false;
@@ -1730,16 +1749,20 @@
         reminderErrorMessage = null;
     }
 
-    private void ToggleReminderUser(string userId)
+    private void AddReminderUser(string userId)
     {
-        if (selectedReminderUserIds.Contains(userId))
-        {
-            selectedReminderUserIds.Remove(userId);
-        }
-        else
+        if (!selectedReminderUserIds.Contains(userId))
         {
             selectedReminderUserIds.Add(userId);
+            reminderUserSearchTerm = string.Empty;
+            StateHasChanged();
         }
+    }
+
+    private void RemoveReminderUser(string userId)
+    {
+        selectedReminderUserIds.Remove(userId);
+        StateHasChanged();
     }
 
     private async Task SaveReminder()

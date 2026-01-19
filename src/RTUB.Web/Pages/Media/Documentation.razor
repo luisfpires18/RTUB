@@ -88,7 +88,12 @@ else
         var docSkip = (paginationState.CurrentPage - 1) * paginationState.PageSize;
         var documents = allDocuments.Skip(docSkip).Take(paginationState.PageSize).ToList();
         
-        <FolderCard FolderName="@folder"
+        // Extract display name for the folder (for Logistics, show just the board name)
+        var displayFolderName = folder.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase) 
+            ? folder.Substring("Logistics/".Length) 
+            : folder;
+        
+        <FolderCard FolderName="@displayFolderName"
                    FolderPath="@folderPath"
                    Documents="@documents"
                    DefaultExpanded="@isFirstFolder"
@@ -400,34 +405,53 @@ else
         try
         {
             // Load folders
-            folders = await DocumentStorageService.ListFoldersAsync("docs/");
+            var baseFolders = await DocumentStorageService.ListFoldersAsync("docs/");
+            
+            // Expand Logistics folder into individual board name folders
+            var expandedFolders = new List<string>();
+            var logisticsSubfolders = new List<string>();
+            
+            foreach (var folder in baseFolders)
+            {
+                if (folder.Equals("Logistics", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get board name subfolders within Logistics
+                    var logisticsPath = $"docs/{HostEnvironment.EnvironmentName}/Logistics/";
+                    logisticsSubfolders = await DocumentStorageService.ListSubfoldersAsync(logisticsPath);
+                    
+                    // Add each board name as its own folder entry
+                    foreach (var subfolder in logisticsSubfolders)
+                    {
+                        expandedFolders.Add($"Logistics/{subfolder}");
+                    }
+                }
+                else
+                {
+                    expandedFolders.Add(folder);
+                }
+            }
+            
+            folders = expandedFolders;
             
             // Load documents for all folders in parallel (eliminates N+1 Cloudflare API calls)
             folderDocuments.Clear();
             
             var documentTasks = folders.Select(async folder =>
             {
-                var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
                 var documents = new List<DocumentMetadata>();
                 
-                // Special handling for Logistics folder - it contains subfolders (board names) with documents
-                if (folder.Equals("Logistics", StringComparison.OrdinalIgnoreCase))
+                // Check if this is a Logistics board folder (contains /)
+                if (folder.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase))
                 {
-                    // List subfolders (board names) within Logistics using the new method
-                    var logisticsPath = $"docs/{HostEnvironment.EnvironmentName}/Logistics/";
-                    var subfolders = await DocumentStorageService.ListSubfoldersAsync(logisticsPath);
-                    
-                    // Get documents from each subfolder
-                    foreach (var subfolder in subfolders)
-                    {
-                        var subfolderPath = $"docs/{HostEnvironment.EnvironmentName}/Logistics/{subfolder}";
-                        var subfolderDocs = await DocumentStorageService.ListDocumentsInFolderAsync(subfolderPath);
-                        documents.AddRange(subfolderDocs);
-                    }
+                    // Get the board name from the path
+                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
+                    var folderDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
+                    documents.AddRange(folderDocs);
                 }
                 else
                 {
                     // Regular folder - list documents directly
+                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
                     var regularDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
                     documents.AddRange(regularDocs);
                 }
