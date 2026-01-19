@@ -88,13 +88,12 @@
                         @foreach (var question in openPaginatedQuestions)
                         {
                             var replyCount = GetReplyCount(question);
-                            var isExpanded = expandedQuestionIds.Contains(question.Id);
                             var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
                             var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
 
                             <div class="post-wrapper mb-3">
                                 <!-- Question Card as clickable header -->
-                                <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                                <div class="post-card" style="height: auto;">
                                     <div class="post-card-avatar-section">
                                         <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                              class="post-card-avatar"
@@ -161,11 +160,11 @@
                                                         <i class="bi bi-chat-dots"></i> Em Discussão
                                                     </span>
                                                 }
-                                                <button class="btn btn-sm btn-purple" 
-                                                        @onclick="() => ShowFullContent(question)" 
+                                                <button class="btn btn-sm btn-purple"
+                                                        @onclick="() => ShowFullContent(question)"
                                                         @onclick:stopPropagation="true"
-                                                        title="Ver pergunta completa">
-                                                    <i class="bi bi-eye"></i>
+                                                        title="Ver respostas">
+                                                    <i class="bi bi-reply"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -196,85 +195,6 @@
                                         </div>
                                     }
                                 </div>
-
-                                @if (isExpanded)
-                                {
-                                    <div class="post-expanded-content">
-                                        <div class="comments-section">
-                                            <h6 class="mb-3">
-                                                <i class="bi bi-chat-left-text me-2"></i>Respostas (@replyCount)
-                                            </h6>
-                                            
-                                            @if (replyCount == 0)
-                                            {
-                                                <p class="text-muted"><em>Nenhuma resposta ainda.</em></p>
-                                            }
-                                            else
-                                            {
-                                                <div class="comments-list mb-3">
-                                                    @foreach (var reply in question.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
-                                                    {
-                                                        <div class="comment-item mb-2">
-                                                            <div class="comment-header">
-                                                                <div class="d-flex align-items-center justify-content-between">
-                                                                    <div class="d-flex align-items-center">
-                                                                        <img src="@(reply.Author.ProfilePictureSrc)"
-                                                                             class="rounded-circle me-2"
-                                                                             alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
-                                                                             style="width: 36px; height: 36px; object-fit: cover;" />
-                                                                        <div>
-                                                                            <div class="fw-bold">
-                                                                                @(reply.Author.Nickname ?? reply.Author.UserName)
-                                                                                @if (reply.IsFromAssignedMember)
-                                                                                {
-                                                                                    <span class="badge bg-primary ms-2">@receiverRoleText</span>
-                                                                                }
-                                                                            </div>
-                                                                            <small class="text-muted">
-                                                                                @reply.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-                                                                            </small>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="comment-body">
-                                                                <p class="mb-0" style="white-space: pre-line;">@reply.Content</p>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-
-                                            @if (CanReplyToQuestion(question))
-                                            {
-                                                <div class="mt-3">
-                                                    <CommentComposer OnSubmit="@(async (body) => await AddReply(question.Id, body))" />
-                                                </div>
-                                            }
-                                            else if (question.Status == QuestionStatus.Closed)
-                                            {
-                                                <EmptyState Title="Pergunta fechada" 
-                                                           Message="Esta pergunta foi fechada pelo autor. Não é possível adicionar novas respostas." 
-                                                           Icon="bi-lock" />
-                                            }
-                                            else if (currentUser != null)
-                                            {
-                                                @if (question.IsAwaitingUserReply && !IsQuestionAuthor(question))
-                                                {
-                                                    <EmptyState Title="Aguardando resposta" 
-                                                               Message="Aguardando resposta do autor da pergunta." 
-                                                               Icon="bi-hourglass" />
-                                                }
-                                                else if (!question.IsAwaitingUserReply && !IsAssignedMember(question))
-                                                {
-                                                    <EmptyState Title="Acesso restrito" 
-                                                               Message="Apenas o membro designado pode responder a esta pergunta." 
-                                                               Icon="bi-person-lock" />
-                                                }
-                                            }
-                                        </div>
-                                    </div>
-                                }
                             </div>
                         }
                     </div>
@@ -312,13 +232,12 @@
                         @foreach (var question in closedPaginatedQuestions)
                         {
                             var replyCount = GetReplyCount(question);
-                            var isExpanded = expandedQuestionIds.Contains(question.Id);
                             var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(question.AssignedPosition);
                             var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, question.AssignedPosition) : PositionHelper.GetDisplayName(question.AssignedPosition);
 
                             <div class="post-wrapper mb-3">
                                 <!-- Question Card as clickable header -->
-                                <div class="post-card" style="height: auto;" @onclick="() => ToggleQuestion(question.Id)">
+                                <div class="post-card" style="height: auto;">
                                     <div class="post-card-avatar-section">
                                         <img src="@(question.Author.ProfilePictureSrc ?? "")"
                                              class="post-card-avatar"
@@ -364,11 +283,11 @@
                                                 <span class="badge bg-secondary">
                                                     <i class="bi bi-check-circle-fill"></i> Fechada
                                                 </span>
-                                                <button class="btn btn-sm btn-purple" 
-                                                        @onclick="() => ShowFullContent(question)" 
+                                                <button class="btn btn-sm btn-purple"
+                                                        @onclick="() => ShowFullContent(question)"
                                                         @onclick:stopPropagation="true"
-                                                        title="Ver pergunta completa">
-                                                    <i class="bi bi-eye"></i>
+                                                        title="Ver respostas">
+                                                    <i class="bi bi-reply"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -386,64 +305,6 @@
                                         </div>
                                     }
                                 </div>
-
-                                @if (isExpanded)
-                                {
-                                    <div class="post-expanded-content">
-                                        <div class="comments-section">
-                                            <h6 class="mb-3">
-                                                <i class="bi bi-chat-left-text me-2"></i>Respostas (@replyCount)
-                                            </h6>
-                                            
-                                            @if (replyCount == 0)
-                                            {
-                                                <p class="text-muted"><em>Nenhuma resposta ainda.</em></p>
-                                            }
-                                            else
-                                            {
-                                                <div class="comments-list mb-3">
-                                                    @foreach (var reply in question.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
-                                                    {
-                                                        <div class="comment-item mb-2">
-                                                            <div class="comment-header">
-                                                                <div class="d-flex align-items-center justify-content-between">
-                                                                    <div class="d-flex align-items-center">
-                                                                        <img src="@(reply.Author.ProfilePictureSrc)"
-                                                                             class="rounded-circle me-2"
-                                                                             alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
-                                                                             style="width: 36px; height: 36px; object-fit: cover;" />
-                                                                        <div>
-                                                                            <div class="fw-bold">
-                                                                                @(reply.Author.Nickname ?? reply.Author.UserName)
-                                                                                @if (reply.IsFromAssignedMember)
-                                                                                {
-                                                                                    <span class="badge bg-primary ms-2">@receiverRoleText</span>
-                                                                                }
-                                                                            </div>
-                                                                            <small class="text-muted">
-                                                                                @reply.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-                                                                            </small>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="comment-body">
-                                                                <p class="mb-0" style="white-space: pre-line;">@reply.Content</p>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            }
-
-                                            @if (question.Status == QuestionStatus.Closed)
-                                            {
-                                                <EmptyState Title="Pergunta fechada" 
-                                                           Message="Esta pergunta foi fechada pelo autor. Não é possível adicionar novas respostas." 
-                                                           Icon="bi-lock" />
-                                            }
-                                        </div>
-                                    </div>
-                                }
                             </div>
                         }
                     </div>
@@ -611,6 +472,10 @@
     <BodyContent>
         @if (questionToView != null)
         {
+            var replyCount = GetReplyCount(questionToView);
+            var receiverGroup = OrgaoSocialHelper.GetGroupForPosition(questionToView.AssignedPosition);
+            var receiverRoleText = receiverGroup.HasValue ? GetRoleDisplayText(receiverGroup.Value, questionToView.AssignedPosition) : PositionHelper.GetDisplayName(questionToView.AssignedPosition);
+
             <div class="mb-3">
                 <div class="d-flex align-items-center mb-2">
                     <img src="@(questionToView.Author.ProfilePictureSrc ?? "")"
@@ -631,6 +496,80 @@
             <div class="p-3 bg-dark rounded" style="white-space: pre-wrap; word-break: break-word;">
                 @questionToView.Content
             </div>
+
+            <div class="mt-4">
+                <h6 class="mb-3">
+                    <i class="bi bi-chat-left-text me-2"></i>Respostas (@replyCount)
+                </h6>
+
+                @if (replyCount == 0)
+                {
+                    <p class="text-muted"><em>Nenhuma resposta ainda.</em></p>
+                }
+                else
+                {
+                    <div class="comments-list mb-3">
+                        @foreach (var reply in questionToView.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
+                        {
+                            <div class="comment-item mb-2">
+                                <div class="comment-header">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@(reply.Author.ProfilePictureSrc)"
+                                                 class="rounded-circle me-2"
+                                                 alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
+                                                 style="width: 36px; height: 36px; object-fit: cover;" />
+                                            <div>
+                                                <div class="fw-bold">
+                                                    @(reply.Author.Nickname ?? reply.Author.UserName)
+                                                    @if (reply.IsFromAssignedMember)
+                                                    {
+                                                        <span class="badge bg-primary ms-2">@receiverRoleText</span>
+                                                    }
+                                                </div>
+                                                <small class="text-muted">
+                                                    @reply.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="comment-body">
+                                    <p class="mb-0" style="white-space: pre-line;">@reply.Content</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (CanReplyToQuestion(questionToView))
+                {
+                    <div class="mt-3">
+                        <CommentComposer OnSubmit="@(async (body) => await AddReply(questionToView.Id, body))" />
+                    </div>
+                }
+                else if (questionToView.Status == QuestionStatus.Closed)
+                {
+                    <EmptyState Title="Pergunta fechada" 
+                               Message="Esta pergunta foi fechada pelo autor. Não é possível adicionar novas respostas." 
+                               Icon="bi-lock" />
+                }
+                else if (currentUser != null)
+                {
+                    @if (questionToView.IsAwaitingUserReply && !IsQuestionAuthor(questionToView))
+                    {
+                        <EmptyState Title="Aguardando resposta" 
+                                   Message="Aguardando resposta do autor da pergunta." 
+                                   Icon="bi-hourglass" />
+                    }
+                    else if (!questionToView.IsAwaitingUserReply && !IsAssignedMember(questionToView))
+                    {
+                        <EmptyState Title="Acesso restrito" 
+                                   Message="Apenas o membro designado pode responder a esta pergunta." 
+                                   Icon="bi-person-lock" />
+                    }
+                }
+            </div>
         }
     </BodyContent>
     <FooterContent>
@@ -648,7 +587,6 @@
     private bool isLoading = true;
     private string searchTerm = string.Empty;
     private string selectedRecipientId = string.Empty;
-    private HashSet<int> expandedQuestionIds = new();
     private PaginationHelper<Question> openPaginationHelper = new() { PageSize = 10 };
     private PaginationHelper<Question> closedPaginationHelper = new() { PageSize = 10 };
 
@@ -703,18 +641,6 @@
     {
         var members = await QuestionService.GetAllOrgaoSocialMembersAsync();
         orgaoSocialMembers = members.ToList();
-    }
-
-    private void ToggleQuestion(int questionId)
-    {
-        if (expandedQuestionIds.Contains(questionId))
-        {
-            expandedQuestionIds.Remove(questionId);
-        }
-        else
-        {
-            expandedQuestionIds.Add(questionId);
-        }
     }
 
     private IEnumerable<FilterDropdownOption> recipientFilterOptions =>
