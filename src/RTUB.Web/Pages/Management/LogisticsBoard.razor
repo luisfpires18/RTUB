@@ -1361,13 +1361,23 @@
             }
 
             var fileName = selectedFile.Name;
-            using var stream = selectedFile.OpenReadStream(MaxFileSize);
+            var contentType = selectedFile.ContentType;
+            
+            // Buffer the file to a MemoryStream to avoid Blazor JSInterop issues with browser streams
+            // The browser stream can become stale during async S3 upload operations
+            using var memoryStream = new MemoryStream();
+            await using (var browserStream = selectedFile.OpenReadStream(MaxFileSize))
+            {
+                await browserStream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Position = 0;
+            
             await CardService.UploadCardAttachmentAsync(
                 selectedCard.Id, 
                 board.Name, 
                 fileName, 
-                stream, 
-                selectedFile.ContentType, 
+                memoryStream, 
+                contentType, 
                 environmentName);
 
             uploadSuccessMessage = $"Ficheiro '{fileName}' carregado com sucesso!";
