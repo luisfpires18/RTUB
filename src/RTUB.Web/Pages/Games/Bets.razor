@@ -329,7 +329,7 @@
 
                 <div class="mb-3">
                     <h5><i class="bi bi-calendar me-2"></i>Data e Hora</h5>
-                    <p>@selectedBet.DateTime.ToString("dd MMM yyyy, HH:mm")h</p>
+                    <p>@selectedBet.DateTime.ToString("dd MMM yyyy, HH:mm'h'")</p>
                 </div>
 
                 @if (!string.IsNullOrEmpty(selectedBet.Location))
@@ -597,8 +597,8 @@
             var search = pastBetsSearch.ToLower();
             filteredPastBets = pastBets.Where(b =>
                 b.Title.ToLower().Contains(search) ||
-                b.Description.ToLower().Contains(search) ||
-                b.Location.ToLower().Contains(search)
+                (b.Description?.ToLower().Contains(search) ?? false) ||
+                (b.Location?.ToLower().Contains(search) ?? false)
             ).ToList();
         }
 

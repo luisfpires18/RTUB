@@ -51,7 +51,8 @@ public class Bet : BaseEntity
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título da aposta não pode estar vazio", nameof(title));
 
-        if (dateTime <= DateTime.UtcNow)
+        // Using local time for consistency with Events
+        if (dateTime <= DateTime.Now)
             throw new ArgumentException("A data e hora da aposta devem ser no futuro", nameof(dateTime));
 
         return new Bet
@@ -134,11 +135,13 @@ public class Bet : BaseEntity
 
     public bool IsPast()
     {
-        return DateTime <= DateTime.UtcNow;
+        // Using local time for consistency with Events
+        return DateTime <= DateTime.Now;
     }
 
     public bool IsFuture()
     {
-        return DateTime > DateTime.UtcNow;
+        // Using local time for consistency with Events
+        return DateTime > DateTime.Now;
     }
 }
