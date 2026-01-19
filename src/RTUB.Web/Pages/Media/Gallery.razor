@@ -1264,7 +1264,7 @@ else
                     <div class="gallery-timeline-dot"></div>
                     
                     <!-- Media card -->
-                    <div class="gallery-card" @onclick="() => OpenLightbox(media)">
+                    <div class="gallery-card" data-gallery-id="@media.Id" @onclick="() => OpenLightbox(media)">
                         <div class="media-card-image">
                             @if (media.MediaType == MediaType.Image)
                             {
@@ -1272,15 +1272,16 @@ else
                             }
                             else
                             {
-                                <div class="video-thumbnail">
-                                    @if (!string.IsNullOrEmpty(media.ThumbnailUrl))
-                                    {
-                                        <img src="@media.ThumbnailUrl" alt="@media.Title" loading="lazy" />
-                                    }
-                                    <div class="video-overlay">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                    </div>
-                                </div>
+                                <video class="gallery-video-preview"
+                                       muted
+                                       playsinline
+                                       preload="metadata"
+                                       poster="@media.ThumbnailUrl"
+                                       @onmouseenter="@(() => PlayGalleryPreview(media.Id))"
+                                       @onmouseleave="@(() => PauseGalleryPreview(media.Id))">
+                                    <source src="@media.MediaUrl" type="video/mp4" />
+                                    O seu browser não suporta a reprodução de vídeo.
+                                </video>
                             }
                         </div>
                         <div class="media-card-body">
@@ -1365,6 +1366,22 @@ else
             Logger.LogWarning(ex, "Error formatting media date: Year={Year}, Month={Month}, Day={Day}", year, month, day);
             return year.ToString(); // Fallback to just showing the year
         }
+    }
+
+    private async Task PlayGalleryPreview(int mediaId)
+    {
+        await JSRuntime.InvokeVoidAsync(
+            "eval",
+            $"document.querySelector('[data-gallery-id=\"{mediaId}\"] video')?.play()"
+        );
+    }
+
+    private async Task PauseGalleryPreview(int mediaId)
+    {
+        await JSRuntime.InvokeVoidAsync(
+            "eval",
+            $"document.querySelector('[data-gallery-id=\"{mediaId}\"] video')?.pause()"
+        );
     }
 
     // Models

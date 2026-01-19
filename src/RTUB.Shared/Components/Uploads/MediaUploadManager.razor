@@ -23,7 +23,7 @@
             <br />
             @if (IsVideo(CurrentMediaUrl))
             {
-                <video controls class="img-thumbnail mt-1 @PreviewCssClass" style="max-width: 300px;">
+                <video class="img-thumbnail mt-1 @PreviewCssClass" muted playsinline preload="metadata" style="max-width: 300px;">
                     <source src="@CurrentMediaUrl" />
                 </video>
             }
