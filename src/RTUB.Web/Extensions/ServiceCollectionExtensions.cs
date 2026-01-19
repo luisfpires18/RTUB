@@ -55,6 +55,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
+        services.AddScoped<IBetCommentRepository, BetCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
@@ -159,6 +160,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
+        services.AddScoped<IBetCommentService, BetCommentService>();
 
         return services;
     }

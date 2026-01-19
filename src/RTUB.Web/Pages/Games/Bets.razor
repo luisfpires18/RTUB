@@ -8,13 +8,13 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Application.Utilities
+@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @inject IBetService BetService
 @inject IBetOptionRepository BetOptionRepository
-@inject IDiscussionService DiscussionService
-@inject IPostService PostService
+@inject IBetCommentService BetCommentService
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -80,7 +80,7 @@
                                 var betOptions = GetBetOptions(bet.Id);
                                 var discussionCount = GetDiscussionCount(bet.Id);
                             }
-                            <BetCard Bet="@bet"
+                             <BetCard Bet="@bet"
                                      UserBet="@userBet"
                                      BetOptions="@betOptions"
                                      DiscussionCount="@discussionCount"
@@ -89,7 +89,8 @@
                                      OnEdit="@(() => OpenEditModal(bet))"
                                      OnDelete="@(() => OpenDeleteModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
-                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
+                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                     OnViewUserBet="@(() => OpenViewUserBetModal(bet))" />
                         </div>
                     }
                 </div>
@@ -144,7 +145,8 @@
                                  OnEdit="@(() => OpenEditModal(bet))"
                                  OnDelete="@(() => OpenDeleteModal(bet))"
                                  OnResolve="@(() => OpenResolveModal(bet))"
-                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
+                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                 OnViewUserBet="@(() => OpenViewUserBetModal(bet))" />
                     </div>
                 }
             </div>
@@ -416,7 +418,7 @@
             }
             else if (selectedBet.WinningOptionId.HasValue)
             {
-                <span class="badge bg-info">Resolvido</span>
+                <span class="badge" style="background-color: #8a2be2; color: white;">Resolvido</span>
             }
         }
     </BadgesContent>
@@ -438,7 +440,6 @@
                 }
             </InfoSection>
 
-            <!-- Bet Options Section -->
             <InfoSection SectionTitle="Opções de Aposta" 
                         IconClass="bi-list-check" 
                         CssClass="mb-4">
@@ -446,9 +447,10 @@
                 {
                     var isWinning = selectedBet.WinningOptionId.HasValue && selectedBet.WinningOptionId.Value == option.Id;
                     var isUserOption = GetUserBet(selectedBet.Id)?.BetOptionId == option.Id;
-                    var optionClass = isWinning ? "alert-success" : (isUserOption ? "alert-info" : "alert-secondary");
+                    var optionStyle = isWinning ? "background-color: #28a745; color: white;" : 
+                                     (isUserOption ? "background-color: #8a2be2; color: white;" : "background-color: #6c757d; color: white;");
                     
-                    <div class="alert @optionClass mb-2">
+                    <div class="alert mb-2" style="@optionStyle">
                         <div class="d-flex justify-content-between align-items-center">
                             <span>
                                 @option.Title
@@ -458,7 +460,7 @@
                                 }
                                 @if (isUserOption && !isWinning)
                                 {
-                                    <i class="bi bi-person-fill text-info ms-2"></i>
+                                    <i class="bi bi-person-fill ms-2"></i>
                                 }
                             </span>
                             <span class="badge bg-warning text-dark">Odds: @option.Odds.ToString("F2")x</span>
@@ -469,11 +471,10 @@
 
             @if (GetUserBet(selectedBet.Id) != null)
             {
-                <!-- User's Bet Section -->
                 <InfoSection SectionTitle="A Sua Aposta" 
                             IconClass="bi-cash-coin" 
                             CssClass="mb-4">
-                    <div class="alert alert-primary">
+                    <div class="alert" style="background-color: #8a2be2; color: white;">
                         <p class="mb-1">
                             <strong>Opção:</strong> @GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == GetUserBet(selectedBet.Id)!.BetOptionId)?.Title
                         </p>
@@ -511,12 +512,12 @@
                 </InfoSection>
             }
 
-            <!-- Discussion Section -->
+            <!-- Comments Section -->
             <div class="modal-info-section">
                 <div class="modal-section-header">
                     <h6 class="modal-section-title">
                         <i class="bi bi-chat-left-text me-2 text-primary"></i>
-                        Discussão
+                        Comentários
                     </h6>
                 </div>
                 <div class="modal-section-body">
@@ -528,14 +529,27 @@
                                       rows="3" 
                                       placeholder="Escrever um comentário..."
                                       maxlength="1000"
-                                      @bind="newPostBody"></textarea>
+                                      @bind="newCommentText"></textarea>
+                            
+                            <!-- Media Upload -->
+                            <MediaUploadManager @ref="commentMediaUploadManager"
+                                               Label=""
+                                               ShowCurrentMedia="false"
+                                               OnFileSelected="HandleCommentMediaSelected" />
+                            
+                            @if (selectedCommentMediaFile != null)
+                            {
+                                <small class="form-text text-muted d-block mb-2">
+                                    Ficheiro selecionado: @selectedCommentMediaFile.Name
+                                </small>
+                            }
                             
                             <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">@(newPostBody?.Length ?? 0) / 1000</small>
+                                <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
                                 <button class="btn btn-primary btn-sm" 
-                                        @onclick="AddPost"
-                                        disabled="@(string.IsNullOrWhiteSpace(newPostBody) || isAddingPost)">
-                                    @if (isAddingPost)
+                                        @onclick="AddComment"
+                                        disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                                    @if (isAddingComment)
                                     {
                                         <span class="spinner-border spinner-border-sm me-1"></span>
                                     }
@@ -546,7 +560,7 @@
                     }
                     
                     <!-- Comments List -->
-                    @if (detailsPosts == null)
+                    @if (betComments == null)
                     {
                         <div class="text-center py-3">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -554,29 +568,53 @@
                             </div>
                         </div>
                     }
-                    else if (!detailsPosts.Any())
+                    else if (!betComments.Any())
                     {
                         <p class="text-muted text-center py-3">Ainda não há comentários</p>
                     }
                     else
                     {
                         <div class="comments-list">
-                            @foreach (var post in detailsPosts)
+                            @foreach (var comment in betComments)
                             {
                                 <div class="leaderboard-comment-item mb-3">
                                     <div class="comment-header mb-2">
-                                        <img src="@(post.Author?.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
-                                             alt="@(post.Author?.Nickname ?? "Utilizador")" 
+                                        <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
+                                             alt="@comment.AuthorName" 
                                              class="comment-avatar me-2" 
                                              style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
                                         <div class="comment-meta">
-                                            <span class="comment-author fw-bold">@(post.Author?.Nickname ?? post.Author?.UserName ?? "Utilizador")</span>
-                                            <span class="comment-date text-muted small ms-2">@post.CreatedAt.ToString("dd MMM, HH:mm")</span>
+                                            <span class="comment-author fw-bold">@comment.AuthorName</span>
+                                            <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
                                         </div>
+                                        @if (comment.CanDelete)
+                                        {
+                                            <button class="btn btn-sm btn-link text-danger ms-auto" 
+                                                    @onclick="() => DeleteComment(comment.Id)"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
                                     </div>
                                     <div class="comment-body mb-2" style="white-space: pre-line;">
-                                        @post.Body
+                                        @comment.Text
                                     </div>
+                                    @if (!string.IsNullOrEmpty(comment.MediaUrl))
+                                    {
+                                        <div class="comment-media mt-2">
+                                            @if (comment.MediaType == "image")
+                                            {
+                                                <img src="@comment.MediaUrl" alt="Imagem" class="img-fluid rounded" style="max-height: 300px;" />
+                                            }
+                                            else if (comment.MediaType == "video")
+                                            {
+                                                <video controls class="w-100 rounded" style="max-height: 300px;">
+                                                    <source src="@comment.MediaUrl" type="video/mp4" />
+                                                    O seu navegador não suporta vídeo.
+                                                </video>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -628,6 +666,82 @@
     </BodyContent>
 </Modal>
 
+@* View User Bet Modal *@
+<Modal Show="@showViewUserBetModal"
+       ShowChanged="@((bool show) => showViewUserBetModal = show)"
+       Title="A Sua Aposta"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (selectedBet != null && GetUserBet(selectedBet.Id) != null)
+        {
+            var userBet = GetUserBet(selectedBet.Id)!;
+            var selectedOption = GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == userBet.BetOptionId);
+            
+            <div style="background-color: #8a2be2; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <h5 class="mb-3" style="color: white;">@selectedBet.Title</h5>
+                
+                <div class="mb-2">
+                    <strong>Opção Selecionada:</strong>
+                    <div class="mt-1">@(selectedOption?.Title ?? "Opção não encontrada")</div>
+                </div>
+                
+                <div class="mb-2">
+                    <strong>Montante Apostado:</strong>
+                    <div class="mt-1">
+                        <i class="bi bi-coin me-1"></i>@userBet.FidelisAmount.ToString("F2") Fidelis
+                    </div>
+                </div>
+                
+                @if (selectedOption != null)
+                {
+                    var potentialWinnings = userBet.FidelisAmount * selectedOption.Odds;
+                    <div class="mb-2">
+                        <strong>Ganhos Potenciais:</strong>
+                        <div class="mt-1">
+                            <i class="bi bi-trophy me-1"></i>@potentialWinnings.ToString("F2") Fidelis
+                        </div>
+                    </div>
+                }
+                
+                <div class="mb-0">
+                    <strong>Estado:</strong>
+                    <div class="mt-1">
+                        @if (userBet.IsWon.HasValue)
+                        {
+                            @if (userBet.IsWon.Value)
+                            {
+                                <span class="badge bg-success">
+                                    <i class="bi bi-trophy-fill me-1"></i>
+                                    Ganhou @userBet.FidelisWinnings.ToString("F2") Fidelis
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle-fill me-1"></i>
+                                    Perdeu
+                                </span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-clock-fill me-1"></i>
+                                Pendente
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary" @onclick="CloseViewUserBetModal">Fechar</button>
+            </div>
+        }
+    </BodyContent>
+</Modal>
+
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
               ShowModal="showCropperModal"
@@ -667,6 +781,7 @@
     private bool showPlaceBetModal = false;
     private bool showDetailsModal = false;
     private bool showResolveModal = false;
+    private bool showViewUserBetModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
 
@@ -691,10 +806,13 @@
     // Resolve Bet
     private int selectedWinningOptionId = 0;
     
-    // Discussion in Details Modal
-    private List<Post>? detailsPosts;
-    private string newPostBody = string.Empty;
-    private bool isAddingPost = false;
+    // Comments in Details Modal (using BetComment instead of Post)
+    private List<BetCommentDto>? betComments;
+    private string newCommentText = string.Empty;
+    private bool isAddingComment = false;
+    private MediaUploadManager? commentMediaUploadManager;
+    private IBrowserFile? selectedCommentMediaFile;
+    private string? uploadedCommentMediaType;
     
     // MATCH category - member selection
     private List<ApplicationUser> selectedMatchMembers = new();
@@ -824,11 +942,8 @@
     {
         try
         {
-            var bet = await BetService.GetBetByIdAsync(betId);
-            if (bet?.Discussion != null)
-            {
-                return await PostService.GetCountByDiscussionIdAsync(bet.Discussion.Id);
-            }
+            // Use efficient count query instead of loading all comments
+            return await BetCommentService.GetCommentCountForBetAsync(betId);
         }
         catch { }
         return 0;
@@ -960,8 +1075,7 @@
                 // Create the bet first
                 var createdBet = await BetService.CreateBetAsync(editingBet);
                 
-                // Create a discussion for the bet (FK BetId is on Discussion table)
-                await DiscussionService.CreateForBetAsync(createdBet.Id);
+                // Note: Discussion for bets is no longer needed since we use BetComment directly
                 
                 // If MATCH category, create bet options for the selected members
                 if (editingBet.BetCategory == BetCategory.MATCH && selectedMatchMembers.Count == 2)
@@ -1094,77 +1208,121 @@
     private async Task OpenBetDetailsModal(Bet bet)
     {
         selectedBet = bet;
-        detailsPosts = null;
-        newPostBody = string.Empty;
+        betComments = null;
+        newCommentText = string.Empty;
+        selectedCommentMediaFile = null;
+        uploadedCommentMediaType = null;
         showDetailsModal = true;
         
-        // Load discussion posts
-        await LoadDetailsDiscussion();
+        // Load bet comments
+        await LoadBetComments();
     }
 
     private void CloseDetailsModal()
     {
         showDetailsModal = false;
         selectedBet = null;
-        detailsPosts = null;
-        newPostBody = string.Empty;
+        betComments = null;
+        newCommentText = string.Empty;
+        selectedCommentMediaFile = null;
+        uploadedCommentMediaType = null;
     }
     
-    private async Task LoadDetailsDiscussion()
+    private async Task LoadBetComments()
     {
         if (selectedBet == null) return;
         
         try
         {
-            // Get the bet with its discussion
-            var bet = await BetService.GetBetByIdAsync(selectedBet.Id);
-            if (bet?.Discussion != null)
-            {
-                // Get posts for THIS bet's discussion only
-                var posts = await PostService.GetByDiscussionIdAsync(bet.Discussion.Id, 1, 50);
-                detailsPosts = posts.OrderByDescending(p => p.CreatedAt).ToList();
-            }
-            else
-            {
-                detailsPosts = new List<Post>();
-            }
+            // Pass isAdmin flag to avoid repeated UserManager lookups
+            betComments = await BetCommentService.GetCommentsForBetAsync(selectedBet.Id, currentUser?.Id, isAdmin);
         }
         catch
         {
-            detailsPosts = new List<Post>();
+            betComments = new List<BetCommentDto>();
         }
         StateHasChanged();
     }
     
-    private async Task AddPost()
+    private async Task HandleCommentMediaSelected(IBrowserFile file)
     {
-        if (selectedBet == null || string.IsNullOrWhiteSpace(newPostBody) || currentUser == null) return;
-        
-        isAddingPost = true;
         try
         {
-            // Get the bet with discussion
-            var bet = await BetService.GetBetByIdAsync(selectedBet.Id);
-            if (bet?.Discussion == null)
+            if (file != null)
             {
-                await JSRuntime.InvokeVoidAsync("alert", "Erro: Discussão não encontrada");
-                return;
+                var maxFileSize = 100 * 1024 * 1024; // 100 MB for videos
+                if (file.Size > maxFileSize)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "O ficheiro é demasiado grande. Tamanho máximo: 100 MB");
+                    return;
+                }
+
+                selectedCommentMediaFile = file;
+                
+                // Determine media type
+                var contentType = file.ContentType.ToLower();
+                if (contentType.StartsWith("image/"))
+                {
+                    uploadedCommentMediaType = "image";
+                }
+                else if (contentType.StartsWith("video/"))
+                {
+                    uploadedCommentMediaType = "video";
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Apenas imagens e vídeos são permitidos");
+                    selectedCommentMediaFile = null;
+                    uploadedCommentMediaType = null;
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao selecionar ficheiro: {ex.Message}");
+        }
+    }
+    
+    private async Task AddComment()
+    {
+        if (selectedBet == null || string.IsNullOrWhiteSpace(newCommentText) || currentUser == null) return;
+        
+        isAddingComment = true;
+        try
+        {
+            string? mediaUrl = null;
+            string? mediaType = null;
+            
+            // Upload media if selected
+            if (selectedCommentMediaFile != null && uploadedCommentMediaType != null)
+            {
+                using var stream = selectedCommentMediaFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+                var folder = uploadedCommentMediaType == "image" ? "bet-comments/images" : "bet-comments/videos";
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(selectedCommentMediaFile.Name)}";
+                var entityId = $"bet-{selectedBet.Id}-comment-{Guid.NewGuid()}";
+                
+                mediaUrl = await ImageStorageService.UploadImageAsync(stream, fileName, selectedCommentMediaFile.ContentType, folder, entityId);
+                mediaType = uploadedCommentMediaType;
             }
             
-            // Create the post
-            await PostService.CreateAsync(
-                discussionId: bet.Discussion.Id,
+            // Create the comment
+            await BetCommentService.AddCommentAsync(
+                betId: selectedBet.Id,
                 authorId: currentUser.Id,
-                title: "",
-                body: newPostBody.Trim()
+                text: newCommentText.Trim(),
+                mediaUrl: mediaUrl,
+                mediaType: mediaType
             );
             
-            newPostBody = string.Empty;
+            newCommentText = string.Empty;
+            selectedCommentMediaFile = null;
+            uploadedCommentMediaType = null;
             
-            // Reload discussion posts
-            await LoadDetailsDiscussion();
+            // Reload comments
+            await LoadBetComments();
             
-            // Update discussion count cache
+            // Update comment count cache
             discussionCountsCache[selectedBet.Id] = (discussionCountsCache.GetValueOrDefault(selectedBet.Id, 0)) + 1;
         }
         catch (Exception ex)
@@ -1173,7 +1331,30 @@
         }
         finally
         {
-            isAddingPost = false;
+            isAddingComment = false;
+        }
+    }
+    
+    private async Task DeleteComment(int commentId)
+    {
+        if (currentUser == null) return;
+        
+        try
+        {
+            await BetCommentService.DeleteCommentAsync(commentId, currentUser.Id, isAdmin);
+            
+            // Reload comments
+            await LoadBetComments();
+            
+            // Update comment count cache
+            if (selectedBet != null)
+            {
+                discussionCountsCache[selectedBet.Id] = Math.Max(0, (discussionCountsCache.GetValueOrDefault(selectedBet.Id, 0)) - 1);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar comentário: {ex.Message}");
         }
     }
     
@@ -1230,6 +1411,18 @@
         showResolveModal = false;
         selectedBet = null;
         selectedWinningOptionId = 0;
+    }
+    
+    private void OpenViewUserBetModal(Bet bet)
+    {
+        selectedBet = bet;
+        showViewUserBetModal = true;
+    }
+    
+    private void CloseViewUserBetModal()
+    {
+        showViewUserBetModal = false;
+        selectedBet = null;
     }
 
     private async Task ResolveBet()
