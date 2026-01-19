@@ -111,7 +111,7 @@ public class BetService : IBetService
             await _betOptionRepository.DeleteAsync(option.Id);
         }
 
-        await _betRepository.DeleteAsync(bet);
+        await _betRepository.DeleteAsync(id);
     }
 
     /// <summary>
