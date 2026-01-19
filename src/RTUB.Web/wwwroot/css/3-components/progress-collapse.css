@@ -260,6 +260,7 @@
     border-radius: 12px;
     padding: 1.25rem;
     border: 1px solid #2f2f2f;
+    position: relative;
     transition: all 0.2s ease;
 }
 
@@ -270,6 +271,7 @@
 
 .comment-header {
     margin-bottom: 1rem;
+    padding-right: 4.5rem;
 }
 
 .comment-header .fw-bold {
@@ -281,6 +283,9 @@
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
 }
 
 .comment-actions .btn {
@@ -302,8 +307,14 @@
         padding: 1rem;
     }
 
+    .comment-header {
+        padding-right: 3.5rem;
+    }
+
     .comment-actions {
         gap: 0.25rem;
+        top: 0.75rem;
+        right: 0.75rem;
     }
 
     .comment-actions .btn {
