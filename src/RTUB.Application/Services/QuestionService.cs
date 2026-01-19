@@ -34,19 +34,19 @@ public class QuestionService : IQuestionService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetAllAsync(page, pageSize, searchTerm);
+        return await _questionRepository.GetAllAsync(page, pageSize, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm);
+        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    public async Task<int> GetCountAsync(string? searchTerm = null)
+    public async Task<int> GetCountAsync(string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetCountAsync(searchTerm);
+        return await _questionRepository.GetCountAsync(searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
     public async Task<Question?> GetByIdWithRepliesAsync(int id)
