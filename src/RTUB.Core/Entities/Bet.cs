@@ -42,7 +42,7 @@ public class Bet : BaseEntity
     public virtual ICollection<UserBet> UserBets { get; set; } = new List<UserBet>();
     public virtual Discussion? Discussion { get; set; }
 
-    // Private constructor for EF Core
+    // Public constructor for EF Core and form initialization
     public Bet() { }
 
     // Factory method - ensures valid entity creation
