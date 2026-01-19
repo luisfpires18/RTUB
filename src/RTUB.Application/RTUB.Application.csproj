@@ -16,6 +16,10 @@
     <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RTUB.Application.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

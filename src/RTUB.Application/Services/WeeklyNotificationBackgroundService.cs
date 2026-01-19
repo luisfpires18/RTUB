@@ -5,7 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
@@ -122,37 +125,40 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
             var eventCount = events.Count;
             var rehearsalCount = rehearsals.Count;
-            var meetingCount = meetings.Count;
+            var totalMeetingCount = meetings.Count;
 
             _logger.LogInformation(
                 "Found {EventCount} events, {RehearsalCount} rehearsals, {MeetingCount} meetings for the week",
-                eventCount, rehearsalCount, meetingCount);
+                eventCount, rehearsalCount, totalMeetingCount);
 
-            // Create notification with summary
-            var baseUrl = DefaultBaseUrl;
-            var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
-                eventCount, rehearsalCount, meetingCount, baseUrl);
-
-            // Send to all users
+            // Get all users with their categories and positions for filtering
             var allUsers = await context.Users
                 .AsNoTracking()
-                .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 
+            var baseUrl = DefaultBaseUrl;
             var sentCount = 0;
-            foreach (var userId in allUsers)
+
+            foreach (var user in allUsers)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
                 try
                 {
-                    await pushNotificationService.SendToUserAsync(userId, notification);
+                    // Calculate meeting count visible to this user based on their role/positions
+                    var userMeetingCount = GetVisibleMeetingCount(meetings, user);
+
+                    // Create personalized notification with user-specific meeting count
+                    var notification = pushNotificationFactory.CreateWeeklySummaryNotification(
+                        eventCount, rehearsalCount, userMeetingCount, baseUrl);
+
+                    await pushNotificationService.SendToUserAsync(user.Id, notification);
                     sentCount++;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to send weekly notification to user {UserId}", userId);
+                    _logger.LogWarning(ex, "Failed to send weekly notification to user {UserId}", user.Id);
                 }
             }
 
@@ -165,6 +171,60 @@ public class WeeklyNotificationBackgroundService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking for weekly activities");
+        }
+    }
+
+    /// <summary>
+    /// Gets the count of meetings visible to a specific user based on their role and positions.
+    /// - ConselhoVeteranos (CV): Only for VETERANO/TUNOSSAURO roles or Magister position
+    /// - ReuniaoDirecao: Only for Direção members (Magister, ViceMagister, Secretario, PrimeiroTesoureiro, SegundoTesoureiro)
+    /// - AssembleiaGeral (AG): Not for Leitão users (non-associated members)
+    /// </summary>
+    internal static int GetVisibleMeetingCount(List<Meeting> meetings, ApplicationUser user)
+    {
+        var count = 0;
+
+        foreach (var meeting in meetings)
+        {
+            if (CanUserSeeMeeting(meeting, user))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Determines if a user can see a specific meeting based on meeting type and user role/positions.
+    /// </summary>
+    internal static bool CanUserSeeMeeting(Meeting meeting, ApplicationUser user)
+    {
+        switch (meeting.Type)
+        {
+            case MeetingType.ConselhoVeteranos:
+                // CV meetings: Only for VETERANO/TUNOSSAURO roles or Magister position
+                var role = user.CurrentRole;
+                var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
+                return role == "VETERANO" || role == "TUNOSSAURO" || hasMagisterPosition;
+
+            case MeetingType.ReuniaoDirecao:
+                // Direção meetings: Only for Direção members
+                return user.Positions != null &&
+                       (user.Positions.Contains(Position.Magister) ||
+                        user.Positions.Contains(Position.ViceMagister) ||
+                        user.Positions.Contains(Position.Secretario) ||
+                        user.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                        user.Positions.Contains(Position.SegundoTesoureiro));
+
+            case MeetingType.AssembleiaGeralOrdinaria:
+            case MeetingType.AssembleiaGeralExtraordinaria:
+                // AG meetings: Not for Leitão users
+                return !user.IsLeitao();
+
+            default:
+                // Unknown meeting type - show to all users
+                return true;
         }
     }
 
