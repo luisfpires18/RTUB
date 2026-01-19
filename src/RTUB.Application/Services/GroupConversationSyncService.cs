@@ -59,7 +59,10 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             // 6. ANUNCIOS - All active (non-retired) members, announcement-only channel
             await SyncAnunciosGroupAsync();
 
-            // 7. GERAL - All members, chat
+            // 7. NO ATIVO - All active (non-retired) members + Owner, normal chat
+            await SyncNoAtivoGroupAsync();
+
+            // 8. GERAL - All members, chat
             await SyncGeneralGroupAsync();
         }
         catch (Exception ex)
@@ -193,6 +196,26 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
         var participantIds = await GetActiveUserIdsAsync();
         await CreateOrUpdateAnnouncementGroupAsync(groupTitle, participantIds);
+    }
+
+    private async Task SyncNoAtivoGroupAsync()
+    {
+        const string groupTitle = "NO ATIVO";
+
+        // Get all active (non-retired) users
+        var participantIds = await GetActiveUserIdsAsync();
+
+        // Add Owner(s) to the group
+        var owners = await _userManager.GetUsersInRoleAsync("Owner");
+        foreach (var owner in owners)
+        {
+            if (!participantIds.Contains(owner.Id))
+            {
+                participantIds.Add(owner.Id);
+            }
+        }
+
+        await CreateOrUpdateSystemGroupAsync(groupTitle, participantIds);
     }
 
     private async Task<List<string>> GetActiveUserIdsAsync()
