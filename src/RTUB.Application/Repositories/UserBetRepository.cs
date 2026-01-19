@@ -55,14 +55,9 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
 
     public async Task DeleteByBetIdAsync(int betId)
     {
-        var userBets = await _dbSet
+        // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues
+        await _dbSet
             .Where(ub => ub.BetId == betId)
-            .ToListAsync();
-
-        if (userBets.Count > 0)
-        {
-            _dbSet.RemoveRange(userBets);
-            await _context.SaveChangesAsync();
-        }
+            .ExecuteDeleteAsync();
     }
 }
