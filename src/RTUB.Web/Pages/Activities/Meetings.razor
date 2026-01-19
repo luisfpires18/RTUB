@@ -2895,10 +2895,15 @@ else
             
             // Also refresh participation counts
             await LoadParticipationsAsync();
+            
+            addMemberToParticipationFeedbackMessage = "Participação removida com sucesso.";
+            addMemberToParticipationFeedbackIsError = false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error deleting participation {ParticipationId}", deletingParticipation.Id);
+            addMemberToParticipationFeedbackMessage = "Erro ao remover participação. Tente novamente.";
+            addMemberToParticipationFeedbackIsError = true;
         }
         finally
         {

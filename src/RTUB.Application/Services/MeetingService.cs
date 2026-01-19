@@ -218,7 +218,9 @@ public class MeetingService : IMeetingService
             // AND users who are designated as TunoRepresentative for a specific meeting
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
             {
-                // Filter CV meetings but allow those where user is the TunoRepresentative
+                // Filter CV meetings but allow access to specific meetings where this user
+                // is designated as the Tuno Representative (e.g., a TUNO member chosen to
+                // attend and participate in a particular CV meeting)
                 query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos || m.TunoRepresentativeUserId == userId);
             }
 
