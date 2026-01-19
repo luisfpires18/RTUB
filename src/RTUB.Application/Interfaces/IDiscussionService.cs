@@ -11,5 +11,4 @@ public interface IDiscussionService
     Task<Discussion?> GetByEventIdAsync(int eventId);
     Task<Discussion> CreateForEventAsync(int eventId);
     Task<Discussion> GetOrCreateForEventAsync(int eventId);
-    Task<Discussion> CreateForBetAsync(int betId);
 }
