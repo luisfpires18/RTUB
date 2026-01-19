@@ -49,6 +49,9 @@ public class ApplicationUser : IdentityUser
     public int ExperiencePoints { get; set; } = 0;
     public int Level { get; set; } = 1;
 
+    // Betting system - Fidelis currency balance
+    public decimal FidelisBalance { get; set; } = 0m;
+
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 
