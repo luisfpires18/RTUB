@@ -785,7 +785,11 @@
     private bool showCropperModal = false;
     private string? uploadedImagePath;
     
-    // Original image for full display (not cropped)
+    // Cropped image for BetCard display
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "bet-image.webp";
+    
+    // Original image for full display (not cropped) - reserved for future use
     private byte[]? originalImageBytes;
     private string? originalImageFileName;
     private string? originalImageContentType;
@@ -1097,13 +1101,13 @@
         {
             if (isCreateMode)
             {
-                // Upload original image (not cropped) BEFORE creating entity to include in single Create audit log
+                // Upload cropped image BEFORE creating entity to include in single Create audit log
                 string? imageUrl = null;
-                if (originalImageBytes != null && originalImageBytes.Length > 0)
+                if (croppedImageBytes != null && croppedImageBytes.Length > 0)
                 {
-                    using var stream = new MemoryStream(originalImageBytes);
+                    using var stream = new MemoryStream(croppedImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
+                    imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
                 }
 
                 if (imageUrl != null)
@@ -1163,12 +1167,12 @@
             }
             else
             {
-                // Check if we're updating with new image (use original, not cropped)
-                if (originalImageBytes != null && originalImageBytes.Length > 0 && uploadedImagePath != null)
+                // Check if we're updating with new cropped image
+                if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
                 {
-                    using var stream = new MemoryStream(originalImageBytes);
+                    using var stream = new MemoryStream(croppedImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
                     editingBet.SetImage(imageUrl);
                 }
                 await BetService.UpdateBetAsync(editingBet);
@@ -1541,7 +1545,9 @@
         {
             if (editingBet != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // Mark that we have an image ready for upload (we use originalImageBytes for the actual upload)
+                // Store cropped image for upload
+                croppedImageBytes = croppedImageData;
+                // Mark that we have an image ready for upload
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();

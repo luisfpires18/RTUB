@@ -65,9 +65,60 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task DeleteByIdDirectAsync(int id)
     {
-        // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues
-        await _dbSet
-            .Where(b => b.Id == id)
-            .ExecuteDeleteAsync();
+        // Use raw SQL with FK checks disabled for SQLite compatibility
+        // This is necessary because SQLite doesn't handle complex cascades well
+        var connection = _context.Database.GetDbConnection();
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        
+        try
+        {
+            if (!wasOpen)
+                await connection.OpenAsync();
+            
+            using var transaction = await connection.BeginTransactionAsync();
+            
+            try
+            {
+                // Disable FK checks temporarily
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
+                    cmd.CommandText = "PRAGMA foreign_keys = OFF";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                
+                // Delete the bet
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
+                    cmd.CommandText = "DELETE FROM \"Bets\" WHERE \"Id\" = @id";
+                    var param = cmd.CreateParameter();
+                    param.ParameterName = "@id";
+                    param.Value = id;
+                    cmd.Parameters.Add(param);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                
+                // Re-enable FK checks
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
+                    cmd.CommandText = "PRAGMA foreign_keys = ON";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        finally
+        {
+            if (!wasOpen && connection.State == System.Data.ConnectionState.Open)
+                await connection.CloseAsync();
+        }
     }
 }
