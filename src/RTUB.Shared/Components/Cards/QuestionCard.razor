@@ -97,9 +97,9 @@
             <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap mb-2">
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                         @onclick="HandleReply"
-                        title="@(IsAuthor ? "Responder" : "Ver")">
-                    <i class="bi @(IsAuthor ? "bi-reply-fill" : "bi-eye")"></i>
-                    <span>@(IsAuthor ? "Responder" : "Ver")</span>
+                        title="@(CanReply ? "Responder" : "Ver")">
+                    <i class="bi @(CanReply ? "bi-reply-fill" : "bi-eye")"></i>
+                    <span>@(CanReply ? "Responder" : "Ver")</span>
                 </button>
                 @if (ShowNotify)
                 {
@@ -185,6 +185,12 @@
     /// </summary>
     [Parameter]
     public bool ShowNotify { get; set; }
+
+    /// <summary>
+    /// Whether the current user can reply to the question
+    /// </summary>
+    [Parameter]
+    public bool CanReply { get; set; }
 
     /// <summary>
     /// Callback when the close button is clicked
