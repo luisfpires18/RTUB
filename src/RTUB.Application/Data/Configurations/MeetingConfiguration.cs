@@ -20,5 +20,11 @@ public class MeetingConfiguration : IEntityTypeConfiguration<Meeting>
             .WithMany()
             .HasForeignKey(m => m.OrganizerUserId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // Configure the TunoRepresentative relationship
+        builder.HasOne(m => m.TunoRepresentative)
+            .WithMany()
+            .HasForeignKey(m => m.TunoRepresentativeUserId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
