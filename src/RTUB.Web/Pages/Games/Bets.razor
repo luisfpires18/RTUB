@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Application.Utilities
@@ -220,6 +221,83 @@
                     <InputTextArea class="form-control" rows="4" @bind-Value="editingBet.Description" />
                 </div>
 
+                @* MATCH Category - Member Selection *@
+                @if (editingBet.BetCategory == BetCategory.MATCH)
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-people text-primary me-2"></i>Membros do Duelo
+                        </label>
+                        
+                        @* Selected members as chips with odds *@
+                        @if (selectedMatchMembers.Any())
+                        {
+                            <div class="selected-members-chips mb-2">
+                                @foreach (var member in selectedMatchMembers)
+                                {
+                                    <div class="member-chip-with-odds mb-2">
+                                        <span class="member-chip">
+                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()" class="member-chip-avatar" />
+                                            <span class="member-chip-name">@member.GetDisplayName()</span>
+                                            <button type="button" class="member-chip-remove" @onclick="() => RemoveMatchMember(member)" title="Remover">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </span>
+                                        <div class="odds-input-container">
+                                            <label class="form-label small mb-1">Odds:</label>
+                                            <input type="number" 
+                                                   class="form-control form-control-sm" 
+                                                   step="0.01" 
+                                                   min="1.01" 
+                                                   max="999.99"
+                                                   @bind="memberOdds[member.Id]"
+                                                   placeholder="1.50" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        
+                        @* Can only select 2 members for MATCH *@
+                        @if (selectedMatchMembers.Count < 2)
+                        {
+                            <SearchBar @bind-Value="matchMemberSearchTerm"
+                                       Placeholder="Pesquisar membro por nome..."
+                                       OnSearch="@HandleMatchMemberSearchChanged"
+                                       Compact="true" />
+                            
+                            @if (!string.IsNullOrWhiteSpace(matchMemberSearchTerm) && filteredAvailableMembersForMatch.Any())
+                            {
+                                <div class="member-list member-list-scrollable mt-2" style="max-height: 200px;">
+                                    @foreach (var member in filteredAvailableMembersForMatch)
+                                    {
+                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                             @onclick="() => AddMatchMember(member)"
+                                             style="cursor: pointer;">
+                                            <div class="d-flex align-items-center">
+                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                     class="member-avatar-small me-2" 
+                                                     style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                                <div>
+                                                    <strong>@member.GetDisplayName()</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(matchMemberSearchTerm))
+                            {
+                                <p class="text-muted mt-2 small">Nenhum membro encontrado.</p>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted small">Máximo de 2 membros selecionados para o duelo.</p>
+                        }
+                    </div>
+                }
+
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
                     <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSaving">
@@ -431,49 +509,77 @@
             }
 
             <!-- Discussion Section -->
-            <InfoSection SectionTitle="Discussão" 
-                        IconClass="bi-chat-dots" 
-                        CssClass="mb-3">
-                @if (detailsPosts == null)
-                {
-                    <p class="text-muted">A carregar...</p>
-                }
-                else if (!detailsPosts.Any())
-                {
-                    <p class="text-muted mb-3"><em>Nenhum comentário ainda. Seja o primeiro a comentar!</em></p>
-                }
-                else
-                {
-                    <div class="posts-list mb-3" style="max-height: 300px; overflow-y: auto;">
-                        @foreach (var post in detailsPosts)
-                        {
-                            <div class="post-item mb-2 p-2 rounded bg-dark-subtle">
-                                <div class="d-flex align-items-center mb-1">
-                                    <img src="@(post.Author?.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
-                                         alt="@(post.Author?.Nickname ?? "Utilizador")" 
-                                         class="rounded-circle me-2" 
-                                         style="width: 28px; height: 28px; object-fit: cover;" />
-                                    <strong class="me-2">@(post.Author?.Nickname ?? post.Author?.UserName ?? "Utilizador")</strong>
-                                    <small class="text-muted">@post.CreatedAt.ToString("dd MMM, HH:mm")</small>
-                                </div>
-                                <p class="mb-0 text-white-full" style="white-space: pre-line;">@post.Body</p>
-                            </div>
-                        }
-                    </div>
-                }
-                
-                <!-- Add Comment -->
-                <div class="mt-3">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Escrever comentário..." 
-                               @bind="newPostBody" @bind:event="oninput"
-                               @onkeypress="@(async (e) => { if (e.Key == "Enter") await AddPost(); })" />
-                        <button class="btn btn-primary" @onclick="AddPost" disabled="@(string.IsNullOrWhiteSpace(newPostBody))">
-                            <i class="bi bi-send"></i>
-                        </button>
-                    </div>
+            <div class="modal-info-section">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-chat-left-text me-2 text-primary"></i>
+                        Discussão
+                    </h6>
                 </div>
-            </InfoSection>
+                <div class="modal-section-body">
+                    @if (currentUser != null)
+                    {
+                        <!-- Add Comment Form -->
+                        <div class="add-comment-form mb-3">
+                            <textarea class="form-control mb-2" 
+                                      rows="3" 
+                                      placeholder="Escrever um comentário..."
+                                      maxlength="1000"
+                                      @bind="newPostBody"></textarea>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">@(newPostBody?.Length ?? 0) / 1000</small>
+                                <button class="btn btn-primary btn-sm" 
+                                        @onclick="AddPost"
+                                        disabled="@(string.IsNullOrWhiteSpace(newPostBody) || isAddingPost)">
+                                    @if (isAddingPost)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    Publicar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    
+                    <!-- Comments List -->
+                    @if (detailsPosts == null)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">A carregar comentários...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!detailsPosts.Any())
+                    {
+                        <p class="text-muted text-center py-3">Ainda não há comentários</p>
+                    }
+                    else
+                    {
+                        <div class="comments-list">
+                            @foreach (var post in detailsPosts)
+                            {
+                                <div class="leaderboard-comment-item mb-3">
+                                    <div class="comment-header mb-2">
+                                        <img src="@(post.Author?.ProfilePictureSrc ?? "/images/default-avatar.webp")" 
+                                             alt="@(post.Author?.Nickname ?? "Utilizador")" 
+                                             class="comment-avatar me-2" 
+                                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                        <div class="comment-meta">
+                                            <span class="comment-author fw-bold">@(post.Author?.Nickname ?? post.Author?.UserName ?? "Utilizador")</span>
+                                            <span class="comment-date text-muted small ms-2">@post.CreatedAt.ToString("dd MMM, HH:mm")</span>
+                                        </div>
+                                    </div>
+                                    <div class="comment-body mb-2" style="white-space: pre-line;">
+                                        @post.Body
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         }
     </Sections>
 </DetailsModal>
@@ -585,6 +691,16 @@
     // Discussion in Details Modal
     private List<Post>? detailsPosts;
     private string newPostBody = string.Empty;
+    private bool isAddingPost = false;
+    
+    // MATCH category - member selection
+    private List<ApplicationUser> selectedMatchMembers = new();
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredAvailableMembersForMatch = new();
+    private string matchMemberSearchTerm = string.Empty;
+    private Dictionary<string, decimal> memberOdds = new();
+    private const decimal DEFAULT_MATCH_ODDS = 1.50m;
+    private bool membersLoaded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -598,6 +714,29 @@
         }
 
         await LoadBets();
+        // Don't load members on initialization - will be loaded when MATCH modal is opened
+    }
+    
+    private async Task LoadAllMembers()
+    {
+        if (membersLoaded) return; // Avoid reloading
+        
+        try
+        {
+            // Load all users for member selection - in production, consider pagination
+            // For now, limit to first 100 active users ordered by name
+            allMembers = await UserManager.Users
+                .Where(u => !u.IsExpelled && !u.IsRetired)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .Take(100)
+                .ToListAsync();
+            membersLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading members: {ex.Message}");
+        }
     }
 
     private async Task LoadBets()
@@ -739,7 +878,7 @@
     }
 
     // Modal handlers
-    private void OpenCreateModal()
+    private async Task OpenCreateModal()
     {
         isCreateMode = true;
         editingBet = new Bet
@@ -753,16 +892,34 @@
         selectedImageFile = null;
         croppedImageBytes = null;
         uploadedImagePath = null;
+        selectedMatchMembers.Clear();
+        memberOdds.Clear();
+        matchMemberSearchTerm = string.Empty;
+        filteredAvailableMembersForMatch.Clear();
+        
+        // Load members when modal is opened (only for admins who can create bets)
+        if (isAdmin)
+        {
+            await LoadAllMembers();
+        }
+        
         showEditModal = true;
     }
 
-    private void OpenEditModal(Bet bet)
+    private async Task OpenEditModal(Bet bet)
     {
         isCreateMode = false;
         editingBet = bet;
         selectedImageFile = null;
         croppedImageBytes = null;
         uploadedImagePath = null;
+        
+        // Load members when modal is opened (only for admins who can edit bets)
+        if (isAdmin)
+        {
+            await LoadAllMembers();
+        }
+        
         showEditModal = true;
     }
 
@@ -921,11 +1078,12 @@
         
         try
         {
-            // Get or create discussion for the bet
-            var discussion = await DiscussionService.GetOrCreateForEventAsync(selectedBet.Id);
-            if (discussion != null)
+            // Get the bet with its discussion
+            var bet = await BetService.GetBetByIdAsync(selectedBet.Id);
+            if (bet?.Discussion != null)
             {
-                var posts = await PostService.GetByDiscussionIdAsync(discussion.Id, 1, 10);
+                // Get posts for THIS bet's discussion only
+                var posts = await PostService.GetByDiscussionIdAsync(bet.Discussion.Id, 1, 50);
                 detailsPosts = posts.OrderByDescending(p => p.CreatedAt).ToList();
             }
             else
@@ -944,32 +1102,82 @@
     {
         if (selectedBet == null || string.IsNullOrWhiteSpace(newPostBody) || currentUser == null) return;
         
+        isAddingPost = true;
         try
         {
-            // Get or create discussion for the bet
-            var discussion = await DiscussionService.GetOrCreateForEventAsync(selectedBet.Id);
-            if (discussion != null)
+            // Get the bet with discussion
+            var bet = await BetService.GetBetByIdAsync(selectedBet.Id);
+            if (bet?.Discussion == null)
             {
-                await PostService.CreateAsync(
-                    discussionId: discussion.Id,
-                    authorId: currentUser.Id,
-                    title: "",
-                    body: newPostBody.Trim()
-                );
-                
-                newPostBody = string.Empty;
-                
-                // Reload discussion posts
-                await LoadDetailsDiscussion();
-                
-                // Update discussion count cache
-                discussionCountsCache[selectedBet.Id] = (discussionCountsCache.GetValueOrDefault(selectedBet.Id, 0)) + 1;
+                await JSRuntime.InvokeVoidAsync("alert", "Erro: Discussão não encontrada");
+                return;
             }
+            
+            // Create the post
+            await PostService.CreateAsync(
+                discussionId: bet.Discussion.Id,
+                authorId: currentUser.Id,
+                title: "",
+                body: newPostBody.Trim()
+            );
+            
+            newPostBody = string.Empty;
+            
+            // Reload discussion posts
+            await LoadDetailsDiscussion();
+            
+            // Update discussion count cache
+            discussionCountsCache[selectedBet.Id] = (discussionCountsCache.GetValueOrDefault(selectedBet.Id, 0)) + 1;
         }
         catch (Exception ex)
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Erro ao adicionar comentário: {ex.Message}");
         }
+        finally
+        {
+            isAddingPost = false;
+        }
+    }
+    
+    // MATCH category member selection methods
+    private Task HandleMatchMemberSearchChanged(string searchTerm)
+    {
+        matchMemberSearchTerm = searchTerm;
+        
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredAvailableMembersForMatch.Clear();
+        }
+        else
+        {
+            filteredAvailableMembersForMatch = allMembers
+                .Where(m => !selectedMatchMembers.Contains(m))
+                .Where(m =>
+                    (m.FirstName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (m.LastName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (m.Nickname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Take(10)
+                .ToList();
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    private void AddMatchMember(ApplicationUser member)
+    {
+        if (!selectedMatchMembers.Contains(member) && selectedMatchMembers.Count < 2)
+        {
+            selectedMatchMembers.Add(member);
+            memberOdds[member.Id] = DEFAULT_MATCH_ODDS;
+            matchMemberSearchTerm = string.Empty;
+            filteredAvailableMembersForMatch.Clear();
+        }
+    }
+    
+    private void RemoveMatchMember(ApplicationUser member)
+    {
+        selectedMatchMembers.Remove(member);
+        memberOdds.Remove(member.Id);
     }
 
     private void OpenResolveModal(Bet bet)

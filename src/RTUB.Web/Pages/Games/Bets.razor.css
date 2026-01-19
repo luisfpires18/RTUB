@@ -1,0 +1,242 @@
+/* Page-scoped styles for Bets.razor */
+
+/* MATCH category member selection */
+.selected-members-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.member-chip-with-odds {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 8px;
+}
+
+.member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--bs-body-color);
+}
+
+.member-chip-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.member-chip-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.member-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin-left: 0.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--bs-danger);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.member-chip-remove:hover {
+    background-color: rgba(var(--bs-danger-rgb), 0.2);
+}
+
+.member-chip-remove i {
+    font-size: 0.75rem;
+}
+
+.odds-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.odds-input-container label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    margin-bottom: 0;
+}
+
+.odds-input-container input {
+    width: 100px;
+}
+
+/* Member list for selection */
+.member-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.member-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.member-item:hover,
+.member-item:focus {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.member-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.clickable-row {
+    outline: none;
+}
+
+.clickable-row:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Comments section styling (matching Leaderboard) */
+.modal-info-section {
+    margin-bottom: 1.5rem;
+}
+
+.modal-section-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--bs-body-color);
+}
+
+.modal-section-body {
+    padding: 0;
+}
+
+.add-comment-form textarea {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--bs-body-color);
+}
+
+.add-comment-form textarea:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--bs-primary);
+    color: var(--bs-body-color);
+}
+
+.comments-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.leaderboard-comment-item {
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+}
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.comment-author {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+
+.comment-date {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.comment-body {
+    color: var(--bs-body-color);
+    line-height: 1.5;
+    font-size: 0.9rem;
+}
+
+.comment-media {
+    margin-top: 0.5rem;
+}
+
+.comment-media video {
+    max-height: 300px;
+}
+
+/* File picker styling */
+.localized-file-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.localized-file-button {
+    white-space: nowrap;
+}
+
+.localized-file-name {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 576px) {
+    .member-chip-name {
+        max-width: 80px;
+    }
+    
+    .odds-input-container input {
+        width: 80px;
+    }
+    
+    .member-chip-with-odds {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .comments-list {
+        max-height: 300px;
+    }
+}
