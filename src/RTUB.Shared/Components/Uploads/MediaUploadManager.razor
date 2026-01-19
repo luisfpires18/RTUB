@@ -1,7 +1,9 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
 
-<div class="mb-3">
+<div class="mb-3" data-media-upload-id="@componentId">
     <label class="form-label">@Label</label>
 
     <div class="localized-file-picker">
@@ -23,9 +25,12 @@
             <br />
             @if (IsVideo(CurrentMediaUrl))
             {
-                <video muted preload="metadata" class="img-thumbnail mt-1 @PreviewCssClass" style="max-width: 300px;">
-                    <source src="@CurrentMediaUrl" />
-                </video>
+                <div class="video-preview-container" style="max-width: 300px; position: relative;">
+                    <video muted preload="metadata" class="img-thumbnail mt-1 @PreviewCssClass" style="width: 100%; cursor: pointer;"
+                           @onmouseenter="PlayVideoPreview" @onmouseleave="PauseVideoPreview">
+                        <source src="@CurrentMediaUrl" />
+                    </video>
+                </div>
             }
             else
             {
@@ -60,6 +65,7 @@
     
     private IBrowserFile? selectedFile;
     private string inputId = $"upload-{Guid.NewGuid():N}";
+    private string componentId = $"media-upload-{Guid.NewGuid():N}";
     private string? selectedFileName;
     private bool HasNewMedia { get; set; }
     private string? ErrorMessage { get; set; }
@@ -103,6 +109,30 @@
         catch (Exception ex)
         {
             ErrorMessage = $"Erro ao carregar ficheiro: {ex.Message}";
+        }
+    }
+    
+    private async Task PlayVideoPreview()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-media-upload-id=\"{componentId}\"] video')?.play()");
+        }
+        catch
+        {
+            // Ignore errors - preview is optional
+        }
+    }
+    
+    private async Task PauseVideoPreview()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $"document.querySelector('[data-media-upload-id=\"{componentId}\"] video')?.pause()");
+        }
+        catch
+        {
+            // Ignore errors - preview is optional
         }
     }
 
