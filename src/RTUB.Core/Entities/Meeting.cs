@@ -34,4 +34,8 @@ public class Meeting : BaseEntity
 
     [MaxLength(1000, ErrorMessage = "O motivo de cancelamento não pode exceder 1000 caracteres")]
     public string? CancellationReason { get; set; }
+
+    // Tuno Representative (for CV meetings - a Tuno who can view and participate)
+    public string? TunoRepresentativeUserId { get; set; }
+    public ApplicationUser? TunoRepresentative { get; set; }
 }

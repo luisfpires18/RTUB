@@ -60,6 +60,7 @@ public class MeetingService : IMeetingService
         // Apply pagination using extension method
         return await query
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .PaginateAsync(pageNumber, pageSize);
     }
 
@@ -68,6 +69,7 @@ public class MeetingService : IMeetingService
         var meeting = await _context.Meetings
             .AsNoTracking()
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (meeting == null)
@@ -156,6 +158,7 @@ public class MeetingService : IMeetingService
         existingMeeting.Location = meeting.Location;
         existingMeeting.Statement = meeting.Statement;
         existingMeeting.OrganizerUserId = meeting.OrganizerUserId;
+        existingMeeting.TunoRepresentativeUserId = meeting.TunoRepresentativeUserId;
         existingMeeting.IsCancelled = meeting.IsCancelled;
         existingMeeting.CancellationReason = meeting.CancellationReason;
 
@@ -213,10 +216,14 @@ public class MeetingService : IMeetingService
             var role = user.CurrentRole;
             var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
 
-            // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
+            // Allow CV meetings for Veterans, Tunossauros, Magister position holders,
+            // AND users who are designated as TunoRepresentative for a specific meeting
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
             {
-                query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
+                // Filter CV meetings but allow access to specific meetings where this user
+                // is designated as the Tuno Representative (e.g., a TUNO member chosen to
+                // attend and participate in a particular CV meeting)
+                query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos || m.TunoRepresentativeUserId == userId);
             }
 
             // Filter out Assembleia Geral meetings if user is Leitão (not an associated member)

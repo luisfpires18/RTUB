@@ -36,6 +36,7 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
 
         return await query
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .PaginateAsync(pageNumber, pageSize);
     }
 
@@ -45,6 +46,7 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
         return await _dbSet
             .AsNoTracking()
             .Include(m => m.Organizer)
+            .Include(m => m.TunoRepresentative)
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 

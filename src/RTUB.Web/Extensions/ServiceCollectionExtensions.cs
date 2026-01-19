@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRequestRepository, RequestRepository>();
         services.AddScoped<ILabelRepository, LabelRepository>();
         services.AddScoped<IMeetingRequestRepository, MeetingRequestRepository>();
+        services.AddScoped<IMeetingParticipationRepository, MeetingParticipationRepository>();
         services.AddScoped<IProductReservationRepository, ProductReservationRepository>();
         services.AddScoped<IMemberInstrumentRepository, MemberInstrumentRepository>();
         services.AddScoped<ITrophyRepository, TrophyRepository>();
@@ -130,6 +131,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IMeetingService, MeetingService>();
         services.AddScoped<IMeetingRequestService, MeetingRequestService>();
+        services.AddScoped<IMeetingParticipationService, MeetingParticipationService>();
 
         return services;
     }

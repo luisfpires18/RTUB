@@ -4,12 +4,31 @@
 @using RTUB.Core.Helpers
 @*
     MeetingCard Component
-    Card for displaying meeting information with admin controls
+    Card for displaying meeting information with admin controls and participation
 *@
 
 <div class="card meeting-card h-100">
     <div class="meeting-card__top position-relative">
-        <div class="position-absolute top-0 start-0 p-2">
+        @* VOU/NAO VOU badges at top left - only show if user has participated *@
+        @if (UserParticipation != null)
+        {
+            <div class="position-absolute top-0 start-0 p-2">
+                @if (UserParticipation.WillAttend)
+                {
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle-fill me-1"></i>@(IsMeetingCompleted() ? "FUI" : "VOU")
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger fs-6">
+                        <i class="bi bi-x-circle-fill me-1"></i>@(IsMeetingCompleted() ? "NÃO FUI" : "NÃO VOU")
+                    </span>
+                }
+            </div>
+        }
+        @* Status badges (Realizada/Agendada/Cancelada) at bottom left *@
+        <div class="position-absolute bottom-0 start-0 p-2">
             <span class="meeting-status-badge-inline @GetMeetingStatusClass()">
                 @GetMeetingStatus()
             </span>
@@ -66,7 +85,81 @@
                     <span class="meeting-text">Organizador: @Organizer.Nickname, @PositionHelper.GetDisplayName(Organizer.Positions.First())</span>
                 </div>
             }
+
+            @if (Meeting.Type == MeetingType.ConselhoVeteranos && Meeting.TunoRepresentative != null)
+            {
+                <div class="meeting-info-row mb-2">
+                    <i class="bi bi-person-badge meeting-icon text-warning"></i>
+                    <span class="meeting-text">Representante: @Meeting.TunoRepresentative.Nickname</span>
+                </div>
+            }
         </div>
+
+        @* Participation Section - for upcoming meetings *@
+        @if (!Meeting.IsCancelled && !IsMeetingCompleted())
+        {
+            <div class="participation-section mt-3 p-2 rounded">
+                <div class="d-flex flex-column gap-2">
+                    <!-- Row 1: View Participants Button -->
+                    <div class="event-buttons-container justify-content-center">
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
+                                @onclick="OnViewParticipants" 
+                                title="Participantes">
+                            <i class="bi bi-people"></i>
+                            <span class="enrollment-count-centered">@ParticipationCount</span>
+                        </button>
+                    </div>
+
+                    <!-- Row 2: VOU/NAO VOU action buttons -->
+                    <div class="event-buttons-container">
+                        <!-- Green "Vou" button -->
+                        <button class="btn event-icon-btn btn-going @GetGoingButtonClass()" 
+                                @onclick="OnParticipateGoing" 
+                                title="@GetGoingButtonTitle()">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </button>
+                        
+                        <!-- Red "Não vou" button -->
+                        <button class="btn event-icon-btn btn-not-going @GetNotGoingButtonClass()" 
+                                @onclick="OnParticipateNotGoing" 
+                                title="@GetNotGoingButtonTitle()">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        @* Participation Section - for past meetings (like events) *@
+        @if (!Meeting.IsCancelled && IsMeetingCompleted())
+        {
+            <div class="participation-section mt-3 p-2 rounded">
+                <div class="d-flex flex-column gap-2">
+                    <!-- View Participants Button -->
+                    <div class="event-buttons-container justify-content-center">
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
+                                @onclick="OnViewParticipants" 
+                                title="Participantes">
+                            <i class="bi bi-people"></i>
+                            <span class="enrollment-count-centered">@ParticipationCount</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Participation management for past meetings -->
+                    @if (UserParticipation != null)
+                    {
+                        <div class="event-buttons-container mt-2">
+                            <!-- Remove participation button for user's own participation -->
+                            <button class="btn event-icon-btn btn-danger" 
+                                    @onclick="HandleRemoveParticipation" 
+                                    title="Remover Participação">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         <div class="meeting-actions mt-auto">
             <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
@@ -172,6 +265,48 @@
     [Parameter]
     public EventCallback OnUncancel { get; set; }
 
+    /// <summary>
+    /// User's participation in this meeting (if any)
+    /// </summary>
+    [Parameter]
+    public MeetingParticipation? UserParticipation { get; set; }
+
+    /// <summary>
+    /// Total number of participants who confirmed attendance
+    /// </summary>
+    [Parameter]
+    public int ParticipationCount { get; set; }
+
+    /// <summary>
+    /// Callback when user clicks "Vou" (going) button
+    /// </summary>
+    [Parameter]
+    public EventCallback OnParticipateGoing { get; set; }
+
+    /// <summary>
+    /// Callback when user clicks "Não vou" (not going) button
+    /// </summary>
+    [Parameter]
+    public EventCallback OnParticipateNotGoing { get; set; }
+
+    /// <summary>
+    /// Callback when user wants to edit their participation
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEditParticipation { get; set; }
+
+    /// <summary>
+    /// Callback when user wants to remove their participation
+    /// </summary>
+    [Parameter]
+    public EventCallback OnRemoveParticipation { get; set; }
+
+    /// <summary>
+    /// Callback when user wants to view all participants
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewParticipants { get; set; }
+
     private async Task HandleEdit()
     {
         if (OnEdit.HasDelegate)
@@ -225,6 +360,14 @@
         if (OnUncancel.HasDelegate)
         {
             await OnUncancel.InvokeAsync();
+        }
+    }
+
+    private async Task HandleRemoveParticipation()
+    {
+        if (OnRemoveParticipation.HasDelegate)
+        {
+            await OnRemoveParticipation.InvokeAsync();
         }
     }
 
@@ -301,6 +444,38 @@
             MeetingType.ReuniaoDirecao => "bg-info",  // Light blue for board meetings
             _ => "bg-secondary"
         };
+    }
+    
+    private string GetGoingButtonClass()
+    {
+        if (UserParticipation?.WillAttend == true)
+            return "btn-selected";
+        if (UserParticipation != null && !UserParticipation.WillAttend)
+            return "btn-secondary-small";
+        return string.Empty;
+    }
+    
+    private string GetNotGoingButtonClass()
+    {
+        if (UserParticipation != null && !UserParticipation.WillAttend)
+            return "btn-selected";
+        if (UserParticipation?.WillAttend == true)
+            return "btn-secondary-small";
+        return string.Empty;
+    }
+    
+    private string GetGoingButtonTitle()
+    {
+        return UserParticipation?.WillAttend == true 
+            ? "Editar participação" 
+            : "Vou participar";
+    }
+    
+    private string GetNotGoingButtonTitle()
+    {
+        return UserParticipation != null && !UserParticipation.WillAttend 
+            ? "Editar impossibilidade" 
+            : "Não vou participar";
     }
 }
 
@@ -441,7 +616,199 @@
         margin-top: auto;
     }
 
+    /* Participation section styles */
+    .participation-section {
+        background-color: rgba(var(--bs-primary-rgb), 0.05);
+        border: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+    }
+
+    /* Event buttons container (from EventCard) */
+    .event-buttons-container {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding: 0.25rem 0;
+    }
+
+    /* Hide scrollbar for cleaner look */
+    .event-buttons-container::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .event-buttons-container::-webkit-scrollbar-track {
+        background: rgba(111, 66, 193, 0.1);
+        border-radius: 2px;
+    }
+
+    .event-buttons-container::-webkit-scrollbar-thumb {
+        background: rgba(111, 66, 193, 0.3);
+        border-radius: 2px;
+    }
+
+    .event-buttons-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(111, 66, 193, 0.5);
+    }
+
+    /* Icon-only square buttons */
+    .event-icon-btn {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
+        padding: 0;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        border-radius: 0.75rem;
+        position: relative;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .event-icon-btn i {
+        font-size: 1.25rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Enrollment count to the right of icon */
+    .event-icon-btn .enrollment-count-centered {
+        position: relative;
+        color: inherit;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    /* Participants button with count needs to be wider */
+    .event-icon-btn-with-count {
+        width: auto;
+        min-width: 52px;
+        padding: 0 0.5rem;
+    }
+
+    /* Button hover effects */
+    .event-icon-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .event-icon-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    /* Going button (green success style) */
+    .btn-going {
+        background-color: #198754;
+        border-color: #198754;
+        color: white;
+        opacity: 0.6;
+    }
+
+    .btn-going:hover:not(:disabled) {
+        background-color: #157347;
+        border-color: #146c43;
+        color: white;
+        opacity: 1;
+    }
+
+    .btn-going.btn-selected {
+        opacity: 1;
+    }
+
+    /* Not Going button (red danger style) */
+    .btn-not-going {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+        opacity: 0.6;
+    }
+
+    .btn-not-going:hover:not(:disabled) {
+        background-color: #bb2d3b;
+        border-color: #b02a37;
+        color: white;
+        opacity: 1;
+    }
+
+    .btn-not-going.btn-selected {
+        opacity: 1;
+    }
+
+    /* Smaller secondary button (for non-selected state) */
+    .event-icon-btn.btn-secondary-small {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .event-icon-btn.btn-secondary-small i {
+        font-size: 1rem;
+    }
+
     /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .event-buttons-container {
+            justify-content: center;
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .event-icon-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .event-icon-btn i {
+            font-size: 1.1rem;
+        }
+
+        .event-icon-btn .enrollment-count-centered {
+            font-size: 1.1rem;
+        }
+    }
+
+    /* Very small screens - further compact mode */
+    @@media (max-width: 375px) {
+        .event-buttons-container {
+            gap: 0.25rem;
+        }
+
+        .event-icon-btn {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+        }
+
+        .event-icon-btn i {
+            font-size: 1rem;
+        }
+
+        .event-icon-btn .enrollment-count-centered {
+            font-size: 1rem;
+        }
+    }
+
     @@media (max-width: 576px) {
         .meeting-title {
             font-size: 1rem;

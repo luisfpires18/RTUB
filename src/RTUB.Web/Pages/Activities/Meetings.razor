@@ -15,6 +15,7 @@
 @attribute [Authorize]
 @inject IMeetingService MeetingService
 @inject IMeetingRequestService MeetingRequestService
+@inject IMeetingParticipationService MeetingParticipationService
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject IFiscalYearService FiscalYearService
@@ -99,39 +100,105 @@ else
         <LoadingSpinner />
     </div>
 }
-else if (!meetings.Any())
-{
-    <EmptyState 
-        Title="Nenhuma reunião encontrada." 
-        Icon="bi-info-circle" />
-}
 else
 {
-    <div class="meeting-grid">
-        @foreach (var meeting in meetings)
+    <!-- Upcoming Meetings Section -->
+    <div class="mb-4">
+        <h2 class="mb-3"><i class="bi bi-calendar-event text-primary me-2"></i>Próximas Reuniões</h2>
+        
+        @if (!upcomingMeetings.Any())
         {
-            <MeetingCard Meeting="@meeting"
-                        Organizer="@meeting.Organizer"
-                        IsAdmin="@CanManageMeeting(meeting)"
-                        OnEdit="@(() => OpenEditModal(meeting))"
-                        OnDelete="@(() => OpenDeleteModal(meeting))"
-                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
-                        OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
-                        OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
-                        OnCancel="@(() => OpenCancelMeetingModal(meeting))"
-                        OnUncancel="@(() => UncancelMeeting(meeting))" />
+            <EmptyState 
+                Title="Nenhuma reunião agendada." 
+                Icon="bi-calendar-x" />
+        }
+        else
+        {
+            <div class="meeting-grid">
+                @foreach (var meeting in upcomingMeetings)
+                {
+                    <MeetingCard Meeting="@meeting"
+                                Organizer="@meeting.Organizer"
+                                IsAdmin="@CanManageMeeting(meeting)"
+                                UserParticipation="@GetUserParticipation(meeting.Id)"
+                                ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                OnEdit="@(() => OpenEditModal(meeting))"
+                                OnDelete="@(() => OpenDeleteModal(meeting))"
+                                OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                                OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
+                                OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
+                                OnCancel="@(() => OpenCancelMeetingModal(meeting))"
+                                OnUncancel="@(() => UncancelMeeting(meeting))"
+                                OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
+                                OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                }
+            </div>
+
+            @if (totalCount > pageSize)
+            {
+                <TablePagination 
+                    CurrentPage="@currentPage"
+                    PageSize="@pageSize"
+                    TotalItems="@totalCount"
+                    ItemLabel="reuniões agendadas"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="ChangePage"
+                    OnPageSizeChanged="ChangePageSize" />
+            }
         }
     </div>
+    
+    <!-- Past Meetings Section -->
+    <hr class="my-5" />
+    
+    <div class="mb-4">
+        <h2 class="mb-3"><i class="bi bi-calendar-check text-success me-2"></i>Reuniões Realizadas</h2>
+        
+        @if (!pastMeetings.Any())
+        {
+            <EmptyState 
+                Title="Nenhuma reunião realizada." 
+                Icon="bi-calendar-x" />
+        }
+        else
+        {
+            <div class="meeting-grid">
+                @foreach (var meeting in pastMeetings)
+                {
+                    <MeetingCard Meeting="@meeting"
+                                Organizer="@meeting.Organizer"
+                                IsAdmin="@CanManageMeeting(meeting)"
+                                UserParticipation="@GetUserParticipation(meeting.Id)"
+                                ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                OnEdit="@(() => OpenEditModal(meeting))"
+                                OnDelete="@(() => OpenDeleteModal(meeting))"
+                                OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                                OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
+                                OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
+                                OnCancel="@(() => OpenCancelMeetingModal(meeting))"
+                                OnUncancel="@(() => UncancelMeeting(meeting))"
+                                OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
+                                OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                }
+            </div>
 
-    <!-- Pagination -->
-    <TablePagination 
-        CurrentPage="@currentPage"
-        PageSize="@pageSize"
-        TotalItems="@totalCount"
-        ItemLabel="reuniões"
-        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+            @if (pastMeetingsTotalCount > pastMeetingsPageSize)
+            {
+                <TablePagination 
+                    CurrentPage="@pastMeetingsCurrentPage"
+                    PageSize="@pastMeetingsPageSize"
+                    TotalItems="@pastMeetingsTotalCount"
+                    ItemLabel="reuniões realizadas"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="ChangePastMeetingsPage"
+                    OnPageSizeChanged="ChangePastMeetingsPageSize" />
+            }
+        }
+    </div>
 }
 
 <!-- Meeting Requests Section (CV and AG) -->
@@ -255,6 +322,32 @@ else
                 </div>
             }
 
+            @if (viewingMeeting.Organizer != null)
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-person text-primary me-2"></i>Organizador
+                    </label>
+                    <p class="text-light-theme">
+                        @viewingMeeting.Organizer.Nickname
+                        @if (viewingMeeting.Organizer.Positions != null && viewingMeeting.Organizer.Positions.Any())
+                        {
+                            <span class="text-muted">(@RTUB.Core.Helpers.PositionHelper.GetDisplayName(viewingMeeting.Organizer.Positions.First()))</span>
+                        }
+                    </p>
+                </div>
+            }
+
+            @if (viewingMeeting.Type == MeetingType.ConselhoVeteranos && viewingMeeting.TunoRepresentative != null)
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-person-badge text-primary me-2"></i>Representante de Tunos
+                    </label>
+                    <p class="text-light-theme">@viewingMeeting.TunoRepresentative.Nickname</p>
+                </div>
+            }
+
             <div class="mb-3">
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-file-text text-primary me-2"></i>Declaração
@@ -329,6 +422,26 @@ else
                     <InputText class="form-control" @bind-Value="editingMeeting.Location" placeholder="Inserir localização..." />
                     <ValidationMessage For="@(() => editingMeeting.Location)" />
                 </div>
+
+                @if (editingMeeting.Type == MeetingType.ConselhoVeteranos)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full fw-semibold">
+                            <i class="bi bi-person-badge text-primary me-2"></i>Representante de Tunos (Opcional)
+                        </label>
+                        <InputSelect class="form-select" @bind-Value="editingMeeting.TunoRepresentativeUserId">
+                            <option value="">Nenhum representante selecionado</option>
+                            @if (tunoUsersForMeetingForm != null)
+                            {
+                                @foreach (var tuno in tunoUsersForMeetingForm)
+                                {
+                                    <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                                }
+                            }
+                        </InputSelect>
+                        <small class="text-muted">Este tuno poderá ver e participar nesta reunião de CV.</small>
+                    </div>
+                }
 
                 <div class="mb-3">
                     <label class="form-label text-white-full fw-semibold">
@@ -460,7 +573,7 @@ else
                     <div class="mb-3">
                         <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
                         <select class="form-select" @bind="selectedTunoId">
-                            <option value="">-- Selecionar Tuno --</option>
+                            <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in emailTunoUsers)
                             {
                                 <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
@@ -782,7 +895,7 @@ else
                     <div class="mb-3">
                         <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
                         <select class="form-select" @bind="selectedPushTunoId">
-                            <option value="">-- Selecionar Tuno --</option>
+                            <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in pushTunoUsers)
                             {
                                 <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
@@ -794,13 +907,15 @@ else
                 
                 <EmailRecipientsPreview 
                     SubscribedUsers="@(pushRecipients ?? new List<ApplicationUser>())"
-                    SubscribedUsersTitle="Destinatários:"
-                    ShowNonSubscribedUsers="false"
+                    NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Destinatários com subscrições push ativas:"
+                    NonSubscribedUsersTitle="Membros sem subscrição push:"
+                    ShowNonSubscribedUsers="true"
                     MaxHeight="200px"
-                    InfoBadgeText="@($"{pushRecipientCount} membros receberão esta notificação push.")"
+                    InfoBadgeText="@($"{pushRecipientCount} / {pushTotalUsersCount} membros têm notificações push ativas e irão receber esta mensagem.")"
                     AdditionalUserInfoFunc="@(selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos ? new Func<ApplicationUser, string>(GetYearsAsTunoDisplay) : null)"
                     ShowEmptySubscribedMessage="true"
-                    EmptySubscribedMessage="Nenhum destinatário encontrado." />
+                    EmptySubscribedMessage="Nenhum membro com subscrição push ativa encontrado." />
             }
         }
     </BodyContent>
@@ -813,13 +928,249 @@ else
 </Modal>
 }
 
+<!-- Meeting Participation Modal -->
+@if (participationForm != null)
+{
+    <MeetingParticipationModal Show="@showParticipationModal"
+                               ShowChanged="@((bool show) => showParticipationModal = show)"
+                               Title="@GetParticipationModalTitle()"
+                               ShowWillAttend="@(!isParticipationPreSelected)"
+                               WillAttend="@participationForm.WillAttend"
+                               WillAttendChanged="@((bool value) => participationForm.WillAttend = value)"
+                               Notes="@(participationForm.Notes ?? string.Empty)"
+                               NotesChanged="@((string value) => participationForm.Notes = value)"
+                               NotesRows="4"
+                               NotesPlaceholder="@(participationForm.WillAttend ? "Informações adicionais..." : "Motivo da impossibilidade...")"
+                               SubmitButtonText="@(isEditingParticipation ? "Atualizar" : "Confirmar")"
+                               OnSubmit="@SaveParticipation"
+                               OnCancel="@CloseParticipationModal" />
+}
+
+<!-- View Participants Modal -->
+@if (selectedMeetingForParticipants != null)
+{
+    <Modal Show="@showParticipantsModal" 
+           ShowChanged="@((bool show) => { if (!show) CloseParticipantsModal(); })"
+           Size="Modal.ModalSize.Large"
+           Centered="true"
+           Title="@($"Participantes - {selectedMeetingForParticipants.Title}")">
+        <BodyContent>
+            @if (meetingParticipations != null && meetingParticipations.Any())
+            {
+                var goingParticipants = meetingParticipations.Where(p => p.WillAttend).ToList();
+                var notGoingParticipants = meetingParticipations.Where(p => !p.WillAttend).ToList();
+
+                @if (goingParticipants.Any())
+                {
+                    <h6 class="mb-3 heading-purple">Vão participar (@goingParticipants.Count)</h6>
+                    <div class="enrollment-card-grid mb-4">
+                        @foreach (var participation in goingParticipants)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@participation.User?.ProfilePictureSrc"
+                                TunaName="@participation.User?.Nickname"
+                                FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
+                                InstrumentText=""
+                                Notes="@participation.Notes"
+                                AltText="@participation.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@CanDeleteParticipation(participation)"
+                                OnDelete="@(() => OpenDeleteParticipationModal(participation))">
+                                <BadgeContent>
+                                    @if (participation.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (participation.User.Positions.Contains(Position.Magister))
+                                            {
+                                                <PositionBadge Position="Position.Magister" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
+                    </div>
+                }
+
+                @if (notGoingParticipants.Any())
+                {
+                    <h6 class="mb-3 heading-danger">Não vão participar (@notGoingParticipants.Count)</h6>
+                    <div class="enrollment-card-grid">
+                        @foreach (var participation in notGoingParticipants)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@participation.User?.ProfilePictureSrc"
+                                TunaName="@participation.User?.Nickname"
+                                FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
+                                InstrumentText=""
+                                Notes="@participation.Notes"
+                                AltText="@participation.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@CanDeleteParticipation(participation)"
+                                OnDelete="@(() => OpenDeleteParticipationModal(participation))">
+                                <BadgeContent>
+                                    @if (participation.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (participation.User.Positions.Contains(Position.Magister))
+                                            {
+                                                <PositionBadge Position="Position.Magister" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <EmptyState Title="Nenhuma participação ainda para esta reunião"
+                           Icon="bi-people" />
+            }
+            
+            @* Add member section (Admin only) *@
+            <AuthorizeView Roles="Admin,Owner">
+                <Authorized>
+                    <div class="mt-4 pt-3 border-top">
+                        @* Success Alert (auto-dismiss) *@
+                        @if (!string.IsNullOrEmpty(addMemberToParticipationFeedbackMessage) && !addMemberToParticipationFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Success"
+                                   Message="@addMemberToParticipationFeedbackMessage"
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberToParticipationFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+
+                        @* Error Alert (manual dismiss) *@
+                        @if (!string.IsNullOrEmpty(addMemberToParticipationFeedbackMessage) && addMemberToParticipationFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Error"
+                                   Message="@addMemberToParticipationFeedbackMessage"
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberToParticipationFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+
+                        @if (!showAddMemberToParticipationSearch)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberToParticipationSearch">
+                                <i class="bi bi-plus-circle"></i>
+                                Adicionar Membro
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="mb-2">
+                                <SearchBar @bind-Value="addMemberToParticipationSearchTerm"
+                                           Placeholder="Pesquisar membro por nome..."
+                                           OnSearch="@HandleAddMemberToParticipationSearchChanged" />
+
+                                @if (!string.IsNullOrWhiteSpace(addMemberToParticipationSearchTerm) && filteredAvailableMembersForParticipation.Any())
+                                {
+                                    <div class="member-list member-list-scrollable mt-2">
+                                        @foreach (var member in filteredAvailableMembersForParticipation)
+                                        {
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                 @onclick="() => AddMemberToMeeting(member)"
+                                                 tabindex="0"
+                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDownForParticipation(e, member))">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                         class="member-avatar-small me-2" />
+                                                    <div>
+                                                        <strong>@member.GetDisplayName()</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(addMemberToParticipationSearchTerm))
+                                {
+                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                }
+                            </div>
+
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberToParticipationSearch">
+                                <i class="bi bi-x-circle"></i>
+                                Cancelar
+                            </button>
+                        }
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseParticipantsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Delete Participation Confirmation Modal -->
+<Modal Show="@showDeleteParticipationModal"
+       ShowChanged="@((bool show) => showDeleteParticipationModal = show)"
+       Title="Confirmar Eliminação"
+       Size="Modal.ModalSize.Small"
+       Centered="true">
+    <BodyContent>
+        @if (deletingParticipation != null)
+        {
+            <p>Tem a certeza que quer remover a participação de <strong>@(deletingParticipation.User?.Nickname ?? "este membro")</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteParticipationModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteParticipation">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Remove Own Participation Confirmation Modal -->
+<ConfirmDialog Show="@showRemoveParticipationModal"
+               ShowChanged="@((bool show) => showRemoveParticipationModal = show)"
+               Title="Confirmar Remoção de Participação"
+               Message="Tem certeza que deseja remover sua participação nesta reunião?"
+               ConfirmText="Sim, Remover"
+               CancelText="Não"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="RemoveParticipation"
+               OnCancel="CloseRemoveParticipationModal" />
+
 @code {
     private List<Meeting> meetings = new();
+    private List<Meeting> upcomingMeetings = new();
+    private List<Meeting> pastMeetings = new();
     private bool isLoading = true;
     private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 12;
     private int totalCount = 0;
+    
+    // Pagination for past meetings
+    private int pastMeetingsCurrentPage = 1;
+    private int pastMeetingsPageSize = 12;
+    private int pastMeetingsTotalCount = 0;
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -832,6 +1183,7 @@ else
     private Meeting? viewingMeeting;
     private Meeting? selectedMeetingForEmail;
     private Meeting? selectedMeetingForCancellation;
+    private List<ApplicationUser>? tunoUsersForMeetingForm;
     
     private ApplicationUser? currentUser;
     private string currentUserId = string.Empty;
@@ -875,11 +1227,44 @@ else
     private bool showPushNotificationModal = false;
     private Meeting? selectedMeetingForPush;
     private List<ApplicationUser>? pushRecipients;
+    private List<ApplicationUser>? pushNonSubscribedUsers;
     private List<ApplicationUser>? pushTunoUsers;
     private int pushRecipientCount = 0;
+    private int pushTotalUsersCount = 0;
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
+    
+    // Meeting participation modal variables
+    private bool showParticipationModal = false;
+    private bool isEditingParticipation = false;
+    private bool isParticipationPreSelected = false;
+    private Meeting? selectedMeetingForParticipation;
+    private MeetingParticipation? participationForm;
+    private List<MeetingParticipation> allParticipations = new();
+    private Dictionary<int, List<MeetingParticipation>> participationsByMeeting = new();
+    private Dictionary<int, int> participationCountsByMeeting = new();
+    
+    // Participants list modal variables
+    private bool showParticipantsModal = false;
+    private Meeting? selectedMeetingForParticipants;
+    private List<MeetingParticipation>? meetingParticipations;
+    
+    // Delete participation modal variables
+    private bool showDeleteParticipationModal = false;
+    private MeetingParticipation? deletingParticipation;
+    
+    // Remove own participation modal variables (for users removing their own participation)
+    private bool showRemoveParticipationModal = false;
+    private MeetingParticipation? removingParticipation;
+    
+    // Add member to participation variables (for admins)
+    private string addMemberToParticipationSearchTerm = "";
+    private string addMemberToParticipationFeedbackMessage = "";
+    private bool addMemberToParticipationFeedbackIsError = false;
+    private bool showAddMemberToParticipationSearch = false;
+    private List<ApplicationUser> allMembersForParticipation = new();
+    private List<ApplicationUser> filteredAvailableMembersForParticipation = new();
     
     // Meeting request variables
     private List<MeetingRequest> meetingRequests = new();
@@ -970,6 +1355,50 @@ else
 
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
+        await LoadParticipationsAsync();
+    }
+
+    private async Task LoadParticipationsAsync()
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return;
+            
+        try
+        {
+            // Load all participations for the current user
+            allParticipations = (await MeetingParticipationService.GetParticipationsByUserIdAsync(currentUserId)).ToList();
+            
+            // Group participations by meeting for quick lookup
+            participationsByMeeting = allParticipations
+                .GroupBy(p => p.MeetingId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            
+            // Load participation counts for all displayed meetings in a single query
+            var meetingIds = meetings.Select(m => m.Id).ToList();
+            participationCountsByMeeting = await MeetingParticipationService.GetParticipationCountsByMeetingIdsAsync(meetingIds);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error loading meeting participations");
+        }
+    }
+
+    private MeetingParticipation? GetUserParticipation(int meetingId)
+    {
+        if (participationsByMeeting.TryGetValue(meetingId, out var participations))
+        {
+            return participations.FirstOrDefault(p => p.UserId == currentUserId);
+        }
+        return null;
+    }
+
+    private int GetParticipationCount(int meetingId)
+    {
+        if (participationCountsByMeeting.TryGetValue(meetingId, out var count))
+        {
+            return count;
+        }
+        return 0;
     }
 
     private async Task LoadMeetingsAsync()
@@ -988,14 +1417,37 @@ else
                     .ToList();
             }
             
-            totalCount = allMeetings.Count;
+            var today = DateTime.Today;
             
-            // Apply pagination
-            meetings = allMeetings
+            // Split into upcoming and past meetings
+            var allUpcoming = allMeetings
+                .Where(m => m.Date.Date >= today)
+                .OrderBy(m => m.Date)
+                .ToList();
+                
+            var allPast = allMeetings
+                .Where(m => m.Date.Date < today)
                 .OrderByDescending(m => m.Date)
+                .ToList();
+            
+            // Update counts
+            totalCount = allUpcoming.Count;
+            pastMeetingsTotalCount = allPast.Count;
+            
+            // Apply pagination for upcoming meetings
+            upcomingMeetings = allUpcoming
                 .Skip((currentPage - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
+                
+            // Apply pagination for past meetings
+            pastMeetings = allPast
+                .Skip((pastMeetingsCurrentPage - 1) * pastMeetingsPageSize)
+                .Take(pastMeetingsPageSize)
+                .ToList();
+            
+            // Keep the combined list for backward compatibility
+            meetings = upcomingMeetings.Concat(pastMeetings).ToList();
         }
         finally
         {
@@ -1007,6 +1459,7 @@ else
     {
         searchTerm = newSearchTerm;
         currentPage = 1; // Reset to first page on search
+        pastMeetingsCurrentPage = 1; // Also reset past meetings pagination
         await LoadMeetingsAsync();
     }
 
@@ -1022,10 +1475,24 @@ else
         currentPage = 1; // Reset to first page
         await LoadMeetingsAsync();
     }
+    
+    private async Task ChangePastMeetingsPage(int newPage)
+    {
+        pastMeetingsCurrentPage = newPage;
+        await LoadMeetingsAsync();
+    }
+    
+    private async Task ChangePastMeetingsPageSize(int newPageSize)
+    {
+        pastMeetingsPageSize = newPageSize;
+        pastMeetingsCurrentPage = 1; // Reset to first page
+        await LoadMeetingsAsync();
+    }
 
     private async Task OnFiscalYearChanged()
     {
         currentPage = 1;
+        pastMeetingsCurrentPage = 1;
         requestCurrentPage = 1;
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
@@ -1040,7 +1507,10 @@ else
             Title = meeting.Title,
             Date = meeting.Date,
             Location = meeting.Location,
-            Statement = meeting.Statement
+            Statement = meeting.Statement,
+            Organizer = meeting.Organizer,
+            TunoRepresentativeUserId = meeting.TunoRepresentativeUserId,
+            TunoRepresentative = meeting.TunoRepresentative
         };
         showViewDetailsModal = true;
     }
@@ -1051,7 +1521,7 @@ else
         viewingMeeting = null;
     }
 
-    private void OpenCreateModal()
+    private async Task OpenCreateModal()
     {
         isCreateMode = true;
         
@@ -1082,10 +1552,14 @@ else
             Statement = string.Empty,
             OrganizerUserId = currentUserId // Set current user as organizer
         };
+        
+        // Load Tuno users for representative selection
+        await LoadTunoUsersForMeetingForm();
+        
         showEditModal = true;
     }
 
-    private void OpenEditModal(Meeting meeting)
+    private async Task OpenEditModal(Meeting meeting)
     {
         isCreateMode = false;
         editingMeeting = new Meeting
@@ -1096,15 +1570,32 @@ else
             Date = meeting.Date,
             Location = meeting.Location,
             Statement = meeting.Statement,
-            OrganizerUserId = meeting.OrganizerUserId
+            OrganizerUserId = meeting.OrganizerUserId,
+            TunoRepresentativeUserId = meeting.TunoRepresentativeUserId
         };
+        
+        // Load Tuno users for representative selection
+        await LoadTunoUsersForMeetingForm();
+        
         showEditModal = true;
+    }
+    
+    private async Task LoadTunoUsersForMeetingForm()
+    {
+        var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+        tunoUsersForMeetingForm = allUsers
+            .Where(u => u.CurrentRole == "TUNO")
+            // Exclude users with Magister position from representative list
+            .Where(u => u.Positions == null || !u.Positions.Contains(Position.Magister))
+            .OrderBy(u => u.Nickname ?? u.FirstName)
+            .ToList();
     }
 
     private void CloseEditModal()
     {
         showEditModal = false;
         editingMeeting = null;
+        tunoUsersForMeetingForm = null;
     }
 
     private async Task SaveMeeting()
@@ -1192,6 +1683,13 @@ else
         // Get the first (primary) position
         var position = currentUser.Positions.First();
         return RTUB.Core.Helpers.PositionHelper.GetDisplayName(position);
+    }
+    
+    private async Task<ApplicationUser?> GetCVPresidentAsync()
+    {
+        // Find the user with the PresidenteConselhoVeteranos position
+        var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+        return allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PresidenteConselhoVeteranos));
     }
 
     // Email notification methods
@@ -1318,9 +1816,36 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser != null 
-                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
-                : "Admin";
+            
+            // For CV meetings, use the President of Conselho de Veteranos as sender
+            string senderNickname;
+            string? senderPosition;
+            
+            if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos)
+            {
+                // Try to get the CV President
+                var cvPresident = await GetCVPresidentAsync();
+                if (cvPresident != null)
+                {
+                    senderNickname = $"{cvPresident.FirstName} \"{cvPresident.Nickname}\" {cvPresident.LastName}";
+                    senderPosition = RTUB.Core.Helpers.PositionHelper.GetDisplayName(Position.PresidenteConselhoVeteranos);
+                }
+                else
+                {
+                    // Fallback to current user if no CV President found
+                    senderNickname = currentUser != null 
+                        ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                        : "Admin";
+                    senderPosition = GetSenderPosition();
+                }
+            }
+            else
+            {
+                senderNickname = currentUser != null 
+                    ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                    : "Admin";
+                senderPosition = GetSenderPosition();
+            }
             
             emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -1330,7 +1855,7 @@ else
                 statement: emailPlainTextBody, // Use the plain text from the editor
                 senderNickname: senderNickname,
                 senderCity: senderCity,
-                senderPosition: GetSenderPosition(),
+                senderPosition: senderPosition,
                 nickname: "",
                 fullName: "");
             
@@ -1415,9 +1940,34 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser != null 
-                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
-                : "Admin";
+            
+            // For CV meetings, use the President of Conselho de Veteranos as sender
+            string senderNickname;
+            string? senderPosition;
+            
+            if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos)
+            {
+                var cvPresident = await GetCVPresidentAsync();
+                if (cvPresident != null)
+                {
+                    senderNickname = $"{cvPresident.FirstName} \"{cvPresident.Nickname}\" {cvPresident.LastName}";
+                    senderPosition = RTUB.Core.Helpers.PositionHelper.GetDisplayName(Position.PresidenteConselhoVeteranos);
+                }
+                else
+                {
+                    senderNickname = currentUser != null 
+                        ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                        : "Admin";
+                    senderPosition = GetSenderPosition();
+                }
+            }
+            else
+            {
+                senderNickname = currentUser != null 
+                    ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                    : "Admin";
+                senderPosition = GetSenderPosition();
+            }
             
             emailPreviewHtml = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -1427,7 +1977,7 @@ else
                 statement: emailPlainTextBody, // Use the plain text being edited
                 senderNickname: senderNickname,
                 senderCity: senderCity,
-                senderPosition: GetSenderPosition(),
+                senderPosition: senderPosition,
                 nickname: "Exemplo",
                 fullName: "Nome Completo");
         }
@@ -1562,9 +2112,34 @@ else
                 var dateStr = selectedMeetingForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
                 var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
                 var senderCity = $"Bragança, {currentDate}";
-                var senderNickname = currentUser != null 
-                    ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
-                    : "Admin";
+                
+                // For CV meetings, use the President of Conselho de Veteranos as sender
+                string senderNickname;
+                string? senderPosition;
+                
+                if (selectedMeetingForCancellation.Type == MeetingType.ConselhoVeteranos)
+                {
+                    var cvPresident = await GetCVPresidentAsync();
+                    if (cvPresident != null)
+                    {
+                        senderNickname = $"{cvPresident.FirstName} \"{cvPresident.Nickname}\" {cvPresident.LastName}";
+                        senderPosition = RTUB.Core.Helpers.PositionHelper.GetDisplayName(Position.PresidenteConselhoVeteranos);
+                    }
+                    else
+                    {
+                        senderNickname = currentUser != null 
+                            ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                            : "Admin";
+                        senderPosition = GetSenderPosition();
+                    }
+                }
+                else
+                {
+                    senderNickname = currentUser != null 
+                        ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                        : "Admin";
+                    senderPosition = GetSenderPosition();
+                }
                 
                 var emailBody = await EmailTemplateRenderer.RenderMeetingCancellationAsync(
                     meetingType: GetMeetingTypeFullName(selectedMeetingForCancellation.Type),
@@ -1574,7 +2149,7 @@ else
                     cancellationReason: cancelMeetingReason,
                     senderNickname: senderNickname,
                     senderCity: senderCity,
-                    senderPosition: GetSenderPosition(),
+                    senderPosition: senderPosition,
                     nickname: "",
                     fullName: "");
 
@@ -1642,13 +2217,18 @@ else
 
         try
         {
+            // Get all user IDs with active push subscriptions via service
+            var userIdsWithPushSubscriptions = (await PushNotificationService.GetSubscribedUserIdsAsync()).ToHashSet();
+            
             var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
             
-            // Build recipient list based on meeting type (same logic as email, but without subscription filter)
+            // Build recipient list based on meeting type, filtered by active push subscriptions
+            List<ApplicationUser> eligibleUsers;
+            
             if (meeting.Type == MeetingType.ConselhoVeteranos)
             {
                 // CV meetings: Veterano + Tunossauro + Magister
-                pushRecipients = allUsers
+                eligibleUsers = allUsers
                     .Where(u => u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister))
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
@@ -1662,7 +2242,7 @@ else
             else if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
             {
                 // AGO/AGE meetings: All members EXCEPT Leitão
-                pushRecipients = allUsers
+                eligibleUsers = allUsers
                     .Where(u => !u.IsLeitao())
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
@@ -1672,7 +2252,7 @@ else
             else if (meeting.Type == MeetingType.ReuniaoDirecao)
             {
                 // Direção meetings: Only Direção members
-                pushRecipients = allUsers
+                eligibleUsers = allUsers
                     .Where(u => u.Positions != null && 
                                (u.Positions.Contains(Position.Magister) ||
                                 u.Positions.Contains(Position.ViceMagister) ||
@@ -1687,14 +2267,24 @@ else
             else
             {
                 // Default: all users
-                pushRecipients = allUsers
+                eligibleUsers = allUsers
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
                 
                 pushTunoUsers = null;
             }
             
+            // Split eligible users into subscribed (has push subscriptions) and non-subscribed
+            pushRecipients = eligibleUsers
+                .Where(u => userIdsWithPushSubscriptions.Contains(u.Id))
+                .ToList();
+            
+            pushNonSubscribedUsers = eligibleUsers
+                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
+                .ToList();
+            
             pushRecipientCount = pushRecipients.Count;
+            pushTotalUsersCount = eligibleUsers.Count;
         }
         catch (Exception ex)
         {
@@ -1713,8 +2303,10 @@ else
         showPushNotificationModal = false;
         selectedMeetingForPush = null;
         pushRecipients = null;
+        pushNonSubscribedUsers = null;
         pushTunoUsers = null;
         pushRecipientCount = 0;
+        pushTotalUsersCount = 0;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
     }
@@ -2266,6 +2858,341 @@ else
             CloseReminderConfirmModal();
         }
     }
+    
+    // ========== Participation Methods ==========
+    
+    private void OpenParticipationModalWithResponse(Meeting meeting, bool willAttend)
+    {
+        selectedMeetingForParticipation = meeting;
+        isParticipationPreSelected = true;
+        
+        var existingParticipation = GetUserParticipation(meeting.Id);
+        if (existingParticipation != null)
+        {
+            // Editing existing participation
+            isEditingParticipation = true;
+            participationForm = new MeetingParticipation
+            {
+                Id = existingParticipation.Id,
+                MeetingId = meeting.Id,
+                UserId = currentUserId,
+                WillAttend = willAttend,
+                Notes = existingParticipation.Notes
+            };
+        }
+        else
+        {
+            // Creating new participation
+            isEditingParticipation = false;
+            participationForm = new MeetingParticipation
+            {
+                MeetingId = meeting.Id,
+                UserId = currentUserId,
+                WillAttend = willAttend,
+                Notes = null
+            };
+        }
+        
+        showParticipationModal = true;
+    }
+    
+    private void CloseParticipationModal()
+    {
+        showParticipationModal = false;
+        selectedMeetingForParticipation = null;
+        participationForm = null;
+        isEditingParticipation = false;
+        isParticipationPreSelected = false;
+    }
+    
+    private string GetParticipationModalTitle()
+    {
+        if (participationForm == null)
+            return "Participação";
+            
+        if (isEditingParticipation)
+            return participationForm.WillAttend ? "Editar Confirmação" : "Editar Impossibilidade";
+            
+        return participationForm.WillAttend ? "Confirmar Participação" : "Registar Impossibilidade";
+    }
+    
+    private async Task SaveParticipation()
+    {
+        if (participationForm == null || selectedMeetingForParticipation == null)
+        {
+            CloseParticipationModal();
+            return;
+        }
+        
+        try
+        {
+            if (isEditingParticipation && participationForm.Id > 0)
+            {
+                // Update existing participation
+                await MeetingParticipationService.UpdateParticipationAsync(
+                    participationForm.Id,
+                    participationForm.WillAttend,
+                    participationForm.Notes);
+            }
+            else
+            {
+                // Create new participation
+                await MeetingParticipationService.CreateParticipationAsync(
+                    currentUserId,
+                    participationForm.MeetingId,
+                    participationForm.Notes,
+                    participationForm.WillAttend);
+            }
+            
+            // Reload participations and refresh UI
+            await LoadParticipationsAsync();
+            CloseParticipationModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving meeting participation for meeting {MeetingId}", participationForm?.MeetingId);
+        }
+    }
+    
+    private async Task OpenParticipantsModal(Meeting meeting)
+    {
+        selectedMeetingForParticipants = meeting;
+        showParticipantsModal = true;
+        
+        try
+        {
+            meetingParticipations = (await MeetingParticipationService.GetParticipationsByMeetingIdAsync(meeting.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading participants for meeting {MeetingId}", meeting.Id);
+            meetingParticipations = new List<MeetingParticipation>();
+        }
+    }
+    
+    private void CloseParticipantsModal()
+    {
+        showParticipantsModal = false;
+        selectedMeetingForParticipants = null;
+        meetingParticipations = null;
+        showAddMemberToParticipationSearch = false;
+        addMemberToParticipationSearchTerm = string.Empty;
+        addMemberToParticipationFeedbackMessage = string.Empty;
+        addMemberToParticipationFeedbackIsError = false;
+    }
+    
+    private bool CanDeleteParticipation(MeetingParticipation participation)
+    {
+        // Users can only delete their own participation or admins can delete any
+        if (isOwner) return true;
+        return participation.UserId == currentUserId;
+    }
+    
+    private void OpenDeleteParticipationModal(MeetingParticipation participation)
+    {
+        deletingParticipation = participation;
+        showDeleteParticipationModal = true;
+    }
+    
+    private void CloseDeleteParticipationModal()
+    {
+        showDeleteParticipationModal = false;
+        deletingParticipation = null;
+    }
+    
+    private async Task ConfirmDeleteParticipation()
+    {
+        if (deletingParticipation == null) return;
+        
+        try
+        {
+            await MeetingParticipationService.DeleteParticipationAsync(deletingParticipation.Id);
+            
+            // Refresh the participation list
+            if (selectedMeetingForParticipants != null)
+            {
+                await OpenParticipantsModal(selectedMeetingForParticipants);
+            }
+            
+            // Also refresh participation counts
+            await LoadParticipationsAsync();
+            
+            addMemberToParticipationFeedbackMessage = "Participação removida com sucesso.";
+            addMemberToParticipationFeedbackIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting participation {ParticipationId}", deletingParticipation.Id);
+            addMemberToParticipationFeedbackMessage = "Erro ao remover participação. Tente novamente.";
+            addMemberToParticipationFeedbackIsError = true;
+        }
+        finally
+        {
+            CloseDeleteParticipationModal();
+        }
+    }
+    
+    // Remove own participation methods (for users removing their own participation from past meetings)
+    private void HandleRemoveParticipationRequest(int meetingId)
+    {
+        var participation = GetUserParticipation(meetingId);
+        if (participation != null)
+        {
+            OpenRemoveParticipationModal(participation);
+        }
+    }
+    
+    private void OpenRemoveParticipationModal(MeetingParticipation participation)
+    {
+        removingParticipation = participation;
+        showRemoveParticipationModal = true;
+    }
+    
+    private void CloseRemoveParticipationModal()
+    {
+        showRemoveParticipationModal = false;
+        removingParticipation = null;
+    }
+    
+    private async Task RemoveParticipation()
+    {
+        if (removingParticipation == null || currentUser == null) return;
+        
+        try
+        {
+            // Verify that the user is removing their own participation
+            if (removingParticipation.UserId == currentUser.Id)
+            {
+                await MeetingParticipationService.DeleteParticipationAsync(removingParticipation.Id);
+                await LoadParticipationsAsync();
+                await LoadMeetingsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing participation {ParticipationId}", removingParticipation.Id);
+        }
+        finally
+        {
+            CloseRemoveParticipationModal();
+            StateHasChanged();
+        }
+    }
+    
+    // Add member to participation methods (Admin only)
+    private async Task HandleAddMemberToParticipationSearchChanged(string searchTerm)
+    {
+        addMemberToParticipationSearchTerm = searchTerm;
+        await FilterAvailableMembersForParticipation();
+    }
+    
+    private async Task FilterAvailableMembersForParticipation()
+    {
+        if (string.IsNullOrWhiteSpace(addMemberToParticipationSearchTerm) || selectedMeetingForParticipants == null)
+        {
+            filteredAvailableMembersForParticipation = new List<ApplicationUser>();
+            return;
+        }
+
+        // Get users who are not already in the participation list
+        var existingParticipantIds = meetingParticipations?.Select(p => p.UserId).ToHashSet() ?? new HashSet<string>();
+        
+        // Load all members if not already loaded
+        if (!allMembersForParticipation.Any())
+        {
+            allMembersForParticipation = await UserManager.Users.AsNoTracking().ToListAsync();
+        }
+        
+        var search = addMemberToParticipationSearchTerm.ToLower();
+        filteredAvailableMembersForParticipation = allMembersForParticipation
+            .Where(u => !existingParticipantIds.Contains(u.Id))
+            // Filter out Leitoes and Caloiros - they should not be added to meeting participations
+            .Where(u => u.Categories != null && !u.Categories.Contains(MemberCategory.Leitao) && !u.Categories.Contains(MemberCategory.Caloiro))
+            .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
+                       (u.LastName?.ToLower().Contains(search) ?? false) ||
+                       (u.Nickname?.ToLower().Contains(search) ?? false))
+            .OrderBy(u => u.FirstName)
+            .ToList();
+    }
+    
+    private async Task AddMemberToMeeting(ApplicationUser user)
+    {
+        if (selectedMeetingForParticipants == null) return;
+
+        try
+        {
+            // Check if participation already exists to prevent duplicate constraint violations
+            var existingParticipation = await MeetingParticipationService.GetParticipationByMeetingAndUserAsync(selectedMeetingForParticipants.Id, user.Id);
+            
+            if (existingParticipation != null)
+            {
+                // Update existing participation instead of creating duplicate
+                await MeetingParticipationService.UpdateParticipationAsync(
+                    existingParticipation.Id,
+                    true, // willAttend = true (approved)
+                    null // notes
+                );
+                addMemberToParticipationFeedbackMessage = $"Participação de {user.FirstName} \"{user.Nickname}\" atualizada com sucesso.";
+            }
+            else
+            {
+                // Add the participation, marking it as approved (willAttend = true)
+                await MeetingParticipationService.CreateParticipationAsync(user.Id, selectedMeetingForParticipants.Id, null, true);
+                addMemberToParticipationFeedbackMessage = $"Participação de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            }
+            
+            addMemberToParticipationFeedbackIsError = false;
+            
+            // Hide the search after successful addition
+            showAddMemberToParticipationSearch = false;
+            addMemberToParticipationSearchTerm = string.Empty;
+            
+            // Refresh participation list
+            await OpenParticipantsModal(selectedMeetingForParticipants);
+            
+            // Also refresh participation counts
+            await LoadParticipationsAsync();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            addMemberToParticipationFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            addMemberToParticipationFeedbackIsError = true;
+            Console.WriteLine($"Error adding member to meeting: {ex.Message}");
+        }
+    }
+    
+    private void ClearAddMemberToParticipationFeedback()
+    {
+        addMemberToParticipationFeedbackMessage = "";
+        addMemberToParticipationFeedbackIsError = false;
+    }
+    
+    private void ShowAddMemberToParticipationSearch()
+    {
+        showAddMemberToParticipationSearch = true;
+        addMemberToParticipationSearchTerm = string.Empty;
+        addMemberToParticipationFeedbackMessage = string.Empty;
+        addMemberToParticipationFeedbackIsError = false;
+        allMembersForParticipation = new List<ApplicationUser>(); // Reset to force reload
+    }
+    
+    private void HideAddMemberToParticipationSearch()
+    {
+        showAddMemberToParticipationSearch = false;
+        addMemberToParticipationSearchTerm = string.Empty;
+        addMemberToParticipationFeedbackMessage = string.Empty;
+        addMemberToParticipationFeedbackIsError = false;
+    }
+    
+    private async Task HandleMemberItemKeyDownForParticipation(KeyboardEventArgs e, ApplicationUser member)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddMemberToMeeting(member);
+        }
+    }
 }
 
 <style>
@@ -2292,5 +3219,51 @@ else
         .meeting-grid {
             grid-template-columns: repeat(3, 1fr);
         }
+    }
+    
+    .enrollment-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .heading-purple {
+        color: var(--bs-primary);
+    }
+    
+    .heading-danger {
+        color: var(--bs-danger);
+    }
+    
+    .enrollment-card-badges-row {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+    }
+    
+    .member-list-scrollable {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .member-item {
+        transition: background-color 0.15s ease-in-out;
+    }
+    
+    .member-item:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+        cursor: pointer;
+    }
+    
+    .member-avatar-small {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .clickable-row:focus {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: 2px;
     }
 </style>

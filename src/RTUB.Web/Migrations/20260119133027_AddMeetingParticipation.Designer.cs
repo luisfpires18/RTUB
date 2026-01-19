@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260119133027_AddMeetingParticipation")]
+    partial class AddMeetingParticipation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -1627,9 +1630,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("TunoRepresentativeUserId")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
@@ -1645,8 +1645,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_Meetings_Date");
 
                     b.HasIndex("OrganizerUserId");
-
-                    b.HasIndex("TunoRepresentativeUserId");
 
                     b.ToTable("Meetings");
                 });
@@ -3477,14 +3475,7 @@ namespace RTUB.Migrations
                         .HasForeignKey("OrganizerUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "TunoRepresentative")
-                        .WithMany()
-                        .HasForeignKey("TunoRepresentativeUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("Organizer");
-
-                    b.Navigation("TunoRepresentative");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
