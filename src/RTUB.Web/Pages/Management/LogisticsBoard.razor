@@ -51,7 +51,7 @@
                         <span>@board.Name</span>
                     </h1>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-info" @onclick="OpenCreateReminderModal">
+                        <button class="btn btn-purple" @onclick="OpenCreateReminderModal">
                             <i class="bi bi-bell"></i> Criar Lembrete
                         </button>
                         <AuthorizeView Roles="Admin" Context="adminAuthContext">
@@ -1403,8 +1403,9 @@
             selectedFile = null;
             logisticsFileName = null;
             
-            // Reload attachments
+            // Reload attachments and board data to update card UI
             documentAttachments = await CardService.GetCardAttachmentsAsync(selectedCard.Id, board.Name, environmentName);
+            await LoadData();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1421,6 +1422,7 @@
         {
             await CardService.DeleteCardAttachmentAsync(doc.FilePath);
             documentAttachments = await CardService.GetCardAttachmentsAsync(selectedCard.Id, board.Name, environmentName);
+            await LoadData();
             StateHasChanged();
         }
         catch (Exception)
