@@ -100,27 +100,16 @@ public class BetService : IBetService
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), id);
 
-        // Delete all user bets first (cascade) - use DeleteAsync with ID to avoid tracking issues
-        var userBets = await _userBetRepository.GetByBetIdAsync(id);
-        foreach (var userBet in userBets)
-        {
-            await _userBetRepository.DeleteAsync(userBet.Id);
-        }
+        // Delete all user bets first (they have RESTRICT FK to BetOptions, so must be deleted before options)
+        await _userBetRepository.DeleteByBetIdAsync(id);
         
-        // Delete all bet options - use DeleteAsync with ID to avoid tracking issues
-        var options = await _betOptionRepository.GetByBetIdAsync(id);
-        foreach (var option in options)
-        {
-            await _betOptionRepository.DeleteAsync(option.Id);
-        }
+        // Delete all bet options
+        await _betOptionRepository.DeleteByBetIdAsync(id);
 
-        // Delete all bet comments - use DeleteAsync with ID to avoid tracking issues
-        var comments = await _betCommentRepository.GetCommentsForBetAsync(id);
-        foreach (var comment in comments)
-        {
-            await _betCommentRepository.DeleteAsync(comment.Id);
-        }
+        // Delete all bet comments
+        await _betCommentRepository.DeleteByBetIdAsync(id);
 
+        // Finally delete the bet itself
         await _betRepository.DeleteAsync(id);
     }
 

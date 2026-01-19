@@ -13,8 +13,6 @@ public class BetComment : BaseEntity
     [Required]
     public string AuthorId { get; set; } = string.Empty;
 
-    [Required]
-    [MinLength(1, ErrorMessage = "O comentário deve ter pelo menos 1 caractere")]
     [MaxLength(1000, ErrorMessage = "O comentário não pode exceder 1000 caracteres")]
     public string Text { get; set; } = string.Empty;
 
@@ -42,9 +40,10 @@ public class BetComment : BaseEntity
             throw new ArgumentException("Bet ID must be greater than 0", nameof(betId));
         if (string.IsNullOrWhiteSpace(authorId))
             throw new ArgumentException("Author ID is required", nameof(authorId));
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Text is required", nameof(text));
-        if (text.Length > 1000)
+        // Only require text if no media is provided
+        if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(mediaUrl))
+            throw new ArgumentException("Text is required when no media is provided", nameof(text));
+        if (!string.IsNullOrWhiteSpace(text) && text.Length > 1000)
             throw new ArgumentException("Text cannot exceed 1000 characters", nameof(text));
         if (!string.IsNullOrEmpty(mediaType) && mediaType != "image" && mediaType != "video")
             throw new ArgumentException("Media type must be 'image' or 'video'", nameof(mediaType));
@@ -53,7 +52,7 @@ public class BetComment : BaseEntity
         {
             BetId = betId,
             AuthorId = authorId,
-            Text = text,
+            Text = text ?? string.Empty,
             MediaUrl = mediaUrl,
             MediaType = mediaType,
             CreatedAt = DateTime.UtcNow

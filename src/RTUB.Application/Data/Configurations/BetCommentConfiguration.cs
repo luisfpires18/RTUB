@@ -16,7 +16,6 @@ public class BetCommentConfiguration : IEntityTypeConfiguration<BetComment>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Text)
-            .IsRequired()
             .HasMaxLength(1000);
 
         builder.Property(c => c.MediaUrl)

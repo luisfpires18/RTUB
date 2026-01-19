@@ -36,4 +36,10 @@ public interface IUserBetRepository : IRepository<UserBet>
     /// <param name="betOptionId">Bet option ID</param>
     /// <returns>Collection of user bets for the option</returns>
     Task<IEnumerable<UserBet>> GetByBetOptionIdAsync(int betOptionId);
+
+    /// <summary>
+    /// Deletes all user bets for a specific bet
+    /// </summary>
+    /// <param name="betId">Bet ID</param>
+    Task DeleteByBetIdAsync(int betId);
 }

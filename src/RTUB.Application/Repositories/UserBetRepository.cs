@@ -52,4 +52,17 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
             .Include(ub => ub.User)
             .ToListAsync();
     }
+
+    public async Task DeleteByBetIdAsync(int betId)
+    {
+        var userBets = await _dbSet
+            .Where(ub => ub.BetId == betId)
+            .ToListAsync();
+
+        if (userBets.Count > 0)
+        {
+            _dbSet.RemoveRange(userBets);
+            await _context.SaveChangesAsync();
+        }
+    }
 }
