@@ -423,17 +423,13 @@
                 {
                     @if (questionToReply.IsAwaitingUserReply && !IsQuestionAuthor(questionToReply))
                     {
-                        <div class="alert alert-purple">
-                            <i class="bi bi-hourglass me-2"></i>
-                            Aguardando resposta do autor da pergunta.
-                        </div>
+                        <EmptyState Title="Aguardando resposta do autor da pergunta."
+                                   Icon="bi-hourglass" />
                     }
                     else if (!questionToReply.IsAwaitingUserReply && !IsAssignedMember(questionToReply))
                     {
-                        <div class="alert alert-warning">
-                            <i class="bi bi-person-lock me-2"></i>
-                            Apenas o membro designado pode responder a esta pergunta.
-                        </div>
+                        <EmptyState Title="Apenas o membro designado pode responder a esta pergunta."
+                                   Icon="bi-person-lock" />
                     }
                 }
             </div>

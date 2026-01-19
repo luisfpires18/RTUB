@@ -97,9 +97,9 @@
             <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap mb-2">
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                         @onclick="HandleReply"
-                        title="Ver e responder">
-                    <i class="bi bi-reply-fill"></i>
-                    <span>Ver e responder</span>
+                        title="@(IsAuthor ? "Responder" : "Ver")">
+                    <i class="bi bi-eye"></i>
+                    <span>@(IsAuthor ? "Responder" : "Ver")</span>
                 </button>
                 @if (IsAuthor && Question.Status != QuestionStatus.Closed)
                 {
