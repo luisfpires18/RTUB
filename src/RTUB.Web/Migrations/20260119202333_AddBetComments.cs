@@ -11,16 +11,6 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<int>(
-                name: "EventId",
-                table: "Discussions",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: 0,
-                oldClrType: typeof(int),
-                oldType: "INTEGER",
-                oldNullable: true);
-
             migrationBuilder.CreateTable(
                 name: "BetComments",
                 columns: table => new
@@ -76,14 +66,6 @@ namespace RTUB.Migrations
         {
             migrationBuilder.DropTable(
                 name: "BetComments");
-
-            migrationBuilder.AlterColumn<int>(
-                name: "EventId",
-                table: "Discussions",
-                type: "INTEGER",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "INTEGER");
         }
     }
 }
