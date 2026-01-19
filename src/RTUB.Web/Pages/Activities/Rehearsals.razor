@@ -243,7 +243,7 @@ else
                         {
                             <h6 class="mb-3 heading-purple">Membros (@filteredMainParticipants.Count)</h6>
                             
-                            <div class="enrollment-card-grid mb-4">
+                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two mb-4">
                                 @foreach (var attendance in paginatedMainParticipants)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
@@ -322,7 +322,7 @@ else
                         @if (filteredLeitoes.Any())
                         {
                             <h6 class="mb-3 heading-warning">Leitões (@filteredLeitoes.Count)</h6>
-                            <div class="enrollment-card-grid">
+                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
                                 @foreach (var attendance in paginatedLeitoes)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
@@ -383,7 +383,7 @@ else
                         @if (filteredNotAttending.Any())
                         {
                             <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
-                            <div class="enrollment-card-grid">
+                            <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
                                 @foreach (var attendance in paginatedNotAttending)
                                 {
                                 <EnrollmentCard

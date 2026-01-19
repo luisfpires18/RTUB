@@ -21,6 +21,9 @@
     .enrollment-card-grid {
         grid-template-columns: 1fr;
     }
+    .enrollment-card-grid-mobile-two {
+        grid-template-columns: repeat(2, 1fr);
+    }
     .enrollment-card-grid-compact {
         grid-template-columns: repeat(2, 1fr);
     }
