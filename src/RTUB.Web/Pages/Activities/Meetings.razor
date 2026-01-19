@@ -15,6 +15,7 @@
 @attribute [Authorize]
 @inject IMeetingService MeetingService
 @inject IMeetingRequestService MeetingRequestService
+@inject IMeetingParticipationService MeetingParticipationService
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject IFiscalYearService FiscalYearService
@@ -113,13 +114,18 @@ else
             <MeetingCard Meeting="@meeting"
                         Organizer="@meeting.Organizer"
                         IsAdmin="@CanManageMeeting(meeting)"
+                        UserParticipation="@GetUserParticipation(meeting.Id)"
+                        ParticipationCount="@GetParticipationCount(meeting.Id)"
                         OnEdit="@(() => OpenEditModal(meeting))"
                         OnDelete="@(() => OpenDeleteModal(meeting))"
                         OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
                         OnSendEmail="@(() => OpenEmailNotificationModal(meeting))"
                         OnSendPushNotification="@(() => OpenPushNotificationModal(meeting))"
                         OnCancel="@(() => OpenCancelMeetingModal(meeting))"
-                        OnUncancel="@(() => UncancelMeeting(meeting))" />
+                        OnUncancel="@(() => UncancelMeeting(meeting))"
+                        OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
+                        OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
+                        OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
         }
     </div>
 
@@ -813,6 +819,128 @@ else
 </Modal>
 }
 
+<!-- Meeting Participation Modal -->
+@if (participationForm != null)
+{
+    <MeetingParticipationModal Show="@showParticipationModal"
+                               ShowChanged="@((bool show) => showParticipationModal = show)"
+                               Title="@GetParticipationModalTitle()"
+                               ShowWillAttend="@(!isParticipationPreSelected)"
+                               WillAttend="@participationForm.WillAttend"
+                               WillAttendChanged="@((bool value) => participationForm.WillAttend = value)"
+                               Notes="@(participationForm.Notes ?? string.Empty)"
+                               NotesChanged="@((string value) => participationForm.Notes = value)"
+                               NotesRows="4"
+                               NotesPlaceholder="@(participationForm.WillAttend ? "Informações adicionais..." : "Motivo da impossibilidade...")"
+                               SubmitButtonText="@(isEditingParticipation ? "Atualizar" : "Confirmar")"
+                               OnSubmit="@SaveParticipation"
+                               OnCancel="@CloseParticipationModal" />
+}
+
+<!-- View Participants Modal -->
+@if (selectedMeetingForParticipants != null)
+{
+    <Modal Show="@showParticipantsModal" 
+           ShowChanged="@((bool show) => { if (!show) CloseParticipantsModal(); })"
+           Size="Modal.ModalSize.Large"
+           Centered="true"
+           Title="@($"Participantes - {selectedMeetingForParticipants.Title}")">
+        <BodyContent>
+            @if (meetingParticipations != null && meetingParticipations.Any())
+            {
+                var goingParticipants = meetingParticipations.Where(p => p.WillAttend).ToList();
+                var notGoingParticipants = meetingParticipations.Where(p => !p.WillAttend).ToList();
+
+                @if (goingParticipants.Any())
+                {
+                    <h6 class="mb-3 heading-purple">Vão participar (@goingParticipants.Count)</h6>
+                    <div class="enrollment-card-grid mb-4">
+                        @foreach (var participation in goingParticipants)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@participation.User?.ProfilePictureSrc"
+                                TunaName="@participation.User?.Nickname"
+                                FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
+                                InstrumentText=""
+                                Notes="@participation.Notes"
+                                AltText="@participation.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@CanDeleteParticipation(participation)">
+                                <BadgeContent>
+                                    @if (participation.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (participation.User.Positions.Contains(Position.Magister))
+                                            {
+                                                <PositionBadge Position="Position.Magister" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
+                    </div>
+                }
+
+                @if (notGoingParticipants.Any())
+                {
+                    <h6 class="mb-3 heading-danger">Não vão participar (@notGoingParticipants.Count)</h6>
+                    <div class="enrollment-card-grid">
+                        @foreach (var participation in notGoingParticipants)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@participation.User?.ProfilePictureSrc"
+                                TunaName="@participation.User?.Nickname"
+                                FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
+                                InstrumentText=""
+                                Notes="@participation.Notes"
+                                AltText="@participation.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@CanDeleteParticipation(participation)">
+                                <BadgeContent>
+                                    @if (participation.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (participation.User.Positions.Contains(Position.Magister))
+                                            {
+                                                <PositionBadge Position="Position.Magister" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (participation.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <EmptyState Title="Nenhuma participação ainda para esta reunião"
+                           Icon="bi-people" />
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseParticipantsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
 @code {
     private List<Meeting> meetings = new();
     private bool isLoading = true;
@@ -880,6 +1008,20 @@ else
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
+    
+    // Meeting participation modal variables
+    private bool showParticipationModal = false;
+    private bool isEditingParticipation = false;
+    private bool isParticipationPreSelected = false;
+    private Meeting? selectedMeetingForParticipation;
+    private MeetingParticipation? participationForm;
+    private List<MeetingParticipation> allParticipations = new();
+    private Dictionary<int, List<MeetingParticipation>> participationsByMeeting = new();
+    
+    // Participants list modal variables
+    private bool showParticipantsModal = false;
+    private Meeting? selectedMeetingForParticipants;
+    private List<MeetingParticipation>? meetingParticipations;
     
     // Meeting request variables
     private List<MeetingRequest> meetingRequests = new();
@@ -970,6 +1112,47 @@ else
 
         await LoadMeetingsAsync();
         await LoadMeetingRequestsAsync();
+        await LoadParticipationsAsync();
+    }
+
+    private async Task LoadParticipationsAsync()
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return;
+            
+        try
+        {
+            // Load all participations for the current user
+            allParticipations = (await MeetingParticipationService.GetParticipationsByUserIdAsync(currentUserId)).ToList();
+            
+            // Group participations by meeting for quick lookup
+            participationsByMeeting = allParticipations
+                .GroupBy(p => p.MeetingId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error loading meeting participations");
+        }
+    }
+
+    private MeetingParticipation? GetUserParticipation(int meetingId)
+    {
+        if (participationsByMeeting.TryGetValue(meetingId, out var participations))
+        {
+            return participations.FirstOrDefault(p => p.UserId == currentUserId);
+        }
+        return null;
+    }
+
+    private int GetParticipationCount(int meetingId)
+    {
+        // This returns a quick estimate; for accuracy we'd need to load all participations per meeting
+        // For now, we use the user's participation as an indicator (at least 1 if they participate)
+        var userParticipation = GetUserParticipation(meetingId);
+        if (userParticipation != null && userParticipation.WillAttend)
+            return 1;
+        return 0;
     }
 
     private async Task LoadMeetingsAsync()
@@ -2266,6 +2449,131 @@ else
             CloseReminderConfirmModal();
         }
     }
+    
+    // ========== Participation Methods ==========
+    
+    private void OpenParticipationModalWithResponse(Meeting meeting, bool willAttend)
+    {
+        selectedMeetingForParticipation = meeting;
+        isParticipationPreSelected = true;
+        
+        var existingParticipation = GetUserParticipation(meeting.Id);
+        if (existingParticipation != null)
+        {
+            // Editing existing participation
+            isEditingParticipation = true;
+            participationForm = new MeetingParticipation
+            {
+                Id = existingParticipation.Id,
+                MeetingId = meeting.Id,
+                UserId = currentUserId,
+                WillAttend = willAttend,
+                Notes = existingParticipation.Notes
+            };
+        }
+        else
+        {
+            // Creating new participation
+            isEditingParticipation = false;
+            participationForm = new MeetingParticipation
+            {
+                MeetingId = meeting.Id,
+                UserId = currentUserId,
+                WillAttend = willAttend,
+                Notes = null
+            };
+        }
+        
+        showParticipationModal = true;
+    }
+    
+    private void CloseParticipationModal()
+    {
+        showParticipationModal = false;
+        selectedMeetingForParticipation = null;
+        participationForm = null;
+        isEditingParticipation = false;
+        isParticipationPreSelected = false;
+    }
+    
+    private string GetParticipationModalTitle()
+    {
+        if (participationForm == null)
+            return "Participação";
+            
+        if (isEditingParticipation)
+            return participationForm.WillAttend ? "Editar Confirmação" : "Editar Impossibilidade";
+            
+        return participationForm.WillAttend ? "Confirmar Participação" : "Registar Impossibilidade";
+    }
+    
+    private async Task SaveParticipation()
+    {
+        if (participationForm == null || selectedMeetingForParticipation == null)
+        {
+            CloseParticipationModal();
+            return;
+        }
+        
+        try
+        {
+            if (isEditingParticipation && participationForm.Id > 0)
+            {
+                // Update existing participation
+                await MeetingParticipationService.UpdateParticipationAsync(
+                    participationForm.Id,
+                    participationForm.WillAttend,
+                    participationForm.Notes);
+            }
+            else
+            {
+                // Create new participation
+                await MeetingParticipationService.CreateParticipationAsync(
+                    currentUserId,
+                    participationForm.MeetingId,
+                    participationForm.Notes,
+                    participationForm.WillAttend);
+            }
+            
+            // Reload participations and refresh UI
+            await LoadParticipationsAsync();
+            CloseParticipationModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving meeting participation for meeting {MeetingId}", participationForm?.MeetingId);
+        }
+    }
+    
+    private async Task OpenParticipantsModal(Meeting meeting)
+    {
+        selectedMeetingForParticipants = meeting;
+        showParticipantsModal = true;
+        
+        try
+        {
+            meetingParticipations = (await MeetingParticipationService.GetParticipationsByMeetingIdAsync(meeting.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading participants for meeting {MeetingId}", meeting.Id);
+            meetingParticipations = new List<MeetingParticipation>();
+        }
+    }
+    
+    private void CloseParticipantsModal()
+    {
+        showParticipantsModal = false;
+        selectedMeetingForParticipants = null;
+        meetingParticipations = null;
+    }
+    
+    private bool CanDeleteParticipation(MeetingParticipation participation)
+    {
+        // Users can only delete their own participation or admins can delete any
+        if (isOwner) return true;
+        return participation.UserId == currentUserId;
+    }
 }
 
 <style>
@@ -2292,5 +2600,25 @@ else
         .meeting-grid {
             grid-template-columns: repeat(3, 1fr);
         }
+    }
+    
+    .enrollment-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .heading-purple {
+        color: var(--bs-primary);
+    }
+    
+    .heading-danger {
+        color: var(--bs-danger);
+    }
+    
+    .enrollment-card-badges-row {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
     }
 </style>
