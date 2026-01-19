@@ -185,6 +185,12 @@
                                                         <i class="bi bi-person"></i> @card.AssignedToUser.UserName
                                                     </div>
                                                 }
+                                                @if (card.Assignments != null && card.Assignments.Any())
+                                                {
+                                                    <div class="badge bg-primary mt-1">
+                                                        <i class="bi bi-people"></i> @card.Assignments.Count
+                                                    </div>
+                                                }
                                                 @{
                                                     var (checklistCompleted, checklistTotal) = GetChecklistCount(card);
                                                     if (checklistTotal > 0)
@@ -200,6 +206,15 @@
                                                     {
                                                         <div class="badge bg-warning text-dark mt-1">
                                                             <i class="bi bi-paperclip"></i> @attachmentCount
+                                                        </div>
+                                                    }
+                                                }
+                                                @{
+                                                    // Show document attachment count from cache
+                                                    if (documentAttachmentCounts.TryGetValue(card.Id, out var docCount) && docCount > 0)
+                                                    {
+                                                        <div class="badge bg-success mt-1">
+                                                            <i class="bi bi-file-earmark"></i> @docCount
                                                         </div>
                                                     }
                                                 }
@@ -834,6 +849,9 @@
     private List<LogisticsList> lists = new();
     private List<Event>? events;
     private List<ApplicationUser>? users;
+    
+    // Document attachment counts per card (loaded from Cloudflare)
+    private Dictionary<int, int> documentAttachmentCounts = new();
 
     // Filtering
     private string selectedLabelFilter = string.Empty;
@@ -969,9 +987,51 @@
                 l => l.Name,
                 l => l.Cards.OrderBy(c => c.Position).ToList()
             );
+            
+            // Load document attachment counts for all cards
+            await LoadDocumentAttachmentCounts();
         }
         events = (await EventService.GetAllEventsAsync()).ToList();
         users = await UserManager.Users.AsNoTracking().ToListAsync();
+    }
+    
+    // Load document attachment counts for all cards on the board
+    private async Task LoadDocumentAttachmentCounts()
+    {
+        if (board == null) return;
+        
+        documentAttachmentCounts.Clear();
+        
+        try
+        {
+            // Get all cards from all lists
+            var allCards = lists.SelectMany(l => l.Cards).ToList();
+            
+            // Load attachment counts in parallel
+            var tasks = allCards.Select(async card =>
+            {
+                try
+                {
+                    var attachments = await CardService.GetCardAttachmentsAsync(card.Id, board.Name, environmentName);
+                    return (cardId: card.Id, count: attachments.Count);
+                }
+                catch
+                {
+                    return (cardId: card.Id, count: 0);
+                }
+            });
+            
+            var results = await Task.WhenAll(tasks);
+            
+            foreach (var result in results)
+            {
+                documentAttachmentCounts[result.cardId] = result.count;
+            }
+        }
+        catch
+        {
+            // Silently fail - attachment counts are not critical
+        }
     }
 
     // Filter cards by label

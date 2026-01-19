@@ -352,6 +352,9 @@ else
     private bool showDeleteFolderDialog = false;
     private string? folderToDelete;
     
+    // Mapping from display name to actual folder path (for Logistics subfolders)
+    private Dictionary<string, string> displayNameToFolderPath = new();
+    
     // Allowed file extensions
     private readonly string[] allowedExtensions = { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
     private const long maxFileSize = 50 * 1024 * 1024; // 50 MB
@@ -795,9 +798,16 @@ else
         return Task.CompletedTask;
     }
     
-    private void HandleFolderDeleteRequest(string folderName)
+    private void HandleFolderDeleteRequest(string displayFolderName)
     {
-        folderToDelete = folderName;
+        // Look up the actual folder path from the display name
+        // Display names for Logistics folders strip "Logistics/" prefix
+        var actualFolder = folders.FirstOrDefault(f => 
+            f == displayFolderName || 
+            (f.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase) && 
+             f.Substring("Logistics/".Length).Equals(displayFolderName, StringComparison.OrdinalIgnoreCase)));
+        
+        folderToDelete = actualFolder ?? displayFolderName;
         showDeleteFolderDialog = true;
     }
     
