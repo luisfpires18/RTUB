@@ -145,6 +145,7 @@ else
                 <MediaUploadManager @ref="mediaUploadManager"
                                    Label=""
                                    CurrentMediaUrl="@uploadModel.PreviewUrl"
+                                   CurrentMediaIsVideo="@uploadModel.IsVideo"
                                    ShowCurrentMedia="true"
                                    PreviewCssClass="gallery-media-modal__preview"
                                    OnFileSelected="HandleFileSelected" />
@@ -687,6 +688,9 @@ else
     private async Task HandleFileSelected(IBrowserFile file)
     {
         selectedFile = file;
+        
+        // Track if current file is a video
+        uploadModel.IsVideo = selectedFile.ContentType.StartsWith("video/");
 
         // Generate preview for images and small videos (skip large videos to avoid memory issues)
         if ((selectedFile.ContentType.StartsWith("image/") || selectedFile.ContentType.StartsWith("video/")) 
@@ -698,7 +702,32 @@ else
                 using var stream = selectedFile.OpenReadStream(maxAllowedSize: MaxPreviewSize);
                 await stream.ReadAsync(buffer);
                 var base64 = Convert.ToBase64String(buffer);
-                uploadModel.PreviewUrl = $"data:{selectedFile.ContentType};base64,{base64}";
+                
+                if (selectedFile.ContentType.StartsWith("video/"))
+                {
+                    // For videos, use blob URL instead of data URL for proper preview
+                    // Data URLs don't work well with video preload="metadata"
+                    var blobUrl = await JSRuntime.InvokeAsync<string?>("createVideoPreviewUrl", base64, selectedFile.ContentType);
+                    if (!string.IsNullOrEmpty(blobUrl))
+                    {
+                        // Revoke previous blob URL if exists
+                        if (!string.IsNullOrEmpty(uploadModel.PreviewUrl) && uploadModel.PreviewUrl.StartsWith("blob:"))
+                        {
+                            await JSRuntime.InvokeVoidAsync("revokeVideoPreviewUrl", uploadModel.PreviewUrl);
+                        }
+                        uploadModel.PreviewUrl = blobUrl;
+                    }
+                    else
+                    {
+                        // Fallback to data URL if blob creation fails
+                        uploadModel.PreviewUrl = $"data:{selectedFile.ContentType};base64,{base64}";
+                    }
+                }
+                else
+                {
+                    // For images, data URLs work fine
+                    uploadModel.PreviewUrl = $"data:{selectedFile.ContentType};base64,{base64}";
+                }
             }
             catch (Exception ex)
             {
@@ -1376,6 +1405,7 @@ else
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public List<string> TaggedPeopleIds { get; set; } = new();
         public string? PreviewUrl { get; set; }
+        public bool IsVideo { get; set; } = false;
         public bool IsPrivate { get; set; } = true;
     }
 

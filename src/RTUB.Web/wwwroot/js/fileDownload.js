@@ -35,3 +35,31 @@ window.downloadFileFromUrl = async function (url, filename) {
         window.open(url, '_blank');
     }
 }
+
+// Create object URL from base64 for video preview (fixes grey screen issue with data URLs)
+window.createVideoPreviewUrl = function (base64Content, contentType) {
+    try {
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        return window.URL.createObjectURL(blob);
+    } catch (error) {
+        console.error('Failed to create video preview URL:', error);
+        return null;
+    }
+};
+
+// Revoke object URL when no longer needed
+window.revokeVideoPreviewUrl = function (url) {
+    if (url && url.startsWith('blob:')) {
+        try {
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to revoke video preview URL:', error);
+        }
+    }
+};

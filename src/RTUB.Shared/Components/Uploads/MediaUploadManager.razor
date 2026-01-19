@@ -55,6 +55,7 @@
 @code {
     [Parameter] public string Label { get; set; } = "Escolher ficheiro";
     [Parameter] public string? CurrentMediaUrl { get; set; }
+    [Parameter] public bool CurrentMediaIsVideo { get; set; } = false;
     [Parameter] public bool ShowCurrentMedia { get; set; } = true;
     [Parameter] public string PreviewCssClass { get; set; } = "music-album-preview";
     [Parameter] public long MaxImageSize { get; set; } = 10 * 1024 * 1024; // 10MB
@@ -139,6 +140,10 @@
     private bool IsVideo(string? url)
     {
         if (string.IsNullOrEmpty(url)) return false;
+        
+        // Check explicit parameter first (for blob URLs which don't have file extensions)
+        if (CurrentMediaIsVideo)
+            return true;
         
         // Check for data URLs with video MIME type
         if (url.StartsWith("data:video/", StringComparison.OrdinalIgnoreCase))
