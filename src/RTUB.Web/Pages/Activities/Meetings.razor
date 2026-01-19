@@ -131,7 +131,8 @@ else
                                 OnUncancel="@(() => UncancelMeeting(meeting))"
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
-                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
+                                OnRemoveParticipation="@(() => { var p = GetUserParticipation(meeting.Id); if (p != null) OpenRemoveParticipationModal(p); })" />
                 }
             </div>
 
@@ -180,7 +181,8 @@ else
                                 OnUncancel="@(() => UncancelMeeting(meeting))"
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
-                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))" />
+                                OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
+                                OnRemoveParticipation="@(() => { var p = GetUserParticipation(meeting.Id); if (p != null) OpenRemoveParticipationModal(p); })" />
                 }
             </div>
 
@@ -1144,6 +1146,17 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Remove Own Participation Confirmation Modal -->
+<ConfirmDialog Show="@showRemoveParticipationModal"
+               ShowChanged="@((bool show) => showRemoveParticipationModal = show)"
+               Title="Confirmar Remoção de Participação"
+               Message="Tem certeza que deseja remover sua participação nesta reunião?"
+               ConfirmText="Sim, Remover"
+               CancelText="Não"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="RemoveParticipation"
+               OnCancel="CloseRemoveParticipationModal" />
+
 @code {
     private List<Meeting> meetings = new();
     private List<Meeting> upcomingMeetings = new();
@@ -1240,6 +1253,10 @@ else
     // Delete participation modal variables
     private bool showDeleteParticipationModal = false;
     private MeetingParticipation? deletingParticipation;
+    
+    // Remove own participation modal variables (for users removing their own participation)
+    private bool showRemoveParticipationModal = false;
+    private MeetingParticipation? removingParticipation;
     
     // Add member to participation variables (for admins)
     private string addMemberToParticipationSearchTerm = "";
@@ -3012,6 +3029,44 @@ else
         finally
         {
             CloseDeleteParticipationModal();
+        }
+    }
+    
+    // Remove own participation methods (for users removing their own participation from past meetings)
+    private void OpenRemoveParticipationModal(MeetingParticipation participation)
+    {
+        removingParticipation = participation;
+        showRemoveParticipationModal = true;
+    }
+    
+    private void CloseRemoveParticipationModal()
+    {
+        showRemoveParticipationModal = false;
+        removingParticipation = null;
+    }
+    
+    private async Task RemoveParticipation()
+    {
+        if (removingParticipation == null || currentUser == null) return;
+        
+        try
+        {
+            // Verify that the user is removing their own participation
+            if (removingParticipation.UserId == currentUser.Id)
+            {
+                await MeetingParticipationService.DeleteParticipationAsync(removingParticipation.Id);
+                await LoadParticipationsAsync();
+                await LoadMeetingsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing participation {ParticipationId}", removingParticipation.Id);
+        }
+        finally
+        {
+            CloseRemoveParticipationModal();
+            StateHasChanged();
         }
     }
     

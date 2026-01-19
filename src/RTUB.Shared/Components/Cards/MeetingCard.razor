@@ -95,7 +95,7 @@
             }
         </div>
 
-        @* Participation Section - only show for upcoming, non-cancelled meetings *@
+        @* Participation Section - for upcoming meetings *@
         @if (!Meeting.IsCancelled && !IsMeetingCompleted())
         {
             <div class="participation-section mt-3 p-2 rounded">
@@ -126,6 +126,37 @@
                             <i class="bi bi-x-circle-fill"></i>
                         </button>
                     </div>
+                </div>
+            </div>
+        }
+        
+        @* Participation Section - for past meetings (like events) *@
+        @if (!Meeting.IsCancelled && IsMeetingCompleted())
+        {
+            <div class="participation-section mt-3 p-2 rounded">
+                <div class="d-flex flex-column gap-2">
+                    <!-- View Participants Button -->
+                    <div class="event-buttons-container justify-content-center">
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
+                                @onclick="OnViewParticipants" 
+                                title="Participantes">
+                            <i class="bi bi-people"></i>
+                            <span class="enrollment-count-centered">@ParticipationCount</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Participation management for past meetings -->
+                    @if (UserParticipation != null && UserParticipation.WillAttend)
+                    {
+                        <div class="event-buttons-container mt-2">
+                            <!-- Remove participation button for user's own participation -->
+                            <button class="btn event-icon-btn btn-danger" 
+                                    @onclick="HandleRemoveParticipation" 
+                                    title="Remover Participação">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -329,6 +360,14 @@
         if (OnUncancel.HasDelegate)
         {
             await OnUncancel.InvokeAsync();
+        }
+    }
+
+    private async Task HandleRemoveParticipation()
+    {
+        if (OnRemoveParticipation.HasDelegate)
+        {
+            await OnRemoveParticipation.InvokeAsync();
         }
     }
 

@@ -455,7 +455,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = GetEntityDisplayName(entry);
 
-        // Determine target member for Enrollment and RehearsalAttendance
+        // Determine target member for Enrollment, RehearsalAttendance, and MeetingParticipation
         string? targetMemberId = null;
         string? targetMemberName = null;
 
@@ -473,6 +473,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Try to get the user's name from navigation property or Local cache
             var targetUser = attendance.User
                 ?? Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
+            targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
+        }
+        else if (entityType == "MeetingParticipation" && entry.Entity is MeetingParticipation meetingParticipation)
+        {
+            targetMemberId = meetingParticipation.UserId;
+            // Try to get the user's name from navigation property or Local cache
+            var targetUser = meetingParticipation.User
+                ?? Users.Local.FirstOrDefault(u => u.Id == meetingParticipation.UserId);
             targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
         }
 
@@ -976,6 +984,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         if (userName != null)
                             return $"{userName} - {attendStatus}";
                         return null; // Neither user name nor rehearsal found - will fall back to entity ID display
+                    }
+                    break;
+
+                case "MeetingParticipation":
+                    if (entry.Entity is MeetingParticipation meetingParticipation)
+                    {
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var userName = meetingParticipation.User?.Nickname
+                            ?? meetingParticipation.User?.UserName
+                            ?? ResolveUserIdToNickname(meetingParticipation.UserId);
+                        var participationMeeting = meetingParticipation.Meeting
+                            ?? Meetings.Local.FirstOrDefault(m => m.Id == meetingParticipation.MeetingId);
+                        var attendStatus = meetingParticipation.WillAttend ? "Vai" : "Não vai";
+
+                        if (userName != null && participationMeeting != null)
+                            return $"{userName} - {participationMeeting.Title} - {attendStatus}";
+                        if (participationMeeting != null)
+                            return $"{participationMeeting.Title} - {attendStatus}";
+                        if (userName != null)
+                            return $"{userName} - {attendStatus}";
+                        return null; // Neither user name nor meeting found - will fall back to entity ID display
                     }
                     break;
 
