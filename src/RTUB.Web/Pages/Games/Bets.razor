@@ -795,9 +795,12 @@
     // Image Cropper
     private ImageCropper? imageCropper;
     private bool showCropperModal = false;
-    private byte[]? croppedImageBytes;
-    private string? croppedImageFileName = "bet-image.webp";
     private string? uploadedImagePath;
+    
+    // Original image for full display (not cropped)
+    private byte[]? originalImageBytes;
+    private string? originalImageFileName;
+    private string? originalImageContentType;
 
     // Place Bet
     private int selectedBetOptionId = 0;
@@ -1007,8 +1010,10 @@
             BetCategory = BetCategory.DECISION
         };
         selectedImageFile = null;
-        croppedImageBytes = null;
         uploadedImagePath = null;
+        originalImageBytes = null;
+        originalImageFileName = null;
+        originalImageContentType = null;
         selectedMatchMembers.Clear();
         memberOdds.Clear();
         matchMemberSearchTerm = string.Empty;
@@ -1028,8 +1033,10 @@
         isCreateMode = false;
         editingBet = bet;
         selectedImageFile = null;
-        croppedImageBytes = null;
         uploadedImagePath = null;
+        originalImageBytes = null;
+        originalImageFileName = null;
+        originalImageContentType = null;
         
         // Load members when modal is opened (only for admins who can edit bets)
         if (isAdmin)
@@ -1045,8 +1052,10 @@
         showEditModal = false;
         editingBet = null;
         selectedImageFile = null;
-        croppedImageBytes = null;
         uploadedImagePath = null;
+        originalImageBytes = null;
+        originalImageFileName = null;
+        originalImageContentType = null;
     }
 
     private async Task SaveBet()
@@ -1058,13 +1067,13 @@
         {
             if (isCreateMode)
             {
-                // Upload image BEFORE creating entity to include in single Create audit log
+                // Upload original image (not cropped) BEFORE creating entity to include in single Create audit log
                 string? imageUrl = null;
-                if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+                if (originalImageBytes != null && originalImageBytes.Length > 0)
                 {
-                    using var stream = new MemoryStream(croppedImageBytes);
+                    using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
+                    imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
                 }
 
                 if (imageUrl != null)
@@ -1110,12 +1119,12 @@
             }
             else
             {
-                // Check if we're updating with new image
-                if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
+                // Check if we're updating with new image (use original, not cropped)
+                if (originalImageBytes != null && originalImageBytes.Length > 0 && uploadedImagePath != null)
                 {
-                    using var stream = new MemoryStream(croppedImageBytes);
+                    using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
                     editingBet.SetImage(imageUrl);
                 }
                 await BetService.UpdateBetAsync(editingBet);
@@ -1286,7 +1295,10 @@
     
     private async Task AddComment()
     {
-        if (selectedBet == null || string.IsNullOrWhiteSpace(newCommentText) || currentUser == null) return;
+        if (selectedBet == null || currentUser == null) return;
+        
+        // Allow empty text if media is provided
+        if (string.IsNullOrWhiteSpace(newCommentText) && selectedCommentMediaFile == null) return;
         
         isAddingComment = true;
         try
@@ -1297,20 +1309,25 @@
             // Upload media if selected
             if (selectedCommentMediaFile != null && uploadedCommentMediaType != null)
             {
-                using var stream = selectedCommentMediaFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+                // Use MemoryStream for seekable stream (required for checksum calculation)
+                using var memoryStream = new MemoryStream();
+                using var fileStream = selectedCommentMediaFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+                await fileStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                
                 var folder = uploadedCommentMediaType == "image" ? "bet-comments/images" : "bet-comments/videos";
                 var fileName = $"{Guid.NewGuid()}{Path.GetExtension(selectedCommentMediaFile.Name)}";
                 var entityId = $"bet-{selectedBet.Id}-comment-{Guid.NewGuid()}";
                 
-                mediaUrl = await ImageStorageService.UploadImageAsync(stream, fileName, selectedCommentMediaFile.ContentType, folder, entityId);
+                mediaUrl = await ImageStorageService.UploadImageAsync(memoryStream, fileName, selectedCommentMediaFile.ContentType, folder, entityId);
                 mediaType = uploadedCommentMediaType;
             }
             
-            // Create the comment
+            // Create the comment - allow empty text if media is present
             await BetCommentService.AddCommentAsync(
                 betId: selectedBet.Id,
                 authorId: currentUser.Id,
-                text: newCommentText.Trim(),
+                text: string.IsNullOrWhiteSpace(newCommentText) ? "" : newCommentText.Trim(),
                 mediaUrl: mediaUrl,
                 mediaType: mediaType
             );
@@ -1460,6 +1477,14 @@
                 }
 
                 selectedImageFile = file;
+                
+                // Store original image bytes for full display
+                using var memoryStream = new MemoryStream();
+                using var fileStream = file.OpenReadStream(maxAllowedSize: maxFileSize);
+                await fileStream.CopyToAsync(memoryStream);
+                originalImageBytes = memoryStream.ToArray();
+                originalImageFileName = file.Name;
+                originalImageContentType = file.ContentType;
 
                 if (imageCropper != null)
                 {
@@ -1479,8 +1504,7 @@
         {
             if (editingBet != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // Store the cropped image bytes for upload when saving
-                croppedImageBytes = croppedImageData;
+                // Mark that we have an image ready for upload (we use originalImageBytes for the actual upload)
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
