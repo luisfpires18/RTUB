@@ -10,45 +10,18 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Drop the FK constraint first
-            migrationBuilder.DropForeignKey(
-                name: "FK_Bets_Discussions_DiscussionId",
-                table: "Bets");
-
-            // Drop the index
-            migrationBuilder.DropIndex(
-                name: "IX_Bets_DiscussionId",
-                table: "Bets");
-
-            // Drop the column
-            migrationBuilder.DropColumn(
-                name: "DiscussionId",
-                table: "Bets");
+            // This migration was intended to remove the DiscussionId column from Bets table
+            // However, the column may not exist in all databases (it was removed from the model
+            // but never properly migrated in all environments)
+            // 
+            // This is now a no-op migration to ensure compatibility across all database states.
+            // The delete cascade issue is handled by ExecuteDeleteAsync in BetService.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Re-add the column
-            migrationBuilder.AddColumn<int>(
-                name: "DiscussionId",
-                table: "Bets",
-                type: "INTEGER",
-                nullable: true);
-
-            // Re-add the index
-            migrationBuilder.CreateIndex(
-                name: "IX_Bets_DiscussionId",
-                table: "Bets",
-                column: "DiscussionId");
-
-            // Re-add the FK constraint
-            migrationBuilder.AddForeignKey(
-                name: "FK_Bets_Discussions_DiscussionId",
-                table: "Bets",
-                column: "DiscussionId",
-                principalTable: "Discussions",
-                principalColumn: "Id");
+            // No-op - nothing to reverse
         }
     }
 }
