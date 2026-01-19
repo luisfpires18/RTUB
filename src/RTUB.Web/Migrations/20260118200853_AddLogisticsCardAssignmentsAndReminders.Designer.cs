@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260118200853_AddLogisticsCardAssignmentsAndReminders")]
+    partial class AddLogisticsCardAssignmentsAndReminders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -1705,9 +1708,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("TunoRepresentativeUserId")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
@@ -1724,59 +1724,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("OrganizerUserId");
 
-                    b.HasIndex("TunoRepresentativeUserId");
-
                     b.ToTable("Meetings");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("MeetingId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ParticipatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("WillAttend")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MeetingId")
-                        .HasDatabaseName("IX_MeetingParticipations_MeetingId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_MeetingParticipations_UserId");
-
-                    b.HasIndex("MeetingId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_MeetingParticipations_MeetingId_UserId");
-
-                    b.ToTable("MeetingParticipations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
@@ -3585,33 +3533,7 @@ namespace RTUB.Migrations
                         .HasForeignKey("OrganizerUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "TunoRepresentative")
-                        .WithMany()
-                        .HasForeignKey("TunoRepresentativeUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("Organizer");
-
-                    b.Navigation("TunoRepresentative");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Meeting", "Meeting")
-                        .WithMany()
-                        .HasForeignKey("MeetingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Meeting");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>

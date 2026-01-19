@@ -1,3 +1,4 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -123,4 +124,78 @@ public interface ILogisticsCardService
     /// <param name="id">The unique identifier of the card to delete</param>
     /// <exception cref="InvalidOperationException">Thrown when the card is not found</exception>
     Task DeleteCardAsync(int id);
+
+    /// <summary>
+    /// Adds a user assignment to a card
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <param name="userId">The unique identifier of the user to assign</param>
+    /// <exception cref="InvalidOperationException">Thrown when the card is not found or assignment already exists</exception>
+    Task AddCardAssignmentAsync(int cardId, string userId);
+
+    /// <summary>
+    /// Removes a user assignment from a card
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <param name="userId">The unique identifier of the user to unassign</param>
+    /// <exception cref="InvalidOperationException">Thrown when the card or assignment is not found</exception>
+    Task RemoveCardAssignmentAsync(int cardId, string userId);
+
+    /// <summary>
+    /// Gets all user assignments for a card
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <returns>Collection of card assignments with user information</returns>
+    Task<IEnumerable<LogisticsCardAssignment>> GetCardAssignmentsAsync(int cardId);
+
+    /// <summary>
+    /// Uploads an attachment to a logistics card in Documentation storage
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <param name="boardName">The name of the board (for folder path)</param>
+    /// <param name="fileName">Name of the file</param>
+    /// <param name="fileStream">Stream containing file data</param>
+    /// <param name="contentType">MIME content type of the file</param>
+    /// <param name="environmentName">The environment name (e.g., "Production", "Development")</param>
+    /// <returns>The full path of the uploaded document</returns>
+    Task<string> UploadCardAttachmentAsync(int cardId, string boardName, string fileName, Stream fileStream, string contentType, string environmentName);
+
+    /// <summary>
+    /// Gets all attachments for a card from Documentation storage
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <param name="boardName">The name of the board (for folder path)</param>
+    /// <param name="environmentName">The environment name (e.g., "Production", "Development")</param>
+    /// <returns>List of document metadata for the card's attachments</returns>
+    Task<List<DocumentMetadata>> GetCardAttachmentsAsync(int cardId, string boardName, string environmentName);
+
+    /// <summary>
+    /// Deletes an attachment from a card in Documentation storage
+    /// </summary>
+    /// <param name="documentPath">The full path to the document to delete</param>
+    Task DeleteCardAttachmentAsync(string documentPath);
+
+    /// <summary>
+    /// Creates a reminder for a logistics card
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <param name="frequency">The reminder frequency</param>
+    /// <param name="targetUserIds">Comma-separated list of user IDs to receive the reminder</param>
+    /// <param name="nextReminderDate">When the first reminder should be sent</param>
+    /// <exception cref="InvalidOperationException">Thrown when the card is not found</exception>
+    Task<LogisticsCardReminder> CreateCardReminderAsync(int cardId, ReminderFrequency frequency, string targetUserIds, DateTime nextReminderDate);
+
+    /// <summary>
+    /// Gets all active reminders for a card
+    /// </summary>
+    /// <param name="cardId">The unique identifier of the card</param>
+    /// <returns>Collection of active reminders for the card</returns>
+    Task<IEnumerable<LogisticsCardReminder>> GetCardRemindersAsync(int cardId);
+
+    /// <summary>
+    /// Deactivates a card reminder
+    /// </summary>
+    /// <param name="reminderId">The unique identifier of the reminder to deactivate</param>
+    /// <exception cref="InvalidOperationException">Thrown when the reminder is not found</exception>
+    Task DeactivateCardReminderAsync(int reminderId);
 }

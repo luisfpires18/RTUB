@@ -97,6 +97,43 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         }
     }
 
+    public async Task<List<string>> ListSubfoldersAsync(string folderPath)
+    {
+        try
+        {
+            // Ensure folder path ends with /
+            if (!folderPath.EndsWith("/"))
+            {
+                folderPath += "/";
+            }
+
+            var commonPrefixes = await ListCommonPrefixesAsync(folderPath);
+
+            // Extract folder names from prefixes
+            var folders = new List<string>();
+            foreach (var commonPrefix in commonPrefixes)
+            {
+                // Ensure the prefix is long enough before extracting folder name
+                var trimmedPrefix = commonPrefix.TrimEnd('/');
+                if (trimmedPrefix.Length > folderPath.Length)
+                {
+                    var folderName = trimmedPrefix.Substring(folderPath.Length);
+                    if (!string.IsNullOrEmpty(folderName))
+                    {
+                        folders.Add(folderName);
+                    }
+                }
+            }
+
+            return folders;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing subfolders in {FolderPath}", folderPath);
+            return [];
+        }
+    }
+
     public async Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath)
     {
         try
@@ -121,23 +158,27 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             {
                 response = await _s3Client.ListObjectsV2Async(request);
 
-                foreach (var obj in response.S3Objects)
+                // S3Objects can be null if the folder doesn't exist
+                if (response.S3Objects != null)
                 {
-                    // Skip the folder marker itself
-                    if (obj.Key.EndsWith("/"))
-                        continue;
-
-                    var fileName = Path.GetFileName(obj.Key);
-                    var extension = Path.GetExtension(obj.Key);
-
-                    documents.Add(new DocumentMetadata
+                    foreach (var obj in response.S3Objects)
                     {
-                        FileName = fileName,
-                        FilePath = obj.Key,
-                        SizeBytes = obj.Size ?? 0,
-                        LastModified = obj.LastModified ?? DateTime.UtcNow,
-                        Extension = extension
-                    });
+                        // Skip the folder marker itself
+                        if (obj.Key.EndsWith("/"))
+                            continue;
+
+                        var fileName = Path.GetFileName(obj.Key);
+                        var extension = Path.GetExtension(obj.Key);
+
+                        documents.Add(new DocumentMetadata
+                        {
+                            FileName = fileName,
+                            FilePath = obj.Key,
+                            SizeBytes = obj.Size ?? 0,
+                            LastModified = obj.LastModified ?? DateTime.UtcNow,
+                            Extension = extension
+                        });
+                    }
                 }
 
                 request.ContinuationToken = response.NextContinuationToken;
@@ -195,6 +236,13 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             if (!folderPath.EndsWith("/"))
             {
                 folderPath += "/";
+            }
+
+            // Check if folder already exists to avoid concurrent request rate limiting
+            var exists = await ObjectExistsAsync(folderPath);
+            if (exists)
+            {
+                return; // Folder already exists, no need to create
             }
 
             var folderName = folderPath.TrimEnd('/').Split('/').Last();

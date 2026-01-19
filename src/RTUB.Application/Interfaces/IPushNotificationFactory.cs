@@ -275,4 +275,15 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateWeeklySummaryNotification(int eventCount, int rehearsalCount, int meetingCount, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a logistics card reminder.
+    /// Sent to target users at the scheduled frequency.
+    /// </summary>
+    /// <param name="card">The logistics card to remind about</param>
+    /// <param name="boardName">The name of the board containing the card</param>
+    /// <param name="boardId">The ID of the board containing the card</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl);
 }
