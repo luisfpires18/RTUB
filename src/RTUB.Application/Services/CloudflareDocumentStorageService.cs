@@ -238,6 +238,13 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
                 folderPath += "/";
             }
 
+            // Check if folder already exists to avoid concurrent request rate limiting
+            var exists = await ObjectExistsAsync(folderPath);
+            if (exists)
+            {
+                return; // Folder already exists, no need to create
+            }
+
             var folderName = folderPath.TrimEnd('/').Split('/').Last();
 
             // Create an empty object with "/" suffix to represent a folder

@@ -25,6 +25,10 @@ public class LogisticsBoardRepository : Repository<LogisticsBoard>, ILogisticsBo
             .Include(b => b.Lists)
             .ThenInclude(l => l.Cards)
             .ThenInclude(c => c.AssignedToUser)
+            .Include(b => b.Lists)
+            .ThenInclude(l => l.Cards)
+            .ThenInclude(c => c.Assignments)
+            .ThenInclude(a => a.User)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
 
