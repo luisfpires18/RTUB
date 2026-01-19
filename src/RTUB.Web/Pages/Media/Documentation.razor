@@ -77,7 +77,7 @@ else
     
     @foreach (var folder in paginatedFolders)
     {
-        var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
+        var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folder}";
         var allDocuments = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
         var isFirstFolder = paginatedFolders.IndexOf(folder) == 0;
         
@@ -407,8 +407,9 @@ else
     {
         try
         {
-            // Load folders
-            var baseFolders = await DocumentStorageService.ListFoldersAsync("docs/");
+            // Load folders for the selected fiscal year
+            var fiscalYearPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/";
+            var baseFolders = await DocumentStorageService.ListSubfoldersAsync(fiscalYearPath);
             
             // Expand Logistics folder into individual board name folders
             var expandedFolders = new List<string>();
@@ -419,7 +420,7 @@ else
                 if (folder.Equals("Logistics", StringComparison.OrdinalIgnoreCase))
                 {
                     // Get board name subfolders within Logistics
-                    var logisticsPath = $"docs/{HostEnvironment.EnvironmentName}/Logistics/";
+                    var logisticsPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/Logistics/";
                     logisticsSubfolders = await DocumentStorageService.ListSubfoldersAsync(logisticsPath);
                     
                     // Add each board name as its own folder entry
@@ -442,55 +443,19 @@ else
             var documentTasks = folders.Select(async folder =>
             {
                 var documents = new List<DocumentMetadata>();
-                
-                // Check if this is a Logistics board folder (contains /)
-                if (folder.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Get the board name from the path
-                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
-                    var folderDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
-                    documents.AddRange(folderDocs);
-                }
-                else
-                {
-                    // Regular folder - list documents directly
-                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
-                    var regularDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
-                    documents.AddRange(regularDocs);
-                }
+                var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folder}";
+                var folderDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
+                documents.AddRange(folderDocs);
                 
                 return new { Folder = folder, Documents = documents };
             });
             
             var results = await Task.WhenAll(documentTasks);
             
-            // Determine the date range based on selected fiscal year
-            DateTime? startDate = null;
-            DateTime? endDate = null;
-            
-            if (!string.IsNullOrEmpty(selectedFiscalYear))
-            {
-                // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
-                var parts = selectedFiscalYear.Split('-');
-                if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-                {
-                    startDate = new DateTime(startYear, 9, 1); // September 1st
-                    endDate = new DateTime(startYear + 1, 8, 31); // August 31st next year
-                }
-            }
-            
+            // Documents are now stored in fiscal year folders, so no date filtering needed
             foreach (var result in results)
             {
-                var filteredDocuments = result.Documents.AsEnumerable();
-                
-                // Apply fiscal year filter based on LastModified date
-                if (startDate.HasValue && endDate.HasValue)
-                {
-                    filteredDocuments = filteredDocuments.Where(d => 
-                        d.LastModified.Date >= startDate.Value.Date && d.LastModified.Date <= endDate.Value.Date);
-                }
-                
-                folderDocuments[result.Folder] = filteredDocuments.ToList();
+                folderDocuments[result.Folder] = result.Documents.ToList();
             }
         }
         catch (Exception ex)
@@ -550,7 +515,8 @@ else
         try
         {
             await SetAuditContextToCurrentUser();
-            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{newFolderName}";
+            var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{fiscalYear}/{newFolderName}";
             await DocumentStorageService.CreateFolderAsync(folderPath);
             
             // Reload folders
@@ -819,7 +785,7 @@ else
         try
         {
             await SetAuditContextToCurrentUser();
-            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folderToDelete}";
+            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folderToDelete}";
             await DocumentStorageService.DeleteFolderAsync(folderPath);
             
             // Reload folders

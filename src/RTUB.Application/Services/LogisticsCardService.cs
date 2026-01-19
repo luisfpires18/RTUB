@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
@@ -218,9 +219,12 @@ public class LogisticsCardService : ILogisticsCardService
 
         // Sanitize board name to prevent directory traversal attacks
         var sanitizedBoardName = SanitizePathComponent(boardName);
+        
+        // Get current fiscal year
+        var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
 
-        // Build folder path: docs/{EnvironmentName}/Logistics/{BoardName}/
-        var folderPath = $"docs/{environmentName}/Logistics/{sanitizedBoardName}/";
+        // Build folder path: docs/{EnvironmentName}/{FiscalYear}/Logistics/{BoardName}/
+        var folderPath = $"docs/{environmentName}/{fiscalYear}/Logistics/{sanitizedBoardName}/";
 
         // Ensure folder exists
         await _documentStorageService.CreateFolderAsync(folderPath);
@@ -237,9 +241,12 @@ public class LogisticsCardService : ILogisticsCardService
 
         // Sanitize board name to prevent directory traversal attacks
         var sanitizedBoardName = SanitizePathComponent(boardName);
+        
+        // Get current fiscal year
+        var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
 
-        // Build folder path: docs/{EnvironmentName}/Logistics/{BoardName}/
-        var folderPath = $"docs/{environmentName}/Logistics/{sanitizedBoardName}/";
+        // Build folder path: docs/{EnvironmentName}/{FiscalYear}/Logistics/{BoardName}/
+        var folderPath = $"docs/{environmentName}/{fiscalYear}/Logistics/{sanitizedBoardName}/";
 
         // Ensure folder exists before listing (prevents null reference when folder hasn't been created yet)
         await _documentStorageService.CreateFolderAsync(folderPath);
