@@ -190,7 +190,10 @@
                                  onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                             <div class="stats-card-content">
                                 <div class="stats-card-title">@(score.UserNickname ?? score.UserName)</div>
-                                <div class="stats-card-subtitle">Nível @score.MaxLevel • @FormatTimeSurvived(score.TimeSurvived)</div>
+                                @if (selectedGameKey != "bmr-bebe-mais-rui")
+                                {
+                                    <div class="stats-card-subtitle">Nível @score.MaxLevel • @FormatTimeSurvived(score.TimeSurvived)</div>
+                                }
                             </div>
                             <div class="stats-card-count">
                                 <i class="bi bi-star-fill"></i>
