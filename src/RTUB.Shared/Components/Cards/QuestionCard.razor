@@ -98,7 +98,7 @@
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                         @onclick="HandleReply"
                         title="@(IsAuthor ? "Responder" : "Ver")">
-                    <i class="bi bi-eye"></i>
+                    <i class="bi @(IsAuthor ? "bi-reply-fill" : "bi-eye")"></i>
                     <span>@(IsAuthor ? "Responder" : "Ver")</span>
                 </button>
                 @if (IsAuthor && Question.Status != QuestionStatus.Closed)
