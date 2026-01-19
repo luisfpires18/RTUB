@@ -101,7 +101,7 @@
                     <i class="bi @(IsAuthor ? "bi-reply-fill" : "bi-eye")"></i>
                     <span>@(IsAuthor ? "Responder" : "Ver")</span>
                 </button>
-                @if (IsAuthor && Question.Status != QuestionStatus.Closed)
+                @if (IsAuthor && Question.Status != QuestionStatus.Closed && !Question.IsAwaitingUserReply)
                 {
                     <button class="btn btn-sm btn-light d-flex align-items-center gap-2"
                             @onclick="HandleNotify"
