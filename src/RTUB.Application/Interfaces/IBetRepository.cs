@@ -33,4 +33,10 @@ public interface IBetRepository : IRepository<Bet>
     /// <param name="id">Bet ID</param>
     /// <returns>Bet with options and user bets loaded, or null if not found</returns>
     Task<Bet?> GetBetWithDetailsAsync(int id);
+
+    /// <summary>
+    /// Deletes a bet by ID using ExecuteDeleteAsync to bypass change tracker
+    /// </summary>
+    /// <param name="id">Bet ID</param>
+    Task DeleteByIdDirectAsync(int id);
 }

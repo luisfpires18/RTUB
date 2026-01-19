@@ -32,14 +32,9 @@ public class BetCommentRepository : Repository<BetComment>, IBetCommentRepositor
 
     public async Task DeleteByBetIdAsync(int betId)
     {
-        var comments = await _dbSet
+        // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues
+        await _dbSet
             .Where(c => c.BetId == betId)
-            .ToListAsync();
-
-        if (comments.Count > 0)
-        {
-            _dbSet.RemoveRange(comments);
-            await _context.SaveChangesAsync();
-        }
+            .ExecuteDeleteAsync();
     }
 }

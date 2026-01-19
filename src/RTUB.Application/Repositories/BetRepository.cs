@@ -62,4 +62,12 @@ public class BetRepository : Repository<Bet>, IBetRepository
                 .ThenInclude(ub => ub.BetOption)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
+
+    public async Task DeleteByIdDirectAsync(int id)
+    {
+        // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues
+        await _dbSet
+            .Where(b => b.Id == id)
+            .ExecuteDeleteAsync();
+    }
 }

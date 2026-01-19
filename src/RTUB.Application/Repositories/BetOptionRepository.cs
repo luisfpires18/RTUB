@@ -36,14 +36,9 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
 
     public async Task DeleteByBetIdAsync(int betId)
     {
-        var options = await _dbSet
+        // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues
+        await _dbSet
             .Where(o => o.BetId == betId)
-            .ToListAsync();
-
-        if (options.Count > 0)
-        {
-            _dbSet.RemoveRange(options);
-            await _context.SaveChangesAsync();
-        }
+            .ExecuteDeleteAsync();
     }
 }
