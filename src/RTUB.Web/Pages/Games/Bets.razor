@@ -52,6 +52,11 @@
                 </AuthorizeView>
             </div>
         </div>
+        
+        <!-- Purple Alert - Fidelis information -->
+        <Alert Type="Alert.AlertType.Purple" 
+               Icon="bi-coin"
+               Message=" Ganhe Fidelis jogando BMR e Avoid-Questions! O seu saldo atual pode ser usado para apostar em duelos e decisões." />
     </div>
 
     @if (futureBets == null || pastBets == null)
@@ -89,8 +94,7 @@
                                      OnEdit="@(() => OpenEditModal(bet))"
                                      OnDelete="@(() => OpenDeleteModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
-                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))"
-                                     OnViewUserBet="@(() => OpenViewUserBetModal(bet))" />
+                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
                         </div>
                     }
                 </div>
@@ -145,8 +149,7 @@
                                  OnEdit="@(() => OpenEditModal(bet))"
                                  OnDelete="@(() => OpenDeleteModal(bet))"
                                  OnResolve="@(() => OpenResolveModal(bet))"
-                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))"
-                                 OnViewUserBet="@(() => OpenViewUserBetModal(bet))" />
+                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
                     </div>
                 }
             </div>
@@ -297,6 +300,50 @@
                         else
                         {
                             <p class="text-muted small">Máximo de 2 membros selecionados para o duelo.</p>
+                        }
+                    </div>
+                }
+                
+                @* DECISION Category - Custom Options *@
+                @if (editingBet.BetCategory == BetCategory.DECISION)
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-list-check text-primary me-2"></i>Opções de Aposta
+                        </label>
+                        
+                        @* Existing decision options *@
+                        @foreach (var option in decisionOptions)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <input type="text" 
+                                       class="form-control" 
+                                       @bind="option.Title" 
+                                       placeholder="Nome da opção..." />
+                                <input type="number" 
+                                       class="form-control" 
+                                       style="width: 120px;" 
+                                       step="0.01" 
+                                       min="1.01" 
+                                       max="999.99"
+                                       @bind="option.Odds"
+                                       placeholder="Odds" />
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm" 
+                                        @onclick="() => RemoveDecisionOption(option)" 
+                                        title="Remover opção">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddDecisionOption">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar Opção
+                        </button>
+                        
+                        @if (!decisionOptions.Any())
+                        {
+                            <p class="text-muted small mt-2">Adicione pelo menos 2 opções para a aposta.</p>
                         }
                     </div>
                 }
@@ -474,40 +521,42 @@
                 <InfoSection SectionTitle="A Sua Aposta" 
                             IconClass="bi-cash-coin" 
                             CssClass="mb-4">
-                    <div class="alert" style="background-color: #8a2be2; color: white;">
-                        <p class="mb-1">
-                            <strong>Opção:</strong> @GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == GetUserBet(selectedBet.Id)!.BetOptionId)?.Title
-                        </p>
-                        <p class="mb-1">
-                            <strong>Montante:</strong> @GetUserBet(selectedBet.Id)!.FidelisAmount.ToString("F2") Fidelis
-                        </p>
-                        <p class="mb-0">
-                            <strong>Estado:</strong>
-                            @if (GetUserBet(selectedBet.Id)!.IsWon.HasValue)
-                            {
-                                @if (GetUserBet(selectedBet.Id)!.IsWon == true)
-                                {
-                                    <span class="badge bg-success ms-1">
-                                        <i class="bi bi-trophy-fill me-1"></i>
-                                        Ganhou @GetUserBet(selectedBet.Id)!.FidelisWinnings.ToString("F2") Fidelis
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger ms-1">
-                                        <i class="bi bi-x-circle-fill me-1"></i>
-                                        Perdeu
-                                    </span>
-                                }
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary ms-1">
-                                    <i class="bi bi-clock-fill me-1"></i>
-                                    Pendente
+                    <ProfileField Label="Opção" Value="@(GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == GetUserBet(selectedBet.Id)!.BetOptionId)?.Title ?? "N/A")" Icon="bi-check-circle-fill" />
+                    <ProfileField Label="Montante" Value="@($"{GetUserBet(selectedBet.Id)!.FidelisAmount:F2} Fidelis")" Icon="bi-coin" />
+                    <ProfileField Label="Ganhos Potenciais" Value="@GetPotentialWinnings(selectedBet.Id)" Icon="bi-trophy-fill" />
+                    <div class="profile-field">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-hourglass-split me-2 text-secondary"></i>
+                            <div class="profile-field-content">
+                                <span class="profile-field-label">Estado</span>
+                                <span class="profile-field-value">
+                                    @if (GetUserBet(selectedBet.Id)!.IsWon.HasValue)
+                                    {
+                                        @if (GetUserBet(selectedBet.Id)!.IsWon == true)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-trophy-fill me-1"></i>
+                                                Ganhou @GetUserBet(selectedBet.Id)!.FidelisWinnings.ToString("F2") Fidelis
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle-fill me-1"></i>
+                                                Perdeu
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-clock-fill me-1"></i>
+                                            Pendente
+                                        </span>
+                                    }
                                 </span>
-                            }
-                        </p>
+                            </div>
+                        </div>
                     </div>
                 </InfoSection>
             }
@@ -548,7 +597,7 @@
                                 <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
                                 <button class="btn btn-primary btn-sm" 
                                         @onclick="AddComment"
-                                        disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                                        disabled="@((string.IsNullOrWhiteSpace(newCommentText) && selectedCommentMediaFile == null) || isAddingComment)">
                                     @if (isAddingComment)
                                     {
                                         <span class="spinner-border spinner-border-sm me-1"></span>
@@ -577,7 +626,7 @@
                         <div class="comments-list">
                             @foreach (var comment in betComments)
                             {
-                                <div class="leaderboard-comment-item mb-3">
+                                <div class="leaderboard-comment-item mb-3 position-relative">
                                     <div class="comment-header mb-2">
                                         <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
                                              alt="@comment.AuthorName" 
@@ -587,15 +636,16 @@
                                             <span class="comment-author fw-bold">@comment.AuthorName</span>
                                             <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
                                         </div>
-                                        @if (comment.CanDelete)
-                                        {
-                                            <button class="btn btn-sm btn-link text-danger ms-auto" 
-                                                    @onclick="() => DeleteComment(comment.Id)"
-                                                    title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        }
                                     </div>
+                                    @if (comment.CanDelete)
+                                    {
+                                        <button class="btn btn-sm music-btn-delete position-absolute" 
+                                                style="top: 0; right: 0;"
+                                                @onclick="() => DeleteComment(comment.Id)"
+                                                title="Eliminar">
+                                            <i class="bi bi-trash music-icon-delete"></i>
+                                        </button>
+                                    }
                                     <div class="comment-body mb-2" style="white-space: pre-line;">
                                         @comment.Text
                                     </div>
@@ -666,82 +716,6 @@
     </BodyContent>
 </Modal>
 
-@* View User Bet Modal *@
-<Modal Show="@showViewUserBetModal"
-       ShowChanged="@((bool show) => showViewUserBetModal = show)"
-       Title="A Sua Aposta"
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        @if (selectedBet != null && GetUserBet(selectedBet.Id) != null)
-        {
-            var userBet = GetUserBet(selectedBet.Id)!;
-            var selectedOption = GetBetOptions(selectedBet.Id).FirstOrDefault(o => o.Id == userBet.BetOptionId);
-            
-            <div style="background-color: #8a2be2; color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                <h5 class="mb-3" style="color: white;">@selectedBet.Title</h5>
-                
-                <div class="mb-2">
-                    <strong>Opção Selecionada:</strong>
-                    <div class="mt-1">@(selectedOption?.Title ?? "Opção não encontrada")</div>
-                </div>
-                
-                <div class="mb-2">
-                    <strong>Montante Apostado:</strong>
-                    <div class="mt-1">
-                        <i class="bi bi-coin me-1"></i>@userBet.FidelisAmount.ToString("F2") Fidelis
-                    </div>
-                </div>
-                
-                @if (selectedOption != null)
-                {
-                    var potentialWinnings = userBet.FidelisAmount * selectedOption.Odds;
-                    <div class="mb-2">
-                        <strong>Ganhos Potenciais:</strong>
-                        <div class="mt-1">
-                            <i class="bi bi-trophy me-1"></i>@potentialWinnings.ToString("F2") Fidelis
-                        </div>
-                    </div>
-                }
-                
-                <div class="mb-0">
-                    <strong>Estado:</strong>
-                    <div class="mt-1">
-                        @if (userBet.IsWon.HasValue)
-                        {
-                            @if (userBet.IsWon.Value)
-                            {
-                                <span class="badge bg-success">
-                                    <i class="bi bi-trophy-fill me-1"></i>
-                                    Ganhou @userBet.FidelisWinnings.ToString("F2") Fidelis
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-x-circle-fill me-1"></i>
-                                    Perdeu
-                                </span>
-                            }
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">
-                                <i class="bi bi-clock-fill me-1"></i>
-                                Pendente
-                            </span>
-                        }
-                    </div>
-                </div>
-            </div>
-            
-            <div class="d-flex justify-content-end">
-                <button type="button" class="btn btn-secondary" @onclick="CloseViewUserBetModal">Fechar</button>
-            </div>
-        }
-    </BodyContent>
-</Modal>
-
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
               ShowModal="showCropperModal"
@@ -781,7 +755,6 @@
     private bool showPlaceBetModal = false;
     private bool showDetailsModal = false;
     private bool showResolveModal = false;
-    private bool showViewUserBetModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
 
@@ -825,6 +798,16 @@
     private Dictionary<string, decimal> memberOdds = new();
     private const decimal DEFAULT_MATCH_ODDS = 1.50m;
     private bool membersLoaded = false;
+    
+    // DECISION category - custom options
+    private List<DecisionOptionModel> decisionOptions = new();
+    
+    // Helper class for DECISION options
+    private class DecisionOptionModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public decimal Odds { get; set; } = 1.50m;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -860,6 +843,21 @@
         {
             Console.WriteLine($"Error loading members: {ex.Message}");
         }
+    }
+    
+    // DECISION options methods
+    private void AddDecisionOption()
+    {
+        decisionOptions.Add(new DecisionOptionModel
+        {
+            Title = string.Empty,
+            Odds = DEFAULT_MATCH_ODDS
+        });
+    }
+    
+    private void RemoveDecisionOption(DecisionOptionModel option)
+    {
+        decisionOptions.Remove(option);
     }
 
     private async Task LoadBets()
@@ -996,6 +994,19 @@
         ApplyPastBetsFiltersAndPagination();
         return Task.CompletedTask;
     }
+    
+    // Helper method to calculate potential winnings for display
+    private string GetPotentialWinnings(int betId)
+    {
+        var userBet = GetUserBet(betId);
+        if (userBet == null) return "N/A";
+        
+        var option = GetBetOptions(betId).FirstOrDefault(o => o.Id == userBet.BetOptionId);
+        if (option == null) return "N/A";
+        
+        var winnings = userBet.FidelisAmount * option.Odds;
+        return $"{winnings:F2} Fidelis";
+    }
 
     // Modal handlers
     private async Task OpenCreateModal()
@@ -1018,6 +1029,7 @@
         memberOdds.Clear();
         matchMemberSearchTerm = string.Empty;
         filteredAvailableMembersForMatch.Clear();
+        decisionOptions.Clear();
         
         // Load members when modal is opened (only for admins who can create bets)
         if (isAdmin)
@@ -1056,6 +1068,9 @@
         originalImageBytes = null;
         originalImageFileName = null;
         originalImageContentType = null;
+        selectedMatchMembers.Clear();
+        memberOdds.Clear();
+        decisionOptions.Clear();
     }
 
     private async Task SaveBet()
@@ -1115,6 +1130,20 @@
                         memberBId: member1.Id
                     );
                     await BetOptionRepository.AddAsync(option2);
+                }
+                
+                // If DECISION category, create bet options from the custom list
+                if (editingBet.BetCategory == BetCategory.DECISION && decisionOptions.Any())
+                {
+                    foreach (var decisionOption in decisionOptions.Where(o => !string.IsNullOrWhiteSpace(o.Title)))
+                    {
+                        var betOption = BetOption.CreateDecisionOption(
+                            betId: createdBet.Id,
+                            title: decisionOption.Title.Trim(),
+                            odds: decisionOption.Odds
+                        );
+                        await BetOptionRepository.AddAsync(betOption);
+                    }
                 }
             }
             else
@@ -1428,18 +1457,6 @@
         showResolveModal = false;
         selectedBet = null;
         selectedWinningOptionId = 0;
-    }
-    
-    private void OpenViewUserBetModal(Bet bet)
-    {
-        selectedBet = bet;
-        showViewUserBetModal = true;
-    }
-    
-    private void CloseViewUserBetModal()
-    {
-        showViewUserBetModal = false;
-        selectedBet = null;
     }
 
     private async Task ResolveBet()

@@ -40,8 +40,8 @@
             }
         </div>
         
-        @* Category badge in top-right corner *@
-        <div class="position-absolute top-0 end-0 p-2">
+        @* Category badge in bottom-right corner *@
+        <div class="position-absolute bottom-0 end-0 p-2" style="z-index: 1;">
             @if (Bet.BetCategory == BetCategory.MATCH)
             {
                 <div class="badge bg-primary">
@@ -196,7 +196,7 @@
                     }
                     else
                     {
-                        <!-- Both buttons in same row for proper alignment -->
+                        <!-- Discussion + Apostar buttons -->
                         <div class="event-buttons-container">
                             <!-- Discussion button with count (opens modal with details + comments) -->
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
@@ -209,24 +209,13 @@
                                 }
                             </button>
 
-                            <!-- Place Bet or View Bet button -->
-                            @if (UserBet == null)
-                            {
-                                <button class="btn event-icon-btn btn-success" 
-                                        @onclick="OnPlaceBet" 
-                                        title="Apostar">
-                                    <i class="bi bi-cash-coin"></i>
-                                </button>
-                            }
-                            else
-                            {
-                                <button class="btn event-icon-btn" 
-                                        style="background-color: #8a2be2; color: white; border-color: #8a2be2;"
-                                        @onclick="OnViewUserBet" 
-                                        title="Ver aposta">
-                                    <i class="bi bi-info-circle"></i>
-                                </button>
-                            }
+                            <!-- Place Bet button (always green, even after betting) -->
+                            <button class="btn event-icon-btn btn-success" 
+                                    @onclick="OnPlaceBet" 
+                                    title="@(UserBet != null ? "Ver Aposta / Apostar" : "Apostar")"
+                                    disabled="@(UserBet != null)">
+                                <i class="bi bi-cash-coin"></i>
+                            </button>
                         </div>
                     }
                 </div>
@@ -246,17 +235,6 @@
                                 <span class="enrollment-count-centered">@DiscussionCount</span>
                             }
                         </button>
-                        
-                        @if (UserBet != null)
-                        {
-                            <!-- View User Bet button -->
-                            <button class="btn event-icon-btn"
-                                    style="background-color: #8a2be2; color: white; border-color: #8a2be2;"
-                                    @onclick="OnViewUserBet"
-                                    title="Ver Aposta">
-                                <i class="bi bi-info-circle"></i>
-                            </button>
-                        }
                     </div>
                 </div>
             }
