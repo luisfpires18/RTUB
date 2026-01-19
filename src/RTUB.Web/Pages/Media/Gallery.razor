@@ -678,8 +678,13 @@ else
         showUploadModal = true;
     }
 
-    private void CloseUploadModal()
+    private async Task CloseUploadModal()
     {
+        // Clean up blob URL if exists
+        if (!string.IsNullOrEmpty(uploadModel.PreviewUrl) && uploadModel.PreviewUrl.StartsWith("blob:"))
+        {
+            await JSRuntime.InvokeVoidAsync("revokeVideoPreviewUrl", uploadModel.PreviewUrl);
+        }
         showUploadModal = false;
         uploadModel = new UploadModel();
         selectedFile = null;
@@ -826,7 +831,7 @@ else
             allMedia.Clear();
             await LoadMedia();
 
-            CloseUploadModal();
+            await CloseUploadModal();
         }
         catch (Exception ex)
         {
