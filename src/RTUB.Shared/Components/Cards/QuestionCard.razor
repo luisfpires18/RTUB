@@ -9,20 +9,23 @@
 
 <div class="card question-card h-100">
     <div class="question-card__top position-relative">
-        <!-- Author Avatar (top left) -->
-        <div class="position-absolute top-0 start-0 p-2">
+        <!-- Author Info -->
+        <div class="question-author-section">
             <img src="@(Question.Author.ProfilePictureSrc ?? "")"
                  class="question-author-avatar"
                  alt="@(Question.Author.Nickname ?? Question.Author.UserName ?? "Autor")" />
+            <div class="question-author-info">
+                <div class="question-author-name">@(Question.Author.Nickname ?? Question.Author.UserName)</div>
+            </div>
         </div>
-        
+
         <!-- Admin Actions (top right) -->
         @if (IsAuthor)
         {
             <div class="admin-overlay">
                 @if (Question.Status != QuestionStatus.Closed)
                 {
-                    <button class="btn btn-sm btn-outline-success" 
+                    <button class="btn btn-sm btn-success" 
                             @onclick="HandleClose" 
                             title="Fechar pergunta">
                         <i class="bi bi-check-lg"></i>
@@ -94,13 +97,13 @@
             <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap mb-2">
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                         @onclick="HandleReply"
-                        title="Ver e responder">
-                    <i class="bi bi-reply-fill"></i>
-                    <span>Responder</span>
+                        title="@(CanReply ? "Responder" : "Ver")">
+                    <i class="bi @(CanReply ? "bi-reply-fill" : "bi-eye")"></i>
+                    <span>@(CanReply ? "Responder" : "Ver")</span>
                 </button>
-                @if (IsAuthor && Question.Status != QuestionStatus.Closed)
+                @if (ShowNotify)
                 {
-                    <button class="btn btn-sm btn-primary btn-primary-purple d-flex align-items-center gap-2"
+                    <button class="btn btn-sm btn-light d-flex align-items-center gap-2"
                             @onclick="HandleNotify"
                             title="Enviar lembrete">
                         <i class="bi bi-bell-fill"></i>
@@ -131,7 +134,7 @@
                 }
                 else
                 {
-                    <span class="badge bg-info">
+                    <span class="badge bg-primary">
                         <i class="bi bi-chat-dots"></i> Em Discussão
                     </span>
                 }
@@ -176,6 +179,18 @@
     /// </summary>
     [Parameter]
     public EventCallback OnNotify { get; set; }
+
+    /// <summary>
+    /// Whether the notify button should be shown
+    /// </summary>
+    [Parameter]
+    public bool ShowNotify { get; set; }
+
+    /// <summary>
+    /// Whether the current user can reply to the question
+    /// </summary>
+    [Parameter]
+    public bool CanReply { get; set; }
 
     /// <summary>
     /// Callback when the close button is clicked
@@ -252,20 +267,44 @@
         z-index: 2;
     }
 
+    .question-author-section {
+        position: absolute;
+        top: 50%;
+        left: 0.75rem;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
     .question-author-avatar {
-        width: 36px;
-        height: 36px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid var(--bs-primary);
     }
 
+    .question-author-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .question-author-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+    }
+
     .question-icon-header {
         width: 100%;
-        height: 110px;
+        height: 120px;
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
+        padding-left: 110px;
+        padding-right: 80px;
         background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
         border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
     }
@@ -293,18 +332,14 @@
     }
 
     .question-recipient-section {
-        padding: 0.5rem;
-        background-color: rgba(var(--bs-primary-rgb), 0.08);
-        border-radius: 0.375rem;
-        border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+        padding: 0.25rem 0;
     }
 
     .question-recipient-avatar {
-        width: 40px;
-        height: 40px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid var(--bs-primary);
     }
 
     .question-recipient-info {
@@ -398,7 +433,9 @@
         }
 
         .question-icon-header {
-            height: 90px;
+            height: 100px;
+            padding-left: 90px;
+            padding-right: 70px;
         }
 
         .question-icon-circle {
@@ -411,13 +448,13 @@
         }
 
         .question-author-avatar {
-            width: 32px;
-            height: 32px;
+            width: 54px;
+            height: 54px;
         }
 
         .question-recipient-avatar {
-            width: 36px;
-            height: 36px;
+            width: 52px;
+            height: 52px;
         }
     }
 </style>
