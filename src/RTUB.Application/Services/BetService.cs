@@ -88,7 +88,7 @@ public class BetService : IBetService
     }
 
     /// <summary>
-    /// Deletes a bet
+    /// Deletes a bet and all associated user bets
     /// </summary>
     /// <param name="id">Bet ID to delete</param>
     public async Task DeleteBetAsync(int id)
@@ -97,10 +97,19 @@ public class BetService : IBetService
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), id);
 
-        // Check if bet has any user bets - if so, prevent deletion
+        // Delete all user bets first (cascade)
         var userBets = await _userBetRepository.GetByBetIdAsync(id);
-        if (userBets.Any())
-            throw new InvalidOperationException("Não é possível eliminar uma aposta com apostas de utilizadores");
+        foreach (var userBet in userBets)
+        {
+            await _userBetRepository.DeleteAsync(userBet);
+        }
+        
+        // Delete all bet options
+        var options = await _betOptionRepository.GetByBetIdAsync(id);
+        foreach (var option in options)
+        {
+            await _betOptionRepository.DeleteAsync(option);
+        }
 
         await _betRepository.DeleteAsync(bet);
     }

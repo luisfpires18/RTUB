@@ -183,7 +183,7 @@
                     {
                         <!-- For cancelled bets, only show Discussion button -->
                         <div class="event-buttons-container">
-                            <button class="btn event-icon-btn btn-outline-secondary" 
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                     @onclick="OnViewDetails" 
                                     title="Discussão">
                                 <i class="bi bi-chat-dots"></i>
@@ -196,8 +196,8 @@
                     }
                     else
                     {
-                        <!-- Bet buttons row -->
-                        <div class="event-buttons-container mb-2">
+                        <!-- Both buttons in same row for proper alignment -->
+                        <div class="event-buttons-container">
                             <!-- Discussion button with count (opens modal with details + comments) -->
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                     @onclick="OnViewDetails" 
@@ -208,32 +208,26 @@
                                     <span class="enrollment-count-centered">@DiscussionCount</span>
                                 }
                             </button>
-                        </div>
 
-                        <!-- Place Bet or View Bet action buttons row -->
-                        @if (UserBet == null)
-                        {
-                            <div class="event-buttons-container">
-                                <button class="btn event-icon-btn btn-success w-100" 
+                            <!-- Place Bet or View Bet button -->
+                            @if (UserBet == null)
+                            {
+                                <button class="btn event-icon-btn btn-success" 
                                         @onclick="OnPlaceBet" 
                                         title="Apostar">
-                                    <i class="bi bi-cash-coin me-1"></i>
-                                    <span>Apostar</span>
+                                    <i class="bi bi-cash-coin"></i>
                                 </button>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="event-buttons-container">
-                                <button class="btn event-icon-btn w-100" 
+                            }
+                            else
+                            {
+                                <button class="btn event-icon-btn" 
                                         style="background-color: #8a2be2; color: white; border-color: #8a2be2;"
                                         @onclick="OnViewUserBet" 
                                         title="Ver aposta">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    <span>Ver Aposta</span>
+                                    <i class="bi bi-info-circle"></i>
                                 </button>
-                            </div>
-                        }
+                            }
+                        </div>
                     }
                 </div>
             }
