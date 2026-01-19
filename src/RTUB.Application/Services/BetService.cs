@@ -16,17 +16,20 @@ public class BetService : IBetService
     private readonly IBetRepository _betRepository;
     private readonly IBetOptionRepository _betOptionRepository;
     private readonly IUserBetRepository _userBetRepository;
+    private readonly IBetCommentRepository _betCommentRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public BetService(
         IBetRepository betRepository,
         IBetOptionRepository betOptionRepository,
         IUserBetRepository userBetRepository,
+        IBetCommentRepository betCommentRepository,
         UserManager<ApplicationUser> userManager)
     {
         _betRepository = betRepository;
         _betOptionRepository = betOptionRepository;
         _userBetRepository = userBetRepository;
+        _betCommentRepository = betCommentRepository;
         _userManager = userManager;
     }
 
@@ -109,6 +112,13 @@ public class BetService : IBetService
         foreach (var option in options)
         {
             await _betOptionRepository.DeleteAsync(option.Id);
+        }
+
+        // Delete all bet comments - use DeleteAsync with ID to avoid tracking issues
+        var comments = await _betCommentRepository.GetCommentsForBetAsync(id);
+        foreach (var comment in comments)
+        {
+            await _betCommentRepository.DeleteAsync(comment.Id);
         }
 
         await _betRepository.DeleteAsync(id);
