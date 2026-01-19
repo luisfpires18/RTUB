@@ -1272,15 +1272,10 @@ else
                             }
                             else
                             {
-                                <div class="video-thumbnail">
-                                    @if (!string.IsNullOrEmpty(media.ThumbnailUrl))
-                                    {
-                                        <img src="@media.ThumbnailUrl" alt="@media.Title" loading="lazy" />
-                                    }
-                                    <div class="video-overlay">
-                                        <i class="bi bi-play-circle-fill"></i>
-                                    </div>
-                                </div>
+                                <video class="gallery-video-preview" muted playsinline preload="metadata" poster="@media.ThumbnailUrl">
+                                    <source src="@media.MediaUrl" type="video/mp4" />
+                                    O seu browser não suporta a reprodução de vídeo.
+                                </video>
                             }
                         </div>
                         <div class="media-card-body">
