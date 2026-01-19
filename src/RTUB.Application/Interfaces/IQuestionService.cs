@@ -11,17 +11,17 @@ public interface IQuestionService
     /// <summary>
     /// Gets all questions with pagination and includes replies
     /// </summary>
-    Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null);
+    Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null);
 
     /// <summary>
     /// Gets all questions with pagination
     /// </summary>
-    Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null);
+    Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null);
 
     /// <summary>
     /// Gets the total count of questions
     /// </summary>
-    Task<int> GetCountAsync(string? searchTerm = null);
+    Task<int> GetCountAsync(string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null);
 
     /// <summary>
     /// Gets a question by ID with all replies

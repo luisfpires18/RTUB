@@ -34,19 +34,19 @@ public class QuestionService : IQuestionService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetAllAsync(page, pageSize, searchTerm);
+        return await _questionRepository.GetAllAsync(page, pageSize, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm);
+        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
-    public async Task<int> GetCountAsync(string? searchTerm = null)
+    public async Task<int> GetCountAsync(string? searchTerm = null, bool? isClosedFilter = null, string? assignedMemberIdFilter = null)
     {
-        return await _questionRepository.GetCountAsync(searchTerm);
+        return await _questionRepository.GetCountAsync(searchTerm, isClosedFilter, assignedMemberIdFilter);
     }
 
     public async Task<Question?> GetByIdWithRepliesAsync(int id)
@@ -104,7 +104,25 @@ public class QuestionService : IQuestionService
             throw new InvalidOperationException($"Question {questionId} not found");
         }
 
-        var isFromAssignedMember = authorId == question.AssignedMemberId;
+        var isAuthor = authorId == question.AuthorId;
+        var isAssignedMember = authorId == question.AssignedMemberId;
+
+        if (!isAuthor && !isAssignedMember)
+        {
+            throw new InvalidOperationException("User is not allowed to reply to this question.");
+        }
+
+        if (question.IsAwaitingUserReply && !isAuthor)
+        {
+            throw new InvalidOperationException("Question is awaiting a reply from the author.");
+        }
+
+        if (!question.IsAwaitingUserReply && !isAssignedMember)
+        {
+            throw new InvalidOperationException("Question is awaiting a reply from the assigned member.");
+        }
+
+        var isFromAssignedMember = isAssignedMember;
         var reply = QuestionReply.Create(questionId, content, authorId, isFromAssignedMember);
         await _replyRepository.AddAsync(reply);
 
