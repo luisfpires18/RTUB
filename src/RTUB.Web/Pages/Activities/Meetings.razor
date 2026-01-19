@@ -963,7 +963,7 @@ else
                 @if (goingParticipants.Any())
                 {
                     <h6 class="mb-3 heading-purple">Vão participar (@goingParticipants.Count)</h6>
-                    <div class="enrollment-card-grid mb-4">
+                    <div class="enrollment-card-grid enrollment-card-grid-mobile-two mb-4">
                         @foreach (var participation in goingParticipants)
                         {
                             <EnrollmentCard 
@@ -1003,7 +1003,7 @@ else
                 @if (notGoingParticipants.Any())
                 {
                     <h6 class="mb-3 heading-danger">Não vão participar (@notGoingParticipants.Count)</h6>
-                    <div class="enrollment-card-grid">
+                    <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
                         @foreach (var participation in notGoingParticipants)
                         {
                             <EnrollmentCard 
