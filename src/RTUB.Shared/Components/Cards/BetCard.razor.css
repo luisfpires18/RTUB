@@ -1,5 +1,157 @@
 /* BetCard Scoped Styles - Extends EventCard styles */
 
+/* Horizontal scrollable container for buttons */
+.event-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 0.25rem 0;
+}
+
+/* Hide scrollbar for cleaner look */
+.event-buttons-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.event-buttons-container::-webkit-scrollbar-track {
+    background: rgba(111, 66, 193, 0.1);
+    border-radius: 2px;
+}
+
+.event-buttons-container::-webkit-scrollbar-thumb {
+    background: rgba(111, 66, 193, 0.3);
+    border-radius: 2px;
+}
+
+.event-buttons-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(111, 66, 193, 0.5);
+}
+
+/* Icon-only square buttons */
+.event-icon-btn {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border-radius: 0.75rem;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.event-icon-btn i {
+    font-size: 1.25rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Enrollment count to the right of icon */
+.event-icon-btn .enrollment-count-centered {
+    position: relative;
+    color: inherit;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Participants button with count needs to be wider */
+.event-icon-btn-with-count {
+    width: auto;
+    min-width: 52px;
+    padding: 0 0.5rem;
+}
+
+/* Button hover effects */
+.event-icon-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.event-icon-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .event-buttons-container {
+        justify-content: center;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+
+    .event-icon-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .event-icon-btn i {
+        font-size: 1.1rem;
+    }
+
+    .event-icon-btn .enrollment-count-centered {
+        font-size: 1.1rem;
+    }
+}
+
+/* Tablet adjustments (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .event-buttons-container {
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .event-icon-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
+/* Very small screens - further compact mode */
+@media (max-width: 375px) {
+    .event-buttons-container {
+        gap: 0.25rem;
+    }
+
+    .event-icon-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .event-icon-btn i {
+        font-size: 1rem;
+    }
+
+    .event-icon-btn .enrollment-count-centered {
+        font-size: 1rem;
+    }
+}
+
 /* Bet options preview */
 .bet-options-preview {
     display: flex;
@@ -70,7 +222,7 @@
     transform: scale(1.05);
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments for bet-specific styles */
 @media (max-width: 768px) {
     .bet-options-preview {
         font-size: 0.8rem;

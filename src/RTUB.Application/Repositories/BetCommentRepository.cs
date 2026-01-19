@@ -29,4 +29,17 @@ public class BetCommentRepository : Repository<BetComment>, IBetCommentRepositor
             .Include(c => c.Author)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
+
+    public async Task DeleteByBetIdAsync(int betId)
+    {
+        var comments = await _dbSet
+            .Where(c => c.BetId == betId)
+            .ToListAsync();
+
+        if (comments.Count > 0)
+        {
+            _dbSet.RemoveRange(comments);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

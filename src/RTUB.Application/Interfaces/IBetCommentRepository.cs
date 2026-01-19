@@ -17,4 +17,10 @@ public interface IBetCommentRepository : IRepository<BetComment>
     /// Gets comment by ID with author
     /// </summary>
     Task<BetComment?> GetByIdWithDetailsAsync(int id);
+
+    /// <summary>
+    /// Deletes all comments for a specific bet
+    /// </summary>
+    /// <param name="betId">Bet ID</param>
+    Task DeleteByBetIdAsync(int betId);
 }

@@ -375,6 +375,18 @@
                OnConfirm="DeleteBet"
                OnCancel="CloseDeleteModal" />
 
+@* Success Dialog for Bet Placement *@
+<ConfirmDialog Show="@showSuccessModal"
+               ShowChanged="@((bool show) => showSuccessModal = show)"
+               Title="Aposta Realizada"
+               Message="Aposta realizada com sucesso!"
+               ConfirmText="OK"
+               CancelText=""
+               ConfirmButtonClass="btn-success"
+               ShowCloseButton="false"
+               OnConfirm="CloseSuccessModal"
+               OnCancel="CloseSuccessModal" />
+
 @* Place Bet Modal *@
 <Modal Show="@showPlaceBetModal"
        ShowChanged="@((bool show) => showPlaceBetModal = show)"
@@ -755,6 +767,7 @@
     private bool showPlaceBetModal = false;
     private bool showDetailsModal = false;
     private bool showResolveModal = false;
+    private bool showSuccessModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
 
@@ -1231,7 +1244,7 @@
             
             await LoadBets();
             ClosePlaceBetModal();
-            await JSRuntime.InvokeVoidAsync("alert", "Aposta realizada com sucesso!");
+            showSuccessModal = true;
         }
         catch (Exception ex)
         {
@@ -1241,6 +1254,11 @@
         {
             isSaving = false;
         }
+    }
+
+    private void CloseSuccessModal()
+    {
+        showSuccessModal = false;
     }
 
     private async Task OpenBetDetailsModal(Bet bet)

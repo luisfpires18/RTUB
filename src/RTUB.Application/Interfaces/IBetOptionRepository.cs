@@ -21,4 +21,10 @@ public interface IBetOptionRepository : IRepository<BetOption>
     /// <param name="id">Option ID</param>
     /// <returns>Bet option with members loaded, or null if not found</returns>
     Task<BetOption?> GetWithMembersAsync(int id);
+
+    /// <summary>
+    /// Deletes all options for a specific bet
+    /// </summary>
+    /// <param name="betId">Bet ID</param>
+    Task DeleteByBetIdAsync(int betId);
 }

@@ -33,4 +33,17 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
             .Include(o => o.MemberB)
             .FirstOrDefaultAsync(o => o.Id == id);
     }
+
+    public async Task DeleteByBetIdAsync(int betId)
+    {
+        var options = await _dbSet
+            .Where(o => o.BetId == betId)
+            .ToListAsync();
+
+        if (options.Count > 0)
+        {
+            _dbSet.RemoveRange(options);
+            await _context.SaveChangesAsync();
+        }
+    }
 }
