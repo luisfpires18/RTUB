@@ -16,12 +16,21 @@ public interface IQuestionRepository
     /// <summary>
     /// Gets all non-deleted questions with pagination and replies loaded
     /// </summary>
-    Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null);
+    Task<IEnumerable<Question>> GetAllWithRepliesAsync(
+        int page,
+        int pageSize,
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null,
+        bool orderByLatestActivity = false);
 
     /// <summary>
     /// Gets the total count of non-deleted questions
     /// </summary>
-    Task<int> GetCountAsync(string? searchTerm = null);
+    Task<int> GetCountAsync(
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null);
 
     /// <summary>
     /// Gets a question by ID with author, assigned member and replies loaded

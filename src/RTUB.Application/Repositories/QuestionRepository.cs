@@ -44,7 +44,13 @@ public class QuestionRepository : IQuestionRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(
+        int page,
+        int pageSize,
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null,
+        bool orderByLatestActivity = false)
     {
         var query = _context.Questions
             .AsNoTracking()
@@ -54,40 +60,32 @@ public class QuestionRepository : IQuestionRepository
                 .ThenInclude(r => r.Author)
             .Where(q => !q.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            var lowerSearch = searchTerm.ToLower();
-            query = query.Where(q =>
-                q.Content.ToLower().Contains(lowerSearch) ||
-                q.Author.Nickname!.ToLower().Contains(lowerSearch) ||
-                q.Author.UserName!.ToLower().Contains(lowerSearch) ||
-                q.AssignedMember.Nickname!.ToLower().Contains(lowerSearch) ||
-                q.AssignedMember.UserName!.ToLower().Contains(lowerSearch));
-        }
+        query = ApplyFilters(query, searchTerm, statuses, assignedMemberId);
+
+        query = orderByLatestActivity
+            ? query.OrderByDescending(q => q.Replies
+                .Where(r => !r.IsDeleted)
+                .Select(r => (DateTime?)r.CreatedAt)
+                .DefaultIfEmpty(q.CreatedAt)
+                .Max())
+            : query.OrderByDescending(q => q.CreatedAt);
 
         return await query
-            .OrderByDescending(q => q.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
     }
 
-    public async Task<int> GetCountAsync(string? searchTerm = null)
+    public async Task<int> GetCountAsync(
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null)
     {
         var query = _context.Questions
             .AsNoTracking()
             .Where(q => !q.IsDeleted);
 
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            var lowerSearch = searchTerm.ToLower();
-            query = query.Where(q =>
-                q.Content.ToLower().Contains(lowerSearch) ||
-                q.Author.Nickname!.ToLower().Contains(lowerSearch) ||
-                q.Author.UserName!.ToLower().Contains(lowerSearch) ||
-                q.AssignedMember.Nickname!.ToLower().Contains(lowerSearch) ||
-                q.AssignedMember.UserName!.ToLower().Contains(lowerSearch));
-        }
+        query = ApplyFilters(query, searchTerm, statuses, assignedMemberId);
 
         return await query.CountAsync();
     }
@@ -165,5 +163,39 @@ public class QuestionRepository : IQuestionRepository
             question.SoftDelete();
             await _context.SaveChangesAsync();
         }
+    }
+
+    private static IQueryable<Question> ApplyFilters(
+        IQueryable<Question> query,
+        string? searchTerm,
+        IEnumerable<QuestionStatus>? statuses,
+        string? assignedMemberId)
+    {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var lowerSearch = searchTerm.ToLower();
+            query = query.Where(q =>
+                q.Content.ToLower().Contains(lowerSearch) ||
+                q.Author.Nickname!.ToLower().Contains(lowerSearch) ||
+                q.Author.UserName!.ToLower().Contains(lowerSearch) ||
+                q.AssignedMember.Nickname!.ToLower().Contains(lowerSearch) ||
+                q.AssignedMember.UserName!.ToLower().Contains(lowerSearch));
+        }
+
+        if (statuses != null)
+        {
+            var statusList = statuses.ToList();
+            if (statusList.Count > 0)
+            {
+                query = query.Where(q => statusList.Contains(q.Status));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(assignedMemberId))
+        {
+            query = query.Where(q => q.AssignedMemberId == assignedMemberId);
+        }
+
+        return query;
     }
 }

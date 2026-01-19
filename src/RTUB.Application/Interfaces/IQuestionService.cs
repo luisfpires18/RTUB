@@ -11,7 +11,13 @@ public interface IQuestionService
     /// <summary>
     /// Gets all questions with pagination and includes replies
     /// </summary>
-    Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null);
+    Task<IEnumerable<Question>> GetAllWithRepliesAsync(
+        int page,
+        int pageSize,
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null,
+        bool orderByLatestActivity = false);
 
     /// <summary>
     /// Gets all questions with pagination
@@ -21,7 +27,10 @@ public interface IQuestionService
     /// <summary>
     /// Gets the total count of questions
     /// </summary>
-    Task<int> GetCountAsync(string? searchTerm = null);
+    Task<int> GetCountAsync(
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null);
 
     /// <summary>
     /// Gets a question by ID with all replies

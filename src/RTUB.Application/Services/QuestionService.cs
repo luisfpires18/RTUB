@@ -39,14 +39,29 @@ public class QuestionService : IQuestionService
         return await _questionRepository.GetAllAsync(page, pageSize, searchTerm);
     }
 
-    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(int page, int pageSize, string? searchTerm = null)
+    public async Task<IEnumerable<Question>> GetAllWithRepliesAsync(
+        int page,
+        int pageSize,
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null,
+        bool orderByLatestActivity = false)
     {
-        return await _questionRepository.GetAllWithRepliesAsync(page, pageSize, searchTerm);
+        return await _questionRepository.GetAllWithRepliesAsync(
+            page,
+            pageSize,
+            searchTerm,
+            statuses,
+            assignedMemberId,
+            orderByLatestActivity);
     }
 
-    public async Task<int> GetCountAsync(string? searchTerm = null)
+    public async Task<int> GetCountAsync(
+        string? searchTerm = null,
+        IEnumerable<QuestionStatus>? statuses = null,
+        string? assignedMemberId = null)
     {
-        return await _questionRepository.GetCountAsync(searchTerm);
+        return await _questionRepository.GetCountAsync(searchTerm, statuses, assignedMemberId);
     }
 
     public async Task<Question?> GetByIdWithRepliesAsync(int id)
