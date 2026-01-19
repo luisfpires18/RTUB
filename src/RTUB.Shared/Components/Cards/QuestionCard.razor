@@ -22,9 +22,9 @@
             <div class="admin-overlay">
                 @if (Question.Status != QuestionStatus.Closed)
                 {
-                    <button class="btn btn-sm @(Question.Status == QuestionStatus.Closed ? "btn-success" : "btn-outline-success")" 
+                    <button class="btn btn-sm btn-outline-success" 
                             @onclick="HandleClose" 
-                            title="@(Question.Status == QuestionStatus.Closed ? "Fechada" : "Fechar pergunta")">
+                            title="Fechar pergunta">
                         <i class="bi bi-check-lg"></i>
                     </button>
                 }
