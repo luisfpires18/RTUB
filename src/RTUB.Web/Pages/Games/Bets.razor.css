@@ -150,6 +150,17 @@
     color: var(--bs-body-color);
 }
 
+/* Fix overlapping borders in comment form */
+.add-comment-form .localized-file-picker {
+    margin-bottom: 0.75rem;
+}
+
+.add-comment-form .d-flex.justify-content-between {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .comments-list {
     max-height: 400px;
     overflow-y: auto;

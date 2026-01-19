@@ -631,7 +631,9 @@
                     }
                     else if (!betComments.Any())
                     {
-                        <p class="text-muted text-center py-3">Ainda não há comentários</p>
+                        <EmptyState Title="Ainda não há comentários"
+                                    Message="Seja o primeiro a comentar!"
+                                    Icon="bi-chat-dots" />
                     }
                     else
                     {
