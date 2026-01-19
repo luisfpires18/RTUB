@@ -443,6 +443,42 @@
         return PositionHelper.GetDisplayName(position);
     }
 
+    private static string GetQuestionStatusLabel(QuestionStatus status)
+    {
+        return status switch
+        {
+            QuestionStatus.Closed => "Fechada",
+            QuestionStatus.Unanswered => "Aguarda",
+            QuestionStatus.Answered => "Respondida",
+            QuestionStatus.InDiscussion => "Em Discussão",
+            _ => "Estado"
+        };
+    }
+
+    private static string GetQuestionStatusIcon(QuestionStatus status)
+    {
+        return status switch
+        {
+            QuestionStatus.Closed => "bi-check-circle-fill",
+            QuestionStatus.Unanswered => "bi-hourglass-split",
+            QuestionStatus.Answered => "bi-check-circle",
+            QuestionStatus.InDiscussion => "bi-chat-dots",
+            _ => "bi-question-circle"
+        };
+    }
+
+    private static string GetQuestionStatusClass(QuestionStatus status)
+    {
+        return status switch
+        {
+            QuestionStatus.Closed => "question-status-closed",
+            QuestionStatus.Unanswered => "question-status-pending",
+            QuestionStatus.Answered => "question-status-answered",
+            QuestionStatus.InDiscussion => "question-status-discussion",
+            _ => "question-status-closed"
+        };
+    }
+
     private RenderFragment<Question> QuestionCard => question => @<div class="question-grid-item">
         @{
             var replyCount = GetReplyCount(question);
@@ -455,30 +491,9 @@
         <div class="card question-card" @onclick="() => ToggleQuestion(question.Id)">
             <div class="question-card__top position-relative">
                 <div class="question-card__badge">
-                    @if (question.Status == QuestionStatus.Closed)
-                    {
-                        <span class="badge bg-secondary">
-                            <i class="bi bi-check-circle-fill"></i> Fechada
-                        </span>
-                    }
-                    else if (question.Status == QuestionStatus.Unanswered)
-                    {
-                        <span class="badge bg-warning text-dark">
-                            <i class="bi bi-hourglass-split"></i> Aguarda
-                        </span>
-                    }
-                    else if (question.Status == QuestionStatus.Answered)
-                    {
-                        <span class="badge bg-success">
-                            <i class="bi bi-check-circle"></i> Respondida
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-info">
-                            <i class="bi bi-chat-dots"></i> Em Discussão
-                        </span>
-                    }
+                    <span class="question-status-badge-inline @GetQuestionStatusClass(question.Status)">
+                        <i class="bi @GetQuestionStatusIcon(question.Status)"></i> @GetQuestionStatusLabel(question.Status)
+                    </span>
                 </div>
                 @if (IsQuestionAuthor(question))
                 {
@@ -489,9 +504,14 @@
                         <i class="bi bi-trash"></i>
                     </button>
                 }
+                <div class="question-icon-header">
+                    <div class="question-icon-circle">
+                        <i class="bi bi-question-circle"></i>
+                    </div>
+                </div>
             </div>
             <div class="card-body d-flex flex-column">
-                <div class="question-card__header">
+                <div class="question-card__header d-flex justify-content-between align-items-center gap-2 mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <img src="@(question.Author.ProfilePictureSrc ?? "")"
                              class="question-card__avatar"
@@ -503,7 +523,7 @@
                     </div>
                 </div>
 
-                <div class="question-card__recipient d-flex align-items-center gap-2">
+                <div class="question-card__recipient d-flex align-items-center gap-2 mb-3">
                     <img src="@(question.AssignedMember?.ProfilePictureSrc ?? "")"
                          class="question-card__recipient-avatar"
                          alt="@(question.AssignedMember?.Nickname ?? question.AssignedMember?.UserName ?? "Destinatário")" />
