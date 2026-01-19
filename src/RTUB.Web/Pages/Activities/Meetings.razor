@@ -132,7 +132,7 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => { var p = GetUserParticipation(meeting.Id); if (p != null) OpenRemoveParticipationModal(p); })" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
                 }
             </div>
 
@@ -182,7 +182,7 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => { var p = GetUserParticipation(meeting.Id); if (p != null) OpenRemoveParticipationModal(p); })" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
                 }
             </div>
 
@@ -3033,6 +3033,15 @@ else
     }
     
     // Remove own participation methods (for users removing their own participation from past meetings)
+    private void HandleRemoveParticipationRequest(int meetingId)
+    {
+        var participation = GetUserParticipation(meetingId);
+        if (participation != null)
+        {
+            OpenRemoveParticipationModal(participation);
+        }
+    }
+    
     private void OpenRemoveParticipationModal(MeetingParticipation participation)
     {
         removingParticipation = participation;
