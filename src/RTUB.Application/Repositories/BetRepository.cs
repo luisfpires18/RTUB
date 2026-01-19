@@ -17,7 +17,8 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<IEnumerable<Bet>> GetFutureBetsAsync()
     {
-        var now = DateTime.UtcNow;
+        // Using local server time for consistency with Events
+        var now = DateTime.Now;
         return await _dbSet
             .AsNoTracking()
             .Where(b => b.DateTime > now && !b.IsCancelled)
@@ -27,7 +28,8 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task<IEnumerable<Bet>> GetPastBetsAsync()
     {
-        var now = DateTime.UtcNow;
+        // Using local server time for consistency with Events
+        var now = DateTime.Now;
         return await _dbSet
             .AsNoTracking()
             .Where(b => b.DateTime <= now)
