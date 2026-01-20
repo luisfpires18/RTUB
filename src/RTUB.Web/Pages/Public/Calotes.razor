@@ -19,6 +19,7 @@
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
 
+<main>
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div>
@@ -287,6 +288,7 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDeleteCalote"
                OnCancel="CloseDeleteConfirmation" />
+</main>
 
 @code {
     private List<string> fiscalYears = new();
@@ -569,7 +571,18 @@ else
     private async Task SaveCalote()
     {
         if (selectedMember == null || editAmount <= 0 || string.IsNullOrWhiteSpace(editDescription) || calotesActivity == null)
+        {
+            if (selectedMember == null)
+                errorMessage = "Por favor, selecione um membro.";
+            else if (editAmount <= 0)
+                errorMessage = "O montante deve ser maior que zero.";
+            else if (string.IsNullOrWhiteSpace(editDescription))
+                errorMessage = "Por favor, forneça uma descrição.";
+            else
+                errorMessage = "Não foi possível encontrar a atividade CALOTES.";
+            
             return;
+        }
 
         errorMessage = "";
 
