@@ -11,6 +11,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Service for generating meeting minutes (Ata) PDFs using QuestPDF with caching support.
+/// Follows the official RTUB templates for AG and CV meetings.
 /// </summary>
 public class AtaPdfService : IAtaPdfService
 {
@@ -40,6 +41,10 @@ public class AtaPdfService : IAtaPdfService
 
         QuestPDF.Settings.License = LicenseType.Community;
 
+        var isAG = ata.Meeting?.Type == MeetingType.AssembleiaGeralOrdinaria || 
+                   ata.Meeting?.Type == MeetingType.AssembleiaGeralExtraordinaria;
+        var isCV = ata.Meeting?.Type == MeetingType.ConselhoVeteranos;
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -49,208 +54,272 @@ public class AtaPdfService : IAtaPdfService
                 page.PageColor(Colors.White);
                 page.DefaultTextStyle(x => x.FontSize(11).FontColor(Colors.Black));
 
+                // Header - Official RTUB format
                 page.Header().ShowOnce().AlignCenter().Column(column =>
                 {
-                    column.Item().Text("Real Tuna Universitária de Bragança")
-                        .FontSize(16).Bold().FontColor("#6f42c1");
-
-                    column.Item().PaddingTop(5).Text("ATA")
-                        .FontSize(24).Bold().FontColor(Colors.Black);
-
-                    if (!string.IsNullOrEmpty(ata.AtaNumber))
-                    {
-                        column.Item().Text(ata.AtaNumber)
-                            .FontSize(12).FontColor(Colors.Grey.Darken1);
-                    }
+                    column.Item().Text("Real Tuna Universitária de Bragança — Boémios e Trovadores (RTUB)")
+                        .FontSize(14).Bold().FontColor("#6f42c1");
 
                     if (ata.Meeting != null)
                     {
-                        column.Item().PaddingTop(5).Text(GetMeetingTypeDisplayName(ata.Meeting.Type))
-                            .FontSize(12).Bold().FontColor("#6f42c1");
+                        column.Item().PaddingTop(5).Text(GetOrganDisplayName(ata.Meeting.Type))
+                            .FontSize(12).Bold();
+                    }
+
+                    column.Item().PaddingTop(10).Text("ATA")
+                        .FontSize(20).Bold().FontColor(Colors.Black);
+
+                    if (!string.IsNullOrEmpty(ata.AtaNumber))
+                    {
+                        column.Item().Text($"N.º {ata.AtaNumber}")
+                            .FontSize(12).FontColor(Colors.Grey.Darken1);
                     }
                 });
 
                 page.Content().PaddingVertical(1, Unit.Centimetre).Column(column =>
                 {
-                    // Meeting Information
-                    column.Item().Background("#f8f9fa").Padding(15).Column(infoColumn =>
-                    {
-                        infoColumn.Item().Text("Informações da Reunião")
-                            .FontSize(14).Bold().FontColor("#6f42c1");
+                    var sectionNumber = 0;
 
+                    // Section: Identificação
+                    sectionNumber++;
+                    column.Item().Text($"Identificação").FontSize(14).Bold().FontColor("#6f42c1");
+                    column.Item().PaddingTop(10).Column(idColumn =>
+                    {
+                        idColumn.Item().Text("Entidade: Real Tuna Universitária de Bragança — Boémios e Trovadores (RTUB)").FontSize(10);
                         if (ata.Meeting != null)
                         {
-                            infoColumn.Item().PaddingTop(10).Text($"Título: {ata.Meeting.Title}")
-                                .FontSize(11);
+                            idColumn.Item().Text($"Órgão: {GetOrganDisplayName(ata.Meeting.Type)}").FontSize(10);
+                            idColumn.Item().Text($"Tipo de reunião: {GetMeetingSubType(ata.Meeting.Type)}").FontSize(10);
                         }
-
-                        infoColumn.Item().PaddingTop(5).Text($"Data Agendada: {ata.Meeting?.Date:dd/MM/yyyy HH:mm}")
-                            .FontSize(11);
-
-                        infoColumn.Item().PaddingTop(5).Text($"Início Efetivo: {ata.ActualStartTime:dd/MM/yyyy HH:mm}")
-                            .FontSize(11);
-
-                        if (ata.ActualEndTime.HasValue)
+                        if (!string.IsNullOrEmpty(ata.AtaNumber))
                         {
-                            infoColumn.Item().PaddingTop(5).Text($"Término: {ata.ActualEndTime.Value:dd/MM/yyyy HH:mm}")
-                                .FontSize(11);
+                            idColumn.Item().Text($"Ata n.º: {ata.AtaNumber}").FontSize(10);
                         }
-
+                        idColumn.Item().Text($"Data: {ata.Meeting?.Date:dd/MM/yyyy}").FontSize(10);
+                        idColumn.Item().Text($"Hora marcada: {ata.Meeting?.Date:HH:mm}").FontSize(10);
+                        idColumn.Item().Text($"Hora de início efetiva: {ata.ActualStartTime:HH:mm}").FontSize(10);
                         if (!string.IsNullOrEmpty(ata.Location))
                         {
-                            infoColumn.Item().PaddingTop(5).Text($"Local: {ata.Location}")
-                                .FontSize(11);
-                        }
-
-                        if (ata.PresidentUser != null)
-                        {
-                            infoColumn.Item().PaddingTop(5).Text($"Presidente: {ata.PresidentUser.Nickname ?? ata.PresidentUser.FirstName}")
-                                .FontSize(11);
-                        }
-
-                        if (ata.FirstSecretaryUser != null)
-                        {
-                            infoColumn.Item().PaddingTop(5).Text($"1º Secretário: {ata.FirstSecretaryUser.Nickname ?? ata.FirstSecretaryUser.FirstName}")
-                                .FontSize(11);
-                        }
-
-                        if (ata.SecondSecretaryUser != null)
-                        {
-                            infoColumn.Item().PaddingTop(5).Text($"2º Secretário: {ata.SecondSecretaryUser.Nickname ?? ata.SecondSecretaryUser.FirstName}")
-                                .FontSize(11);
-                        }
-
-                        if (!string.IsNullOrEmpty(ata.QuorumBasis))
-                        {
-                            var quorumText = ata.QuorumBasis == "HoraAgendadaMais30Minutos"
-                                ? "Iniciada 30 minutos após hora agendada"
-                                : "Iniciada à hora agendada";
-                            infoColumn.Item().PaddingTop(5).Text($"Quórum: {quorumText}")
-                                .FontSize(11);
+                            idColumn.Item().Text($"Local: {ata.Location}").FontSize(10);
                         }
                     });
 
-                    // Attendees
+                    // Section: Convocatória (AG only)
+                    if (isAG)
+                    {
+                        sectionNumber++;
+                        column.Item().PaddingTop(20).Text($"{sectionNumber}) Convocatória").FontSize(14).Bold().FontColor("#6f42c1");
+                        column.Item().PaddingTop(10).Text("A Assembleia Geral foi convocada nos termos previstos, com indicação da ordem de trabalhos, local, dia e hora.")
+                            .FontSize(10);
+                    }
+
+                    // Section: Mesa / Constituição e secretariado
+                    sectionNumber++;
+                    var mesaTitle = isAG ? $"{sectionNumber}) Mesa da Assembleia Geral" : $"{sectionNumber}) Constituição e secretariado";
+                    column.Item().PaddingTop(20).Text(mesaTitle).FontSize(14).Bold().FontColor("#6f42c1");
+                    column.Item().PaddingTop(10).Column(mesaColumn =>
+                    {
+                        var presidentTitle = isAG ? "Presidente da Mesa" : "Presidente do CV";
+                        if (ata.PresidentUser != null)
+                        {
+                            mesaColumn.Item().Text($"{presidentTitle}: {ata.PresidentUser.Nickname ?? ata.PresidentUser.FirstName}").FontSize(10);
+                        }
+                        if (ata.FirstSecretaryUser != null)
+                        {
+                            mesaColumn.Item().Text($"1.º Secretário: {ata.FirstSecretaryUser.Nickname ?? ata.FirstSecretaryUser.FirstName}").FontSize(10);
+                        }
+                        if (ata.SecondSecretaryUser != null)
+                        {
+                            mesaColumn.Item().Text($"2.º Secretário: {ata.SecondSecretaryUser.Nickname ?? ata.SecondSecretaryUser.FirstName}").FontSize(10);
+                        }
+                    });
+
+                    // Section: Presenças e quórum
+                    sectionNumber++;
+                    var presencaTitle = isAG ? $"{sectionNumber}) Presenças e quórum" : $"{sectionNumber}) Presenças";
+                    column.Item().PaddingTop(20).Text(presencaTitle).FontSize(14).Bold().FontColor("#6f42c1");
+
                     var presentIds = DeserializeAttendeeIds(ata.AttendeesPresent);
                     var absentIds = DeserializeAttendeeIds(ata.AttendeesAbsent);
 
-                    if (presentIds.Any() || absentIds.Any())
+                    column.Item().PaddingTop(10).Column(presColumn =>
                     {
-                        column.Item().PaddingTop(20).Text("Presenças")
-                            .FontSize(14).Bold().FontColor("#6f42c1");
-
+                        presColumn.Item().Text("Foi disponibilizada e assinada a folha/livro de presenças.").FontSize(10).Italic();
+                        
                         if (presentIds.Any())
                         {
-                            column.Item().PaddingTop(10).Text($"Presentes ({presentIds.Count}): {string.Join(", ", presentIds)}")
-                                .FontSize(10);
+                            presColumn.Item().PaddingTop(5).Text($"Presentes ({presentIds.Count}):").FontSize(10).Bold();
+                            foreach (var name in presentIds)
+                            {
+                                presColumn.Item().Text($"  • {name}").FontSize(10);
+                            }
                         }
 
                         if (absentIds.Any())
                         {
-                            column.Item().PaddingTop(5).Text($"Ausentes ({absentIds.Count}): {string.Join(", ", absentIds)}")
-                                .FontSize(10).FontColor(Colors.Grey.Darken1);
+                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentIds.Count}):").FontSize(10).Bold();
+                            foreach (var name in absentIds)
+                            {
+                                presColumn.Item().Text($"  • {name}").FontSize(10);
+                            }
                         }
-                    }
 
-                    // Agenda Points
+                        // Quorum basis (AG only)
+                        if (isAG && !string.IsNullOrEmpty(ata.QuorumBasis))
+                        {
+                            presColumn.Item().PaddingTop(10).Text("Quórum / início da sessão:").FontSize(10).Bold();
+                            if (ata.QuorumBasis == "HoraAgendadaMais30Minutos")
+                            {
+                                presColumn.Item().Text("  ☑ Início 30 minutos após a hora marcada (com os presentes)").FontSize(10);
+                            }
+                            else
+                            {
+                                presColumn.Item().Text("  ☑ Início à hora marcada (com quórum)").FontSize(10);
+                            }
+                        }
+                    });
+
+                    // Section: Ordem de trabalhos
+                    sectionNumber++;
+                    column.Item().PaddingTop(20).Text($"{sectionNumber}) Ordem de trabalhos").FontSize(14).Bold().FontColor("#6f42c1");
+
                     if (ata.AgendaPoints != null && ata.AgendaPoints.Any())
                     {
-                        column.Item().PaddingTop(20).Text("Ordem de Trabalhos")
-                            .FontSize(14).Bold().FontColor("#6f42c1");
+                        column.Item().PaddingTop(10).Column(agendaColumn =>
+                        {
+                            foreach (var point in ata.AgendaPoints.OrderBy(p => p.PointNumber))
+                            {
+                                agendaColumn.Item().Text($"{point.PointNumber}. {point.Title}").FontSize(10);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        column.Item().PaddingTop(10).Text("(Nenhum ponto de ordem de trabalhos registado)").FontSize(10).Italic();
+                    }
 
+                    // Section: Desenvolvimento dos trabalhos e deliberações
+                    sectionNumber++;
+                    var devTitle = isAG 
+                        ? $"{sectionNumber}) Desenvolvimento dos trabalhos, propostas e deliberações" 
+                        : $"{sectionNumber}) Desenvolvimento dos trabalhos e deliberações";
+                    column.Item().PaddingTop(20).Text(devTitle).FontSize(14).Bold().FontColor("#6f42c1");
+
+                    if (ata.AgendaPoints != null && ata.AgendaPoints.Any())
+                    {
                         foreach (var point in ata.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
                             column.Item().PaddingTop(15).Column(pointColumn =>
                             {
-                                pointColumn.Item().Background("#f0f0f0").Padding(10).Column(headerColumn =>
+                                pointColumn.Item().Background("#f0f0f0").Padding(10).Column(contentColumn =>
                                 {
-                                    headerColumn.Item().Text($"{point.PointNumber}. {point.Title}")
+                                    contentColumn.Item().Text($"Ponto {point.PointNumber} — {point.Title}")
                                         .FontSize(12).Bold();
 
                                     if (!string.IsNullOrEmpty(point.DiscussionSummary))
                                     {
-                                        headerColumn.Item().PaddingTop(5).Text(point.DiscussionSummary)
-                                            .FontSize(10);
+                                        contentColumn.Item().PaddingTop(5).Text("Discussão (resumo):").FontSize(10).Bold();
+                                        contentColumn.Item().Text($"  {point.DiscussionSummary}").FontSize(10);
                                     }
 
                                     if (!string.IsNullOrEmpty(point.DecisionText))
                                     {
-                                        headerColumn.Item().PaddingTop(5).Text($"Decisão: {point.DecisionText}")
-                                            .FontSize(10).Bold();
+                                        var decisionLabel = isAG ? "Proposta submetida:" : "Deliberação:";
+                                        contentColumn.Item().PaddingTop(5).Text(decisionLabel).FontSize(10).Bold();
+                                        contentColumn.Item().Text($"  {point.DecisionText}").FontSize(10);
                                     }
 
                                     if (point.VotesFor.HasValue || point.VotesAgainst.HasValue || point.VotesAbstain.HasValue)
                                     {
-                                        var votingText = $"Votação: {point.VotesFor ?? 0} a favor, {point.VotesAgainst ?? 0} contra, {point.VotesAbstain ?? 0} abstenções";
+                                        contentColumn.Item().PaddingTop(5).Text("Votação:").FontSize(10).Bold();
+                                        contentColumn.Item().Text($"  • A favor: {point.VotesFor ?? 0}").FontSize(10);
+                                        contentColumn.Item().Text($"  • Contra: {point.VotesAgainst ?? 0}").FontSize(10);
+                                        contentColumn.Item().Text($"  • Abstenções: {point.VotesAbstain ?? 0}").FontSize(10);
+                                        
                                         if (!string.IsNullOrEmpty(point.VoteResult))
                                         {
-                                            votingText += $" - {point.VoteResult}";
+                                            var resultColor = point.VoteResult == "Aprovado" ? "#28a745" : "#dc3545";
+                                            contentColumn.Item().PaddingTop(3).Text($"Resultado: {point.VoteResult}")
+                                                .FontSize(10).Bold().FontColor(resultColor);
                                         }
-                                        var resultColor = point.VoteResult == "Aprovado" ? "#28a745" : "#dc3545";
-                                        headerColumn.Item().PaddingTop(5).Text(votingText)
-                                            .FontSize(10).FontColor(resultColor);
                                     }
                                 });
                             });
                         }
                     }
 
-                    // Closing Text
-                    if (!string.IsNullOrEmpty(ata.ClosingText))
+                    // Section: Encerramento
+                    sectionNumber++;
+                    column.Item().PaddingTop(20).Text($"{sectionNumber}) Encerramento").FontSize(14).Bold().FontColor("#6f42c1");
+                    column.Item().PaddingTop(10).Column(endColumn =>
                     {
-                        column.Item().PaddingTop(20).Text("Encerramento")
-                            .FontSize(14).Bold().FontColor("#6f42c1");
-
-                        column.Item().PaddingTop(10).Text(ata.ClosingText)
-                            .FontSize(11);
-                    }
-
-                    // Attachments
-                    if (ata.Attachments != null && ata.Attachments.Any(a => a.IncludeInPdf))
-                    {
-                        column.Item().PaddingTop(20).Text("Anexos")
-                            .FontSize(14).Bold().FontColor("#6f42c1");
-
-                        foreach (var attachment in ata.Attachments.Where(a => a.IncludeInPdf))
+                        var presidentTitle = isAG ? "Presidente da Mesa" : "Presidente";
+                        if (ata.ActualEndTime.HasValue)
                         {
-                            var attachmentText = attachment.Name;
-                            if (!string.IsNullOrEmpty(attachment.Description))
-                            {
-                                attachmentText += $" - {attachment.Description}";
-                            }
-                            column.Item().PaddingTop(5).Text($"• {attachmentText}")
+                            endColumn.Item().Text($"Nada mais havendo a tratar, o(a) {presidentTitle} deu por encerrada a sessão às {ata.ActualEndTime.Value:HH:mm}.")
                                 .FontSize(10);
                         }
-                    }
-
-                    // Signatures
-                    column.Item().PaddingTop(40).Row(row =>
-                    {
-                        row.RelativeItem().Column(sigCol =>
+                        else
                         {
-                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(50);
-                            sigCol.Item().Text("Presidente").FontSize(10).AlignCenter();
-                        });
+                            endColumn.Item().Text($"Nada mais havendo a tratar, o(a) {presidentTitle} deu por encerrada a sessão.")
+                                .FontSize(10);
+                        }
 
-                        row.ConstantItem(30);
-
-                        row.RelativeItem().Column(sigCol =>
+                        if (!string.IsNullOrEmpty(ata.ClosingText))
                         {
-                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(50);
-                            sigCol.Item().Text("1º Secretário").FontSize(10).AlignCenter();
-                        });
-
-                        if (ata.SecondSecretaryUser != null)
-                        {
-                            row.ConstantItem(30);
-
-                            row.RelativeItem().Column(sigCol =>
-                            {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(50);
-                                sigCol.Item().Text("2º Secretário").FontSize(10).AlignCenter();
-                            });
+                            endColumn.Item().PaddingTop(5).Text("Texto de encerramento/nota final:").FontSize(10).Bold();
+                            endColumn.Item().Text($"  {ata.ClosingText}").FontSize(10);
                         }
                     });
+
+                    // Section: Assinaturas
+                    sectionNumber++;
+                    column.Item().PaddingTop(20).Text($"{sectionNumber}) Assinaturas").FontSize(14).Bold().FontColor("#6f42c1");
+                    column.Item().PaddingTop(30).Row(row =>
+                    {
+                        var presidentLabel = isAG ? "O(A) Presidente da Mesa" : "O Presidente do CV";
+                        row.RelativeItem().Column(sigCol =>
+                        {
+                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                            sigCol.Item().Text(presidentLabel).FontSize(9).AlignCenter();
+                        });
+
+                        row.ConstantItem(20);
+
+                        row.RelativeItem().Column(sigCol =>
+                        {
+                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                            sigCol.Item().Text(isAG ? "O(A) 1.º Secretário" : "Secretário 1").FontSize(9).AlignCenter();
+                        });
+
+                        row.ConstantItem(20);
+
+                        row.RelativeItem().Column(sigCol =>
+                        {
+                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                            sigCol.Item().Text(isAG ? "O(A) 2.º Secretário" : "Secretário 2").FontSize(9).AlignCenter();
+                        });
+                    });
+
+                    // Section: Anexos
+                    if (ata.Attachments != null && ata.Attachments.Any(a => a.IncludeInPdf))
+                    {
+                        sectionNumber++;
+                        column.Item().PaddingTop(20).Text($"{sectionNumber}) Anexos").FontSize(14).Bold().FontColor("#6f42c1");
+                        column.Item().PaddingTop(10).Column(attachColumn =>
+                        {
+                            foreach (var attachment in ata.Attachments.Where(a => a.IncludeInPdf))
+                            {
+                                var checkmark = "☑";
+                                var attachmentText = attachment.Name;
+                                if (!string.IsNullOrEmpty(attachment.Description))
+                                {
+                                    attachmentText += $" — {attachment.Description}";
+                                }
+                                attachColumn.Item().Text($"{checkmark} {attachmentText}").FontSize(10);
+                            }
+                        });
+                    }
                 });
 
                 page.Footer().AlignCenter().Text(text =>
@@ -271,6 +340,24 @@ public class AtaPdfService : IAtaPdfService
 
         return pdfBytes;
     }
+
+    private static string GetOrganDisplayName(MeetingType type) => type switch
+    {
+        MeetingType.ConselhoVeteranos => "Conselho de Veteranos (CV)",
+        MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral (AG)",
+        MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral (AG)",
+        MeetingType.ReuniaoDirecao => "Direção",
+        _ => "Reunião"
+    };
+
+    private static string GetMeetingSubType(MeetingType type) => type switch
+    {
+        MeetingType.ConselhoVeteranos => "Ordinária",
+        MeetingType.AssembleiaGeralOrdinaria => "Ordinária",
+        MeetingType.AssembleiaGeralExtraordinaria => "Extraordinária",
+        MeetingType.ReuniaoDirecao => "Ordinária",
+        _ => "—"
+    };
 
     private static string GetMeetingTypeDisplayName(MeetingType type) => type switch
     {
