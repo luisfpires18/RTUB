@@ -356,7 +356,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
             "LastNotificationSent", // Question notification tracking - not business data
             "IsAwaitingUserReply", // Question workflow state - not business data
-            "Status" // Question status changes are handled via entity display name
+            "Status", // Question status changes are handled via entity display name
+            "FidelisBalance" // Excluded to avoid audit log spam from frequent balance updates
         };
 
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
@@ -1266,6 +1267,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ? "[Media]" 
                             : (betComment.Text.Length > 50 ? betComment.Text[..50] + "..." : betComment.Text);
                         return $"{authorName} em {betName}: {textPreview}";
+                    }
+                    break;
+
+                case "GameScore":
+                    if (entry.Entity is GameScore gameScore)
+                    {
+                        // Try to get the game title from local cache based on GameKey
+                        var game = Games.Local.FirstOrDefault(g => g.Key == gameScore.GameKey);
+                        var gameName = game?.Title ?? gameScore.GameKey;
+                        return gameName;
                     }
                     break;
             }

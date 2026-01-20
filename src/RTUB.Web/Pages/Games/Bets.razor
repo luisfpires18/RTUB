@@ -14,6 +14,7 @@
 @using RTUB.Shared
 @inject IBetService BetService
 @inject IBetOptionRepository BetOptionRepository
+@inject IUserBetRepository UserBetRepository
 @inject IBetCommentService BetCommentService
 @inject IImageStorageService ImageStorageService
 @inject IPushNotificationService PushNotificationService
@@ -97,7 +98,8 @@
                                      OnDelete="@(() => OpenDeleteModal(bet))"
                                      OnSendPushNotification="@(() => OpenPushNotificationModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
-                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
+                                     OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                     OnViewAllBets="@(() => OpenAllBetsModal(bet))" />
                         </div>
                     }
                 </div>
@@ -152,7 +154,8 @@
                                  OnEdit="@(() => OpenEditModal(bet))"
                                  OnDelete="@(() => OpenDeleteModal(bet))"
                                  OnResolve="@(() => OpenResolveModal(bet))"
-                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
+                                 OnViewDetails="@(() => OpenBetDetailsModal(bet))"
+                                 OnViewAllBets="@(() => OpenAllBetsModal(bet))" />
                     </div>
                 }
             </div>
@@ -783,6 +786,75 @@
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
+@* View All Bets Modal *@
+<Modal Show="@showAllBetsModal"
+       ShowChanged="@((bool show) => showAllBetsModal = show)"
+       Title="@($"Apostas - {selectedBetForAllBets?.Title}")"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (isLoadingAllBets)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        }
+        else if (allUserBetsForBet == null || !allUserBetsForBet.Any())
+        {
+            <EmptyState Title="Nenhuma aposta encontrada"
+                        Message="Ainda ninguém apostou nesta aposta."
+                        Icon="bi-cash-coin" />
+        }
+        else
+        {
+            <div class="mb-4">
+                <h5 class="mb-3"><i class="bi bi-people-fill"></i> Apostas dos Membros</h5>
+                <div class="stats-card-grid">
+                    @foreach (var userBetInfo in paginatedUserBetsForBet)
+                    {
+                        <div class="stats-card">
+                            <div class="stats-card-position">
+                                <img src="@(userBetInfo.AvatarUrl ?? "/images/default-avatar.webp")" 
+                                     alt="@userBetInfo.DisplayName" 
+                                     class="rounded-circle" 
+                                     style="width: 40px; height: 40px; object-fit: cover;" />
+                            </div>
+                            <div class="stats-card-content">
+                                <div class="stats-card-title">@userBetInfo.DisplayName</div>
+                                <div class="stats-card-subtitle">@userBetInfo.OptionTitle</div>
+                            </div>
+                            <div class="stats-card-count d-flex flex-column align-items-end">
+                                <span class="text-warning fw-bold">
+                                    <i class="bi bi-coin"></i> @userBetInfo.FidelisAmount.ToString("F2")
+                                </span>
+                                <small class="text-success">
+                                    <i class="bi bi-trophy"></i> @userBetInfo.PotentialWinnings.ToString("F2")
+                                </small>
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if (allUserBetsForBet.Count > allBetsPageSize)
+                {
+                    <TablePagination 
+                        CurrentPage="@allBetsCurrentPage"
+                        PageSize="@allBetsPageSize"
+                        TotalItems="@allUserBetsForBet.Count"
+                        ItemLabel="apostas"
+                        PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                        OnPageChanged="@HandleAllBetsPageChanged"
+                        OnPageSizeChanged="@HandleAllBetsPageSizeChanged" />
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAllBetsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     // User and auth
     private ApplicationUser? currentUser;
@@ -815,11 +887,30 @@
     private bool showSuccessModal = false;
     private bool showDeleteCommentModal = false;
     private bool showPushNotificationModal = false;
+    private bool showAllBetsModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
     private bool isSendingPushNotification = false;
+    private bool isLoadingAllBets = false;
     private int? deletingCommentId = null;
     private Bet? selectedBetForPush = null;
+    private Bet? selectedBetForAllBets = null;
+    
+    // All Bets Modal data
+    private List<UserBetDisplayInfo>? allUserBetsForBet;
+    private List<UserBetDisplayInfo> paginatedUserBetsForBet = new();
+    private int allBetsCurrentPage = 1;
+    private int allBetsPageSize = 10;
+    
+    // Helper class for displaying user bets in the modal
+    private class UserBetDisplayInfo
+    {
+        public string DisplayName { get; set; } = string.Empty;
+        public string? AvatarUrl { get; set; }
+        public string OptionTitle { get; set; } = string.Empty;
+        public decimal FidelisAmount { get; set; }
+        public decimal PotentialWinnings { get; set; }
+    }
 
     // Edit/Create
     private Bet? editingBet;
@@ -1698,6 +1789,83 @@
     private void OnCropperModalChanged(bool isOpen)
     {
         showCropperModal = isOpen;
+        StateHasChanged();
+    }
+    
+    // All Bets Modal methods
+    private async Task OpenAllBetsModal(Bet bet)
+    {
+        selectedBetForAllBets = bet;
+        allUserBetsForBet = null;
+        paginatedUserBetsForBet = new List<UserBetDisplayInfo>();
+        allBetsCurrentPage = 1;
+        isLoadingAllBets = true;
+        showAllBetsModal = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Load all user bets for this bet
+            var userBets = await UserBetRepository.GetByBetIdAsync(bet.Id);
+            var betOptions = GetBetOptions(bet.Id);
+            
+            allUserBetsForBet = userBets.Select(ub => 
+            {
+                var option = betOptions.FirstOrDefault(o => o.Id == ub.BetOptionId);
+                return new UserBetDisplayInfo
+                {
+                    DisplayName = ub.User?.Nickname ?? ub.User?.UserName ?? "Unknown",
+                    AvatarUrl = ub.User?.ProfilePictureSrc,
+                    OptionTitle = option?.Title ?? "Unknown",
+                    FidelisAmount = ub.FidelisAmount,
+                    PotentialWinnings = ub.FidelisAmount * (option?.Odds ?? 1m)
+                };
+            })
+            .OrderByDescending(x => x.FidelisAmount)
+            .ToList();
+            
+            ApplyAllBetsPagination();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading all bets: {ex.Message}");
+            allUserBetsForBet = new List<UserBetDisplayInfo>();
+        }
+        finally
+        {
+            isLoadingAllBets = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseAllBetsModal()
+    {
+        showAllBetsModal = false;
+        selectedBetForAllBets = null;
+        allUserBetsForBet = null;
+        paginatedUserBetsForBet = new List<UserBetDisplayInfo>();
+    }
+    
+    private void ApplyAllBetsPagination()
+    {
+        if (allUserBetsForBet == null) return;
+        
+        var skip = (allBetsCurrentPage - 1) * allBetsPageSize;
+        paginatedUserBetsForBet = allUserBetsForBet.Skip(skip).Take(allBetsPageSize).ToList();
+    }
+    
+    private void HandleAllBetsPageChanged(int newPage)
+    {
+        allBetsCurrentPage = newPage;
+        ApplyAllBetsPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleAllBetsPageSizeChanged(int newPageSize)
+    {
+        allBetsPageSize = newPageSize;
+        allBetsCurrentPage = 1;
+        ApplyAllBetsPagination();
         StateHasChanged();
     }
 }
