@@ -201,6 +201,18 @@
     text-align: center;
 }
 
+.bet-option-more-button {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.bet-option-more-button:hover,
+.bet-option-more-button:focus-visible {
+    color: #ffffff;
+}
+
 /* User bet status section */
 .user-bet-status {
     background-color: rgba(111, 66, 193, 0.15);

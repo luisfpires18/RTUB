@@ -142,9 +142,12 @@
                 }
                 @if (BetOptions.Count() > 3)
                 {
-                    <div class="bet-option-more text-muted">
+                    <button type="button"
+                            class="bet-option-more bet-option-more-button text-muted"
+                            @onclick="OnViewDetails"
+                            title="Ver todas as opções">
                         <small>+@(BetOptions.Count() - 3) opções...</small>
-                    </div>
+                    </button>
                 }
             </div>
         }
