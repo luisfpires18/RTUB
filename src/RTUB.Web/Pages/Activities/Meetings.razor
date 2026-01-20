@@ -1239,22 +1239,56 @@ else
                 <!-- Right Column: Officials & Closing -->
                 <div class="col-md-6">
                     <div class="card mb-3">
-                        <div class="card-header bg-secondary text-white">
-                            <i class="bi bi-people me-2"></i>Mesa da Reunião
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">Presidente <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                        @if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
+                        {
+                            <div class="card-header bg-secondary text-white">
+                                <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">1º Secretário <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                <small class="text-muted">Será possível selecionar outros membros em versão futura</small>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                    <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Secretário 1 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                    <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Secretário 2</label>
+                                    <input type="text" class="form-control" placeholder="(Opcional)" disabled />
+                                    <small class="text-muted">Segundo secretário opcional</small>
+                                </div>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <div class="card-header bg-secondary text-white">
+                                <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                    <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                    <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                    <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                </div>
+                            </div>
+                        }
                     </div>
                     
                     <div class="mb-3">
