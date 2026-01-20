@@ -36,6 +36,11 @@ else
                     <p class="text-light-theme mb-0">Ano Letivo: @report.Year</p>
                 </div>
             </div>
+            <div class="page-header-actions">
+                <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
+                    <i class="bi bi-cash-coin"></i> Ver Calotes
+                </button>
+            </div>
         </div>
 
         @if (report.IsPublished)
@@ -793,6 +798,13 @@ state.CurrentPage = newPage;
     private void GoBack()
     {
         NavigationManager.NavigateTo("/finance");
+    }
+
+    private void ViewCalotes()
+    {
+        // Navigate to calotes page with the fiscal year from this report
+        var fiscalYear = $"{report!.Year}-{report.Year + 1}";
+        NavigationManager.NavigateTo($"/calotes?fy={fiscalYear}&reportId={ReportId}");
     }
 
     // Activity CRUD

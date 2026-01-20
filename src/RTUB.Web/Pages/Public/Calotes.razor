@@ -22,17 +22,22 @@
 <main>
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-cash-coin"></i> Calotes</h1>
-            <p class="lead page-header-subtitle mb-0 text-light-theme">
-                Registo de dívidas de membros à Tuna por ano letivo.
-            </p>
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="mb-1"><i class="bi bi-cash-coin"></i> Calotes</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">
+                    Registo de dívidas de membros à Tuna.
+                </p>
+            </div>
         </div>
 
-        <div class="d-flex flex-column align-items-lg-end gap-2">
+        <div class="page-header-actions justify-content-lg-end">
             <AuthorizeView Roles="Mod,Admin">
                 <Authorized>
-                    <button class="btn btn-success align-self-lg-end" 
+                    <button class="btn btn-success" 
                             @onclick="OpenAddCaloteModal" 
                             title="Adicionar Calote"
                             disabled="@(!canAddCalote)">
@@ -40,32 +45,28 @@
                     </button>
                 </Authorized>
             </AuthorizeView>
-
-            @if (fiscalYears.Any())
-            {
-                <div class="flex-sm-shrink-0 align-self-lg-end" style="min-width: 240px;">
-                    <FilterDropdown SelectedValue="@selectedFiscalYear"
-                                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
-                                    OnChange="@OnFiscalYearChanged"
-                                    AllItemsLabel="Selecionar Ano Letivo"
-                                    Items="@fiscalYears"
-                                    IconClass="bi-calendar-event" />
-                </div>
-            }
         </div>
     </div>
 
-    @* Search Bar *@
-    @if (memberDebts.Any())
-    {
-        <div class="d-flex justify-content-center">
-            <div style="max-width: 600px; width: 100%;">
-                <SearchBar Placeholder="Pesquisar membros..."
-                           @bind-Value="searchTerm"
-                           OnSearch="FilterMembers" />
-            </div>
+    <!-- Search Box and Fiscal Year Filter -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+        <div class="flex-grow-1 filter-search-container">
+            <SearchBar Placeholder="Pesquisar membros..."
+                       @bind-Value="searchTerm"
+                       OnSearch="FilterMembers" />
         </div>
-    }
+        @if (fiscalYears.Any())
+        {
+            <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedFiscalYear"
+                                SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                                OnChange="@OnFiscalYearChanged"
+                                AllItemsLabel="Selecionar Ano Letivo"
+                                Items="@fiscalYears"
+                                IconClass="bi-calendar-event" />
+            </div>
+        }
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -298,6 +299,10 @@ else
     private const string CalotesActivityName = "CALOTES";
     private const string CaloteCategory = "CALOTE";
     
+    // URL query parameters
+    [SupplyParameterFromQuery(Name = "reportId")]
+    public int? ReportId { get; set; }
+    
     private List<string> fiscalYears = new();
     private string selectedFiscalYear = "";
     private bool isLoading = true;
@@ -483,10 +488,24 @@ else
     
     private async Task OnFiscalYearChanged()
     {
-        // Update URL with query parameter
-        NavigationManager.NavigateTo($"/calotes?fy={selectedFiscalYear}", forceLoad: false);
+        // Update URL with query parameter, preserve reportId if present
+        var reportIdParam = ReportId.HasValue ? $"&reportId={ReportId}" : "";
+        NavigationManager.NavigateTo($"/calotes?fy={selectedFiscalYear}{reportIdParam}", forceLoad: false);
         searchTerm = "";
         await LoadCalotes();
+    }
+    
+    private void GoBack()
+    {
+        // Navigate back to the report page if we came from there, otherwise go to finance
+        if (ReportId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/finance/report/{ReportId}");
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/finance");
+        }
     }
     
     private void FilterMembers()
@@ -530,7 +549,7 @@ else
         isEditMode = true;
         selectedMember = debt.Member;
         editAmount = debt.AmountOwed;
-        editDescription = $"Atualização de calote - {debt.Member.GetDisplayName()}";
+        editDescription = "";
         memberSearchTerm = "";
         filteredMembersForModal.Clear();
         errorMessage = "";
