@@ -193,7 +193,7 @@
                 <div class="enrollment-section mt-auto p-2 rounded">
                     @if (Bet.IsCancelled)
                     {
-                        <!-- For cancelled bets, only show Discussion button -->
+                        <!-- For cancelled bets, show Discussion and See All Bets buttons -->
                         <div class="event-buttons-container">
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                     @onclick="OnViewDetails" 
@@ -204,11 +204,18 @@
                                     <span class="enrollment-count-centered">@DiscussionCount</span>
                                 }
                             </button>
+
+                            <!-- See All Bets button (shows all member bets for this bet) -->
+                            <button class="btn event-icon-btn btn-outline-info" 
+                                    @onclick="OnViewAllBets" 
+                                    title="Ver todas as apostas">
+                                <i class="bi bi-people-fill"></i>
+                            </button>
                         </div>
                     }
                     else
                     {
-                        <!-- Discussion + Apostar buttons -->
+                        <!-- Discussion + See All Bets + Apostar buttons -->
                         <div class="event-buttons-container">
                             <!-- Discussion button with count (opens modal with details + comments) -->
                             <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
@@ -219,6 +226,13 @@
                                 {
                                     <span class="enrollment-count-centered">@DiscussionCount</span>
                                 }
+                            </button>
+
+                            <!-- See All Bets button (shows all member bets for this bet) -->
+                            <button class="btn event-icon-btn btn-outline-info" 
+                                    @onclick="OnViewAllBets" 
+                                    title="Ver todas as apostas">
+                                <i class="bi bi-people-fill"></i>
                             </button>
 
                             <!-- Place Bet button (always green, even after betting) -->
@@ -246,6 +260,13 @@
                             {
                                 <span class="enrollment-count-centered">@DiscussionCount</span>
                             }
+                        </button>
+
+                        <!-- See All Bets button (shows all member bets for this bet) -->
+                        <button class="btn event-icon-btn btn-outline-info" 
+                                @onclick="OnViewAllBets" 
+                                title="Ver todas as apostas">
+                            <i class="bi bi-people-fill"></i>
                         </button>
                     </div>
                 </div>
@@ -326,6 +347,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the view all bets button is clicked (opens modal showing all member bets)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewAllBets { get; set; }
 
     /// <summary>
     /// Optional image URL to display (supports cache-busting)
