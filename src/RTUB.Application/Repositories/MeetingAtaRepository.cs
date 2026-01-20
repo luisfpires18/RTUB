@@ -7,34 +7,38 @@ using RTUB.Core.Exceptions;
 namespace RTUB.Application.Repositories;
 
 /// <summary>
-/// Repository implementation for MeetingAta entity
+/// Repository implementation for MeetingAta entity.
+/// Uses IDbContextFactory to create fresh DbContext per operation to avoid EF tracking conflicts in Blazor Server.
 /// </summary>
 public class MeetingAtaRepository : IMeetingAtaRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public MeetingAtaRepository(ApplicationDbContext context)
+    public MeetingAtaRepository(IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<MeetingAta?> GetByIdAsync(int id)
     {
-        return await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MeetingAtas
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
     public async Task<MeetingAta?> GetByMeetingIdAsync(int meetingId)
     {
-        return await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MeetingAtas
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.MeetingId == meetingId);
     }
 
     public async Task<MeetingAta?> GetByIdWithDetailsAsync(int id)
     {
-        return await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MeetingAtas
             .AsNoTracking()
             .Include(a => a.Meeting)
             .Include(a => a.PresidentUser)
@@ -47,7 +51,8 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task<IEnumerable<MeetingAta>> GetAllAsync()
     {
-        return await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MeetingAtas
             .AsNoTracking()
             .Include(a => a.Meeting)
             .OrderByDescending(a => a.CreatedAt)
@@ -56,33 +61,23 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task<MeetingAta> CreateAsync(MeetingAta ata)
     {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
         // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
         if (string.IsNullOrEmpty(ata.SecondSecretaryUserId))
             ata.SecondSecretaryUserId = null;
             
-        _context.MeetingAtas.Add(ata);
-        await _context.SaveChangesAsync();
+        context.MeetingAtas.Add(ata);
+        await context.SaveChangesAsync();
         return ata;
     }
 
     public async Task UpdateAsync(MeetingAta ata)
     {
-        // First, detach ALL already-tracked MeetingAta entities to avoid conflicts
-        var trackedEntities = _context.ChangeTracker.Entries<MeetingAta>().ToList();
-        foreach (var entry in trackedEntities)
-        {
-            entry.State = EntityState.Detached;
-        }
+        await using var context = await _contextFactory.CreateDbContextAsync();
         
-        // Also detach tracked AgendaPoints
-        var trackedAgendaPoints = _context.ChangeTracker.Entries<MeetingAtaAgendaPoint>().ToList();
-        foreach (var entry in trackedAgendaPoints)
-        {
-            entry.State = EntityState.Detached;
-        }
-        
-        // Fetch the existing entity with its agenda points using a fresh query
-        var existingAta = await _context.MeetingAtas
+        // Fetch the existing entity with its agenda points
+        var existingAta = await context.MeetingAtas
             .Include(a => a.AgendaPoints)
             .FirstOrDefaultAsync(a => a.Id == ata.Id);
         if (existingAta == null)
@@ -111,7 +106,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         // Remove existing agenda points
         if (existingAta.AgendaPoints != null && existingAta.AgendaPoints.Any())
         {
-            _context.MeetingAtaAgendaPoints.RemoveRange(existingAta.AgendaPoints);
+            context.MeetingAtaAgendaPoints.RemoveRange(existingAta.AgendaPoints);
         }
 
         // Add new agenda points
@@ -121,39 +116,28 @@ public class MeetingAtaRepository : IMeetingAtaRepository
             {
                 point.Id = 0; // Reset ID for new insert
                 point.MeetingAtaId = existingAta.Id;
-                _context.MeetingAtaAgendaPoints.Add(point);
+                context.MeetingAtaAgendaPoints.Add(point);
             }
         }
 
-        await _context.SaveChangesAsync();
-        
-        // Detach ALL entities after save to avoid tracking conflicts on subsequent operations
-        var allTrackedAtas = _context.ChangeTracker.Entries<MeetingAta>().ToList();
-        foreach (var entry in allTrackedAtas)
-        {
-            entry.State = EntityState.Detached;
-        }
-        
-        var allTrackedPoints = _context.ChangeTracker.Entries<MeetingAtaAgendaPoint>().ToList();
-        foreach (var entry in allTrackedPoints)
-        {
-            entry.State = EntityState.Detached;
-        }
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var ata = await _context.MeetingAtas.FindAsync(id);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var ata = await context.MeetingAtas.FindAsync(id);
         if (ata == null)
             throw new EntityNotFoundException(nameof(MeetingAta), id);
 
-        _context.MeetingAtas.Remove(ata);
-        await _context.SaveChangesAsync();
+        context.MeetingAtas.Remove(ata);
+        await context.SaveChangesAsync();
     }
 
     public async Task<bool> ExistsForMeetingAsync(int meetingId)
     {
-        return await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MeetingAtas
             .AnyAsync(a => a.MeetingId == meetingId);
     }
 }
