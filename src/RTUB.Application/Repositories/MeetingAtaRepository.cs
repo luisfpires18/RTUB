@@ -116,6 +116,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
             {
                 point.Id = 0; // Reset ID for new insert
                 point.MeetingAtaId = existingAta.Id;
+                point.MeetingAta = null!; // Clear navigation property to prevent EF tracking conflicts
                 context.MeetingAtaAgendaPoints.Add(point);
             }
         }
