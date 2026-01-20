@@ -291,6 +291,10 @@ else
 </main>
 
 @code {
+    // Constants for CALOTES activity and transaction category
+    private const string CalotesActivityName = "CALOTES";
+    private const string CaloteCategory = "CALOTE";
+    
     private List<string> fiscalYears = new();
     private string selectedFiscalYear = "";
     private bool isLoading = true;
@@ -421,7 +425,7 @@ else
         
         // Get CALOTES activity
         var activities = await ActivityService.GetActivitiesByReportIdAsync(report.Id);
-        calotesActivity = activities.FirstOrDefault(a => a.Name.Equals("CALOTES", StringComparison.OrdinalIgnoreCase));
+        calotesActivity = activities.FirstOrDefault(a => a.Name.Equals(CalotesActivityName, StringComparison.OrdinalIgnoreCase));
         
         if (calotesActivity == null)
         {
@@ -610,7 +614,7 @@ else
                     await TransactionService.CreateTransactionAsync(
                         DateTime.UtcNow,
                         editDescription,
-                        "CALOTE",
+                        CaloteCategory,
                         amount,
                         transactionType,
                         calotesActivity.Id,
@@ -627,7 +631,7 @@ else
                 await TransactionService.CreateTransactionAsync(
                     DateTime.UtcNow,
                     editDescription,
-                    "CALOTE",
+                    CaloteCategory,
                     editAmount,
                     "Expense", // Member owes money to Tuna
                     calotesActivity.Id,
