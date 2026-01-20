@@ -100,9 +100,13 @@ public class BetService : IBetService
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), id);
 
-        // Use raw SQL transaction to delete bet and all related entities in correct order
-        // This handles all FK constraints properly by deleting in order:
-        // UserBets -> BetOptions -> BetComments -> Bet
+        // Delete related entities first due to FK constraints
+        // Using ExecuteDeleteAsync for efficient bulk deletion
+        await _userBetRepository.DeleteByBetIdAsync(id);
+        await _betOptionRepository.DeleteByBetIdAsync(id);
+        await _betCommentRepository.DeleteByBetIdAsync(id);
+        
+        // Finally delete the bet
         await _betRepository.DeleteByIdDirectAsync(id);
     }
 
