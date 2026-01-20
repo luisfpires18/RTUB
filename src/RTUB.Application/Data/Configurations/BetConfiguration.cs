@@ -27,6 +27,9 @@ public class BetConfiguration : IEntityTypeConfiguration<Bet>
         builder.Property(b => b.ImageSrc)
             .HasMaxLength(500);
 
+        builder.Property(b => b.ThumbnailUrl)
+            .HasMaxLength(500);
+
         builder.Property(b => b.DateTime)
             .IsRequired();
 

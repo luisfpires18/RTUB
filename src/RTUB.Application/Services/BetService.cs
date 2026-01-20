@@ -100,24 +100,9 @@ public class BetService : IBetService
         if (bet == null)
             throw new EntityNotFoundException(nameof(Bet), id);
 
-        // Must delete in correct order due to FK constraints:
-        // 1. UserBets reference BetOptions (RESTRICT FK), so delete UserBets first
-        // 2. BetOptions reference Bet (CASCADE FK)
-        // 3. BetComments reference Bet (CASCADE FK)
-        // 4. Finally delete the Bet
-        // 
-        // Using ExecuteDeleteAsync to bypass EF change tracker and execute direct SQL
-        
-        // Step 1: Delete all user bets first (they have FK to BetOptions)
-        await _userBetRepository.DeleteByBetIdAsync(id);
-        
-        // Step 2: Delete all bet options (now safe since UserBets are gone)
-        await _betOptionRepository.DeleteByBetIdAsync(id);
-
-        // Step 3: Delete all bet comments
-        await _betCommentRepository.DeleteByBetIdAsync(id);
-
-        // Step 4: Finally delete the bet itself using direct SQL
+        // Use raw SQL transaction to delete bet and all related entities in correct order
+        // This handles all FK constraints properly by deleting in order:
+        // UserBets -> BetOptions -> BetComments -> Bet
         await _betRepository.DeleteByIdDirectAsync(id);
     }
 

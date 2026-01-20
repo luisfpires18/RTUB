@@ -65,8 +65,8 @@ public class BetRepository : Repository<Bet>, IBetRepository
 
     public async Task DeleteByIdDirectAsync(int id)
     {
-        // Use raw SQL with FK checks disabled for SQLite compatibility
-        // This is necessary because SQLite doesn't handle complex cascades well
+        // Use raw SQL to delete the bet and all related entities in correct order
+        // This bypasses EF Core entirely and handles FK constraints properly
         var connection = _context.Database.GetDbConnection();
         var wasOpen = connection.State == System.Data.ConnectionState.Open;
         
@@ -79,15 +79,43 @@ public class BetRepository : Repository<Bet>, IBetRepository
             
             try
             {
-                // Disable FK checks temporarily
+                // Step 1: Delete UserBets (they reference BetOptions)
                 using (var cmd = connection.CreateCommand())
                 {
                     cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
-                    cmd.CommandText = "PRAGMA foreign_keys = OFF";
+                    cmd.CommandText = "DELETE FROM \"UserBets\" WHERE \"BetId\" = @id";
+                    var param = cmd.CreateParameter();
+                    param.ParameterName = "@id";
+                    param.Value = id;
+                    cmd.Parameters.Add(param);
                     await cmd.ExecuteNonQueryAsync();
                 }
                 
-                // Delete the bet
+                // Step 2: Delete BetOptions
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
+                    cmd.CommandText = "DELETE FROM \"BetOptions\" WHERE \"BetId\" = @id";
+                    var param = cmd.CreateParameter();
+                    param.ParameterName = "@id";
+                    param.Value = id;
+                    cmd.Parameters.Add(param);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                
+                // Step 3: Delete BetComments
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
+                    cmd.CommandText = "DELETE FROM \"BetComments\" WHERE \"BetId\" = @id";
+                    var param = cmd.CreateParameter();
+                    param.ParameterName = "@id";
+                    param.Value = id;
+                    cmd.Parameters.Add(param);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                
+                // Step 4: Finally delete the Bet
                 using (var cmd = connection.CreateCommand())
                 {
                     cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
@@ -96,14 +124,6 @@ public class BetRepository : Repository<Bet>, IBetRepository
                     param.ParameterName = "@id";
                     param.Value = id;
                     cmd.Parameters.Add(param);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-                
-                // Re-enable FK checks
-                using (var cmd = connection.CreateCommand())
-                {
-                    cmd.Transaction = (System.Data.Common.DbTransaction)transaction;
-                    cmd.CommandText = "PRAGMA foreign_keys = ON";
                     await cmd.ExecuteNonQueryAsync();
                 }
                 

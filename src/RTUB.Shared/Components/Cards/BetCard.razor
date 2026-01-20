@@ -7,9 +7,9 @@
 
 <div class="card event-card h-100">
     <div class="position-relative">
-        @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Bet.ImageSrc))
+        @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Bet.ThumbnailSrc))
         {
-            <img src="@(ImageUrl ?? Bet.ImageSrc)" class="card-img-top event-image" alt="@Bet.Title" loading="lazy">
+            <img src="@(ImageUrl ?? Bet.ThumbnailSrc)" class="card-img-top event-image" alt="@Bet.Title" loading="lazy">
         }
         else
         {

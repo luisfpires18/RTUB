@@ -1101,18 +1101,22 @@
         {
             if (isCreateMode)
             {
-                // Upload cropped image BEFORE creating entity to include in single Create audit log
-                string? imageUrl = null;
+                var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
+                
+                // Upload original image (shown in DetailsModal)
+                if (originalImageBytes != null && originalImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(originalImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
+                    editingBet.SetImage(imageUrl);
+                }
+                
+                // Upload cropped thumbnail (shown on BetCard)
                 if (croppedImageBytes != null && croppedImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedImageBytes);
-                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
-                }
-
-                if (imageUrl != null)
-                {
-                    editingBet.SetImage(imageUrl);
+                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets/thumbnails", normalizedName);
+                    editingBet.SetThumbnail(thumbnailUrl);
                 }
                 
                 // Create the bet first
@@ -1167,13 +1171,26 @@
             }
             else
             {
-                // Check if we're updating with new cropped image
-                if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
+                // Update mode - upload new images if provided
+                if (uploadedImagePath != null)
                 {
-                    using var stream = new MemoryStream(croppedImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingBet.Title);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets", normalizedName);
-                    editingBet.SetImage(imageUrl);
+                    
+                    // Upload new original image (shown in DetailsModal)
+                    if (originalImageBytes != null && originalImageBytes.Length > 0)
+                    {
+                        using var stream = new MemoryStream(originalImageBytes);
+                        var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "bet-image", originalImageContentType ?? "image/webp", "bets", normalizedName);
+                        editingBet.SetImage(imageUrl);
+                    }
+                    
+                    // Upload new cropped thumbnail (shown on BetCard)
+                    if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+                    {
+                        using var stream = new MemoryStream(croppedImageBytes);
+                        var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "bets/thumbnails", normalizedName);
+                        editingBet.SetThumbnail(thumbnailUrl);
+                    }
                 }
                 await BetService.UpdateBetAsync(editingBet);
             }

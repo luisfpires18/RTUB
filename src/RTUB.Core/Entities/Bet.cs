@@ -17,7 +17,14 @@ public class Bet : BaseEntity
     public string Description { get; set; } = string.Empty;
 
     // Image handling - store reference/path, actual storage handled by infrastructure
+    // ImageSrc is the original full-size image (shown in DetailsModal)
     public string? ImageSrc { get; set; }
+    
+    // ThumbnailUrl is the cropped thumbnail image (shown on BetCard)
+    public string? ThumbnailUrl { get; set; }
+    
+    // Helper property to get the best available image for card display
+    public string ThumbnailSrc => !string.IsNullOrEmpty(ThumbnailUrl) ? ThumbnailUrl : (ImageSrc ?? "");
 
     [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
     public string Location { get; set; } = string.Empty;
@@ -84,6 +91,11 @@ public class Bet : BaseEntity
     public void SetImage(string? imageSrc)
     {
         ImageSrc = imageSrc;
+    }
+
+    public void SetThumbnail(string? thumbnailUrl)
+    {
+        ThumbnailUrl = thumbnailUrl;
     }
 
     public string GetImageSource()
