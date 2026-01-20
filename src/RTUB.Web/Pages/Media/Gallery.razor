@@ -397,9 +397,14 @@ else
             }
             else
             {
-                <video controls class="mb-3 details-modal-image-rectangular">
+                <video controls playsinline preload="metadata" class="mb-3 details-modal-image-rectangular">
                     <source src="@lightboxMedia.MediaUrl" type="video/mp4" />
-                    O seu browser não suporta a reprodução de vídeo.
+                    <source src="@lightboxMedia.MediaUrl" type="video/quicktime" />
+                    <p class="text-warning p-3">
+                        O seu navegador não suporta este formato de vídeo.
+                        Se o vídeo foi gravado num telemóvel, pode ter um codec (HEVC/H.265) não suportado neste navegador.
+                        Experimente usar o Safari ou um navegador móvel.
+                    </p>
                 </video>
             }
         }

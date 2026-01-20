@@ -716,9 +716,12 @@
                                         }
                                         else if (comment.MediaType == "video")
                                         {
-                                            <video controls class="w-100 rounded" style="max-height: 300px;">
+                                            <video controls playsinline preload="metadata" class="w-100 rounded" style="max-height: 300px;">
                                                 <source src="@comment.MediaUrl" type="video/mp4" />
-                                                O seu navegador não suporta vídeo.
+                                                <source src="@comment.MediaUrl" type="video/quicktime" />
+                                                <p class="text-warning p-2 small">
+                                                    Formato de vídeo não suportado. Experimente usar o Safari.
+                                                </p>
                                             </video>
                                         }
                                     </div>
