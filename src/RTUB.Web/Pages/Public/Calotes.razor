@@ -114,42 +114,50 @@ else if (!filteredMemberDebts.Any())
 }
 else
 {
-    <div class="row g-2">
+    <div class="avatar-card-grid">
         @foreach (var debt in filteredMemberDebts)
         {
-            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                <div class="calote-card text-center p-2">
+            <div class="avatar-card">
+                <!-- Edit & Delete buttons in top-right -->
+                <AuthorizeView Roles="Mod,Admin">
+                    <Authorized>
+                        <button class="avatar-card-edit-btn" 
+                                @onclick="() => OpenEditCaloteModal(debt)" 
+                                @onclick:stopPropagation="true"
+                                title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="avatar-card-delete-btn" 
+                                @onclick="() => OpenDeleteConfirmation(debt)" 
+                                @onclick:stopPropagation="true"
+                                title="Remover">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
+
+                <!-- Avatar -->
+                <div class="avatar-card-image-wrapper">
                     <img src="@debt.Member.ProfilePictureSrc" 
                          alt="@debt.Member.GetDisplayName()" 
-                         class="calote-avatar mb-1" />
-                    
+                         class="avatar-card-image" />
+                </div>
+
+                <!-- Member Info -->
+                <div class="avatar-card-content">
+                    <!-- Nome de Tuna (primary) -->
                     @if (!string.IsNullOrEmpty(debt.Member.Nickname))
                     {
-                        <div class="calote-name">@debt.Member.Nickname</div>
+                        <div class="avatar-card-tuna-name">@debt.Member.Nickname</div>
                     }
-                    else
-                    {
-                        <div class="calote-name">@debt.Member.FirstName</div>
-                    }
+                    
+                    <!-- Nome (secondary) -->
+                    <div class="avatar-card-full-name">@debt.Member.FirstName @debt.Member.LastName</div>
 
-                    <div class="calote-amount">€@debt.AmountOwed.ToString("F2")</div>
-
-                    <AuthorizeView Roles="Mod,Admin">
-                        <Authorized>
-                            <div class="calote-actions mt-1">
-                                <button class="btn btn-xs btn-outline-primary" 
-                                        @onclick="() => OpenEditCaloteModal(debt)" 
-                                        title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-xs btn-outline-danger" 
-                                        @onclick="() => OpenDeleteConfirmation(debt)" 
-                                        title="Remover">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </Authorized>
-                    </AuthorizeView>
+                    <!-- Debt amount -->
+                    <div class="calote-debt-badge">
+                        <span class="calote-debt-value">€@debt.AmountOwed.ToString("F2")</span>
+                    </div>
                 </div>
             </div>
         }

@@ -1,53 +1,20 @@
 /* Calotes page styles */
+/* Reuses avatar-card styles from 3-components/avatar-card.css */
 
-/* Calote card - compact design */
-.calote-card {
-    border-radius: 8px;
-    background: rgba(var(--bs-primary-rgb), 0.05);
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+/* Debt badge - displayed in the card */
+.calote-debt-badge {
+    background-color: rgba(220, 53, 69, 0.2);
+    border: 1px solid var(--bs-danger);
+    border-radius: 1rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    margin-top: 0.5rem;
 }
 
-.calote-card:hover {
-    background: rgba(var(--bs-primary-rgb), 0.1);
-}
-
-/* Compact avatar */
-.calote-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--bs-danger);
-}
-
-/* Member name */
-.calote-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--bs-light);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Amount display - compact */
-.calote-amount {
-    font-size: 0.9rem;
+.calote-debt-value {
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--bs-danger);
-}
-
-/* Admin action buttons - compact */
-.calote-actions {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-}
-
-.btn-xs {
-    padding: 2px 6px;
-    font-size: 0.7rem;
-    border-radius: 4px;
 }
 
 /* Member list in modal */
@@ -82,25 +49,9 @@
     border: 2px solid var(--bs-primary);
 }
 
-/* Mobile responsive adjustments */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    .calote-avatar {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .calote-name {
-        font-size: 0.75rem;
-    }
-    
-    .calote-amount {
-        font-size: 0.8rem;
-    }
-}
-
-/* Dark theme adjustments */
-@media (prefers-color-scheme: dark) {
-    .calote-card {
-        background-color: rgba(255, 255, 255, 0.05);
+    .calote-debt-value {
+        font-size: 1rem;
     }
 }
