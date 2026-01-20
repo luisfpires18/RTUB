@@ -90,7 +90,7 @@ public class GameScoreServiceTests
         // Arrange
         var user = CreateTestUser("user1", "TestPlayer", "TestNick");
         user.ImageUrl = "https://example.com/pic.jpg";
-        
+
         var score = CreateScore("user1", 100, 5, user);
 
         _mockGameScoreRepository
@@ -175,7 +175,7 @@ public class GameScoreServiceTests
         result.Points.Should().Be(points);
         result.MaxLevel.Should().Be(maxLevel);
         result.TimeSurvived.Should().Be(timeSurvived);
-        
+
         _mockGameScoreRepository.Verify(r => r.AddAsync(It.IsAny<GameScore>()), Times.Once);
         _mockGameScoreRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
@@ -187,7 +187,7 @@ public class GameScoreServiceTests
         var userId = "test-user-id";
         var gameKey = "test-game";
         var existingScore = CreateScore(userId, 50, 2, null);
-        
+
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
@@ -216,7 +216,7 @@ public class GameScoreServiceTests
         var userId = "test-user-id";
         var gameKey = "test-game";
         var existingScore = CreateScore(userId, 100, 5, null);
-        
+
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
@@ -239,7 +239,7 @@ public class GameScoreServiceTests
         var userId = "test-user-id";
         var gameKey = "test-game";
         var existingScore = CreateScore(userId, 100, 3, null);
-        
+
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
@@ -284,10 +284,10 @@ public class GameScoreServiceTests
         await _service.SubmitScoreAsync(userId, gameKey, points, maxLevel, timeSurvived);
 
         // Assert
-        _mockGameScoreRepository.Verify(r => r.AddAsync(It.Is<GameScore>(s => 
-            s.UserId == userId && 
-            s.GameKey == gameKey && 
-            s.Points == points && 
+        _mockGameScoreRepository.Verify(r => r.AddAsync(It.Is<GameScore>(s =>
+            s.UserId == userId &&
+            s.GameKey == gameKey &&
+            s.Points == points &&
             s.MaxLevel == maxLevel &&
             s.TimeSurvived == timeSurvived
         )), Times.Once);

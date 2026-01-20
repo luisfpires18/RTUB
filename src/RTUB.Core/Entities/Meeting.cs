@@ -38,4 +38,11 @@ public class Meeting : BaseEntity
     // Tuno Representative (for CV meetings - a Tuno who can view and participate)
     public string? TunoRepresentativeUserId { get; set; }
     public ApplicationUser? TunoRepresentative { get; set; }
+
+    // Delegated member who can create the Ata (for CV meetings)
+    public string? DelegatedAtaWriterMemberId { get; set; }
+    public ApplicationUser? DelegatedAtaWriterMember { get; set; }
+
+    // Navigation property
+    public MeetingAta? Ata { get; set; }
 }

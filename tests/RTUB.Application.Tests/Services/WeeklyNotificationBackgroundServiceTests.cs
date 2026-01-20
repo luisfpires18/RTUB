@@ -376,7 +376,7 @@ public class WeeklyNotificationBackgroundServiceTests
         // Set YearTuno to simulate CurrentRole calculation
         // CurrentRole returns: TUNOSSAURO if 6+ years, VETERANO if 2+ years, TUNO otherwise
         var now = DateTime.Now;
-        
+
         switch (role)
         {
             case "TUNOSSAURO":

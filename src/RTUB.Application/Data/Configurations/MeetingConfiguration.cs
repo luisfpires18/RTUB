@@ -26,5 +26,11 @@ public class MeetingConfiguration : IEntityTypeConfiguration<Meeting>
             .WithMany()
             .HasForeignKey(m => m.TunoRepresentativeUserId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // Configure the DelegatedAtaWriterMember relationship
+        builder.HasOne(m => m.DelegatedAtaWriterMember)
+            .WithMany()
+            .HasForeignKey(m => m.DelegatedAtaWriterMemberId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

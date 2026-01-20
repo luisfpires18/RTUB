@@ -480,7 +480,7 @@ public class Program
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
-                    
+
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
