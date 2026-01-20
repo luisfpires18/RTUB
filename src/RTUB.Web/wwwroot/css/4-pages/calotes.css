@@ -1,0 +1,95 @@
+/* Calotes page styles */
+
+/* Calote card */
+.calote-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.calote-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Amount display */
+.calote-amount {
+    background: linear-gradient(135deg, var(--bs-danger) 0%, #dc3545 100%);
+    border-radius: 12px;
+    padding: 12px 24px;
+    width: 100%;
+}
+
+.amount-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Admin action chips */
+.admin-action-chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.admin-action-chips .btn {
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+/* Member list in modal */
+.member-list-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.member-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.member-item:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-color: var(--bs-primary) !important;
+}
+
+.member-item.selected {
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border-color: var(--bs-primary) !important;
+}
+
+.member-avatar-small {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-primary);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .calote-amount {
+        padding: 10px 20px;
+    }
+    
+    .amount-value {
+        font-size: 1.3rem;
+    }
+    
+    .admin-action-chips {
+        flex-wrap: wrap;
+    }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+    .calote-card {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+}

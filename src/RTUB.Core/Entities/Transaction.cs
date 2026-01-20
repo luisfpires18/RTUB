@@ -32,13 +32,20 @@ public class Transaction : BaseEntity
     [MaxLength(500, ErrorMessage = "A URL do recibo não pode exceder 500 caracteres")]
     public string? ReceiptUrl { get; set; }
 
-    // Navigation property
+    /// <summary>
+    /// Optional foreign key to ApplicationUser for CALOTES tracking
+    /// Represents the member who owes money to the Tuna
+    /// </summary>
+    public string? UserId { get; set; }
+
+    // Navigation properties
     public virtual Activity? Activity { get; set; }
+    public virtual ApplicationUser? User { get; set; }
 
     // Private constructor for EF Core
     public Transaction() { }
 
-    public static Transaction Create(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, string? receiptUrl = null)
+    public static Transaction Create(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, string? receiptUrl = null, string? userId = null)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("A descrição não pode estar vazia", nameof(description));
@@ -60,7 +67,8 @@ public class Transaction : BaseEntity
             Amount = amount,
             Type = type,
             ActivityId = activityId,
-            ReceiptUrl = receiptUrl
+            ReceiptUrl = receiptUrl,
+            UserId = userId
         };
     }
 
@@ -69,7 +77,7 @@ public class Transaction : BaseEntity
         ReceiptUrl = receiptUrl;
     }
 
-    public void UpdateDetails(DateTime date, string description, string category, decimal amount, string type)
+    public void UpdateDetails(DateTime date, string description, string category, decimal amount, string type, string? userId = null)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("A descrição não pode estar vazia", nameof(description));
@@ -88,5 +96,6 @@ public class Transaction : BaseEntity
         Category = category;
         Amount = amount;
         Type = type;
+        UserId = userId;
     }
 }

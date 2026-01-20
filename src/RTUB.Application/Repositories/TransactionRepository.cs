@@ -32,4 +32,15 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .OrderBy(t => t.Date)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Transaction>> GetTransactionsByUserIdAsync(string userId)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(t => t.Activity)
+            .Include(t => t.User)
+            .Where(t => t.UserId == userId)
+            .OrderBy(t => t.Date)
+            .ToListAsync();
+    }
 }

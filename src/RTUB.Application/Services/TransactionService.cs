@@ -43,9 +43,14 @@ public class TransactionService : ITransactionService
         return await _transactionRepository.GetTransactionsByTypeAsync(type);
     }
 
-    public async Task<Transaction> CreateTransactionAsync(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, Stream? receiptStream = null, string? receiptFileName = null, string? receiptContentType = null)
+    public async Task<IEnumerable<Transaction>> GetTransactionsByUserIdAsync(string userId)
     {
-        var transaction = Transaction.Create(date, description, category, amount, type, activityId);
+        return await _transactionRepository.GetTransactionsByUserIdAsync(userId);
+    }
+
+    public async Task<Transaction> CreateTransactionAsync(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, Stream? receiptStream = null, string? receiptFileName = null, string? receiptContentType = null, string? userId = null)
+    {
+        var transaction = Transaction.Create(date, description, category, amount, type, activityId, null, userId);
         var createdTransaction = await _transactionRepository.AddAsync(transaction);
 
         // Upload receipt if provided
@@ -59,13 +64,13 @@ public class TransactionService : ITransactionService
         return createdTransaction;
     }
 
-    public async Task UpdateTransactionAsync(int id, DateTime date, string description, string category, decimal amount, string type, Stream? receiptStream = null, string? receiptFileName = null, string? receiptContentType = null, bool deleteReceipt = false)
+    public async Task UpdateTransactionAsync(int id, DateTime date, string description, string category, decimal amount, string type, Stream? receiptStream = null, string? receiptFileName = null, string? receiptContentType = null, bool deleteReceipt = false, string? userId = null)
     {
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null)
             throw new EntityNotFoundException(nameof(Transaction), id);
 
-        transaction.UpdateDetails(date, description, category, amount, type);
+        transaction.UpdateDetails(date, description, category, amount, type, userId);
 
         // Handle receipt deletion
         if (deleteReceipt && !string.IsNullOrEmpty(transaction.ReceiptUrl))

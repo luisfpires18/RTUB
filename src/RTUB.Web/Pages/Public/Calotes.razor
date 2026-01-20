@@ -1,0 +1,674 @@
+@page "/calotes"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Application.Services
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Shared
+@inject IReportService ReportService
+@inject IActivityService ActivityService
+@inject ITransactionService TransactionService
+@inject IFiscalYearService FiscalYearService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject RTUB.Application.Services.AuditContext AuditContext
+
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-cash-coin"></i> Calotes</h1>
+            <p class="lead page-header-subtitle mb-0 text-light-theme">
+                Registo de dívidas de membros à Tuna por ano letivo.
+            </p>
+        </div>
+
+        <div class="d-flex flex-column align-items-lg-end gap-2">
+            <AuthorizeView Roles="Mod,Admin">
+                <Authorized>
+                    <button class="btn btn-success align-self-lg-end" 
+                            @onclick="OpenAddCaloteModal" 
+                            title="Adicionar Calote"
+                            disabled="@(!canAddCalote)">
+                        <i class="bi bi-plus-lg"></i> Adicionar Calote
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+
+            @if (fiscalYears.Any())
+            {
+                <div class="flex-sm-shrink-0 align-self-lg-end" style="min-width: 240px;">
+                    <FilterDropdown SelectedValue="@selectedFiscalYear"
+                                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                                    OnChange="@OnFiscalYearChanged"
+                                    AllItemsLabel="Selecionar Ano Letivo"
+                                    Items="@fiscalYears"
+                                    IconClass="bi-calendar-event" />
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Search Bar *@
+    @if (memberDebts.Any())
+    {
+        <div class="d-flex justify-content-center">
+            <div style="max-width: 600px; width: 100%;">
+                <SearchBar Placeholder="Pesquisar membros..."
+                           @bind-SearchTerm="searchTerm"
+                           OnSearch="FilterMembers" />
+            </div>
+        </div>
+    }
+</div>
+
+@if (!fiscalYears.Any())
+{
+    <EmptyState Title="Nenhum ano letivo ainda"
+                Message="Não existem anos fiscais para mostrar."
+                Icon="bi-calendar-x" />
+}
+else if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+        <p class="mt-3">A carregar calotes...</p>
+    </div>
+}
+else if (!canAddCalote)
+{
+    <Alert Type="Alert.AlertType.Purple" 
+           Message="Não existe atividade 'CALOTES' para o ano letivo selecionado. Por favor, crie a atividade primeiro." 
+           Icon="bi-exclamation-triangle" />
+}
+else if (!filteredMemberDebts.Any())
+{
+    @if (!string.IsNullOrEmpty(searchTerm))
+    {
+        <EmptyState Title="Nenhum resultado"
+                    Message="Não foram encontrados membros com o termo de pesquisa."
+                    Icon="bi-search" />
+    }
+    else
+    {
+        <EmptyState Title="Nenhum calote registado"
+                    Message="Não existem dívidas registadas para este ano letivo."
+                    Icon="bi-emoji-smile" />
+    }
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var debt in filteredMemberDebts)
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card shadow-sm calote-card h-100">
+                    <div class="card-body d-flex flex-column align-items-center text-center">
+                        <img src="@debt.Member.ProfilePictureSrc" 
+                             alt="@debt.Member.GetDisplayName()" 
+                             class="member-avatar-large mb-3" />
+                        
+                        @if (!string.IsNullOrEmpty(debt.Member.Nickname))
+                        {
+                            <h5 class="text-light-theme mb-1">@debt.Member.Nickname</h5>
+                            <p class="text-muted small mb-2">@debt.Member.FirstName @debt.Member.LastName</p>
+                        }
+                        else
+                        {
+                            <h5 class="text-light-theme mb-2">@debt.Member.FirstName @debt.Member.LastName</h5>
+                        }
+
+                        <div class="calote-amount mt-auto mb-3">
+                            <span class="amount-value">€@debt.AmountOwed.ToString("F2")</span>
+                        </div>
+
+                        <AuthorizeView Roles="Mod,Admin">
+                            <Authorized>
+                                <div class="admin-action-chips">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            @onclick="() => OpenEditCaloteModal(debt)" 
+                                            title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            @onclick="() => OpenDeleteConfirmation(debt)" 
+                                            title="Remover">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Add/Edit Calote Modal (Admin only) -->
+<Modal Show="@showCaloteModal" 
+       ShowChanged="@((bool show) => showCaloteModal = show)"
+       Title="@(isEditMode ? "Editar Calote" : "Adicionar Calote")"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        
+        @if (!isEditMode)
+        {
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-person text-primary me-2"></i>Selecionar Membro
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Pesquisar por nome, email ou alcunha..."
+                       @bind="memberSearchTerm" 
+                       @bind:event="oninput" 
+                       @onkeyup="FilterMembersForModal" />
+            </div>
+            
+            @if (filteredMembersForModal.Any())
+            {
+                <div class="member-list member-list-scrollable mb-3">
+                    @foreach (var member in filteredMembersForModal.Take(20))
+                    {
+                        <div class="member-item p-2 mb-2 border rounded clickable-row @(selectedMember?.Id == member.Id ? "selected" : "")"
+                             @onclick="() => SelectMember(member)">
+                            <div class="d-flex align-items-center">
+                                <img src="@member.ProfilePictureSrc" 
+                                     alt="@member.GetDisplayName()"
+                                     class="member-avatar-small me-2" />
+                                <div>
+                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                    {
+                                        <div><strong>@member.Nickname</strong></div>
+                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                    }
+                                    else
+                                    {
+                                        <div><strong>@member.FirstName @member.LastName</strong></div>
+                                    }
+                                    <div class="text-muted small">@member.Email</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(memberSearchTerm))
+            {
+                <Alert Type="Alert.AlertType.Purple" Message="Nenhum membro encontrado." />
+            }
+
+            @if (selectedMember != null)
+            {
+                <Alert Type="Alert.AlertType.Purple" 
+                       Message="@($"Membro Selecionado: {selectedMember.GetDisplayName()}")" 
+                       AdditionalClasses="mt-3" />
+            }
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-person text-primary me-2"></i>Membro
+                </label>
+                <div class="d-flex align-items-center p-2 border rounded">
+                    <img src="@selectedMember!.ProfilePictureSrc" 
+                         alt="@selectedMember.GetDisplayName()"
+                         class="member-avatar-small me-2" />
+                    <div>
+                        <strong>@selectedMember.GetDisplayName()</strong>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-cash text-primary me-2"></i>Montante (€)
+            </label>
+            <input type="number" 
+                   class="form-control" 
+                   step="0.01"
+                   min="0"
+                   placeholder="0.00"
+                   @bind="editAmount" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-file-text text-primary me-2"></i>Descrição
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Descrição do calote..."
+                   @bind="editDescription" />
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCaloteModal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                @onclick="SaveCalote"
+                disabled="@(selectedMember == null || editAmount <= 0 || string.IsNullOrWhiteSpace(editDescription))">
+            @(isEditMode ? "Guardar" : "Adicionar")
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal (Admin only) -->
+<ConfirmDialog Show="@showDeleteConfirmation"
+               ShowChanged="@((bool show) => showDeleteConfirmation = show)"
+               Title="Confirmar Remoção"
+               Message="@($"Tem a certeza que deseja remover o calote de {deletingDebt?.Member?.GetDisplayName() ?? "este membro"}?")"
+               WarningMessage="Esta ação irá remover todas as transações associadas a este membro na atividade CALOTES."
+               ConfirmText="Remover"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteCalote"
+               OnCancel="CloseDeleteConfirmation" />
+
+@code {
+    private List<string> fiscalYears = new();
+    private string selectedFiscalYear = "";
+    private bool isLoading = true;
+    private bool canAddCalote = false;
+    private Activity? calotesActivity;
+    
+    private List<MemberDebt> memberDebts = new();
+    private List<MemberDebt> filteredMemberDebts = new();
+    private string searchTerm = "";
+    
+    // Modal state
+    private bool showCaloteModal = false;
+    private bool showDeleteConfirmation = false;
+    private bool isEditMode = false;
+    private string errorMessage = "";
+    
+    // Edit/Create state
+    private ApplicationUser? selectedMember;
+    private decimal editAmount = 0;
+    private string editDescription = "";
+    private MemberDebt? editingDebt;
+    private MemberDebt? deletingDebt;
+    
+    // Member selection
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredMembersForModal = new();
+    private string memberSearchTerm = "";
+    
+    // Helper for multi-word search
+    private SearchHelper<ApplicationUser> searchHelper = new();
+    private SearchHelper<MemberDebt> debtSearchHelper = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load fiscal years
+        await LoadFiscalYears();
+        
+        // Load all members for admin
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var isAdmin = authState.User.IsInRole("Admin");
+        var isMod = authState.User.IsInRole("Mod");
+        
+        if (isAdmin || isMod)
+        {
+            await LoadAllMembers();
+        }
+        
+        // Handle URL query parameter ?fy=
+        var uri = new Uri(NavigationManager.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var fyParam = queryParams["fy"];
+        
+        var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
+        
+        if (!string.IsNullOrEmpty(fyParam) && fiscalYears.Contains(fyParam))
+        {
+            selectedFiscalYear = fyParam;
+        }
+        else if (fiscalYears.Contains(currentFiscalYearString))
+        {
+            selectedFiscalYear = currentFiscalYearString;
+        }
+        else if (fiscalYears.Any())
+        {
+            selectedFiscalYear = fiscalYears.First();
+        }
+        
+        await LoadCalotes();
+    }
+    
+    private async Task LoadFiscalYears()
+    {
+        var years = (await FiscalYearService.GetAllFiscalYearsAsync())
+            .OrderByDescending(y => y.StartYear)
+            .ToList();
+
+        fiscalYears = years.Select(y => y.FiscalYearString).ToList();
+    }
+    
+    private async Task LoadAllMembers()
+    {
+        // Load all users and filter in memory (Categories is JSON column, can't filter on server)
+        allMembers = (await UserManager.Users
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .AsNoTracking()
+            .ToListAsync())
+            .Where(u => !u.IsLeitao())  // Filter in memory after load
+            .ToList();
+    }
+    
+    private async Task LoadCalotes()
+    {
+        if (string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            memberDebts.Clear();
+            filteredMemberDebts.Clear();
+            isLoading = false;
+            canAddCalote = false;
+            return;
+        }
+        
+        isLoading = true;
+        canAddCalote = false;
+        calotesActivity = null;
+        StateHasChanged();
+        
+        var parts = selectedFiscalYear.Split('-');
+        if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear))
+        {
+            memberDebts.Clear();
+            filteredMemberDebts.Clear();
+            isLoading = false;
+            return;
+        }
+        
+        // Get report for the selected fiscal year
+        var reports = await ReportService.GetAllReportsAsync();
+        var report = reports.FirstOrDefault(r => r.Year == startYear);
+        
+        if (report == null)
+        {
+            memberDebts.Clear();
+            filteredMemberDebts.Clear();
+            isLoading = false;
+            return;
+        }
+        
+        // Get CALOTES activity
+        var activities = await ActivityService.GetActivitiesByReportIdAsync(report.Id);
+        calotesActivity = activities.FirstOrDefault(a => a.Name.Equals("CALOTES", StringComparison.OrdinalIgnoreCase));
+        
+        if (calotesActivity == null)
+        {
+            memberDebts.Clear();
+            filteredMemberDebts.Clear();
+            isLoading = false;
+            return;
+        }
+        
+        canAddCalote = true;
+        
+        // Get all transactions for this activity
+        var transactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
+            .Where(t => !string.IsNullOrEmpty(t.UserId))
+            .ToList();
+        
+        // Group by user and calculate balance
+        var userBalances = transactions
+            .GroupBy(t => t.UserId)
+            .Select(g => new
+            {
+                UserId = g.Key!,
+                // Expense = member owes money to Tuna (positive balance)
+                // Income = member paid money to Tuna (negative balance)
+                Balance = g.Where(t => t.Type == "Expense").Sum(t => t.Amount) - 
+                         g.Where(t => t.Type == "Income").Sum(t => t.Amount)
+            })
+            .Where(b => b.Balance > 0) // Only show members who owe money
+            .ToList();
+        
+        // Load user information
+        var userIds = userBalances.Select(b => b.UserId).ToList();
+        var users = await UserManager.Users
+            .Where(u => userIds.Contains(u.Id))
+            .AsNoTracking()
+            .ToDictionaryAsync(u => u.Id);
+        
+        // Create member debt list
+        memberDebts = userBalances
+            .Where(b => users.ContainsKey(b.UserId))
+            .Select(b => new MemberDebt
+            {
+                Member = users[b.UserId],
+                AmountOwed = b.Balance
+            })
+            .OrderByDescending(d => d.AmountOwed)
+            .ToList();
+        
+        filteredMemberDebts = memberDebts;
+        isLoading = false;
+    }
+    
+    private async Task OnFiscalYearChanged()
+    {
+        // Update URL with query parameter
+        NavigationManager.NavigateTo($"/calotes?fy={selectedFiscalYear}", forceLoad: false);
+        searchTerm = "";
+        await LoadCalotes();
+    }
+    
+    private void FilterMembers()
+    {
+        if (string.IsNullOrEmpty(searchTerm))
+        {
+            filteredMemberDebts = memberDebts;
+            return;
+        }
+        
+        // Use SearchHelper for multi-word search support
+        debtSearchHelper.SearchTerm = searchTerm;
+        filteredMemberDebts = debtSearchHelper.FilterMultiple(memberDebts, new List<Func<MemberDebt, string>>
+        {
+            d => d.Member.FirstName ?? "",
+            d => d.Member.LastName ?? "",
+            d => d.Member.Nickname ?? "",
+            d => d.Member.Email ?? ""
+        });
+    }
+    
+    private void OpenAddCaloteModal()
+    {
+        if (!canAddCalote) return;
+        
+        isEditMode = false;
+        selectedMember = null;
+        editAmount = 0;
+        editDescription = "";
+        memberSearchTerm = "";
+        filteredMembersForModal.Clear();
+        errorMessage = "";
+        editingDebt = null;
+        showCaloteModal = true;
+    }
+    
+    private void OpenEditCaloteModal(MemberDebt debt)
+    {
+        if (!canAddCalote) return;
+        
+        isEditMode = true;
+        selectedMember = debt.Member;
+        editAmount = debt.AmountOwed;
+        editDescription = $"Atualização de calote - {debt.Member.GetDisplayName()}";
+        memberSearchTerm = "";
+        filteredMembersForModal.Clear();
+        errorMessage = "";
+        editingDebt = debt;
+        showCaloteModal = true;
+    }
+    
+    private void CloseCaloteModal()
+    {
+        showCaloteModal = false;
+        isEditMode = false;
+        selectedMember = null;
+        editAmount = 0;
+        editDescription = "";
+        memberSearchTerm = "";
+        filteredMembersForModal.Clear();
+        errorMessage = "";
+        editingDebt = null;
+    }
+    
+    private void FilterMembersForModal()
+    {
+        if (string.IsNullOrEmpty(memberSearchTerm))
+        {
+            filteredMembersForModal.Clear();
+            return;
+        }
+
+        // Use SearchHelper for multi-word search support
+        searchHelper.SearchTerm = memberSearchTerm;
+        filteredMembersForModal = searchHelper.FilterMultiple(allMembers, new List<Func<ApplicationUser, string>>
+        {
+            u => u.FirstName ?? "",
+            u => u.LastName ?? "",
+            u => u.Nickname ?? "",
+            u => u.Email ?? ""
+        });
+    }
+    
+    private void SelectMember(ApplicationUser member)
+    {
+        selectedMember = member;
+    }
+    
+    private async Task SaveCalote()
+    {
+        if (selectedMember == null || editAmount <= 0 || string.IsNullOrWhiteSpace(editDescription) || calotesActivity == null)
+            return;
+
+        errorMessage = "";
+
+        try
+        {
+            if (isEditMode && editingDebt != null)
+            {
+                // For edit mode, we need to adjust the balance
+                // Get current transactions for this user
+                var userTransactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
+                    .Where(t => t.UserId == selectedMember.Id)
+                    .ToList();
+                
+                var currentBalance = userTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount) -
+                                   userTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
+                
+                var difference = editAmount - currentBalance;
+                
+                if (difference != 0)
+                {
+                    // Create a transaction for the difference
+                    var transactionType = difference > 0 ? "Expense" : "Income";
+                    var amount = Math.Abs(difference);
+                    
+                    await TransactionService.CreateTransactionAsync(
+                        DateTime.UtcNow,
+                        editDescription,
+                        "CALOTE",
+                        amount,
+                        transactionType,
+                        calotesActivity.Id,
+                        null,
+                        null,
+                        null,
+                        selectedMember.Id
+                    );
+                }
+            }
+            else
+            {
+                // Create new calote transaction
+                await TransactionService.CreateTransactionAsync(
+                    DateTime.UtcNow,
+                    editDescription,
+                    "CALOTE",
+                    editAmount,
+                    "Expense", // Member owes money to Tuna
+                    calotesActivity.Id,
+                    null,
+                    null,
+                    null,
+                    selectedMember.Id
+                );
+            }
+
+            await LoadCalotes();
+            CloseCaloteModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao guardar: {ex.Message}";
+        }
+    }
+    
+    private void OpenDeleteConfirmation(MemberDebt debt)
+    {
+        deletingDebt = debt;
+        showDeleteConfirmation = true;
+    }
+    
+    private void CloseDeleteConfirmation()
+    {
+        showDeleteConfirmation = false;
+        deletingDebt = null;
+    }
+    
+    private async Task ConfirmDeleteCalote()
+    {
+        if (deletingDebt == null || calotesActivity == null) return;
+        
+        try
+        {
+            // Get all transactions for this user in the CALOTES activity
+            var userTransactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
+                .Where(t => t.UserId == deletingDebt.Member.Id)
+                .ToList();
+            
+            // Delete all transactions
+            foreach (var transaction in userTransactions)
+            {
+                await TransactionService.DeleteTransactionAsync(transaction.Id);
+            }
+            
+            await LoadCalotes();
+            CloseDeleteConfirmation();
+        }
+        catch (Exception)
+        {
+            // Handle error silently for now
+            CloseDeleteConfirmation();
+        }
+    }
+    
+    // Helper class to track member debts
+    private class MemberDebt
+    {
+        public ApplicationUser Member { get; set; } = null!;
+        public decimal AmountOwed { get; set; }
+    }
+}

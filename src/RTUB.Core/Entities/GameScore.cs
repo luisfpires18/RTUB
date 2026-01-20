@@ -64,7 +64,7 @@ public class GameScore : BaseEntity
             TimeSurvived = timeSurvived;
             return true;
         }
-        
+
         return false;
     }
 

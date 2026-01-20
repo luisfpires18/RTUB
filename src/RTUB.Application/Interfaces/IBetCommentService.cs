@@ -12,7 +12,7 @@ public interface IBetCommentService
     /// Get all comments for a specific bet (excluding deleted ones)
     /// </summary>
     Task<List<BetCommentDto>> GetCommentsForBetAsync(int betId, string? currentUserId, bool isAdmin = false);
-    
+
     /// <summary>
     /// Get comment count for a specific bet (excluding deleted ones)
     /// </summary>

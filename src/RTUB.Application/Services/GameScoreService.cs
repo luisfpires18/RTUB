@@ -22,7 +22,7 @@ public class GameScoreService : IGameScoreService
     {
         // Check if user already has a score for this game
         var existingScore = await _repository.GetUserScoreAsync(userId, gameKey);
-        
+
         if (existingScore != null)
         {
             // Update only if the new score is better
@@ -33,10 +33,10 @@ public class GameScoreService : IGameScoreService
             }
             return existingScore;
         }
-        
+
         // Create new score if none exists
         var score = GameScore.Create(userId, gameKey, points, maxLevel, timeSurvived);
-        
+
         try
         {
             await _repository.AddAsync(score);
@@ -57,7 +57,7 @@ public class GameScoreService : IGameScoreService
                 }
                 return concurrentScore;
             }
-            
+
             // If still no score found, re-throw the original exception
             throw;
         }
@@ -66,7 +66,7 @@ public class GameScoreService : IGameScoreService
     public async Task<List<GameScoreDto>> GetLeaderboardAsync(string gameKey, int count = 10)
     {
         var scores = await _repository.GetTopScoresAsync(gameKey, count);
-        
+
         return scores.Select((s, index) => new GameScoreDto
         {
             Position = index + 1,

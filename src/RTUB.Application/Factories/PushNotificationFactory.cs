@@ -783,7 +783,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
         var totalCount = eventCount + rehearsalCount + meetingCount;
-        
+
         // Build activity summary
         var activities = new List<string>();
         if (eventCount > 0)
@@ -800,7 +800,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         }
 
         var activitySummary = string.Join(", ", activities);
-        
+
         // Determine the URL to navigate to based on what's scheduled
         string url;
         if (eventCount > 0)
@@ -823,8 +823,8 @@ public class PushNotificationFactory : IPushNotificationFactory
         return new SendPushNotificationDto
         {
             Title = "Resumo Semanal",
-            Body = totalCount == 0 
-                ? "Não há atividades agendadas para esta semana." 
+            Body = totalCount == 0
+                ? "Não há atividades agendadas para esta semana."
                 : $"Esta semana tens: {activitySummary}",
             Icon = "/icons/rtub-logo-192.png",
             Url = url,
@@ -842,7 +842,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
 
         var logisticsUrl = $"{baseUrl.TrimEnd('/')}/logistics/{boardId}";
-        
+
         return new SendPushNotificationDto
         {
             Title = $"Lembrete: {card.Title}",

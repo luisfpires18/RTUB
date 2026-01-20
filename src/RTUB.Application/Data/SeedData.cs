@@ -45,7 +45,7 @@ public static partial class SeedData
 
         await SeedMembersAsync(configuration, dbContext, userManager, isEmptyDb);
 
-       
+
         if (isEmptyDb)
         {
             return;

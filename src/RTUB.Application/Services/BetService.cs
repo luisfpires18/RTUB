@@ -105,7 +105,7 @@ public class BetService : IBetService
         await _userBetRepository.DeleteByBetIdAsync(id);
         await _betOptionRepository.DeleteByBetIdAsync(id);
         await _betCommentRepository.DeleteByBetIdAsync(id);
-        
+
         // Finally delete the bet
         await _betRepository.DeleteByIdDirectAsync(id);
     }
