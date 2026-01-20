@@ -110,6 +110,58 @@
     text-overflow: ellipsis;
 }
 
+/* Centered page header layout - title in center, back button left, actions right */
+.page-header-centered {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 60px;
+}
+
+.page-header-center {
+    flex: 1 1 200px;
+    min-width: 0;
+    text-align: center;
+}
+
+.page-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    min-width: 60px;
+}
+
+@media (max-width: 768px) {
+    .page-header-centered {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .page-header-left {
+        order: 1;
+        justify-content: flex-start;
+    }
+    
+    .page-header-center {
+        order: 2;
+        text-align: center;
+    }
+    
+    .page-header-right {
+        order: 3;
+        justify-content: center;
+    }
+}
+
 /* Allow page header subtitle to wrap on mobile to prevent layout breaking */
 @media (max-width: 767px) {
     .page-header-subtitle {

@@ -16,4 +16,9 @@ public interface ITransactionRepository : IRepository<Transaction>
     /// Gets transactions by type (income/expense)
     /// </summary>
     Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type);
+
+    /// <summary>
+    /// Gets transactions by user ID (for CALOTES tracking)
+    /// </summary>
+    Task<IEnumerable<Transaction>> GetTransactionsByUserIdAsync(string userId);
 }

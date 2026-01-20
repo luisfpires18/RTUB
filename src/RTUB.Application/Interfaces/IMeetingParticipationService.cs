@@ -16,7 +16,7 @@ public interface IMeetingParticipationService
     Task<MeetingParticipation> CreateParticipationAsync(string userId, int meetingId, string? notes = null, bool willAttend = true);
     Task<MeetingParticipation> UpdateParticipationAsync(int participationId, bool willAttend, string? notes = null);
     Task DeleteParticipationAsync(int id);
-    
+
     /// <summary>
     /// Gets participation counts (WillAttend=true) for multiple meetings in a single query
     /// </summary>

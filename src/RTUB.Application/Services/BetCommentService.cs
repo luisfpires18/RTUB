@@ -50,7 +50,7 @@ public class BetCommentService : IBetCommentService
                        (c.AuthorId == currentUserId || isAdmin)
         }).ToList();
     }
-    
+
     /// <summary>
     /// Get comment count for a specific bet (excluding deleted ones)
     /// </summary>

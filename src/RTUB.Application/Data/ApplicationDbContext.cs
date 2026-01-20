@@ -1273,8 +1273,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         var betEntity = betComment.Bet
                             ?? Bets.Local.FirstOrDefault(b => b.Id == betComment.BetId);
                         var betName = betEntity?.Title ?? $"Aposta #{betComment.BetId}";
-                        var textPreview = string.IsNullOrEmpty(betComment.Text) 
-                            ? "[Media]" 
+                        var textPreview = string.IsNullOrEmpty(betComment.Text)
+                            ? "[Media]"
                             : (betComment.Text.Length > 50 ? betComment.Text[..50] + "..." : betComment.Text);
                         return $"{authorName} em {betName}: {textPreview}";
                     }

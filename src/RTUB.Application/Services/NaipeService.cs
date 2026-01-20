@@ -118,7 +118,7 @@ public class NaipeService : INaipeService
 
         // Only owner or admin can update content
         var isOwner = content.CreatedByUserId == userId;
-        
+
         if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can update naipe content.");
 
@@ -146,7 +146,7 @@ public class NaipeService : INaipeService
 
         // Only owner or admin can delete content
         var isOwner = content.CreatedByUserId == userId;
-        
+
         if (!isOwner && !isAdmin)
             throw new UnauthorizedAccessException("Only the content owner or administrators can delete naipe content.");
 
@@ -451,7 +451,7 @@ public class NaipeService : INaipeService
         {
             var instrumentTypeName = StatusHelper.GetInstrumentDisplay(instrumentType);
             var baseUrl = GetBaseUrl();
-            
+
             var notification = _pushNotificationFactory.CreateNaipeContentNotification(
                 contentTitle,
                 instrumentTypeName,

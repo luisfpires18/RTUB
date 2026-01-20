@@ -12,6 +12,12 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 {
     public void Configure(EntityTypeBuilder<Transaction> builder)
     {
+        // Configure foreign key relationship to ApplicationUser
+        builder.HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Composite index for filtering transactions by activity and type
         // Common pattern: "show all Income transactions for Activity X"
         builder.HasIndex(t => new { t.ActivityId, t.Type })
@@ -20,5 +26,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         // Index for filtering by date (report generation, date range queries)
         builder.HasIndex(t => t.Date)
             .HasDatabaseName("IX_Transactions_Date");
+
+        // Index for filtering transactions by user (CALOTES tracking)
+        builder.HasIndex(t => t.UserId)
+            .HasDatabaseName("IX_Transactions_UserId");
     }
 }

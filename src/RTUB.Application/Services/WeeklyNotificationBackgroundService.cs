@@ -242,7 +242,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
 
         // Calculate next Monday
         var daysUntilMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
-        
+
         // If it's Monday and the time hasn't passed yet, schedule for today
         if (daysUntilMonday == 0)
         {

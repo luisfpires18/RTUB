@@ -19,10 +19,10 @@ public class Bet : BaseEntity
     // Image handling - store reference/path, actual storage handled by infrastructure
     // ImageSrc is the original full-size image (shown in DetailsModal)
     public string? ImageSrc { get; set; }
-    
+
     // ThumbnailUrl is the cropped thumbnail image (shown on BetCard)
     public string? ThumbnailUrl { get; set; }
-    
+
     // Helper property to get the best available image for card display
     public string ThumbnailSrc => !string.IsNullOrEmpty(ThumbnailUrl) ? ThumbnailUrl : (ImageSrc ?? "");
 
