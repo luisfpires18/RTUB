@@ -67,9 +67,10 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task UpdateAsync(MeetingAta ata)
     {
-        // Fetch the existing entity from the database to avoid tracking conflicts
-        // with navigation properties (like ApplicationUser)
-        var existingAta = await _context.MeetingAtas.FindAsync(ata.Id);
+        // Fetch the existing entity with its agenda points to avoid tracking conflicts
+        var existingAta = await _context.MeetingAtas
+            .Include(a => a.AgendaPoints)
+            .FirstOrDefaultAsync(a => a.Id == ata.Id);
         if (existingAta == null)
             throw new EntityNotFoundException(nameof(MeetingAta), ata.Id);
 
@@ -91,6 +92,24 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         existingAta.PdfStorageUrl = ata.PdfStorageUrl;
         existingAta.UpdatedAt = ata.UpdatedAt;
         existingAta.UpdatedBy = ata.UpdatedBy;
+
+        // Update agenda points
+        // Remove existing agenda points
+        if (existingAta.AgendaPoints != null && existingAta.AgendaPoints.Any())
+        {
+            _context.MeetingAtaAgendaPoints.RemoveRange(existingAta.AgendaPoints);
+        }
+
+        // Add new agenda points
+        if (ata.AgendaPoints != null && ata.AgendaPoints.Any())
+        {
+            foreach (var point in ata.AgendaPoints)
+            {
+                point.Id = 0; // Reset ID for new insert
+                point.MeetingAtaId = existingAta.Id;
+                _context.MeetingAtaAgendaPoints.Add(point);
+            }
+        }
 
         await _context.SaveChangesAsync();
     }

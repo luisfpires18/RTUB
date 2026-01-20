@@ -1193,7 +1193,7 @@ else
                 <!-- Left Column: Meeting Info & Basic Fields -->
                 <div class="col-md-6">
                     <div class="card mb-3">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header text-white" style="background-color: #7b2d8e;">
                             <i class="bi bi-info-circle me-2"></i>Informações da Reunião
                         </div>
                         <div class="card-body">
@@ -1241,13 +1241,13 @@ else
                     <div class="card mb-3">
                         @if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
                         {
-                            <div class="card-header bg-secondary text-white">
+                            <div class="card-header text-white" style="background-color: #7b2d8e;">
                                 <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(editingAta?.PresidentUser?.Nickname ?? editingAta?.PresidentUser?.FirstName ?? ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
                                     <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
                                 </div>
                                 
@@ -1274,13 +1274,13 @@ else
                         }
                         else
                         {
-                            <div class="card-header bg-secondary text-white">
+                            <div class="card-header text-white" style="background-color: #7b2d8e;">
                                 <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(editingAta?.PresidentUser?.Nickname ?? editingAta?.PresidentUser?.FirstName ?? ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
                                     <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
                                 </div>
                                 
@@ -1301,7 +1301,7 @@ else
                     
                     <!-- Presenças Section -->
                     <div class="card mb-3">
-                        <div class="card-header bg-info text-white">
+                        <div class="card-header text-white" style="background-color: #7b2d8e;">
                             <i class="bi bi-person-check me-2"></i>Presenças
                         </div>
                         <div class="card-body">
@@ -1318,7 +1318,6 @@ else
                                         <span class="badge bg-success">@displayName</span>
                                     }
                                 </div>
-                                <small class="text-muted d-block mt-2">Lista baseada nas inscrições confirmadas (WillAttend)</small>
                             }
                             else
                             {
@@ -1329,7 +1328,7 @@ else
                     
                     <!-- Ordem de trabalhos Section -->
                     <div class="card mb-3">
-                        <div class="card-header bg-warning text-dark">
+                        <div class="card-header text-white" style="background-color: #7b2d8e;">
                             <i class="bi bi-list-ol me-2"></i>Ordem de Trabalhos
                         </div>
                         <div class="card-body">
