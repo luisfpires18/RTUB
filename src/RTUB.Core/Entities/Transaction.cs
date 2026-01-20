@@ -96,6 +96,11 @@ public class Transaction : BaseEntity
         Category = category;
         Amount = amount;
         Type = type;
-        UserId = userId;
+        // Only update UserId if explicitly provided (not null)
+        // This preserves existing UserId when editing from Report page
+        if (userId != null)
+        {
+            UserId = userId;
+        }
     }
 }
