@@ -146,16 +146,10 @@ public class AtaPdfService : IAtaPdfService
                     column.Item().PaddingTop(20).Text(presencaTitle).FontSize(14).Bold().FontColor("#6f42c1");
 
                     // Get attendees from MeetingParticipation with WillAttend=true
-                    var presentParticipants = ata.Meeting?.Participations?
-                        .Where(p => p.WillAttend && p.User != null)
-                        .Select(p => FormatUserName(p.User!))
-                        .ToList() ?? new List<string>();
+                    var presentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: true);
 
                     // Get attendees who declined (WillAttend=false)
-                    var absentParticipants = ata.Meeting?.Participations?
-                        .Where(p => !p.WillAttend && p.User != null)
-                        .Select(p => FormatUserName(p.User!))
-                        .ToList() ?? new List<string>();
+                    var absentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: false);
 
                     column.Item().PaddingTop(10).Column(presColumn =>
                     {
@@ -434,6 +428,25 @@ public class AtaPdfService : IAtaPdfService
         }
         
         return $"{firstName} {lastName}".Trim();
+    }
+
+    /// <summary>
+    /// Gets formatted participant names from MeetingParticipation list based on attendance status
+    /// </summary>
+    private static List<string> GetFormattedParticipants(IEnumerable<MeetingParticipation>? participations, bool willAttend)
+    {
+        if (participations == null)
+            return new List<string>();
+
+        var result = new List<string>();
+        foreach (var participation in participations)
+        {
+            if (participation.WillAttend == willAttend && participation.User != null)
+            {
+                result.Add(FormatUserName(participation.User));
+            }
+        }
+        return result;
     }
 
 }
