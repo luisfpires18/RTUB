@@ -66,6 +66,31 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
         if (string.IsNullOrEmpty(ata.SecondSecretaryUserId))
             ata.SecondSecretaryUserId = null;
+        
+        // Clear navigation properties to prevent EF from traversing and causing FK/tracking conflicts
+        // We only want to save the scalar properties and foreign key IDs
+        ata.Meeting = null!;
+        ata.PresidentUser = null!;
+        ata.FirstSecretaryUser = null!;
+        ata.SecondSecretaryUser = null;
+        
+        // Handle agenda points separately - clear their navigation back to the ata
+        if (ata.AgendaPoints != null)
+        {
+            foreach (var point in ata.AgendaPoints)
+            {
+                point.MeetingAta = null!;
+            }
+        }
+        
+        // Handle attachments separately - clear their navigation back to the ata
+        if (ata.Attachments != null)
+        {
+            foreach (var attachment in ata.Attachments)
+            {
+                attachment.MeetingAta = null!;
+            }
+        }
             
         context.MeetingAtas.Add(ata);
         await context.SaveChangesAsync();
@@ -116,6 +141,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
             {
                 point.Id = 0; // Reset ID for new insert
                 point.MeetingAtaId = existingAta.Id;
+                point.MeetingAta = null!; // Clear navigation property to prevent EF tracking conflicts
                 context.MeetingAtaAgendaPoints.Add(point);
             }
         }
