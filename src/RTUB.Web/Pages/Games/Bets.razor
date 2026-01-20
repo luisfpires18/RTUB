@@ -415,10 +415,9 @@
             </p>
             @if (selectedBetForPush != null)
             {
-                <div class="alert alert-info">
-                    <strong>Aposta:</strong> @selectedBetForPush.Title<br/>
-                    <strong>Data:</strong> @selectedBetForPush.DateTime.ToString("dd/MM/yyyy HH:mm")
-                </div>
+                <EmptyState Title="Aposta selecionada"
+                            Message="@($"Aposta: {selectedBetForPush.Title} • Data: {selectedBetForPush.DateTime:dd/MM/yyyy HH:mm}")"
+                            Icon="bi-megaphone" />
             }
         </div>
     </BodyContent>
@@ -621,120 +620,114 @@
             }
 
             <!-- Comments Section -->
-            <div class="modal-info-section">
-                <div class="modal-section-header">
-                    <h6 class="modal-section-title">
-                        <i class="bi bi-chat-left-text me-2 text-primary"></i>
-                        Comentários
-                    </h6>
-                </div>
-                <div class="modal-section-body">
-                    @if (currentUser != null)
-                    {
-                        <!-- Add Comment Form -->
-                        <div class="add-comment-form mb-3">
-                            <textarea class="form-control mb-3" 
-                                      rows="3" 
-                                      placeholder="Escrever um comentário..."
-                                      maxlength="1000"
-                                      @bind="newCommentText"></textarea>
-                            
-                            <!-- Media Upload -->
-                            <div class="mb-3">
-                                <MediaUploadManager @ref="commentMediaUploadManager"
-                                                   Label=""
-                                                   ShowCurrentMedia="false"
-                                                   OnFileSelected="HandleCommentMediaSelected" />
-                            </div>
-                            
-                            @if (selectedCommentMediaFile != null)
-                            {
-                                <small class="form-text text-muted d-block mb-2">
-                                    Ficheiro selecionado: @selectedCommentMediaFile.Name
-                                </small>
-                            }
-                            
-                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-                                <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
-                                <button class="btn btn-primary btn-sm" 
-                                        @onclick="AddComment"
-                                        disabled="@((string.IsNullOrWhiteSpace(newCommentText) && selectedCommentMediaFile == null) || isAddingComment)">
-                                    @if (isAddingComment)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1"></span>
-                                    }
-                                    Publicar
-                                </button>
-                            </div>
+            <InfoSection SectionTitle="Comentários"
+                        IconClass="bi-chat-left-text"
+                        CssClass="mb-3">
+                @if (currentUser != null)
+                {
+                    <!-- Add Comment Form -->
+                    <div class="add-comment-form mb-3">
+                        <textarea class="form-control mb-3" 
+                                  rows="3" 
+                                  placeholder="Escrever um comentário..."
+                                  maxlength="1000"
+                                  @bind="newCommentText"></textarea>
+                        
+                        <!-- Media Upload -->
+                        <div class="mb-3">
+                            <MediaUploadManager @ref="commentMediaUploadManager"
+                                               Label=""
+                                               ShowCurrentMedia="false"
+                                               OnFileSelected="HandleCommentMediaSelected" />
                         </div>
-                    }
-                    
-                    <!-- Comments List -->
-                    @if (betComments == null)
-                    {
-                        <div class="text-center py-3">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">A carregar comentários...</span>
-                            </div>
+                        
+                        @if (selectedCommentMediaFile != null)
+                        {
+                            <small class="form-text text-muted d-block mb-2">
+                                Ficheiro selecionado: @selectedCommentMediaFile.Name
+                            </small>
+                        }
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                            <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
+                            <button class="btn btn-primary btn-sm" 
+                                    @onclick="AddComment"
+                                    disabled="@((string.IsNullOrWhiteSpace(newCommentText) && selectedCommentMediaFile == null) || isAddingComment)">
+                                @if (isAddingComment)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Publicar
+                            </button>
                         </div>
-                    }
-                    else if (!betComments.Any())
-                    {
-                        <EmptyState Title="Ainda não há comentários"
-                                    Message="Seja o primeiro a comentar!"
-                                    Icon="bi-chat-dots" />
-                    }
-                    else
-                    {
-                        <div class="comments-list">
-                            @foreach (var comment in betComments)
-                            {
-                                <div class="leaderboard-comment-item mb-3">
-                                    <div class="comment-header d-flex justify-content-between align-items-start mb-2">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
-                                                 alt="@comment.AuthorName" 
-                                                 class="comment-avatar me-2" 
-                                                 style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
-                                            <div class="comment-meta">
-                                                <span class="comment-author fw-bold">@comment.AuthorName</span>
-                                                <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
-                                            </div>
+                    </div>
+                }
+                
+                <!-- Comments List -->
+                @if (betComments == null)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">A carregar comentários...</span>
+                        </div>
+                    </div>
+                }
+                else if (!betComments.Any())
+                {
+                    <EmptyState Title="Ainda não há comentários"
+                                Message="Seja o primeiro a comentar!"
+                                Icon="bi-chat-dots" />
+                }
+                else
+                {
+                    <div class="comments-list">
+                        @foreach (var comment in betComments)
+                        {
+                            <div class="leaderboard-comment-item mb-3">
+                                <div class="comment-header d-flex justify-content-between align-items-start mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
+                                             alt="@comment.AuthorName" 
+                                             class="comment-avatar me-2" 
+                                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                        <div class="comment-meta">
+                                            <span class="comment-author fw-bold">@comment.AuthorName</span>
+                                            <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
                                         </div>
-                                        @if (comment.CanDelete)
-                                        {
-                                            <button class="btn btn-sm music-btn-delete" 
-                                                    @onclick="() => OpenDeleteCommentModal(comment.Id)"
-                                                    title="Eliminar">
-                                                <i class="bi bi-trash music-icon-delete"></i>
-                                            </button>
-                                        }
                                     </div>
-                                    <div class="comment-body mb-2" style="white-space: pre-line;">
-                                        @comment.Text
-                                    </div>
-                                    @if (!string.IsNullOrEmpty(comment.MediaUrl))
+                                    @if (comment.CanDelete)
                                     {
-                                        <div class="comment-media mt-2">
-                                            @if (comment.MediaType == "image")
-                                            {
-                                                <img src="@comment.MediaUrl" alt="Imagem" class="img-fluid rounded" style="max-height: 300px;" />
-                                            }
-                                            else if (comment.MediaType == "video")
-                                            {
-                                                <video controls class="w-100 rounded" style="max-height: 300px;">
-                                                    <source src="@comment.MediaUrl" type="video/mp4" />
-                                                    O seu navegador não suporta vídeo.
-                                                </video>
-                                            }
-                                        </div>
+                                        <button class="btn btn-sm music-btn-delete comment-delete-btn" 
+                                                @onclick="() => OpenDeleteCommentModal(comment.Id)"
+                                                title="Eliminar">
+                                            <i class="bi bi-trash music-icon-delete"></i>
+                                        </button>
                                     }
                                 </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
+                                <div class="comment-body mb-2" style="white-space: pre-line;">
+                                    @comment.Text
+                                </div>
+                                @if (!string.IsNullOrEmpty(comment.MediaUrl))
+                                {
+                                    <div class="comment-media mt-2">
+                                        @if (comment.MediaType == "image")
+                                        {
+                                            <img src="@comment.MediaUrl" alt="Imagem" class="img-fluid rounded" style="max-height: 300px;" />
+                                        }
+                                        else if (comment.MediaType == "video")
+                                        {
+                                            <video controls class="w-100 rounded" style="max-height: 300px;">
+                                                <source src="@comment.MediaUrl" type="video/mp4" />
+                                                O seu navegador não suporta vídeo.
+                                            </video>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </InfoSection>
         }
     </Sections>
 </DetailsModal>

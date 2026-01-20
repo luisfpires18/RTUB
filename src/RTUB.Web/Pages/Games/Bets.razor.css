@@ -117,27 +117,6 @@
 }
 
 /* Comments section styling (matching Leaderboard) */
-.modal-info-section {
-    margin-bottom: 1.5rem;
-}
-
-.modal-section-header {
-    padding-bottom: 0.75rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-section-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--bs-body-color);
-}
-
-.modal-section-body {
-    padding: 0;
-}
-
 .add-comment-form textarea {
     background-color: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
@@ -168,6 +147,7 @@
 }
 
 .leaderboard-comment-item {
+    position: relative;
     padding: 1rem;
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.03);
@@ -177,6 +157,7 @@
 .comment-header {
     display: flex;
     align-items: center;
+    padding-right: 2.5rem;
 }
 
 .comment-avatar {
@@ -214,6 +195,12 @@
 
 .comment-media video {
     max-height: 300px;
+}
+
+.comment-delete-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
 }
 
 /* File picker styling */
