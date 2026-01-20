@@ -1189,20 +1189,24 @@ else
                 </div>
             }
             
-            <div class="row">
-                <!-- Left Column: Meeting Info & Basic Fields -->
-                <div class="col-md-6">
-                    <div class="card mb-3">
-                        <div class="card-header text-white" style="background-color: #7b2d8e;">
-                            <i class="bi bi-info-circle me-2"></i>Informações da Reunião
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-1"><strong>Tipo:</strong> @GetMeetingTypeFullName(ataMeeting.Type)</p>
-                            <p class="mb-1"><strong>Título:</strong> @ataMeeting.Title</p>
-                            <p class="mb-1"><strong>Data Agendada:</strong> @ataMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
-                        </div>
-                    </div>
-                    
+            <!-- Informações da Reunião -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-info-circle me-2"></i>Informações da Reunião
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Tipo:</strong> @GetMeetingTypeFullName(ataMeeting.Type)</p>
+                    <p class="mb-1"><strong>Título:</strong> @ataMeeting.Title</p>
+                    <p class="mb-1"><strong>Data Agendada:</strong> @ataMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+            </div>
+            
+            <!-- Dados da Ata -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-file-earmark-text me-2"></i>Dados da Ata
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Número da Ata</label>
                         <input type="text" class="form-control" @bind="editingAta.AtaNumber" placeholder="Ex: ATA CV 01/2025" />
@@ -1235,197 +1239,201 @@ else
                         </div>
                     }
                 </div>
-                
-                <!-- Right Column: Officials & Closing -->
-                <div class="col-md-6">
-                    <div class="card mb-3">
-                        @if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
-                        {
-                            <div class="card-header text-white" style="background-color: #7b2d8e;">
-                                <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
-                                    <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Secretário <span class="text-danger">*</span></label>
-                                    @if (ataParticipants != null && ataParticipants.Any())
-                                    {
-                                        <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
-                                            <option value="">-- Selecionar membro inscrito --</option>
-                                            @foreach (var participant in ataParticipants.Where(p => p.User != null))
-                                            {
-                                                <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
-                                            }
-                                        </select>
-                                        <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
-                                    }
-                                    else
-                                    {
-                                        <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
-                                        <small class="text-danger">Não existem membros inscritos para selecionar</small>
-                                    }
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="card-header text-white" style="background-color: #7b2d8e;">
-                                <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
-                                    <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataFirstSecretaryAG?.Nickname ?? ataFirstSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
-                                    <small class="text-muted">Membro com o cargo de 1.º Secretário da Mesa da Assembleia</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataSecondSecretaryAG?.Nickname ?? ataSecondSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
-                                    <small class="text-muted">Membro com o cargo de 2.º Secretário da Mesa da Assembleia</small>
-                                </div>
-                            </div>
-                        }
+            </div>
+            
+            <!-- Constituição e Secretariado -->
+            <div class="card mb-3">
+                @if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
+                {
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
                     </div>
-                    
-                    <!-- Presenças Section -->
-                    <div class="card mb-3">
-                        <div class="card-header text-white" style="background-color: #7b2d8e;">
-                            <i class="bi bi-person-check me-2"></i>Presenças
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
                         </div>
-                        <div class="card-body">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Secretário <span class="text-danger">*</span></label>
                             @if (ataParticipants != null && ataParticipants.Any())
                             {
-                                <p class="mb-2"><strong>Membros presentes (@ataParticipants.Count):</strong></p>
-                                <div class="d-flex flex-wrap gap-2">
+                                <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
+                                    <option value="">-- Selecionar membro inscrito --</option>
                                     @foreach (var participant in ataParticipants.Where(p => p.User != null))
                                     {
-                                        var user = participant.User!;
-                                        var displayName = !string.IsNullOrEmpty(user.Nickname)
-                                            ? $"{user.FirstName} \"{user.Nickname}\" {user.LastName}"
-                                            : $"{user.FirstName} {user.LastName}";
-                                        <span class="badge bg-success">@displayName</span>
+                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
                                     }
-                                </div>
+                                </select>
+                                <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
                             }
                             else
                             {
-                                <p class="text-muted mb-0">Nenhum membro inscrito para esta reunião.</p>
+                                <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
+                                <small class="text-danger">Não existem membros inscritos para selecionar</small>
                             }
                         </div>
                     </div>
-                    
-                    <!-- Ordem de trabalhos Section -->
-                    <div class="card mb-3">
-                        <div class="card-header text-white" style="background-color: #7b2d8e;">
-                            <i class="bi bi-list-ol me-2"></i>Ordem de Trabalhos
+                }
+                else
+                {
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
                         </div>
-                        <div class="card-body">
-                            @if (editingAta?.AgendaPoints != null && editingAta.AgendaPoints.Any())
+                        
+                        <div class="mb-3">
+                            <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataFirstSecretaryAG?.Nickname ?? ataFirstSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de 1.º Secretário da Mesa da Assembleia</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataSecondSecretaryAG?.Nickname ?? ataSecondSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de 2.º Secretário da Mesa da Assembleia</small>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <!-- Presenças Section -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-person-check me-2"></i>Presenças
+                </div>
+                <div class="card-body">
+                    @if (ataParticipants != null && ataParticipants.Any())
+                    {
+                        <p class="mb-2"><strong>Membros presentes (@ataParticipants.Count):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var participant in ataParticipants.Where(p => p.User != null))
                             {
-                                @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
-                                {
-                                    <div class="card mb-2">
-                                        <div class="card-body p-2">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <strong>@point.PointNumber. @point.Title</strong>
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAgendaPoint(point)">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                            <div class="mt-2">
-                                                <label class="form-label small">Discussão/Desenvolvimento:</label>
-                                                <textarea class="form-control form-control-sm" rows="2" @bind="point.DiscussionSummary" 
-                                                          placeholder="Resumo da discussão sobre este ponto..."></textarea>
-                                            </div>
-                                            <div class="mt-2">
-                                                <label class="form-label small">Deliberação/Decisão:</label>
-                                                <textarea class="form-control form-control-sm" rows="2" @bind="point.DecisionText" 
-                                                          placeholder="Decisão tomada ou proposta submetida..."></textarea>
-                                            </div>
-                                            <div class="row mt-2">
-                                                <div class="col-3">
-                                                    <label class="form-label small">A favor:</label>
-                                                    <input type="number" class="form-control form-control-sm" @bind="point.VotesFor" min="0" />
-                                                </div>
-                                                <div class="col-3">
-                                                    <label class="form-label small">Contra:</label>
-                                                    <input type="number" class="form-control form-control-sm" @bind="point.VotesAgainst" min="0" />
-                                                </div>
-                                                <div class="col-3">
-                                                    <label class="form-label small">Abstenções:</label>
-                                                    <input type="number" class="form-control form-control-sm" @bind="point.VotesAbstain" min="0" />
-                                                </div>
-                                                <div class="col-3">
-                                                    <label class="form-label small">Resultado:</label>
-                                                    <select class="form-select form-select-sm" @bind="point.VoteResult">
-                                                        <option value="">--</option>
-                                                        <option value="Aprovado">Aprovado</option>
-                                                        <option value="Rejeitado">Rejeitado</option>
-                                                    </select>
-                                                </div>
-                                            </div>
+                                var user = participant.User!;
+                                var displayName = !string.IsNullOrEmpty(user.Nickname)
+                                    ? $"{user.FirstName} \"{user.Nickname}\" {user.LastName}"
+                                    : $"{user.FirstName} {user.LastName}";
+                                <span class="badge bg-success">@displayName</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Nenhum membro inscrito para esta reunião.</p>
+                    }
+                </div>
+            </div>
+            
+            <!-- Ordem de trabalhos Section -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-list-ol me-2"></i>Ordem de Trabalhos
+                </div>
+                <div class="card-body">
+                    @if (editingAta?.AgendaPoints != null && editingAta.AgendaPoints.Any())
+                    {
+                        @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
+                        {
+                            <div class="card mb-2">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>@point.PointNumber. @point.Title</strong>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAgendaPoint(point)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label small">Discussão/Desenvolvimento:</label>
+                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DiscussionSummary" 
+                                                  placeholder="Resumo da discussão sobre este ponto..."></textarea>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label small">Deliberação/Decisão:</label>
+                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DecisionText" 
+                                                  placeholder="Decisão tomada ou proposta submetida..."></textarea>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-3">
+                                            <label class="form-label small">A favor:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesFor" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Contra:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAgainst" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Abstenções:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAbstain" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Resultado:</label>
+                                            <select class="form-select form-select-sm" @bind="point.VoteResult">
+                                                <option value="">--</option>
+                                                <option value="Aprovado">Aprovado</option>
+                                                <option value="Rejeitado">Rejeitado</option>
+                                            </select>
                                         </div>
                                     </div>
-                                }
-                            }
-                            else
-                            {
-                                <p class="text-muted mb-2">Nenhum ponto adicionado ainda.</p>
-                            }
-                            <div class="input-group mt-2">
-                                <input type="text" class="form-control" @bind="newAgendaPointTitle" 
-                                       placeholder="Título do novo ponto de ordem de trabalhos..." />
-                                <button class="btn btn-outline-primary" type="button" @onclick="AddAgendaPoint">
-                                    <i class="bi bi-plus-lg me-1"></i>Adicionar
-                                </button>
+                                </div>
                             </div>
-                        </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-2">Nenhum ponto adicionado ainda.</p>
+                    }
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" @bind="newAgendaPointTitle" 
+                               placeholder="Título do novo ponto de ordem de trabalhos..." />
+                        <button class="btn btn-outline-primary" type="button" @onclick="AddAgendaPoint">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar
+                        </button>
                     </div>
-                    
+                </div>
+            </div>
+            
+            <!-- Encerramento -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-door-closed me-2"></i>Encerramento
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Texto de Encerramento</label>
                         <textarea class="form-control" rows="4" @bind="editingAta!.ClosingText" 
                                   placeholder="Ex: A reunião foi encerrada às XX horas, tendo sido lavrada a presente ata..."></textarea>
                     </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-file-earmark-text me-2"></i>Estado
-                        </div>
-                        <div class="card-body">
-                            <span class="badge @(editingAta.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
-                                @(editingAta.Status == MeetingAtaStatus.Published ? "Publicada" : "Rascunho")
-                            </span>
-                            @if (editingAta.GeneratedAt.HasValue)
-                            {
-                                <p class="mt-2 mb-0 small text-muted">
-                                    <i class="bi bi-clock me-1"></i>
-                                    Último PDF gerado: @editingAta.GeneratedAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                </p>
-                            }
-                        </div>
-                    </div>
+                </div>
+            </div>
+            
+            <!-- Estado -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-file-earmark-text me-2"></i>Estado
+                </div>
+                <div class="card-body">
+                    <span class="badge @(editingAta.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
+                        @(editingAta.Status == MeetingAtaStatus.Published ? "Publicada" : "Rascunho")
+                    </span>
+                    @if (editingAta.GeneratedAt.HasValue)
+                    {
+                        <p class="mt-2 mb-0 small text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            Último PDF gerado: @editingAta.GeneratedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    }
                 </div>
             </div>
         }
     </BodyContent>
     <FooterContent>
         <div class="d-flex gap-2 w-100 justify-content-between">
-            <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
-                <i class="bi bi-x-lg me-1"></i>Fechar
-            </button>
             <div class="d-flex gap-2">
                 <button class="btn btn-primary" @onclick="SaveAta" disabled="@isAtaLoading">
                     <i class="bi bi-save me-1"></i>Guardar Ata
@@ -1434,6 +1442,9 @@ else
                     <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
                 </button>
             </div>
+            <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
+                <i class="bi bi-x-lg me-1"></i>Fechar
+            </button>
         </div>
     </FooterContent>
 </Modal>

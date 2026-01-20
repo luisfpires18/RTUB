@@ -67,15 +67,21 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task UpdateAsync(MeetingAta ata)
     {
-        // First, detach any already-tracked MeetingAta with the same ID to avoid conflicts
-        var trackedEntity = _context.ChangeTracker.Entries<MeetingAta>()
-            .FirstOrDefault(e => e.Entity.Id == ata.Id);
-        if (trackedEntity != null)
+        // First, detach ALL already-tracked MeetingAta entities to avoid conflicts
+        var trackedEntities = _context.ChangeTracker.Entries<MeetingAta>().ToList();
+        foreach (var entry in trackedEntities)
         {
-            trackedEntity.State = EntityState.Detached;
+            entry.State = EntityState.Detached;
         }
         
-        // Fetch the existing entity with its agenda points
+        // Also detach tracked AgendaPoints
+        var trackedAgendaPoints = _context.ChangeTracker.Entries<MeetingAtaAgendaPoint>().ToList();
+        foreach (var entry in trackedAgendaPoints)
+        {
+            entry.State = EntityState.Detached;
+        }
+        
+        // Fetch the existing entity with its agenda points using a fresh query
         var existingAta = await _context.MeetingAtas
             .Include(a => a.AgendaPoints)
             .FirstOrDefaultAsync(a => a.Id == ata.Id);
@@ -121,8 +127,18 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
         await _context.SaveChangesAsync();
         
-        // Detach the entity after save to avoid tracking conflicts on subsequent operations
-        _context.Entry(existingAta).State = EntityState.Detached;
+        // Detach ALL entities after save to avoid tracking conflicts on subsequent operations
+        var allTrackedAtas = _context.ChangeTracker.Entries<MeetingAta>().ToList();
+        foreach (var entry in allTrackedAtas)
+        {
+            entry.State = EntityState.Detached;
+        }
+        
+        var allTrackedPoints = _context.ChangeTracker.Entries<MeetingAtaAgendaPoint>().ToList();
+        foreach (var entry in allTrackedPoints)
+        {
+            entry.State = EntityState.Detached;
+        }
     }
 
     public async Task DeleteAsync(int id)
