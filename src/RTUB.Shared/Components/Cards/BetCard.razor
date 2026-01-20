@@ -85,6 +85,18 @@
                     </button>
                 </div>
             }
+            
+            @* Push notification button in bottom-right corner for future bets *@
+            @if (!IsPastBet && !Bet.IsCancelled)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <button class="btn btn-sm btn-admin-notification" 
+                            @onclick="OnSendPushNotification" 
+                            title="Notificar por push">
+                        <i class="bi bi-bell-fill"></i>
+                    </button>
+                </div>
+            }
         }
     </div>
     <div class="card-body d-flex flex-column p-3">
@@ -296,6 +308,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnResolve { get; set; }
+
+    /// <summary>
+    /// Callback when the push notification button is clicked (admin only)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendPushNotification { get; set; }
 
     /// <summary>
     /// Callback when the place bet button is clicked
