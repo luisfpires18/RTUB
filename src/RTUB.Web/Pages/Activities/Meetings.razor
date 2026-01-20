@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
 @using RTUB.Application.DTOs
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
@@ -22,6 +23,8 @@
 @inject IPushNotificationFactory PushNotificationFactory
 @inject IPushNotificationService PushNotificationService
 @inject IMeetingAtaService MeetingAtaService
+@inject IAtaPdfService AtaPdfService
+@inject IJSRuntime JSRuntime
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -1162,6 +1165,142 @@ else
                OnConfirm="RemoveParticipation"
                OnCancel="CloseRemoveParticipationModal" />
 
+<!-- Meeting Ata Modal -->
+<Modal Show="@showAtaModal" 
+       ShowChanged="@((bool show) => showAtaModal = show)"
+       Size="Modal.ModalSize.ExtraLarge"
+       Title="@(editingAta?.Id > 0 ? "Editar Ata" : "Criar Ata")">
+    <BodyContent>
+        @if (isAtaLoading)
+        {
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-2 text-light-theme">A carregar dados da ata...</p>
+            </div>
+        }
+        else if (editingAta != null && ataMeeting != null)
+        {
+            @if (!string.IsNullOrEmpty(ataErrorMessage))
+            {
+                <div class="alert alert-danger mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@ataErrorMessage
+                </div>
+            }
+            
+            <div class="row">
+                <!-- Left Column: Meeting Info & Basic Fields -->
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-info-circle me-2"></i>Informações da Reunião
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Tipo:</strong> @GetMeetingTypeFullName(ataMeeting.Type)</p>
+                            <p class="mb-1"><strong>Título:</strong> @ataMeeting.Title</p>
+                            <p class="mb-1"><strong>Data Agendada:</strong> @ataMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Número da Ata</label>
+                        <input type="text" class="form-control" @bind="editingAta.AtaNumber" placeholder="Ex: ATA CV 01/2025" />
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Início Efetiva <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" @bind="editingAta.ActualStartTime" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Término</label>
+                            <input type="datetime-local" class="form-control" @bind="editingAta.ActualEndTime" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Local <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="editingAta.Location" />
+                    </div>
+                    
+                    @if (ataMeeting.Type == MeetingType.AssembleiaGeralOrdinaria || ataMeeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Base do Quórum</label>
+                            <select class="form-select" @bind="editingAta.QuorumBasis">
+                                <option value="HoraAgendada">Iniciada à hora agendada</option>
+                                <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
+                            </select>
+                        </div>
+                    }
+                </div>
+                
+                <!-- Right Column: Officials & Closing -->
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header bg-secondary text-white">
+                            <i class="bi bi-people me-2"></i>Mesa da Reunião
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Presidente <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">1º Secretário <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
+                                <small class="text-muted">Será possível selecionar outros membros em versão futura</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Texto de Encerramento</label>
+                        <textarea class="form-control" rows="4" @bind="editingAta.ClosingText" 
+                                  placeholder="Ex: A reunião foi encerrada às XX horas, tendo sido lavrada a presente ata..."></textarea>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-file-earmark-text me-2"></i>Estado
+                        </div>
+                        <div class="card-body">
+                            <span class="badge @(editingAta.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
+                                @(editingAta.Status == MeetingAtaStatus.Published ? "Publicada" : "Rascunho")
+                            </span>
+                            @if (editingAta.GeneratedAt.HasValue)
+                            {
+                                <p class="mt-2 mb-0 small text-muted">
+                                    <i class="bi bi-clock me-1"></i>
+                                    Último PDF gerado: @editingAta.GeneratedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <div class="d-flex gap-2 w-100 justify-content-between">
+            <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
+                <i class="bi bi-x-lg me-1"></i>Fechar
+            </button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="SaveAta" disabled="@isAtaLoading">
+                    <i class="bi bi-save me-1"></i>Guardar Ata
+                </button>
+                <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
+                </button>
+            </div>
+        </div>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Meeting> meetings = new();
     private List<Meeting> upcomingMeetings = new();
@@ -1195,6 +1334,13 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
+    
+    // Ata modal variables
+    private bool showAtaModal = false;
+    private Meeting? ataMeeting;
+    private MeetingAta? editingAta;
+    private bool isAtaLoading = false;
+    private string? ataErrorMessage;
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -2491,11 +2637,149 @@ else
         return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions);
     }
     
-    private void OpenAtaModal(Meeting meeting)
+    private async Task OpenAtaModal(Meeting meeting)
     {
-        // TODO: Implement Ata modal
-        // For now, just log that the button was clicked
-        Logger.LogInformation("Ata button clicked for meeting {MeetingId}", meeting.Id);
+        ataMeeting = meeting;
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        showAtaModal = true;
+        
+        try
+        {
+            // Check if an ata already exists for this meeting
+            var existingAta = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
+            
+            if (existingAta != null)
+            {
+                // Load existing ata with details
+                editingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
+            }
+            else
+            {
+                // Create new ata with default values from meeting
+                editingAta = new MeetingAta
+                {
+                    MeetingId = meeting.Id,
+                    Meeting = meeting,
+                    ActualStartTime = meeting.Date,
+                    Location = meeting.Location ?? string.Empty,
+                    PresidentUserId = currentUserId,
+                    FirstSecretaryUserId = currentUserId,
+                    QuorumBasis = "HoraAgendada",
+                    AttendeesPresent = "[]",
+                    AttendeesAbsent = "[]",
+                    Status = MeetingAtaStatus.Draft,
+                    AgendaPoints = new List<MeetingAtaAgendaPoint>(),
+                    Attachments = new List<MeetingAtaAttachment>()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading ata for meeting {MeetingId}", meeting.Id);
+            ataErrorMessage = "Erro ao carregar a ata. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseAtaModal()
+    {
+        showAtaModal = false;
+        ataMeeting = null;
+        editingAta = null;
+        ataErrorMessage = null;
+    }
+    
+    private async Task SaveAta()
+    {
+        if (editingAta == null || ataMeeting == null) return;
+        
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        
+        try
+        {
+            if (editingAta.Id == 0)
+            {
+                // Create new ata
+                await MeetingAtaService.CreateAtaAsync(editingAta);
+                Logger.LogInformation("Ata created for meeting {MeetingId}", ataMeeting.Id);
+            }
+            else
+            {
+                // Update existing ata
+                await MeetingAtaService.UpdateAtaAsync(editingAta);
+                Logger.LogInformation("Ata updated for meeting {MeetingId}", ataMeeting.Id);
+            }
+            
+            CloseAtaModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving ata for meeting {MeetingId}", ataMeeting.Id);
+            ataErrorMessage = "Erro ao guardar a ata. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task GenerateAtaPdf()
+    {
+        if (editingAta == null || ataMeeting == null) return;
+        
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        
+        try
+        {
+            // First save any changes
+            if (editingAta.Id == 0)
+            {
+                editingAta = await MeetingAtaService.CreateAtaAsync(editingAta);
+            }
+            else
+            {
+                await MeetingAtaService.UpdateAtaAsync(editingAta);
+            }
+            
+            // Load ata with all details for PDF
+            var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(editingAta.Id);
+            if (ataWithDetails == null)
+            {
+                ataErrorMessage = "Erro ao carregar dados da ata para gerar PDF.";
+                return;
+            }
+            
+            // Ensure Meeting is loaded
+            ataWithDetails.Meeting = ataMeeting;
+            
+            // Generate PDF
+            var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
+            
+            // Download file via JS
+            var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+            
+            Logger.LogInformation("PDF generated for ata of meeting {MeetingId}", ataMeeting.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating PDF for meeting {MeetingId}", ataMeeting.Id);
+            ataErrorMessage = "Erro ao gerar PDF. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
     }
     
     // ========== Meeting Request Methods ==========
