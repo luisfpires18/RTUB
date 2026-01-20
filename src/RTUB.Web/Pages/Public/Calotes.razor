@@ -67,6 +67,14 @@
     }
 </div>
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => errorMessage = "")"></button>
+    </div>
+}
+
 @if (!fiscalYears.Any())
 {
     <EmptyState Title="Nenhum ano letivo ainda"
@@ -658,10 +666,12 @@ else
             await LoadCalotes();
             CloseDeleteConfirmation();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Handle error silently for now
-            CloseDeleteConfirmation();
+            // Show error message to user
+            errorMessage = $"Erro ao remover calote: {ex.Message}";
+            showDeleteConfirmation = false;
+            deletingDebt = null;
         }
     }
     
