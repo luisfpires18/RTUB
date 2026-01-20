@@ -118,10 +118,10 @@
         }
 
         @* Display bet options with odds *@
-        @if (BetOptions != null && BetOptions.Any())
+        @if (betOptionsList.Any())
         {
             <div class="bet-options-preview mb-2">
-                @foreach (var option in BetOptions.Take(showAllOptions ? BetOptions.Count() : 3))
+                @foreach (var option in betOptionsList.Take(showAllOptions ? betOptionsList.Count : 3))
                 {
                     var isWinningOption = Bet.WinningOptionId.HasValue && Bet.WinningOptionId.Value == option.Id;
                     var isUserOption = UserBet?.BetOptionId == option.Id;
@@ -140,14 +140,14 @@
                         }
                     </div>
                 }
-                @if (BetOptions.Count() > 3)
+                @if (betOptionsList.Count > 3)
                 {
                     <button type="button"
                             class="bet-option-more bet-option-more-button text-muted @(showAllOptions ? "expanded" : "")"
                             @onclick="ToggleOptions"
                             title="@(showAllOptions ? "Mostrar menos opções" : "Ver todas as opções")"
                             aria-expanded="@showAllOptions">
-                        <small>@(showAllOptions ? "Mostrar menos" : $"+{BetOptions.Count() - 3} opções...")</small>
+                        <small>@(showAllOptions ? "Mostrar menos" : $"+{betOptionsList.Count - 3} opções...")</small>
                     </button>
                 }
             </div>
@@ -352,9 +352,11 @@
 
     private bool showAllOptions;
     private int? previousBetId;
+    private IReadOnlyList<BetOption> betOptionsList = Array.Empty<BetOption>();
 
     protected override void OnParametersSet()
     {
+        betOptionsList = BetOptions?.ToList() ?? Array.Empty<BetOption>();
         if (Bet?.Id != previousBetId)
         {
             showAllOptions = false;
