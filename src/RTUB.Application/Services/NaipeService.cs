@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
@@ -98,7 +99,9 @@ public class NaipeService : INaipeService
             isVideo ? "Video Created" : "Image Created",
             createdContent.Id,
             createdContent.Title,
-            $"{(isVideo ? "Video" : "Image")} '{createdContent.Title}' created for {type} by {user.Nickname ?? user.UserName}"
+            $"{(isVideo ? "Video" : "Image")} '{createdContent.Title}' created for {type} by {user.Nickname ?? user.UserName}",
+            user.Id,
+            user.UserName
         );
 
         // Send push notification to all subscribed users
@@ -129,7 +132,9 @@ public class NaipeService : INaipeService
             content.IsVideo ? "Video Modified" : "Image Modified",
             content.Id,
             content.Title,
-            $"{(content.IsVideo ? "Video" : "Image")} '{content.Title}' for {content.InstrumentType} modified by {user?.Nickname ?? user?.UserName ?? "Unknown"}"
+            $"{(content.IsVideo ? "Video" : "Image")} '{content.Title}' for {content.InstrumentType} modified by {user?.Nickname ?? user?.UserName ?? "Unknown"}",
+            user?.Id,
+            user?.UserName
         );
     }
 
@@ -162,6 +167,8 @@ public class NaipeService : INaipeService
             id,
             contentTitle,
             $"{contentType} '{contentTitle}' for {instrumentType} deleted by {user?.Nickname ?? user?.UserName ?? "Unknown"}",
+            user?.Id,
+            user?.UserName,
             isCritical: true
         );
     }
@@ -190,7 +197,9 @@ public class NaipeService : INaipeService
                 content.IsVideo ? "Video Played" : "Image Viewed",
                 content.Id,
                 content.Title,
-                $"{(content.IsVideo ? "Video" : "Image")} '{content.Title}' for {content.InstrumentType} {(content.IsVideo ? "played" : "viewed")} by {user?.Nickname ?? user?.UserName ?? "Unknown"}"
+                $"{(content.IsVideo ? "Video" : "Image")} '{content.Title}' for {content.InstrumentType} {(content.IsVideo ? "played" : "viewed")} by {user?.Nickname ?? user?.UserName ?? "Unknown"}",
+                user?.Id,
+                user?.UserName
             );
         }
     }
@@ -309,17 +318,37 @@ public class NaipeService : INaipeService
         };
     }
 
-    private async Task CreateAuditLogAsync(string action, int entityId, string entityDisplayName, string changes, bool isCritical = false)
+    private async Task CreateAuditLogAsync(string action, int entityId, string entityDisplayName, string changes, string? userId = null, string? userName = null, bool isCritical = false)
     {
         try
         {
+            var resolvedUserId = userId;
+            var resolvedUserName = userName;
+
+            if (string.IsNullOrWhiteSpace(resolvedUserId))
+            {
+                resolvedUserId = _auditContext.UserId;
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedUserName))
+            {
+                resolvedUserName = _auditContext.UserName;
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedUserId) || string.IsNullOrWhiteSpace(resolvedUserName))
+            {
+                var httpUser = _httpContextAccessor.HttpContext?.User;
+                resolvedUserId ??= httpUser?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                resolvedUserName ??= httpUser?.Identity?.Name ?? httpUser?.FindFirst(ClaimTypes.Name)?.Value;
+            }
+
             _context.AuditLogs.Add(new AuditLog
             {
                 EntityType = "NaipeContent",
                 EntityId = entityId,
                 Action = action,
-                UserId = _auditContext.UserId,
-                UserName = _auditContext.UserName,
+                UserId = resolvedUserId,
+                UserName = resolvedUserName,
                 Timestamp = DateTime.UtcNow,
                 Changes = changes,
                 EntityDisplayName = entityDisplayName,
