@@ -1258,22 +1258,22 @@ else
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Secretário <span class="text-danger">*</span></label>
+                            <label class="form-label">Secretário <span class="text-muted">(Opcional)</span></label>
                             @if (ataParticipants != null && ataParticipants.Any())
                             {
                                 <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
-                                    <option value="">-- Selecionar membro inscrito --</option>
+                                    <option value="">-- Nenhum secretário selecionado --</option>
                                     @foreach (var participant in ataParticipants.Where(p => p.User != null))
                                     {
                                         <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
                                     }
                                 </select>
-                                <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
+                                <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV (opcional)</small>
                             }
                             else
                             {
                                 <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
-                                <small class="text-danger">Não existem membros inscritos para selecionar</small>
+                                <small class="text-muted">Não existem membros inscritos para selecionar</small>
                             }
                         </div>
                     </div>
@@ -1291,15 +1291,51 @@ else
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" value="@(ataFirstSecretaryAG?.Nickname ?? ataFirstSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
-                            <small class="text-muted">Membro com o cargo de 1.º Secretário da Mesa da Assembleia</small>
+                            <label class="form-label">1.º Secretário <span class="text-muted">(Opcional)</span></label>
+                            @if (ataParticipants != null && ataParticipants.Any())
+                            {
+                                <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
+                                    <option value="">-- Nenhum secretário selecionado --</option>
+                                    @if (ataFirstSecretaryAG != null)
+                                    {
+                                        <option value="@ataFirstSecretaryAG.Id" selected>@(ataFirstSecretaryAG.Nickname ?? ataFirstSecretaryAG.FirstName) (Cargo atual)</option>
+                                    }
+                                    @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != ataFirstSecretaryAG?.Id))
+                                    {
+                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                    }
+                                </select>
+                                <small class="text-muted">Por defeito usa o membro com cargo de 1.º Secretário da Mesa (opcional)</small>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@(ataFirstSecretaryAG?.Nickname ?? ataFirstSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                                <small class="text-muted">Membro com o cargo de 1.º Secretário da Mesa da Assembleia</small>
+                            }
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" value="@(ataSecondSecretaryAG?.Nickname ?? ataSecondSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
-                            <small class="text-muted">Membro com o cargo de 2.º Secretário da Mesa da Assembleia</small>
+                            <label class="form-label">2.º Secretário <span class="text-muted">(Opcional)</span></label>
+                            @if (ataParticipants != null && ataParticipants.Any())
+                            {
+                                <select class="form-select" @bind="editingAta!.SecondSecretaryUserId">
+                                    <option value="">-- Nenhum secretário selecionado --</option>
+                                    @if (ataSecondSecretaryAG != null)
+                                    {
+                                        <option value="@ataSecondSecretaryAG.Id" selected>@(ataSecondSecretaryAG.Nickname ?? ataSecondSecretaryAG.FirstName) (Cargo atual)</option>
+                                    }
+                                    @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != ataSecondSecretaryAG?.Id))
+                                    {
+                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                    }
+                                </select>
+                                <small class="text-muted">Por defeito usa o membro com cargo de 2.º Secretário da Mesa (opcional)</small>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="@(ataSecondSecretaryAG?.Nickname ?? ataSecondSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                                <small class="text-muted">Membro com o cargo de 2.º Secretário da Mesa da Assembleia</small>
+                            }
                         </div>
                     </div>
                 }
@@ -1509,13 +1545,34 @@ else
                     @if (viewingAta.Meeting?.Type == MeetingType.ConselhoVeteranos)
                     {
                         <p class="mb-1"><strong>Presidente do CV:</strong> @FormatUserNameForView(viewingAta.PresidentUser)</p>
-                        <p class="mb-1"><strong>Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
+                        @if (viewingAta.FirstSecretaryUser != null)
+                        {
+                            <p class="mb-1"><strong>Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
+                        }
+                        else
+                        {
+                            <p class="mb-1 text-muted"><strong>Secretário:</strong> (Não definido)</p>
+                        }
                     }
                     else
                     {
                         <p class="mb-1"><strong>Presidente da Mesa:</strong> @FormatUserNameForView(viewingAta.PresidentUser)</p>
-                        <p class="mb-1"><strong>1.º Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
-                        <p class="mb-1"><strong>2.º Secretário:</strong> @FormatUserNameForView(viewingAta.SecondSecretaryUser)</p>
+                        @if (viewingAta.FirstSecretaryUser != null)
+                        {
+                            <p class="mb-1"><strong>1.º Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
+                        }
+                        else
+                        {
+                            <p class="mb-1 text-muted"><strong>1.º Secretário:</strong> (Não definido)</p>
+                        }
+                        @if (viewingAta.SecondSecretaryUser != null)
+                        {
+                            <p class="mb-1"><strong>2.º Secretário:</strong> @FormatUserNameForView(viewingAta.SecondSecretaryUser)</p>
+                        }
+                        else
+                        {
+                            <p class="mb-1 text-muted"><strong>2.º Secretário:</strong> (Não definido)</p>
+                        }
                     }
                 </div>
             </div>

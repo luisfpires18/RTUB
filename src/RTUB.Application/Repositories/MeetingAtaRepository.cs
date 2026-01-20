@@ -65,7 +65,9 @@ public class MeetingAtaRepository : IMeetingAtaRepository
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
         
-        // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
+        // Convert empty string to null for optional secretary fields to avoid FK constraint violations
+        if (string.IsNullOrEmpty(ata.FirstSecretaryUserId))
+            ata.FirstSecretaryUserId = null;
         if (string.IsNullOrEmpty(ata.SecondSecretaryUserId))
             ata.SecondSecretaryUserId = null;
         
@@ -73,7 +75,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         // We only want to save the scalar properties and foreign key IDs
         ata.Meeting = null!;
         ata.PresidentUser = null!;
-        ata.FirstSecretaryUser = null!;
+        ata.FirstSecretaryUser = null;
         ata.SecondSecretaryUser = null;
         
         // Handle agenda points separately - clear their navigation back to the ata
@@ -116,8 +118,8 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         existingAta.ActualEndTime = ata.ActualEndTime;
         existingAta.Location = ata.Location;
         existingAta.PresidentUserId = ata.PresidentUserId;
-        existingAta.FirstSecretaryUserId = ata.FirstSecretaryUserId;
-        // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
+        // Convert empty string to null for optional secretary fields to avoid FK constraint violations
+        existingAta.FirstSecretaryUserId = string.IsNullOrEmpty(ata.FirstSecretaryUserId) ? null : ata.FirstSecretaryUserId;
         existingAta.SecondSecretaryUserId = string.IsNullOrEmpty(ata.SecondSecretaryUserId) ? null : ata.SecondSecretaryUserId;
         existingAta.QuorumBasis = ata.QuorumBasis;
         existingAta.AttendeesPresent = ata.AttendeesPresent;

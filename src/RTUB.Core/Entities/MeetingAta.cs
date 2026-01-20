@@ -30,10 +30,10 @@ public class MeetingAta : BaseEntity
 
     public ApplicationUser PresidentUser { get; set; } = null!;
 
-    [Required(ErrorMessage = "O primeiro secretário é obrigatório")]
-    public string FirstSecretaryUserId { get; set; } = string.Empty;
+    // First secretary is optional (for CV meetings, user selects from enrolled members; for AG, uses role-based default)
+    public string? FirstSecretaryUserId { get; set; }
 
-    public ApplicationUser FirstSecretaryUser { get; set; } = null!;
+    public ApplicationUser? FirstSecretaryUser { get; set; }
 
     public string? SecondSecretaryUserId { get; set; }
 
