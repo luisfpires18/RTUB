@@ -21,6 +21,7 @@
 @inject IFiscalYearService FiscalYearService
 @inject IPushNotificationFactory PushNotificationFactory
 @inject IPushNotificationService PushNotificationService
+@inject IMeetingAtaService MeetingAtaService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -122,6 +123,7 @@ else
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                CanCreateAta="@CanCreateAtaForMeeting(meeting)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -132,7 +134,8 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))"
+                                OnAta="@(() => OpenAtaModal(meeting))" />
                 }
             </div>
 
@@ -172,6 +175,7 @@ else
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                CanCreateAta="@CanCreateAtaForMeeting(meeting)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -182,7 +186,8 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))"
+                                OnAta="@(() => OpenAtaModal(meeting))" />
                 }
             </div>
 
@@ -2472,6 +2477,25 @@ else
         }
         
         return false;
+    }
+    
+    private bool CanCreateAtaForMeeting(Meeting meeting)
+    {
+        if (currentUser == null) return false;
+        
+        var userRoles = new List<string>();
+        if (isOwner) userRoles.Add("Owner");
+        
+        var userPositions = currentUser.Positions ?? new List<Position>();
+        
+        return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions);
+    }
+    
+    private void OpenAtaModal(Meeting meeting)
+    {
+        // TODO: Implement Ata modal
+        // For now, just log that the button was clicked
+        Logger.LogInformation("Ata button clicked for meeting {MeetingId}", meeting.Id);
     }
     
     // ========== Meeting Request Methods ==========
