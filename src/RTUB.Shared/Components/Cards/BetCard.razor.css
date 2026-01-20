@@ -208,6 +208,11 @@
     transition: color 0.2s ease;
 }
 
+.bet-option-more-button.expanded {
+    color: #ffffff;
+    font-weight: 600;
+}
+
 .bet-option-more-button:hover,
 .bet-option-more-button:focus-visible {
     color: #ffffff;
