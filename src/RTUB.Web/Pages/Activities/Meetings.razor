@@ -1247,7 +1247,7 @@ else
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <input type="text" class="form-control" value="@(editingAta?.PresidentUser?.Nickname ?? editingAta?.PresidentUser?.FirstName ?? ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
                                     <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
                                 </div>
                                 
@@ -1255,7 +1255,7 @@ else
                                     <label class="form-label">Secretário 1 <span class="text-danger">*</span></label>
                                     @if (ataParticipants != null && ataParticipants.Any())
                                     {
-                                        <select class="form-select" @bind="editingAta.FirstSecretaryUserId">
+                                        <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
                                             <option value="">-- Selecionar membro inscrito --</option>
                                             @foreach (var participant in ataParticipants.Where(p => p.User != null))
                                             {
@@ -1275,9 +1275,9 @@ else
                                     <label class="form-label">Secretário 2</label>
                                     @if (ataParticipants != null && ataParticipants.Any())
                                     {
-                                        <select class="form-select" @bind="editingAta.SecondSecretaryUserId">
+                                        <select class="form-select" @bind="editingAta!.SecondSecretaryUserId">
                                             <option value="">-- (Opcional) --</option>
-                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta.FirstSecretaryUserId))
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta!.FirstSecretaryUserId))
                                             {
                                                 <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
                                             }
@@ -1299,7 +1299,7 @@ else
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <input type="text" class="form-control" value="@(editingAta?.PresidentUser?.Nickname ?? editingAta?.PresidentUser?.FirstName ?? ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
                                     <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
                                 </div>
                                 
@@ -1307,7 +1307,7 @@ else
                                     <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
                                     @if (ataParticipants != null && ataParticipants.Any())
                                     {
-                                        <select class="form-select" @bind="editingAta.FirstSecretaryUserId">
+                                        <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
                                             <option value="">-- Selecionar membro inscrito --</option>
                                             @foreach (var participant in ataParticipants.Where(p => p.User != null))
                                             {
@@ -1327,9 +1327,9 @@ else
                                     <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
                                     @if (ataParticipants != null && ataParticipants.Any())
                                     {
-                                        <select class="form-select" @bind="editingAta.SecondSecretaryUserId">
+                                        <select class="form-select" @bind="editingAta!.SecondSecretaryUserId">
                                             <option value="">-- Selecionar membro inscrito --</option>
-                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta.FirstSecretaryUserId))
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta!.FirstSecretaryUserId))
                                             {
                                                 <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
                                             }
@@ -1348,7 +1348,7 @@ else
                     
                     <div class="mb-3">
                         <label class="form-label">Texto de Encerramento</label>
-                        <textarea class="form-control" rows="4" @bind="editingAta.ClosingText" 
+                        <textarea class="form-control" rows="4" @bind="editingAta!.ClosingText" 
                                   placeholder="Ex: A reunião foi encerrada às XX horas, tendo sido lavrada a presente ata..."></textarea>
                     </div>
                     
@@ -2763,6 +2763,13 @@ else
             {
                 // Load existing ata with details
                 editingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
+                
+                // Update PresidentUserId to match current position holder if available
+                // This ensures consistency between display and PDF generation
+                if (editingAta != null && ataPresident != null)
+                {
+                    editingAta.PresidentUserId = ataPresident.Id;
+                }
             }
             else
             {
