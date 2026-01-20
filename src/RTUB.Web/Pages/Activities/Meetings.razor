@@ -3238,8 +3238,12 @@ else
                 return;
             }
             
-            // Ensure Meeting is loaded
-            ataWithDetails.Meeting = ataMeeting;
+            // Meeting is already loaded via GetByIdWithDetailsAsync with Participations
+            // Only set properties if Meeting wasn't loaded for some reason
+            if (ataWithDetails.Meeting == null)
+            {
+                ataWithDetails.Meeting = ataMeeting;
+            }
             
             // Generate PDF
             var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
