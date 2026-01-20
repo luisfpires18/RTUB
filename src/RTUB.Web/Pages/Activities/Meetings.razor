@@ -2657,10 +2657,10 @@ else
             else
             {
                 // Create new ata with default values from meeting
+                // IMPORTANT: Only set foreign key IDs, not navigation properties, to avoid EF tracking issues
                 editingAta = new MeetingAta
                 {
                     MeetingId = meeting.Id,
-                    Meeting = meeting,
                     ActualStartTime = meeting.Date,
                     Location = meeting.Location ?? string.Empty,
                     PresidentUserId = currentUserId,
