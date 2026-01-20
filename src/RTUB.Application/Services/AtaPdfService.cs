@@ -89,7 +89,11 @@ public class AtaPdfService : IAtaPdfService
                         if (ata.Meeting != null)
                         {
                             idColumn.Item().Text($"Órgão: {GetOrganDisplayName(ata.Meeting.Type)}").FontSize(10);
-                            idColumn.Item().Text($"Tipo de reunião: {GetMeetingSubType(ata.Meeting.Type)}").FontSize(10);
+                            // Only show "Tipo de reunião" for AG meetings, not CV
+                            if (isAG)
+                            {
+                                idColumn.Item().Text($"Tipo de reunião: {GetMeetingSubType(ata.Meeting.Type)}").FontSize(10);
+                            }
                         }
                         if (!string.IsNullOrEmpty(ata.AtaNumber))
                         {
@@ -122,15 +126,18 @@ public class AtaPdfService : IAtaPdfService
                         var presidentTitle = isAG ? "Presidente da Mesa" : "Presidente do CV";
                         if (ata.PresidentUser != null)
                         {
-                            mesaColumn.Item().Text($"{presidentTitle}: {ata.PresidentUser.Nickname ?? ata.PresidentUser.FirstName}").FontSize(10);
+                            mesaColumn.Item().Text($"{presidentTitle}: {FormatUserName(ata.PresidentUser)}").FontSize(10);
                         }
                         if (ata.FirstSecretaryUser != null)
                         {
-                            mesaColumn.Item().Text($"1.º Secretário: {ata.FirstSecretaryUser.Nickname ?? ata.FirstSecretaryUser.FirstName}").FontSize(10);
+                            // CV: just "Secretário", AG: "1.º Secretário"
+                            var firstSecLabel = isCV ? "Secretário" : "1.º Secretário";
+                            mesaColumn.Item().Text($"{firstSecLabel}: {FormatUserName(ata.FirstSecretaryUser)}").FontSize(10);
                         }
-                        if (ata.SecondSecretaryUser != null)
+                        // Only show 2.º Secretário for AG meetings
+                        if (isAG && ata.SecondSecretaryUser != null)
                         {
-                            mesaColumn.Item().Text($"2.º Secretário: {ata.SecondSecretaryUser.Nickname ?? ata.SecondSecretaryUser.FirstName}").FontSize(10);
+                            mesaColumn.Item().Text($"2.º Secretário: {FormatUserName(ata.SecondSecretaryUser)}").FontSize(10);
                         }
                     });
 
@@ -275,31 +282,55 @@ public class AtaPdfService : IAtaPdfService
                     // Section: Assinaturas
                     sectionNumber++;
                     column.Item().PaddingTop(20).Text($"{sectionNumber}) Assinaturas").FontSize(14).Bold().FontColor("#6f42c1");
-                    column.Item().PaddingTop(30).Row(row =>
+                    
+                    if (isCV)
                     {
-                        var presidentLabel = isAG ? "O(A) Presidente da Mesa" : "O Presidente do CV";
-                        row.RelativeItem().Column(sigCol =>
+                        // CV: 2 signatures (Presidente do CV + Secretário)
+                        column.Item().PaddingTop(30).Row(row =>
                         {
-                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                            sigCol.Item().Text(presidentLabel).FontSize(9).AlignCenter();
+                            row.RelativeItem().Column(sigCol =>
+                            {
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text("O Presidente do CV").FontSize(9).AlignCenter();
+                            });
+
+                            row.ConstantItem(40);
+
+                            row.RelativeItem().Column(sigCol =>
+                            {
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
+                            });
                         });
-
-                        row.ConstantItem(20);
-
-                        row.RelativeItem().Column(sigCol =>
+                    }
+                    else
+                    {
+                        // AG: 3 signatures (Presidente da Mesa + 1.º Secretário + 2.º Secretário)
+                        column.Item().PaddingTop(30).Row(row =>
                         {
-                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                            sigCol.Item().Text(isAG ? "O(A) 1.º Secretário" : "Secretário 1").FontSize(9).AlignCenter();
-                        });
+                            row.RelativeItem().Column(sigCol =>
+                            {
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text("O(A) Presidente da Mesa").FontSize(9).AlignCenter();
+                            });
 
-                        row.ConstantItem(20);
+                            row.ConstantItem(20);
 
-                        row.RelativeItem().Column(sigCol =>
-                        {
-                            sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                            sigCol.Item().Text(isAG ? "O(A) 2.º Secretário" : "Secretário 2").FontSize(9).AlignCenter();
+                            row.RelativeItem().Column(sigCol =>
+                            {
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text("O(A) 1.º Secretário").FontSize(9).AlignCenter();
+                            });
+
+                            row.ConstantItem(20);
+
+                            row.RelativeItem().Column(sigCol =>
+                            {
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text("O(A) 2.º Secretário").FontSize(9).AlignCenter();
+                            });
                         });
-                    });
+                    }
 
                     // Section: Anexos
                     if (ata.Attachments != null && ata.Attachments.Any(a => a.IncludeInPdf))
@@ -367,6 +398,25 @@ public class AtaPdfService : IAtaPdfService
         MeetingType.ReuniaoDirecao => "Reunião de Direção",
         _ => "Reunião"
     };
+
+    /// <summary>
+    /// Formats a user's name as "FirstName 'NickName' LastName" or "FirstName LastName" if no nickname
+    /// </summary>
+    private static string FormatUserName(ApplicationUser user)
+    {
+        if (user == null) return "Não disponível";
+        
+        var firstName = user.FirstName ?? "";
+        var lastName = user.LastName ?? "";
+        var nickname = user.Nickname;
+        
+        if (!string.IsNullOrEmpty(nickname))
+        {
+            return $"{firstName} \"{nickname}\" {lastName}".Trim();
+        }
+        
+        return $"{firstName} {lastName}".Trim();
+    }
 
     private static List<string> DeserializeAttendeeIds(string? json)
     {
