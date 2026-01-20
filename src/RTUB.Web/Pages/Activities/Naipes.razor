@@ -149,9 +149,19 @@ else
                         CssClass="mb-4">
                 @if (viewingContent.IsVideo)
                 {
-                    <video controls class="w-100 rounded" style="max-height: 400px; background: #000;" @onplay="OnVideoPlayed">
+                    <video controls playsinline preload="metadata" class="w-100 rounded" style="max-height: 400px; background: #000;" @onplay="OnVideoPlayed">
+                        @* Primary source with detected/stored MIME type *@
                         <source src="@viewingContent.Url" type="@viewingContent.MimeType">
-                        O seu navegador não suporta a reprodução de vídeo.
+                        @* Fallback: For MOV files (common from iPhones), also try as MP4 since browsers may handle the container *@
+                        @if (viewingContent.MimeType == "video/quicktime")
+                        {
+                            <source src="@viewingContent.Url" type="video/mp4">
+                        }
+                        <p class="text-warning p-3">
+                            O seu navegador não suporta este formato de vídeo. 
+                            Se o vídeo foi gravado num telemóvel, pode ter um codec (HEVC/H.265) não suportado neste navegador.
+                            Experimente usar o Safari ou um navegador móvel.
+                        </p>
                     </video>
                 }
                 else

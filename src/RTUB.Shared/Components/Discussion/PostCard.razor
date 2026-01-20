@@ -170,9 +170,17 @@ else
                 {
                     var selectedVideo = videos[selectedVideoIndex];
                     <div class="video-player-container">
-                        <video @key="@selectedVideo.Id" controls class="modal-video" autoplay preload="metadata">
+                        <video @key="@selectedVideo.Id" controls playsinline class="modal-video" autoplay preload="metadata">
                             <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
-                            O seu navegador não suporta o elemento de vídeo.
+                            @if (selectedVideo.MimeType == "video/quicktime")
+                            {
+                                <source src="@selectedVideo.Url" type="video/mp4">
+                            }
+                            <p class="text-warning p-3">
+                                O seu navegador não suporta este formato de vídeo.
+                                Se o vídeo foi gravado num telemóvel, pode ter um codec (HEVC/H.265) não suportado neste navegador.
+                                Experimente usar o Safari ou um navegador móvel.
+                            </p>
                         </video>
                     </div>
                 }
