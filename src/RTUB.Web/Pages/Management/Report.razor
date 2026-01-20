@@ -26,17 +26,19 @@ else
 {
     
     <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
+        <div class="page-header-centered">
+            <div class="page-header-left">
                 <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
                     <i class="bi bi-arrow-left"></i>
                 </button>
-                <div>
-                    <h1 class="mb-1">@report.Title</h1>
-                    <p class="text-light-theme mb-0">Ano Letivo: @report.Year</p>
-                </div>
             </div>
-            <div class="page-header-actions">
+
+            <div class="page-header-center">
+                <h1 class="mb-1">@report.Title</h1>
+                <p class="text-light-theme mb-0">Ano Letivo: @report.Year</p>
+            </div>
+
+            <div class="page-header-right">
                 <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
                     <i class="bi bi-cash-coin"></i> Ver Calotes
                 </button>
