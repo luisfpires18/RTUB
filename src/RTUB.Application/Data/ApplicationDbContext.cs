@@ -772,6 +772,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             return null;
         }
 
+        if (action == "Modified" && !isCriticalChange)
+        {
+            var nonMetadataKeys = changes.Keys.Where(key => !key.StartsWith("_", StringComparison.Ordinal)).ToList();
+            if (nonMetadataKeys.Count == 1 &&
+                string.Equals(nonMetadataKeys[0], "FidelisBalance", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+        }
+
         // Use the modified user's username as the display name
         var displayName = modifiedUserName;
 
