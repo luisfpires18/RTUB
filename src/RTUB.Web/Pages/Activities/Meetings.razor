@@ -179,6 +179,7 @@ else
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
                                 CanCreateAta="@CanCreateAtaForMeeting(meeting)"
+                                HasAta="@HasAtaForMeeting(meeting.Id)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -190,7 +191,8 @@ else
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
                                 OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))"
-                                OnAta="@(() => OpenAtaModal(meeting))" />
+                                OnAta="@(() => OpenAtaModal(meeting))"
+                                OnViewAta="@(() => OpenViewAtaModal(meeting))" />
                 }
             </div>
 
@@ -1449,6 +1451,173 @@ else
     </FooterContent>
 </Modal>
 
+<!-- View Ata Modal (Read-only for non-admin users) -->
+<Modal Show="@showViewAtaModal" 
+       ShowChanged="@((bool show) => showViewAtaModal = show)"
+       Size="Modal.ModalSize.ExtraLarge"
+       Title="Ver Ata">
+    <BodyContent>
+        @if (isViewingAtaLoading)
+        {
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-2 text-light-theme">A carregar dados da ata...</p>
+            </div>
+        }
+        else if (viewingAta == null)
+        {
+            <div class="text-center p-4">
+                <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+                <p class="mt-2 text-light-theme">Ata não encontrada.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Header with Meeting Info -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-calendar3 me-2 text-primary"></i>
+                        Informação da Reunião
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Tipo:</strong> @GetMeetingTypeFullName(viewingAta.Meeting?.Type ?? MeetingType.AssembleiaGeralOrdinaria)</p>
+                            <p class="mb-1"><strong>Número da Ata:</strong> @(viewingAta.AtaNumber ?? "—")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Data:</strong> @viewingAta.Meeting?.Date.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="mb-1"><strong>Local:</strong> @viewingAta.Location</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Constituição e Secretariado -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-people me-2 text-primary"></i>
+                        @(viewingAta.Meeting?.Type == MeetingType.ConselhoVeteranos ? "Constituição e Secretariado" : "Mesa da Assembleia Geral")
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    @if (viewingAta.Meeting?.Type == MeetingType.ConselhoVeteranos)
+                    {
+                        <p class="mb-1"><strong>Presidente do CV:</strong> @FormatUserNameForView(viewingAta.PresidentUser)</p>
+                        <p class="mb-1"><strong>Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
+                    }
+                    else
+                    {
+                        <p class="mb-1"><strong>Presidente da Mesa:</strong> @FormatUserNameForView(viewingAta.PresidentUser)</p>
+                        <p class="mb-1"><strong>1.º Secretário:</strong> @FormatUserNameForView(viewingAta.FirstSecretaryUser)</p>
+                        <p class="mb-1"><strong>2.º Secretário:</strong> @FormatUserNameForView(viewingAta.SecondSecretaryUser)</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Presenças -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-person-check me-2 text-primary"></i>
+                        Presenças
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    @{
+                        var presentParticipants = viewingAta.Meeting?.Participations?
+                            .Where(p => p.WillAttend && p.User != null)
+                            .ToList() ?? new List<MeetingParticipation>();
+                    }
+                    @if (presentParticipants.Any())
+                    {
+                        <p class="mb-2"><strong>Presentes (@presentParticipants.Count):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var participant in presentParticipants)
+                            {
+                                <span class="badge bg-success">@FormatUserNameForView(participant.User)</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Nenhum participante registado.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Ordem de Trabalhos -->
+            @if (viewingAta.AgendaPoints != null && viewingAta.AgendaPoints.Any())
+            {
+                <div class="modal-info-section mb-4">
+                    <div class="modal-section-header">
+                        <h6 class="modal-section-title">
+                            <i class="bi bi-list-ol me-2 text-primary"></i>
+                            Ordem de Trabalhos
+                        </h6>
+                    </div>
+                    <div class="modal-section-body">
+                        @foreach (var point in viewingAta.AgendaPoints.OrderBy(p => p.PointNumber))
+                        {
+                            <div class="card mb-2">
+                                <div class="card-body p-3">
+                                    <h6 class="mb-2">@point.PointNumber. @point.Title</h6>
+                                    @if (!string.IsNullOrEmpty(point.DiscussionSummary))
+                                    {
+                                        <p class="mb-1 text-light-theme"><strong>Discussão:</strong> @point.DiscussionSummary</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(point.DecisionText))
+                                    {
+                                        <p class="mb-1 text-light-theme"><strong>Deliberação:</strong> @point.DecisionText</p>
+                                    }
+                                    @if (point.VotesFor.HasValue || point.VotesAgainst.HasValue || point.VotesAbstain.HasValue)
+                                    {
+                                        <div class="d-flex gap-3 mt-2">
+                                            <span class="badge bg-success">A favor: @(point.VotesFor ?? 0)</span>
+                                            <span class="badge bg-danger">Contra: @(point.VotesAgainst ?? 0)</span>
+                                            <span class="badge bg-secondary">Abstenções: @(point.VotesAbstain ?? 0)</span>
+                                            @if (!string.IsNullOrEmpty(point.VoteResult))
+                                            {
+                                                <span class="badge @(point.VoteResult == "Aprovado" ? "bg-success" : "bg-danger")">@point.VoteResult</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Encerramento -->
+            @if (!string.IsNullOrEmpty(viewingAta.ClosingText))
+            {
+                <div class="modal-info-section mb-4">
+                    <div class="modal-section-header">
+                        <h6 class="modal-section-title">
+                            <i class="bi bi-door-closed me-2 text-primary"></i>
+                            Encerramento
+                        </h6>
+                    </div>
+                    <div class="modal-section-body">
+                        <p class="mb-0 text-light-theme">@viewingAta.ClosingText</p>
+                    </div>
+                </div>
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseViewAtaModal">
+            <i class="bi bi-x-lg me-1"></i>Fechar
+        </button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Meeting> meetings = new();
     private List<Meeting> upcomingMeetings = new();
@@ -1494,6 +1663,12 @@ else
     private ApplicationUser? ataFirstSecretaryAG; // 1º Secretário da Mesa (AG only - from role)
     private ApplicationUser? ataSecondSecretaryAG; // 2º Secretário da Mesa (AG only - from role)
     private string newAgendaPointTitle = string.Empty; // For adding new agenda points
+    
+    // View ATA modal variables (for non-admin users)
+    private bool showViewAtaModal = false;
+    private MeetingAta? viewingAta;
+    private bool isViewingAtaLoading = false;
+    private Dictionary<int, bool> meetingHasAta = new(); // Track which meetings have ATAs
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -1752,6 +1927,13 @@ else
             
             // Keep the combined list for backward compatibility
             meetings = upcomingMeetings.Concat(pastMeetings).ToList();
+            
+            // Load ATA existence for past meetings (so we can show "View Ata" button)
+            meetingHasAta.Clear();
+            foreach (var meeting in pastMeetings)
+            {
+                meetingHasAta[meeting.Id] = await MeetingAtaService.ExistsForMeetingAsync(meeting.Id);
+            }
         }
         finally
         {
@@ -2791,6 +2973,60 @@ else
         var userPositions = currentUser.Positions ?? new List<Position>();
         
         return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions);
+    }
+    
+    private bool HasAtaForMeeting(int meetingId)
+    {
+        return meetingHasAta.TryGetValue(meetingId, out var hasAta) && hasAta;
+    }
+    
+    private async Task OpenViewAtaModal(Meeting meeting)
+    {
+        isViewingAtaLoading = true;
+        showViewAtaModal = true;
+        viewingAta = null;
+        
+        try
+        {
+            // Check if ata exists for this meeting
+            var existingAta = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
+            if (existingAta != null)
+            {
+                // Load with full details
+                viewingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading ata for viewing for meeting {MeetingId}", meeting.Id);
+        }
+        finally
+        {
+            isViewingAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseViewAtaModal()
+    {
+        showViewAtaModal = false;
+        viewingAta = null;
+    }
+    
+    private string FormatUserNameForView(ApplicationUser? user)
+    {
+        if (user == null) return "—";
+        
+        var firstName = user.FirstName ?? "";
+        var lastName = user.LastName ?? "";
+        var nickname = user.Nickname;
+        
+        if (!string.IsNullOrEmpty(nickname))
+        {
+            return $"{firstName} \"{nickname}\" {lastName}".Trim();
+        }
+        
+        return $"{firstName} {lastName}".Trim();
     }
     
     private async Task OpenAtaModal(Meeting meeting)

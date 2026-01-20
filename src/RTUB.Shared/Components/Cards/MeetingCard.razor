@@ -178,6 +178,15 @@
                         <span>Ata</span>
                     </button>
                 }
+                @if (!Meeting.IsCancelled && IsMeetingCompleted() && !CanCreateAta && HasAta)
+                {
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+                            @onclick="HandleViewAta"
+                            title="Ver Ata">
+                        <i class="bi bi-eye-fill"></i>
+                        <span>Ver Ata</span>
+                    </button>
+                }
                 @if (IsAdmin && !Meeting.IsCancelled && !IsMeetingCompleted())
                 {
                     <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
@@ -328,6 +337,18 @@
     [Parameter]
     public EventCallback OnAta { get; set; }
 
+    /// <summary>
+    /// Whether an ata exists for this meeting (for showing view button)
+    /// </summary>
+    [Parameter]
+    public bool HasAta { get; set; }
+
+    /// <summary>
+    /// Callback when the view ata button is clicked (for non-admin users)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewAta { get; set; }
+
     private async Task HandleEdit()
     {
         if (OnEdit.HasDelegate)
@@ -397,6 +418,14 @@
         if (OnAta.HasDelegate)
         {
             await OnAta.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewAta()
+    {
+        if (OnViewAta.HasDelegate)
+        {
+            await OnViewAta.InvokeAsync();
         }
     }
 

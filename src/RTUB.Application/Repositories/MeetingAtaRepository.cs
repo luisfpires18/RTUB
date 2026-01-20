@@ -41,6 +41,8 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         return await context.MeetingAtas
             .AsNoTracking()
             .Include(a => a.Meeting)
+                .ThenInclude(m => m.Participations)
+                    .ThenInclude(p => p.User)
             .Include(a => a.PresidentUser)
             .Include(a => a.FirstSecretaryUser)
             .Include(a => a.SecondSecretaryUser)
