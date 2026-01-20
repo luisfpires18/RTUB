@@ -67,7 +67,15 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task UpdateAsync(MeetingAta ata)
     {
-        // Fetch the existing entity with its agenda points to avoid tracking conflicts
+        // First, detach any already-tracked MeetingAta with the same ID to avoid conflicts
+        var trackedEntity = _context.ChangeTracker.Entries<MeetingAta>()
+            .FirstOrDefault(e => e.Entity.Id == ata.Id);
+        if (trackedEntity != null)
+        {
+            trackedEntity.State = EntityState.Detached;
+        }
+        
+        // Fetch the existing entity with its agenda points
         var existingAta = await _context.MeetingAtas
             .Include(a => a.AgendaPoints)
             .FirstOrDefaultAsync(a => a.Id == ata.Id);
@@ -112,6 +120,9 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         }
 
         await _context.SaveChangesAsync();
+        
+        // Detach the entity after save to avoid tracking conflicts on subsequent operations
+        _context.Entry(existingAta).State = EntityState.Detached;
     }
 
     public async Task DeleteAsync(int id)
