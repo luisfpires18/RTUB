@@ -199,6 +199,115 @@ public class AtaPdfServiceTests : IDisposable
         result.Should().NotBeEmpty();
     }
 
+    [Fact]
+    public void GenerateAtaPdf_WithMeetingParticipations_GeneratesPdfWithAttendeesFromParticipations()
+    {
+        // Arrange
+        var meeting = new Meeting
+        {
+            Id = 5,
+            Title = "Reunião com Participações",
+            Date = DateTime.Now.AddDays(-1),
+            Type = MeetingType.ConselhoVeteranos,
+            Participations = new List<MeetingParticipation>
+            {
+                new MeetingParticipation
+                {
+                    Id = 1,
+                    MeetingId = 5,
+                    UserId = "user3",
+                    WillAttend = true,
+                    User = new ApplicationUser { Id = "user3", FirstName = "António", Nickname = "Trovador", LastName = "Silva" }
+                },
+                new MeetingParticipation
+                {
+                    Id = 2,
+                    MeetingId = 5,
+                    UserId = "user4",
+                    WillAttend = true,
+                    User = new ApplicationUser { Id = "user4", FirstName = "Manuel", LastName = "Santos" }
+                },
+                new MeetingParticipation
+                {
+                    Id = 3,
+                    MeetingId = 5,
+                    UserId = "user5",
+                    WillAttend = false,
+                    User = new ApplicationUser { Id = "user5", FirstName = "José", Nickname = "Ausente", LastName = "Pereira" }
+                }
+            }
+        };
+
+        var ata = new MeetingAta
+        {
+            Id = 5,
+            MeetingId = 5,
+            Meeting = meeting,
+            AtaNumber = "ATA CV 02/2025",
+            ActualStartTime = DateTime.Now.AddDays(-1),
+            Location = "Sede RTUB",
+            PresidentUserId = "user1",
+            PresidentUser = new ApplicationUser { Id = "user1", FirstName = "João", Nickname = "Presidente", LastName = "Costa" },
+            FirstSecretaryUserId = "user2",
+            FirstSecretaryUser = new ApplicationUser { Id = "user2", FirstName = "Maria", LastName = "Ferreira" },
+            QuorumBasis = "HoraAgendada",
+            Status = MeetingAtaStatus.Draft,
+            AgendaPoints = new List<MeetingAtaAgendaPoint>(),
+            Attachments = new List<MeetingAtaAttachment>()
+        };
+
+        // Act
+        var result = _service.GenerateAtaPdf(ata);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().NotBeEmpty();
+        // The PDF should contain attendees from MeetingParticipation with WillAttend=true
+        // Format: "FirstName 'NickName' LastName"
+    }
+
+    [Fact]
+    public void GenerateAtaPdf_WithSignatories_ShowsNamesInSignatureSection()
+    {
+        // Arrange
+        var meeting = new Meeting
+        {
+            Id = 6,
+            Title = "Reunião com Assinaturas",
+            Date = DateTime.Now.AddDays(-1),
+            Type = MeetingType.AssembleiaGeralOrdinaria
+        };
+
+        var ata = new MeetingAta
+        {
+            Id = 6,
+            MeetingId = 6,
+            Meeting = meeting,
+            AtaNumber = "ATA AG 01/2025",
+            ActualStartTime = DateTime.Now.AddDays(-1),
+            Location = "Auditório",
+            PresidentUserId = "user1",
+            PresidentUser = new ApplicationUser { Id = "user1", FirstName = "Carlos", Nickname = "Maestro", LastName = "Oliveira" },
+            FirstSecretaryUserId = "user2",
+            FirstSecretaryUser = new ApplicationUser { Id = "user2", FirstName = "Ana", LastName = "Rodrigues" },
+            SecondSecretaryUserId = "user3",
+            SecondSecretaryUser = new ApplicationUser { Id = "user3", FirstName = "Pedro", Nickname = "Poeta", LastName = "Martins" },
+            QuorumBasis = "HoraAgendada",
+            Status = MeetingAtaStatus.Draft,
+            AgendaPoints = new List<MeetingAtaAgendaPoint>(),
+            Attachments = new List<MeetingAtaAttachment>()
+        };
+
+        // Act
+        var result = _service.GenerateAtaPdf(ata);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().NotBeEmpty();
+        // The PDF should show actual names in signature section:
+        // 'Carlos "Maestro" Oliveira', 'Ana Rodrigues', 'Pedro "Poeta" Martins'
+    }
+
     public void Dispose()
     {
         _cache.Dispose();

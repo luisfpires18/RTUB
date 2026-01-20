@@ -5,7 +5,6 @@ using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Text.Json;
 
 namespace RTUB.Application.Services;
 
@@ -146,26 +145,33 @@ public class AtaPdfService : IAtaPdfService
                     var presencaTitle = isAG ? $"{sectionNumber}) Presenças e quórum" : $"{sectionNumber}) Presenças";
                     column.Item().PaddingTop(20).Text(presencaTitle).FontSize(14).Bold().FontColor("#6f42c1");
 
-                    var presentIds = DeserializeAttendeeIds(ata.AttendeesPresent);
-                    var absentIds = DeserializeAttendeeIds(ata.AttendeesAbsent);
+                    // Get attendees from MeetingParticipation with WillAttend=true
+                    var presentParticipants = ata.Meeting?.Participations?
+                        .Where(p => p.WillAttend && p.User != null)
+                        .Select(p => FormatUserName(p.User!))
+                        .ToList() ?? new List<string>();
+
+                    // Get attendees who declined (WillAttend=false)
+                    var absentParticipants = ata.Meeting?.Participations?
+                        .Where(p => !p.WillAttend && p.User != null)
+                        .Select(p => FormatUserName(p.User!))
+                        .ToList() ?? new List<string>();
 
                     column.Item().PaddingTop(10).Column(presColumn =>
                     {
-                        presColumn.Item().Text("Foi disponibilizada e assinada a folha/livro de presenças.").FontSize(10).Italic();
-                        
-                        if (presentIds.Any())
+                        if (presentParticipants.Any())
                         {
-                            presColumn.Item().PaddingTop(5).Text($"Presentes ({presentIds.Count}):").FontSize(10).Bold();
-                            foreach (var name in presentIds)
+                            presColumn.Item().Text($"Presentes ({presentParticipants.Count}):").FontSize(10).Bold();
+                            foreach (var name in presentParticipants)
                             {
                                 presColumn.Item().Text($"  • {name}").FontSize(10);
                             }
                         }
 
-                        if (absentIds.Any())
+                        if (absentParticipants.Any())
                         {
-                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentIds.Count}):").FontSize(10).Bold();
-                            foreach (var name in absentIds)
+                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentParticipants.Count}):").FontSize(10).Bold();
+                            foreach (var name in absentParticipants)
                             {
                                 presColumn.Item().Text($"  • {name}").FontSize(10);
                             }
@@ -286,11 +292,15 @@ public class AtaPdfService : IAtaPdfService
                     if (isCV)
                     {
                         // CV: 2 signatures (Presidente do CV + Secretário)
+                        var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
+                        var secretaryName = ata.FirstSecretaryUser != null ? FormatUserName(ata.FirstSecretaryUser) : "";
+
                         column.Item().PaddingTop(30).Row(row =>
                         {
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(presidentName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O Presidente do CV").FontSize(9).AlignCenter();
                             });
 
@@ -298,7 +308,8 @@ public class AtaPdfService : IAtaPdfService
 
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(secretaryName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
                             });
                         });
@@ -306,11 +317,16 @@ public class AtaPdfService : IAtaPdfService
                     else
                     {
                         // AG: 3 signatures (Presidente da Mesa + 1.º Secretário + 2.º Secretário)
+                        var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
+                        var firstSecName = ata.FirstSecretaryUser != null ? FormatUserName(ata.FirstSecretaryUser) : "";
+                        var secondSecName = ata.SecondSecretaryUser != null ? FormatUserName(ata.SecondSecretaryUser) : "";
+
                         column.Item().PaddingTop(30).Row(row =>
                         {
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(presidentName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O(A) Presidente da Mesa").FontSize(9).AlignCenter();
                             });
 
@@ -318,7 +334,8 @@ public class AtaPdfService : IAtaPdfService
 
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(firstSecName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O(A) 1.º Secretário").FontSize(9).AlignCenter();
                             });
 
@@ -326,7 +343,8 @@ public class AtaPdfService : IAtaPdfService
 
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(secondSecName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O(A) 2.º Secretário").FontSize(9).AlignCenter();
                             });
                         });
@@ -418,16 +436,4 @@ public class AtaPdfService : IAtaPdfService
         return $"{firstName} {lastName}".Trim();
     }
 
-    private static List<string> DeserializeAttendeeIds(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return new List<string>();
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
-        }
-        catch
-        {
-            return new List<string>();
-        }
-    }
 }

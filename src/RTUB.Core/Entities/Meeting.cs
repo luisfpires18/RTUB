@@ -43,6 +43,7 @@ public class Meeting : BaseEntity
     public string? DelegatedAtaWriterMemberId { get; set; }
     public ApplicationUser? DelegatedAtaWriterMember { get; set; }
 
-    // Navigation property
+    // Navigation properties
     public MeetingAta? Ata { get; set; }
+    public List<MeetingParticipation> Participations { get; set; } = new();
 }
