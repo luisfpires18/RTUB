@@ -169,6 +169,15 @@
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
                 </button>
+                @if (!Meeting.IsCancelled && IsMeetingCompleted() && CanCreateAta)
+                {
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
+                            @onclick="HandleAta"
+                            title="Criar/Editar Ata">
+                        <i class="bi bi-file-text"></i>
+                        <span>Ata</span>
+                    </button>
+                }
                 @if (IsAdmin && !Meeting.IsCancelled && !IsMeetingCompleted())
                 {
                     <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
@@ -307,6 +316,18 @@
     [Parameter]
     public EventCallback OnViewParticipants { get; set; }
 
+    /// <summary>
+    /// Whether the current user can create/edit the ata for this meeting
+    /// </summary>
+    [Parameter]
+    public bool CanCreateAta { get; set; }
+
+    /// <summary>
+    /// Callback when the ata button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAta { get; set; }
+
     private async Task HandleEdit()
     {
         if (OnEdit.HasDelegate)
@@ -368,6 +389,14 @@
         if (OnRemoveParticipation.HasDelegate)
         {
             await OnRemoveParticipation.InvokeAsync();
+        }
+    }
+
+    private async Task HandleAta()
+    {
+        if (OnAta.HasDelegate)
+        {
+            await OnAta.InvokeAsync();
         }
     }
 

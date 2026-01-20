@@ -82,6 +82,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MeetingRequest> MeetingRequests { get; set; }
     public DbSet<MeetingParticipation> MeetingParticipations { get; set; }
 
+    // Meeting Atas DbSets
+    public DbSet<MeetingAta> MeetingAtas { get; set; }
+    public DbSet<MeetingAtaAgendaPoint> MeetingAtaAgendaPoints { get; set; }
+    public DbSet<MeetingAtaAttachment> MeetingAtaAttachments { get; set; }
+
     // Leaderboard Comments DbSets
     public DbSet<LeaderboardComment> LeaderboardComments { get; set; }
     public DbSet<LeaderboardCommentLike> LeaderboardCommentLikes { get; set; }

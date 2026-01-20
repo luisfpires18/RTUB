@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
 @using RTUB.Application.DTOs
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
@@ -21,6 +22,9 @@
 @inject IFiscalYearService FiscalYearService
 @inject IPushNotificationFactory PushNotificationFactory
 @inject IPushNotificationService PushNotificationService
+@inject IMeetingAtaService MeetingAtaService
+@inject IAtaPdfService AtaPdfService
+@inject IJSRuntime JSRuntime
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -122,6 +126,7 @@ else
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                CanCreateAta="@CanCreateAtaForMeeting(meeting)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -132,7 +137,8 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))"
+                                OnAta="@(() => OpenAtaModal(meeting))" />
                 }
             </div>
 
@@ -172,6 +178,7 @@ else
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
+                                CanCreateAta="@CanCreateAtaForMeeting(meeting)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -182,7 +189,8 @@ else
                                 OnParticipateGoing="@(() => OpenParticipationModalWithResponse(meeting, true))"
                                 OnParticipateNotGoing="@(() => OpenParticipationModalWithResponse(meeting, false))"
                                 OnViewParticipants="@(() => OpenParticipantsModal(meeting))"
-                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))" />
+                                OnRemoveParticipation="@(() => HandleRemoveParticipationRequest(meeting.Id))"
+                                OnAta="@(() => OpenAtaModal(meeting))" />
                 }
             </div>
 
@@ -1157,6 +1165,290 @@ else
                OnConfirm="RemoveParticipation"
                OnCancel="CloseRemoveParticipationModal" />
 
+<!-- Meeting Ata Modal -->
+<Modal Show="@showAtaModal" 
+       ShowChanged="@((bool show) => showAtaModal = show)"
+       Size="Modal.ModalSize.ExtraLarge"
+       Title="@(editingAta?.Id > 0 ? "Editar Ata" : "Criar Ata")">
+    <BodyContent>
+        @if (isAtaLoading)
+        {
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-2 text-light-theme">A carregar dados da ata...</p>
+            </div>
+        }
+        else if (editingAta != null && ataMeeting != null)
+        {
+            @if (!string.IsNullOrEmpty(ataErrorMessage))
+            {
+                <div class="alert alert-danger mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@ataErrorMessage
+                </div>
+            }
+            
+            <!-- Informações da Reunião -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-info-circle me-2"></i>Informações da Reunião
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Tipo:</strong> @GetMeetingTypeFullName(ataMeeting.Type)</p>
+                    <p class="mb-1"><strong>Título:</strong> @ataMeeting.Title</p>
+                    <p class="mb-1"><strong>Data Agendada:</strong> @ataMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+            </div>
+            
+            <!-- Dados da Ata -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-file-earmark-text me-2"></i>Dados da Ata
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Número da Ata</label>
+                        <input type="text" class="form-control" @bind="editingAta.AtaNumber" placeholder="Ex: ATA CV 01/2025" />
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Início Efetiva <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" @bind="editingAta.ActualStartTime" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Término</label>
+                            <input type="datetime-local" class="form-control" @bind="editingAta.ActualEndTime" />
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Local <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="editingAta.Location" />
+                    </div>
+                    
+                    @if (ataMeeting.Type == MeetingType.AssembleiaGeralOrdinaria || ataMeeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Base do Quórum</label>
+                            <select class="form-select" @bind="editingAta.QuorumBasis">
+                                <option value="HoraAgendada">Iniciada à hora agendada</option>
+                                <option value="HoraAgendadaMais30Minutos">Iniciada 30 minutos após hora agendada</option>
+                            </select>
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <!-- Constituição e Secretariado -->
+            <div class="card mb-3">
+                @if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
+                {
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-people me-2"></i>Constituição e Secretariado (CV)
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Secretário <span class="text-danger">*</span></label>
+                            @if (ataParticipants != null && ataParticipants.Any())
+                            {
+                                <select class="form-select" @bind="editingAta!.FirstSecretaryUserId">
+                                    <option value="">-- Selecionar membro inscrito --</option>
+                                    @foreach (var participant in ataParticipants.Where(p => p.User != null))
+                                    {
+                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                    }
+                                </select>
+                                <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
+                                <small class="text-danger">Não existem membros inscritos para selecionar</small>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-people me-2"></i>Mesa da Assembleia Geral
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataFirstSecretaryAG?.Nickname ?? ataFirstSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de 1.º Secretário da Mesa da Assembleia</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@(ataSecondSecretaryAG?.Nickname ?? ataSecondSecretaryAG?.FirstName ?? "Não encontrado")" disabled />
+                            <small class="text-muted">Membro com o cargo de 2.º Secretário da Mesa da Assembleia</small>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <!-- Presenças Section -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-person-check me-2"></i>Presenças
+                </div>
+                <div class="card-body">
+                    @if (ataParticipants != null && ataParticipants.Any())
+                    {
+                        <p class="mb-2"><strong>Membros presentes (@ataParticipants.Count):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var participant in ataParticipants.Where(p => p.User != null))
+                            {
+                                var user = participant.User!;
+                                var displayName = !string.IsNullOrEmpty(user.Nickname)
+                                    ? $"{user.FirstName} \"{user.Nickname}\" {user.LastName}"
+                                    : $"{user.FirstName} {user.LastName}";
+                                <span class="badge bg-success">@displayName</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Nenhum membro inscrito para esta reunião.</p>
+                    }
+                </div>
+            </div>
+            
+            <!-- Ordem de trabalhos Section -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-list-ol me-2"></i>Ordem de Trabalhos
+                </div>
+                <div class="card-body">
+                    @if (editingAta?.AgendaPoints != null && editingAta.AgendaPoints.Any())
+                    {
+                        @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
+                        {
+                            <div class="card mb-2">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>@point.PointNumber. @point.Title</strong>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAgendaPoint(point)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label small">Discussão/Desenvolvimento:</label>
+                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DiscussionSummary" 
+                                                  placeholder="Resumo da discussão sobre este ponto..."></textarea>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label small">Deliberação/Decisão:</label>
+                                        <textarea class="form-control form-control-sm" rows="2" @bind="point.DecisionText" 
+                                                  placeholder="Decisão tomada ou proposta submetida..."></textarea>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-3">
+                                            <label class="form-label small">A favor:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesFor" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Contra:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAgainst" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Abstenções:</label>
+                                            <input type="number" class="form-control form-control-sm" @bind="point.VotesAbstain" min="0" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small">Resultado:</label>
+                                            <select class="form-select form-select-sm" @bind="point.VoteResult">
+                                                <option value="">--</option>
+                                                <option value="Aprovado">Aprovado</option>
+                                                <option value="Rejeitado">Rejeitado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-2">Nenhum ponto adicionado ainda.</p>
+                    }
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" @bind="newAgendaPointTitle" 
+                               placeholder="Título do novo ponto de ordem de trabalhos..." />
+                        <button class="btn btn-outline-primary" type="button" @onclick="AddAgendaPoint">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Encerramento -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-door-closed me-2"></i>Encerramento
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Texto de Encerramento</label>
+                        <textarea class="form-control" rows="4" @bind="editingAta!.ClosingText" 
+                                  placeholder="Ex: A reunião foi encerrada às XX horas, tendo sido lavrada a presente ata..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estado -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-file-earmark-text me-2"></i>Estado
+                </div>
+                <div class="card-body">
+                    <span class="badge @(editingAta.Status == MeetingAtaStatus.Published ? "bg-success" : "bg-warning")">
+                        @(editingAta.Status == MeetingAtaStatus.Published ? "Publicada" : "Rascunho")
+                    </span>
+                    @if (editingAta.GeneratedAt.HasValue)
+                    {
+                        <p class="mt-2 mb-0 small text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            Último PDF gerado: @editingAta.GeneratedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    }
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <div class="d-flex gap-2 w-100 justify-content-between">
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="SaveAta" disabled="@isAtaLoading">
+                    <i class="bi bi-save me-1"></i>Guardar Ata
+                </button>
+                <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
+                </button>
+            </div>
+            <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
+                <i class="bi bi-x-lg me-1"></i>Fechar
+            </button>
+        </div>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Meeting> meetings = new();
     private List<Meeting> upcomingMeetings = new();
@@ -1190,6 +1482,18 @@ else
     
     // Cache authentication state to avoid synchronous I/O
     private bool isOwner = false;
+    
+    // Ata modal variables
+    private bool showAtaModal = false;
+    private Meeting? ataMeeting;
+    private MeetingAta? editingAta;
+    private bool isAtaLoading = false;
+    private string? ataErrorMessage;
+    private List<MeetingParticipation>? ataParticipants; // Enrolled participants for secretary selection
+    private ApplicationUser? ataPresident; // President based on position (CV or AG)
+    private ApplicationUser? ataFirstSecretaryAG; // 1º Secretário da Mesa (AG only - from role)
+    private ApplicationUser? ataSecondSecretaryAG; // 2º Secretário da Mesa (AG only - from role)
+    private string newAgendaPointTitle = string.Empty; // For adding new agenda points
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -2472,6 +2776,255 @@ else
         }
         
         return false;
+    }
+    
+    private bool CanCreateAtaForMeeting(Meeting meeting)
+    {
+        if (currentUser == null) return false;
+        
+        // Reunião de Direção should not have atas
+        if (meeting.Type == MeetingType.ReuniaoDirecao) return false;
+        
+        var userRoles = new List<string>();
+        if (isOwner) userRoles.Add("Owner");
+        
+        var userPositions = currentUser.Positions ?? new List<Position>();
+        
+        return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions);
+    }
+    
+    private async Task OpenAtaModal(Meeting meeting)
+    {
+        ataMeeting = meeting;
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        showAtaModal = true;
+        ataParticipants = null;
+        ataPresident = null;
+        ataFirstSecretaryAG = null;
+        ataSecondSecretaryAG = null;
+        
+        try
+        {
+            // Load meeting participants who will attend (for secretary selection in CV and attendance)
+            var participations = await MeetingParticipationService.GetParticipationsByMeetingIdAsync(meeting.Id);
+            ataParticipants = participations.Where(p => p.WillAttend && p.User != null).ToList();
+            
+            // Find the correct president and secretaries based on meeting type
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            var isAG = meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria;
+            
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV: Find user with PresidenteConselhoVeteranos position
+                ataPresident = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+            }
+            else if (isAG)
+            {
+                // AG: Find user with PresidenteMesaAssembleia position and secretaries
+                ataPresident = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                ataFirstSecretaryAG = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PrimeiroSecretarioMesaAssembleia));
+                ataSecondSecretaryAG = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.SegundoSecretarioMesaAssembleia));
+            }
+            
+            // Check if an ata already exists for this meeting
+            var existingAta = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
+            
+            if (existingAta != null)
+            {
+                // Load existing ata with details
+                editingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
+                
+                // Update officials to match current position holders
+                if (editingAta != null && ataPresident != null)
+                {
+                    editingAta.PresidentUserId = ataPresident.Id;
+                }
+                
+                // For AG, also update secretaries from roles
+                if (editingAta != null && isAG)
+                {
+                    if (ataFirstSecretaryAG != null)
+                        editingAta.FirstSecretaryUserId = ataFirstSecretaryAG.Id;
+                    if (ataSecondSecretaryAG != null)
+                        editingAta.SecondSecretaryUserId = ataSecondSecretaryAG.Id;
+                }
+            }
+            else
+            {
+                // Create new ata with default values from meeting
+                // IMPORTANT: Only set foreign key IDs, not navigation properties, to avoid EF tracking issues
+                var presidentId = ataPresident?.Id ?? currentUserId;
+                
+                // For AG, get secretaries from roles; for CV, user will select from dropdown
+                var firstSecretaryId = isAG && ataFirstSecretaryAG != null ? ataFirstSecretaryAG.Id : string.Empty;
+                var secondSecretaryId = isAG && ataSecondSecretaryAG != null ? ataSecondSecretaryAG.Id : null;
+                
+                editingAta = new MeetingAta
+                {
+                    MeetingId = meeting.Id,
+                    ActualStartTime = meeting.Date,
+                    Location = meeting.Location ?? string.Empty,
+                    PresidentUserId = presidentId,
+                    FirstSecretaryUserId = firstSecretaryId,
+                    SecondSecretaryUserId = secondSecretaryId,
+                    QuorumBasis = "HoraAgendada",
+                    AttendeesPresent = "[]",
+                    AttendeesAbsent = "[]",
+                    Status = MeetingAtaStatus.Draft,
+                    AgendaPoints = new List<MeetingAtaAgendaPoint>(),
+                    Attachments = new List<MeetingAtaAttachment>()
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading ata for meeting {MeetingId}", meeting.Id);
+            ataErrorMessage = "Erro ao carregar a ata. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseAtaModal()
+    {
+        showAtaModal = false;
+        ataMeeting = null;
+        editingAta = null;
+        ataErrorMessage = null;
+        ataParticipants = null;
+        ataPresident = null;
+        ataFirstSecretaryAG = null;
+        ataSecondSecretaryAG = null;
+        newAgendaPointTitle = string.Empty;
+    }
+    
+    private void AddAgendaPoint()
+    {
+        if (editingAta == null || string.IsNullOrWhiteSpace(newAgendaPointTitle)) return;
+        
+        editingAta.AgendaPoints ??= new List<MeetingAtaAgendaPoint>();
+        
+        var nextNumber = editingAta.AgendaPoints.Any() 
+            ? editingAta.AgendaPoints.Max(p => p.PointNumber) + 1 
+            : 1;
+        
+        editingAta.AgendaPoints.Add(new MeetingAtaAgendaPoint
+        {
+            MeetingAtaId = editingAta.Id,
+            PointNumber = nextNumber,
+            Title = newAgendaPointTitle.Trim()
+        });
+        
+        newAgendaPointTitle = string.Empty;
+        StateHasChanged();
+    }
+    
+    private void RemoveAgendaPoint(MeetingAtaAgendaPoint point)
+    {
+        if (editingAta?.AgendaPoints == null) return;
+        
+        editingAta.AgendaPoints.Remove(point);
+        
+        // Renumber remaining points
+        var pointNumber = 1;
+        foreach (var p in editingAta.AgendaPoints.OrderBy(x => x.PointNumber))
+        {
+            p.PointNumber = pointNumber++;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private async Task SaveAta()
+    {
+        if (editingAta == null || ataMeeting == null) return;
+        
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        
+        try
+        {
+            if (editingAta.Id == 0)
+            {
+                // Create new ata
+                await MeetingAtaService.CreateAtaAsync(editingAta);
+                Logger.LogInformation("Ata created for meeting {MeetingId}", ataMeeting.Id);
+            }
+            else
+            {
+                // Update existing ata
+                await MeetingAtaService.UpdateAtaAsync(editingAta);
+                Logger.LogInformation("Ata updated for meeting {MeetingId}", ataMeeting.Id);
+            }
+            
+            CloseAtaModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving ata for meeting {MeetingId}", ataMeeting.Id);
+            ataErrorMessage = "Erro ao guardar a ata. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task GenerateAtaPdf()
+    {
+        if (editingAta == null || ataMeeting == null) return;
+        
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        
+        try
+        {
+            // First save any changes
+            if (editingAta.Id == 0)
+            {
+                editingAta = await MeetingAtaService.CreateAtaAsync(editingAta);
+            }
+            else
+            {
+                await MeetingAtaService.UpdateAtaAsync(editingAta);
+            }
+            
+            // Load ata with all details for PDF
+            var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(editingAta.Id);
+            if (ataWithDetails == null)
+            {
+                ataErrorMessage = "Erro ao carregar dados da ata para gerar PDF.";
+                return;
+            }
+            
+            // Ensure Meeting is loaded
+            ataWithDetails.Meeting = ataMeeting;
+            
+            // Generate PDF
+            var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
+            
+            // Download file via JS
+            var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+            
+            Logger.LogInformation("PDF generated for ata of meeting {MeetingId}", ataMeeting.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error generating PDF for meeting {MeetingId}", ataMeeting.Id);
+            ataErrorMessage = "Erro ao gerar PDF. Por favor, tente novamente.";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
     }
     
     // ========== Meeting Request Methods ==========

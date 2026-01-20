@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260120133641_AddMeetingAtaSystem")]
+    partial class AddMeetingAtaSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -3550,16 +3553,10 @@ namespace RTUB.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("TEXT");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Date")
                         .HasDatabaseName("IX_Transactions_Date");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Transactions_UserId");
 
                     b.HasIndex("ActivityId", "Type")
                         .HasDatabaseName("IX_Transactions_ActivityId_Type");
@@ -4451,14 +4448,7 @@ namespace RTUB.Migrations
                         .WithMany("Transactions")
                         .HasForeignKey("ActivityId");
 
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Activity");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Trophy", b =>

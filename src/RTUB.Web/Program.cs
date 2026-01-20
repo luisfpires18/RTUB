@@ -118,7 +118,9 @@ public class Program
             Console.WriteLine($"Warning: Could not ensure database directory exists: {ex.Message}");
         }
 
-        services.AddDbContext<ApplicationDbContext>(o =>
+        // Register DbContextFactory for repositories that need isolated DbContext per operation (prevents EF tracking conflicts in Blazor Server)
+        // Use AddDbContextFactory with Scoped lifetime to avoid scoped/singleton conflicts
+        services.AddDbContextFactory<ApplicationDbContext>(o =>
         {
             o.UseSqlite(connectionString, b =>
             {
@@ -128,8 +130,10 @@ public class Program
             })
             .ConfigureWarnings(w =>
                 w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-        });
+        }, ServiceLifetime.Scoped);
 
+        // Register ApplicationDbContext as scoped, resolving it from the factory
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
         // ---------- Identity ----------
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
