@@ -11,7 +11,7 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260120222114_MakeFirstSecretaryOptional")]
+    [Migration("20260120223638_MakeFirstSecretaryOptional")]
     partial class MakeFirstSecretaryOptional
     {
         /// <inheritdoc />
