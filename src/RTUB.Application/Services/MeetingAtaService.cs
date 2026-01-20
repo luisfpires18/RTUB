@@ -10,18 +10,19 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Meeting Ata service implementation
 /// Contains business logic for meeting ata operations including authorization
+/// Uses IDbContextFactory to create fresh DbContext per operation to avoid EF tracking conflicts in Blazor Server.
 /// </summary>
 public class MeetingAtaService : IMeetingAtaService
 {
     private readonly IMeetingAtaRepository _ataRepository;
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
     public MeetingAtaService(
         IMeetingAtaRepository ataRepository,
-        ApplicationDbContext context)
+        IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _ataRepository = ataRepository;
-        _context = context;
+        _contextFactory = contextFactory;
     }
 
     public async Task<MeetingAta?> GetByIdAsync(int id)
@@ -159,14 +160,16 @@ public class MeetingAtaService : IMeetingAtaService
             throw new InvalidOperationException("Não é possível adicionar pontos de agenda a uma ata publicada.");
         }
 
+        await using var context = await _contextFactory.CreateDbContextAsync();
         point.MeetingAtaId = ataId;
-        _context.MeetingAtaAgendaPoints.Add(point);
-        await _context.SaveChangesAsync();
+        context.MeetingAtaAgendaPoints.Add(point);
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateAgendaPointAsync(MeetingAtaAgendaPoint point)
     {
-        var existingPoint = await _context.MeetingAtaAgendaPoints
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var existingPoint = await context.MeetingAtaAgendaPoints
             .Include(p => p.MeetingAta)
             .FirstOrDefaultAsync(p => p.Id == point.Id);
 
@@ -187,12 +190,13 @@ public class MeetingAtaService : IMeetingAtaService
         existingPoint.VotesAbstain = point.VotesAbstain;
         existingPoint.VoteResult = point.VoteResult;
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteAgendaPointAsync(int pointId)
     {
-        var point = await _context.MeetingAtaAgendaPoints
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var point = await context.MeetingAtaAgendaPoints
             .Include(p => p.MeetingAta)
             .FirstOrDefaultAsync(p => p.Id == pointId);
 
@@ -204,13 +208,14 @@ public class MeetingAtaService : IMeetingAtaService
             throw new InvalidOperationException("Não é possível eliminar pontos de agenda de uma ata publicada.");
         }
 
-        _context.MeetingAtaAgendaPoints.Remove(point);
-        await _context.SaveChangesAsync();
+        context.MeetingAtaAgendaPoints.Remove(point);
+        await context.SaveChangesAsync();
     }
 
     public async Task ReorderAgendaPointsAsync(int ataId, List<int> pointIds)
     {
-        var ata = await _context.MeetingAtas
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var ata = await context.MeetingAtas
             .Include(a => a.AgendaPoints)
             .FirstOrDefaultAsync(a => a.Id == ataId);
 
@@ -232,7 +237,7 @@ public class MeetingAtaService : IMeetingAtaService
             }
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task AddAttachmentAsync(int ataId, MeetingAtaAttachment attachment)
@@ -246,14 +251,16 @@ public class MeetingAtaService : IMeetingAtaService
             throw new InvalidOperationException("Não é possível adicionar anexos a uma ata publicada.");
         }
 
+        await using var context = await _contextFactory.CreateDbContextAsync();
         attachment.MeetingAtaId = ataId;
-        _context.MeetingAtaAttachments.Add(attachment);
-        await _context.SaveChangesAsync();
+        context.MeetingAtaAttachments.Add(attachment);
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateAttachmentAsync(MeetingAtaAttachment attachment)
     {
-        var existingAttachment = await _context.MeetingAtaAttachments
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var existingAttachment = await context.MeetingAtaAttachments
             .Include(a => a.MeetingAta)
             .FirstOrDefaultAsync(a => a.Id == attachment.Id);
 
@@ -271,12 +278,13 @@ public class MeetingAtaService : IMeetingAtaService
         existingAttachment.FileUrl = attachment.FileUrl;
         existingAttachment.IncludeInPdf = attachment.IncludeInPdf;
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteAttachmentAsync(int attachmentId)
     {
-        var attachment = await _context.MeetingAtaAttachments
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var attachment = await context.MeetingAtaAttachments
             .Include(a => a.MeetingAta)
             .FirstOrDefaultAsync(a => a.Id == attachmentId);
 
@@ -288,7 +296,7 @@ public class MeetingAtaService : IMeetingAtaService
             throw new InvalidOperationException("Não é possível eliminar anexos de uma ata publicada.");
         }
 
-        _context.MeetingAtaAttachments.Remove(attachment);
-        await _context.SaveChangesAsync();
+        context.MeetingAtaAttachments.Remove(attachment);
+        await context.SaveChangesAsync();
     }
 }
