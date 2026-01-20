@@ -346,6 +346,54 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for a new bet.
+    /// </summary>
+    /// <param name="bet">The bet to notify about</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    public SendPushNotificationDto CreateBetNotification(Bet bet, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
+        var dateStr = bet.DateTime.ToString("dd/MM/yyyy", PortugueseCulture);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova Aposta",
+            Body = $"{bet.Title} - {dateStr}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = betsUrl,
+            Tag = $"bet-{bet.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification to remind users to bet.
+    /// </summary>
+    /// <param name="bet">The bet to remind about</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    public SendPushNotificationDto CreateBetReminderNotification(Bet bet, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
+        var dateStr = bet.DateTime.ToString("dd/MM/yyyy", PortugueseCulture);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Lembrete: Aposta",
+            Body = $"Não te esqueças de apostar em: {bet.Title} ({dateStr})",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = betsUrl,
+            Tag = $"bet-reminder-{bet.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification when someone marks attendance for a rehearsal.
     /// </summary>
     public SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)

@@ -1,0 +1,348 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@*
+    BetCard Component
+    Reusable card for displaying bet information with betting actions
+*@
+
+<div class="card event-card h-100">
+    <div class="position-relative">
+        @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Bet.ThumbnailSrc))
+        {
+            <img src="@(ImageUrl ?? Bet.ThumbnailSrc)" class="card-img-top event-image" alt="@Bet.Title" loading="lazy">
+        }
+        else
+        {
+            <div class="card-img-top event-image-placeholder">
+                <i class="bi bi-cash-coin music-icon-large"></i>
+            </div>
+        }
+        
+        @* Status badges - Cancellation takes priority, then resolution, then user bet status *@
+        <div class="position-absolute top-0 start-0 p-2">
+            @if (Bet.IsCancelled)
+            {
+                <span class="badge bg-danger fs-6">
+                    <i class="bi bi-x-circle-fill me-1"></i>CANCELADO
+                </span>
+            }
+            else if (Bet.IsResolved())
+            {
+                <span class="badge fs-6" style="background-color: #8a2be2; color: white;">
+                    <i class="bi bi-check-circle-fill me-1"></i>RESOLVIDO
+                </span>
+            }
+            else if (UserBet != null)
+            {
+                <span class="badge bg-warning text-dark fs-6">
+                    <i class="bi bi-hourglass-split me-1"></i>APOSTADO
+                </span>
+            }
+        </div>
+        
+        @* Category badge in bottom-left corner *@
+        <div class="position-absolute bottom-0 start-0 p-2" style="z-index: 1;">
+            @if (Bet.BetCategory == BetCategory.MATCH)
+            {
+                <div class="badge bg-primary">
+                    <i class="bi bi-trophy-fill me-1"></i>DUELO
+                </div>
+            }
+            else
+            {
+                <div class="badge bg-success">
+                    <i class="bi bi-list-check me-1"></i>DECISÃO
+                </div>
+            }
+        </div>
+        
+        @if (IsAdmin)
+        {
+            <div class="admin-overlay">
+                <button class="btn btn-sm music-btn-edit" 
+                        @onclick="OnEdit" 
+                        title="Editar aposta">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                @if (ShowDeleteButton)
+                {
+                    <button class="btn btn-sm music-btn-delete" 
+                            @onclick="OnDelete" 
+                            title="Eliminar aposta">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                }
+            </div>
+            
+            @* Resolve button in bottom-right corner for past unresolved bets *@
+            @if (IsPastBet && !Bet.IsResolved() && !Bet.IsCancelled)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <button class="btn btn-sm btn-warning music-btn-resolve" 
+                            @onclick="OnResolve" 
+                            title="Resolver aposta">
+                        <i class="bi bi-trophy-fill"></i>
+                    </button>
+                </div>
+            }
+            
+            @* Push notification button in bottom-right corner for future bets *@
+            @if (!IsPastBet && !Bet.IsCancelled)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <button class="btn btn-sm btn-admin-notification" 
+                            @onclick="OnSendPushNotification" 
+                            title="Notificar por push">
+                        <i class="bi bi-bell-fill"></i>
+                    </button>
+                </div>
+            }
+        }
+    </div>
+    <div class="card-body d-flex flex-column p-3">
+        <h5 class="card-title mb-2">@Bet.Title</h5>
+        <p class="card-text text-white mb-2">
+            <small>
+                <i class="bi bi-calendar me-1"></i>
+                <span>@Bet.DateTime.ToString("dd MMM yyyy, HH:mm")h</span>
+                <DateBadge Date="@Bet.DateTime" />
+            </small>
+        </p>
+        @if (!string.IsNullOrEmpty(Bet.Location))
+        {
+            <p class="card-text text-white mb-2">
+                <small>
+                    <i class="bi bi-geo-alt me-1"></i> @Bet.Location
+                </small>
+            </p>
+        }
+
+        @* Display bet options with odds *@
+        @if (BetOptions != null && BetOptions.Any())
+        {
+            <div class="bet-options-preview mb-2">
+                @foreach (var option in BetOptions.Take(3))
+                {
+                    var isWinningOption = Bet.WinningOptionId.HasValue && Bet.WinningOptionId.Value == option.Id;
+                    var isUserOption = UserBet?.BetOptionId == option.Id;
+                    var optionClass = isWinningOption ? "bet-option-winner" : (isUserOption ? "bet-option-user" : "bet-option-default");
+                    
+                    <div class="bet-option @optionClass">
+                        <span class="bet-option-title">@option.Title</span>
+                        <span class="bet-option-odds">@option.Odds.ToString("F2")x</span>
+                        @if (isWinningOption)
+                        {
+                            <i class="bi bi-trophy-fill text-warning ms-1"></i>
+                        }
+                        @if (isUserOption && !isWinningOption)
+                        {
+                            <i class="bi bi-person-fill text-info ms-1"></i>
+                        }
+                    </div>
+                }
+                @if (BetOptions.Count() > 3)
+                {
+                    <div class="bet-option-more text-muted">
+                        <small>+@(BetOptions.Count() - 3) opções...</small>
+                    </div>
+                }
+            </div>
+        }
+
+        @* User's current bet display *@
+        @if (UserBet != null)
+        {
+            <div class="user-bet-status mb-2 p-2 rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white">
+                        <i class="bi bi-coin me-1"></i>
+                        <strong>@UserBet.FidelisAmount.ToString("F2")</strong> Fidelis
+                    </span>
+                    @if (UserBet.IsWon.HasValue)
+                    {
+                        @if (UserBet.IsWon.Value)
+                        {
+                            <span class="badge bg-success">
+                                <i class="bi bi-trophy-fill me-1"></i>
+                                Ganhou @UserBet.FidelisWinnings.ToString("F2")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle-fill me-1"></i>
+                                Perdeu
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-clock-fill me-1"></i>
+                            Pendente
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (ShowButtons)
+        {
+            @if (!IsPastBet)
+            {
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    @if (Bet.IsCancelled)
+                    {
+                        <!-- For cancelled bets, only show Discussion button -->
+                        <div class="event-buttons-container">
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                                @if (DiscussionCount > 0)
+                                {
+                                    <span class="enrollment-count-centered">@DiscussionCount</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Discussion + Apostar buttons -->
+                        <div class="event-buttons-container">
+                            <!-- Discussion button with count (opens modal with details + comments) -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                                @if (DiscussionCount > 0)
+                                {
+                                    <span class="enrollment-count-centered">@DiscussionCount</span>
+                                }
+                            </button>
+
+                            <!-- Place Bet button (always green, even after betting) -->
+                            <button class="btn event-icon-btn btn-success" 
+                                    @onclick="OnPlaceBet" 
+                                    title="@(UserBet != null ? "Ver Aposta / Apostar" : "Apostar")"
+                                    disabled="@(UserBet != null)">
+                                <i class="bi bi-cash-coin"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- Past bet buttons -->
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    <div class="event-buttons-container">
+                        <!-- Discussion button with count (opens modal with details + comments) -->
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
+                                @onclick="OnViewDetails"
+                                title="Discussão">
+                            <i class="bi bi-chat-dots"></i>
+                            @if (DiscussionCount > 0)
+                            {
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The bet to display
+    /// </summary>
+    [Parameter]
+    public Bet Bet { get; set; } = null!;
+
+    /// <summary>
+    /// The current user's bet for this bet (if any)
+    /// </summary>
+    [Parameter]
+    public UserBet? UserBet { get; set; }
+
+    /// <summary>
+    /// Available bet options
+    /// </summary>
+    [Parameter]
+    public IEnumerable<BetOption> BetOptions { get; set; } = Enumerable.Empty<BetOption>();
+
+    /// <summary>
+    /// Total number of discussion posts for this bet
+    /// </summary>
+    [Parameter]
+    public int DiscussionCount { get; set; }
+
+    /// <summary>
+    /// Whether the current user has admin privileges
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Whether this is a past bet (changes display behavior)
+    /// </summary>
+    [Parameter]
+    public bool IsPastBet { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when the resolve button is clicked (admin only, for past unresolved bets)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnResolve { get; set; }
+
+    /// <summary>
+    /// Callback when the push notification button is clicked (admin only)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendPushNotification { get; set; }
+
+    /// <summary>
+    /// Callback when the place bet button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnPlaceBet { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked (opens modal with bet details + comments)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Optional image URL to display (supports cache-busting)
+    /// </summary>
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Whether to show action buttons (default: true)
+    /// </summary>
+    [Parameter]
+    public bool ShowButtons { get; set; } = true;
+    
+    /// <summary>
+    /// Whether to show the delete button (default: true)
+    /// Can be set to false for users with restricted permissions
+    /// </summary>
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = true;
+}

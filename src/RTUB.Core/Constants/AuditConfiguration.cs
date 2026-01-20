@@ -36,6 +36,7 @@ public static class AuditConfiguration
         "GalleryMediaPersonTag",
         "SongPlayCount",
         "NaipePlayCount",
-        "MemberStatus"
+        "MemberStatus",
+        "BetOption"
     };
 }

@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
+        services.AddScoped<IBetCommentRepository, BetCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
@@ -68,6 +69,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeTypeConfigRepository, NaipeTypeConfigRepository>();
         services.AddScoped<IGameScoreRepository, GameScoreRepository>();
         services.AddScoped<IGameRepository, GameRepository>();
+        services.AddScoped<IBetRepository, BetRepository>();
+        services.AddScoped<IBetOptionRepository, BetOptionRepository>();
+        services.AddScoped<IUserBetRepository, UserBetRepository>();
 
         return services;
     }
@@ -158,6 +162,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
+        services.AddScoped<IBetCommentService, BetCommentService>();
 
         return services;
     }
@@ -191,6 +196,16 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IGameScoreService, GameScoreService>();
         services.AddScoped<IGameService, GameService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers betting services (Fidelis wagering system)
+    /// </summary>
+    public static IServiceCollection AddBettingServices(this IServiceCollection services)
+    {
+        services.AddScoped<IBetService, BetService>();
 
         return services;
     }

@@ -286,4 +286,22 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateCardReminderNotification(LogisticsCard card, string boardName, int boardId, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for a new bet.
+    /// Sent to all subscribed users.
+    /// </summary>
+    /// <param name="bet">The bet to notify about</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateBetNotification(Bet bet, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification to remind users to bet.
+    /// Sent to all subscribed users.
+    /// </summary>
+    /// <param name="bet">The bet to remind about</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateBetReminderNotification(Bet bet, string baseUrl);
 }

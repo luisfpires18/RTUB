@@ -123,6 +123,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Games DbSet
     public DbSet<Game> Games { get; set; }
 
+    // Betting DbSets
+    public DbSet<Bet> Bets { get; set; }
+    public DbSet<BetOption> BetOptions { get; set; }
+    public DbSet<UserBet> UserBets { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -1236,6 +1241,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     {
                         // Show the question title for display
                         return question.Title;
+                    }
+                    break;
+
+                case "Bet":
+                    if (entry.Entity is Bet bet)
+                    {
+                        return bet.Title;
+                    }
+                    break;
+
+                case "BetComment":
+                    if (entry.Entity is BetComment betComment)
+                    {
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var authorName = betComment.Author?.Nickname
+                            ?? betComment.Author?.UserName
+                            ?? ResolveUserIdToNickname(betComment.AuthorId)
+                            ?? betComment.AuthorId;
+                        var betEntity = betComment.Bet
+                            ?? Bets.Local.FirstOrDefault(b => b.Id == betComment.BetId);
+                        var betName = betEntity?.Title ?? $"Aposta #{betComment.BetId}";
+                        var textPreview = string.IsNullOrEmpty(betComment.Text) 
+                            ? "[Media]" 
+                            : (betComment.Text.Length > 50 ? betComment.Text[..50] + "..." : betComment.Text);
+                        return $"{authorName} em {betName}: {textPreview}";
                     }
                     break;
             }

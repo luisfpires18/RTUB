@@ -323,6 +323,7 @@ public class Program
         services.AddQuestionServices();
         services.AddRankingServices();
         services.AddGameServices();
+        services.AddBettingServices();
         services.AddEmailServices();
         services.AddStorageServices();
         services.AddMemberQueryServices();
