@@ -130,6 +130,17 @@ public class Program
                 w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
 
+        // Register DbContextFactory for repositories that need isolated DbContext per operation (prevents EF tracking conflicts in Blazor Server)
+        services.AddDbContextFactory<ApplicationDbContext>(o =>
+        {
+            o.UseSqlite(connectionString, b =>
+            {
+                b.MigrationsAssembly("RTUB");
+                b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            })
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        });
 
         // ---------- Identity ----------
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
