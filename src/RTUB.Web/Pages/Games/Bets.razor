@@ -16,6 +16,8 @@
 @inject IBetOptionRepository BetOptionRepository
 @inject IBetCommentService BetCommentService
 @inject IImageStorageService ImageStorageService
+@inject IPushNotificationService PushNotificationService
+@inject IPushNotificationFactory PushNotificationFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -56,7 +58,7 @@
         <!-- Purple Alert - Fidelis information -->
         <Alert Type="Alert.AlertType.Purple" 
                Icon="bi-coin"
-               Message=" Ganhe Fidelis jogando BMR e Avoid-Questions! O seu saldo atual pode ser usado para apostar em duelos e decisões." />
+               Message=" Ganhe Fidelis jogando jogos! O seu saldo atual pode ser usado para apostar em duelos, decisões, entre outros!" />
     </div>
 
     @if (futureBets == null || pastBets == null)
@@ -93,6 +95,7 @@
                                      IsPastBet="false"
                                      OnEdit="@(() => OpenEditModal(bet))"
                                      OnDelete="@(() => OpenDeleteModal(bet))"
+                                     OnSendPushNotification="@(() => OpenPushNotificationModal(bet))"
                                      OnPlaceBet="@(() => OpenPlaceBetModal(bet))"
                                      OnViewDetails="@(() => OpenBetDetailsModal(bet))" />
                         </div>
@@ -387,6 +390,50 @@
                OnConfirm="CloseSuccessModal"
                OnCancel="CloseSuccessModal" />
 
+@* Delete Comment Confirmation *@
+<ConfirmDialog Show="@showDeleteCommentModal"
+               ShowChanged="@((bool show) => showDeleteCommentModal = show)"
+               Title="Confirmar Eliminação"
+               Message="Tem a certeza de que pretende eliminar este comentário?"
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteComment"
+               OnCancel="CloseDeleteCommentModal" />
+
+@* Push Notification Modal (Admin Only) *@
+<Modal Show="@showPushNotificationModal"
+       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+       Title="Notificar por Push"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <div class="mb-3">
+            <p class="mb-2">
+                <i class="bi bi-bell text-primary me-2"></i>
+                Será enviada uma notificação push para todos os utilizadores subscritos.
+            </p>
+            @if (selectedBetForPush != null)
+            {
+                <div class="alert alert-info">
+                    <strong>Aposta:</strong> @selectedBetForPush.Title<br/>
+                    <strong>Data:</strong> @selectedBetForPush.DateTime.ToString("dd/MM/yyyy HH:mm")
+                </div>
+            }
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@isSendingPushNotification">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="SendBetPushNotification" disabled="@isSendingPushNotification">
+            @if (isSendingPushNotification)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Enviar Notificação
+        </button>
+    </FooterContent>
+</Modal>
+
 @* Place Bet Modal *@
 <Modal Show="@showPlaceBetModal"
        ShowChanged="@((bool show) => showPlaceBetModal = show)"
@@ -586,17 +633,19 @@
                     {
                         <!-- Add Comment Form -->
                         <div class="add-comment-form mb-3">
-                            <textarea class="form-control mb-2" 
+                            <textarea class="form-control mb-3" 
                                       rows="3" 
                                       placeholder="Escrever um comentário..."
                                       maxlength="1000"
                                       @bind="newCommentText"></textarea>
                             
                             <!-- Media Upload -->
-                            <MediaUploadManager @ref="commentMediaUploadManager"
-                                               Label=""
-                                               ShowCurrentMedia="false"
-                                               OnFileSelected="HandleCommentMediaSelected" />
+                            <div class="mb-3">
+                                <MediaUploadManager @ref="commentMediaUploadManager"
+                                                   Label=""
+                                                   ShowCurrentMedia="false"
+                                                   OnFileSelected="HandleCommentMediaSelected" />
+                            </div>
                             
                             @if (selectedCommentMediaFile != null)
                             {
@@ -605,7 +654,7 @@
                                 </small>
                             }
                             
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                                 <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
                                 <button class="btn btn-primary btn-sm" 
                                         @onclick="AddComment"
@@ -640,26 +689,27 @@
                         <div class="comments-list">
                             @foreach (var comment in betComments)
                             {
-                                <div class="leaderboard-comment-item mb-3 position-relative">
-                                    <div class="comment-header mb-2">
-                                        <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
-                                             alt="@comment.AuthorName" 
-                                             class="comment-avatar me-2" 
-                                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
-                                        <div class="comment-meta">
-                                            <span class="comment-author fw-bold">@comment.AuthorName</span>
-                                            <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
+                                <div class="leaderboard-comment-item mb-3">
+                                    <div class="comment-header d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
+                                                 alt="@comment.AuthorName" 
+                                                 class="comment-avatar me-2" 
+                                                 style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                            <div class="comment-meta">
+                                                <span class="comment-author fw-bold">@comment.AuthorName</span>
+                                                <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
+                                            </div>
                                         </div>
+                                        @if (comment.CanDelete)
+                                        {
+                                            <button class="btn btn-sm music-btn-delete" 
+                                                    @onclick="() => OpenDeleteCommentModal(comment.Id)"
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash music-icon-delete"></i>
+                                            </button>
+                                        }
                                     </div>
-                                    @if (comment.CanDelete)
-                                    {
-                                        <button class="btn btn-sm music-btn-delete position-absolute" 
-                                                style="top: 0; right: 0;"
-                                                @onclick="() => DeleteComment(comment.Id)"
-                                                title="Eliminar">
-                                            <i class="bi bi-trash music-icon-delete"></i>
-                                        </button>
-                                    }
                                     <div class="comment-body mb-2" style="white-space: pre-line;">
                                         @comment.Text
                                     </div>
@@ -770,8 +820,13 @@
     private bool showDetailsModal = false;
     private bool showResolveModal = false;
     private bool showSuccessModal = false;
+    private bool showDeleteCommentModal = false;
+    private bool showPushNotificationModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
+    private bool isSendingPushNotification = false;
+    private int? deletingCommentId = null;
+    private Bet? selectedBetForPush = null;
 
     // Edit/Create
     private Bet? editingBet;
@@ -1168,6 +1223,18 @@
                         await BetOptionRepository.AddAsync(betOption);
                     }
                 }
+                
+                // Send push notification for new bet to all subscribers
+                try
+                {
+                    var baseUrl = Navigation.BaseUri.TrimEnd('/');
+                    var notification = PushNotificationFactory.CreateBetNotification(createdBet, baseUrl);
+                    await PushNotificationService.BroadcastAsync(notification);
+                }
+                catch
+                {
+                    // Silently fail push notification - don't block bet creation
+                }
             }
             else
             {
@@ -1442,6 +1509,65 @@
         catch (Exception ex)
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar comentário: {ex.Message}");
+        }
+    }
+    
+    private void OpenDeleteCommentModal(int commentId)
+    {
+        deletingCommentId = commentId;
+        showDeleteCommentModal = true;
+    }
+    
+    private void CloseDeleteCommentModal()
+    {
+        showDeleteCommentModal = false;
+        deletingCommentId = null;
+    }
+    
+    private async Task ConfirmDeleteComment()
+    {
+        if (deletingCommentId.HasValue)
+        {
+            await DeleteComment(deletingCommentId.Value);
+        }
+        CloseDeleteCommentModal();
+    }
+    
+    // Push notification methods
+    private void OpenPushNotificationModal(Bet bet)
+    {
+        selectedBetForPush = bet;
+        showPushNotificationModal = true;
+    }
+    
+    private void ClosePushNotificationModal()
+    {
+        showPushNotificationModal = false;
+        selectedBetForPush = null;
+    }
+    
+    private async Task SendBetPushNotification()
+    {
+        if (selectedBetForPush == null) return;
+        
+        isSendingPushNotification = true;
+        try
+        {
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            var notification = PushNotificationFactory.CreateBetReminderNotification(selectedBetForPush, baseUrl);
+            
+            // Send to all subscribed users
+            await PushNotificationService.BroadcastAsync(notification);
+            
+            ClosePushNotificationModal();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao enviar notificação: {ex.Message}");
+        }
+        finally
+        {
+            isSendingPushNotification = false;
         }
     }
     
