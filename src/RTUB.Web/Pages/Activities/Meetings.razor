@@ -1247,20 +1247,47 @@ else
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente do CV <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                    <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <small class="text-muted">Membro com o cargo de Presidente do Conselho de Veteranos</small>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Secretário 1 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                    <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
+                                    @if (ataParticipants != null && ataParticipants.Any())
+                                    {
+                                        <select class="form-select" @bind="editingAta.FirstSecretaryUserId">
+                                            <option value="">-- Selecionar membro inscrito --</option>
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null))
+                                            {
+                                                <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted">Membro inscrito escolhido pelo Presidente do CV</small>
+                                    }
+                                    else
+                                    {
+                                        <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
+                                        <small class="text-danger">Não existem membros inscritos para selecionar</small>
+                                    }
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Secretário 2</label>
-                                    <input type="text" class="form-control" placeholder="(Opcional)" disabled />
-                                    <small class="text-muted">Segundo secretário opcional</small>
+                                    @if (ataParticipants != null && ataParticipants.Any())
+                                    {
+                                        <select class="form-select" @bind="editingAta.SecondSecretaryUserId">
+                                            <option value="">-- (Opcional) --</option>
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta.FirstSecretaryUserId))
+                                            {
+                                                <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted">Segundo secretário opcional</small>
+                                    }
+                                    else
+                                    {
+                                        <input type="text" class="form-control" placeholder="(Opcional)" disabled />
+                                    }
                                 </div>
                             </div>
                         }
@@ -1272,20 +1299,48 @@ else
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label class="form-label">Presidente da Mesa <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                    <small class="text-muted">O presidente é automaticamente definido como o criador da ata</small>
+                                    <input type="text" class="form-control" value="@(ataPresident?.Nickname ?? ataPresident?.FirstName ?? "Não encontrado")" disabled />
+                                    <small class="text-muted">Membro com o cargo de Presidente da Mesa da Assembleia Geral</small>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">1.º Secretário <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                    <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                    @if (ataParticipants != null && ataParticipants.Any())
+                                    {
+                                        <select class="form-select" @bind="editingAta.FirstSecretaryUserId">
+                                            <option value="">-- Selecionar membro inscrito --</option>
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null))
+                                            {
+                                                <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                    }
+                                    else
+                                    {
+                                        <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
+                                        <small class="text-danger">Não existem membros inscritos para selecionar</small>
+                                    }
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">2.º Secretário <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" value="@(currentUser?.Nickname ?? currentUser?.UserName)" disabled />
-                                    <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                    @if (ataParticipants != null && ataParticipants.Any())
+                                    {
+                                        <select class="form-select" @bind="editingAta.SecondSecretaryUserId">
+                                            <option value="">-- Selecionar membro inscrito --</option>
+                                            @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != editingAta.FirstSecretaryUserId))
+                                            {
+                                                <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted">Membro da Mesa da Assembleia Geral</small>
+                                    }
+                                    else
+                                    {
+                                        <input type="text" class="form-control" placeholder="Nenhum membro inscrito na reunião" disabled />
+                                        <small class="text-danger">Não existem membros inscritos para selecionar</small>
+                                    }
                                 </div>
                             </div>
                         }
@@ -1375,6 +1430,8 @@ else
     private MeetingAta? editingAta;
     private bool isAtaLoading = false;
     private string? ataErrorMessage;
+    private List<MeetingParticipation>? ataParticipants; // Enrolled participants for secretary selection
+    private ApplicationUser? ataPresident; // President based on position (CV or AG)
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -2677,9 +2734,28 @@ else
         isAtaLoading = true;
         ataErrorMessage = null;
         showAtaModal = true;
+        ataParticipants = null;
+        ataPresident = null;
         
         try
         {
+            // Load meeting participants who will attend (for secretary selection)
+            var participations = await MeetingParticipationService.GetParticipationsByMeetingIdAsync(meeting.Id);
+            ataParticipants = participations.Where(p => p.WillAttend && p.User != null).ToList();
+            
+            // Find the correct president based on meeting type
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV: Find user with PresidenteConselhoVeteranos position
+                ataPresident = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+            }
+            else
+            {
+                // AG: Find user with PresidenteMesaAssembleia position
+                ataPresident = allUsers.FirstOrDefault(u => u.Positions != null && u.Positions.Contains(Position.PresidenteMesaAssembleia));
+            }
+            
             // Check if an ata already exists for this meeting
             var existingAta = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
             
@@ -2692,13 +2768,15 @@ else
             {
                 // Create new ata with default values from meeting
                 // IMPORTANT: Only set foreign key IDs, not navigation properties, to avoid EF tracking issues
+                var presidentId = ataPresident?.Id ?? currentUserId;
                 editingAta = new MeetingAta
                 {
                     MeetingId = meeting.Id,
                     ActualStartTime = meeting.Date,
                     Location = meeting.Location ?? string.Empty,
-                    PresidentUserId = currentUserId,
-                    FirstSecretaryUserId = currentUserId,
+                    PresidentUserId = presidentId,
+                    FirstSecretaryUserId = string.Empty, // User will select from dropdown
+                    SecondSecretaryUserId = null, // Optional
                     QuorumBasis = "HoraAgendada",
                     AttendeesPresent = "[]",
                     AttendeesAbsent = "[]",
@@ -2726,6 +2804,8 @@ else
         ataMeeting = null;
         editingAta = null;
         ataErrorMessage = null;
+        ataParticipants = null;
+        ataPresident = null;
     }
     
     private async Task SaveAta()
