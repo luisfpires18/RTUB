@@ -63,7 +63,30 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task UpdateAsync(MeetingAta ata)
     {
-        _context.MeetingAtas.Update(ata);
+        // Fetch the existing entity from the database to avoid tracking conflicts
+        // with navigation properties (like ApplicationUser)
+        var existingAta = await _context.MeetingAtas.FindAsync(ata.Id);
+        if (existingAta == null)
+            throw new EntityNotFoundException(nameof(MeetingAta), ata.Id);
+
+        // Update only the scalar properties, not navigation properties
+        existingAta.AtaNumber = ata.AtaNumber;
+        existingAta.ActualStartTime = ata.ActualStartTime;
+        existingAta.ActualEndTime = ata.ActualEndTime;
+        existingAta.Location = ata.Location;
+        existingAta.PresidentUserId = ata.PresidentUserId;
+        existingAta.FirstSecretaryUserId = ata.FirstSecretaryUserId;
+        existingAta.SecondSecretaryUserId = ata.SecondSecretaryUserId;
+        existingAta.QuorumBasis = ata.QuorumBasis;
+        existingAta.AttendeesPresent = ata.AttendeesPresent;
+        existingAta.AttendeesAbsent = ata.AttendeesAbsent;
+        existingAta.ClosingText = ata.ClosingText;
+        existingAta.Status = ata.Status;
+        existingAta.GeneratedAt = ata.GeneratedAt;
+        existingAta.PdfStorageUrl = ata.PdfStorageUrl;
+        existingAta.UpdatedAt = ata.UpdatedAt;
+        existingAta.UpdatedBy = ata.UpdatedBy;
+
         await _context.SaveChangesAsync();
     }
 
