@@ -56,6 +56,10 @@ public class MeetingAtaRepository : IMeetingAtaRepository
 
     public async Task<MeetingAta> CreateAsync(MeetingAta ata)
     {
+        // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
+        if (string.IsNullOrEmpty(ata.SecondSecretaryUserId))
+            ata.SecondSecretaryUserId = null;
+            
         _context.MeetingAtas.Add(ata);
         await _context.SaveChangesAsync();
         return ata;
@@ -76,7 +80,8 @@ public class MeetingAtaRepository : IMeetingAtaRepository
         existingAta.Location = ata.Location;
         existingAta.PresidentUserId = ata.PresidentUserId;
         existingAta.FirstSecretaryUserId = ata.FirstSecretaryUserId;
-        existingAta.SecondSecretaryUserId = ata.SecondSecretaryUserId;
+        // Convert empty string to null for optional SecondSecretaryUserId to avoid FK constraint violations
+        existingAta.SecondSecretaryUserId = string.IsNullOrEmpty(ata.SecondSecretaryUserId) ? null : ata.SecondSecretaryUserId;
         existingAta.QuorumBasis = ata.QuorumBasis;
         existingAta.AttendeesPresent = ata.AttendeesPresent;
         existingAta.AttendeesAbsent = ata.AttendeesAbsent;
