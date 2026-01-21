@@ -273,9 +273,10 @@ public class AtaPdfService : IAtaPdfService
                     
                     if (isCV)
                     {
-                        // CV: 2 signatures (Presidente do CV + Secretário)
+                        // CV: Presidente do CV (always) + Secretário (only if selected)
                         var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
-                        var secretaryName = ata.FirstSecretaryUser != null ? FormatUserName(ata.FirstSecretaryUser) : "";
+                        var hasSecretary = ata.FirstSecretaryUser != null;
+                        var secretaryName = hasSecretary ? FormatUserName(ata.FirstSecretaryUser!) : "";
 
                         column.Item().PaddingTop(30).Row(row =>
                         {
@@ -286,22 +287,27 @@ public class AtaPdfService : IAtaPdfService
                                 sigCol.Item().Text("O Presidente do CV").FontSize(9).AlignCenter();
                             });
 
-                            row.ConstantItem(40);
-
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasSecretary)
                             {
-                                sigCol.Item().Text(secretaryName).FontSize(10).AlignCenter();
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(40);
+
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(secretaryName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
                         });
                     }
                     else
                     {
-                        // AG: 3 signatures (Presidente da Mesa + 1.º Secretário + 2.º Secretário)
+                        // AG: Presidente da Mesa (always) + 1.º Secretário (if selected) + 2.º Secretário (if selected)
                         var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
-                        var firstSecName = ata.FirstSecretaryUser != null ? FormatUserName(ata.FirstSecretaryUser) : "";
-                        var secondSecName = ata.SecondSecretaryUser != null ? FormatUserName(ata.SecondSecretaryUser) : "";
+                        var hasFirstSec = ata.FirstSecretaryUser != null;
+                        var hasSecondSec = ata.SecondSecretaryUser != null;
+                        var firstSecName = hasFirstSec ? FormatUserName(ata.FirstSecretaryUser!) : "";
+                        var secondSecName = hasSecondSec ? FormatUserName(ata.SecondSecretaryUser!) : "";
 
                         column.Item().PaddingTop(30).Row(row =>
                         {
@@ -312,23 +318,29 @@ public class AtaPdfService : IAtaPdfService
                                 sigCol.Item().Text("O Presidente da Mesa").FontSize(9).AlignCenter();
                             });
 
-                            row.ConstantItem(20);
-
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasFirstSec)
                             {
-                                sigCol.Item().Text(firstSecName).FontSize(10).AlignCenter();
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O 1.º Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(20);
 
-                            row.ConstantItem(20);
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(firstSecName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O 1.º Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
 
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasSecondSec)
                             {
-                                sigCol.Item().Text(secondSecName).FontSize(10).AlignCenter();
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O 2.º Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(20);
+
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(secondSecName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O 2.º Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
                         });
                     }
 
