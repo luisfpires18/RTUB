@@ -467,7 +467,7 @@
 
     private bool IsMeetingCompleted()
     {
-        return !Meeting.IsCancelled && Meeting.Date.Date < DateTime.Today;
+        return !Meeting.IsCancelled && Meeting.Date.Date <= DateTime.Today;
     }
 
     private string GetMeetingStatusClass()

@@ -1167,6 +1167,17 @@ else
                OnConfirm="RemoveParticipation"
                OnCancel="CloseRemoveParticipationModal" />
 
+<!-- Delete Ata Confirmation Modal -->
+<ConfirmDialog Show="@showDeleteAtaModal"
+               ShowChanged="@((bool show) => showDeleteAtaModal = show)"
+               Title="Confirmar Eliminação de Ata"
+               Message="Tem certeza que deseja eliminar esta ata? Esta ação não pode ser desfeita."
+               ConfirmText="Sim, Eliminar"
+               CancelText="Não"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteAta"
+               OnCancel="CloseDeleteAtaConfirmation" />
+
 <!-- Meeting Ata Modal -->
 <Modal Show="@showAtaModal" 
        ShowChanged="@((bool show) => showAtaModal = show)"
@@ -1455,6 +1466,12 @@ else
                 <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
                     <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
                 </button>
+                @if (editingAta?.Id > 0)
+                {
+                    <button class="btn admin-btn-delete" @onclick="OpenDeleteAtaConfirmation" disabled="@isAtaLoading" title="Eliminar Ata">
+                        <i class="bi bi-trash me-1"></i>Eliminar
+                    </button>
+                }
             </div>
             <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
                 <i class="bi bi-x-lg me-1"></i>Fechar
@@ -1696,6 +1713,9 @@ else
     private ApplicationUser? ataFirstSecretaryAG; // 1º Secretário da Mesa (AG only - from role)
     private ApplicationUser? ataSecondSecretaryAG; // 2º Secretário da Mesa (AG only - from role)
     private string newAgendaPointTitle = string.Empty; // For adding new agenda points
+    
+    // Delete Ata confirmation modal
+    private bool showDeleteAtaModal = false;
     
     // View ATA modal variables (for non-admin users)
     private bool showViewAtaModal = false;
@@ -3162,6 +3182,50 @@ else
         ataFirstSecretaryAG = null;
         ataSecondSecretaryAG = null;
         newAgendaPointTitle = string.Empty;
+    }
+    
+    private void OpenDeleteAtaConfirmation()
+    {
+        showDeleteAtaModal = true;
+    }
+    
+    private void CloseDeleteAtaConfirmation()
+    {
+        showDeleteAtaModal = false;
+    }
+    
+    private async Task ConfirmDeleteAta()
+    {
+        if (editingAta == null || editingAta.Id <= 0) return;
+        
+        try
+        {
+            isAtaLoading = true;
+            StateHasChanged();
+            
+            await MeetingAtaService.DeleteAtaAsync(editingAta.Id);
+            
+            // Update cache to reflect the ata was deleted
+            if (ataMeeting != null)
+            {
+                meetingHasAta[ataMeeting.Id] = false;
+            }
+            
+            CloseDeleteAtaConfirmation();
+            CloseAtaModal();
+            
+            // Refresh the meetings data
+            await LoadMeetingsAsync();
+        }
+        catch (Exception ex)
+        {
+            ataErrorMessage = $"Erro ao eliminar a ata: {ex.Message}";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
     }
     
     private void AddAgendaPoint()
