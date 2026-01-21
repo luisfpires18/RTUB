@@ -1,11 +1,23 @@
 /**
  * Passaro Maluco - Flappy Bird Clone
  * A simple HTML5 Canvas game where you control a bird and avoid pipes.
+ * Pipe sprites can be customized in wwwroot/sprites/games/passaro-maluco/
  */
 const passaroMalucoGame = (function () {
     let canvas = null;
     let ctx = null;
     let dotNetRef = null;
+    
+    // Sprite configuration - easily changeable
+    const sprites = {
+        pipeUrl: '/sprites/games/passaro-maluco/pipe.svg',
+        birdUrl: '/sprites/games/passaro-maluco/bird.svg'
+    };
+    
+    // Loaded images
+    let pipeImage = null;
+    let birdImage = null;
+    let imagesLoaded = false;
     
     // Game configuration
     const config = {
@@ -65,14 +77,39 @@ const passaroMalucoGame = (function () {
             highScore = parseInt(savedHighScore, 10);
         }
         
-        // Use fallback rendering for better performance
-        drawInitialState();
+        // Load sprites
+        loadSprites().then(() => {
+            imagesLoaded = true;
+            drawInitialState();
+        });
         
         // Setup input handlers
         setupInputHandlers();
     }
 
-
+    function loadSprites() {
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const totalImages = 2;
+            
+            const onLoad = () => {
+                loadedCount++;
+                if (loadedCount >= totalImages) {
+                    resolve();
+                }
+            };
+            
+            pipeImage = new Image();
+            pipeImage.onload = onLoad;
+            pipeImage.onerror = onLoad; // Continue even if image fails
+            pipeImage.src = sprites.pipeUrl;
+            
+            birdImage = new Image();
+            birdImage.onload = onLoad;
+            birdImage.onerror = onLoad;
+            birdImage.src = sprites.birdUrl;
+        });
+    }
 
     function setupInputHandlers() {
         // Keyboard
@@ -334,8 +371,21 @@ const passaroMalucoGame = (function () {
 
     function drawPipes() {
         for (const pipe of pipes) {
-            // Draw pipes using fallback rendering
-            drawPipeFallback(pipe);
+            if (imagesLoaded && pipeImage.complete && pipeImage.naturalWidth > 0) {
+                // Draw top pipe (flipped)
+                ctx.save();
+                ctx.translate(pipe.x + config.pipeWidth / 2, pipe.topHeight);
+                ctx.scale(1, -1);
+                ctx.drawImage(pipeImage, -config.pipeWidth / 2, 0, config.pipeWidth, pipe.topHeight);
+                ctx.restore();
+                
+                // Draw bottom pipe
+                const bottomHeight = canvas.height - pipe.bottomY - config.groundHeight;
+                ctx.drawImage(pipeImage, pipe.x, pipe.bottomY, config.pipeWidth, bottomHeight);
+            } else {
+                // Fallback: Draw pipes as rectangles
+                drawPipeFallback(pipe);
+            }
         }
     }
 
@@ -385,8 +435,12 @@ const passaroMalucoGame = (function () {
         ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
         ctx.rotate(bird.rotation * Math.PI / 180);
         
-        // Draw bird using fallback rendering
-        drawBirdFallback();
+        if (imagesLoaded && birdImage.complete && birdImage.naturalWidth > 0) {
+            ctx.drawImage(birdImage, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+        } else {
+            // Fallback: Draw bird as shapes
+            drawBirdFallback();
+        }
         
         ctx.restore();
     }
