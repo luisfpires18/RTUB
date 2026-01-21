@@ -1,0 +1,416 @@
+@page "/games/tomato-thrower"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@using RTUB.Application.Data
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
+@inject IJSRuntime JSRuntime
+@inject IGameScoreService GameScoreService
+@inject IReportService ReportService
+@inject IActivityService ActivityService
+@inject ITransactionService TransactionService
+@inject IFiscalYearService FiscalYearService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+@attribute [Authorize]
+
+<div class="tomato-thrower-container">
+    <!-- Page Header -->
+    <div class="d-flex flex-column gap-3 mb-4 page-header-block">
+        <div class="d-flex align-items-center gap-3 page-header-row">
+            <button class="btn btn-outline-secondary btn-sm back-button" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="page-header-text flex-grow-1 text-center">
+                <h1 class="mb-0"><i class="bi bi-egg-fried"></i> Atira Tomates</h1>
+            </div>
+            <!-- Empty element to balance the layout -->
+            <div style="width: 38px;"></div>
+        </div>
+    </div>
+
+    @if (isLoadingDebtors)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A carregar caloteiros...</span>
+            </div>
+            <p class="mt-3">A carregar caloteiros...</p>
+        </div>
+    }
+    else if (!debtors.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-emoji-smile"></i>
+            <p class="mb-0">Não há caloteiros para atirar tomates! Todos pagaram as suas dívidas.</p>
+        </div>
+    }
+    else
+    {
+        <div class="game-stats">
+            <div class="stat-item">
+                <i class="bi bi-star-fill text-warning"></i>
+                <span class="stat-value">@points</span>
+                <span class="stat-label">Pontos</span>
+            </div>
+            <div class="stat-item">
+                <i class="bi bi-egg-fill text-danger"></i>
+                <span class="stat-value">@tomatoesThrown</span>
+                <span class="stat-label">Tomates</span>
+            </div>
+            <div class="stat-item">
+                <i class="bi bi-bullseye text-success"></i>
+                <span class="stat-value">@accuracy%</span>
+                <span class="stat-label">Precisão</span>
+            </div>
+            <div class="stat-item">
+                <i class="bi bi-clock-fill text-info"></i>
+                <span class="stat-value">@FormatTime(timeElapsed)</span>
+                <span class="stat-label">Tempo</span>
+            </div>
+        </div>
+
+        <div class="game-canvas-wrapper">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            @if (!gameStarted)
+            {
+                <div class="game-overlay">
+                    <div class="overlay-content">
+                        <h3>Atira Tomates aos Caloteiros!</h3>
+                        <p class="mb-3">Os membros com dívidas vão aparecer em buracos. Clica neles para atirar tomates!</p>
+                        <ul class="game-instructions">
+                            <li><i class="bi bi-mouse me-2"></i>Clica ou toca nos caloteiros para atirar tomates</li>
+                            <li><i class="bi bi-star me-2"></i>Mais dívida = mais pontos</li>
+                            <li><i class="bi bi-clock me-2"></i>Os caloteiros aparecem e escondem-se rapidamente</li>
+                            <li><i class="bi bi-trophy me-2"></i>Tenta conseguir a maior pontuação!</li>
+                        </ul>
+                        <div class="debtors-preview mb-3">
+                            <p class="fw-bold">Caloteiros a apanhar (@debtors.Count):</p>
+                            <div class="debtors-list">
+                                @foreach (var debtor in debtors.Take(5))
+                                {
+                                    <div class="debtor-preview-item">
+                                        <img src="@debtor.Avatar" alt="@debtor.Name" />
+                                        <span>@debtor.Name</span>
+                                    </div>
+                                }
+                                @if (debtors.Count > 5)
+                                {
+                                    <div class="debtor-preview-item">
+                                        <span class="text-muted">+@(debtors.Count - 5) mais...</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-lg" @onclick="StartGame">
+                            <i class="bi bi-play-fill me-1"></i>Iniciar Jogo
+                        </button>
+                    </div>
+                </div>
+            }
+            
+            @if (gameOver)
+            {
+                <div class="game-overlay game-over-overlay">
+                    <div class="overlay-content">
+                        <h3 class="text-success">Jogo Terminado!</h3>
+                        <div class="final-stats mb-4">
+                            <div class="final-stat">
+                                <span class="final-stat-value">@finalPoints</span>
+                                <span class="final-stat-label">Pontos</span>
+                            </div>
+                            <div class="final-stat">
+                                <span class="final-stat-value">@finalTomatoesThrown</span>
+                                <span class="final-stat-label">Tomates Atirados</span>
+                            </div>
+                            <div class="final-stat">
+                                <span class="final-stat-value">@finalHits</span>
+                                <span class="final-stat-label">Acertos</span>
+                            </div>
+                            <div class="final-stat">
+                                <span class="final-stat-value">@finalAccuracy%</span>
+                                <span class="final-stat-label">Precisão</span>
+                            </div>
+                            <div class="final-stat">
+                                <span class="final-stat-value text-success">+1.00</span>
+                                <span class="final-stat-label">Fidelis Ganhos</span>
+                            </div>
+                        </div>
+                        @if (scoreSaved)
+                        {
+                            <p class="text-success mb-3"><i class="bi bi-check-circle me-1"></i>Pontuação guardada!</p>
+                        }
+                        else if (savingScore)
+                        {
+                            <p class="text-muted mb-3"><i class="bi bi-hourglass-split me-1"></i>A guardar pontuação...</p>
+                        }
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="btn btn-primary" @onclick="RestartGame">
+                                <i class="bi bi-arrow-repeat me-1"></i>Jogar Novamente
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                                <i class="bi bi-arrow-left me-1"></i>Voltar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const string GameKey = "tomato-thrower";
+    private const string CalotesActivityName = "CALOTES";
+    
+    private bool isLoadingDebtors = true;
+    private bool gameStarted = false;
+    private bool gameOver = false;
+    private int points = 0;
+    private int tomatoesThrown = 0;
+    private int hits = 0;
+    private int accuracy = 0;
+    private double timeElapsed = 0;
+    
+    private int finalPoints = 0;
+    private int finalTomatoesThrown = 0;
+    private int finalHits = 0;
+    private int finalAccuracy = 0;
+    
+    private bool savingScore = false;
+    private bool scoreSaved = false;
+    
+    private string? currentUserId;
+    private ApplicationUser? currentUser;
+    private DotNetObjectReference<TomatoThrower>? objRef;
+    
+    private List<DebtorData> debtors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            currentUserId = currentUser?.Id;
+        }
+        
+        await LoadDebtors();
+    }
+
+    private async Task LoadDebtors()
+    {
+        isLoadingDebtors = true;
+        debtors.Clear();
+        
+        try
+        {
+            // Get current fiscal year
+            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
+            var parts = currentFiscalYearString.Split('-');
+            
+            if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear))
+            {
+                isLoadingDebtors = false;
+                return;
+            }
+            
+            // Get report for the current fiscal year
+            var reports = await ReportService.GetAllReportsAsync();
+            var report = reports.FirstOrDefault(r => r.Year == startYear);
+            
+            if (report == null)
+            {
+                isLoadingDebtors = false;
+                return;
+            }
+            
+            // Get CALOTES activity
+            var activities = await ActivityService.GetActivitiesByReportIdAsync(report.Id);
+            var calotesActivity = activities.FirstOrDefault(a => a.Name.Equals(CalotesActivityName, StringComparison.OrdinalIgnoreCase));
+            
+            if (calotesActivity == null)
+            {
+                isLoadingDebtors = false;
+                return;
+            }
+            
+            // Get all transactions for this activity
+            var transactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
+                .Where(t => !string.IsNullOrEmpty(t.UserId))
+                .ToList();
+            
+            // Group by user and calculate balance
+            var userBalances = transactions
+                .GroupBy(t => t.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key!,
+                    Balance = g.Where(t => t.Type == "Expense").Sum(t => t.Amount) - 
+                             g.Where(t => t.Type == "Income").Sum(t => t.Amount)
+                })
+                .Where(b => b.Balance > 0) // Only members who owe money
+                .ToList();
+            
+            // Load user information
+            var userIds = userBalances.Select(b => b.UserId).ToList();
+            var users = await UserManager.Users
+                .Where(u => userIds.Contains(u.Id))
+                .AsNoTracking()
+                .ToDictionaryAsync(u => u.Id);
+            
+            // Create debtor list
+            debtors = userBalances
+                .Where(b => users.ContainsKey(b.UserId))
+                .Select(b =>
+                {
+                    var user = users[b.UserId];
+                    return new DebtorData
+                    {
+                        Name = !string.IsNullOrEmpty(user.Nickname) ? user.Nickname : $"{user.FirstName} {user.LastName}",
+                        Avatar = user.ProfilePictureSrc,
+                        DebtAmount = b.Balance
+                    };
+                })
+                .OrderByDescending(d => d.DebtAmount)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error and continue with empty debtors list
+            Console.WriteLine($"Error loading debtors: {ex.Message}");
+            // Note: User sees "no debtors" message which is acceptable fallback
+        }
+        finally
+        {
+            isLoadingDebtors = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && debtors.Any())
+        {
+            objRef = DotNetObjectReference.Create(this);
+            
+            var debtorsJson = JsonSerializer.Serialize(debtors.Select(d => new
+            {
+                name = d.Name,
+                avatar = d.Avatar,
+                debtAmount = d.DebtAmount
+            }));
+            
+            await JSRuntime.InvokeVoidAsync("tomatoThrowerGame.init", "gameCanvas", objRef, debtorsJson);
+        }
+    }
+
+    private async Task StartGame()
+    {
+        gameStarted = true;
+        gameOver = false;
+        scoreSaved = false;
+        points = 0;
+        tomatoesThrown = 0;
+        hits = 0;
+        accuracy = 0;
+        timeElapsed = 0;
+        
+        StateHasChanged();
+        await JSRuntime.InvokeVoidAsync("tomatoThrowerGame.start");
+    }
+
+    private async Task RestartGame() => await StartGame();
+
+    private void GoBack() => NavigationManager.NavigateTo("/games");
+
+    [JSInvokable]
+    public void UpdateStats(int newPoints, int newTomatoesThrown, int newHits, double newTime)
+    {
+        points = newPoints;
+        tomatoesThrown = newTomatoesThrown;
+        hits = newHits;
+        accuracy = newTomatoesThrown > 0 ? (int)Math.Round((double)newHits / newTomatoesThrown * 100) : 0;
+        timeElapsed = newTime;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnGameOver(int finalPts, int finalTomatoes, int finalHitsCount, double survivedTime)
+    {
+        gameOver = true;
+        gameStarted = false;
+        finalPoints = finalPts;
+        finalTomatoesThrown = finalTomatoes;
+        finalHits = finalHitsCount;
+        finalAccuracy = finalTomatoes > 0 ? (int)Math.Round((double)finalHits / finalTomatoes * 100) : 0;
+        StateHasChanged();
+
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            savingScore = true;
+            StateHasChanged();
+            
+            try
+            {
+                // Save score with accuracy as level
+                await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, finalAccuracy, TimeSpan.FromSeconds(survivedTime));
+                scoreSaved = true;
+                
+                // Award 1 Fidelis for playing
+                if (currentUser != null)
+                {
+                    currentUser.FidelisBalance += 1.0m;
+                    await UserManager.UpdateAsync(currentUser);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't block game completion
+                Console.WriteLine($"Error saving score: {ex.Message}");
+                // User still sees score in UI, just not persisted to leaderboard
+            }
+            finally
+            {
+                savingScore = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private string FormatTime(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}:{ts.Seconds:D2}";
+        return $"0:{(int)seconds:D2}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try 
+        { 
+            await JSRuntime.InvokeVoidAsync("tomatoThrowerGame.dispose"); 
+        } 
+        catch (Exception ex) 
+        { 
+            // Log disposal errors for debugging memory leaks
+            Console.WriteLine($"Error disposing game: {ex.Message}");
+        }
+        objRef?.Dispose();
+    }
+    
+    private class DebtorData
+    {
+        public string Name { get; set; } = "";
+        public string Avatar { get; set; } = "";
+        public decimal DebtAmount { get; set; }
+    }
+}

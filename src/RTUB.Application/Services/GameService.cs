@@ -78,6 +78,20 @@ public class GameService : IGameService
                 false
             );
         }
+
+        var tomatoGame = await _repository.GetByKeyAsync("tomato-thrower");
+        if (tomatoGame == null)
+        {
+            await CreateGameAsync(
+                "tomato-thrower",
+                "Atira Tomates",
+                "Atira tomates aos caloteiros! Um jogo estilo whack-a-mole onde os membros com dívidas aparecem e tu tens de os acertar.",
+                "/sprites/games/tomato-thrower-thumb.svg",
+                "/games/tomato-thrower",
+                false,
+                true // Members only
+            );
+        }
     }
 
     /// <summary>

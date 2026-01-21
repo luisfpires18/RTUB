@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180">
+  <defs>
+    <linearGradient id="grassBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3d6b1f"/>
+      <stop offset="50%" style="stop-color:#2d5016"/>
+      <stop offset="100%" style="stop-color:#1a2f0d"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="280" height="180" fill="url(#grassBg)"/>
+  
+  <!-- Grass texture -->
+  <rect x="10" y="120" width="2" height="8" fill="#4d7b24"/>
+  <rect x="30" y="115" width="2" height="10" fill="#4d7b24"/>
+  <rect x="50" y="125" width="2" height="7" fill="#4d7b24"/>
+  <rect x="80" y="118" width="2" height="9" fill="#4d7b24"/>
+  <rect x="110" y="122" width="2" height="8" fill="#4d7b24"/>
+  <rect x="140" y="116" width="2" height="11" fill="#4d7b24"/>
+  <rect x="170" y="124" width="2" height="7" fill="#4d7b24"/>
+  <rect x="200" y="119" width="2" height="9" fill="#4d7b24"/>
+  <rect x="230" y="121" width="2" height="8" fill="#4d7b24"/>
+  <rect x="260" y="117" width="2" height="10" fill="#4d7b24"/>
+  
+  <!-- Holes -->
+  <g transform="translate(40, 100)">
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="#1a1a1a"/>
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="none" stroke="#4d2800" stroke-width="2"/>
+  </g>
+  <g transform="translate(140, 100)">
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="#1a1a1a"/>
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="none" stroke="#4d2800" stroke-width="2"/>
+  </g>
+  <g transform="translate(240, 100)">
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="#1a1a1a"/>
+    <ellipse cx="0" cy="0" rx="25" ry="12" fill="none" stroke="#4d2800" stroke-width="2"/>
+  </g>
+  
+  <!-- Person popping up from middle hole -->
+  <g transform="translate(140, 85)">
+    <!-- Body -->
+    <rect x="-12" y="-10" width="24" height="20" fill="#8b4513" rx="3"/>
+    <!-- Avatar circle -->
+    <circle cx="0" cy="-22" r="15" fill="#f5deb3"/>
+    <circle cx="0" cy="-22" r="15" fill="none" stroke="#333" stroke-width="2"/>
+    <!-- Face -->
+    <circle cx="-5" cy="-24" r="2" fill="#333"/>
+    <circle cx="5" cy="-24" r="2" fill="#333"/>
+    <path d="M-4,-18 Q0,-16 4,-18" fill="none" stroke="#333" stroke-width="1.5"/>
+    <!-- Debt badge -->
+    <rect x="-10" y="5" width="20" height="8" fill="#ffeb3b" rx="2"/>
+    <text x="0" y="11" font-family="Arial" font-size="6" fill="#333" text-anchor="middle" font-weight="bold">€50</text>
+  </g>
+  
+  <!-- Flying tomato -->
+  <g transform="translate(60, 40)">
+    <!-- Tomato body -->
+    <ellipse cx="0" cy="0" rx="10" ry="8" fill="#ff6b6b"/>
+    <!-- Highlight -->
+    <ellipse cx="-3" cy="-2" rx="3" ry="2" fill="#ff8787" opacity="0.7"/>
+    <!-- Stem -->
+    <path d="M-2,-8 Q0,-10 1,-8" fill="none" stroke="#2d5016" stroke-width="1.5"/>
+    <circle cx="0" cy="-8" r="2" fill="#4d7b24"/>
+    <!-- Motion lines -->
+    <line x1="-15" y1="-2" x2="-12" y2="-2" stroke="#ff6b6b" stroke-width="1" opacity="0.5"/>
+    <line x1="-14" y1="1" x2="-11" y2="1" stroke="#ff6b6b" stroke-width="1" opacity="0.5"/>
+  </g>
+  
+  <!-- Tomato splat -->
+  <g transform="translate(240, 60)">
+    <circle cx="0" cy="0" r="4" fill="#ff6b6b" opacity="0.8"/>
+    <circle cx="5" cy="2" r="3" fill="#ff6b6b" opacity="0.8"/>
+    <circle cx="-4" cy="3" r="3" fill="#ff6b6b" opacity="0.8"/>
+    <circle cx="2" cy="-4" r="3" fill="#ff6b6b" opacity="0.8"/>
+    <circle cx="-3" cy="-3" r="2" fill="#ff6b6b" opacity="0.8"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="140" y="170" font-family="Arial" font-size="12" fill="white" text-anchor="middle" font-weight="bold">Atira Tomates</text>
+</svg>
