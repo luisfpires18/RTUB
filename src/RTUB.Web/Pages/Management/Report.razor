@@ -61,10 +61,10 @@ else
         }
     </div>
 
-<!-- Summary Cards - 2x2 Grid -->
+<!-- Summary Cards - 3x2 Grid -->
 <div class="summary-cards-container mb-4">
     <div class="row g-2">
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
@@ -72,7 +72,7 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
@@ -80,7 +80,7 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
@@ -88,11 +88,27 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Atividades</small>
                     <h5 class="mb-0">@(activities?.Count ?? 0)</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card text-center summary-card">
+                <div class="card-body py-2">
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-bank"></i> Dinheiro no Banco</small>
+                    <h5 class="text-primary mb-0">€@bankMoney.ToString("N2")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card text-center summary-card">
+                <div class="card-body py-2">
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-cash-stack"></i> Dinheiro em Caixa</small>
+                    <h5 class="text-primary mb-0">€@cashMoney.ToString("N2")</h5>
                 </div>
             </div>
         </div>
@@ -551,6 +567,9 @@ else
     private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
     private decimal totalExpenses => activities?.Sum(a => a.TotalExpenses) ?? 0;
     private decimal balance => totalIncome - totalExpenses;
+    
+    private decimal bankMoney = 0;
+    private decimal cashMoney = 0;
 
     private void ToggleAccordion(int activityId)
     {
@@ -587,6 +606,7 @@ else
     report = await ReportService.GetReportByIdAsync(ReportId);
         await LoadTransactions(); // Load transactions FIRST
      await LoadActivities();    // Then load activities (which recalculates totals using transactions)
+        await LoadBankAndCashMoney(); // Load bank and cash money values
   }
 
     /// <summary>
@@ -618,6 +638,28 @@ else
             .OrderBy(activity => activity.StartDate)
             .ThenBy(activity => activity.EndDate ?? activity.StartDate)
             .ToList();
+    }
+
+    private async Task LoadBankAndCashMoney()
+    {
+        if (report == null) return;
+        
+        var allActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
+        
+        // Look for "DINHEIRO NO BANCO" or "DINHEIRO BANCO" activity
+        var bankActivity = allActivities.FirstOrDefault(a => 
+            a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
+        
+        // Look for "DINHEIRO EM CAIXA" or "DINHEIRO CAIXA" activity  
+        var cashActivity = allActivities.FirstOrDefault(a =>
+            a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
+        
+        bankMoney = bankActivity?.Balance ?? 0;
+        cashMoney = cashActivity?.Balance ?? 0;
     }
 
     private async Task LoadTransactions()
