@@ -23,11 +23,13 @@ const tomatoThrowerGame = (function () {
     const GRASS_PRIME_Y = 73; // Prime number for pseudo-random grass Y distribution
     const SPLAT_MIN_DISTANCE = 15; // Minimum distance for splat particles
     const SPLAT_DISTANCE_RANGE = 10; // Additional random distance for splat particles
-    const GAME_DURATION = 300; // Game duration in seconds (5 minutes)
+    const STARTING_HP = 15; // Starting health points
+    const LOW_HP_THRESHOLD = 5; // HP threshold for red warning color
     
     let gameRunning = false;
     let points = 0;
     let hits = 0;
+    let hp = STARTING_HP;
     let timeElapsed = 0;
     
     let holes = [];
@@ -225,6 +227,7 @@ const tomatoThrowerGame = (function () {
         
         points = 0;
         hits = 0;
+        hp = STARTING_HP;
         timeElapsed = 0;
         activeDebtors = [];
         tomatoSplats = [];
@@ -253,8 +256,8 @@ const tomatoThrowerGame = (function () {
     function update(dt) {
         timeElapsed += dt;
         
-        // Check if game time limit reached (5 minutes)
-        if (timeElapsed >= GAME_DURATION) {
+        // Check if HP is depleted
+        if (hp <= 0) {
             endGame();
             return;
         }
@@ -291,6 +294,8 @@ const tomatoThrowerGame = (function () {
                 case 'hiding':
                     debtor.visibility = Math.max(0, debtor.visibility - dt * debtor.hideSpeed);
                     if (debtor.visibility <= 0) {
+                        // Debtor escaped without being hit - lose 1 HP
+                        hp = Math.max(0, hp - 1);
                         holes[debtor.holeIndex].occupied = false;
                         activeDebtors.splice(i, 1);
                     }
@@ -363,26 +368,23 @@ const tomatoThrowerGame = (function () {
         drawDebtors();
         drawTomatoSplats();
         drawClickParticles();
-        drawTimer();
+        drawHP();
     }
     
-    function drawTimer() {
-        // Draw remaining time
-        const remainingTime = Math.max(0, GAME_DURATION - timeElapsed);
-        const minutes = Math.floor(remainingTime / 60);
-        const seconds = Math.floor(remainingTime % 60);
-        const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    function drawHP() {
+        // Draw HP indicator
+        const hpText = `HP: ${hp}`;
         
-        // Timer background
+        // HP background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(canvas.width - 80, 10, 70, 30);
         
-        // Timer text
+        // HP text - red when low, white otherwise
         ctx.font = 'bold 18px Arial';
-        ctx.fillStyle = remainingTime <= 30 ? '#ff6b6b' : '#ffffff';
+        ctx.fillStyle = hp <= LOW_HP_THRESHOLD ? '#ff6b6b' : '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(timeText, canvas.width - 45, 25);
+        ctx.fillText(hpText, canvas.width - 45, 25);
     }
 
     function drawGrass() {
