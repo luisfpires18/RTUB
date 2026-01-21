@@ -29,16 +29,7 @@ public class MemberDebtService : IMemberDebtService
 
     public async Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId)
     {
-        // Check if debt already exists for this user and fiscal year
-        var existingDebt = await _memberDebtRepository.GetByUserIdAndFiscalYearIdAsync(userId, fiscalYearId);
-        if (existingDebt != null)
-        {
-            // Build descriptive error message with user and fiscal year information
-            var userName = existingDebt.User?.FirstName ?? "o utilizador";
-            var fiscalYearString = existingDebt.FiscalYear?.GetFiscalYearString() ?? fiscalYearId.ToString();
-            throw new InvalidOperationException($"Já existe uma dívida para {userName} no ano fiscal {fiscalYearString}");
-        }
-
+        // No duplicate check - multiple debts per user per fiscal year are now allowed
         var memberDebt = MemberDebt.Create(userId, amount, description, fiscalYearId);
         return await _memberDebtRepository.AddAsync(memberDebt);
     }
@@ -65,6 +56,9 @@ public class MemberDebtService : IMemberDebtService
     public async Task<Dictionary<string, decimal>> GetUsersWithDebtsAsync(int fiscalYearId)
     {
         var debts = await _memberDebtRepository.GetByFiscalYearIdAsync(fiscalYearId);
-        return debts.ToDictionary(d => d.UserId, d => d.AmountOwed);
+        // Sum all debts per user (multiple debts per user are now allowed)
+        return debts
+            .GroupBy(d => d.UserId)
+            .ToDictionary(g => g.Key, g => g.Sum(d => d.AmountOwed));
     }
 }

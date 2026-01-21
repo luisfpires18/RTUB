@@ -36,9 +36,8 @@ public class MemberDebtConfiguration : IEntityTypeConfiguration<MemberDebt>
             .HasDatabaseName("IX_MemberDebts_FiscalYearId");
 
         // Composite index for user and fiscal year queries (common pattern)
-        // Marked as unique to enforce business rule: one debt per user per fiscal year
+        // Not unique - allows multiple debts per user per fiscal year
         builder.HasIndex(md => new { md.UserId, md.FiscalYearId })
-            .IsUnique()
             .HasDatabaseName("IX_MemberDebts_UserId_FiscalYearId");
     }
 }

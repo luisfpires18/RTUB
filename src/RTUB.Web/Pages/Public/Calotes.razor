@@ -108,6 +108,23 @@ else if (!filteredMemberDebts.Any())
 }
 else
 {
+    <!-- Total Debt Summary -->
+    <div class="mb-4">
+        <div class="card summary-card">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-light-theme d-block mb-1">Total de Calotes</small>
+                        <h4 class="text-danger mb-0">€@totalDebt.ToString("N2")</h4>
+                    </div>
+                    <div class="text-light-theme">
+                        <i class="bi bi-cash-coin fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="avatar-card-grid">
         @foreach (var debt in filteredMemberDebts)
         {
@@ -341,6 +358,9 @@ else
     private List<MemberDebt> memberDebts = new();
     private List<MemberDebt> filteredMemberDebts = new();
     private string searchTerm = "";
+    
+    // Total debt of all users
+    private decimal totalDebt => memberDebts.Sum(d => d.AmountOwed);
     
     // Modal state
     private bool showCaloteModal = false;
@@ -623,16 +643,7 @@ else
             }
             else
             {
-                // Check if debt already exists for this user in this fiscal year
-                var existingDebt = await MemberDebtService.GetDebtForUserAsync(selectedMember.Id, fiscalYear.Id);
-                
-                if (existingDebt != null)
-                {
-                    errorMessage = "Este membro já tem uma dívida registada para este ano fiscal. Por favor, edite a dívida existente.";
-                    return;
-                }
-                
-                // Create new debt
+                // Create new debt - multiple debts per user are now allowed
                 await MemberDebtService.AddDebtAsync(
                     selectedMember.Id,
                     editAmount,
