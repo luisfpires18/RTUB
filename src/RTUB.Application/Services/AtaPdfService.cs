@@ -171,19 +171,7 @@ public class AtaPdfService : IAtaPdfService
                             }
                         }
 
-                        // Quorum basis (AG only)
-                        if (isAG && !string.IsNullOrEmpty(ata.QuorumBasis))
-                        {
-                            presColumn.Item().PaddingTop(10).Text("Quórum / início da sessão:").FontSize(10).Bold();
-                            if (ata.QuorumBasis == "HoraAgendadaMais30Minutos")
-                            {
-                                presColumn.Item().Text("  ☑ Início 30 minutos após a hora marcada (com os presentes)").FontSize(10);
-                            }
-                            else
-                            {
-                                presColumn.Item().Text("  ☑ Início à hora marcada (com quórum)").FontSize(10);
-                            }
-                        }
+                        // Quorum section removed per user request
                     });
 
                     // Section: Ordem de trabalhos
@@ -321,7 +309,7 @@ public class AtaPdfService : IAtaPdfService
                             {
                                 sigCol.Item().Text(presidentName).FontSize(10).AlignCenter();
                                 sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O(A) Presidente da Mesa").FontSize(9).AlignCenter();
+                                sigCol.Item().Text("O Presidente da Mesa").FontSize(9).AlignCenter();
                             });
 
                             row.ConstantItem(20);
@@ -330,7 +318,7 @@ public class AtaPdfService : IAtaPdfService
                             {
                                 sigCol.Item().Text(firstSecName).FontSize(10).AlignCenter();
                                 sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O(A) 1.º Secretário").FontSize(9).AlignCenter();
+                                sigCol.Item().Text("O 1.º Secretário").FontSize(9).AlignCenter();
                             });
 
                             row.ConstantItem(20);
@@ -339,7 +327,7 @@ public class AtaPdfService : IAtaPdfService
                             {
                                 sigCol.Item().Text(secondSecName).FontSize(10).AlignCenter();
                                 sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
-                                sigCol.Item().Text("O(A) 2.º Secretário").FontSize(9).AlignCenter();
+                                sigCol.Item().Text("O 2.º Secretário").FontSize(9).AlignCenter();
                             });
                         });
                     }

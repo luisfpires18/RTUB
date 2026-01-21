@@ -1298,15 +1298,8 @@ else
                                 {
                                     <option value="@ataFirstSecretaryAG.Id">@(ataFirstSecretaryAG.Nickname ?? ataFirstSecretaryAG.FirstName) (Cargo atual)</option>
                                 }
-                                @if (ataParticipants != null)
-                                {
-                                    @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != ataFirstSecretaryAG?.Id))
-                                    {
-                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
-                                    }
-                                }
                             </select>
-                            <small class="text-muted">Por defeito usa o membro com cargo de 1.º Secretário da Mesa (opcional)</small>
+                            <small class="text-muted">Usa o membro com cargo de 1.º Secretário da Mesa (opcional)</small>
                         </div>
                         
                         <div class="mb-3">
@@ -1317,15 +1310,8 @@ else
                                 {
                                     <option value="@ataSecondSecretaryAG.Id">@(ataSecondSecretaryAG.Nickname ?? ataSecondSecretaryAG.FirstName) (Cargo atual)</option>
                                 }
-                                @if (ataParticipants != null)
-                                {
-                                    @foreach (var participant in ataParticipants.Where(p => p.User != null && p.UserId != ataSecondSecretaryAG?.Id))
-                                    {
-                                        <option value="@participant.UserId">@(participant.User!.Nickname ?? participant.User.FirstName)</option>
-                                    }
-                                }
                             </select>
-                            <small class="text-muted">Por defeito usa o membro com cargo de 2.º Secretário da Mesa (opcional)</small>
+                            <small class="text-muted">Usa o membro com cargo de 2.º Secretário da Mesa (opcional)</small>
                         </div>
                     </div>
                 }
@@ -3115,23 +3101,16 @@ else
             
             if (existingAta != null)
             {
-                // Load existing ata with details
+                // Load existing ata with details - preserve the saved secretary values
                 editingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
                 
-                // Update officials to match current position holders
+                // Update president to match current position holder (president is always required)
                 if (editingAta != null && ataPresident != null)
                 {
                     editingAta.PresidentUserId = ataPresident.Id;
                 }
                 
-                // For AG, also update secretaries from roles
-                if (editingAta != null && isAG)
-                {
-                    if (ataFirstSecretaryAG != null)
-                        editingAta.FirstSecretaryUserId = ataFirstSecretaryAG.Id;
-                    if (ataSecondSecretaryAG != null)
-                        editingAta.SecondSecretaryUserId = ataSecondSecretaryAG.Id;
-                }
+                // NOTE: Do NOT overwrite secretary values for existing ATAs - preserve what was saved
             }
             else
             {
