@@ -7,9 +7,6 @@ const passaroMalucoGame = (function () {
     let ctx = null;
     let dotNetRef = null;
     
-    // Images are not loaded - using fallback rendering for better performance
-    let imagesLoaded = false;
-    
     // Game configuration
     const config = {
         gravity: 0.08,
@@ -68,8 +65,7 @@ const passaroMalucoGame = (function () {
             highScore = parseInt(savedHighScore, 10);
         }
         
-        // Use fallback rendering (no sprites to load)
-        imagesLoaded = true;
+        // Use fallback rendering for better performance
         drawInitialState();
         
         // Setup input handlers
