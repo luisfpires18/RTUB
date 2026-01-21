@@ -28,14 +28,18 @@ public class MeetingAtaConfiguration : IEntityTypeConfiguration<MeetingAta>
             .HasForeignKey(a => a.PresidentUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // FirstSecretaryUser is optional
         builder.HasOne(a => a.FirstSecretaryUser)
             .WithMany()
             .HasForeignKey(a => a.FirstSecretaryUserId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // SecondSecretaryUser is optional
         builder.HasOne(a => a.SecondSecretaryUser)
             .WithMany()
             .HasForeignKey(a => a.SecondSecretaryUserId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

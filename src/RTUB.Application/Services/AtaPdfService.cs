@@ -5,7 +5,6 @@ using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Text.Json;
 
 namespace RTUB.Application.Services;
 
@@ -146,44 +145,33 @@ public class AtaPdfService : IAtaPdfService
                     var presencaTitle = isAG ? $"{sectionNumber}) Presenças e quórum" : $"{sectionNumber}) Presenças";
                     column.Item().PaddingTop(20).Text(presencaTitle).FontSize(14).Bold().FontColor("#6f42c1");
 
-                    var presentIds = DeserializeAttendeeIds(ata.AttendeesPresent);
-                    var absentIds = DeserializeAttendeeIds(ata.AttendeesAbsent);
+                    // Get attendees from MeetingParticipation with WillAttend=true
+                    var presentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: true);
+
+                    // Get attendees who declined (WillAttend=false)
+                    var absentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: false);
 
                     column.Item().PaddingTop(10).Column(presColumn =>
                     {
-                        presColumn.Item().Text("Foi disponibilizada e assinada a folha/livro de presenças.").FontSize(10).Italic();
-                        
-                        if (presentIds.Any())
+                        if (presentParticipants.Any())
                         {
-                            presColumn.Item().PaddingTop(5).Text($"Presentes ({presentIds.Count}):").FontSize(10).Bold();
-                            foreach (var name in presentIds)
+                            presColumn.Item().Text($"Presentes ({presentParticipants.Count}):").FontSize(10).Bold();
+                            foreach (var name in presentParticipants)
                             {
                                 presColumn.Item().Text($"  • {name}").FontSize(10);
                             }
                         }
 
-                        if (absentIds.Any())
+                        if (absentParticipants.Any())
                         {
-                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentIds.Count}):").FontSize(10).Bold();
-                            foreach (var name in absentIds)
+                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentParticipants.Count}):").FontSize(10).Bold();
+                            foreach (var name in absentParticipants)
                             {
                                 presColumn.Item().Text($"  • {name}").FontSize(10);
                             }
                         }
 
-                        // Quorum basis (AG only)
-                        if (isAG && !string.IsNullOrEmpty(ata.QuorumBasis))
-                        {
-                            presColumn.Item().PaddingTop(10).Text("Quórum / início da sessão:").FontSize(10).Bold();
-                            if (ata.QuorumBasis == "HoraAgendadaMais30Minutos")
-                            {
-                                presColumn.Item().Text("  ☑ Início 30 minutos após a hora marcada (com os presentes)").FontSize(10);
-                            }
-                            else
-                            {
-                                presColumn.Item().Text("  ☑ Início à hora marcada (com quórum)").FontSize(10);
-                            }
-                        }
+                        // Quorum section removed per user request
                     });
 
                     // Section: Ordem de trabalhos
@@ -285,50 +273,74 @@ public class AtaPdfService : IAtaPdfService
                     
                     if (isCV)
                     {
-                        // CV: 2 signatures (Presidente do CV + Secretário)
+                        // CV: Presidente do CV (always) + Secretário (only if selected)
+                        var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
+                        var hasSecretary = ata.FirstSecretaryUser != null;
+                        var secretaryName = hasSecretary ? FormatUserName(ata.FirstSecretaryUser!) : "";
+
                         column.Item().PaddingTop(30).Row(row =>
                         {
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
+                                sigCol.Item().Text(presidentName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
                                 sigCol.Item().Text("O Presidente do CV").FontSize(9).AlignCenter();
                             });
 
-                            row.ConstantItem(40);
-
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasSecretary)
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                                sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(40);
+
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(secretaryName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
                         });
                     }
                     else
                     {
-                        // AG: 3 signatures (Presidente da Mesa + 1.º Secretário + 2.º Secretário)
+                        // AG: Presidente da Mesa (always) + 1.º Secretário (if selected) + 2.º Secretário (if selected)
+                        var presidentName = ata.PresidentUser != null ? FormatUserName(ata.PresidentUser) : "";
+                        var hasFirstSec = ata.FirstSecretaryUser != null;
+                        var hasSecondSec = ata.SecondSecretaryUser != null;
+                        var firstSecName = hasFirstSec ? FormatUserName(ata.FirstSecretaryUser!) : "";
+                        var secondSecName = hasSecondSec ? FormatUserName(ata.SecondSecretaryUser!) : "";
+
                         column.Item().PaddingTop(30).Row(row =>
                         {
                             row.RelativeItem().Column(sigCol =>
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                                sigCol.Item().Text("O(A) Presidente da Mesa").FontSize(9).AlignCenter();
+                                sigCol.Item().Text(presidentName).FontSize(10).AlignCenter();
+                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                sigCol.Item().Text("O Presidente da Mesa").FontSize(9).AlignCenter();
                             });
 
-                            row.ConstantItem(20);
-
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasFirstSec)
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                                sigCol.Item().Text("O(A) 1.º Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(20);
 
-                            row.ConstantItem(20);
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(firstSecName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O 1.º Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
 
-                            row.RelativeItem().Column(sigCol =>
+                            if (hasSecondSec)
                             {
-                                sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(40);
-                                sigCol.Item().Text("O(A) 2.º Secretário").FontSize(9).AlignCenter();
-                            });
+                                row.ConstantItem(20);
+
+                                row.RelativeItem().Column(sigCol =>
+                                {
+                                    sigCol.Item().Text(secondSecName).FontSize(10).AlignCenter();
+                                    sigCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingBottom(5);
+                                    sigCol.Item().Text("O 2.º Secretário").FontSize(9).AlignCenter();
+                                });
+                            }
                         });
                     }
 
@@ -418,16 +430,23 @@ public class AtaPdfService : IAtaPdfService
         return $"{firstName} {lastName}".Trim();
     }
 
-    private static List<string> DeserializeAttendeeIds(string? json)
+    /// <summary>
+    /// Gets formatted participant names from MeetingParticipation list based on attendance status
+    /// </summary>
+    private static List<string> GetFormattedParticipants(IEnumerable<MeetingParticipation>? participations, bool willAttend)
     {
-        if (string.IsNullOrEmpty(json)) return new List<string>();
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
-        }
-        catch
-        {
+        if (participations == null)
             return new List<string>();
+
+        var result = new List<string>();
+        foreach (var participation in participations)
+        {
+            if (participation.WillAttend == willAttend && participation.User != null)
+            {
+                result.Add(FormatUserName(participation.User));
+            }
         }
+        return result;
     }
+
 }

@@ -39,7 +39,7 @@ public class MeetingParticipationConfiguration : IEntityTypeConfiguration<Meetin
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(mp => mp.Meeting)
-            .WithMany()
+            .WithMany(m => m.Participations)
             .HasForeignKey(mp => mp.MeetingId)
             .OnDelete(DeleteBehavior.Cascade);
 
