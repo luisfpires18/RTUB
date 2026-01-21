@@ -15,6 +15,8 @@ const tomatoThrowerGame = (function () {
     const MAX_SHOW_TIME = 2.0; // Maximum time debtor shows (seconds)
     const MIN_HIDE_TIME = 0.5; // Minimum time between spawns
     const MAX_HIDE_TIME = 1.5; // Maximum time between spawns
+    const MIN_ANIMATION_SPEED = 2.0; // Slow debtors (easier to hit)
+    const MAX_ANIMATION_SPEED = 5.0; // Fast debtors (harder to hit)
     const MAX_DELTA_TIME = 0.1; // Maximum delta time to prevent spiral of death
     const GRASS_BLADE_COUNT = 100; // Number of grass blades to render
     const GRASS_PRIME_X = 137; // Prime number for pseudo-random grass X distribution
@@ -266,7 +268,7 @@ const tomatoThrowerGame = (function () {
             
             switch (debtor.state) {
                 case 'rising':
-                    debtor.visibility = Math.min(1, debtor.visibility + dt * 3);
+                    debtor.visibility = Math.min(1, debtor.visibility + dt * debtor.riseSpeed);
                     if (debtor.visibility >= 1) {
                         debtor.state = 'visible';
                         debtor.timer = 0;
@@ -281,7 +283,7 @@ const tomatoThrowerGame = (function () {
                     break;
                     
                 case 'hiding':
-                    debtor.visibility = Math.max(0, debtor.visibility - dt * 3);
+                    debtor.visibility = Math.max(0, debtor.visibility - dt * debtor.hideSpeed);
                     if (debtor.visibility <= 0) {
                         holes[debtor.holeIndex].occupied = false;
                         activeDebtors.splice(i, 1);
@@ -314,6 +316,8 @@ const tomatoThrowerGame = (function () {
                     visibility: 0,
                     timer: 0,
                     showTime: MIN_SHOW_TIME + Math.random() * (MAX_SHOW_TIME - MIN_SHOW_TIME),
+                    riseSpeed: MIN_ANIMATION_SPEED + Math.random() * (MAX_ANIMATION_SPEED - MIN_ANIMATION_SPEED),
+                    hideSpeed: MIN_ANIMATION_SPEED + Math.random() * (MAX_ANIMATION_SPEED - MIN_ANIMATION_SPEED),
                     width: randomHole.hole.radius * 1.6,
                     height: randomHole.hole.radius * 2
                 });
