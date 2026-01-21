@@ -117,14 +117,6 @@
             </button>
         </div>
     }
-    
-    <!-- Customization note -->
-    <div class="mt-4 text-center">
-        <small class="text-white-opacity">
-            <i class="bi bi-info-circle me-1"></i>
-            Sprites personalizáveis em: wwwroot/sprites/games/passaro-maluco/
-        </small>
-    </div>
 </div>
 
 <style>
@@ -364,8 +356,13 @@
                 // Award 1 Fidelis for playing
                 if (currentUser != null)
                 {
-                    currentUser.FidelisBalance += 1.0m;
-                    await UserManager.UpdateAsync(currentUser);
+                    // Reload user to avoid concurrency issues
+                    currentUser = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
+                    if (currentUser != null)
+                    {
+                        currentUser.FidelisBalance += 1.0m;
+                        await UserManager.UpdateAsync(currentUser);
+                    }
                 }
             }
             catch (Exception ex)

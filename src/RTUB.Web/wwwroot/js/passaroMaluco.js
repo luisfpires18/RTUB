@@ -25,8 +25,8 @@ const passaroMalucoGame = (function () {
         jumpStrength: -4,
         pipeWidth: 52,
         pipeGap: 250,
-        pipeSpeed: 1,
-        pipeSpawnRate: 3000, // milliseconds
+        pipeSpeed: 2,
+        pipeSpawnRate: 2000, // milliseconds
         groundHeight: 50,
         maxDeltaTime: 0.1,           // Cap delta time to prevent large jumps
         collisionPadding: 5,         // Padding for collision box
