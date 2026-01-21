@@ -102,6 +102,20 @@ public class ReportPdfService
                             .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;
+                        
+                        // Calculate bank and cash money from special activities
+                        var bankActivity = activities.FirstOrDefault(a => 
+                            a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
+                            a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
+                            a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
+                        
+                        var cashActivity = activities.FirstOrDefault(a =>
+                            a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
+                            a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
+                            a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
+                        
+                        var bankMoney = bankActivity?.Balance ?? 0;
+                        var cashMoney = cashActivity?.Balance ?? 0;
 
                         column.Item().Background("#f8f9fa").Padding(15).Column(summaryColumn =>
                         {
@@ -130,6 +144,18 @@ public class ReportPdfService
                                 {
                                     col.Item().Text("Atividades").FontSize(10).FontColor(Colors.Grey.Darken1);
                                     col.Item().Text(activities.Count.ToString()).FontSize(18).Bold().FontColor("#6f42c1");
+                                });
+                                
+                                row.RelativeItem().Column(col =>
+                                {
+                                    col.Item().Text("Dinheiro no Banco").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                    col.Item().Text($"€{bankMoney:N2}").FontSize(18).Bold().FontColor("#6f42c1");
+                                });
+                                
+                                row.RelativeItem().Column(col =>
+                                {
+                                    col.Item().Text("Dinheiro em Caixa").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                    col.Item().Text($"€{cashMoney:N2}").FontSize(18).Bold().FontColor("#6f42c1");
                                 });
                             });
                         });

@@ -852,4 +852,23 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"card-reminder-{card.Id}"
         };
     }
+
+    /// <summary>
+    /// Creates a push notification for calotes (debt) reminder.
+    /// </summary>
+    public SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var calotesUrl = $"{baseUrl.TrimEnd('/')}/calotes";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Calote Pendente",
+            Body = $"Deves {amountOwed:N2}€ à tuna",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = calotesUrl,
+            Tag = "calotes-reminder"
+        };
+    }
 }

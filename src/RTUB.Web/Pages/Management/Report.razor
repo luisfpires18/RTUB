@@ -14,6 +14,8 @@
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
+@inject IMemberDebtService MemberDebtService
+@inject IFiscalYearService FiscalYearService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -61,10 +63,10 @@ else
         }
     </div>
 
-<!-- Summary Cards - 2x2 Grid -->
+<!-- Summary Cards - 3x2 Grid -->
 <div class="summary-cards-container mb-4">
     <div class="row g-2">
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
@@ -72,7 +74,7 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
@@ -80,7 +82,7 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
@@ -88,11 +90,53 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-6 col-md-6">
+        <div class="col-6 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Atividades</small>
-                    <h5 class="mb-0">@(activities?.Count ?? 0)</h5>
+                    <small class="card-title d-block mb-1 text-light-theme">Atividades (@displayedActivitiesCount)</small>
+                    <h5 class="mb-0">@displayedActivitiesCount</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card text-center summary-card position-relative">
+                @if (CanCreateReports() && !report.IsPublished)
+                {
+                    <button class="btn btn-sm admin-btn-edit position-absolute" 
+                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                            @onclick="() => OpenBankCashEditModal(true)"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                <div class="card-body py-2">
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-bank"></i> Dinheiro no Banco</small>
+                    <h5 class="text-success mb-0">€@bankMoney.ToString("N2")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card text-center summary-card position-relative">
+                @if (CanCreateReports() && !report.IsPublished)
+                {
+                    <button class="btn btn-sm admin-btn-edit position-absolute" 
+                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                            @onclick="() => OpenBankCashEditModal(false)"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                <div class="card-body py-2">
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-cash-stack"></i> Dinheiro em Caixa</small>
+                    <h5 class="text-success mb-0">€@cashMoney.ToString("N2")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card text-center summary-card">
+                <div class="card-body py-2">
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-cash-coin"></i> Calotes</small>
+                    <h5 class="text-danger mb-0">€@totalCalotes.ToString("N2")</h5>
                 </div>
             </div>
         </div>
@@ -100,7 +144,7 @@ else
 </div>
 
   <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3">
-      <h3 class="mb-0">Atividades</h3>
+      <h3 class="mb-0">Atividades (@displayedActivitiesCount)</h3>
 
       @if (!report.IsPublished && CanCreateReports())
       {
@@ -112,11 +156,11 @@ else
       }
   </div>
 
-@if (activities == null)
+@if (activities == null || displayedActivities == null)
     {
   <p>A carregar atividades...</p>
     }
-    else if (!activities.Any())
+    else if (!displayedActivities.Any())
     {
         <EmptyState Title="Nenhuma atividade criada ainda."
                         Icon="bi-calendar-event" />
@@ -130,7 +174,7 @@ else
         </style>
 
         <div class="accordion" id="activitiesAccordion">
-          @foreach (var activity in activities)
+          @foreach (var activity in displayedActivities)
        {
                 <div class="accordion-item mb-2">
                <h2 class="accordion-header" id="heading@activity.Id">
@@ -492,6 +536,26 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Bank/Cash Edit Modal -->
+<Modal Show="@showBankCashModal" 
+       ShowChanged="@((bool show) => showBankCashModal = show)"
+       Title="@(isEditingBank ? "Editar Dinheiro no Banco" : "Editar Dinheiro em Caixa")" 
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi @(isEditingBank ? "bi-bank" : "bi-cash-stack") text-primary me-2"></i>Valor (€)
+            </label>
+            <input type="number" class="form-control" step="0.01" @bind="editingBankCashValue" placeholder="0.00" />
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @onclick="CloseBankCashModal">Cancelar</button>
+            <button type="button" class="btn btn-success" @onclick="SaveBankCashValue">Guardar</button>
+        </div>
+    </BodyContent>
+</Modal>
+
 @code {
     [Parameter]
     public int ReportId { get; set; }
@@ -551,6 +615,23 @@ else
     private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
     private decimal totalExpenses => activities?.Sum(a => a.TotalExpenses) ?? 0;
     private decimal balance => totalIncome - totalExpenses;
+    
+    private decimal bankMoney = 0;
+    private decimal cashMoney = 0;
+    
+    // Calotes total
+    private decimal totalCalotes = 0;
+    
+    // Count of displayed activities (excluding hidden ones like BANCO, CAIXA, CALOTES)
+    private int displayedActivitiesCount => displayedActivities?.Count ?? 0;
+    private List<Activity>? displayedActivities;
+    
+    // Bank/Cash edit modal state
+    private bool showBankCashModal = false;
+    private bool isEditingBank = true;
+    private decimal editingBankCashValue = 0;
+    private Activity? bankActivity = null;
+    private Activity? cashActivity = null;
 
     private void ToggleAccordion(int activityId)
     {
@@ -587,6 +668,8 @@ else
     report = await ReportService.GetReportByIdAsync(ReportId);
         await LoadTransactions(); // Load transactions FIRST
      await LoadActivities();    // Then load activities (which recalculates totals using transactions)
+        await LoadBankAndCashMoney(); // Load bank and cash money values
+        await LoadCalotesTotal(); // Load total calotes
   }
 
     /// <summary>
@@ -608,6 +691,18 @@ else
         
         return false;
     }
+    
+    /// <summary>
+    /// Checks if an activity should be hidden from the activities list.
+    /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed in summary boxes)
+    /// </summary>
+    private static bool IsHiddenActivity(Activity activity)
+    {
+        var name = activity.Name.ToUpperInvariant();
+        return name.Contains("CALOTES") ||
+               name.Contains("BANCO") ||
+               name.Contains("CAIXA");
+    }
 
     private async Task LoadActivities()
     {
@@ -618,6 +713,46 @@ else
             .OrderBy(activity => activity.StartDate)
             .ThenBy(activity => activity.EndDate ?? activity.StartDate)
             .ToList();
+        
+        // Filter out hidden activities for display
+        displayedActivities = activities
+            .Where(a => !IsHiddenActivity(a))
+            .ToList();
+    }
+
+    private async Task LoadBankAndCashMoney()
+    {
+        if (report == null) return;
+        
+        var allActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
+        
+        // Look for "DINHEIRO NO BANCO" or "DINHEIRO BANCO" activity
+        bankActivity = allActivities.FirstOrDefault(a => 
+            a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
+        
+        // Look for "DINHEIRO EM CAIXA" or "DINHEIRO CAIXA" activity  
+        cashActivity = allActivities.FirstOrDefault(a =>
+            a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
+        
+        bankMoney = bankActivity?.Balance ?? 0;
+        cashMoney = cashActivity?.Balance ?? 0;
+    }
+
+    private async Task LoadCalotesTotal()
+    {
+        if (report == null) return;
+        
+        // Get the fiscal year for this report
+        var fiscalYear = await FiscalYearService.GetFiscalYearByStartYearAsync(report.Year);
+        if (fiscalYear == null) return;
+        
+        // Get all debts for this fiscal year
+        var debts = await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id);
+        totalCalotes = debts.Sum(d => d.AmountOwed);
     }
 
     private async Task LoadTransactions()
@@ -1118,5 +1253,71 @@ state.CurrentPage = newPage;
             // Single date
             return activity.StartDate.ToString("dd MMM yyyy");
         }
+    }
+
+    // Bank/Cash modal methods
+    private void OpenBankCashEditModal(bool isBank)
+    {
+        isEditingBank = isBank;
+        editingBankCashValue = isBank ? bankMoney : cashMoney;
+        showBankCashModal = true;
+    }
+
+    private void CloseBankCashModal()
+    {
+        showBankCashModal = false;
+        editingBankCashValue = 0;
+    }
+
+    private async Task SaveBankCashValue()
+    {
+        if (report == null) return;
+
+        var activityName = isEditingBank ? "DINHEIRO NO BANCO" : "DINHEIRO EM CAIXA";
+        var currentActivity = isEditingBank ? bankActivity : cashActivity;
+        var newValue = editingBankCashValue;
+
+        // If activity doesn't exist, create it
+        if (currentActivity == null)
+        {
+            currentActivity = await ActivityService.CreateActivityAsync(
+                ReportId,
+                activityName,
+                DateTime.Today,
+                null, // description
+                null  // endDate
+            );
+        }
+
+        // Get existing transactions for this activity
+        var existingTransactions = await TransactionService.GetTransactionsByActivityIdAsync(currentActivity.Id);
+        
+        // Delete all existing transactions (we'll replace with a single one)
+        foreach (var t in existingTransactions)
+        {
+            await TransactionService.DeleteTransactionAsync(t.Id);
+        }
+
+        // Create a single transaction with the new value
+        if (newValue != 0)
+        {
+            var type = newValue >= 0 ? "Income" : "Expense";
+            var amount = Math.Abs(newValue);
+            await TransactionService.CreateTransactionAsync(
+                DateTime.Today,
+                activityName,
+                "Saldo",
+                amount,
+                type,
+                currentActivity.Id
+            );
+        }
+
+        // Reload data
+        await LoadBankAndCashMoney();
+        await LoadActivities();
+        await LoadTransactions();
+        
+        CloseBankCashModal();
     }
 }

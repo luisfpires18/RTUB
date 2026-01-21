@@ -47,6 +47,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Activity> Activities { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<FiscalYear> FiscalYears { get; set; }
+    public DbSet<MemberDebt> MemberDebts { get; set; }
     public DbSet<Slideshow> Slideshows { get; set; }
     public DbSet<Label> Labels { get; set; }
     public DbSet<Request> Requests { get; set; }
