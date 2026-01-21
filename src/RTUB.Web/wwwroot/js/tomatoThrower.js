@@ -23,10 +23,13 @@ const tomatoThrowerGame = (function () {
     const GRASS_PRIME_Y = 73; // Prime number for pseudo-random grass Y distribution
     const SPLAT_MIN_DISTANCE = 15; // Minimum distance for splat particles
     const SPLAT_DISTANCE_RANGE = 10; // Additional random distance for splat particles
+    const STARTING_HP = 15; // Starting health points
+    const LOW_HP_THRESHOLD = 5; // HP threshold for red warning color
     
     let gameRunning = false;
     let points = 0;
     let hits = 0;
+    let hp = STARTING_HP;
     let timeElapsed = 0;
     
     let holes = [];
@@ -224,6 +227,7 @@ const tomatoThrowerGame = (function () {
         
         points = 0;
         hits = 0;
+        hp = STARTING_HP;
         timeElapsed = 0;
         activeDebtors = [];
         tomatoSplats = [];
@@ -252,7 +256,12 @@ const tomatoThrowerGame = (function () {
     function update(dt) {
         timeElapsed += dt;
         
-        // Endless game - no time limit
+        // Check if HP is depleted
+        if (hp <= 0) {
+            endGame();
+            return;
+        }
+        
         updateDebtors(dt);
         spawnDebtors();
         updateTomatoSplats(dt);
@@ -285,6 +294,8 @@ const tomatoThrowerGame = (function () {
                 case 'hiding':
                     debtor.visibility = Math.max(0, debtor.visibility - dt * debtor.hideSpeed);
                     if (debtor.visibility <= 0) {
+                        // Debtor escaped without being hit - lose 1 HP
+                        hp = Math.max(0, hp - 1);
                         holes[debtor.holeIndex].occupied = false;
                         activeDebtors.splice(i, 1);
                     }
@@ -357,7 +368,23 @@ const tomatoThrowerGame = (function () {
         drawDebtors();
         drawTomatoSplats();
         drawClickParticles();
-        // No timer - endless game
+        drawHP();
+    }
+    
+    function drawHP() {
+        // Draw HP indicator
+        const hpText = `HP: ${hp}`;
+        
+        // HP background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(canvas.width - 80, 10, 70, 30);
+        
+        // HP text - red when low, white otherwise
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = hp <= LOW_HP_THRESHOLD ? '#ff6b6b' : '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(hpText, canvas.width - 45, 25);
     }
 
     function drawGrass() {
@@ -543,7 +570,7 @@ const tomatoThrowerGame = (function () {
         avatarImages = {};
     }
 
-    return { init, start, dispose };
+    return { init, start, endGame, dispose };
 })();
 
 window.tomatoThrowerGame = tomatoThrowerGame;
