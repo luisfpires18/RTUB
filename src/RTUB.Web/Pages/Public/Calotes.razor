@@ -161,6 +161,17 @@ else
                         <span class="calote-debt-value">€@debt.AmountOwed.ToString("F2")</span>
                     </div>
                 </div>
+                
+                <!-- View button below the card -->
+                <div class="avatar-card-actions">
+                    <button class="btn btn-sm btn-purple" 
+                            @onclick="() => OpenDetailsModal(debt)" 
+                            @onclick:stopPropagation="true"
+                            title="Ver Detalhes"
+                            aria-label="Ver Detalhes">
+                        <i class="bi bi-eye"></i> Ver Detalhes
+                    </button>
+                </div>
             </div>
         }
     </div>
@@ -293,6 +304,45 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmDeleteCalote"
                OnCancel="CloseDeleteConfirmation" />
+
+<!-- Details Modal -->
+@if (viewingDebt != null)
+{
+    <DetailsModal Show="@showDetailsModal" 
+                  ShowChanged="@((bool show) => showDetailsModal = show)"
+                  Title="Detalhes de Dívida"
+                  HeaderTitle="@viewingDebt.Member.GetDisplayName()"
+                  ImageUrl="@viewingDebt.Member.ProfilePictureSrc"
+                  Size="Modal.ModalSize.Default"
+                  OnClose="CloseDetailsModal">
+        <Sections>
+            <InfoSection SectionTitle="Transações" IconClass="bi-list-ul">
+                @if (viewingMemberTransactions.Any())
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var transaction in viewingMemberTransactions.OrderByDescending(t => t.Date))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span class="text-muted">@transaction.Description</span>
+                                <span class="badge bg-danger">€@transaction.Amount.ToString("F2")</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Nenhuma transação encontrada.</p>
+                }
+            </InfoSection>
+            <InfoSection SectionTitle="Total em Dívida" IconClass="bi-cash-coin">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Montante Total:</span>
+                    <span class="badge bg-danger fs-6">€@viewingDebt.AmountOwed.ToString("F2")</span>
+                </div>
+            </InfoSection>
+        </Sections>
+    </DetailsModal>
+}
 </main>
 
 @code {
@@ -319,6 +369,11 @@ else
     private bool showDeleteConfirmation = false;
     private bool isEditMode = false;
     private string errorMessage = "";
+    
+    // Details Modal state
+    private bool showDetailsModal = false;
+    private MemberDebt? viewingDebt;
+    private List<Transaction> viewingMemberTransactions = new();
     
     // Edit/Create state
     private ApplicationUser? selectedMember;
@@ -713,6 +768,29 @@ else
             showDeleteConfirmation = false;
             deletingDebt = null;
         }
+    }
+    
+    private async Task OpenDetailsModal(MemberDebt debt)
+    {
+        viewingDebt = debt;
+        
+        // Load transactions for this member
+        if (calotesActivity != null)
+        {
+            var transactions = await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id);
+            viewingMemberTransactions = transactions
+                .Where(t => t.UserId == debt.Member.Id && t.Type == "Expense")
+                .ToList();
+        }
+        
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        viewingDebt = null;
+        viewingMemberTransactions.Clear();
     }
     
     // Helper class to track member debts
