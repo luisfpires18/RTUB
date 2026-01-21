@@ -61,21 +61,6 @@
                 <span class="stat-value">@points</span>
                 <span class="stat-label">Pontos</span>
             </div>
-            <div class="stat-item">
-                <i class="bi bi-egg-fill text-danger"></i>
-                <span class="stat-value">@tomatoesThrown</span>
-                <span class="stat-label">Tomates</span>
-            </div>
-            <div class="stat-item">
-                <i class="bi bi-bullseye text-success"></i>
-                <span class="stat-value">@accuracy%</span>
-                <span class="stat-label">Precisão</span>
-            </div>
-            <div class="stat-item">
-                <i class="bi bi-clock-fill text-info"></i>
-                <span class="stat-value">@FormatTime(timeElapsed)</span>
-                <span class="stat-label">Tempo</span>
-            </div>
         </div>
 
         <div class="game-canvas-wrapper">
@@ -90,7 +75,6 @@
                         <ul class="game-instructions">
                             <li><i class="bi bi-mouse me-2"></i>Clica ou toca nos caloteiros para atirar tomates</li>
                             <li><i class="bi bi-star me-2"></i>Mais dívida = mais pontos</li>
-                            <li><i class="bi bi-clock me-2"></i>Os caloteiros aparecem e escondem-se rapidamente</li>
                             <li><i class="bi bi-trophy me-2"></i>Tenta conseguir a maior pontuação!</li>
                         </ul>
                         <div class="debtors-preview mb-3">
@@ -127,18 +111,6 @@
                             <div class="final-stat">
                                 <span class="final-stat-value">@finalPoints</span>
                                 <span class="final-stat-label">Pontos</span>
-                            </div>
-                            <div class="final-stat">
-                                <span class="final-stat-value">@finalTomatoesThrown</span>
-                                <span class="final-stat-label">Tomates Atirados</span>
-                            </div>
-                            <div class="final-stat">
-                                <span class="final-stat-value">@finalHits</span>
-                                <span class="final-stat-label">Acertos</span>
-                            </div>
-                            <div class="final-stat">
-                                <span class="final-stat-value">@finalAccuracy%</span>
-                                <span class="final-stat-label">Precisão</span>
                             </div>
                             <div class="final-stat">
                                 <span class="final-stat-value text-success">+1.00</span>

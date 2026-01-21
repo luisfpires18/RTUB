@@ -9,7 +9,6 @@ const tomatoThrowerGame = (function () {
     let debtors = [];
     
     // Game configuration constants
-    const GAME_DURATION = 60; // 60 seconds
     const GRID_COLS = 3;
     const GRID_ROWS = 3;
     const MIN_SHOW_TIME = 0.8; // Minimum time debtor shows (seconds)
@@ -25,10 +24,8 @@ const tomatoThrowerGame = (function () {
     
     let gameRunning = false;
     let points = 0;
-    let tomatoesThrown = 0;
     let hits = 0;
     let timeElapsed = 0;
-    let timeRemaining = GAME_DURATION;
     
     let holes = [];
     let activeDebtors = [];
@@ -136,22 +133,22 @@ const tomatoThrowerGame = (function () {
     }
 
     function throwTomato(x, y) {
-        tomatoesThrown++;
-        
         // Check if hit any active debtor
         let hitDebtor = false;
         for (let i = activeDebtors.length - 1; i >= 0; i--) {
             const debtor = activeDebtors[i];
             if (debtor.state === 'visible') {
                 const hole = holes[debtor.holeIndex];
-                const debtorY = hole.y - debtor.height * debtor.visibility;
-                const debtorTop = debtorY - debtor.height / 2;
+                // Avatar is positioned inside the hole
+                const avatarY = hole.y - hole.radius * 0.3;
                 
                 const dx = x - hole.x;
-                const dy = y - (debtorTop + debtor.height / 2);
+                const dy = y - avatarY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < debtor.width / 2) {
+                // Check if click is within avatar radius
+                const avatarRadius = hole.radius * 0.7;
+                if (distance < avatarRadius) {
                     hitDebtor = true;
                     hits++;
                     
@@ -160,10 +157,10 @@ const tomatoThrowerGame = (function () {
                     const pointsAwarded = Math.max(1, Math.floor(debtorData.debtAmount));
                     points += pointsAwarded;
                     
-                    // Create tomato splat
+                    // Create tomato splat only on hit
                     tomatoSplats.push({
                         x: hole.x,
-                        y: debtorTop + debtor.height / 2,
+                        y: avatarY,
                         age: 0,
                         lifetime: 1.0,
                         pointsAwarded: pointsAwarded
@@ -177,8 +174,10 @@ const tomatoThrowerGame = (function () {
             }
         }
         
-        // Create click particles
-        createClickParticles(x, y, hitDebtor);
+        // Create click particles only on hit
+        if (hitDebtor) {
+            createClickParticles(x, y, true);
+        }
         
         updateDotNetStats();
     }
@@ -223,10 +222,8 @@ const tomatoThrowerGame = (function () {
         if (debtors.length === 0) return;
         
         points = 0;
-        tomatoesThrown = 0;
         hits = 0;
         timeElapsed = 0;
-        timeRemaining = GAME_DURATION;
         activeDebtors = [];
         tomatoSplats = [];
         clickParticles = [];
@@ -253,13 +250,8 @@ const tomatoThrowerGame = (function () {
 
     function update(dt) {
         timeElapsed += dt;
-        timeRemaining = Math.max(0, GAME_DURATION - timeElapsed);
         
-        if (timeRemaining <= 0) {
-            endGame();
-            return;
-        }
-        
+        // Endless game - no time limit
         updateDebtors(dt);
         spawnDebtors();
         updateTomatoSplats(dt);
@@ -362,7 +354,7 @@ const tomatoThrowerGame = (function () {
         drawDebtors();
         drawTomatoSplats();
         drawClickParticles();
-        drawTimer();
+        // No timer - endless game
     }
 
     function drawGrass() {
@@ -394,75 +386,74 @@ const tomatoThrowerGame = (function () {
         for (const debtor of activeDebtors) {
             const hole = holes[debtor.holeIndex];
             const debtorData = debtors[debtor.debtorIndex];
-            const y = hole.y - debtor.height * debtor.visibility;
             
-            // Debtor body (simple rectangle for body)
-            const bodyTop = y;
-            const bodyHeight = debtor.height * 0.6;
+            // Avatar positioned inside the hole, rising up as visibility increases
+            const avatarRadius = hole.radius * 0.7;
+            // Start from bottom of hole and rise to center
+            const startY = hole.y + hole.radius * 0.3;
+            const endY = hole.y - hole.radius * 0.3;
+            const avatarY = startY + (endY - startY) * debtor.visibility;
             
-            ctx.fillStyle = '#8b4513';
-            ctx.fillRect(
-                hole.x - debtor.width / 2,
-                bodyTop,
-                debtor.width,
-                bodyHeight
-            );
-            
-            // Avatar circle
-            const avatarRadius = debtor.width * 0.4;
-            const avatarY = bodyTop - avatarRadius;
-            
-            // Avatar background
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(hole.x, avatarY, avatarRadius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw avatar image if loaded
-            const img = avatarImages[debtor.debtorIndex];
-            if (img) {
+            // Only draw if visibility > 0
+            if (debtor.visibility > 0) {
+                // Save context for clipping
                 ctx.save();
+                
+                // Avatar background (white circle)
+                ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(hole.x, avatarY, avatarRadius - 2, 0, Math.PI * 2);
-                ctx.clip();
-                ctx.drawImage(
-                    img,
-                    hole.x - avatarRadius + 2,
-                    avatarY - avatarRadius + 2,
-                    (avatarRadius - 2) * 2,
-                    (avatarRadius - 2) * 2
-                );
+                ctx.arc(hole.x, avatarY, avatarRadius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw avatar image if loaded
+                const img = avatarImages[debtor.debtorIndex];
+                if (img) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(hole.x, avatarY, avatarRadius - 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(
+                        img,
+                        hole.x - avatarRadius + 2,
+                        avatarY - avatarRadius + 2,
+                        (avatarRadius - 2) * 2,
+                        (avatarRadius - 2) * 2
+                    );
+                    ctx.restore();
+                }
+                
+                // Avatar border
+                ctx.strokeStyle = '#333333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(hole.x, avatarY, avatarRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Name label (above avatar)
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const name = debtorData.name;
+                const nameY = avatarY - avatarRadius - 10;
+                
+                ctx.strokeText(name, hole.x, nameY);
+                ctx.fillText(name, hole.x, nameY);
+                
+                // Debt amount (below name, above avatar)
+                const debt = `€${debtorData.debtAmount.toFixed(2)}`;
+                const debtY = nameY + 12;
+                
+                ctx.fillStyle = '#ffeb3b';
+                ctx.font = 'bold 10px Arial';
+                ctx.strokeText(debt, hole.x, debtY);
+                ctx.fillText(debt, hole.x, debtY);
+                
                 ctx.restore();
             }
-            
-            // Avatar border
-            ctx.strokeStyle = '#333333';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(hole.x, avatarY, avatarRadius, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Name label
-            ctx.fillStyle = '#ffffff';
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            const name = debtorData.name;
-            const nameY = avatarY + avatarRadius + 12;
-            
-            ctx.strokeText(name, hole.x, nameY);
-            ctx.fillText(name, hole.x, nameY);
-            
-            // Debt amount
-            const debt = `€${debtorData.debtAmount.toFixed(2)}`;
-            const debtY = nameY + 14;
-            
-            ctx.fillStyle = '#ffeb3b';
-            ctx.strokeText(debt, hole.x, debtY);
-            ctx.fillText(debt, hole.x, debtY);
         }
     }
 
@@ -517,52 +508,9 @@ const tomatoThrowerGame = (function () {
         ctx.globalAlpha = 1;
     }
 
-    function drawTimer() {
-        // Timer bar at top
-        const barWidth = canvas.width * 0.8;
-        const barHeight = 30;
-        const barX = (canvas.width - barWidth) / 2;
-        const barY = 20;
-        
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(barX, barY, barWidth, barHeight);
-        
-        // Progress
-        const progress = timeRemaining / GAME_DURATION;
-        const progressWidth = barWidth * progress;
-        
-        const gradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
-        if (progress > 0.5) {
-            gradient.addColorStop(0, '#4caf50');
-            gradient.addColorStop(1, '#8bc34a');
-        } else if (progress > 0.25) {
-            gradient.addColorStop(0, '#ff9800');
-            gradient.addColorStop(1, '#ffc107');
-        } else {
-            gradient.addColorStop(0, '#f44336');
-            gradient.addColorStop(1, '#ff5722');
-        }
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(barX, barY, progressWidth, barHeight);
-        
-        // Timer text
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3;
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        const timeText = `${Math.ceil(timeRemaining)}s`;
-        ctx.strokeText(timeText, canvas.width / 2, barY + barHeight / 2);
-        ctx.fillText(timeText, canvas.width / 2, barY + barHeight / 2);
-    }
-
     function updateDotNetStats() {
         if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('UpdateStats', points, tomatoesThrown, hits, timeElapsed);
+            dotNetRef.invokeMethodAsync('UpdateStats', points, hits, hits, timeElapsed);
         }
     }
 
@@ -573,7 +521,7 @@ const tomatoThrowerGame = (function () {
             animationId = null;
         }
         if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('OnGameOver', points, tomatoesThrown, hits, timeElapsed);
+            dotNetRef.invokeMethodAsync('OnGameOver', points, hits, hits, timeElapsed);
         }
     }
 
