@@ -97,7 +97,16 @@ else
             </div>
         </div>
         <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
+            <div class="card text-center summary-card position-relative">
+                @if (CanCreateReports() && !report.IsPublished)
+                {
+                    <button class="btn btn-sm btn-outline-light position-absolute" 
+                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                            @onclick="() => OpenBankCashEditModal(true)"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-bank"></i> Dinheiro no Banco</small>
                     <h5 class="text-primary mb-0">€@bankMoney.ToString("N2")</h5>
@@ -105,7 +114,16 @@ else
             </div>
         </div>
         <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
+            <div class="card text-center summary-card position-relative">
+                @if (CanCreateReports() && !report.IsPublished)
+                {
+                    <button class="btn btn-sm btn-outline-light position-absolute" 
+                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                            @onclick="() => OpenBankCashEditModal(false)"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
                 <div class="card-body py-2">
                     <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-cash-stack"></i> Dinheiro em Caixa</small>
                     <h5 class="text-primary mb-0">€@cashMoney.ToString("N2")</h5>
@@ -508,6 +526,26 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Bank/Cash Edit Modal -->
+<Modal Show="@showBankCashModal" 
+       ShowChanged="@((bool show) => showBankCashModal = show)"
+       Title="@(isEditingBank ? "Editar Dinheiro no Banco" : "Editar Dinheiro em Caixa")" 
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi @(isEditingBank ? "bi-bank" : "bi-cash-stack") text-primary me-2"></i>Valor (€)
+            </label>
+            <input type="number" class="form-control" step="0.01" @bind="editingBankCashValue" placeholder="0.00" />
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" @onclick="CloseBankCashModal">Cancelar</button>
+            <button type="button" class="btn btn-success" @onclick="SaveBankCashValue">Guardar</button>
+        </div>
+    </BodyContent>
+</Modal>
+
 @code {
     [Parameter]
     public int ReportId { get; set; }
@@ -570,6 +608,13 @@ else
     
     private decimal bankMoney = 0;
     private decimal cashMoney = 0;
+    
+    // Bank/Cash edit modal state
+    private bool showBankCashModal = false;
+    private bool isEditingBank = true;
+    private decimal editingBankCashValue = 0;
+    private Activity? bankActivity = null;
+    private Activity? cashActivity = null;
 
     private void ToggleAccordion(int activityId)
     {
@@ -647,13 +692,13 @@ else
         var allActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
         
         // Look for "DINHEIRO NO BANCO" or "DINHEIRO BANCO" activity
-        var bankActivity = allActivities.FirstOrDefault(a => 
+        bankActivity = allActivities.FirstOrDefault(a => 
             a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
         
         // Look for "DINHEIRO EM CAIXA" or "DINHEIRO CAIXA" activity  
-        var cashActivity = allActivities.FirstOrDefault(a =>
+        cashActivity = allActivities.FirstOrDefault(a =>
             a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
@@ -1160,5 +1205,71 @@ state.CurrentPage = newPage;
             // Single date
             return activity.StartDate.ToString("dd MMM yyyy");
         }
+    }
+
+    // Bank/Cash modal methods
+    private void OpenBankCashEditModal(bool isBank)
+    {
+        isEditingBank = isBank;
+        editingBankCashValue = isBank ? bankMoney : cashMoney;
+        showBankCashModal = true;
+    }
+
+    private void CloseBankCashModal()
+    {
+        showBankCashModal = false;
+        editingBankCashValue = 0;
+    }
+
+    private async Task SaveBankCashValue()
+    {
+        if (report == null) return;
+
+        var activityName = isEditingBank ? "DINHEIRO NO BANCO" : "DINHEIRO EM CAIXA";
+        var currentActivity = isEditingBank ? bankActivity : cashActivity;
+        var newValue = editingBankCashValue;
+
+        // If activity doesn't exist, create it
+        if (currentActivity == null)
+        {
+            currentActivity = await ActivityService.CreateActivityAsync(
+                ReportId,
+                activityName,
+                DateTime.Today,
+                null, // description
+                null  // endDate
+            );
+        }
+
+        // Get existing transactions for this activity
+        var existingTransactions = await TransactionService.GetTransactionsByActivityIdAsync(currentActivity.Id);
+        
+        // Delete all existing transactions (we'll replace with a single one)
+        foreach (var t in existingTransactions)
+        {
+            await TransactionService.DeleteTransactionAsync(t.Id);
+        }
+
+        // Create a single transaction with the new value
+        if (newValue != 0)
+        {
+            var type = newValue >= 0 ? "Income" : "Expense";
+            var amount = Math.Abs(newValue);
+            await TransactionService.CreateTransactionAsync(
+                DateTime.Today,
+                activityName,
+                "Saldo",
+                amount,
+                type,
+                currentActivity.Id
+            );
+        }
+
+        // Reload data
+        await LoadBankAndCashMoney();
+        await LoadActivities();
+        await LoadTransactions();
+        
+        CloseBankCashModal();
     }
 }
