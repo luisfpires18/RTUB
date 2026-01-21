@@ -124,7 +124,7 @@ else
                 <AuthorizeView Roles="Mod,Admin">
                     <Authorized>
                         <button class="avatar-card-edit-btn" 
-                                @onclick="() => OpenEditCaloteModal(debt)" 
+                                @onclick="async () => await OpenEditCaloteModal(debt)" 
                                 @onclick:stopPropagation="true"
                                 title="Editar">
                             <i class="bi bi-pencil"></i>
@@ -242,6 +242,28 @@ else
                        Message="@($"Membro Selecionado: {selectedMember.GetDisplayName()}")" 
                        AdditionalClasses="mt-3" />
             }
+            
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-cash text-primary me-2"></i>Montante (€)
+                </label>
+                <input type="number" 
+                       class="form-control" 
+                       step="0.01"
+                       min="0"
+                       placeholder="0.00"
+                       @bind="editAmount" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Descrição
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Descrição do calote..."
+                       @bind="editDescription" />
+            </div>
         }
         else
         {
@@ -258,38 +280,79 @@ else
                     </div>
                 </div>
             </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-list-ul text-primary me-2"></i>Transações
+                </label>
+                @if (editableTransactions.Any(t => !t.IsDeleted))
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var transaction in editableTransactions.Where(t => !t.IsDeleted))
+                        {
+                            <div class="d-flex gap-2 align-items-center p-2 border rounded">
+                                <div class="flex-grow-1">
+                                    <input type="text" 
+                                           class="form-control form-control-sm mb-1" 
+                                           placeholder="Descrição..."
+                                           value="@transaction.Description"
+                                           @onchange="@(e => { transaction.Description = e.Value?.ToString() ?? ""; transaction.IsModified = true; })" />
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">€</span>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               step="0.01"
+                                               min="0.01"
+                                               value="@transaction.Amount"
+                                               @onchange="@(e => { if (decimal.TryParse(e.Value?.ToString(), out var val) && val > 0) { transaction.Amount = val; transaction.IsModified = true; } })" />
+                                    </div>
+                                </div>
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm"
+                                        @onclick="() => { transaction.IsDeleted = true; }"
+                                        title="Remover transação">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="mt-3 p-2 bg-light rounded d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Total:</span>
+                        <span class="badge bg-danger fs-6">€@editableTransactions.Where(t => !t.IsDeleted).Sum(t => t.Amount).ToString("F2")</span>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">Nenhuma transação encontrada.</p>
+                }
+            </div>
         }
-
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-cash text-primary me-2"></i>Montante (€)
-            </label>
-            <input type="number" 
-                   class="form-control" 
-                   step="0.01"
-                   min="0"
-                   placeholder="0.00"
-                   @bind="editAmount" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-file-text text-primary me-2"></i>Descrição
-            </label>
-            <input type="text" 
-                   class="form-control" 
-                   placeholder="Descrição do calote..."
-                   @bind="editDescription" />
-        </div>
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseCaloteModal">Cancelar</button>
-        <button type="button" 
-                class="btn btn-primary" 
-                @onclick="SaveCalote"
-                disabled="@(selectedMember == null || editAmount <= 0 || string.IsNullOrWhiteSpace(editDescription))">
-            @(isEditMode ? "Guardar" : "Adicionar")
-        </button>
+        @if (isEditMode)
+        {
+            <button type="button" 
+                    class="btn btn-primary" 
+                    @onclick="SaveEditedTransactions"
+                    disabled="@(isSavingTransactions || !editableTransactions.Any(t => !t.IsDeleted))">
+                @if (isSavingTransactions)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Guardar Alterações
+            </button>
+        }
+        else
+        {
+            <button type="button" 
+                    class="btn btn-primary" 
+                    @onclick="SaveCalote"
+                    disabled="@(selectedMember == null || editAmount <= 0 || string.IsNullOrWhiteSpace(editDescription))">
+                Adicionar
+            </button>
+        }
     </FooterContent>
 </Modal>
 
@@ -374,6 +437,21 @@ else
     private bool showDetailsModal = false;
     private MemberDebt? viewingDebt;
     private List<Transaction> viewingMemberTransactions = new();
+    
+    // Edit transactions state
+    private List<EditableTransaction> editableTransactions = new();
+    private bool isSavingTransactions = false;
+
+    // Helper class for editable transactions
+    private class EditableTransaction
+    {
+        public int Id { get; set; }
+        public decimal Amount { get; set; }
+        public string Description { get; set; } = "";
+        public DateTime Date { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsModified { get; set; } = false;
+    }
     
     // Edit/Create state
     private ApplicationUser? selectedMember;
@@ -598,18 +676,38 @@ else
         showCaloteModal = true;
     }
     
-    private void OpenEditCaloteModal(MemberDebt debt)
+    private async Task OpenEditCaloteModal(MemberDebt debt)
     {
         if (!canAddCalote) return;
         
         isEditMode = true;
         selectedMember = debt.Member;
-        editAmount = debt.AmountOwed;
+        editAmount = 0; // Clear - not used in edit mode (uses individual transaction amounts)
         editDescription = "";
         memberSearchTerm = "";
         filteredMembersForModal.Clear();
         errorMessage = "";
         editingDebt = debt;
+        
+        // Load transactions for editing
+        if (calotesActivity != null)
+        {
+            var transactions = await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id);
+            editableTransactions = transactions
+                .Where(t => t.UserId == debt.Member.Id && t.Type == "Expense")
+                .OrderByDescending(t => t.Date)
+                .Select(t => new EditableTransaction
+                {
+                    Id = t.Id,
+                    Amount = t.Amount,
+                    Description = t.Description,
+                    Date = t.Date,
+                    IsDeleted = false,
+                    IsModified = false
+                })
+                .ToList();
+        }
+        
         showCaloteModal = true;
     }
     
@@ -624,6 +722,8 @@ else
         filteredMembersForModal.Clear();
         errorMessage = "";
         editingDebt = null;
+        editableTransactions.Clear();
+        isSavingTransactions = false;
     }
     
     private void FilterMembersForModal()
@@ -670,55 +770,19 @@ else
 
         try
         {
-            if (isEditMode && editingDebt != null)
-            {
-                // For edit mode, we need to adjust the balance
-                // Get current transactions for this user
-                var userTransactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
-                    .Where(t => t.UserId == selectedMember.Id)
-                    .ToList();
-                
-                var currentBalance = userTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount) -
-                                   userTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
-                
-                var difference = editAmount - currentBalance;
-                
-                if (difference != 0)
-                {
-                    // Create a transaction for the difference
-                    var transactionType = difference > 0 ? "Expense" : "Income";
-                    var amount = Math.Abs(difference);
-                    
-                    await TransactionService.CreateTransactionAsync(
-                        DateTime.UtcNow,
-                        editDescription,
-                        CaloteCategory,
-                        amount,
-                        transactionType,
-                        calotesActivity.Id,
-                        null,
-                        null,
-                        null,
-                        selectedMember.Id
-                    );
-                }
-            }
-            else
-            {
-                // Create new calote transaction
-                await TransactionService.CreateTransactionAsync(
-                    DateTime.UtcNow,
-                    editDescription,
-                    CaloteCategory,
-                    editAmount,
-                    "Expense", // Member owes money to Tuna
-                    calotesActivity.Id,
-                    null,
-                    null,
-                    null,
-                    selectedMember.Id
-                );
-            }
+            // Create new calote transaction
+            await TransactionService.CreateTransactionAsync(
+                DateTime.UtcNow,
+                editDescription,
+                CaloteCategory,
+                editAmount,
+                "Expense", // Member owes money to Tuna
+                calotesActivity.Id,
+                null,
+                null,
+                null,
+                selectedMember.Id
+            );
 
             await LoadCalotes();
             CloseCaloteModal();
@@ -726,6 +790,65 @@ else
         catch (Exception ex)
         {
             errorMessage = $"Erro ao guardar: {ex.Message}";
+        }
+    }
+    
+    private async Task SaveEditedTransactions()
+    {
+        if (calotesActivity == null || selectedMember == null) return;
+        
+        isSavingTransactions = true;
+        errorMessage = "";
+        StateHasChanged();
+        
+        try
+        {
+            foreach (var transaction in editableTransactions)
+            {
+                if (transaction.IsDeleted)
+                {
+                    // Delete the transaction
+                    await TransactionService.DeleteTransactionAsync(transaction.Id);
+                }
+                else if (transaction.IsModified)
+                {
+                    // Validate amount is greater than 0
+                    if (transaction.Amount <= 0)
+                    {
+                        errorMessage = "O montante deve ser maior que zero.";
+                        isSavingTransactions = false;
+                        StateHasChanged();
+                        return;
+                    }
+                    
+                    // Update the transaction
+                    await TransactionService.UpdateTransactionAsync(
+                        transaction.Id,
+                        transaction.Date,
+                        transaction.Description,
+                        CaloteCategory,
+                        transaction.Amount,
+                        "Expense",
+                        null,
+                        null,
+                        null,
+                        false,
+                        selectedMember.Id
+                    );
+                }
+            }
+            
+            await LoadCalotes();
+            CloseCaloteModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao guardar alterações: {ex.Message}";
+        }
+        finally
+        {
+            isSavingTransactions = false;
+            StateHasChanged();
         }
     }
     
