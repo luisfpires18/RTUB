@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostMediaRepository, PostMediaRepository>();
         services.AddScoped<ICommentImageRepository, CommentImageRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IMemberDebtRepository, MemberDebtRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
@@ -91,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILabelService, LabelService>();
         services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IMemberDebtService, MemberDebtService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
         services.AddScoped<IMemberInstrumentService, MemberInstrumentService>();

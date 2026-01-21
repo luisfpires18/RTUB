@@ -297,11 +297,20 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateBetNotification(Bet bet, string baseUrl);
 
     /// <summary>
-    /// Creates a push notification to remind users to bet.
+    /// Creates a push notification for a bet reminder.
     /// Sent to all subscribed users.
     /// </summary>
     /// <param name="bet">The bet to remind about</param>
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateBetReminderNotification(Bet bet, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification for calotes (debt) reminder.
+    /// Sent to users who owe money to the tuna.
+    /// </summary>
+    /// <param name="amountOwed">The amount the user owes</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed, string baseUrl);
 }

@@ -86,6 +86,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.WeeklyNotificationOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.WeeklyNotificationOptions.SectionName));
 
+        // Configure Calotes Notification Scheduler
+        services.Configure<RTUB.Application.Configuration.CalotesNotificationOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
+
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -372,6 +376,9 @@ public class Program
 
         // Background worker for sending weekly notifications on Monday
         services.AddHostedService<WeeklyNotificationBackgroundService>();
+
+        // Background worker for sending calotes notification reminders
+        services.AddHostedService<CalotesNotificationBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
