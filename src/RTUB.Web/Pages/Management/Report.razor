@@ -614,7 +614,10 @@ else
         if (report == null) return;
 
         var allActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
-        activities = allActivities.ToList();
+        activities = allActivities
+            .OrderBy(activity => activity.StartDate)
+            .ThenBy(activity => activity.EndDate ?? activity.StartDate)
+            .ToList();
     }
 
     private async Task LoadTransactions()
