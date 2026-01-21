@@ -27,7 +27,11 @@ const passaroMalucoGame = (function () {
         pipeGap: 150,
         pipeSpeed: 3,
         pipeSpawnRate: 1500, // milliseconds
-        groundHeight: 50
+        groundHeight: 50,
+        maxDeltaTime: 0.1,           // Cap delta time to prevent large jumps
+        collisionPadding: 5,         // Padding for collision box
+        pipeCapHeight: 26,           // Height of pipe cap
+        pipeCapExtraWidth: 6         // Extra width of pipe cap
     };
     
     // Game state
@@ -188,7 +192,7 @@ const passaroMalucoGame = (function () {
         
         const deltaTime = (currentTime - lastFrameTime) / 1000;
         lastFrameTime = currentTime;
-        const dt = Math.min(deltaTime, 0.1); // Cap delta time
+        const dt = Math.min(deltaTime, config.maxDeltaTime);
         
         update(dt, currentTime);
         draw();
@@ -267,10 +271,10 @@ const passaroMalucoGame = (function () {
         
         // Pipe collisions
         const birdBox = {
-            x: bird.x + 5,
-            y: bird.y + 5,
-            width: bird.width - 10,
-            height: bird.height - 10
+            x: bird.x + config.collisionPadding,
+            y: bird.y + config.collisionPadding,
+            width: bird.width - config.collisionPadding * 2,
+            height: bird.height - config.collisionPadding * 2
         };
         
         for (const pipe of pipes) {
@@ -386,8 +390,8 @@ const passaroMalucoGame = (function () {
     }
 
     function drawPipeFallback(pipe) {
-        const capHeight = 26;
-        const capExtraWidth = 6;
+        const capHeight = config.pipeCapHeight;
+        const capExtraWidth = config.pipeCapExtraWidth;
         
         // Top pipe
         ctx.fillStyle = '#73bf2e';
