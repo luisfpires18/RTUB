@@ -62,6 +62,12 @@
                 <span class="stat-value">@points</span>
                 <span class="stat-label">Pontos</span>
             </div>
+            @if (gameStarted && !gameOver)
+            {
+                <button class="btn btn-danger btn-sm end-game-button" @onclick="EndGame">
+                    <i class="bi bi-stop-fill me-1"></i>Terminar Jogo
+                </button>
+            }
         </div>
 
         <div class="game-canvas-wrapper">
@@ -75,7 +81,8 @@
                         <p class="mb-3">Os membros com dívidas vão aparecer em buracos. Clica neles para atirar tomates!</p>
                         <ul class="game-instructions">
                             <li><i class="bi bi-mouse me-2"></i>Clica ou toca nos caloteiros para atirar tomates</li>
-                            <li><i class="bi bi-star me-2"></i>Mais dívida = mais pontos</li>
+                            <li><i class="bi bi-star me-2"></i>1 ponto por cada tomate</li>
+                            <li><i class="bi bi-clock me-2"></i>Tens 5 minutos para jogar!</li>
                             <li><i class="bi bi-trophy me-2"></i>Tenta conseguir a maior pontuação!</li>
                         </ul>
                         <div class="debtors-preview mb-3">
@@ -304,6 +311,11 @@
     }
 
     private async Task RestartGame() => await StartGame();
+
+    private async Task EndGame()
+    {
+        await JSRuntime.InvokeVoidAsync("tomatoThrowerGame.endGame");
+    }
 
     private void GoBack() => NavigationManager.NavigateTo("/games");
 

@@ -23,6 +23,7 @@ const tomatoThrowerGame = (function () {
     const GRASS_PRIME_Y = 73; // Prime number for pseudo-random grass Y distribution
     const SPLAT_MIN_DISTANCE = 15; // Minimum distance for splat particles
     const SPLAT_DISTANCE_RANGE = 10; // Additional random distance for splat particles
+    const GAME_DURATION = 300; // Game duration in seconds (5 minutes)
     
     let gameRunning = false;
     let points = 0;
@@ -252,7 +253,12 @@ const tomatoThrowerGame = (function () {
     function update(dt) {
         timeElapsed += dt;
         
-        // Endless game - no time limit
+        // Check if game time limit reached (5 minutes)
+        if (timeElapsed >= GAME_DURATION) {
+            endGame();
+            return;
+        }
+        
         updateDebtors(dt);
         spawnDebtors();
         updateTomatoSplats(dt);
@@ -357,7 +363,26 @@ const tomatoThrowerGame = (function () {
         drawDebtors();
         drawTomatoSplats();
         drawClickParticles();
-        // No timer - endless game
+        drawTimer();
+    }
+    
+    function drawTimer() {
+        // Draw remaining time
+        const remainingTime = Math.max(0, GAME_DURATION - timeElapsed);
+        const minutes = Math.floor(remainingTime / 60);
+        const seconds = Math.floor(remainingTime % 60);
+        const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Timer background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(canvas.width - 80, 10, 70, 30);
+        
+        // Timer text
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = remainingTime <= 30 ? '#ff6b6b' : '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(timeText, canvas.width - 45, 25);
     }
 
     function drawGrass() {
@@ -543,7 +568,7 @@ const tomatoThrowerGame = (function () {
         avatarImages = {};
     }
 
-    return { init, start, dispose };
+    return { init, start, endGame, dispose };
 })();
 
 window.tomatoThrowerGame = tomatoThrowerGame;
