@@ -21,12 +21,12 @@ const passaroMalucoGame = (function () {
     
     // Game configuration
     const config = {
-        gravity: 0.5,
-        jumpStrength: -8,
+        gravity: 0.25,
+        jumpStrength: -6,
         pipeWidth: 52,
-        pipeGap: 150,
-        pipeSpeed: 3,
-        pipeSpawnRate: 1500, // milliseconds
+        pipeGap: 180,
+        pipeSpeed: 2,
+        pipeSpawnRate: 2000, // milliseconds
         groundHeight: 50,
         maxDeltaTime: 0.1,           // Cap delta time to prevent large jumps
         collisionPadding: 5,         // Padding for collision box
