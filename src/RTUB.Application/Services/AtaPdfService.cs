@@ -251,12 +251,12 @@ public class AtaPdfService : IAtaPdfService
                         var presidentTitle = isAG ? "Presidente da Mesa" : "Presidente";
                         if (ata.ActualEndTime.HasValue)
                         {
-                            endColumn.Item().Text($"Nada mais havendo a tratar, o(a) {presidentTitle} deu por encerrada a sessão às {ata.ActualEndTime.Value:HH:mm}.")
+                            endColumn.Item().Text($"Nada mais havendo a tratar, o {presidentTitle} deu por encerrada a sessão às {ata.ActualEndTime.Value:HH:mm}.")
                                 .FontSize(10);
                         }
                         else
                         {
-                            endColumn.Item().Text($"Nada mais havendo a tratar, o(a) {presidentTitle} deu por encerrada a sessão.")
+                            endColumn.Item().Text($"Nada mais havendo a tratar, o {presidentTitle} deu por encerrada a sessão.")
                                 .FontSize(10);
                         }
 
