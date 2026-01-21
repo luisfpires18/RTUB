@@ -92,6 +92,20 @@ public class GameService : IGameService
                 true // Members only
             );
         }
+
+        var passaroMalucoGame = await _repository.GetByKeyAsync("passaro-maluco");
+        if (passaroMalucoGame == null)
+        {
+            await CreateGameAsync(
+                "passaro-maluco",
+                "Passaro Maluco",
+                "Ajuda o pássaro maluco a voar entre os canos! Toca ou pressiona espaço para bater as asas e evita os obstáculos.",
+                "/sprites/games/passaro-maluco-thumb.svg",
+                "/games/passaro-maluco",
+                false,
+                false
+            );
+        }
     }
 
     /// <summary>
