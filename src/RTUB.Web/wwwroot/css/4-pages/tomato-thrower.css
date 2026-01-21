@@ -7,16 +7,9 @@
 .game-stats {
     display: flex;
     justify-content: center;
-    align-items: center;
     gap: 2rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
-}
-
-.end-game-button {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
 }
 
 .stat-item {

@@ -62,12 +62,6 @@
                 <span class="stat-value">@points</span>
                 <span class="stat-label">Pontos</span>
             </div>
-            @if (gameStarted && !gameOver)
-            {
-                <button class="btn btn-danger btn-sm end-game-button" @onclick="EndGame">
-                    <i class="bi bi-stop-fill me-1"></i>Terminar Jogo
-                </button>
-            }
         </div>
 
         <div class="game-canvas-wrapper">
@@ -311,11 +305,6 @@
     }
 
     private async Task RestartGame() => await StartGame();
-
-    private async Task EndGame()
-    {
-        await JSRuntime.InvokeVoidAsync("tomatoThrowerGame.endGame");
-    }
 
     private void GoBack() => NavigationManager.NavigateTo("/games");
 
