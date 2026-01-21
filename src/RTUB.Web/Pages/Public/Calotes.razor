@@ -168,7 +168,7 @@ else
                             @onclick="() => OpenDetailsModal(debt)" 
                             @onclick:stopPropagation="true"
                             title="Ver Detalhes"
-                            aria-label="Ver Detalhes">
+                            aria-label="Ver detalhes da dívida de @debt.Member.GetDisplayName()">
                         <i class="bi bi-eye"></i> Ver Detalhes
                     </button>
                 </div>
@@ -773,6 +773,7 @@ else
     private async Task OpenDetailsModal(MemberDebt debt)
     {
         viewingDebt = debt;
+        viewingMemberTransactions.Clear();
         
         // Load transactions for this member
         if (calotesActivity != null)
