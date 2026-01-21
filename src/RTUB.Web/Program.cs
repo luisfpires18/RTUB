@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
@@ -469,6 +470,8 @@ public class Program
 
                 try
                 {
+                    EnsureSqliteIntegrity(connectionString, logger);
+
                     var db = sp.GetRequiredService<ApplicationDbContext>();
 
                     // Only migrate if there are pending migrations (performance optimization)
@@ -733,5 +736,73 @@ public class Program
         app.MapControllers();
 
         app.Run();
+    }
+
+    private static void EnsureSqliteIntegrity(string connectionString, ILogger logger)
+    {
+        var builder = new SqliteConnectionStringBuilder(connectionString);
+        var dbPath = builder.DataSource;
+
+        if (string.IsNullOrWhiteSpace(dbPath) ||
+            dbPath.Equals(":memory:", StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(dbPath))
+        {
+            return;
+        }
+
+        if (IsSqliteHealthy(connectionString, logger))
+        {
+            return;
+        }
+
+        var backupPath = $"{dbPath}.corrupt-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        logger.LogWarning("SQLite database appears corrupted. Backing up to {BackupPath}", backupPath);
+
+        MoveDatabaseFile(dbPath, backupPath, logger);
+        MoveDatabaseFile($"{dbPath}-wal", $"{backupPath}-wal", logger);
+        MoveDatabaseFile($"{dbPath}-shm", $"{backupPath}-shm", logger);
+    }
+
+    private static bool IsSqliteHealthy(string connectionString, ILogger logger)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA integrity_check;";
+            var result = command.ExecuteScalar()?.ToString();
+
+            if (!string.Equals(result, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogError("SQLite integrity check failed with result: {Result}", result);
+                return false;
+            }
+
+            return true;
+        }
+        catch (SqliteException ex)
+        {
+            logger.LogError(ex, "SQLite integrity check threw an exception.");
+            return false;
+        }
+    }
+
+    private static void MoveDatabaseFile(string sourcePath, string destinationPath, ILogger logger)
+    {
+        if (!File.Exists(sourcePath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Move(sourcePath, destinationPath);
+        }
+        catch (IOException ex)
+        {
+            logger.LogError(ex, "Failed to move database file {SourcePath} to {DestinationPath}", sourcePath, destinationPath);
+            throw;
+        }
     }
 }
