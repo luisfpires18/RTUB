@@ -152,9 +152,8 @@ const tomatoThrowerGame = (function () {
                     hitDebtor = true;
                     hits++;
                     
-                    // Award points based on debt amount (1 point per €1 of debt)
-                    const debtorData = debtors[debtor.debtorIndex];
-                    const pointsAwarded = Math.max(1, Math.floor(debtorData.debtAmount));
+                    // Award 1 point per hit
+                    const pointsAwarded = 1;
                     points += pointsAwarded;
                     
                     // Create tomato splat only on hit
