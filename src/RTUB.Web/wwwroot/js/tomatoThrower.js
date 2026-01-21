@@ -18,6 +18,10 @@ const tomatoThrowerGame = (function () {
     const MAX_HIDE_TIME = 1.5; // Maximum time between spawns
     const MAX_DELTA_TIME = 0.1; // Maximum delta time to prevent spiral of death
     const GRASS_BLADE_COUNT = 100; // Number of grass blades to render
+    const GRASS_PRIME_X = 137; // Prime number for pseudo-random grass X distribution
+    const GRASS_PRIME_Y = 73; // Prime number for pseudo-random grass Y distribution
+    const SPLAT_MIN_DISTANCE = 15; // Minimum distance for splat particles
+    const SPLAT_DISTANCE_RANGE = 10; // Additional random distance for splat particles
     
     let gameRunning = false;
     let points = 0;
@@ -362,11 +366,11 @@ const tomatoThrowerGame = (function () {
     }
 
     function drawGrass() {
-        // Simple grass texture
+        // Simple grass texture using prime numbers for pseudo-random distribution
         ctx.fillStyle = '#3d6b1f';
         for (let i = 0; i < GRASS_BLADE_COUNT; i++) {
-            const x = (i * 137) % canvas.width;
-            const y = (i * 73) % canvas.height;
+            const x = (i * GRASS_PRIME_X) % canvas.width;
+            const y = (i * GRASS_PRIME_Y) % canvas.height;
             ctx.fillRect(x, y, 2, 8);
         }
     }
@@ -472,7 +476,7 @@ const tomatoThrowerGame = (function () {
             
             for (let i = 0; i < 8; i++) {
                 const angle = (Math.PI * 2 * i) / 8;
-                const distance = 15 + Math.random() * 10;
+                const distance = SPLAT_MIN_DISTANCE + Math.random() * SPLAT_DISTANCE_RANGE;
                 const x = splat.x + Math.cos(angle) * distance;
                 const y = splat.y + Math.sin(angle) * distance;
                 

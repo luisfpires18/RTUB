@@ -18,6 +18,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
+@inject ILogger<TomatoThrower> Logger
 @implements IAsyncDisposable
 @attribute [Authorize]
 
@@ -220,6 +221,7 @@
             
             if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear))
             {
+                Logger.LogWarning("Invalid fiscal year format: {FiscalYear}", currentFiscalYearString);
                 isLoadingDebtors = false;
                 return;
             }
@@ -287,7 +289,7 @@
         catch (Exception ex)
         {
             // Log error and continue with empty debtors list
-            Console.WriteLine($"Error loading debtors: {ex.Message}");
+            Logger.LogError(ex, "Error loading debtors for Tomato Thrower game");
             // Note: User sees "no debtors" message which is acceptable fallback
         }
         finally
@@ -375,7 +377,7 @@
             catch (Exception ex)
             {
                 // Log error but don't block game completion
-                Console.WriteLine($"Error saving score: {ex.Message}");
+                Logger.LogError(ex, "Error saving Tomato Thrower score for user {UserId}", currentUserId);
                 // User still sees score in UI, just not persisted to leaderboard
             }
             finally
@@ -402,7 +404,7 @@
         catch (Exception ex) 
         { 
             // Log disposal errors for debugging memory leaks
-            Console.WriteLine($"Error disposing game: {ex.Message}");
+            Logger.LogWarning(ex, "Error disposing Tomato Thrower game");
         }
         objRef?.Dispose();
     }
