@@ -31,7 +31,8 @@ const passaroMalucoGame = (function () {
         maxDeltaTime: 0.1,           // Cap delta time to prevent large jumps
         collisionPadding: 5,         // Padding for collision box
         pipeCapHeight: 26,           // Height of pipe cap
-        pipeCapExtraWidth: 6         // Extra width of pipe cap
+        pipeCapExtraWidth: 6,        // Extra width of pipe cap
+        statsUpdateInterval: 250     // Throttle JS->.NET updates in ms
     };
     
     // Game state
@@ -56,6 +57,8 @@ const passaroMalucoGame = (function () {
     // Animation
     let animationId = null;
     let lastFrameTime = 0;
+    let lastStatsSentAt = 0;
+    let lastReportedScore = 0;
     
     // Wing animation
     let wingFrame = 0;
@@ -176,6 +179,8 @@ const passaroMalucoGame = (function () {
         score = 0;
         pipes = [];
         lastPipeSpawn = 0;
+        lastStatsSentAt = 0;
+        lastReportedScore = 0;
         
         // Reset bird
         bird.y = canvas.height / 2 - bird.height / 2;
@@ -196,7 +201,7 @@ const passaroMalucoGame = (function () {
         
         update(dt, currentTime);
         draw();
-        updateDotNetStats();
+        updateDotNetStats(currentTime);
         
         animationId = requestAnimationFrame(gameLoop);
     }
@@ -494,10 +499,18 @@ const passaroMalucoGame = (function () {
         ctx.fillText(score.toString(), canvas.width / 2, 60);
     }
 
-    function updateDotNetStats() {
-        if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('UpdateStats', score);
+    function updateDotNetStats(currentTime) {
+        if (!dotNetRef) {
+            return;
         }
+
+        if (score === lastReportedScore && currentTime - lastStatsSentAt < config.statsUpdateInterval) {
+            return;
+        }
+
+        lastReportedScore = score;
+        lastStatsSentAt = currentTime;
+        dotNetRef.invokeMethodAsync('UpdateStats', score);
     }
 
     function endGame() {
