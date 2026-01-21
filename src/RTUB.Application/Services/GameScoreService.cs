@@ -28,8 +28,27 @@ public class GameScoreService : IGameScoreService
             // Update only if the new score is better
             if (existingScore.UpdateIfBetter(points, maxLevel, timeSurvived))
             {
-                await _repository.UpdateAsync(existingScore);
-                await _repository.SaveChangesAsync();
+                try
+                {
+                    await _repository.UpdateAsync(existingScore);
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    var refreshedScore = await _repository.GetUserScoreAsync(userId, gameKey);
+                    if (refreshedScore != null)
+                    {
+                        if (refreshedScore.UpdateIfBetter(points, maxLevel, timeSurvived))
+                        {
+                            await _repository.UpdateAsync(refreshedScore);
+                        }
+
+                        return refreshedScore;
+                    }
+
+                    var recreatedScore = GameScore.Create(userId, gameKey, points, maxLevel, timeSurvived);
+                    await _repository.AddAsync(recreatedScore);
+                    return recreatedScore;
+                }
             }
             return existingScore;
         }
@@ -40,7 +59,6 @@ public class GameScoreService : IGameScoreService
         try
         {
             await _repository.AddAsync(score);
-            await _repository.SaveChangesAsync();
             return score;
         }
         catch (DbUpdateException)
@@ -53,7 +71,6 @@ public class GameScoreService : IGameScoreService
                 if (concurrentScore.UpdateIfBetter(points, maxLevel, timeSurvived))
                 {
                     await _repository.UpdateAsync(concurrentScore);
-                    await _repository.SaveChangesAsync();
                 }
                 return concurrentScore;
             }
