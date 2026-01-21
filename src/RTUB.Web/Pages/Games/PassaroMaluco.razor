@@ -356,8 +356,13 @@
                 // Award 1 Fidelis for playing
                 if (currentUser != null)
                 {
-                    currentUser.FidelisBalance += 1.0m;
-                    await UserManager.UpdateAsync(currentUser);
+                    // Reload user to avoid concurrency issues
+                    currentUser = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
+                    if (currentUser != null)
+                    {
+                        currentUser.FidelisBalance += 1.0m;
+                        await UserManager.UpdateAsync(currentUser);
+                    }
                 }
             }
             catch (Exception ex)
