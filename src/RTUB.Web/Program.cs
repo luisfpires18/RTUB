@@ -101,7 +101,8 @@ public class Program
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
 
-        // Ensure database directory exists for SQLite
+        // Ensure database directory exists for SQLite and configure connection string for concurrency
+        string finalConnectionString = connectionString;
         try
         {
             var connectionStringBuilder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString);
@@ -115,6 +116,13 @@ public class Program
                     Directory.CreateDirectory(dbDirectory);
                 }
             }
+
+            // Configure SQLite for better concurrency:
+            // - Cache=Shared: Uses shared cache mode to allow multiple connections to share data
+            // - Default Timeout: Sets the busy timeout (in seconds) for SQLite to wait when the database is locked
+            connectionStringBuilder.Cache = Microsoft.Data.Sqlite.SqliteCacheMode.Shared;
+            connectionStringBuilder.DefaultTimeout = 30; // Wait up to 30 seconds if database is locked
+            finalConnectionString = connectionStringBuilder.ToString();
         }
         catch (Exception ex)
         {
@@ -126,14 +134,16 @@ public class Program
         // Use AddDbContextFactory with Scoped lifetime to avoid scoped/singleton conflicts
         services.AddDbContextFactory<ApplicationDbContext>(o =>
         {
-            o.UseSqlite(connectionString, b =>
+            o.UseSqlite(finalConnectionString, b =>
             {
                 b.MigrationsAssembly("RTUB");
                 // Configure query splitting to prevent N+1 query performance issues when loading multiple collections
                 b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
             })
             .ConfigureWarnings(w =>
-                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+            // Add interceptor to configure SQLite WAL mode for better concurrency
+            .AddInterceptors(new SqliteConnectionInterceptor());
         }, ServiceLifetime.Scoped);
 
         // Register ApplicationDbContext as scoped, resolving it from the factory
