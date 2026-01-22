@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace RTUB.Application.Data;
@@ -23,11 +24,25 @@ public class SqliteConnectionInterceptor : DbConnectionInterceptor
 
     private static void ConfigureConnection(DbConnection connection)
     {
-        // Enable WAL (Write-Ahead Logging) mode for better concurrency.
-        // WAL allows readers and writers to operate simultaneously without blocking each other.
-        // This setting persists in the database file, but we set it on each connection to ensure it's active.
-        using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA journal_mode = WAL;";
-        command.ExecuteNonQuery();
+        // Only execute PRAGMA for SQLite connections
+        if (connection is not SqliteConnection)
+        {
+            return;
+        }
+
+        try
+        {
+            // Enable WAL (Write-Ahead Logging) mode for better concurrency.
+            // WAL allows readers and writers to operate simultaneously without blocking each other.
+            // This setting persists in the database file, but we set it on each connection to ensure it's active.
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode = WAL;";
+            command.ExecuteNonQuery();
+        }
+        catch
+        {
+            // WAL mode is a performance optimization, not critical for correctness.
+            // If it fails (e.g., read-only database), continue without it.
+        }
     }
 }
