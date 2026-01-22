@@ -29,14 +29,14 @@ else
     
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
+            <div class="w-100">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <h1 class="mb-0">@report.Title</h1>
+                    <h1 class="mb-0 text-center flex-grow-1">@report.Title</h1>
                 </div>
-                <p class="lead page-header-subtitle mb-0 text-light-theme">Ano Letivo: @report.Year</p>
+                <p class="lead page-header-subtitle mb-0 text-light-theme text-center">Ano Letivo: @report.Year</p>
             </div>
 
             <div class="page-header-actions justify-content-lg-end">
@@ -65,27 +65,11 @@ else
 <!-- Summary Cards - 3x2 Grid -->
 <div class="summary-cards-container mb-4">
     <div class="row g-2">
-        <div class="col-6 col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
-                    <h5 class="text-success mb-0">€@totalIncome.ToString("N2")</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
-                <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
-                    <h5 class="text-danger mb-0">€@totalExpenses.ToString("N2")</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
-                <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
-                    <h5 class="@(balance >= 0 ? "text-success" : "text-danger") mb-0">€@balance.ToString("N2")</h5>
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-bank"></i> Dinheiro Total</small>
+                    <h5 class="text-success mb-0">€@totalMoney.ToString("N2")</h5>
                 </div>
             </div>
         </div>
@@ -131,6 +115,30 @@ else
                 </div>
             </div>
         </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
+                        <h5 class="text-success mb-0">€@totalIncome.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
+                        <h5 class="text-danger mb-0">€@totalExpenses.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
+                        <h5 class="@(balance >= 0 ? "text-success" : "text-danger") mb-0">€@balance.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
     </div>
 </div>
 
@@ -610,6 +618,9 @@ else
     private decimal bankMoney = 0;
     private decimal cashMoney = 0;
     
+    // Total money = Bank + Cash (actual current total money available)
+    private decimal totalMoney => bankMoney + cashMoney;
+    
     // Calotes total
     private decimal totalCalotes = 0;
     
@@ -695,7 +706,7 @@ else
         
         // Filter out hidden activities for display
         displayedActivities = activities
-            .Where(a => !a.IsHiddenFromCalculations())
+            .Where(a => !a.IsHiddenFromActivityList())
             .ToList();
     }
 
