@@ -1,0 +1,101 @@
+/* Scoped styles for ActivityCard component */
+
+/* Admin buttons styling */
+.music-btn-edit {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: black;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.music-btn-edit:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.3);
+    transform: scale(1.05);
+}
+
+.music-btn-edit i {
+    color: black;
+}
+
+.music-btn-delete {
+    background: rgba(220, 38, 38, 0.9);
+    border: none;
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.music-btn-delete:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.05);
+}
+
+/* Activity balance badge */
+.activity-balance-badge {
+    white-space: nowrap;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Financial summary rows */
+.activity-financial-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+.financial-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.financial-label {
+    color: var(--bs-body-color);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.financial-value {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .activity-balance-badge {
+        font-size: 0.75rem !important;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .financial-label {
+        font-size: 0.8rem;
+    }
+    
+    .financial-value {
+        font-size: 0.9rem;
+    }
+}
+
+/* Very small screens - further compact mode */
+@media (max-width: 375px) {
+    .activity-balance-badge {
+        font-size: 0.7rem !important;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .financial-label {
+        font-size: 0.75rem;
+    }
+    
+    .financial-value {
+        font-size: 0.85rem;
+    }
+}

@@ -71,6 +71,7 @@
 @import url('3-components/admin-overlays.css');
 
 /* Card Variants */
+@import url('3-components/activity-card.css');
 @import url('3-components/rehearsal-card.css');
 @import url('3-components/song-card.css');
 @import url('3-components/request-card.css');
