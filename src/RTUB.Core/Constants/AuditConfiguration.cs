@@ -37,6 +37,7 @@ public static class AuditConfiguration
         "SongPlayCount",
         "NaipePlayCount",
         "MemberStatus",
-        "BetOption"
+        "BetOption",
+        "MeetingAtaAgendaPoint"
     };
 }

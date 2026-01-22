@@ -95,9 +95,10 @@ public interface IPushNotificationFactory
     /// Recipients vary by meeting type (AGO/AGE exclude leitões, CV only for veterans).
     /// </summary>
     /// <param name="meeting">The meeting to notify about</param>
+    /// <param name="isReminder">True if this is a reminder notification, false for new meeting notification</param>
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMeetingNotification(Meeting meeting, string baseUrl);
+    SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder, string baseUrl);
 
     /// <summary>
     /// Creates a push notification for new performance requests.

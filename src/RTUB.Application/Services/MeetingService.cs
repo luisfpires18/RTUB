@@ -126,7 +126,7 @@ public class MeetingService : IMeetingService
         try
         {
             var baseUrl = GetBaseUrl();
-            var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, baseUrl);
+            var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, isReminder: false, baseUrl);
 
             // Get users based on meeting type
             var eligibleUserIds = await GetEligibleUsersForMeeting(createdMeeting.Type);

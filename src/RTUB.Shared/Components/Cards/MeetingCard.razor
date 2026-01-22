@@ -169,7 +169,7 @@
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
                 </button>
-                @if (!Meeting.IsCancelled && IsMeetingCompleted() && CanCreateAta)
+                @if (!Meeting.IsCancelled && IsMeetingCompleted() && CanCreateAta && !IsAtaPublished)
                 {
                     <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
                             @onclick="HandleAta"
@@ -178,7 +178,7 @@
                         <span>Ata</span>
                     </button>
                 }
-                @if (!Meeting.IsCancelled && IsMeetingCompleted() && !CanCreateAta && HasAta)
+                @if (!Meeting.IsCancelled && IsMeetingCompleted() && HasAta)
                 {
                     <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
                             @onclick="HandleViewAta"
@@ -342,6 +342,12 @@
     /// </summary>
     [Parameter]
     public bool HasAta { get; set; }
+
+    /// <summary>
+    /// Whether the ata is published (for hiding edit button when published)
+    /// </summary>
+    [Parameter]
+    public bool IsAtaPublished { get; set; }
 
     /// <summary>
     /// Callback when the view ata button is clicked (for non-admin users)
