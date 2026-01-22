@@ -195,13 +195,8 @@
             }
             
             // Get all member debts for the current fiscal year
-            var memberDebts = (await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id)).ToList();
-            
-            if (!memberDebts.Any())
-            {
-                isLoadingDebtors = false;
-                return;
-            }
+            // Note: Repository already includes User via navigation property
+            var memberDebts = await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id);
             
             // Group debts by user and calculate total amount owed
             // (multiple debts per user are allowed in the new system)
@@ -210,11 +205,17 @@
                 .Select(g => new
                 {
                     UserId = g.Key,
-                    User = g.First().User, // User is included via navigation property
+                    User = g.First().User, // User is included via repository's Include()
                     TotalDebt = g.Sum(d => d.AmountOwed)
                 })
                 .Where(d => d.TotalDebt > 0)
                 .ToList();
+            
+            if (!userDebts.Any())
+            {
+                isLoadingDebtors = false;
+                return;
+            }
             
             // Create debtor list
             debtors = userDebts
