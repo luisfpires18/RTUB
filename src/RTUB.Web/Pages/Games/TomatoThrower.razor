@@ -3,18 +3,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using Microsoft.JSInterop
 @using System.Text.Json
-@using RTUB.Application.Data
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
 @inject IJSRuntime JSRuntime
 @inject IGameScoreService GameScoreService
-@inject IReportService ReportService
-@inject IActivityService ActivityService
-@inject ITransactionService TransactionService
+@inject IMemberDebtService MemberDebtService
 @inject IFiscalYearService FiscalYearService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -144,7 +140,6 @@
 
 @code {
     private const string GameKey = "tomato-thrower";
-    private const string CalotesActivityName = "CALOTES";
     
     private bool isLoadingDebtors = true;
     private bool gameStarted = false;
@@ -190,72 +185,44 @@
         try
         {
             // Get current fiscal year
-            var currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
-            var parts = currentFiscalYearString.Split('-');
+            var startYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
             
-            if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear))
-            {
-                Logger.LogWarning("Invalid fiscal year format: {FiscalYear}", currentFiscalYearString);
-                isLoadingDebtors = false;
-                return;
-            }
-            
-            // Get report for the current fiscal year
-            var reports = await ReportService.GetAllReportsAsync();
-            var report = reports.FirstOrDefault(r => r.Year == startYear);
-            
-            if (report == null)
+            var fiscalYear = await FiscalYearService.GetFiscalYearByStartYearAsync(startYear);
+            if (fiscalYear == null)
             {
                 isLoadingDebtors = false;
                 return;
             }
             
-            // Get CALOTES activity
-            var activities = await ActivityService.GetActivitiesByReportIdAsync(report.Id);
-            var calotesActivity = activities.FirstOrDefault(a => a.Name.Equals(CalotesActivityName, StringComparison.OrdinalIgnoreCase));
+            // Get all member debts for the current fiscal year
+            var memberDebts = (await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id)).ToList();
             
-            if (calotesActivity == null)
+            if (!memberDebts.Any())
             {
                 isLoadingDebtors = false;
                 return;
             }
             
-            // Get all transactions for this activity
-            var transactions = (await TransactionService.GetTransactionsByActivityIdAsync(calotesActivity.Id))
-                .Where(t => !string.IsNullOrEmpty(t.UserId))
-                .ToList();
-            
-            // Group by user and calculate balance
-            var userBalances = transactions
-                .GroupBy(t => t.UserId)
+            // Group debts by user and calculate total amount owed
+            // (multiple debts per user are allowed in the new system)
+            var userDebts = memberDebts
+                .GroupBy(d => d.UserId)
                 .Select(g => new
                 {
-                    UserId = g.Key!,
-                    Balance = g.Where(t => t.Type == "Expense").Sum(t => t.Amount) - 
-                             g.Where(t => t.Type == "Income").Sum(t => t.Amount)
+                    UserId = g.Key,
+                    User = g.First().User, // User is included via navigation property
+                    TotalDebt = g.Sum(d => d.AmountOwed)
                 })
-                .Where(b => b.Balance > 0) // Only members who owe money
+                .Where(d => d.TotalDebt > 0)
                 .ToList();
             
-            // Load user information
-            var userIds = userBalances.Select(b => b.UserId).ToList();
-            var users = await UserManager.Users
-                .Where(u => userIds.Contains(u.Id))
-                .AsNoTracking()
-                .ToDictionaryAsync(u => u.Id);
-            
             // Create debtor list
-            debtors = userBalances
-                .Where(b => users.ContainsKey(b.UserId))
-                .Select(b =>
+            debtors = userDebts
+                .Select(d => new DebtorData
                 {
-                    var user = users[b.UserId];
-                    return new DebtorData
-                    {
-                        Name = !string.IsNullOrEmpty(user.Nickname) ? user.Nickname : $"{user.FirstName} {user.LastName}",
-                        Avatar = user.ProfilePictureSrc,
-                        DebtAmount = b.Balance
-                    };
+                    Name = !string.IsNullOrEmpty(d.User.Nickname) ? d.User.Nickname : $"{d.User.FirstName} {d.User.LastName}",
+                    Avatar = d.User.ProfilePictureSrc,
+                    DebtAmount = d.TotalDebt
                 })
                 .OrderByDescending(d => d.DebtAmount)
                 .ToList();
