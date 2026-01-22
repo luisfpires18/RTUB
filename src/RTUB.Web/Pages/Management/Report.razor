@@ -174,18 +174,16 @@ else
                          @onclick="@(() => ToggleAccordion(activity.Id))"
                          aria-expanded="@(expandedActivityIds.Contains(activity.Id) ? "true" : "false")"
                          aria-controls="collapse@activity.Id">
-                        <div class="activity-header-content">
-                            <div class="activity-header-main">
-                                <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
-                                    Saldo: €@activity.Balance.ToString("N2")
-                                </span>
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
-                                </span>
-                                <span class="text-white-full fw-semibold activity-name">@activity.Name</span>
-                            </div>
+                        <div class="d-flex align-items-center gap-3 flex-grow-1 me-3 activity-header-web">
+                            <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
+                                Saldo: €@activity.Balance.ToString("N2")
+                            </span>
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
+                            </span>
+                            <span class="text-white-full fw-semibold">@activity.Name</span>
                         </div>
-                        <div class="d-flex align-items-center gap-1 flex-shrink-0 activity-header-actions">
+                        <div class="d-flex align-items-center gap-1 flex-shrink-0 activity-header-actions-web">
                             @if (!report.IsPublished && CanCreateReports())
                             {
                                 <button type="button" class="btn btn-sm btn-light" title="Editar atividade" @onclick:stopPropagation="true" @onclick="() => OpenEditActivityModal(activity)">
@@ -195,9 +193,36 @@ else
                                     <i class="bi bi-trash"></i>
                                 </button>
                             }
-                            <span class="ms-1 activity-toggle-icon">
+                            <span class="ms-1">
                                 <i class="bi @(expandedActivityIds.Contains(activity.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
                             </span>
+                        </div>
+                        <div class="activity-header-pwa">
+                            <ActivityCard>
+                                <div class="activity-card-metadata">
+                                    <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
+                                        Saldo: €@activity.Balance.ToString("N2")
+                                    </span>
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
+                                    </span>
+                                    <span class="text-white-full fw-semibold">@activity.Name</span>
+                                </div>
+                                <Actions>
+                                    @if (!report.IsPublished && CanCreateReports())
+                                    {
+                                        <button type="button" class="btn btn-sm btn-light" title="Editar atividade" @onclick:stopPropagation="true" @onclick="() => OpenEditActivityModal(activity)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" title="Eliminar atividade" @onclick:stopPropagation="true" @onclick="() => OpenDeleteActivityModal(activity)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                    <span class="activity-card-toggle">
+                                        <i class="bi @(expandedActivityIds.Contains(activity.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                    </span>
+                                </Actions>
+                            </ActivityCard>
                         </div>
                     </div>
                 </h2>

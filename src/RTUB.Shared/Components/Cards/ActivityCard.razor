@@ -1,0 +1,27 @@
+@namespace RTUB.Shared
+@*
+    ActivityCard Component
+    Card layout for activity summaries
+*@
+
+<div class="activity-card">
+    <div class="activity-card-body">
+        <div class="activity-card-content">
+            @ChildContent
+        </div>
+        @if (Actions != null)
+        {
+            <div class="activity-card-actions">
+                @Actions
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

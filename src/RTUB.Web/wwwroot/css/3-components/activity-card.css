@@ -1,0 +1,48 @@
+/* Activity Card */
+.activity-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    padding: 0.9rem;
+    position: relative;
+    width: 100%;
+}
+
+.activity-card-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.activity-card-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.activity-card-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.activity-card-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.activity-card-actions .btn {
+    padding: 0.35rem 0.5rem;
+}
+
+.activity-card-toggle {
+    display: inline-flex;
+    align-items: center;
+    color: #fff;
+}
