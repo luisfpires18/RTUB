@@ -94,11 +94,24 @@ public class ReportPdfService
                     .PaddingVertical(1, Unit.Centimetre)
                     .Column(column =>
                     {
-                        // Financial Summary - calculate from actual transactions
-                        var totalIncome = allTransactions.SelectMany(x => x.transactions)
+                        // Helper function to check if an activity should be hidden from calculations
+                        bool IsHiddenActivity(Activity a)
+                        {
+                            var name = a.Name.ToUpperInvariant();
+                            return name.Contains("CALOTES") ||
+                                   name.Contains("BANCO") ||
+                                   name.Contains("CAIXA");
+                        }
+                        
+                        // Financial Summary - calculate from actual transactions (excluding hidden activities)
+                        var regularTransactions = allTransactions
+                            .Where(x => !IsHiddenActivity(x.activity))
+                            .SelectMany(x => x.transactions);
+                        
+                        var totalIncome = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Income)
                             .Sum(t => t.Amount);
-                        var totalExpenses = allTransactions.SelectMany(x => x.transactions)
+                        var totalExpenses = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;

@@ -604,8 +604,8 @@ else
         public int PageSize { get; set; } = 10;
     }
 
-    private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
-    private decimal totalExpenses => activities?.Sum(a => a.TotalExpenses) ?? 0;
+    private decimal totalIncome => activities?.Where(a => !IsHiddenActivity(a)).Sum(a => a.TotalIncome) ?? 0;
+    private decimal totalExpenses => activities?.Where(a => !IsHiddenActivity(a)).Sum(a => a.TotalExpenses) ?? 0;
     private decimal balance => totalIncome - totalExpenses;
     
     private decimal bankMoney = 0;
