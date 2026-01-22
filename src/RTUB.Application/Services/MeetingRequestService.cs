@@ -80,7 +80,7 @@ public class MeetingRequestService : IMeetingRequestService
                 OrganizerUserId = request.AuthorUserId
             };
 
-            var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, baseUrl);
+            var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, isReminder: false, baseUrl);
 
             // 1) Owners (role) - extract IDs immediately to avoid tracking issues
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");

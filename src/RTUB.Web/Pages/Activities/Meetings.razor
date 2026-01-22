@@ -901,7 +901,35 @@ else
             }
             else
             {
-                @if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
+                <!-- Notification Type Selection -->
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
+                    <select class="form-select" @bind="selectedPushNotificationType">
+                        <option value="@NotificationTypeNew">Nova Reunião</option>
+                        <option value="@NotificationTypeReminder">Lembrete de Reunião</option>
+                    </select>
+                    <small class="text-muted">
+                        @if (selectedPushNotificationType == NotificationTypeNew)
+                        {
+                            <text>Notifica os membros sobre uma nova reunião convocada.</text>
+                        }
+                        else if (selectedMeetingForPush != null)
+                        {
+                            var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
+                            @if (daysText != null)
+                            {
+                                var reminderText = daysText == "hoje" ? "A reunião é hoje" : $"A reunião é em {daysText}";
+                                <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
+                            }
+                            else
+                            {
+                                <text>Não é possível enviar lembretes para reuniões passadas.</text>
+                            }
+                        }
+                    </small>
+                </div>
+                
+                @if (selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
                 {
                     <div class="mb-3">
                         <label class="form-label text-white-full">Adicionar um Representante de Tunos</label>
@@ -1474,9 +1502,6 @@ else
                         <button class="btn btn-warning" @onclick="PublishAta" disabled="@isAtaLoading" title="Publicar Ata">
                             <i class="bi bi-send me-1"></i>Publicar
                         </button>
-                        <button class="btn admin-btn-delete" @onclick="OpenDeleteAtaConfirmation" disabled="@isAtaLoading" title="Eliminar Ata">
-                            <i class="bi bi-trash me-1"></i>Eliminar
-                        </button>
                     }
                 }
                 else if (editingAta?.Status == MeetingAtaStatus.Published)
@@ -1789,6 +1814,11 @@ else
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
+    private string selectedPushNotificationType = NotificationTypeNew;
+    
+    // Notification type constants
+    private const string NotificationTypeNew = "new";
+    private const string NotificationTypeReminder = "reminder";
     
     // Meeting participation modal variables
     private bool showParticipationModal = false;
@@ -2782,6 +2812,7 @@ else
         pushLoadingRecipients = true;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
+        selectedPushNotificationType = NotificationTypeNew; // Reset to default
         showPushNotificationModal = true;
         StateHasChanged();
 
@@ -2879,6 +2910,7 @@ else
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
+        selectedPushNotificationType = NotificationTypeNew;
     }
 
     private async Task SendMeetingPushNotification()
@@ -2898,8 +2930,24 @@ else
             // Use the base URL from Navigation
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
             
+            // Check if it's a reminder
+            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
+            
+            // Validate reminder for past meetings
+            if (isReminder)
+            {
+                var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
+                if (daysText == null)
+                {
+                    pushErrorMessage = "Não é possível enviar lembretes para reuniões passadas.";
+                    pushLoadingRecipients = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            
             // Create the notification
-            var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, baseUrl);
+            var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, isReminder, baseUrl);
 
             // Build final recipient list
             var finalRecipients = pushRecipients.ToList();
@@ -2978,6 +3026,24 @@ else
         var yearText = years == 1 ? "ano" : "anos";
         var monthText = months == 1 ? "mês" : "meses";
         return $"{years} {yearText} {months} {monthText} de Tuno";
+    }
+    
+    /// <summary>
+    /// Gets the text for days until meeting.
+    /// Returns null if the meeting is in the past.
+    /// </summary>
+    private static string? GetDaysUntilMeetingText(DateTime meetingDate)
+    {
+        var today = DateTime.Today;
+        var daysUntil = (meetingDate.Date - today).Days;
+
+        if (daysUntil < 0)
+            return null; // Past meeting
+        if (daysUntil == 0)
+            return "hoje";
+        if (daysUntil == 1)
+            return "1 dia";
+        return $"{daysUntil} dias";
     }
     
     private bool CanManageMeetings()

@@ -288,9 +288,13 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
-    /// Creates a push notification for new meetings.
+    /// Creates a push notification for meetings (new or reminder).
     /// </summary>
-    public SendPushNotificationDto CreateMeetingNotification(Meeting meeting, string baseUrl)
+    /// <param name="meeting">The meeting to notify about</param>
+    /// <param name="isReminder">True if this is a reminder notification, false for new meeting notification</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    public SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder, string baseUrl)
     {
         ArgumentNullException.ThrowIfNull(meeting);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
@@ -299,13 +303,49 @@ public class PushNotificationFactory : IPushNotificationFactory
         var meetingTypeName = FormatMeetingType(meeting.Type);
         var dateStr = meeting.Date.ToString("dd 'de' MMMM 'de' yyyy", PortugueseCulture);
 
-        return new SendPushNotificationDto
+        if (isReminder)
         {
-            Title = $"Nova Reunião Convocada: {meetingTypeName}",
-            Body = $"{meeting.Title} - {dateStr}",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = meetingUrl,
-            Tag = $"meeting-{meeting.Id}"
+            // Create reminder notification
+            var daysText = GetDaysUntilMeetingText(meeting.Date);
+            var reminderPhrase = daysText == "hoje" ? "A reunião é hoje" : $"A reunião é em {daysText}";
+
+            return new SendPushNotificationDto
+            {
+                Title = $"Lembrete: {meetingTypeName}",
+                Body = $"{reminderPhrase} ({dateStr}). Não te esqueças de confirmar a tua presença!",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = meetingUrl,
+                Tag = $"meeting-reminder-{meeting.Id}"
+            };
+        }
+        else
+        {
+            // Create new meeting notification
+            return new SendPushNotificationDto
+            {
+                Title = $"Nova Reunião Convocada: {meetingTypeName}",
+                Body = $"{meeting.Title} - {dateStr}",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = meetingUrl,
+                Tag = $"meeting-{meeting.Id}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets the text for days until meeting (similar to GetDaysUntilEventText).
+    /// </summary>
+    private static string? GetDaysUntilMeetingText(DateTime meetingDate)
+    {
+        var today = DateTime.Today;
+        var daysUntil = (meetingDate.Date - today).Days;
+
+        return daysUntil switch
+        {
+            < 0 => null, // Past meeting
+            0 => "hoje",
+            1 => "1 dia",
+            _ => $"{daysUntil} dias"
         };
     }
 
