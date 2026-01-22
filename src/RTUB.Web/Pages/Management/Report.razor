@@ -604,8 +604,8 @@ else
         public int PageSize { get; set; } = 10;
     }
 
-    private decimal totalIncome => activities?.Where(a => !IsHiddenActivity(a)).Sum(a => a.TotalIncome) ?? 0;
-    private decimal totalExpenses => activities?.Where(a => !IsHiddenActivity(a)).Sum(a => a.TotalExpenses) ?? 0;
+    private decimal totalIncome => activities?.Where(a => !a.IsHiddenFromCalculations()).Sum(a => a.TotalIncome) ?? 0;
+    private decimal totalExpenses => activities?.Where(a => !a.IsHiddenFromCalculations()).Sum(a => a.TotalExpenses) ?? 0;
     private decimal balance => totalIncome - totalExpenses;
     
     private decimal bankMoney = 0;
@@ -683,18 +683,6 @@ else
         
         return false;
     }
-    
-    /// <summary>
-    /// Checks if an activity should be hidden from the activities list.
-    /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed in summary boxes)
-    /// </summary>
-    private static bool IsHiddenActivity(Activity activity)
-    {
-        var name = activity.Name.ToUpperInvariant();
-        return name.Contains("CALOTES") ||
-               name.Contains("BANCO") ||
-               name.Contains("CAIXA");
-    }
 
     private async Task LoadActivities()
     {
@@ -708,7 +696,7 @@ else
         
         // Filter out hidden activities for display
         displayedActivities = activities
-            .Where(a => !IsHiddenActivity(a))
+            .Where(a => !a.IsHiddenFromCalculations())
             .ToList();
     }
 

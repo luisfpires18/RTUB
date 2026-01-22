@@ -94,18 +94,9 @@ public class ReportPdfService
                     .PaddingVertical(1, Unit.Centimetre)
                     .Column(column =>
                     {
-                        // Helper function to check if an activity should be hidden from calculations
-                        bool IsHiddenActivity(Activity a)
-                        {
-                            var name = a.Name.ToUpperInvariant();
-                            return name.Contains("CALOTES") ||
-                                   name.Contains("BANCO") ||
-                                   name.Contains("CAIXA");
-                        }
-                        
                         // Financial Summary - calculate from actual transactions (excluding hidden activities)
                         var regularTransactions = allTransactions
-                            .Where(x => !IsHiddenActivity(x.activity))
+                            .Where(x => !x.activity.IsHiddenFromCalculations())
                             .SelectMany(x => x.transactions);
                         
                         var totalIncome = regularTransactions

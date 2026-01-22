@@ -18,30 +18,18 @@ public class Report : BaseEntity
     // Computed properties - calculate from transactions (source of truth)
     // Excludes hidden activities (BANCO, CAIXA, CALOTES) from totals
     public decimal TotalIncome => Activities
-        .Where(a => !IsHiddenActivity(a))
+        .Where(a => !a.IsHiddenFromCalculations())
         .SelectMany(a => a.Transactions)
         .Where(t => t.Type == "Income")
         .Sum(t => t.Amount);
 
     public decimal TotalExpenses => Activities
-        .Where(a => !IsHiddenActivity(a))
+        .Where(a => !a.IsHiddenFromCalculations())
         .SelectMany(a => a.Transactions)
         .Where(t => t.Type == "Expense")
         .Sum(t => t.Amount);
 
     public decimal FinalBalance => TotalIncome - TotalExpenses;
-    
-    /// <summary>
-    /// Checks if an activity should be hidden from financial calculations.
-    /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed separately)
-    /// </summary>
-    private static bool IsHiddenActivity(Activity activity)
-    {
-        var name = activity.Name.ToUpperInvariant();
-        return name.Contains("CALOTES") ||
-               name.Contains("BANCO") ||
-               name.Contains("CAIXA");
-    }
 
     // Private constructor for EF Core
     public Report() { }
