@@ -10,7 +10,6 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using ReportEntity = RTUB.Core.Entities.Report
-@using Activity = RTUB.Core.Entities.Activity
 @attribute [Authorize]
 @inject IReportService ReportService
 @inject IActivityService ActivityService
@@ -140,7 +139,7 @@ else
 
       @if (!report.IsPublished && CanCreateReports())
       {
-          <div class="page-header-actions">
+          <div class="d-flex gap-2 align-items-center mt-2 mt-md-0">
               <button class="btn btn-success" @onclick="OpenCreateActivityModal" title="Nova Atividade">
                   <i class="bi bi-plus-lg"></i> Nova Atividade
               </button>
@@ -159,29 +158,13 @@ else
     }
     else
     {
-        <!-- Mobile: Cards -->
-        <div class="d-md-none">
-            <div class="activity-card-grid">
-                @foreach (var activity in displayedActivities)
-                {
-                    <ActivityCard Activity="@activity"
-                                  IsAdmin="@CanCreateReports()"
-                                  OnEdit="@(() => OpenEditActivityModal(activity))"
-                                  OnDelete="@(() => OpenDeleteActivityModal(activity))"
-                                  OnViewTransactions="@(() => ToggleAccordion(activity.Id))" />
-                }
-            </div>
-        </div>
+        <style>
+            .activity-accordion-button::after {
+                display: none;
+            }
+        </style>
 
-        <!-- Desktop: Accordion -->
-        <div class="d-none d-md-block">
-            <style>
-                .activity-accordion-button::after {
-                    display: none;
-                }
-            </style>
-
-            <div class="accordion" id="activitiesAccordion">
+        <div class="accordion" id="activitiesAccordion">
           @foreach (var activity in displayedActivities)
        {
                 <div class="accordion-item mb-2">
@@ -304,7 +287,6 @@ else
              </div>
         </div>
       }
-        </div>
         </div>
     }
 }
