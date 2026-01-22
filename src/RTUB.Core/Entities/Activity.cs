@@ -83,13 +83,13 @@ public class Activity : BaseEntity
     
     /// <summary>
     /// Checks if this activity should be hidden from financial calculations and activity lists.
-    /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed separately in summary boxes)
+    /// Hidden activities: CALOTES, BANCO (these are displayed separately in summary boxes)
+    /// Note: CAIXA is NOT excluded - it should be included in calculations
     /// </summary>
     public bool IsHiddenFromCalculations()
     {
         var name = Name.ToUpperInvariant();
         return name.Contains("CALOTES") ||
-               name.Contains("BANCO") ||
-               name.Contains("CAIXA");
+               name.Contains("BANCO");
     }
 }

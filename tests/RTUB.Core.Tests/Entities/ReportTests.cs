@@ -253,7 +253,7 @@ public class ReportTests
     }
 
     [Fact]
-    public void ComputedFinancials_ExcludesHiddenActivities_CaixaFromCalculations()
+    public void ComputedFinancials_IncludesCaixaActivity_InCalculations()
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
@@ -264,17 +264,17 @@ public class ReportTests
         regularActivity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Regular Income", "Cat", 2000m, "Income", 1));
         regularActivity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Regular Expense", "Cat", 500m, "Expense", 1));
 
-        // Add hidden CAIXA activity - should be excluded from totals
+        // Add CAIXA activity - should be INCLUDED in totals (not hidden)
         var caixaActivity = Activity.Create(1, "DINHEIRO EM CAIXA", testDate);
         caixaActivity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Cash Balance", "Saldo", 3000m, "Income", 1));
 
         report.Activities.Add(regularActivity);
         report.Activities.Add(caixaActivity);
 
-        // Assert - CAIXA activity should NOT be included in totals
-        report.TotalIncome.Should().Be(2000m); // Only regular income
+        // Assert - CAIXA activity SHOULD be included in totals
+        report.TotalIncome.Should().Be(5000m); // 2000 + 3000
         report.TotalExpenses.Should().Be(500m); // Only regular expense  
-        report.FinalBalance.Should().Be(1500m); // 2000 - 500 = 1500
+        report.FinalBalance.Should().Be(4500m); // 5000 - 500 = 4500
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class ReportTests
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income 2", "Cat", 500m, "Income", 1));
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense 2", "Cat", 100m, "Expense", 1));
 
-        // Add all hidden activities
+        // Add hidden activities (BANCO and CALOTES are excluded, CAIXA is included)
         var bancoActivity = Activity.Create(1, "DINHEIRO NO BANCO", testDate);
         bancoActivity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Bank", "Saldo", 10000m, "Income", 1));
 
@@ -334,9 +334,9 @@ public class ReportTests
         report.Activities.Add(caixaActivity);
         report.Activities.Add(calotesActivity);
 
-        // Assert - all hidden activities should NOT be included in totals
-        report.TotalIncome.Should().Be(1500m); // 1000 + 500
+        // Assert - BANCO and CALOTES excluded, CAIXA is included
+        report.TotalIncome.Should().Be(6500m); // 1000 + 500 + 5000 (CAIXA included)
         report.TotalExpenses.Should().Be(500m); // 400 + 100
-        report.FinalBalance.Should().Be(1000m); // 1500 - 500
+        report.FinalBalance.Should().Be(6000m); // 6500 - 500
     }
 }

@@ -287,13 +287,13 @@ public class ActivityTests
 
     [Theory]
     [InlineData("DINHEIRO NO BANCO", true)]
-    [InlineData("DINHEIRO EM CAIXA", true)]
+    [InlineData("DINHEIRO EM CAIXA", false)]  // CAIXA should be included in calculations
     [InlineData("CALOTES 2024", true)]
     [InlineData("Dinheiro no Banco", true)]
-    [InlineData("Dinheiro em Caixa", true)]
+    [InlineData("Dinheiro em Caixa", false)]  // CAIXA should be included in calculations
     [InlineData("calotes", true)]
     [InlineData("BANCO DE PORTUGAL", true)]
-    [InlineData("Caixa de Natal", true)]
+    [InlineData("Caixa de Natal", false)]  // CAIXA should be included in calculations
     [InlineData("Regular Event", false)]
     [InlineData("Concerto de Natal", false)]
     [InlineData("Ensaio Geral", false)]
