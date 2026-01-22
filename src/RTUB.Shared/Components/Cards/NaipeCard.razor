@@ -78,6 +78,20 @@
                 <span>@Content.CommentCount</span>
             </div>
         </div>
+
+        @if (IsAdmin)
+        {
+            <div class="mt-2 text-muted small">
+                <div>
+                    <i class="bi bi-person me-1"></i>
+                    <span class="fw-semibold">Criado por:</span> @FormatField(Content.CreatedByUserName)
+                </div>
+                <div>
+                    <i class="bi bi-person-check me-1"></i>
+                    <span class="fw-semibold">Atualizado por:</span> @FormatField(Content.UpdatedByUserName)
+                </div>
+            </div>
+        }
     </div>
 
     <!-- Actions -->
@@ -93,6 +107,7 @@
     [Parameter] public int PlayCount { get; set; }
     [Parameter] public bool CanEdit { get; set; }
     [Parameter] public bool CanDelete { get; set; }
+    [Parameter] public bool IsAdmin { get; set; }
     [Parameter] public EventCallback OnView { get; set; }
     [Parameter] public EventCallback OnEdit { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
@@ -121,6 +136,11 @@
         return Content.Description.Length > maxLength
             ? Content.Description.Substring(0, maxLength) + "..."
             : Content.Description;
+    }
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
     
     private async Task PlayPreview()

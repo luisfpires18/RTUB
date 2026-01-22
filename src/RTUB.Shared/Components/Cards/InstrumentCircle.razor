@@ -81,6 +81,15 @@
                 <strong>Local:</strong> @Instrument.Location
             </div>
         }
+        @if (IsAdmin)
+        {
+            <div class="instrument-circle-detail text-muted small">
+                <strong>Criado por:</strong> @FormatField(Instrument.CreatedBy)
+            </div>
+            <div class="instrument-circle-detail text-muted small">
+                <strong>Atualizado por:</strong> @FormatField(Instrument.UpdatedBy)
+            </div>
+        }
     </div>
 
     <!-- View button below the card -->
@@ -123,6 +132,9 @@
     public bool ShowDeleteButton { get; set; } = false;
 
     [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
     public string ViewTooltip { get; set; } = "Ver Detalhes";
 
     [Parameter]
@@ -133,6 +145,11 @@
 
     [Parameter]
     public string DeleteTooltip { get; set; } = "Eliminar";
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
 
     private string GetInstrumentIcon(string category)
     {

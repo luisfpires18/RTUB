@@ -17,6 +17,7 @@ public class NaipeContentDto
     public decimal SortOrder { get; set; }
     public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByUserName { get; set; } = string.Empty;
+    public string? UpdatedByUserName { get; set; }
     public DateTime CreatedAt { get; set; }
     public int PlayCount { get; set; }
     public int CommentCount { get; set; }

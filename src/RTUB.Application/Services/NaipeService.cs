@@ -312,6 +312,7 @@ public class NaipeService : INaipeService
             SortOrder = content.SortOrder,
             CreatedByUserId = content.CreatedByUserId,
             CreatedByUserName = content.CreatedByUser?.Nickname ?? content.CreatedByUser?.UserName ?? "Unknown",
+            UpdatedByUserName = content.UpdatedBy,
             CreatedAt = content.CreatedAt,
             PlayCount = content.PlayCounts?.Count ?? 0,
             CommentCount = content.Comments?.Count(c => c.DeletedAt == null) ?? 0

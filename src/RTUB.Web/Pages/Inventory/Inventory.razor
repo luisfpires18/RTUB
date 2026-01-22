@@ -109,6 +109,7 @@ else
                                         ShowViewButton="true"
                                         ShowEditButton="true"
                                         ShowDeleteButton="true"
+                                        IsAdmin="@isAdmin"
                                         OnView="@(() => OpenViewDetailsModal(instrument))"
                                         OnEdit="@(() => OpenEditInstrumentModal(instrument))"
                                         OnDelete="@(() => OpenDeleteInstrumentModal(instrument))" />
@@ -117,6 +118,7 @@ else
                         <InstrumentCircle Instrument="@instrument" 
                                         ImageUrl="@GetImageUrl(instrument.ImageSrc)"
                                         ShowViewButton="true"
+                                        IsAdmin="@isAdmin"
                                         OnView="@(() => OpenViewDetailsModal(instrument))" />
                     </NotAuthorized>
                 </AuthorizeView>
@@ -366,6 +368,7 @@ else
     private bool isInstrumentCreateMode = false;
     private Instrument? editingInstrument;
     private Instrument? deletingInstrument;
+    private bool isAdmin = false;
 
     // Image Cropper
     private bool showCropperModal = false;
@@ -383,6 +386,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole("Admin");
         LoadCategoriesFromEnum();
         await LoadData();
     }

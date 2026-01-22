@@ -132,6 +132,20 @@ else
                                 </span>
                             }
                         </div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="text-muted small mb-2">
+                                    <div>
+                                        <i class="bi bi-person me-1"></i>
+                                        <span class="fw-semibold">Criado por:</span> @FormatField(product.CreatedBy)
+                                    </div>
+                                    <div>
+                                        <i class="bi bi-person-check me-1"></i>
+                                        <span class="fw-semibold">Atualizado por:</span> @FormatField(product.UpdatedBy)
+                                    </div>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                         <div class="mt-auto">
                             <p class="card-text mb-2">
                                 <strong class="fs-5 text-white">@product.Price.ToString("0.00") €</strong>
@@ -997,6 +1011,11 @@ else
         }
         
         return imageSrc;
+    }
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
     
     // Reservation Methods

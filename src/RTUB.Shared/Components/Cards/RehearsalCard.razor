@@ -115,6 +115,18 @@
                     <span class="rehearsal-theme-text">@Rehearsal.Description</span>
                 </div>
             }
+
+            @if (IsAdmin)
+            {
+                <div class="rehearsal-theme-row text-white-50 small">
+                    <span class="rehearsal-theme-label">Criado por:</span>
+                    <span class="rehearsal-theme-text">@FormatField(Rehearsal.CreatedBy)</span>
+                </div>
+                <div class="rehearsal-theme-row text-white-50 small">
+                    <span class="rehearsal-theme-label">Atualizado por:</span>
+                    <span class="rehearsal-theme-text">@FormatField(Rehearsal.UpdatedBy)</span>
+                </div>
+            }
         </div>
 
         @if (!Rehearsal.IsCanceled)
@@ -414,6 +426,11 @@
     /// </summary>
     [Parameter]
     public bool HasPendingApprovals { get; set; } = false;
+
+    private static string FormatField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
 
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()

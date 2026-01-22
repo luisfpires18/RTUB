@@ -108,6 +108,7 @@ else
                            PlayCount="@content.PlayCount"
                            CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
                            CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           IsAdmin="@isAdmin"
                            OnView="@(() => OpenViewModal(content))"
                            OnEdit="@(() => OpenEditModal(content))"
                            OnDelete="@(() => OpenDeleteConfirmation(content))" />
