@@ -1,8 +1,8 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 

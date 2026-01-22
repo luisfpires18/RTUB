@@ -1432,6 +1432,73 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
     }
 
+    [Fact]
+    public async Task ActivateMemberWithOverrideAsync_ShouldSetIsRetiredFalseAndOverrideRetiredTrue()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Create an existing MemberStatus record (simulating a retired member)
+        var existingStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = true,
+            OverrideRetired = false,
+            LastUpdatedAt = DateTime.UtcNow.AddHours(-2),
+            LastRehearsalDate = null,
+            LastEventDate = null,
+            LastActivityDate = null,
+            HasAnyActivity = false,
+            TotalActivitiesCount = 0
+        };
+        _context.MemberStatuses.Add(existingStatus);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _mockUserManager.Setup(um => um.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var result = await _service.ActivateMemberWithOverrideAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsRetired.Should().BeFalse("member should be activated");
+
+        // Verify user was updated
+        var updatedUser = await _context.Users.FindAsync(userId);
+        updatedUser.Should().NotBeNull();
+        updatedUser!.IsRetired.Should().BeFalse("user IsRetired should be false");
+
+        // Verify MemberStatus was updated with override
+        var updatedStatus = await _context.MemberStatuses
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+        updatedStatus.Should().NotBeNull();
+        updatedStatus!.IsRetired.Should().BeFalse("MemberStatus IsRetired should be false");
+        updatedStatus.OverrideRetired.Should().BeTrue("OverrideRetired should be true to prevent automatic re-retirement");
+
+        // Verify UserManager.UpdateAsync was called
+        _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.Id == userId && !u.IsRetired)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActivateMemberWithOverrideAsync_WhenUserNotFound_ShouldThrow()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _service.ActivateMemberWithOverrideAsync(userId));
+    }
+
     private ApplicationUser CreateTestUser(string userId)
     {
         return new ApplicationUser

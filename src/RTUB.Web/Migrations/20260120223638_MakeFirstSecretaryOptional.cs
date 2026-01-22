@@ -1,19 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class MakeFirstSecretaryOptional : Migration
 {
     /// <inheritdoc />
-    public partial class MakeFirstSecretaryOptional : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // SQLite doesn't support ALTER COLUMN directly, so we need to recreate the table
-            
-            // Create a new table with the correct schema (FirstSecretaryUserId is now nullable)
-            migrationBuilder.Sql(@"
+        // SQLite doesn't support ALTER COLUMN directly, so we need to recreate the table
+
+        // Create a new table with the correct schema (FirstSecretaryUserId is now nullable)
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""MeetingAtas_new"" (
                     ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     ""MeetingId"" INTEGER NOT NULL,
@@ -42,30 +42,30 @@ namespace RTUB.Migrations
                 );
             ");
 
-            // Copy data from old table
-            migrationBuilder.Sql(@"
+        // Copy data from old table
+        migrationBuilder.Sql(@"
                 INSERT INTO ""MeetingAtas_new"" 
                 SELECT * FROM ""MeetingAtas"";
             ");
 
-            // Drop old table
-            migrationBuilder.Sql(@"DROP TABLE ""MeetingAtas"";");
+        // Drop old table
+        migrationBuilder.Sql(@"DROP TABLE ""MeetingAtas"";");
 
-            // Rename new table
-            migrationBuilder.Sql(@"ALTER TABLE ""MeetingAtas_new"" RENAME TO ""MeetingAtas"";");
+        // Rename new table
+        migrationBuilder.Sql(@"ALTER TABLE ""MeetingAtas_new"" RENAME TO ""MeetingAtas"";");
 
-            // Recreate indexes
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_FirstSecretaryUserId"" ON ""MeetingAtas"" (""FirstSecretaryUserId"");");
-            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""IX_MeetingAtas_MeetingId"" ON ""MeetingAtas"" (""MeetingId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_PresidentUserId"" ON ""MeetingAtas"" (""PresidentUserId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_SecondSecretaryUserId"" ON ""MeetingAtas"" (""SecondSecretaryUserId"");");
-        }
+        // Recreate indexes
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_FirstSecretaryUserId"" ON ""MeetingAtas"" (""FirstSecretaryUserId"");");
+        migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""IX_MeetingAtas_MeetingId"" ON ""MeetingAtas"" (""MeetingId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_PresidentUserId"" ON ""MeetingAtas"" (""PresidentUserId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_SecondSecretaryUserId"" ON ""MeetingAtas"" (""SecondSecretaryUserId"");");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            // Create old table with NOT NULL constraint on FirstSecretaryUserId
-            migrationBuilder.Sql(@"
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // Create old table with NOT NULL constraint on FirstSecretaryUserId
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""MeetingAtas_old"" (
                     ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     ""MeetingId"" INTEGER NOT NULL,
@@ -94,8 +94,8 @@ namespace RTUB.Migrations
                 );
             ");
 
-            // Copy data - use PresidentUserId as fallback for NULL FirstSecretaryUserId values
-            migrationBuilder.Sql(@"
+        // Copy data - use PresidentUserId as fallback for NULL FirstSecretaryUserId values
+        migrationBuilder.Sql(@"
                 INSERT INTO ""MeetingAtas_old"" 
                 SELECT ""Id"", ""MeetingId"", ""AtaNumber"", ""ActualStartTime"", ""ActualEndTime"", ""Location"", 
                        ""PresidentUserId"", COALESCE(""FirstSecretaryUserId"", ""PresidentUserId""), ""SecondSecretaryUserId"",
@@ -104,14 +104,13 @@ namespace RTUB.Migrations
                 FROM ""MeetingAtas"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""MeetingAtas"";");
-            migrationBuilder.Sql(@"ALTER TABLE ""MeetingAtas_old"" RENAME TO ""MeetingAtas"";");
+        migrationBuilder.Sql(@"DROP TABLE ""MeetingAtas"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""MeetingAtas_old"" RENAME TO ""MeetingAtas"";");
 
-            // Recreate indexes
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_FirstSecretaryUserId"" ON ""MeetingAtas"" (""FirstSecretaryUserId"");");
-            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""IX_MeetingAtas_MeetingId"" ON ""MeetingAtas"" (""MeetingId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_PresidentUserId"" ON ""MeetingAtas"" (""PresidentUserId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_SecondSecretaryUserId"" ON ""MeetingAtas"" (""SecondSecretaryUserId"");");
-        }
+        // Recreate indexes
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_FirstSecretaryUserId"" ON ""MeetingAtas"" (""FirstSecretaryUserId"");");
+        migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""IX_MeetingAtas_MeetingId"" ON ""MeetingAtas"" (""MeetingId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_PresidentUserId"" ON ""MeetingAtas"" (""PresidentUserId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_MeetingAtas_SecondSecretaryUserId"" ON ""MeetingAtas"" (""SecondSecretaryUserId"");");
     }
 }

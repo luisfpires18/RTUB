@@ -1,8 +1,8 @@
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
-using RTUB.Shared;
 using RTUB.Application.Helpers;
+using RTUB.Shared;
 
 namespace RTUB.Shared.Tests.Base;
 

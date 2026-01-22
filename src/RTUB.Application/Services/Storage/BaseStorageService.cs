@@ -1,7 +1,7 @@
+using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
-using System.Net;
 
 namespace RTUB.Application.Services.Storage;
 

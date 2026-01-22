@@ -64,20 +64,20 @@ public class MeetingAtaRepository : IMeetingAtaRepository
     public async Task<MeetingAta> CreateAsync(MeetingAta ata)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        
+
         // Convert empty string to null for optional secretary fields to avoid FK constraint violations
         if (string.IsNullOrEmpty(ata.FirstSecretaryUserId))
             ata.FirstSecretaryUserId = null;
         if (string.IsNullOrEmpty(ata.SecondSecretaryUserId))
             ata.SecondSecretaryUserId = null;
-        
+
         // Clear navigation properties to prevent EF from traversing and causing FK/tracking conflicts
         // We only want to save the scalar properties and foreign key IDs
         ata.Meeting = null!;
         ata.PresidentUser = null!;
         ata.FirstSecretaryUser = null;
         ata.SecondSecretaryUser = null;
-        
+
         // Handle agenda points separately - clear their navigation back to the ata
         if (ata.AgendaPoints != null)
         {
@@ -86,7 +86,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
                 point.MeetingAta = null!;
             }
         }
-        
+
         // Handle attachments separately - clear their navigation back to the ata
         if (ata.Attachments != null)
         {
@@ -95,7 +95,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
                 attachment.MeetingAta = null!;
             }
         }
-            
+
         context.MeetingAtas.Add(ata);
         await context.SaveChangesAsync();
         return ata;
@@ -104,7 +104,7 @@ public class MeetingAtaRepository : IMeetingAtaRepository
     public async Task UpdateAsync(MeetingAta ata)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        
+
         // Fetch the existing entity with its agenda points
         var existingAta = await context.MeetingAtas
             .Include(a => a.AgendaPoints)

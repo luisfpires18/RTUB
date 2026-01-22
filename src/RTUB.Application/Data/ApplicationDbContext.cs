@@ -1,11 +1,11 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Core.Entities;
-using System.Text.Json;
 using RTUB.Application.Services;
 using RTUB.Core.Constants;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Data;
 

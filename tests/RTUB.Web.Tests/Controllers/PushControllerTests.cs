@@ -1,9 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Security.Claims;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;

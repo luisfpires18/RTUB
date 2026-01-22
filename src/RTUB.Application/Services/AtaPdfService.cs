@@ -1,7 +1,7 @@
+using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -40,7 +40,7 @@ public class AtaPdfService : IAtaPdfService
 
         QuestPDF.Settings.License = LicenseType.Community;
 
-        var isAG = ata.Meeting?.Type == MeetingType.AssembleiaGeralOrdinaria || 
+        var isAG = ata.Meeting?.Type == MeetingType.AssembleiaGeralOrdinaria ||
                    ata.Meeting?.Type == MeetingType.AssembleiaGeralExtraordinaria;
         var isCV = ata.Meeting?.Type == MeetingType.ConselhoVeteranos;
 
@@ -183,8 +183,8 @@ public class AtaPdfService : IAtaPdfService
 
                     // Section: Desenvolvimento dos trabalhos e deliberações
                     sectionNumber++;
-                    var devTitle = isAG 
-                        ? $"{sectionNumber}) Desenvolvimento dos trabalhos, propostas e deliberações" 
+                    var devTitle = isAG
+                        ? $"{sectionNumber}) Desenvolvimento dos trabalhos, propostas e deliberações"
                         : $"{sectionNumber}) Desenvolvimento dos trabalhos e deliberações";
                     column.Item().PaddingTop(20).Text(devTitle).FontSize(14).Bold().FontColor("#6f42c1");
 
@@ -218,7 +218,7 @@ public class AtaPdfService : IAtaPdfService
                                         contentColumn.Item().Text($"  • A favor: {point.VotesFor ?? 0}").FontSize(10);
                                         contentColumn.Item().Text($"  • Contra: {point.VotesAgainst ?? 0}").FontSize(10);
                                         contentColumn.Item().Text($"  • Abstenções: {point.VotesAbstain ?? 0}").FontSize(10);
-                                        
+
                                         if (!string.IsNullOrEmpty(point.VoteResult))
                                         {
                                             var resultColor = point.VoteResult == "Aprovado" ? "#28a745" : "#dc3545";
@@ -258,7 +258,7 @@ public class AtaPdfService : IAtaPdfService
                     // Section: Assinaturas
                     sectionNumber++;
                     column.Item().PaddingTop(20).Text($"{sectionNumber}) Assinaturas").FontSize(14).Bold().FontColor("#6f42c1");
-                    
+
                     if (isCV)
                     {
                         // CV: Presidente do CV (always) + Secretário (only if selected)
@@ -405,16 +405,16 @@ public class AtaPdfService : IAtaPdfService
     private static string FormatUserName(ApplicationUser user)
     {
         if (user == null) return "Não disponível";
-        
+
         var firstName = user.FirstName ?? "";
         var lastName = user.LastName ?? "";
         var nickname = user.Nickname;
-        
+
         if (!string.IsNullOrEmpty(nickname))
         {
             return $"{firstName} \"{nickname}\" {lastName}".Trim();
         }
-        
+
         return $"{firstName} {lastName}".Trim();
     }
 

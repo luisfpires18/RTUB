@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Fixtures;
 using Xunit;
 
 namespace RTUB.Application.Tests.Services;

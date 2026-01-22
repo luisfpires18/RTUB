@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -5,8 +7,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using RTUB.Web.Controllers;
-using System.Net;
-using System.Net.Http.Headers;
 
 namespace RTUB.Web.Tests.Controllers;
 

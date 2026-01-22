@@ -1,29 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddSubscribedToApplicationUser : Migration
 {
     /// <inheritdoc />
-    public partial class AddSubscribedToApplicationUser : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<bool>(
-                name: "Subscribed",
-                table: "AspNetUsers",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: false);
-        }
+        migrationBuilder.AddColumn<bool>(
+            name: "Subscribed",
+            table: "AspNetUsers",
+            type: "INTEGER",
+            nullable: false,
+            defaultValue: false);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "Subscribed",
-                table: "AspNetUsers");
-        }
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "Subscribed",
+            table: "AspNetUsers");
     }
 }

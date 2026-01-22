@@ -1,8 +1,8 @@
 using FluentAssertions;
-using Moq;
-using MockQueryable.Moq;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using MockQueryable.Moq;
+using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;

@@ -1,11 +1,11 @@
-using RTUB.Application.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Services;
 

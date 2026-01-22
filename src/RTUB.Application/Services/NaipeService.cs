@@ -1,7 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;

@@ -1,5 +1,5 @@
-using RTUB.Application.Interfaces;
 using System.Collections.Concurrent;
+using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
 

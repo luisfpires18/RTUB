@@ -1,5 +1,5 @@
-using RTUB.Core.Attributes;
 using System.ComponentModel.DataAnnotations;
+using RTUB.Core.Attributes;
 
 namespace RTUB.Core.Entities;
 
@@ -80,7 +80,7 @@ public class Activity : BaseEntity
     /// Gets the latest date (EndDate if available, otherwise StartDate) for sorting purposes
     /// </summary>
     public DateTime LatestDate => EndDate ?? StartDate;
-    
+
     /// <summary>
     /// Checks if this activity should be hidden from financial calculations.
     /// Hidden activities: CALOTES, BANCO (these are displayed separately in summary boxes)
@@ -92,7 +92,7 @@ public class Activity : BaseEntity
         return name.Contains("CALOTES") ||
                name.Contains("BANCO");
     }
-    
+
     /// <summary>
     /// Checks if this activity should be hidden from the activity list in the UI.
     /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed separately in summary boxes/cards)

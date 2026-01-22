@@ -1,4 +1,5 @@
 using System.Net;
+using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +7,6 @@ using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Xunit;
-using FluentAssertions;
 
 namespace RTUB.Integration.Tests.Workflows;
 

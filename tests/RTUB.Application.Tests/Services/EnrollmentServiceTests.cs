@@ -1,16 +1,16 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Moq;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Moq;
 using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
-using RTUB.Core.Exceptions;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 

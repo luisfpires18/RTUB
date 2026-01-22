@@ -39,4 +39,13 @@ public interface IMemberStatusService
     /// </summary>
     /// <returns>The number of member statuses updated</returns>
     Task<int> UpdateAllMemberStatusesAsync();
+
+    /// <summary>
+    /// Manually activates a retired member by setting IsRetired=false, removing old MemberStatus,
+    /// recalculating status, and setting OverrideRetired=true to prevent automatic re-retirement.
+    /// This is an administrative action that bypasses automatic retirement rules.
+    /// </summary>
+    /// <param name="userId">The user ID to activate</param>
+    /// <returns>The updated status result with IsRetired=false and OverrideRetired=true</returns>
+    Task<MemberStatusResult> ActivateMemberWithOverrideAsync(string userId);
 }

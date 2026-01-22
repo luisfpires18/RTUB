@@ -1,39 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class GroupChats : Migration
 {
     /// <inheritdoc />
-    public partial class GroupChats : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<string>(
-                name: "CreatedByUserId",
-                table: "Conversations",
-                type: "TEXT",
-                nullable: true);
+        migrationBuilder.AddColumn<string>(
+            name: "CreatedByUserId",
+            table: "Conversations",
+            type: "TEXT",
+            nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsGroup",
-                table: "Conversations",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: false);
-        }
+        migrationBuilder.AddColumn<bool>(
+            name: "IsGroup",
+            table: "Conversations",
+            type: "INTEGER",
+            nullable: false,
+            defaultValue: false);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "CreatedByUserId",
-                table: "Conversations");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "CreatedByUserId",
+            table: "Conversations");
 
-            migrationBuilder.DropColumn(
-                name: "IsGroup",
-                table: "Conversations");
-        }
+        migrationBuilder.DropColumn(
+            name: "IsGroup",
+            table: "Conversations");
     }
 }

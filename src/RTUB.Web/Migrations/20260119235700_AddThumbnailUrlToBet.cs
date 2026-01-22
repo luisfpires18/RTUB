@@ -1,29 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddThumbnailUrlToBet : Migration
 {
     /// <inheritdoc />
-    public partial class AddThumbnailUrlToBet : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<string>(
-                name: "ThumbnailUrl",
-                table: "Bets",
-                type: "TEXT",
-                maxLength: 500,
-                nullable: true);
-        }
+        migrationBuilder.AddColumn<string>(
+            name: "ThumbnailUrl",
+            table: "Bets",
+            type: "TEXT",
+            maxLength: 500,
+            nullable: true);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "ThumbnailUrl",
-                table: "Bets");
-        }
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "ThumbnailUrl",
+            table: "Bets");
     }
 }

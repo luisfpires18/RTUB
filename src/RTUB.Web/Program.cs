@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
@@ -9,7 +10,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Web.Extensions;
-using System.Security.Claims;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB;
@@ -482,6 +482,10 @@ public class Program
         // Add controller support for API endpoints
         services.AddControllers();
 
+        // --------- Health Checks ---------
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>("database");
+
         var app = builder.Build();
 
         // ---------- Migrate + seed ----------
@@ -627,6 +631,9 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseAntiforgery();
+
+        // --------- Health Checks ---------
+        app.MapHealthChecks("/health");
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
         app.MapPost("/auth/login", async (HttpContext http,

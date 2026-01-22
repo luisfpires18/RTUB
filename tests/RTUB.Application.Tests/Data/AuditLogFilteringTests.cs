@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,6 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Security.Claims;
 
 namespace RTUB.Application.Tests.Data;
 

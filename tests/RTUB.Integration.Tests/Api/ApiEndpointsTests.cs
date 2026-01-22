@@ -1,6 +1,6 @@
+using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System.Net;
 using Xunit;
 
 namespace RTUB.Integration.Tests.Api;
@@ -108,6 +108,34 @@ public class ApiEndpointsTests : IntegrationTestBase
 
 
 
+
+    #endregion
+
+    #region Health Checks Tests
+
+    [Fact]
+    public async Task HealthCheck_ShouldReturn200Ok()
+    {
+        // Act
+        var response = await _client.GetAsync("/health");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK, "Health check endpoint should return 200 OK");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("text/plain",
+            "Health check should return plain text");
+    }
+
+    [Fact]
+    public async Task HealthCheck_ShouldIncludeDatabaseStatus()
+    {
+        // Act
+        var response = await _client.GetAsync("/health");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        content.Should().Contain("Healthy", "Health check should report database as healthy");
+    }
 
     #endregion
 }

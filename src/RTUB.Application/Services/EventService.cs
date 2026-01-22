@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
-using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;

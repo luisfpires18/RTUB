@@ -1,8 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;

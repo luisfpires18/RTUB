@@ -1,11 +1,11 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
-using Microsoft.EntityFrameworkCore;
 using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;

@@ -1,13 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Report = RTUB.Core.Entities.Report;
-using Activity = RTUB.Core.Entities.Activity;
-using Transaction = RTUB.Core.Entities.Transaction;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Core.Constants;
+using Activity = RTUB.Core.Entities.Activity;
+using Report = RTUB.Core.Entities.Report;
+using Transaction = RTUB.Core.Entities.Transaction;
 
 namespace RTUB.Application.Services;
 
@@ -98,7 +98,7 @@ public class ReportPdfService
                         var regularTransactions = allTransactions
                             .Where(x => !x.activity.IsHiddenFromCalculations())
                             .SelectMany(x => x.transactions);
-                        
+
                         var totalIncome = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Income)
                             .Sum(t => t.Amount);
@@ -106,18 +106,18 @@ public class ReportPdfService
                             .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;
-                        
+
                         // Calculate bank and cash money from special activities
-                        var bankActivity = activities.FirstOrDefault(a => 
+                        var bankActivity = activities.FirstOrDefault(a =>
                             a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
-                        
+
                         var cashActivity = activities.FirstOrDefault(a =>
                             a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
-                        
+
                         var bankMoney = bankActivity?.Balance ?? 0;
                         var cashMoney = cashActivity?.Balance ?? 0;
 
@@ -149,13 +149,13 @@ public class ReportPdfService
                                     col.Item().Text("Atividades").FontSize(10).FontColor(Colors.Grey.Darken1);
                                     col.Item().Text(activities.Count.ToString()).FontSize(18).Bold().FontColor("#6f42c1");
                                 });
-                                
+
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Dinheiro no Banco").FontSize(10).FontColor(Colors.Grey.Darken1);
                                     col.Item().Text($"€{bankMoney:N2}").FontSize(18).Bold().FontColor("#6f42c1");
                                 });
-                                
+
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Dinheiro em Caixa").FontSize(10).FontColor(Colors.Grey.Darken1);

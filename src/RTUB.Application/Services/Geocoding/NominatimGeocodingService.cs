@@ -1,12 +1,12 @@
-using RTUB.Application.Interfaces;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Text;
-using RTUB.Application.Data;
-using RTUB.Core.Entities;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services.Geocoding;
 

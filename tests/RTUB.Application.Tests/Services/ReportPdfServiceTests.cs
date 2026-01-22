@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Services;
-using RTUB.Core.Entities;
 using RTUB.Core.Constants;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
 

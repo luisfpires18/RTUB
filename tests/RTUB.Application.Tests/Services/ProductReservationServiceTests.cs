@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Moq;
 using MockQueryable.Moq;
+using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;

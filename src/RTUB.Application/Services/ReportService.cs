@@ -1,11 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Core.Constants;
 
 
 namespace RTUB.Application.Services;

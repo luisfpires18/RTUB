@@ -1,9 +1,9 @@
+using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Net;
 using Xunit;
 
 namespace RTUB.Integration.Tests.Pages;

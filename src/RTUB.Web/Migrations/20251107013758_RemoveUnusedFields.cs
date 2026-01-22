@@ -1,19 +1,19 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class RemoveUnusedFields : Migration
 {
     /// <inheritdoc />
-    public partial class RemoveUnusedFields : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // Manually rebuild Transactions table to remove Receipt fields
-            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
-            migrationBuilder.Sql(@"
+        // Manually rebuild Transactions table to remove Receipt fields
+        // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Transactions_new"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Transactions"" PRIMARY KEY AUTOINCREMENT,
                     ""ActivityId"" INTEGER NULL,
@@ -30,7 +30,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Transactions_new""
                     (""Id"", ""ActivityId"", ""Amount"", ""Category"", ""CreatedAt"", ""CreatedBy"", 
                      ""Date"", ""Description"", ""Type"", ""UpdatedAt"", ""UpdatedBy"")
@@ -40,14 +40,14 @@ namespace RTUB.Migrations
                 FROM ""Transactions"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Transactions_new"" RENAME TO ""Transactions"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Transactions_new"" RENAME TO ""Transactions"";");
 
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
 
-            // Manually rebuild Instruments table to remove PurchaseDate and PurchasePrice
-            migrationBuilder.Sql(@"
+        // Manually rebuild Instruments table to remove PurchaseDate and PurchasePrice
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Instruments_new"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Instruments"" PRIMARY KEY AUTOINCREMENT,
                     ""Brand"" TEXT NULL,
@@ -67,7 +67,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Instruments_new""
                     (""Id"", ""Brand"", ""Category"", ""Condition"", ""CreatedAt"", ""CreatedBy"",
                      ""ImageContentType"", ""ImageData"", ""LastMaintenanceDate"", ""Location"",
@@ -79,12 +79,12 @@ namespace RTUB.Migrations
                 FROM ""Instruments"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Instruments_new"" RENAME TO ""Instruments"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Instruments_new"" RENAME TO ""Instruments"";");
 
-            // Manually rebuild Enrollments table to remove Attended
-            migrationBuilder.Sql(@"
+        // Manually rebuild Enrollments table to remove Attended
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Enrollments_new"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Enrollments"" PRIMARY KEY AUTOINCREMENT,
                     ""CreatedAt"" TEXT NOT NULL,
@@ -98,7 +98,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Enrollments_new""
                     (""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"")
                 SELECT
@@ -106,19 +106,19 @@ namespace RTUB.Migrations
                 FROM ""Enrollments"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_new"" RENAME TO ""Enrollments"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_new"" RENAME TO ""Enrollments"";");
 
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
-        }
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            // Manually rebuild Transactions table to add Receipt fields back
-            migrationBuilder.Sql(@"
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // Manually rebuild Transactions table to add Receipt fields back
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Transactions_old"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Transactions"" PRIMARY KEY AUTOINCREMENT,
                     ""ActivityId"" INTEGER NULL,
@@ -137,7 +137,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Transactions_old""
                     (""Id"", ""ActivityId"", ""Amount"", ""Category"", ""CreatedAt"", ""CreatedBy"", 
                      ""Date"", ""Description"", ""Type"", ""UpdatedAt"", ""UpdatedBy"", ""ReceiptContentType"", ""ReceiptData"")
@@ -147,14 +147,14 @@ namespace RTUB.Migrations
                 FROM ""Transactions"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Transactions_old"" RENAME TO ""Transactions"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Transactions_old"" RENAME TO ""Transactions"";");
 
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
 
-            // Manually rebuild Instruments table to add PurchaseDate and PurchasePrice back
-            migrationBuilder.Sql(@"
+        // Manually rebuild Instruments table to add PurchaseDate and PurchasePrice back
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Instruments_old"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Instruments"" PRIMARY KEY AUTOINCREMENT,
                     ""Brand"" TEXT NULL,
@@ -176,7 +176,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Instruments_old""
                     (""Id"", ""Brand"", ""Category"", ""Condition"", ""CreatedAt"", ""CreatedBy"",
                      ""ImageContentType"", ""ImageData"", ""LastMaintenanceDate"", ""Location"",
@@ -188,12 +188,12 @@ namespace RTUB.Migrations
                 FROM ""Instruments"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Instruments_old"" RENAME TO ""Instruments"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Instruments_old"" RENAME TO ""Instruments"";");
 
-            // Manually rebuild Enrollments table to add Attended back
-            migrationBuilder.Sql(@"
+        // Manually rebuild Enrollments table to add Attended back
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Enrollments_old"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Enrollments"" PRIMARY KEY AUTOINCREMENT,
                     ""Attended"" INTEGER NOT NULL DEFAULT 0,
@@ -208,7 +208,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Enrollments_old""
                     (""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"", ""Attended"")
                 SELECT
@@ -216,12 +216,11 @@ namespace RTUB.Migrations
                 FROM ""Enrollments"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
 
-            migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_old"" RENAME TO ""Enrollments"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_old"" RENAME TO ""Enrollments"";");
 
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
-        }
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
     }
 }

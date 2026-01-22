@@ -1,12 +1,12 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using RTUB.Core.Constants;
 
 namespace RTUB.Application.Data;
 

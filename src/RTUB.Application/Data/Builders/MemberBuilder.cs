@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
-using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 using System.Globalization;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Data.Builders;
 

@@ -1,6 +1,6 @@
+using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System.Net;
 using Xunit;
 
 namespace RTUB.Integration.Tests.Pages;
