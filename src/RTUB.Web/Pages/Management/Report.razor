@@ -68,32 +68,8 @@ else
         <div class="col-12 col-md-4">
             <div class="card text-center summary-card">
                 <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-wallet2"></i> Total €</small>
-                    <h5 class="text-success mb-0 fw-bold">€@totalMoney.ToString("N2")</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
-                <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
-                    <h5 class="text-success mb-0">€@totalIncome.ToString("N2")</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
-                <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
-                    <h5 class="text-danger mb-0">€@totalExpenses.ToString("N2")</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4">
-            <div class="card text-center summary-card">
-                <div class="card-body py-2">
-                    <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
-                    <h5 class="@(balance >= 0 ? "text-success" : "text-danger") mb-0">€@balance.ToString("N2")</h5>
+                    <small class="card-title d-block mb-1 text-light-theme"><i class="bi bi-bank"></i> Dinheiro Total</small>
+                    <h5 class="text-success mb-0">€@totalMoney.ToString("N2")</h5>
                 </div>
             </div>
         </div>
@@ -139,6 +115,30 @@ else
                 </div>
             </div>
         </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
+                        <h5 class="text-success mb-0">€@totalIncome.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
+                        <h5 class="text-danger mb-0">€@totalExpenses.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
+        <div class="col-6 col-md-4">
+                <div class="card text-center summary-card">
+                    <div class="card-body py-2">
+                        <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
+                        <h5 class="@(balance >= 0 ? "text-success" : "text-danger") mb-0">€@balance.ToString("N2")</h5>
+                    </div>
+                </div>
+            </div>
     </div>
 </div>
 
