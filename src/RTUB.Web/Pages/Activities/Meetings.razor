@@ -2004,14 +2004,19 @@ else
             // Keep the combined list for backward compatibility
             meetings = upcomingMeetings.Concat(pastMeetings).ToList();
             
-            // Load ATA existence and published status for past meetings (so we can show "View Ata" button)
+            // Load ATA existence and published status for past meetings in a single query (avoiding N+1)
             meetingHasAta.Clear();
             meetingAtaPublished.Clear();
-            foreach (var meeting in pastMeetings)
+            if (pastMeetings.Any())
             {
-                var ata = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
-                meetingHasAta[meeting.Id] = ata != null;
-                meetingAtaPublished[meeting.Id] = ata?.Status == MeetingAtaStatus.Published;
+                var meetingIds = pastMeetings.Select(m => m.Id);
+                var ataStatuses = await MeetingAtaService.GetAtaStatusForMeetingsAsync(meetingIds);
+                
+                foreach (var (meetingId, status) in ataStatuses)
+                {
+                    meetingHasAta[meetingId] = status.HasValue;
+                    meetingAtaPublished[meetingId] = status == MeetingAtaStatus.Published;
+                }
             }
         }
         finally

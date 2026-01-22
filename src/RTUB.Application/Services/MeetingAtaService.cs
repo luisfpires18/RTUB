@@ -87,6 +87,28 @@ public class MeetingAtaService : IMeetingAtaService
         return await _ataRepository.ExistsForMeetingAsync(meetingId);
     }
 
+    public async Task<Dictionary<int, MeetingAtaStatus?>> GetAtaStatusForMeetingsAsync(IEnumerable<int> meetingIds)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var meetingIdList = meetingIds.ToList();
+        
+        // Query all ATAs for the given meeting IDs in a single query
+        var ataStatuses = await context.MeetingAtas
+            .Where(a => meetingIdList.Contains(a.MeetingId))
+            .Select(a => new { a.MeetingId, a.Status })
+            .ToDictionaryAsync(a => a.MeetingId, a => (MeetingAtaStatus?)a.Status);
+        
+        // Create result dictionary with all meeting IDs, null for those without ATAs
+        var result = new Dictionary<int, MeetingAtaStatus?>();
+        foreach (var meetingId in meetingIdList)
+        {
+            result[meetingId] = ataStatuses.TryGetValue(meetingId, out var status) ? status : null;
+        }
+        
+        return result;
+    }
+
     public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions)
     {
         // Owner role can create/edit any ata

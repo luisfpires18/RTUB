@@ -44,6 +44,15 @@ public interface IMeetingAtaService
     Task<bool> ExistsForMeetingAsync(int meetingId);
 
     /// <summary>
+    /// Gets the status of ATAs for multiple meetings in a single query.
+    /// Returns a dictionary with meeting IDs as keys and nullable MeetingAtaStatus as values.
+    /// If a meeting has no ATA, the value will be null.
+    /// </summary>
+    /// <param name="meetingIds">Collection of meeting IDs to check</param>
+    /// <returns>Dictionary mapping meeting ID to ATA status (null if no ATA exists)</returns>
+    Task<Dictionary<int, MeetingAtaStatus?>> GetAtaStatusForMeetingsAsync(IEnumerable<int> meetingIds);
+
+    /// <summary>
     /// Determines if a user can create or edit an ata for a meeting
     /// </summary>
     /// <param name="userId">User ID to check</param>
