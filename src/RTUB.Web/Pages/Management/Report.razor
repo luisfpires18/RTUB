@@ -1270,27 +1270,80 @@ state.CurrentPage = newPage;
         }
 
         // Get existing transactions for this activity
-        var existingTransactions = await TransactionService.GetTransactionsByActivityIdAsync(currentActivity.Id);
+        var existingTransactions = (await TransactionService.GetTransactionsByActivityIdAsync(currentActivity.Id)).ToList();
         
-        // Delete all existing transactions (we'll replace with a single one)
-        foreach (var t in existingTransactions)
+        // Best practice: Update existing transaction instead of delete+create to produce a single "Modified" audit log
+        if (existingTransactions.Count == 1)
         {
-            await TransactionService.DeleteTransactionAsync(t.Id);
+            var existingTransaction = existingTransactions[0];
+            
+            if (newValue == 0)
+            {
+                // Delete the transaction if new value is zero
+                await TransactionService.DeleteTransactionAsync(existingTransaction.Id);
+            }
+            else
+            {
+                // Update the existing transaction (produces single "Modified" audit log)
+                var type = newValue >= 0 ? "Income" : "Expense";
+                var amount = Math.Abs(newValue);
+                await TransactionService.UpdateTransactionAsync(
+                    existingTransaction.Id,
+                    DateTime.Today,
+                    activityName,
+                    "Saldo",
+                    amount,
+                    type
+                );
+            }
         }
-
-        // Create a single transaction with the new value
-        if (newValue != 0)
+        else if (existingTransactions.Count > 1)
         {
-            var type = newValue >= 0 ? "Income" : "Expense";
-            var amount = Math.Abs(newValue);
-            await TransactionService.CreateTransactionAsync(
-                DateTime.Today,
-                activityName,
-                "Saldo",
-                amount,
-                type,
-                currentActivity.Id
-            );
+            // Multiple transactions exist - keep the first one and delete the rest, then update the first
+            var transactionToKeep = existingTransactions[0];
+            
+            // Delete extra transactions
+            foreach (var t in existingTransactions.Skip(1))
+            {
+                await TransactionService.DeleteTransactionAsync(t.Id);
+            }
+            
+            if (newValue == 0)
+            {
+                // Delete the remaining transaction if new value is zero
+                await TransactionService.DeleteTransactionAsync(transactionToKeep.Id);
+            }
+            else
+            {
+                // Update the remaining transaction
+                var type = newValue >= 0 ? "Income" : "Expense";
+                var amount = Math.Abs(newValue);
+                await TransactionService.UpdateTransactionAsync(
+                    transactionToKeep.Id,
+                    DateTime.Today,
+                    activityName,
+                    "Saldo",
+                    amount,
+                    type
+                );
+            }
+        }
+        else
+        {
+            // No existing transactions - create a new one if value is non-zero
+            if (newValue != 0)
+            {
+                var type = newValue >= 0 ? "Income" : "Expense";
+                var amount = Math.Abs(newValue);
+                await TransactionService.CreateTransactionAsync(
+                    DateTime.Today,
+                    activityName,
+                    "Saldo",
+                    amount,
+                    type,
+                    currentActivity.Id
+                );
+            }
         }
 
         // Reload data
