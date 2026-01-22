@@ -104,7 +104,8 @@ public class DatabaseBackupBackgroundService : BackgroundService
             // Perform the backup by copying the file
             // Note: For SQLite, this is a simple file copy. For production environments with high concurrency,
             // consider using SQLite's backup API (sqlite3_backup_*) for transactional consistency.
-            // Use await with Task.Run to avoid blocking the thread for large files
+            // Note: File.Copy is synchronous and cannot be cancelled mid-operation. For very large databases,
+            // consider implementing chunked copying with cancellation checks between chunks.
             await Task.Run(() =>
             {
                 File.Copy(sourcePath, backupPath, overwrite: true);
@@ -125,7 +126,7 @@ public class DatabaseBackupBackgroundService : BackgroundService
         }
     }
 
-    private DateTime CalculateNextRunTime()
+    internal DateTime CalculateNextRunTime()
     {
         var now = DateTime.UtcNow;
         var backupTimes = _options.BackupTimes

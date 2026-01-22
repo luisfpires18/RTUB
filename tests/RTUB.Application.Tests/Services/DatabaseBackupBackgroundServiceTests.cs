@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Services;
-using System.Reflection;
 using Xunit;
 
 namespace RTUB.Application.Tests.Services;
@@ -320,31 +319,12 @@ public class DatabaseBackupBackgroundServiceTests
     }
 
     /// <summary>
-    /// Invokes the private CalculateNextRunTime method using reflection.
-    /// Note: Using reflection to test a private method is a pragmatic choice here since:
-    /// 1. The CalculateNextRunTime logic is pure and deterministic (only depends on time inputs)
-    /// 2. Testing through ExecuteAsync would require complex async/cancellation handling
-    /// 3. The method represents core business logic that warrants direct testing
-    /// Alternative: Make method internal with [InternalsVisibleTo] attribute
+    /// Invokes the internal CalculateNextRunTime method directly.
+    /// The method is marked internal and RTUB.Application.Tests has InternalsVisibleTo access.
     /// </summary>
     private static DateTime InvokeCalculateNextRunTime(DatabaseBackupBackgroundService service)
     {
-        var methodInfo = typeof(DatabaseBackupBackgroundService)
-            .GetMethod("CalculateNextRunTime", BindingFlags.NonPublic | BindingFlags.Instance);
-        
-        if (methodInfo == null)
-        {
-            throw new InvalidOperationException("CalculateNextRunTime method not found");
-        }
-
-        var result = methodInfo.Invoke(service, null);
-        
-        if (result is DateTime dateTime)
-        {
-            return dateTime;
-        }
-
-        throw new InvalidOperationException("CalculateNextRunTime did not return a DateTime");
+        return service.CalculateNextRunTime();
     }
 
     #endregion
