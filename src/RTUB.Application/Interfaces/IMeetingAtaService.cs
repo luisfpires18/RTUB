@@ -98,4 +98,11 @@ public interface IMeetingAtaService
     /// Deletes an attachment
     /// </summary>
     Task DeleteAttachmentAsync(int attachmentId);
+
+    /// <summary>
+    /// Publishes an ata, changing its status from Draft to Published.
+    /// Once published, the ata can no longer be edited or deleted.
+    /// </summary>
+    /// <param name="id">Ata ID</param>
+    Task PublishAtaAsync(int id);
 }

@@ -148,24 +148,12 @@ public class AtaPdfService : IAtaPdfService
                     // Get attendees from MeetingParticipation with WillAttend=true
                     var presentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: true);
 
-                    // Get attendees who declined (WillAttend=false)
-                    var absentParticipants = GetFormattedParticipants(ata.Meeting?.Participations, willAttend: false);
-
                     column.Item().PaddingTop(10).Column(presColumn =>
                     {
                         if (presentParticipants.Any())
                         {
                             presColumn.Item().Text($"Presentes ({presentParticipants.Count}):").FontSize(10).Bold();
                             foreach (var name in presentParticipants)
-                            {
-                                presColumn.Item().Text($"  • {name}").FontSize(10);
-                            }
-                        }
-
-                        if (absentParticipants.Any())
-                        {
-                            presColumn.Item().PaddingTop(5).Text($"Ausentes ({absentParticipants.Count}):").FontSize(10).Bold();
-                            foreach (var name in absentParticipants)
                             {
                                 presColumn.Item().Text($"  • {name}").FontSize(10);
                             }

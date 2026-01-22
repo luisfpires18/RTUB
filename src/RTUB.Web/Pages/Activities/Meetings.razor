@@ -180,6 +180,7 @@ else
                                 ParticipationCount="@GetParticipationCount(meeting.Id)"
                                 CanCreateAta="@CanCreateAtaForMeeting(meeting)"
                                 HasAta="@HasAtaForMeeting(meeting.Id)"
+                                IsAtaPublished="@IsAtaPublishedForMeeting(meeting.Id)"
                                 OnEdit="@(() => OpenEditModal(meeting))"
                                 OnDelete="@(() => OpenDeleteModal(meeting))"
                                 OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
@@ -1460,17 +1461,32 @@ else
     <FooterContent>
         <div class="d-flex gap-2 w-100 justify-content-between">
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" @onclick="SaveAta" disabled="@isAtaLoading">
-                    <i class="bi bi-save me-1"></i>Guardar Ata
-                </button>
-                <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
-                </button>
-                @if (editingAta?.Id > 0)
+                @if (editingAta?.Status == MeetingAtaStatus.Draft)
                 {
-                    <button class="btn admin-btn-delete" @onclick="OpenDeleteAtaConfirmation" disabled="@isAtaLoading" title="Eliminar Ata">
-                        <i class="bi bi-trash me-1"></i>Eliminar
+                    <button class="btn btn-primary" @onclick="SaveAta" disabled="@isAtaLoading">
+                        <i class="bi bi-save me-1"></i>Guardar Ata
                     </button>
+                    <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Gerar PDF
+                    </button>
+                    @if (editingAta?.Id > 0)
+                    {
+                        <button class="btn btn-warning" @onclick="PublishAta" disabled="@isAtaLoading" title="Publicar Ata">
+                            <i class="bi bi-send me-1"></i>Publicar
+                        </button>
+                        <button class="btn admin-btn-delete" @onclick="OpenDeleteAtaConfirmation" disabled="@isAtaLoading" title="Eliminar Ata">
+                            <i class="bi bi-trash me-1"></i>Eliminar
+                        </button>
+                    }
+                }
+                else if (editingAta?.Status == MeetingAtaStatus.Published)
+                {
+                    <button class="btn btn-success" @onclick="GenerateAtaPdf" disabled="@isAtaLoading">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+                    </button>
+                    <span class="badge bg-success align-self-center">
+                        <i class="bi bi-check-circle me-1"></i>Ata Publicada
+                    </span>
                 }
             </div>
             <button class="btn btn-secondary" @onclick="CloseAtaModal" disabled="@isAtaLoading">
@@ -1662,6 +1678,12 @@ else
         }
     </BodyContent>
     <FooterContent>
+        @if (viewingAta != null)
+        {
+            <button class="btn btn-success" @onclick="DownloadViewingAtaPdf" disabled="@isViewingAtaLoading">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
+            </button>
+        }
         <button class="btn btn-secondary" @onclick="CloseViewAtaModal">
             <i class="bi bi-x-lg me-1"></i>Fechar
         </button>
@@ -1722,6 +1744,7 @@ else
     private MeetingAta? viewingAta;
     private bool isViewingAtaLoading = false;
     private Dictionary<int, bool> meetingHasAta = new(); // Track which meetings have ATAs
+    private Dictionary<int, bool> meetingAtaPublished = new(); // Track which meeting ATAs are published
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -1981,11 +2004,14 @@ else
             // Keep the combined list for backward compatibility
             meetings = upcomingMeetings.Concat(pastMeetings).ToList();
             
-            // Load ATA existence for past meetings (so we can show "View Ata" button)
+            // Load ATA existence and published status for past meetings (so we can show "View Ata" button)
             meetingHasAta.Clear();
+            meetingAtaPublished.Clear();
             foreach (var meeting in pastMeetings)
             {
-                meetingHasAta[meeting.Id] = await MeetingAtaService.ExistsForMeetingAsync(meeting.Id);
+                var ata = await MeetingAtaService.GetByMeetingIdAsync(meeting.Id);
+                meetingHasAta[meeting.Id] = ata != null;
+                meetingAtaPublished[meeting.Id] = ata?.Status == MeetingAtaStatus.Published;
             }
         }
         finally
@@ -3033,6 +3059,11 @@ else
         return meetingHasAta.TryGetValue(meetingId, out var hasAta) && hasAta;
     }
     
+    private bool IsAtaPublishedForMeeting(int meetingId)
+    {
+        return meetingAtaPublished.TryGetValue(meetingId, out var isPublished) && isPublished;
+    }
+    
     private async Task OpenViewAtaModal(Meeting meeting)
     {
         isViewingAtaLoading = true;
@@ -3209,6 +3240,7 @@ else
             if (ataMeeting != null)
             {
                 meetingHasAta[ataMeeting.Id] = false;
+                meetingAtaPublished[ataMeeting.Id] = false;
             }
             
             CloseDeleteAtaConfirmation();
@@ -3279,6 +3311,10 @@ else
                 // Create new ata
                 await MeetingAtaService.CreateAtaAsync(editingAta);
                 Logger.LogInformation("Ata created for meeting {MeetingId}", ataMeeting.Id);
+                
+                // Update cache to reflect the ata was created
+                meetingHasAta[ataMeeting.Id] = true;
+                meetingAtaPublished[ataMeeting.Id] = false;
             }
             else
             {
@@ -3314,6 +3350,10 @@ else
             if (editingAta.Id == 0)
             {
                 editingAta = await MeetingAtaService.CreateAtaAsync(editingAta);
+                
+                // Update cache to reflect the ata was created
+                meetingHasAta[ataMeeting.Id] = true;
+                meetingAtaPublished[ataMeeting.Id] = false;
             }
             else
             {
@@ -3353,6 +3393,81 @@ else
         finally
         {
             isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task PublishAta()
+    {
+        if (editingAta == null || editingAta.Id <= 0 || ataMeeting == null) return;
+        
+        isAtaLoading = true;
+        ataErrorMessage = null;
+        
+        try
+        {
+            // First save any pending changes
+            await MeetingAtaService.UpdateAtaAsync(editingAta);
+            
+            // Publish the ata
+            await MeetingAtaService.PublishAtaAsync(editingAta.Id);
+            
+            // Update local state
+            editingAta.Status = MeetingAtaStatus.Published;
+            
+            // Update the cache to reflect the published status
+            meetingAtaPublished[ataMeeting.Id] = true;
+            
+            Logger.LogInformation("Ata published for meeting {MeetingId}", ataMeeting.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error publishing ata for meeting {MeetingId}", ataMeeting.Id);
+            ataErrorMessage = $"Erro ao publicar a ata: {ex.Message}";
+        }
+        finally
+        {
+            isAtaLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DownloadViewingAtaPdf()
+    {
+        if (viewingAta == null) return;
+        
+        isViewingAtaLoading = true;
+        
+        try
+        {
+            // Load ata with all details for PDF
+            var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(viewingAta.Id);
+            if (ataWithDetails == null)
+            {
+                Logger.LogWarning("Could not load ata details for PDF generation");
+                return;
+            }
+            
+            // Generate PDF
+            var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
+            
+            // Download file via JS
+            var meeting = ataWithDetails.Meeting;
+            var fileName = meeting != null 
+                ? $"Ata_{meeting.Type}_{meeting.Date:yyyyMMdd}.pdf"
+                : $"Ata_{ataWithDetails.Id}.pdf";
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+            
+            Logger.LogInformation("PDF downloaded for ata {AtaId}", viewingAta.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading PDF for ata {AtaId}", viewingAta.Id);
+        }
+        finally
+        {
+            isViewingAtaLoading = false;
             StateHasChanged();
         }
     }

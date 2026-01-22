@@ -299,4 +299,21 @@ public class MeetingAtaService : IMeetingAtaService
         context.MeetingAtaAttachments.Remove(attachment);
         await context.SaveChangesAsync();
     }
+
+    public async Task PublishAtaAsync(int id)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var ata = await context.MeetingAtas.FindAsync(id);
+
+        if (ata == null)
+            throw new EntityNotFoundException(nameof(MeetingAta), id);
+
+        if (ata.Status == MeetingAtaStatus.Published)
+        {
+            throw new InvalidOperationException("A ata já está publicada.");
+        }
+
+        ata.Status = MeetingAtaStatus.Published;
+        await context.SaveChangesAsync();
+    }
 }
