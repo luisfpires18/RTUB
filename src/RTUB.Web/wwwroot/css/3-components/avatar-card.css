@@ -66,7 +66,8 @@
 
 /* Top-right action buttons */
 .avatar-card-edit-btn,
-.avatar-card-delete-btn {
+.avatar-card-delete-btn,
+.avatar-card-user-roles-btn {
     position: absolute;
     top: 0.5rem;
     background-color: rgba(255, 255, 255, 0.95);
@@ -189,13 +190,19 @@
 }
 
 .avatar-card-edit-btn {
-    right: 3rem;
+    right: 5.5rem;
     color: #333;
 }
 
 .avatar-card-delete-btn {
     right: 0.5rem;
     background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.avatar-card-user-roles-btn {
+    right: 3rem;
+    background-color: rgba(110, 86, 207, 0.95);
     color: white;
 }
 
@@ -211,8 +218,15 @@
     transform: scale(1.1);
 }
 
+.avatar-card-user-roles-btn:hover,
+.avatar-card-user-roles-btn:focus {
+    background-color: rgb(90, 50, 163);
+    transform: scale(1.1);
+}
+
 .avatar-card-edit-btn:focus,
-.avatar-card-delete-btn:focus {
+.avatar-card-delete-btn:focus,
+.avatar-card-user-roles-btn:focus {
     outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
@@ -432,7 +446,8 @@
 
 /* Accessibility */
 .avatar-card:focus-within .avatar-card-edit-btn,
-.avatar-card:focus-within .avatar-card-delete-btn {
+.avatar-card:focus-within .avatar-card-delete-btn,
+.avatar-card:focus-within .avatar-card-user-roles-btn {
     outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
@@ -469,6 +484,7 @@
 
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
+    .avatar-card-user-roles-btn,
     .avatar-card-set-nickname-btn,
     .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
@@ -479,6 +495,10 @@
     }
 
     .avatar-card-edit-btn {
+        right: 5.25rem;
+    }
+    
+    .avatar-card-user-roles-btn {
         right: 2.75rem;
     }
     
@@ -524,6 +544,7 @@
 
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
+    .avatar-card-user-roles-btn,
     .avatar-card-set-nickname-btn,
     .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
@@ -557,6 +578,7 @@
 
     .avatar-card-edit-btn,
     .avatar-card-delete-btn,
+    .avatar-card-user-roles-btn,
     .avatar-card-set-nickname-btn,
     .avatar-card-expel-btn,
     .avatar-card-inactivity-warning {
@@ -566,6 +588,10 @@
     }
 
     .avatar-card-edit-btn {
+        right: 4.75rem;
+    }
+    
+    .avatar-card-user-roles-btn {
         right: 2.25rem;
     }
     

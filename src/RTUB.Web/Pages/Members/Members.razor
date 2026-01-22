@@ -156,6 +156,8 @@ else
                            OnDelete="@(() => OpenDeleteModal(user))"
                            ShowEditButton="@isAdmin"
                            ShowDeleteButton="@isOwner"
+                           ShowUserRolesButton="@isOwner"
+                           OnUserRoles="@(() => NavigateToUserRoles(user))"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
                            DeleteTooltip="Eliminar"
@@ -232,6 +234,8 @@ else
                            OnReactivate="@(() => OpenReactivateConfirmModal(user))"
                            ShowEditButton="@(isAdmin)"
                            ShowDeleteButton="@(isAdmin)"
+                           ShowUserRolesButton="@isOwner"
+                           OnUserRoles="@(() => NavigateToUserRoles(user))"
                            ShowSetNicknameButton="@isAdmin"
                            ShowExpelButton="@isAdmin"
                            IsExpelled="@user.IsExpelled"
@@ -3611,6 +3615,16 @@ else
                     return;
                 }
                 
+                // Force logout by invalidating security stamp
+                // This ensures the expelled user's current session is terminated
+                var stampResult = await UserManager.UpdateSecurityStampAsync(dbUser);
+                if (!stampResult.Succeeded)
+                {
+                    _logger.LogWarning("Failed to update security stamp for expelled user {UserId}: {Errors}. " +
+                        "User is expelled but may remain logged in until session expires.",
+                        userId, string.Join(", ", stampResult.Errors.Select(e => e.Description)));
+                }
+                
                 // Update local state
                 expellingUser.IsExpelled = true;
                 
@@ -3696,5 +3710,13 @@ else
             CloseReactivateConfirmModal();
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Navigates to the user roles management page, filtered to the specific user
+    /// </summary>
+    private void NavigateToUserRoles(ApplicationUser user)
+    {
+        NavigationManager.NavigateTo($"/users?search={Uri.EscapeDataString(user.GetDisplayName())}");
     }
 }

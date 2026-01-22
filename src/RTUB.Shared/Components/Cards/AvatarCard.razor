@@ -67,6 +67,16 @@
             <i class="bi bi-trash"></i>
         </button>
     }
+    @if (ShowUserRolesButton)
+    {
+        <button class="avatar-card-user-roles-btn" 
+                @onclick="@OnUserRoles"
+                @onclick:stopPropagation="true"
+                title="@UserRolesTooltip"
+                aria-label="@UserRolesTooltip">
+            <i class="bi bi-person-gear"></i>
+        </button>
+    }
 
     <!-- Avatar -->
     <div class="avatar-card-image-wrapper">
@@ -227,6 +237,15 @@
     [Parameter]
     public EventCallback OnReactivate { get; set; }
 
+    [Parameter]
+    public bool ShowUserRolesButton { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnUserRoles { get; set; }
+
+    [Parameter]
+    public string UserRolesTooltip { get; set; } = "Gerir Funções";
+
     private bool imageLoaded = false;
     
     // Track previous state for ShouldRender optimization
@@ -242,6 +261,7 @@
     private bool _previousShowExpelButton;
     private bool _previousIsExpelled;
     private bool _previousImageLoaded;
+    private bool _previousShowUserRolesButton;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -260,7 +280,8 @@
             ShowInactivityWarning != _previousShowInactivityWarning ||
             ShowExpelButton != _previousShowExpelButton ||
             IsExpelled != _previousIsExpelled ||
-            imageLoaded != _previousImageLoaded)
+            imageLoaded != _previousImageLoaded ||
+            ShowUserRolesButton != _previousShowUserRolesButton)
         {
             _previousAvatarUrl = AvatarUrl;
             _previousTunaName = TunaName;
@@ -274,6 +295,7 @@
             _previousShowExpelButton = ShowExpelButton;
             _previousIsExpelled = IsExpelled;
             _previousImageLoaded = imageLoaded;
+            _previousShowUserRolesButton = ShowUserRolesButton;
             return true;
         }
         return false;
