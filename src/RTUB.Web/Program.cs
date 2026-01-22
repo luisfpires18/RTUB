@@ -205,6 +205,15 @@ public class Program
                         return;
                     }
 
+                    // Force logout if member has been expelled
+                    if (validatedUser.IsExpelled)
+                    {
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        logger.LogInformation("User {UserName} forced to logout due to expulsion.", userName);
+                        return;
+                    }
+
                     var hasAdminClaim = context.Principal?.IsInRole("Admin") ?? false;
                     var isAdminInDatabase = await userManager.IsInRoleAsync(validatedUser, "Admin");
 
