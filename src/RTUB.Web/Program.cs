@@ -90,6 +90,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.CalotesNotificationOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.CalotesNotificationOptions.SectionName));
 
+        // Configure Database Backup Scheduler
+        services.Configure<RTUB.Application.Configuration.DatabaseBackupOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.DatabaseBackupOptions.SectionName));
+
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -389,6 +393,9 @@ public class Program
 
         // Background worker for sending calotes notification reminders
         services.AddHostedService<CalotesNotificationBackgroundService>();
+
+        // Background worker for automatic database backups
+        services.AddHostedService<DatabaseBackupBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
