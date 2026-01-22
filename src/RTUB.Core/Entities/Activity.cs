@@ -80,4 +80,16 @@ public class Activity : BaseEntity
     /// Gets the latest date (EndDate if available, otherwise StartDate) for sorting purposes
     /// </summary>
     public DateTime LatestDate => EndDate ?? StartDate;
+    
+    /// <summary>
+    /// Checks if this activity should be hidden from financial calculations and activity lists.
+    /// Hidden activities: CALOTES, BANCO (these are displayed separately in summary boxes)
+    /// Note: CAIXA is NOT excluded - it should be included in calculations
+    /// </summary>
+    public bool IsHiddenFromCalculations()
+    {
+        var name = Name.ToUpperInvariant();
+        return name.Contains("CALOTES") ||
+               name.Contains("BANCO");
+    }
 }

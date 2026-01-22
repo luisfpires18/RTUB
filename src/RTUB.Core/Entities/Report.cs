@@ -16,11 +16,16 @@ public class Report : BaseEntity
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 
     // Computed properties - calculate from transactions (source of truth)
-    public decimal TotalIncome => Activities.SelectMany(a => a.Transactions)
+    // Excludes hidden activities (BANCO, CAIXA, CALOTES) from totals
+    public decimal TotalIncome => Activities
+        .Where(a => !a.IsHiddenFromCalculations())
+        .SelectMany(a => a.Transactions)
         .Where(t => t.Type == "Income")
         .Sum(t => t.Amount);
 
-    public decimal TotalExpenses => Activities.SelectMany(a => a.Transactions)
+    public decimal TotalExpenses => Activities
+        .Where(a => !a.IsHiddenFromCalculations())
+        .SelectMany(a => a.Transactions)
         .Where(t => t.Type == "Expense")
         .Sum(t => t.Amount);
 

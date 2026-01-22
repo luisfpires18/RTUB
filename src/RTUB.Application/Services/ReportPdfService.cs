@@ -94,11 +94,15 @@ public class ReportPdfService
                     .PaddingVertical(1, Unit.Centimetre)
                     .Column(column =>
                     {
-                        // Financial Summary - calculate from actual transactions
-                        var totalIncome = allTransactions.SelectMany(x => x.transactions)
+                        // Financial Summary - calculate from actual transactions (excluding hidden activities)
+                        var regularTransactions = allTransactions
+                            .Where(x => !x.activity.IsHiddenFromCalculations())
+                            .SelectMany(x => x.transactions);
+                        
+                        var totalIncome = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Income)
                             .Sum(t => t.Amount);
-                        var totalExpenses = allTransactions.SelectMany(x => x.transactions)
+                        var totalExpenses = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;

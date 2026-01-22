@@ -284,4 +284,28 @@ public class ActivityTests
         activity.TotalExpenses.Should().Be(75.00m);
         activity.Balance.Should().Be(-75.00m);
     }
+
+    [Theory]
+    [InlineData("DINHEIRO NO BANCO", true)]
+    [InlineData("DINHEIRO EM CAIXA", false)]  // CAIXA should be included in calculations
+    [InlineData("CALOTES 2024", true)]
+    [InlineData("Dinheiro no Banco", true)]
+    [InlineData("Dinheiro em Caixa", false)]  // CAIXA should be included in calculations
+    [InlineData("calotes", true)]
+    [InlineData("BANCO DE PORTUGAL", true)]
+    [InlineData("Caixa de Natal", false)]  // CAIXA should be included in calculations
+    [InlineData("Regular Event", false)]
+    [InlineData("Concerto de Natal", false)]
+    [InlineData("Ensaio Geral", false)]
+    public void IsHiddenFromCalculations_ShouldCorrectlyIdentifyHiddenActivities(string activityName, bool expectedHidden)
+    {
+        // Arrange
+        var activity = Activity.Create(1, activityName, TestDate);
+
+        // Act
+        var isHidden = activity.IsHiddenFromCalculations();
+
+        // Assert
+        isHidden.Should().Be(expectedHidden, $"Activity '{activityName}' should{(expectedHidden ? "" : " not")} be hidden from calculations");
+    }
 }
