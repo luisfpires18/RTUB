@@ -2471,12 +2471,13 @@ else
                 .ToList();
 
             // Group by user and count pending/approved participations
+            var today = DateTime.Today;
             var stats = filteredAttendances
                 .GroupBy(a => a.UserId)
                 .Select(g => new {
                     UserId = g.Key,
-                    PendingCount = g.Count(a => a.Rehearsal!.Date >= DateTime.Today || (a.Rehearsal!.Date < DateTime.Today && !a.Attended)),
-                    ApprovedCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && a.Attended)
+                    PendingCount = g.Count(a => a.Rehearsal!.Date < today && !a.Rehearsal!.IsCanceled && !a.Attended),
+                    ApprovedCount = g.Count(a => a.Rehearsal!.Date < today && !a.Rehearsal!.IsCanceled && a.Attended)
                 })
                 .ToList();
 
