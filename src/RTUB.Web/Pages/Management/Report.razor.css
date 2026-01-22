@@ -26,24 +26,24 @@
 }
 
 @media (max-width: 767.98px) {
-    :global(html.pwa-mode) .report-activities-header .activity-create-actions {
+    .report-activities-header .activity-create-actions {
         width: 100%;
     }
 
-    :global(html.pwa-mode) .report-activities-header .activity-create-actions .btn {
+    .report-activities-header .activity-create-actions .btn {
         width: 100%;
     }
 
-    :global(html.pwa-mode) .activity-header-web,
-    :global(html.pwa-mode) .activity-header-actions-web {
+    .activity-header-web,
+    .activity-header-actions-web {
         display: none;
     }
 
-    :global(html.pwa-mode) .activity-header-pwa {
+    .activity-header-pwa {
         display: block;
     }
 
-    :global(html.pwa-mode) .activity-item .accordion-button {
+    .activity-item .accordion-button {
         padding: 0;
         background-color: transparent;
         box-shadow: none;
