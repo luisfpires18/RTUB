@@ -695,7 +695,7 @@ else
         
         // Filter out hidden activities for display
         displayedActivities = activities
-            .Where(a => !a.IsHiddenFromCalculations())
+            .Where(a => !a.IsHiddenFromActivityList())
             .ToList();
     }
 

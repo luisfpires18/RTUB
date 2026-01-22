@@ -82,7 +82,7 @@ public class Activity : BaseEntity
     public DateTime LatestDate => EndDate ?? StartDate;
     
     /// <summary>
-    /// Checks if this activity should be hidden from financial calculations and activity lists.
+    /// Checks if this activity should be hidden from financial calculations.
     /// Hidden activities: CALOTES, BANCO (these are displayed separately in summary boxes)
     /// Note: CAIXA is NOT excluded - it should be included in calculations
     /// </summary>
@@ -91,5 +91,18 @@ public class Activity : BaseEntity
         var name = Name.ToUpperInvariant();
         return name.Contains("CALOTES") ||
                name.Contains("BANCO");
+    }
+    
+    /// <summary>
+    /// Checks if this activity should be hidden from the activity list in the UI.
+    /// Hidden activities: CALOTES, BANCO, CAIXA (these are displayed separately in summary boxes/cards)
+    /// Note: CAIXA is hidden from the list but still included in calculations
+    /// </summary>
+    public bool IsHiddenFromActivityList()
+    {
+        var name = Name.ToUpperInvariant();
+        return name.Contains("CALOTES") ||
+               name.Contains("BANCO") ||
+               name.Contains("CAIXA");
     }
 }

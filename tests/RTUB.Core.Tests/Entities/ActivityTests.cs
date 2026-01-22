@@ -308,4 +308,28 @@ public class ActivityTests
         // Assert
         isHidden.Should().Be(expectedHidden, $"Activity '{activityName}' should{(expectedHidden ? "" : " not")} be hidden from calculations");
     }
+
+    [Theory]
+    [InlineData("DINHEIRO NO BANCO", true)]
+    [InlineData("DINHEIRO EM CAIXA", true)]  // CAIXA should be hidden from activity list
+    [InlineData("CALOTES 2024", true)]
+    [InlineData("Dinheiro no Banco", true)]
+    [InlineData("Dinheiro em Caixa", true)]  // CAIXA should be hidden from activity list
+    [InlineData("calotes", true)]
+    [InlineData("BANCO DE PORTUGAL", true)]
+    [InlineData("Caixa de Natal", true)]  // CAIXA should be hidden from activity list
+    [InlineData("Regular Event", false)]
+    [InlineData("Concerto de Natal", false)]
+    [InlineData("Ensaio Geral", false)]
+    public void IsHiddenFromActivityList_ShouldCorrectlyIdentifyHiddenActivities(string activityName, bool expectedHidden)
+    {
+        // Arrange
+        var activity = Activity.Create(1, activityName, TestDate);
+
+        // Act
+        var isHidden = activity.IsHiddenFromActivityList();
+
+        // Assert
+        isHidden.Should().Be(expectedHidden, $"Activity '{activityName}' should{(expectedHidden ? "" : " not")} be hidden from activity list");
+    }
 }
