@@ -199,15 +199,17 @@ else
                         </div>
                         <div class="activity-header-pwa">
                             <ActivityCard>
-                                <div class="activity-card-metadata">
-                                    <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
-                                        Saldo: €@activity.Balance.ToString("N2")
-                                    </span>
-                                    <span class="badge bg-secondary">
-                                        <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
-                                    </span>
-                                    <span class="text-white-full fw-semibold">@activity.Name</span>
-                                </div>
+                                <ChildContent>
+                                    <div class="activity-card-metadata">
+                                        <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger")">
+                                            Saldo: €@activity.Balance.ToString("N2")
+                                        </span>
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-calendar3 me-1"></i>@GetActivityDateDisplay(activity)
+                                        </span>
+                                        <span class="text-white-full fw-semibold">@activity.Name</span>
+                                    </div>
+                                </ChildContent>
                                 <Actions>
                                     @if (!report.IsPublished && CanCreateReports())
                                     {
