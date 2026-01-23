@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
@@ -82,9 +83,7 @@ public class AlbumService : IAlbumService
 
     public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate, bool isExclusive = false)
     {
-        var album = await _albumRepository.GetByIdAsync(id);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), id);
+        var album = await _albumRepository.GetByIdOrThrowAsync(id);
 
         album.UpdateDetails(title, year, description, isPrivate, isExclusive);
         await _albumRepository.UpdateAsync(album);
@@ -92,9 +91,7 @@ public class AlbumService : IAlbumService
 
     public async Task UpdateAlbumAccessAsync(int albumId, List<string> authorizedUserIds)
     {
-        var album = await _albumRepository.GetByIdAsync(albumId);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), albumId);
+        var album = await _albumRepository.GetByIdOrThrowAsync(albumId);
 
         // Filter out any empty or null user IDs
         var validUserIds = authorizedUserIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet() ?? new HashSet<string>();

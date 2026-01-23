@@ -135,6 +135,14 @@ else
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
+        @if (!string.IsNullOrEmpty(uploadErrorMessage))
+        {
+            <Alert Type="Alert.AlertType.Error" 
+                   Message="@uploadErrorMessage" 
+                   Dismissible="true" 
+                   OnDismiss="() => uploadErrorMessage = null" 
+                   Icon="bi-exclamation-triangle" />
+        }
         <EditForm Model="@uploadModel" OnValidSubmit="HandleUploadClick">
             <DataAnnotationsValidator />
             <ErrorDisplay />
@@ -511,6 +519,7 @@ else
     private IBrowserFile? selectedFile = null;
     private string personSearchTerm = "";
     private string editPersonSearchTerm = "";
+    private string? uploadErrorMessage = null;
 
     // Edit
     private GalleryMedia? editingMedia = null;
@@ -692,6 +701,7 @@ else
         modals.Close(ModalType.Upload);
         uploadModel = new GalleryUploadModel();
         selectedFile = null;
+        uploadErrorMessage = null;
     }
 
     private async Task HandleFileSelected(IBrowserFile file)
@@ -742,7 +752,10 @@ else
             if (selectedFile.Size > maxSize)
             {
                 Logger.LogError("File size {Size} exceeds maximum allowed size {MaxSize}", selectedFile.Size, maxSize);
-                // TODO: Show user-friendly error message
+                var maxSizeMB = maxSize / (1024.0 * 1024.0);
+                var fileSizeMB = selectedFile.Size / (1024.0 * 1024.0);
+                uploadErrorMessage = $"O ficheiro é demasiado grande ({fileSizeMB:F2} MB). O tamanho máximo permitido é {maxSizeMB:F2} MB.";
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
@@ -811,6 +824,8 @@ else
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error uploading media");
+            uploadErrorMessage = "Ocorreu um erro ao carregar a media. Por favor, tente novamente.";
+            await InvokeAsync(StateHasChanged);
         }
         finally
         {

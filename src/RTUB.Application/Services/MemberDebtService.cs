@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -36,9 +37,7 @@ public class MemberDebtService : IMemberDebtService
 
     public async Task UpdateDebtAsync(int debtId, decimal amount, string? description)
     {
-        var memberDebt = await _memberDebtRepository.GetByIdAsync(debtId);
-        if (memberDebt == null)
-            throw new EntityNotFoundException(nameof(MemberDebt), debtId);
+        var memberDebt = await _memberDebtRepository.GetByIdOrThrowAsync(debtId);
 
         memberDebt.UpdateDetails(amount, description);
         await _memberDebtRepository.UpdateAsync(memberDebt);
@@ -46,9 +45,7 @@ public class MemberDebtService : IMemberDebtService
 
     public async Task DeleteDebtAsync(int debtId)
     {
-        var memberDebt = await _memberDebtRepository.GetByIdAsync(debtId);
-        if (memberDebt == null)
-            throw new EntityNotFoundException(nameof(MemberDebt), debtId);
+        var memberDebt = await _memberDebtRepository.GetByIdOrThrowAsync(debtId);
 
         await _memberDebtRepository.DeleteAsync(memberDebt);
     }
