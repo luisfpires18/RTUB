@@ -109,6 +109,32 @@ public class MeetingAtaService : IMeetingAtaService
         return result;
     }
 
+    public async Task<Dictionary<int, bool>> GetAtaSecretaryPermissionsAsync(IEnumerable<int> meetingIds, string userId)
+    {
+        var meetingIdList = meetingIds.ToList();
+        if (!meetingIdList.Any() || string.IsNullOrEmpty(userId))
+        {
+            return meetingIdList.ToDictionary(meetingId => meetingId, _ => false);
+        }
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var secretaryMeetingIds = await context.MeetingAtas
+            .Where(a => meetingIdList.Contains(a.MeetingId) &&
+                        (a.FirstSecretaryUserId == userId || a.SecondSecretaryUserId == userId))
+            .Select(a => a.MeetingId)
+            .ToListAsync();
+
+        var secretaryMeetingIdSet = secretaryMeetingIds.ToHashSet();
+        var result = new Dictionary<int, bool>();
+        foreach (var meetingId in meetingIdList)
+        {
+            result[meetingId] = secretaryMeetingIdSet.Contains(meetingId);
+        }
+
+        return result;
+    }
+
     public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions)
     {
         // Owner role can create/edit any ata

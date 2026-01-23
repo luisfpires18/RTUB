@@ -53,6 +53,15 @@ public interface IMeetingAtaService
     Task<Dictionary<int, MeetingAtaStatus?>> GetAtaStatusForMeetingsAsync(IEnumerable<int> meetingIds);
 
     /// <summary>
+    /// Determines if the specified user is assigned as secretary for ATAs in the given meetings.
+    /// Returns a dictionary with meeting IDs as keys and boolean values indicating secretary assignment.
+    /// </summary>
+    /// <param name="meetingIds">Collection of meeting IDs to check</param>
+    /// <param name="userId">User ID to check</param>
+    /// <returns>Dictionary mapping meeting ID to secretary assignment</returns>
+    Task<Dictionary<int, bool>> GetAtaSecretaryPermissionsAsync(IEnumerable<int> meetingIds, string userId);
+
+    /// <summary>
     /// Determines if a user can create or edit an ata for a meeting
     /// </summary>
     /// <param name="userId">User ID to check</param>

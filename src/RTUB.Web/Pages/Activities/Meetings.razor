@@ -1770,6 +1770,7 @@ else
     private bool isViewingAtaLoading = false;
     private Dictionary<int, bool> meetingHasAta = new(); // Track which meetings have ATAs
     private Dictionary<int, bool> meetingAtaPublished = new(); // Track which meeting ATAs are published
+    private Dictionary<int, bool> meetingAtaSecretaryAccess = new(); // Track ATA secretary access per meeting
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -2037,15 +2038,22 @@ else
             // Load ATA existence and published status for past meetings in a single query (avoiding N+1)
             meetingHasAta.Clear();
             meetingAtaPublished.Clear();
+            meetingAtaSecretaryAccess.Clear();
             if (pastMeetings.Any())
             {
                 var meetingIds = pastMeetings.Select(m => m.Id);
                 var ataStatuses = await MeetingAtaService.GetAtaStatusForMeetingsAsync(meetingIds);
+                var secretaryPermissions = await MeetingAtaService.GetAtaSecretaryPermissionsAsync(meetingIds, currentUserId);
                 
                 foreach (var (meetingId, status) in ataStatuses)
                 {
                     meetingHasAta[meetingId] = status.HasValue;
                     meetingAtaPublished[meetingId] = status == MeetingAtaStatus.Published;
+                }
+
+                foreach (var (meetingId, canEditAsSecretary) in secretaryPermissions)
+                {
+                    meetingAtaSecretaryAccess[meetingId] = canEditAsSecretary;
                 }
             }
         }
@@ -3116,6 +3124,11 @@ else
         
         // Reunião de Direção should not have atas
         if (meeting.Type == MeetingType.ReuniaoDirecao) return false;
+
+        if (meetingAtaSecretaryAccess.TryGetValue(meeting.Id, out var canEditAsSecretary) && canEditAsSecretary)
+        {
+            return true;
+        }
         
         var userRoles = new List<string>();
         if (isOwner) userRoles.Add("Owner");
