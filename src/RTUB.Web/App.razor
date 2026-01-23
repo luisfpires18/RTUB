@@ -7,7 +7,7 @@
 <head>
     <meta charset="utf-8" />
     @* Viewport optimized for mobile PWA - prevents auto-zoom on inputs with 16px font-size *@
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <base href="/" />
     @* PWA manifest must be in static HTML for Android/Chrome detection *@
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -15,6 +15,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" type="image/png" />
     @* Apple web app title for iOS home screen *@
     <meta name="apple-mobile-web-app-title" content="RTUB" />
+    @* Mobile optimizations *@
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    @* Preconnect for performance *@
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     @* HeadOutlet allows MainLayout to inject additional head content dynamically *@
     <HeadOutlet />
 </head>

@@ -1,19 +1,26 @@
 // Service Worker for Web Push Notifications and Asset Caching
 // Handles push events, notification clicks, and offline asset caching
 
+// Service Worker for Web Push Notifications and Asset Caching
+// Handles push events, notification clicks, and offline asset caching
+// Optimized for mobile PWA performance
+
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v16';
+const CACHE_VERSION = 'rtub-v17';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
+const OFFLINE_PAGE = '/offline';
 
 // Assets to cache on install for offline support
 const STATIC_ASSETS = [
     '/',
+    '/offline.html',
     '/icons/rtub-logo-192.png',
     '/icons/rtub-logo-512.png',
     '/images/default-avatar.webp',
-    '/manifest.webmanifest'
+    '/manifest.webmanifest',
+    '/_framework/blazor.web.js'
 ];
 
 // Install event - cache critical static assets
@@ -54,7 +61,18 @@ self.addEventListener('activate', (event) => {
                         })
                 );
             })
-            .then(() => clients.claim())
+            .then(() => {
+                // Claim clients immediately for better offline support
+                return clients.claim();
+            })
+            .then(() => {
+                // Ensure offline page is cached
+                return caches.open(STATIC_CACHE).then(cache => {
+                    return cache.add('/offline.html').catch(() => {
+                        // Ignore if already cached or fails
+                    });
+                });
+            })
     );
 });
 
@@ -151,7 +169,15 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => {
                     return caches.match(request)
                         .then((cached) => {
-                            return cached || caches.match('/');
+                            // Return cached page or offline fallback
+                            if (cached) {
+                                return cached;
+                            }
+                            // For navigation requests, return offline page
+                            if (request.mode === 'navigate') {
+                                return caches.match('/offline.html') || caches.match('/');
+                            }
+                            return caches.match('/');
                         });
                 })
         );
