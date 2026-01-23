@@ -56,6 +56,32 @@ public class MessageRepository : Repository<Message>, IMessageRepository
             .CountAsync();
     }
 
+    public async Task<Dictionary<int, int>> GetUnreadCountsForConversationsAsync(IEnumerable<int> conversationIds, string userId)
+    {
+        var conversationIdList = conversationIds.ToList();
+        if (!conversationIdList.Any())
+        {
+            return new Dictionary<int, int>();
+        }
+
+        var unreadCounts = await _dbSet
+            .Where(m => conversationIdList.Contains(m.ConversationId) &&
+                        m.SenderId != userId &&
+                        !m.ReadBy.Contains(userId))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => new { ConversationId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ConversationId, x => x.Count);
+
+        // Ensure all conversation IDs are in the result (with 0 count if no unread messages)
+        var result = new Dictionary<int, int>();
+        foreach (var conversationId in conversationIdList)
+        {
+            result[conversationId] = unreadCounts.GetValueOrDefault(conversationId, 0);
+        }
+
+        return result;
+    }
+
     public async Task MarkConversationAsReadAsync(int conversationId, string userId)
     {
         var unreadMessages = await _dbSet
@@ -81,5 +107,31 @@ public class MessageRepository : Repository<Message>, IMessageRepository
             .Where(m => m.ConversationId == conversationId)
             .OrderByDescending(m => m.CreatedAt)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<Dictionary<int, Message?>> GetLatestMessagesForConversationsAsync(IEnumerable<int> conversationIds)
+    {
+        var conversationIdList = conversationIds.ToList();
+        if (!conversationIdList.Any())
+        {
+            return new Dictionary<int, Message?>();
+        }
+
+        // Get the latest message for each conversation using a subquery approach
+        // This is more efficient than loading all messages and grouping in memory
+        var latestMessages = await _dbSet
+            .Where(m => conversationIdList.Contains(m.ConversationId))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()!)
+            .ToListAsync();
+
+        // Build dictionary, ensuring all conversation IDs are present (null if no messages)
+        var result = new Dictionary<int, Message?>();
+        foreach (var conversationId in conversationIdList)
+        {
+            result[conversationId] = latestMessages.FirstOrDefault(m => m.ConversationId == conversationId);
+        }
+
+        return result;
     }
 }

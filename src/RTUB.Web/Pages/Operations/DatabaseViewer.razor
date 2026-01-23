@@ -1,14 +1,12 @@
 @page "/owner/db"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.EntityFrameworkCore
-@using RTUB.Application.Data
+@using RTUB.Application.Interfaces
 @using RTUB.Shared
 @using RTUB.Web.Services
-@using System.Data
 @using System.Text.RegularExpressions
 @attribute [Authorize(Roles = "Owner")]
-@inject ApplicationDbContext DbContext
+@inject IDatabaseViewerService DatabaseViewerService
 @inject IJSRuntime JSRuntime
 @inject ISqlValidationService SqlValidationService
 
@@ -310,19 +308,22 @@
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadTables();
+        await LoadTablesAsync();
     }
 
-    private void LoadTables()
+    private async Task LoadTablesAsync()
     {
-        tables = DbContext.Model.GetEntityTypes()
-            .Select(e => e.GetTableName() ?? e.ClrType.Name)
-            .Where(name => !string.IsNullOrEmpty(name))
-            .Distinct()
-            .OrderBy(name => name)
-            .ToList();
+        try
+        {
+            tables = await DatabaseViewerService.GetTableNamesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading tables: {ex.Message}";
+            tables = new();
+        }
     }
 
     private async Task SelectTable(string tableName)
@@ -356,50 +357,14 @@
 
         try
         {
-            // Get the entity type for the selected table
-            var entityType = DbContext.Model.GetEntityTypes()
-                .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == selectedTable);
-
-            if (entityType == null)
-            {
-                errorMessage = $"Table '{selectedTable}' not found.";
-                return;
-            }
-
-            var tableName = entityType.GetTableName() ?? selectedTable;
-            
-            // Validate table name contains only safe characters (alphanumeric, underscore)
-            // This prevents SQL injection even though table names come from EF metadata
-            if (!IsValidTableName(tableName))
-            {
-                errorMessage = "Invalid table name.";
-                return;
-            }
-
             // Get total count
-            var countQuery = $"SELECT COUNT(*) FROM \"{tableName}\"";
-            using var countCommand = DbContext.Database.GetDbConnection().CreateCommand();
-            countCommand.CommandText = countQuery;
-            
-            if (countCommand.Connection?.State != ConnectionState.Open)
-            {
-                await countCommand.Connection!.OpenAsync();
-            }
-            
-            var countResult = await countCommand.ExecuteScalarAsync();
-            totalRecords = Convert.ToInt32(countResult);
+            totalRecords = await DatabaseViewerService.GetTableRecordCountAsync(selectedTable);
 
-            // Get column names from entity properties
-            columns = entityType.GetProperties()
-                .Select(p => p.GetColumnName())
-                .Where(c => !string.IsNullOrEmpty(c))
-                .ToList();
+            // Get column names
+            columns = await DatabaseViewerService.GetTableColumnsAsync(selectedTable);
 
             // Get paginated data
-            var offset = (currentPage - 1) * pageSize;
-            var dataQuery = $"SELECT * FROM \"{tableName}\" LIMIT {pageSize} OFFSET {offset}";
-            
-            rows = await ExecuteQuery(dataQuery);
+            rows = await DatabaseViewerService.GetTableDataAsync(selectedTable, currentPage, pageSize);
         }
         catch (Exception ex)
         {
@@ -442,7 +407,7 @@
             selectedTable = string.Empty;
             currentPage = 1;
 
-            rows = await ExecuteQuery(customQuery);
+            rows = await DatabaseViewerService.ExecuteSelectQueryAsync(customQuery);
             
             // Extract column names from results
             if (rows.Count > 0)
@@ -472,40 +437,6 @@
         }
     }
 
-    private async Task<List<Dictionary<string, object?>>> ExecuteQuery(string query)
-    {
-        var results = new List<Dictionary<string, object?>>();
-
-        using var command = DbContext.Database.GetDbConnection().CreateCommand();
-        command.CommandText = query;
-
-        if (command.Connection?.State != ConnectionState.Open)
-        {
-            await command.Connection!.OpenAsync();
-        }
-
-        using var reader = await command.ExecuteReaderAsync();
-        
-        // Get column names from reader
-        var columnNames = new List<string>();
-        for (int i = 0; i < reader.FieldCount; i++)
-        {
-            columnNames.Add(reader.GetName(i));
-        }
-
-        while (await reader.ReadAsync())
-        {
-            var row = new Dictionary<string, object?>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                row[columnNames[i]] = value;
-            }
-            results.Add(row);
-        }
-
-        return results;
-    }
 
     private void ClearQuery()
     {
@@ -580,16 +511,6 @@
         return stringValue;
     }
 
-    /// <summary>
-    /// Validates that a table name contains only safe characters to prevent SQL injection.
-    /// Allows alphanumeric characters and underscores only.
-    /// </summary>
-    private static readonly Regex SafeTableNamePattern = new(@"^\w+$", RegexOptions.Compiled);
-    
-    private static bool IsValidTableName(string tableName)
-    {
-        return !string.IsNullOrWhiteSpace(tableName) && SafeTableNamePattern.IsMatch(tableName);
-    }
 
     private void SelectQueryTab(string tab)
     {
@@ -678,7 +599,7 @@
         try
         {
             // Execute the raw SQL query
-            var rowsAffected = await DbContext.Database.ExecuteSqlRawAsync(modifyQuery);
+            var rowsAffected = await DatabaseViewerService.ExecuteModifyQueryAsync(modifyQuery);
 
             successMessage = $"Query executed successfully. {rowsAffected} row(s) affected.";
             

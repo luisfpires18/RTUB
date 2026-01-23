@@ -44,7 +44,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .Options;
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _context = new ApplicationDbContext(options, mockHttpContextAccessor.Object, _auditContext);
+        _context = new ApplicationDbContext(options, mockHttpContextAccessor.Object, _auditContext, new RTUB.Application.Services.AuditLogAppender());
     }
 
     public void Dispose()

@@ -280,6 +280,57 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
+    public async Task UpdateEnrollmentAsync_WhenWillAttendChangesToTrue_UpdatesRetirementStatus()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id, willAttend: false);
+        _mockRetirementStatusService.Reset();
+
+        // Act
+        await _enrollmentService.UpdateEnrollmentAsync(enrollment.Id, willAttend: true);
+
+        // Assert
+        _mockRetirementStatusService.Verify(
+            x => x.UpdateUserRetirementStatusAsync("user123"),
+            Times.Once,
+            "Retirement status should be updated when enrollment changes to attending");
+    }
+
+    [Fact]
+    public async Task GetEnrollmentByEventAndUserAsync_WhenExists_ReturnsEnrollment()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id);
+
+        // Act
+        var result = await _enrollmentService.GetEnrollmentByEventAndUserAsync(eventEntity.Id, "user123");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(enrollment.Id);
+        result.EventId.Should().Be(eventEntity.Id);
+        result.UserId.Should().Be("user123");
+    }
+
+    [Fact]
+    public async Task GetEnrollmentByEventAndUserAsync_WhenNotExists_ReturnsNull()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+
+        // Act
+        var result = await _enrollmentService.GetEnrollmentByEventAndUserAsync(eventEntity.Id, "nonexistent");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public async Task CreateEnrollmentAsync_WithWillAttendFalse_SendsNonEnrollmentNotificationToAttendingUsers()
     {
         // Arrange
@@ -583,6 +634,338 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         capturedRecipients.Should().Contain("enroll_change_user2", "user2 is attending");
         capturedRecipients.Should().NotContain("enroll_change_user3", "user3 is not attending");
         capturedRecipients.Should().NotContain("enroll_change_user4", "user4 is the one cancelling enrollment");
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_ChangingToAttending_SendsNotificationAndUpdatesRetirementStatus()
+    {
+        // Arrange
+        var testEvent = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", Core.Enums.EventType.Festival, "Test Description");
+        _context.Events.Add(testEvent);
+        await _context.SaveChangesAsync();
+
+        // Create test users
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "enroll_attend_user1",
+            UserName = "enroll_attend_user1",
+            Email = "enroll_attend_user1@test.com",
+            FirstName = "User",
+            LastName = "One",
+            Nickname = "User One"
+        };
+        var changingUser = new ApplicationUser
+        {
+            Id = "enroll_attend_user2",
+            UserName = "enroll_attend_user2",
+            Email = "enroll_attend_user2@test.com",
+            FirstName = "User",
+            LastName = "Two",
+            Nickname = "User Two"
+        };
+
+        _context.Users.AddRange(attendingUser1, changingUser);
+
+        // Create existing enrollments
+        var enrollment1 = Enrollment.Create("enroll_attend_user1", testEvent.Id);
+        enrollment1.WillAttend = true;
+
+        var enrollment2 = Enrollment.Create("enroll_attend_user2", testEvent.Id);
+        enrollment2.WillAttend = false; // This user is currently NOT attending but will change
+
+        _context.Enrollments.AddRange(enrollment1, enrollment2);
+        await _context.SaveChangesAsync();
+
+        // Setup mock to track notification calls
+        var capturedRecipients = new List<string>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        mockPushNotificationService
+            .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
+            {
+                capturedRecipients.AddRange(recipients);
+            })
+            .Returns(Task.CompletedTask);
+
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        mockPushNotificationFactory
+            .Setup(x => x.CreateEventEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
+
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var mockRetirementStatusService = new Mock<IRetirementStatusService>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - User changes from not attending to attending
+        await enrollmentService.UpdateEnrollmentAsync(enrollment2.Id, willAttend: true);
+
+        // Assert - Verify notification was sent and retirement status was updated
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Once);
+
+        mockRetirementStatusService.Verify(
+            x => x.UpdateUserRetirementStatusAsync("enroll_attend_user2"),
+            Times.Once,
+            "Retirement status should be updated when enrollment changes to attending");
+
+        capturedRecipients.Should().HaveCount(1, "only attending users should receive notification");
+        capturedRecipients.Should().Contain("enroll_attend_user1", "user1 is attending");
+        capturedRecipients.Should().NotContain("enroll_attend_user2", "user2 is the one enrolling");
+    }
+
+    [Fact]
+    public async Task DeleteEnrollmentAsync_WithWillAttendTrue_SendsCancellationNotification()
+    {
+        // Arrange
+        var testEvent = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", Core.Enums.EventType.Festival, "Test Description");
+        _context.Events.Add(testEvent);
+        await _context.SaveChangesAsync();
+
+        // Create test users
+        var attendingUser1 = new ApplicationUser
+        {
+            Id = "enroll_delete_user1",
+            UserName = "enroll_delete_user1",
+            Email = "enroll_delete_user1@test.com",
+            FirstName = "User",
+            LastName = "One",
+            Nickname = "User One"
+        };
+        var deletingUser = new ApplicationUser
+        {
+            Id = "enroll_delete_user2",
+            UserName = "enroll_delete_user2",
+            Email = "enroll_delete_user2@test.com",
+            FirstName = "User",
+            LastName = "Two",
+            Nickname = "User Two"
+        };
+
+        _context.Users.AddRange(attendingUser1, deletingUser);
+
+        // Create existing enrollments
+        var enrollment1 = Enrollment.Create("enroll_delete_user1", testEvent.Id);
+        enrollment1.WillAttend = true;
+
+        var enrollment2 = Enrollment.Create("enroll_delete_user2", testEvent.Id);
+        enrollment2.WillAttend = true; // This user is attending and will delete enrollment
+
+        _context.Enrollments.AddRange(enrollment1, enrollment2);
+        await _context.SaveChangesAsync();
+
+        // Setup mock to track notification calls
+        var capturedRecipients = new List<string>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        mockPushNotificationService
+            .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) =>
+            {
+                capturedRecipients.AddRange(recipients);
+            })
+            .Returns(Task.CompletedTask);
+
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        mockPushNotificationFactory
+            .Setup(x => x.CreateEventCancellationNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
+
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - Delete enrollment for attending user
+        await enrollmentService.DeleteEnrollmentAsync(enrollment2.Id);
+
+        // Assert - Verify cancellation notification was sent
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Once);
+
+        capturedRecipients.Should().HaveCount(1, "only attending users should receive notification");
+        capturedRecipients.Should().Contain("enroll_delete_user1", "user1 is attending");
+        capturedRecipients.Should().NotContain("enroll_delete_user2", "user2 is the one deleting enrollment");
+
+        // Verify enrollment was deleted
+        var deleted = await _enrollmentService.GetEnrollmentByIdAsync(enrollment2.Id);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteEnrollmentAsync_WithWillAttendFalse_DoesNotSendNotification()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id, willAttend: false);
+
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act
+        await enrollmentService.DeleteEnrollmentAsync(enrollment.Id);
+
+        // Assert - Verify no notification was sent
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Never);
+
+        // Verify enrollment was deleted
+        var deleted = await _enrollmentService.GetEnrollmentByIdAsync(enrollment.Id);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreateEnrollmentAsync_WithSkipNotificationTrue_DoesNotSendNotification()
+    {
+        // Arrange
+        var testEvent = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", Core.Enums.EventType.Festival, "Test Description");
+        _context.Events.Add(testEvent);
+        await _context.SaveChangesAsync();
+
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - Create enrollment with skipNotification = true
+        var result = await enrollmentService.CreateEnrollmentAsync("user123", testEvent.Id, willAttend: true, skipNotification: true);
+
+        // Assert - Verify no notification was sent
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Never);
+
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateEnrollmentAsync_WithPastEvent_DoesNotSendNotification()
+    {
+        // Arrange
+        var pastEvent = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Test Location", Core.Enums.EventType.Festival, "Test Description");
+        _context.Events.Add(pastEvent);
+        await _context.SaveChangesAsync();
+
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - Create enrollment for past event
+        var result = await enrollmentService.CreateEnrollmentAsync("user123", pastEvent.Id, willAttend: true);
+
+        // Assert - Verify no notification was sent for past event
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Never);
+
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WhenWillAttendDoesNotChange_DoesNotSendNotification()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync(
+            "user123", eventEntity.Id, Core.Enums.InstrumentType.Guitarra, "Initial notes", true);
+
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - Update enrollment but keep willAttend = true
+        var result = await enrollmentService.UpdateEnrollmentAsync(
+            enrollment.Id,
+            willAttend: true, // Same as before
+            Core.Enums.InstrumentType.Percussao,
+            "Updated notes");
+
+        // Assert - Verify no notification was sent since willAttend didn't change
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Never);
+
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeTrue();
+        result.Instrument.Should().Be(Core.Enums.InstrumentType.Percussao);
+        result.Notes.Should().Be("Updated notes");
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WhenWillAttendChangesFromFalseToFalse_DoesNotSendNotification()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync(
+            "user123", eventEntity.Id, willAttend: false);
+
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
+
+        // Act - Update enrollment but keep willAttend = false
+        var result = await enrollmentService.UpdateEnrollmentAsync(
+            enrollment.Id,
+            willAttend: false, // Same as before
+            Core.Enums.InstrumentType.Guitarra,
+            "Updated notes");
+
+        // Assert - Verify no notification was sent since willAttend didn't change
+        mockPushNotificationService.Verify(
+            x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
+            Times.Never);
+
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeFalse();
     }
 
     public void Dispose()

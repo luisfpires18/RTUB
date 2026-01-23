@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
@@ -54,32 +55,32 @@ public class EventService : IEventService
         _context = context;
     }
 
-    public async Task<Event?> GetEventByIdAsync(int id)
+    public async Task<Event?> GetEventByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetByIdAsync(id);
     }
 
-    public async Task<IEnumerable<Event>> GetAllEventsAsync()
+    public async Task<IEnumerable<Event>> GetAllEventsAsync(CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10)
+    public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetUpcomingEventsAsync(count);
     }
 
-    public async Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10)
+    public async Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetPastEventsAsync(count);
     }
 
-    public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type)
+    public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type, CancellationToken cancellationToken = default)
     {
         return await _eventRepository.GetEventsByTypeAsync(type);
     }
 
-    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null)
+    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null, CancellationToken cancellationToken = default)
     {
         var eventEntity = Event.Create(name, date, location, type, description);
 
@@ -96,11 +97,9 @@ public class EventService : IEventService
         return await _eventRepository.AddAsync(eventEntity);
     }
 
-    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null)
+    public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate = null, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.UpdateDetails(name, date, location, description, type);
 
@@ -116,11 +115,9 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
-    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType)
+    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, EventType type, DateTime? endDate, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         // Update event details
         eventEntity.UpdateDetails(name, date, location, description, type);
@@ -148,11 +145,9 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
-    public async Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType)
+    public async Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
@@ -168,11 +163,9 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
-    public async Task DeleteEventAsync(int id)
+    public async Task DeleteEventAsync(int id, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
@@ -183,11 +176,9 @@ public class EventService : IEventService
         await _eventRepository.DeleteAsync(eventEntity);
     }
 
-    public async Task CancelEventAsync(int id, string reason)
+    public async Task CancelEventAsync(int id, string reason, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.Cancel(reason);
         await _eventRepository.UpdateAsync(eventEntity);
@@ -196,27 +187,23 @@ public class EventService : IEventService
         await _enrollmentRepository.DeleteByEventIdAsync(id);
     }
 
-    public async Task UncancelEventAsync(int id)
+    public async Task UncancelEventAsync(int id, CancellationToken cancellationToken = default)
     {
-        var eventEntity = await _eventRepository.GetByIdAsync(id);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), id);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 
         eventEntity.Uncancel();
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
-    public async Task<IEnumerable<EventVideo>> GetVideosByEventIdAsync(int eventId)
+    public async Task<IEnumerable<EventVideo>> GetVideosByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await _eventVideoRepository.GetByEventIdAsync(eventId);
     }
 
-    public async Task<EventVideo> AddVideoAsync(int eventId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null)
+    public async Task<EventVideo> AddVideoAsync(int eventId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null, CancellationToken cancellationToken = default)
     {
         // Validate that event exists
-        var eventEntity = await _eventRepository.GetByIdAsync(eventId);
-        if (eventEntity == null)
-            throw new EntityNotFoundException(nameof(Event), eventId);
+        var eventEntity = await _eventRepository.GetByIdOrThrowAsync(eventId);
 
         // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
         var mimeType = MimeTypeHelper.GetVideoMimeType(fileName, contentType);
@@ -264,7 +251,7 @@ public class EventService : IEventService
             // Get all users (excluding the uploader)
             var allUserIds = await _userManager.Users
                 .Select(u => u.Id)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             // Send to each user
             foreach (var userId in allUserIds.Where(id => id != createdByUserId))
@@ -283,13 +270,10 @@ public class EventService : IEventService
         return createdVideo;
     }
 
-    public async Task UpdateVideoTitleAsync(int videoId, string? title, string userId, bool isAdmin = false)
+    public async Task UpdateVideoTitleAsync(int videoId, string? title, string userId, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
         // Fetch video by id
-        var video = await _eventVideoRepository.GetByIdAsync(videoId);
-
-        if (video == null)
-            throw new EntityNotFoundException(nameof(EventVideo), videoId);
+        var video = await _eventVideoRepository.GetByIdOrThrowAsync(videoId);
 
         // Check permissions: only allow if user is the uploader OR is an admin
         if (video.CreatedByUserId != userId && !isAdmin)
@@ -304,11 +288,11 @@ public class EventService : IEventService
         await _eventVideoRepository.UpdateAsync(video);
     }
 
-    public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds)
+    public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds, CancellationToken cancellationToken = default)
     {
         var videos = await _eventVideoRepository.Query()
             .Where(v => v.EventId == eventId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         for (int i = 0; i < videoIds.Count; i++)
         {
@@ -321,13 +305,10 @@ public class EventService : IEventService
         }
     }
 
-    public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
+    public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
         // Fetch video by id
-        var video = await _eventVideoRepository.GetByIdAsync(videoId);
-
-        if (video == null)
-            throw new EntityNotFoundException(nameof(EventVideo), videoId);
+        var video = await _eventVideoRepository.GetByIdOrThrowAsync(videoId);
 
         // Check permissions: only allow if user is the uploader OR is an admin
         if (video.CreatedByUserId != userId && !isAdmin)
@@ -350,7 +331,7 @@ public class EventService : IEventService
         await _eventVideoRepository.DeleteAsync(video);
     }
 
-    public async Task<int> GetVideoCountByEventIdAsync(int eventId)
+    public async Task<int> GetVideoCountByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
     }

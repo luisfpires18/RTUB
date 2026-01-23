@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Label>
 @inject ILabelService LabelService
@@ -68,8 +69,8 @@ else
 }
 
 <!-- View Details Modal using DetailsModal -->
-<DetailsModal Show="@showViewDetailsModal" 
-              ShowChanged="@((bool show) => showViewDetailsModal = show)" 
+<DetailsModal Show="@modals.IsOpen(ModalType.ViewDetails)" 
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.ViewDetails, show))" 
               Title="Detalhes da Etiqueta"
               HeaderTitle="@(viewingLabel?.Title ?? "")"
               IconClass="bi-tag-fill"
@@ -115,8 +116,8 @@ else
 
 <!-- CRUD Modals -->
 <CrudModalManager TEntity="Label"
-                  ShowEditModal="@showEditModal"
-                  ShowEditModalChanged="@((value) => showEditModal = value)"
+                  ShowEditModal="@modals.IsOpen(ModalType.Edit)"
+                  ShowEditModalChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
                   IsCreateMode="@isCreateMode"
                   EditingEntity="@editingLabel"
                   CreateTitle="Nova Etiqueta"
@@ -124,8 +125,8 @@ else
                   ModalSize="Modal.ModalSize.Large"
                   OnSave="SaveLabel"
                   OnEditModalClosed="() => editingLabel = null"
-                  ShowDeleteModal="@showDeleteModal"
-                  ShowDeleteModalChanged="@((value) => showDeleteModal = value)"
+                  ShowDeleteModal="@modals.IsOpen(ModalType.Delete)"
+                  ShowDeleteModalChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                   DeletingEntity="@deletingLabel"
                   DeleteTitle="Confirmar Eliminação"
                   OnDelete="DeleteLabel"
@@ -173,9 +174,8 @@ else
 </CrudModalManager>
 
 @code {
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showViewDetailsModal = false;
+    private enum ModalType { Edit, Delete, ViewDetails }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private Label? editingLabel;
     private Label? deletingLabel;
@@ -228,12 +228,12 @@ else
             CreatedAt = label.CreatedAt,
             UpdatedAt = label.UpdatedAt
         };
-        showViewDetailsModal = true;
+        modals.Open(ModalType.ViewDetails);
     }
 
     private void CloseViewDetailsModal()
     {
-        showViewDetailsModal = false;
+        modals.Close(ModalType.ViewDetails);
         viewingLabel = null;
     }
 
@@ -247,7 +247,7 @@ else
             Content = string.Empty,
             IsActive = true
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void OpenEditModal(Label label)
@@ -262,7 +262,7 @@ else
             IsActive = label.IsActive,
             UpdatedAt = label.UpdatedAt
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private async Task SaveLabel()
@@ -315,14 +315,14 @@ else
         }
 
         await RefreshDataAsync();
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingLabel = null;
     }
 
     private void OpenDeleteModal(Label label)
     {
         deletingLabel = label;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private async Task DeleteLabel()
@@ -332,7 +332,7 @@ else
         await LabelService.DeleteLabelAsync(deletingLabel.Id);
         await RefreshDataAsync();
 
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingLabel = null;
     }
 }

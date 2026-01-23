@@ -32,7 +32,7 @@ public class AuditLogFilteringTests : IDisposable
         _auditContext = new AuditContext();
         SetupMockUser(_testUsername, _testUserId);
 
-        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext);
+        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext, new RTUB.Application.Services.AuditLogAppender());
     }
 
     private void SetupMockUser(string username, string userId)

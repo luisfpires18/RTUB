@@ -12,6 +12,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Shared.Components.Ranking
 @inject UserManager<ApplicationUser> UserManager
 @inject IRankingService RankingService
@@ -222,8 +223,8 @@ else
 <!-- Details Modal -->
 @if (viewingItem != null)
 {
-    <Modal Show="@showDetailsModal"
-           ShowChanged="@OnDetailsModalShowChanged"
+    <Modal Show="@modals.IsOpen(ModalType.Details)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.Details, show))"
            Title="Detalhes da Classificação"
            Size="Modal.ModalSize.Large"
            Centered="true">
@@ -456,8 +457,8 @@ else
 }
 
 <!-- Edit Label Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((value) => showEditModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
        Title="Editar História do Ranking"
        Size="Modal.ModalSize.Large"
        OnClose="CloseEditModal">
@@ -506,7 +507,8 @@ else
     private List<LeaderboardEntry>? leaderboardUsers;
     private List<LeaderboardEntry> paginatedLeaderboardUsers = new();
     private LeaderboardEntry? viewingItem;
-    private bool showDetailsModal = false;
+    private enum ModalType { Details, Edit }
+    private readonly MultiModalState<ModalType> modals = new();
     
     // Classification levels collapsible state
     private bool isClassificationExpanded = false;
@@ -529,7 +531,6 @@ else
     // Label editing
     private Label? rankingStoryLabel;
     private Label? editingLabel;
-    private bool showEditModal = false;
     
     // Comments state
     private List<LeaderboardCommentDto>? comments;
@@ -746,7 +747,7 @@ else
     private async Task OpenDetailsModal(LeaderboardEntry item)
     {
         viewingItem = item;
-        showDetailsModal = true;
+        modals.Open(ModalType.Details);
         isActivitiesExpanded = false; // Reset to collapsed when opening modal
         
         // Load comments and XP breakdown for this user
@@ -756,19 +757,9 @@ else
         );
     }
 
-    private void OnDetailsModalShowChanged(bool show)
-    {
-        showDetailsModal = show;
-
-        if (!show)
-        {
-            CloseDetailsModal();
-        }
-    }
-
     private void CloseDetailsModal()
     {
-        showDetailsModal = false;
+        modals.Close(ModalType.Details);
         viewingItem = null;
         comments = null;
         newCommentText = string.Empty;
@@ -909,12 +900,12 @@ else
             Content = label.Content,
             IsActive = label.IsActive
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingLabel = null;
     }
 
@@ -933,7 +924,7 @@ else
 
             await LoadRankingStory();
             
-            showEditModal = false;
+            modals.Close(ModalType.Edit);
             editingLabel = null;
         }
         catch (Exception)

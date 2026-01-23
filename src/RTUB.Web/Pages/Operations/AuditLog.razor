@@ -5,6 +5,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using System.Text.Json
 @attribute [Authorize(Roles = "Owner")]
 @inject IAuditLogService AuditLogService
@@ -201,8 +202,8 @@
 </div>
 
 <!-- Changes Detail Modal -->
-<Modal Show="@showChangesModal" 
-       ShowChanged="@((show) => showChangesModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Changes)" 
+       ShowChanged="@((show) => modals.Toggle(ModalType.Changes, show))"
        Title="@($"Change Details - {selectedLog?.EntityType}")"
        Size="Modal.ModalSize.Large">
     <BodyContent>
@@ -252,13 +253,13 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showChangesModal = false">Close</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Changes)">Close</button>
     </FooterContent>
 </Modal>
 
 <!-- Delete Single Log Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((show) => showDeleteModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Delete)" 
+       ShowChanged="@((show) => modals.Toggle(ModalType.Delete, show))"
        Title="Confirm Delete">
     <BodyContent>
         @if (logToDelete != null)
@@ -294,7 +295,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showDeleteModal = false">Cancel</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Delete)">Cancel</button>
         <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
             @if (isDeleting)
             {
@@ -311,8 +312,8 @@
 </Modal>
 
 <!-- Truncate All Confirmation Modal -->
-<Modal Show="@showTruncateModal" 
-       ShowChanged="@((show) => showTruncateModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Truncate)" 
+       ShowChanged="@((show) => modals.Toggle(ModalType.Truncate, show))"
        Title="@(string.IsNullOrWhiteSpace(truncateSelectedUser) ? "Confirm Truncate All" : $"Confirm Truncate by User")">
     <BodyContent>
         <div class="mb-3">
@@ -352,7 +353,7 @@
         <input type="text" class="form-control" @bind="truncateConfirmationText" placeholder="DELETE ALL" />
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showTruncateModal = false">Cancel</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Truncate)">Cancel</button>
         <button type="button" class="btn btn-danger" @onclick="ConfirmTruncate" disabled="@(truncateConfirmationText != "DELETE ALL" || isTruncating)">
             @if (isTruncating)
             {
@@ -392,9 +393,8 @@
     private int criticalCount = 0;
 
     // Modals
-    private bool showChangesModal = false;
-    private bool showDeleteModal = false;
-    private bool showTruncateModal = false;
+    private enum ModalType { Changes, Delete, Truncate }
+    private readonly MultiModalState<ModalType> modals = new();
     private string truncateConfirmationText = "";
     private string truncateSelectedUser = "";
     private bool isTruncating = false;
@@ -505,13 +505,13 @@
     private void ShowChangesModal(RTUB.Core.Entities.AuditLog log)
     {
         selectedLog = log;
-        showChangesModal = true;
+        modals.Open(ModalType.Changes);
     }
 
     private void ShowDeleteConfirmation(RTUB.Core.Entities.AuditLog log)
     {
         logToDelete = log;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private async Task ConfirmDelete()
@@ -522,7 +522,7 @@
         try
         {
             await AuditLogService.DeleteAsync(logToDelete.Id);
-            showDeleteModal = false;
+            modals.Close(ModalType.Delete);
             logToDelete = null;
             await LoadAuditLogs();
         }
@@ -534,7 +534,7 @@
 
     private void ShowTruncateConfirmation()
     {
-        showTruncateModal = true;
+        modals.Open(ModalType.Truncate);
         truncateConfirmationText = "";
         truncateSelectedUser = "";
     }
@@ -558,7 +558,7 @@
                 await AuditLogService.TruncateByUserAsync(truncateSelectedUser);
             }
             
-            showTruncateModal = false;
+            modals.Close(ModalType.Truncate);
             truncateConfirmationText = "";
             truncateSelectedUser = "";
             currentPage = 1;

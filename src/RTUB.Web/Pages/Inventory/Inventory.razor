@@ -9,6 +9,7 @@
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
 @inject IImageStorageService ImageStorageService
@@ -135,8 +136,8 @@ else
 }
 
 <!-- Details Modal -->
-<DetailsModal Show="@showViewDetailsModal" 
-              ShowChanged="@((bool show) => showViewDetailsModal = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.ViewDetails)" 
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.ViewDetails, show))"
               Title="Detalhes do Instrumento" 
               HeaderTitle="@(viewingInstrument?.Name ?? "")"
               ImageUrl="@(viewingInstrument != null && !string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? GetImageUrl(viewingInstrument.ImageUrl) : null)"
@@ -184,8 +185,8 @@ else
 
 <!-- CRUD Modals for Instruments -->
 <CrudModalManager TEntity="Instrument"
-                  ShowEditModal="@showInstrumentEditModal"
-                  ShowEditModalChanged="@((value) => showInstrumentEditModal = value)"
+                  ShowEditModal="@modals.IsOpen(ModalType.InstrumentEdit)"
+                  ShowEditModalChanged="@((value) => modals.Toggle(ModalType.InstrumentEdit, value))"
                   IsCreateMode="@isInstrumentCreateMode"
                   EditingEntity="@editingInstrument"
                   CreateTitle="Novo Instrumento"
@@ -193,8 +194,8 @@ else
                   ModalSize="Modal.ModalSize.Large"
                   OnSave="SaveInstrument"
                   OnEditModalClosed="CloseInstrumentEditModal"
-                  ShowDeleteModal="@showInstrumentDeleteModal"
-                  ShowDeleteModalChanged="@((value) => showInstrumentDeleteModal = value)"
+                  ShowDeleteModal="@modals.IsOpen(ModalType.InstrumentDelete)"
+                  ShowDeleteModalChanged="@((value) => modals.Toggle(ModalType.InstrumentDelete, value))"
                   DeletingEntity="@deletingInstrument"
                   DeleteTitle="Confirmar Eliminação"
                   OnDelete="DeleteInstrument"
@@ -313,7 +314,7 @@ else
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="() => showInstrumentEditModal = false">Cancelar</button>
+                <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.InstrumentEdit)">Cancelar</button>
                 <button type="submit" class="btn btn-success" disabled="@(!CanSaveInstrument())">Guardar</button>
             </div>
         </EditForm>
@@ -329,8 +330,8 @@ else
 
 <!-- Image Cropper Component - Thumbnail -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnThumbnailCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Use the crop area to define how the thumbnail will appear"
@@ -357,18 +358,16 @@ else
     private int itemsPerPage = 6;
 
     // Details Modal State
-    private bool showViewDetailsModal = false;
+    private enum ModalType { ViewDetails, InstrumentEdit, InstrumentDelete, Cropper }
+    private readonly MultiModalState<ModalType> modals = new();
     private Instrument? viewingInstrument;
 
     // CRUD Modal State
-    private bool showInstrumentEditModal = false;
-    private bool showInstrumentDeleteModal = false;
     private bool isInstrumentCreateMode = false;
     private Instrument? editingInstrument;
     private Instrument? deletingInstrument;
 
     // Image Cropper
-    private bool showCropperModal = false;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string instrumentImageInputId = $"instrument-image-{Guid.NewGuid():N}";
@@ -469,12 +468,12 @@ else
     private void OpenViewDetailsModal(Instrument instrument)
     {
         viewingInstrument = instrument;
-        showViewDetailsModal = true;
+        modals.Open(ModalType.ViewDetails);
     }
 
     private void CloseViewDetailsModal()
     {
-        showViewDetailsModal = false;
+        modals.Close(ModalType.ViewDetails);
         viewingInstrument = null;
     }
 
@@ -494,7 +493,7 @@ else
         croppedThumbnailImageBytes = null;
         selectedFile = null;
         instrumentImageFileName = null;
-        showInstrumentEditModal = true;
+        modals.Open(ModalType.InstrumentEdit);
     }
 
     private void OpenEditInstrumentModal(Instrument instrument)
@@ -506,13 +505,13 @@ else
         croppedThumbnailImageBytes = null;
         selectedFile = null;
         instrumentImageFileName = null;
-        showInstrumentEditModal = true;
+        modals.Open(ModalType.InstrumentEdit);
     }
 
     private void OpenDeleteInstrumentModal(Instrument instrument)
     {
         deletingInstrument = instrument;
-        showInstrumentDeleteModal = true;
+        modals.Open(ModalType.InstrumentDelete);
     }
 
     private async Task SaveInstrument()
@@ -587,7 +586,7 @@ else
             }
 
             await LoadData();
-            showInstrumentEditModal = false;
+            modals.Close(ModalType.InstrumentEdit);
             uploadedInstrumentImagePath = null;
             originalImageBytes = null;
             croppedThumbnailImageBytes = null;
@@ -608,7 +607,7 @@ else
         {
             await InstrumentService.DeleteAsync(deletingInstrument.Id);
             await LoadData();
-            showInstrumentDeleteModal = false;
+            modals.Close(ModalType.InstrumentDelete);
         }
         catch (Exception ex)
         {
@@ -618,7 +617,7 @@ else
 
     private void CloseInstrumentEditModal()
     {
-        showInstrumentEditModal = false;
+        modals.Close(ModalType.InstrumentEdit);
         editingInstrument = null;
         uploadedInstrumentImagePath = null;
         originalImageBytes = null;
@@ -629,7 +628,7 @@ else
 
     private void CloseInstrumentDeleteModal()
     {
-        showInstrumentDeleteModal = false;
+        modals.Close(ModalType.InstrumentDelete);
         deletingInstrument = null;
     }
 
@@ -700,7 +699,7 @@ else
     // Simplified callback - no longer needs to launch a second cropper (synchronous is sufficient)
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
 

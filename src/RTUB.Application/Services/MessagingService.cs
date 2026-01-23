@@ -60,12 +60,34 @@ public class MessagingService : IMessagingService
     public async Task<IEnumerable<ConversationDto>> GetUserConversationsAsync(string userId)
     {
         var conversations = await _conversationRepository.GetUserConversationsAsync(userId);
+        var conversationList = conversations.ToList();
+        
+        if (!conversationList.Any())
+        {
+            return Enumerable.Empty<ConversationDto>();
+        }
+
         var userSettings = (await _settingsRepository.GetByUserAsync(userId)).ToDictionary(s => s.ConversationId);
+        
+        // Batch load unread counts for all conversations (fixes N+1 query issue)
+        var conversationIds = conversationList.Select(c => c.Id).ToList();
+        var unreadCounts = await _messageRepository.GetUnreadCountsForConversationsAsync(conversationIds, userId);
+        
+        // Batch load latest messages for conversations that need them (fixes N+1 query issue)
+        var conversationsNeedingLatestMessage = conversationList
+            .Where(c => c.LastMessageId.HasValue && 
+                       !c.Messages.Any(m => m.Id == c.LastMessageId.Value))
+            .Select(c => c.Id)
+            .ToList();
+        var latestMessages = conversationsNeedingLatestMessage.Any()
+            ? await _messageRepository.GetLatestMessagesForConversationsAsync(conversationsNeedingLatestMessage)
+            : new Dictionary<int, Message?>();
+
         var conversationDtos = new List<ConversationDto>();
 
-        foreach (var conversation in conversations)
+        foreach (var conversation in conversationList)
         {
-            var dto = await MapConversationToDtoAsync(conversation, userId, userSettings);
+            var dto = await MapConversationToDtoAsync(conversation, userId, userSettings, unreadCounts, latestMessages);
             conversationDtos.Add(dto);
         }
 
@@ -89,7 +111,7 @@ public class MessagingService : IMessagingService
             ? new Dictionary<int, ConversationUserSettings> { { conversationId, settings } }
             : new Dictionary<int, ConversationUserSettings>();
 
-        return await MapConversationToDtoAsync(conversation, currentUserId, settingsDict);
+        return await MapConversationToDtoAsync(conversation, currentUserId, settingsDict, null, null);
     }
 
     public async Task<IEnumerable<MessageDto>> GetConversationMessagesAsync(int conversationId, string currentUserId, int? limit = null)
@@ -470,7 +492,12 @@ public class MessagingService : IMessagingService
         return await _settingsRepository.IsConversationMutedAsync(userId, conversationId);
     }
 
-    private async Task<ConversationDto> MapConversationToDtoAsync(Conversation conversation, string currentUserId, Dictionary<int, ConversationUserSettings> userSettings)
+    private async Task<ConversationDto> MapConversationToDtoAsync(
+        Conversation conversation, 
+        string currentUserId, 
+        Dictionary<int, ConversationUserSettings> userSettings,
+        Dictionary<int, int>? unreadCounts = null,
+        Dictionary<int, Message?>? latestMessages = null)
     {
         // Get settings for this conversation from the provided dictionary
         userSettings.TryGetValue(conversation.Id, out var settings);
@@ -489,6 +516,10 @@ public class MessagingService : IMessagingService
         // Determine if user can delete this conversation
         var canDelete = CanUserDeleteConversation(conversation, currentUserId);
 
+        // Use batch-loaded unread count if provided, otherwise query individually
+        var unreadCount = unreadCounts?.GetValueOrDefault(conversation.Id) 
+            ?? await _messageRepository.GetUnreadCountForConversationAsync(conversation.Id, currentUserId);
+
         var dto = new ConversationDto
         {
             Id = conversation.Id,
@@ -501,7 +532,7 @@ public class MessagingService : IMessagingService
             IsAnnouncementOnly = conversation.IsAnnouncementOnly,
             CanSendMessage = canSendMessage,
             CanDelete = canDelete,
-            UnreadCount = await _messageRepository.GetUnreadCountForConversationAsync(conversation.Id, currentUserId),
+            UnreadCount = unreadCount,
             IsMuted = settings?.IsMuted ?? false,
             IsPinned = settings?.IsPinned ?? false
         };
@@ -512,7 +543,9 @@ public class MessagingService : IMessagingService
             var lastMessage = conversation.Messages.FirstOrDefault(m => m.Id == conversation.LastMessageId.Value);
             if (lastMessage == null)
             {
-                lastMessage = await _messageRepository.GetLatestMessageAsync(conversation.Id);
+                // Use batch-loaded latest message if provided, otherwise query individually
+                lastMessage = latestMessages?.GetValueOrDefault(conversation.Id)
+                    ?? await _messageRepository.GetLatestMessageAsync(conversation.Id);
             }
 
             if (lastMessage != null)

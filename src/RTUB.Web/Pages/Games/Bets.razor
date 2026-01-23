@@ -12,6 +12,7 @@
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject IBetService BetService
 @inject IBetOptionRepository BetOptionRepository
 @inject IUserBetRepository UserBetRepository
@@ -175,8 +176,8 @@
 </div>
 
 @* Create/Edit Bet Modal *@
-<Modal Show="@showEditModal"
-       ShowChanged="@((bool show) => showEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
        Title="@(isCreateMode ? "Criar Nova Aposta" : "Editar Aposta")"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -370,8 +371,8 @@
 </Modal>
 
 @* Delete Confirmation Modal *@
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((bool show) => showDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza de que pretende eliminar a aposta {deletingBet?.Title}?")"
                WarningMessage="Esta ação não pode ser anulada e todos os participantes serão reembolsados."
@@ -382,8 +383,8 @@
                OnCancel="CloseDeleteModal" />
 
 @* Success Dialog for Bet Placement *@
-<ConfirmDialog Show="@showSuccessModal"
-               ShowChanged="@((bool show) => showSuccessModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Success)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Success, show))"
                Title="Aposta Realizada"
                Message="Aposta realizada com sucesso!"
                ConfirmText="OK"
@@ -394,8 +395,8 @@
                OnCancel="CloseSuccessModal" />
 
 @* Delete Comment Confirmation *@
-<ConfirmDialog Show="@showDeleteCommentModal"
-               ShowChanged="@((bool show) => showDeleteCommentModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteComment)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteComment, show))"
                Title="Confirmar Eliminação"
                Message="Tem a certeza de que pretende eliminar este comentário?"
                ConfirmText="Eliminar"
@@ -405,8 +406,8 @@
                OnCancel="CloseDeleteCommentModal" />
 
 @* Push Notification Modal (Admin Only) *@
-<Modal Show="@showPushNotificationModal"
-       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
        Title="Notificar por Push"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -437,8 +438,8 @@
 </Modal>
 
 @* Place Bet Modal *@
-<Modal Show="@showPlaceBetModal"
-       ShowChanged="@((bool show) => showPlaceBetModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.PlaceBet)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PlaceBet, show))"
        Title="@($"Apostar - {selectedBet?.Title}")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -501,8 +502,8 @@
 </Modal>
 
 @* Bet Details Modal (with Discussion) *@
-<DetailsModal Show="@showDetailsModal" 
-              ShowChanged="@((bool show) => showDetailsModal = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.Details)" 
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.Details, show))"
               Title="Detalhes da Aposta" 
               HeaderTitle="@(selectedBet?.Title ?? "")"
               ImageUrl="@(selectedBet != null && !string.IsNullOrEmpty(selectedBet.ImageSrc) ? GetBetImageUrl(selectedBet.ImageSrc) : null)"
@@ -740,8 +741,8 @@
 </DetailsModal>
 
 @* Resolve Bet Modal (Admin Only) *@
-<Modal Show="@showResolveModal"
-       ShowChanged="@((bool show) => showResolveModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Resolve)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Resolve, show))"
        Title="@($"Resolver Aposta - {selectedBet?.Title}")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -782,8 +783,8 @@
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnImageCropped"
               AspectRatio="1.5"
               AspectRatioHelp="As imagens de apostas são exibidas em proporção 3:2 para melhor apresentação"
@@ -791,8 +792,8 @@
               ImageQuality="0.85" />
 
 @* View All Bets Modal *@
-<Modal Show="@showAllBetsModal"
-       ShowChanged="@((bool show) => showAllBetsModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.AllBets)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.AllBets, show))"
        Title="@($"Apostas - {selectedBetForAllBets?.Title}")"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -883,15 +884,8 @@
     private string pastBetsSearch = string.Empty;
 
     // Modals
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showPlaceBetModal = false;
-    private bool showDetailsModal = false;
-    private bool showResolveModal = false;
-    private bool showSuccessModal = false;
-    private bool showDeleteCommentModal = false;
-    private bool showPushNotificationModal = false;
-    private bool showAllBetsModal = false;
+    private enum ModalType { Edit, Delete, PlaceBet, Details, Resolve, Success, DeleteComment, PushNotification, AllBets, Cropper }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isSaving = false;
     private bool isSendingPushNotification = false;
@@ -906,15 +900,6 @@
     private int allBetsCurrentPage = 1;
     private int allBetsPageSize = 10;
     
-    // Helper class for displaying user bets in the modal
-    private class UserBetDisplayInfo
-    {
-        public string DisplayName { get; set; } = string.Empty;
-        public string? AvatarUrl { get; set; }
-        public string OptionTitle { get; set; } = string.Empty;
-        public decimal FidelisAmount { get; set; }
-        public decimal PotentialWinnings { get; set; }
-    }
 
     // Edit/Create
     private Bet? editingBet;
@@ -925,7 +910,6 @@
     
     // Image Cropper
     private ImageCropper? imageCropper;
-    private bool showCropperModal = false;
     private string? uploadedImagePath;
     
     // Cropped image for BetCard display
@@ -964,12 +948,6 @@
     // DECISION category - custom options
     private List<DecisionOptionModel> decisionOptions = new();
     
-    // Helper class for DECISION options
-    private class DecisionOptionModel
-    {
-        public string Title { get; set; } = string.Empty;
-        public decimal Odds { get; set; } = 1.50m;
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -1199,7 +1177,7 @@
             await LoadAllMembers();
         }
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private async Task OpenEditModal(Bet bet)
@@ -1218,12 +1196,12 @@
             await LoadAllMembers();
         }
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingBet = null;
         selectedImageFile = null;
         uploadedImagePath = null;
@@ -1367,12 +1345,12 @@
     private void OpenDeleteModal(Bet bet)
     {
         deletingBet = bet;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingBet = null;
     }
 
@@ -1397,12 +1375,12 @@
         selectedBet = bet;
         selectedBetOptionId = 0;
         betAmount = 0;
-        showPlaceBetModal = true;
+        modals.Open(ModalType.PlaceBet);
     }
 
     private void ClosePlaceBetModal()
     {
-        showPlaceBetModal = false;
+        modals.Close(ModalType.PlaceBet);
         selectedBet = null;
         selectedBetOptionId = 0;
         betAmount = 0;
@@ -1422,7 +1400,7 @@
             
             await LoadBets();
             ClosePlaceBetModal();
-            showSuccessModal = true;
+            modals.Open(ModalType.Success);
         }
         catch (Exception ex)
         {
@@ -1436,7 +1414,7 @@
 
     private void CloseSuccessModal()
     {
-        showSuccessModal = false;
+        modals.Close(ModalType.Success);
     }
 
     private async Task OpenBetDetailsModal(Bet bet)
@@ -1446,7 +1424,7 @@
         newCommentText = string.Empty;
         selectedCommentMediaFile = null;
         uploadedCommentMediaType = null;
-        showDetailsModal = true;
+        modals.Open(ModalType.Details);
         
         // Load bet comments
         await LoadBetComments();
@@ -1454,7 +1432,7 @@
 
     private void CloseDetailsModal()
     {
-        showDetailsModal = false;
+        modals.Close(ModalType.Details);
         selectedBet = null;
         betComments = null;
         newCommentText = string.Empty;
@@ -1603,12 +1581,12 @@
     private void OpenDeleteCommentModal(int commentId)
     {
         deletingCommentId = commentId;
-        showDeleteCommentModal = true;
+        modals.Open(ModalType.DeleteComment);
     }
     
     private void CloseDeleteCommentModal()
     {
-        showDeleteCommentModal = false;
+        modals.Close(ModalType.DeleteComment);
         deletingCommentId = null;
     }
     
@@ -1625,12 +1603,12 @@
     private void OpenPushNotificationModal(Bet bet)
     {
         selectedBetForPush = bet;
-        showPushNotificationModal = true;
+        modals.Open(ModalType.PushNotification);
     }
     
     private void ClosePushNotificationModal()
     {
-        showPushNotificationModal = false;
+        modals.Close(ModalType.PushNotification);
         selectedBetForPush = null;
     }
     
@@ -1704,12 +1682,12 @@
     {
         selectedBet = bet;
         selectedWinningOptionId = 0;
-        showResolveModal = true;
+        modals.Open(ModalType.Resolve);
     }
 
     private void CloseResolveModal()
     {
-        showResolveModal = false;
+        modals.Close(ModalType.Resolve);
         selectedBet = null;
         selectedWinningOptionId = 0;
     }
@@ -1792,7 +1770,7 @@
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
     
@@ -1804,7 +1782,7 @@
         paginatedUserBetsForBet = new List<UserBetDisplayInfo>();
         allBetsCurrentPage = 1;
         isLoadingAllBets = true;
-        showAllBetsModal = true;
+        modals.Open(ModalType.AllBets);
         StateHasChanged();
         
         try
@@ -1844,7 +1822,7 @@
     
     private void CloseAllBetsModal()
     {
-        showAllBetsModal = false;
+        modals.Close(ModalType.AllBets);
         selectedBetForAllBets = null;
         allUserBetsForBet = null;
         paginatedUserBetsForBet = new List<UserBetDisplayInfo>();

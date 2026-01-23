@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 
 
@@ -16,6 +18,7 @@ namespace RTUB.Application.Services;
 public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _context;
     private readonly IImageStorageService _imageStorageService;
     private readonly ILeaderboardCommentRepository _leaderboardCommentRepository;
     private readonly ICommentRepository _commentRepository;
@@ -26,6 +29,7 @@ public class UserProfileService : IUserProfileService
 
     public UserProfileService(
         UserManager<ApplicationUser> userManager,
+        ApplicationDbContext context,
         IImageStorageService imageStorageService,
         ILeaderboardCommentRepository leaderboardCommentRepository,
         ICommentRepository commentRepository,
@@ -35,6 +39,7 @@ public class UserProfileService : IUserProfileService
         ILogger<UserProfileService> logger)
     {
         _userManager = userManager;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
         _imageStorageService = imageStorageService;
         _leaderboardCommentRepository = leaderboardCommentRepository;
         _commentRepository = commentRepository;
@@ -293,5 +298,25 @@ public class UserProfileService : IUserProfileService
             _logger.LogError(ex, "Error deleting member {UserId}", userId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Gets a user's categories (MemberCategory) without change tracking.
+    /// Useful for read-only checks like determining if a user is a Leitão.
+    /// </summary>
+    /// <param name="userId">The user ID to get categories for</param>
+    /// <returns>The user's categories, or empty collection if user not found</returns>
+    public async Task<IEnumerable<MemberCategory>> GetUserCategoriesAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return Enumerable.Empty<MemberCategory>();
+
+        var user = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Categories)
+            .FirstOrDefaultAsync();
+
+        return user ?? Enumerable.Empty<MemberCategory>();
     }
 }

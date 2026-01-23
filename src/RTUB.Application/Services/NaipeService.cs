@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -112,9 +113,7 @@ public class NaipeService : INaipeService
 
     public async Task UpdateContentAsync(int id, string title, string? description, decimal sortOrder, string userId, bool isAdmin)
     {
-        var content = await _naipeContentRepository.GetByIdAsync(id);
-        if (content == null)
-            throw new EntityNotFoundException(nameof(NaipeContent), id);
+        var content = await _naipeContentRepository.GetByIdOrThrowAsync(id);
 
         // Only owner or admin can update content
         var isOwner = content.CreatedByUserId == userId;
@@ -140,9 +139,7 @@ public class NaipeService : INaipeService
 
     public async Task DeleteContentAsync(int id, string userId, bool isAdmin)
     {
-        var content = await _naipeContentRepository.GetByIdAsync(id);
-        if (content == null)
-            throw new EntityNotFoundException(nameof(NaipeContent), id);
+        var content = await _naipeContentRepository.GetByIdOrThrowAsync(id);
 
         // Only owner or admin can delete content
         var isOwner = content.CreatedByUserId == userId;
@@ -175,9 +172,7 @@ public class NaipeService : INaipeService
 
     public async Task IncrementPlayCountAsync(int contentId, string? userId)
     {
-        var content = await _naipeContentRepository.GetByIdAsync(contentId);
-        if (content == null)
-            throw new EntityNotFoundException(nameof(NaipeContent), contentId);
+        var content = await _naipeContentRepository.GetByIdOrThrowAsync(contentId);
 
         var playCount = new NaipePlayCount
         {

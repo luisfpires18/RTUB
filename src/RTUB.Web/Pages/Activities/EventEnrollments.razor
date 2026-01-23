@@ -7,8 +7,8 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
-@using RTUB.Application.Data
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using RTUB.Shared.Components.Cards
 @implements IDisposable
@@ -16,10 +16,10 @@
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
+@inject IUserProfileService UserProfileService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
-@inject ApplicationDbContext DbContext
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</PageTitle>
@@ -368,8 +368,8 @@
 <!-- Participation Modal (Enrollment Modal) -->
 @if (enrollmentForm != null)
 {
-    <ParticipationModal Show="@showEnrollModal"
-                       ShowChanged="@((bool show) => showEnrollModal = show)"
+    <ParticipationModal Show="@modals.IsOpen(ModalType.Enroll)"
+                       ShowChanged="@((bool show) => modals.Toggle(ModalType.Enroll, show))"
                        Title="@GetEnrollmentModalTitle()"
                        ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@enrollmentForm.WillAttend"
@@ -390,8 +390,8 @@
 }
 
 <!-- Delete Enrollment Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteEnrollmentModal"
-               ShowChanged="@((bool show) => showDeleteEnrollmentModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteEnrollment)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteEnrollment, show))"
                Title="Confirmar Eliminação de Inscrição"
                Message="@($"Tem a certeza que deseja eliminar a inscrição de {deletingEnrollment?.User?.GetDisplayName()} neste evento?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -410,12 +410,12 @@
     private string? currentUserId;
     private bool isCurrentUserLeitao = false;
     private bool isUserAdmin = false;
-    private bool showDeleteEnrollmentModal = false;
+    private enum ModalType { DeleteEnrollment, Enroll }
+    private readonly MultiModalState<ModalType> modals = new();
     private Enrollment? deletingEnrollment;
     
     // User's own enrollment state
     private Enrollment? userEnrollment;
-    private bool showEnrollModal = false;
     private bool isEditingEnrollment = false;
     private bool isParticipationPreSelected = false;
     private bool wantToPlay = false;
@@ -469,14 +469,9 @@
             // and instruments for the enrollment modal (once during initialization)
             if (!string.IsNullOrEmpty(currentUserId))
             {
-                // Load user data without tracking - just to get Categories
-                var userData = await UserManager.FindByIdAsync(currentUserId);
-                if (userData != null)
-                {
-                    isCurrentUserLeitao = userData.Categories.Contains(MemberCategory.Leitao);
-                    // Immediately detach to prevent tracking issues
-                    DbContext.Entry(userData).State = EntityState.Detached;
-                }
+                // Get user categories without tracking (service handles DbContext)
+                var userCategories = await UserProfileService.GetUserCategoriesAsync(currentUserId);
+                isCurrentUserLeitao = userCategories.Contains(MemberCategory.Leitao);
                 
                 currentUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId)).ToList();
                 availableInstruments = currentUserInstruments.Select(mi => mi.InstrumentType).ToList();
@@ -512,8 +507,8 @@
         // Load all members for adding if admin
         if (isUserAdmin)
         {
+            // Project to new objects to avoid tracking issues
             allMembersForEnrollment = await UserManager.Users
-                .AsNoTracking()
                 .Select(u => new ApplicationUser
                 {
                     Id = u.Id,
@@ -579,7 +574,7 @@
             };
         }
 
-        showEnrollModal = true;
+        modals.Open(ModalType.Enroll);
     }
     
     private (InstrumentType? defaultInstrument, bool wantToPlay) GetDefaultInstrumentSettings()
@@ -611,7 +606,7 @@
     
     private void CloseEnrollModal()
     {
-        showEnrollModal = false;
+        modals.Close(ModalType.Enroll);
         enrollmentForm = null;
         isEditingEnrollment = false;
         isParticipationPreSelected = false;
@@ -856,12 +851,12 @@
     private void OpenDeleteEnrollmentModal(Enrollment enrollment)
     {
         deletingEnrollment = enrollment;
-        showDeleteEnrollmentModal = true;
+        modals.Open(ModalType.DeleteEnrollment);
     }
     
     private void CloseDeleteEnrollmentModal()
     {
-        showDeleteEnrollmentModal = false;
+        modals.Close(ModalType.DeleteEnrollment);
         deletingEnrollment = null;
     }
     

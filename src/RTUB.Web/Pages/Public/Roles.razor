@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
@@ -702,8 +703,8 @@ else
 }
 
 <!-- RGI PDF Modal -->
-<Modal Show="@showRgiModal" 
-       ShowChanged="@((value) => showRgiModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Rgi)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Rgi, value))"
        Title="Regulamentos Gerais Internos (RGI)" 
        Size="Modal.ModalSize.ExtraLarge" 
        Centered="true"
@@ -741,8 +742,8 @@ else
 </Modal>
 
 <!-- Create Fiscal Year Modal (Admin only) -->
-<Modal Show="@showCreateFiscalYearModal" 
-       ShowChanged="@((bool show) => showCreateFiscalYearModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CreateFiscalYear)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CreateFiscalYear, show))"
        Title="Criar Novo Ano Letivo"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -779,8 +780,8 @@ else
 </Modal>
 
 <!-- Assign Member Modal (Admin only) -->
-<Modal Show="@showAssignMemberModal" 
-       ShowChanged="@((bool show) => showAssignMemberModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.AssignMember)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.AssignMember, show))"
        Title="@("Atribuir Membro ao Cargo: " + selectedPositionName)" 
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -841,8 +842,8 @@ else
 </Modal>
 
 <!-- Remove Assignment Confirmation Modal (Admin only) -->
-<ConfirmDialog Show="@showRemoveAssignmentModal"
-               ShowChanged="@((bool show) => showRemoveAssignmentModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.RemoveAssignment)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.RemoveAssignment, show))"
                Title="Confirmar Remoção"
                Message="@($"Tem a certeza que deseja remover {removingAssignment?.User?.GetDisplayName() ?? "este membro"} do cargo de {GetPositionDisplayName(removingAssignment?.Position ?? Position.Magister)}?")"
                WarningMessage="Esta ação irá atualizar o perfil do membro se for do ano letivo atual."
@@ -864,14 +865,12 @@ else
     private bool canDoAction = false;
     
     // RGI PDF state
-    private bool showRgiModal = false;
+    private enum ModalType { Rgi, CreateFiscalYear, AssignMember, RemoveAssignment }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isLoadingRgi = false;
     private string? rgiPdfUrl;
     
     // Admin modal state
-    private bool showCreateFiscalYearModal = false;
-    private bool showAssignMemberModal = false;
-    private bool showRemoveAssignmentModal = false;
     private int newStartYear = DateTime.Now.Year;
     private List<int> availableFiscalYearStartYears = new();
     private string errorMessage = "";
@@ -1018,7 +1017,7 @@ else
     private async Task OpenRgiModal()
     {
         isLoadingRgi = true;
-        showRgiModal = true;
+        modals.Open(ModalType.Rgi);
         StateHasChanged();
         
         try
@@ -1039,7 +1038,7 @@ else
     
     private void CloseRgiModal()
     {
-        showRgiModal = false;
+        modals.Close(ModalType.Rgi);
         isLoadingRgi = false;
         rgiPdfUrl = null;
     }
@@ -1055,12 +1054,12 @@ else
         newStartYear = availableFiscalYearStartYears.Any() ? availableFiscalYearStartYears.First() : DateTime.Now.Year;
         
         errorMessage = "";
-        showCreateFiscalYearModal = true;
+        modals.Open(ModalType.CreateFiscalYear);
     }
 
     private void CloseCreateFiscalYearModal()
     {
-        showCreateFiscalYearModal = false;
+        modals.Close(ModalType.CreateFiscalYear);
         errorMessage = "";
     }
 
@@ -1093,12 +1092,12 @@ else
         selectedMember = null;
         filteredMembers.Clear();
         errorMessage = "";
-        showAssignMemberModal = true;
+        modals.Open(ModalType.AssignMember);
     }
 
     private void CloseAssignMemberModal()
     {
-        showAssignMemberModal = false;
+        modals.Close(ModalType.AssignMember);
         selectedPosition = null;
         selectedPositionName = "";
         memberSearchTerm = "";
@@ -1271,12 +1270,12 @@ else
         }
         
         removingAssignment = assignment;
-        showRemoveAssignmentModal = true;
+        modals.Open(ModalType.RemoveAssignment);
     }
     
     private void CloseRemoveAssignmentModal()
     {
-        showRemoveAssignmentModal = false;
+        modals.Close(ModalType.RemoveAssignment);
         removingAssignment = null;
     }
     

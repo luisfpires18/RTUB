@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -34,32 +35,32 @@ public class EnrollmentService : IEnrollmentService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<Enrollment?> GetEnrollmentByIdAsync(int id)
+    public async Task<Enrollment?> GetEnrollmentByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetByIdAsync(id);
     }
 
-    public async Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync()
+    public async Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync(CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId)
+    public async Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId, CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetByEventIdAsync(eventId);
     }
 
-    public async Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId)
+    public async Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId, CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetByUserIdAsync(userId);
     }
 
-    public async Task<Enrollment?> GetEnrollmentByEventAndUserAsync(int eventId, string userId)
+    public async Task<Enrollment?> GetEnrollmentByEventAndUserAsync(int eventId, string userId, CancellationToken cancellationToken = default)
     {
         return await _enrollmentRepository.GetByEventAndUserAsync(eventId, userId);
     }
 
-    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null, bool skipNotification = false)
+    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null, bool skipNotification = false, CancellationToken cancellationToken = default)
     {
         var enrollment = Enrollment.Create(userId, eventId);
         enrollment.Instrument = instrument;
@@ -88,14 +89,10 @@ public class EnrollmentService : IEnrollmentService
        bool willAttend,
        InstrumentType? instrument = null,
        string? notes = null,
-       string? otherInstruments = null)
+       string? otherInstruments = null,
+       CancellationToken cancellationToken = default)
     {
-        var enrollment = await _enrollmentRepository.GetByIdAsync(enrollmentId);
-
-        if (enrollment == null)
-        {
-            throw new EntityNotFoundException(nameof(Enrollment), enrollmentId);
-        }
+        var enrollment = await _enrollmentRepository.GetByIdOrThrowAsync(enrollmentId);
 
         var wasAttending = enrollment.WillAttend;
 
@@ -116,33 +113,31 @@ public class EnrollmentService : IEnrollmentService
         // Send notification if user is now attending (was not attending before)
         if (willAttend && !wasAttending)
         {
-            await NotifyEnrollmentAsync(enrollment);
+            await NotifyEnrollmentAsync(enrollment, cancellationToken);
         }
         // Send notification if user is no longer attending (was attending before)
         else if (!willAttend && wasAttending)
         {
-            await NotifyCancellationAsync(enrollment);
+            await NotifyCancellationAsync(enrollment, cancellationToken);
         }
 
         return enrollment;
     }
 
-    public async Task DeleteEnrollmentAsync(int id)
+    public async Task DeleteEnrollmentAsync(int id, CancellationToken cancellationToken = default)
     {
-        var enrollment = await _enrollmentRepository.GetByIdAsync(id);
-        if (enrollment == null)
-            throw new EntityNotFoundException(nameof(Enrollment), id);
+        var enrollment = await _enrollmentRepository.GetByIdOrThrowAsync(id);
 
         // Send cancellation notification before deleting if user was attending
         if (enrollment.WillAttend)
         {
-            await NotifyCancellationAsync(enrollment);
+            await NotifyCancellationAsync(enrollment, cancellationToken);
         }
 
         await _enrollmentRepository.DeleteAsync(id);
     }
 
-    private async Task NotifyEnrollmentAsync(Enrollment enrollment)
+    private async Task NotifyEnrollmentAsync(Enrollment enrollment, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -150,7 +145,7 @@ public class EnrollmentService : IEnrollmentService
                 .AsNoTracking()
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -181,7 +176,7 @@ public class EnrollmentService : IEnrollmentService
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (recipientIds.Count == 0)
             {
@@ -196,7 +191,7 @@ public class EnrollmentService : IEnrollmentService
         }
     }
 
-    private async Task NotifyCancellationAsync(Enrollment enrollment)
+    private async Task NotifyCancellationAsync(Enrollment enrollment, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -204,7 +199,7 @@ public class EnrollmentService : IEnrollmentService
                 .AsNoTracking()
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -235,7 +230,7 @@ public class EnrollmentService : IEnrollmentService
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (recipientIds.Count == 0)
             {
@@ -250,7 +245,7 @@ public class EnrollmentService : IEnrollmentService
         }
     }
 
-    private async Task NotifyNonEnrollmentAsync(Enrollment enrollment)
+    private async Task NotifyNonEnrollmentAsync(Enrollment enrollment, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -258,7 +253,7 @@ public class EnrollmentService : IEnrollmentService
                 .AsNoTracking()
                 .Include(e => e.Event)
                 .Include(e => e.User)
-                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id, cancellationToken);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
             {
@@ -289,7 +284,7 @@ public class EnrollmentService : IEnrollmentService
                             && !string.IsNullOrEmpty(e.UserId))
                 .Select(e => e.UserId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (recipientIds.Count == 0)
             {

@@ -8,6 +8,7 @@
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject ILogisticsBoardService BoardService
 @inject IEventService EventService
@@ -155,7 +156,7 @@
 </div>
 
 @* Create/Edit Board Modal *@
-@if (showBoardModal)
+@if (modals.IsOpen(ModalType.Board))
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
@@ -231,8 +232,8 @@
 }
 
 @* Delete Confirmation Modal *@
-<ConfirmDialog Show="@showDeleteBoardModal"
-               ShowChanged="@((value) => showDeleteBoardModal = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteBoard)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.DeleteBoard, value))"
                Title="Confirmar Eliminação"
                WarningMessage="Todas as listas e cartões deste quadro também serão eliminados."
                ConfirmText="Eliminar"
@@ -265,7 +266,8 @@
     private bool canDoAction = false;
 
     // Board modal state
-    private bool showBoardModal = false;
+    private enum ModalType { Board, DeleteBoard }
+    private readonly MultiModalState<ModalType> modals = new();
     private BoardEntity? editingBoard = null;
     private string boardName = string.Empty;
     private string boardDescription = string.Empty;
@@ -277,7 +279,6 @@
         e.Name.Contains(eventSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
 
     // Delete modal state
-    private bool showDeleteBoardModal = false;
     private BoardEntity? deletingBoard = null;
 
     protected override async Task OnInitializedAsync()
@@ -351,7 +352,7 @@
         selectedEventId = string.Empty;
         selectedEventName = string.Empty;
         eventSearchTerm = string.Empty;
-        showBoardModal = true;
+        modals.Open(ModalType.Board);
     }
 
     private void OpenEditBoardModal(BoardEntity board)
@@ -362,12 +363,12 @@
         selectedEventId = board.EventId?.ToString() ?? string.Empty;
         selectedEventName = board.Event?.Name ?? string.Empty;
         eventSearchTerm = string.Empty;
-        showBoardModal = true;
+        modals.Open(ModalType.Board);
     }
 
     private void CloseBoardModal()
     {
-        showBoardModal = false;
+        modals.Close(ModalType.Board);
         editingBoard = null;
     }
 
@@ -417,12 +418,12 @@
     private void OpenDeleteBoardModal(BoardEntity board)
     {
         deletingBoard = board;
-        showDeleteBoardModal = true;
+        modals.Open(ModalType.DeleteBoard);
     }
 
     private void CloseDeleteBoardModal()
     {
-        showDeleteBoardModal = false;
+        modals.Close(ModalType.DeleteBoard);
         deletingBoard = null;
     }
 

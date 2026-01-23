@@ -38,7 +38,7 @@ public class LoginAuditLogTests : IDisposable
         httpContextMock.Setup(x => x.User).Returns(new ClaimsPrincipal());
         _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContextMock.Object);
 
-        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext);
+        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext, new RTUB.Application.Services.AuditLogAppender());
 
         // Set up UserManager
         var userStore = new UserStore<ApplicationUser>(_context);

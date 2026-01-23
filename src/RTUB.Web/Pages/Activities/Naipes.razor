@@ -8,6 +8,7 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.DTOs
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Core.Enums
 @attribute [Authorize]
 @inject INaipeService NaipeService
@@ -128,8 +129,8 @@ else
 <!-- View Content Modal -->
 @if (viewingContent != null)
 {
-    <DetailsModal Show="@showViewModal"
-                  ShowChanged="@((bool show) => showViewModal = show)"
+    <DetailsModal Show="@modals.IsOpen(ModalType.View)"
+                  ShowChanged="@((bool show) => modals.Toggle(ModalType.View, show))"
                   Title="Detalhes do Conteúdo"
                   HeaderTitle="@viewingContent.Title"
                   Size="Modal.ModalSize.ExtraLarge"
@@ -243,7 +244,7 @@ else
 }
 
 <!-- Create/Edit Modal -->
-<Modal @bind-Show="showCreateEditModal" Size="Modal.ModalSize.Large" Title="@(editingContent == null ? (isVideoMode ? "Adicionar Vídeo" : "Adicionar Imagem") : "Editar Conteúdo")">
+<Modal Show="@modals.IsOpen(ModalType.CreateEdit)" ShowChanged="@((bool show) => modals.Toggle(ModalType.CreateEdit, show))" Size="Modal.ModalSize.Large" Title="@(editingContent == null ? (isVideoMode ? "Adicionar Vídeo" : "Adicionar Imagem") : "Editar Conteúdo")">
     <BodyContent>
         <EditForm Model="@contentForm" OnValidSubmit="@SaveContent">
             <DataAnnotationsValidator />
@@ -338,7 +339,7 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<ConfirmDialog @bind-Show="showDeleteConfirm"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)" ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza que deseja eliminar \"{contentToDelete?.Title}\"?")"
                WarningMessage="Esta ação não pode ser revertida. Todos os comentários associados também serão eliminados."
@@ -367,9 +368,14 @@ else
     private int pageSize = 10;
 
     // Modal visibility states
-    private bool showViewModal = false;
-    private bool showCreateEditModal = false;
-    private bool showDeleteConfirm = false;
+    private enum ModalType
+    {
+        View,
+        CreateEdit,
+        Delete
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
 
     // View Modal State
     private NaipeContentDto? viewingContent = null;
@@ -380,7 +386,7 @@ else
 
     // Create/Edit Modal State
     private NaipeContentDto? editingContent = null;
-    private ContentFormModel contentForm = new();
+    private NaipeContentFormModel contentForm = new();
     private bool isVideoMode = true;
     private bool isSaving = false;
     
@@ -497,7 +503,7 @@ else
         newCommentText = string.Empty;
         hasIncrementedPlayCount = false;
         
-        showViewModal = true;
+        modals.Open(ModalType.View);
 
         // Load comments
         await LoadComments(content.Id);
@@ -591,7 +597,7 @@ else
 
     private void CloseViewModal()
     {
-        showViewModal = false;
+        modals.Close(ModalType.View);
         viewingContent = null;
         comments.Clear();
     }
@@ -604,12 +610,12 @@ else
         selectedFile = null;
         selectedFileName = null;
         fileUploadKey = Guid.NewGuid();
-        contentForm = new ContentFormModel
+        contentForm = new NaipeContentFormModel
         {
             InstrumentType = selectedInstrument ?? InstrumentType.Guitarra,
             SortOrder = allContent.Any() ? allContent.Max(c => c.SortOrder) + 1 : 1
         };
-        showCreateEditModal = true;
+        modals.Open(ModalType.CreateEdit);
     }
 
     private void OpenEditModal(NaipeContentDto content)
@@ -618,14 +624,14 @@ else
         isVideoMode = content.IsVideo;
         selectedFile = null;
         selectedFileName = null;
-        contentForm = new ContentFormModel
+        contentForm = new NaipeContentFormModel
         {
             Title = content.Title,
             Description = content.Description,
             SortOrder = content.SortOrder,
             InstrumentType = content.InstrumentType
         };
-        showCreateEditModal = true;
+        modals.Open(ModalType.CreateEdit);
     }
     
     private void HandleFileSelection(InputFileChangeEventArgs e)
@@ -736,7 +742,7 @@ else
 
     private void CloseCreateEditModal()
     {
-        showCreateEditModal = false;
+        modals.Close(ModalType.CreateEdit);
         editingContent = null;
         contentForm = new();
         selectedFile = null;
@@ -748,7 +754,7 @@ else
     private void OpenDeleteConfirmation(NaipeContentDto content)
     {
         contentToDelete = content;
-        showDeleteConfirm = true;
+        modals.Open(ModalType.Delete);
     }
 
     private async Task ConfirmDelete()
@@ -776,20 +782,4 @@ else
         }
     }
 
-    // Form Model
-    private class ContentFormModel
-    {
-        [Required(ErrorMessage = "O instrumento é obrigatório")]
-        public InstrumentType InstrumentType { get; set; }
-
-        [Required(ErrorMessage = "O título é obrigatório")]
-        [StringLength(200, ErrorMessage = "O título não pode ter mais de 200 caracteres")]
-        public string Title { get; set; } = string.Empty;
-
-        public string? Description { get; set; }
-
-        [Required(ErrorMessage = "A ordem é obrigatória")]
-        [Range(0.1, 999.9, ErrorMessage = "A ordem deve estar entre 0.1 e 999.9")]
-        public decimal SortOrder { get; set; } = 1;
-    }
 }

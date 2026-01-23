@@ -1,0 +1,163 @@
+@namespace RTUB.Shared
+@*
+    Reusable component that combines LoadableContent with pagination.
+    Handles loading, empty, and paginated content states in a single component.
+*@
+@typeparam TItem
+
+<LoadableContent Items="@FilteredItems" 
+                 IsLoading="@IsLoading"
+                 EmptyTitle="@EmptyTitle"
+                 EmptyIcon="@EmptyIcon"
+                 EmptyMessage="@EmptyMessage"
+                 LoadingContent="@LoadingContent"
+                 EmptyContent="@EmptyContent">
+    <ChildContent Context="items">
+        @if (ItemsContent != null)
+        {
+            @ItemsContent(PaginatedItems)
+        }
+        
+        @if (ShowPagination && FilteredItems != null && FilteredItems.Any())
+        {
+            <div class="mt-3">
+                <TablePagination CurrentPage="@CurrentPage"
+                                PageSize="@PageSize"
+                                TotalItems="@FilteredItems.Count()"
+                                ItemLabel="@ItemLabel"
+                                PageSizeOptions="@PageSizeOptions"
+                                OnPageChanged="@HandlePageChange"
+                                OnPageSizeChanged="@HandlePageSizeChange" />
+            </div>
+        }
+    </ChildContent>
+</LoadableContent>
+
+@code {
+    private readonly PaginationHelper<TItem> _paginationHelper = new();
+
+    /// <summary>
+    /// All items to paginate (before filtering)
+    /// </summary>
+    [Parameter]
+    public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// Filtered items to paginate (if already filtered, otherwise uses Items)
+    /// </summary>
+    [Parameter]
+    public IEnumerable<TItem>? FilteredItems { get; set; }
+
+    /// <summary>
+    /// Whether the content is currently loading
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// Initial page size (default: 30)
+    /// </summary>
+    [Parameter]
+    public int PageSize { get; set; } = 30;
+
+    /// <summary>
+    /// Page size options for the dropdown (default: 30, 60, 90)
+    /// </summary>
+    [Parameter]
+    public int[] PageSizeOptions { get; set; } = new[] { 30, 60, 90 };
+
+    /// <summary>
+    /// Label for items (e.g., "items", "membros", "instrumentos")
+    /// </summary>
+    [Parameter]
+    public string ItemLabel { get; set; } = "items";
+
+    /// <summary>
+    /// Title for the empty state (default: "No items found")
+    /// </summary>
+    [Parameter]
+    public string EmptyTitle { get; set; } = "No items found";
+
+    /// <summary>
+    /// Icon for the empty state (Bootstrap icon class)
+    /// </summary>
+    [Parameter]
+    public string EmptyIcon { get; set; } = "bi-info-circle";
+
+    /// <summary>
+    /// Optional message for the empty state
+    /// </summary>
+    [Parameter]
+    public string? EmptyMessage { get; set; }
+
+    /// <summary>
+    /// Custom loading content (overrides default LoadingSpinner)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? LoadingContent { get; set; }
+
+    /// <summary>
+    /// Custom empty content (overrides default EmptyState)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>
+    /// Content to render for the paginated items
+    /// Receives the paginated items collection as a parameter
+    /// </summary>
+    [Parameter]
+    public RenderFragment<IEnumerable<TItem>>? ItemsContent { get; set; }
+
+    /// <summary>
+    /// Whether to show pagination controls (default: true)
+    /// </summary>
+    [Parameter]
+    public bool ShowPagination { get; set; } = true;
+
+    /// <summary>
+    /// Callback when page changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int> OnPageChanged { get; set; }
+
+    /// <summary>
+    /// Callback when page size changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int> OnPageSizeChanged { get; set; }
+
+    private IEnumerable<TItem> EffectiveFilteredItems => FilteredItems ?? Items ?? Enumerable.Empty<TItem>();
+    private int CurrentPage => _paginationHelper.CurrentPage;
+    private IEnumerable<TItem> PaginatedItems => _paginationHelper.GetPageData(EffectiveFilteredItems.ToList());
+
+    protected override void OnParametersSet()
+    {
+        _paginationHelper.PageSize = PageSize;
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        _paginationHelper.CurrentPage = newPage;
+        
+        if (OnPageChanged.HasDelegate)
+        {
+            await OnPageChanged.InvokeAsync(newPage);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task HandlePageSizeChange(int newPageSize)
+    {
+        _paginationHelper.PageSize = newPageSize;
+        _paginationHelper.CurrentPage = 1;
+        
+        if (OnPageSizeChanged.HasDelegate)
+        {
+            await OnPageSizeChanged.InvokeAsync(newPageSize);
+        }
+        
+        StateHasChanged();
+    }
+}

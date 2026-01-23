@@ -8,6 +8,7 @@
 @using RTUB.Application.Data
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject NavigationManager NavigationManager
 @inject IGameScoreService GameScoreService
 @inject IGameService GameService
@@ -70,10 +71,10 @@
 </div>
 
 <!-- Edit Game Modal -->
-@if (showEditModal && editingGame != null)
+@if (modals.IsOpen(ModalType.Edit) && editingGame != null)
 {
-    <Modal Show="@showEditModal"
-           ShowChanged="@OnEditModalShowChanged"
+    <Modal Show="@modals.IsOpen(ModalType.Edit)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
            Title="Editar Jogo"
            Size="Modal.ModalSize.Default"
            Centered="true">
@@ -122,10 +123,10 @@
 
 <!-- Leaderboard Modal (keep existing) -->
 
-@if (showLeaderboardModal)
+@if (modals.IsOpen(ModalType.Leaderboard))
 {
-    <Modal Show="@showLeaderboardModal"
-           ShowChanged="@OnLeaderboardModalShowChanged"
+    <Modal Show="@modals.IsOpen(ModalType.Leaderboard)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.Leaderboard, show))"
            Title="@($"Classificação - {selectedGameTitle}")"
            Size="Modal.ModalSize.Large"
            Centered="true">
@@ -234,12 +235,12 @@
     private bool isLeitao = false;
 
     // Edit modal state
-    private bool showEditModal = false;
+    private enum ModalType { Edit, Leaderboard }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool saving = false;
     private GameDto? editingGame;
 
     // Leaderboard modal state
-    private bool showLeaderboardModal = false;
     private bool leaderboardLoading = false;
     private string selectedGameKey = string.Empty;
     private string selectedGameTitle = string.Empty;
@@ -341,18 +342,12 @@
             MembersOnly = game.MembersOnly,
             IsActive = game.IsActive
         };
-        showEditModal = true;
-    }
-
-    private void OnEditModalShowChanged(bool show)
-    {
-        showEditModal = show;
-        if (!show) CloseEditModal();
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingGame = null;
     }
 
@@ -388,7 +383,7 @@
     {
         selectedGameKey = gameKey;
         selectedGameTitle = gameTitle;
-        showLeaderboardModal = true;
+        modals.Open(ModalType.Leaderboard);
         leaderboardLoading = true;
         leaderboardScores = null;
         leaderboardSearchTerm = string.Empty;
@@ -410,15 +405,9 @@
         }
     }
 
-    private void OnLeaderboardModalShowChanged(bool show)
-    {
-        showLeaderboardModal = show;
-        if (!show) CloseLeaderboardModal();
-    }
-
     private void CloseLeaderboardModal()
     {
-        showLeaderboardModal = false;
+        modals.Close(ModalType.Leaderboard);
         selectedGameKey = string.Empty;
         selectedGameTitle = string.Empty;
         leaderboardScores = null;

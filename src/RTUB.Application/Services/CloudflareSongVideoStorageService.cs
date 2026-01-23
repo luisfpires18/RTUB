@@ -38,54 +38,16 @@ public class CloudflareSongVideoStorageService : BaseCloudflareStorageService<Cl
 
     public async Task<string> UploadVideoAsync(Stream fileStream, string fileName, string contentType, int songId)
     {
-        try
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var sanitizedFileName = SanitizeFileName(fileName);
+        var objectKey = $"songs/{_environment}/videos/{songId}_{timestamp}_{sanitizedFileName}";
+
+        var additionalMetadata = new Dictionary<string, string>
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var sanitizedFileName = SanitizeFileName(fileName);
-            var objectKey = $"songs/{_environment}/videos/{songId}_{timestamp}_{sanitizedFileName}";
+            { "x-amz-meta-song-id", songId.ToString() }
+        };
 
-            var putRequest = new PutObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = objectKey,
-                InputStream = fileStream,
-                ContentType = contentType,
-                CannedACL = S3CannedACL.PublicRead,
-                UseChunkEncoding = false
-            };
-
-            // Cache control for immutable resources
-            putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";
-
-            // Metadata
-            putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
-            putRequest.Metadata.Add("x-amz-meta-song-id", songId.ToString());
-            putRequest.Metadata.Add("x-amz-meta-environment", _environment);
-
-            var response = await _s3Client.PutObjectAsync(putRequest);
-
-            if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return $"{_publicBaseUrl}/{objectKey}";
-            }
-            else
-            {
-                var errorMsg = $"Failed to upload video. Status code: {response.HttpStatusCode}";
-                _logger.LogError(errorMsg);
-                throw new Exception(errorMsg);
-            }
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error uploading video for song {SongId}. ErrorCode: {ErrorCode}, Message: {Message}",
-                songId, ex.ErrorCode, ex.Message);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error uploading video for song {SongId}", songId);
-            throw;
-        }
+        return await UploadMediaAsync(fileStream, fileName, contentType, objectKey, _publicBaseUrl, additionalMetadata);
     }
 
     public async Task DeleteVideoAsync(string videoUrl)
@@ -125,10 +87,4 @@ public class CloudflareSongVideoStorageService : BaseCloudflareStorageService<Cl
         return await ObjectExistsAsync(objectKey);
     }
 
-    private static string SanitizeFileName(string fileName)
-    {
-        // Remove invalid characters and keep only alphanumeric, dots, hyphens, and underscores
-        var sanitized = string.Concat(fileName.Where(c => char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_'));
-        return string.IsNullOrEmpty(sanitized) ? "file" : sanitized;
-    }
 }

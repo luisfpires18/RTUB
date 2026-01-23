@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
@@ -48,9 +49,7 @@ public class ReportService : IReportService
 
     public async Task UpdateReportAsync(int id, string? summary)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.UpdateSummary(summary);
         await _reportRepository.UpdateAsync(report);
@@ -58,9 +57,7 @@ public class ReportService : IReportService
 
     public async Task PublishReportAsync(int id)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.Publish();
         await _reportRepository.UpdateAsync(report);
@@ -68,9 +65,7 @@ public class ReportService : IReportService
 
     public async Task UnpublishReportAsync(int id)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.Unpublish();
         await _reportRepository.UpdateAsync(report);

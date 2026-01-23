@@ -12,6 +12,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Options
 @inject UserManager<ApplicationUser> UserManager
@@ -259,8 +260,8 @@ else
 }
 
 <!-- Create/Edit Modal -->
-<Modal Show="@showEditModal"
-       ShowChanged="@((bool show) => showEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Edit); else modals.Close(ModalType.Edit); })"
        Title="@(isCreateMode ? "Adicionar Novo Membro" : "Editar Membro")" 
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -572,8 +573,8 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((bool show) => showDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Delete); else modals.Close(ModalType.Delete); })"
                Title="Confirmar Eliminação"
                Message="@($"Tem certeza que deseja eliminar {deletingUser?.GetDisplayName()}?")"
                WarningMessage="Esta ação não pode ser desfeita."
@@ -584,8 +585,8 @@ else
                OnCancel="CloseDeleteModal" />
 
 <!-- Expel Confirmation Modal -->
-<ConfirmDialog Show="@showExpelConfirmModal"
-               ShowChanged="@((bool show) => showExpelConfirmModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.ExpelConfirm)"
+               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.ExpelConfirm); else modals.Close(ModalType.ExpelConfirm); })"
                Title="Expulsar Membro"
                Message="@($"Tem certeza que deseja expulsar {expellingUser?.GetDisplayName()}? O membro não conseguirá fazer login.")"
                WarningMessage="O membro pode ser reativado mais tarde."
@@ -597,8 +598,8 @@ else
                Disabled="@isExpelling" />
 
 <!-- Reactivate Confirmation Modal -->
-<ConfirmDialog Show="@showReactivateConfirmModal"
-               ShowChanged="@((bool show) => showReactivateConfirmModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.ReactivateConfirm)"
+               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.ReactivateConfirm); else modals.Close(ModalType.ReactivateConfirm); })"
                Title="Reativar Membro"
                Message="@($"Tem certeza que deseja reativar {reactivatingUser?.GetDisplayName()}? O membro poderá fazer login novamente.")"
                ConfirmText="Reativar"
@@ -611,7 +612,7 @@ else
 <!-- View Details Modal -->
 @if (viewingUser != null)
 {
-    <Modal Show="@showViewDetailsModal"
+    <Modal Show="@modals.IsOpen(ModalType.ViewDetails)"
            ShowChanged="OnViewDetailsModalChanged"
            Title="Detalhes do Membro"
            Size="Modal.ModalSize.Large"
@@ -880,8 +881,8 @@ else
 }
 
 <!-- Set Nickname Modal -->
-<Modal Show="@showSetNicknameModal" 
-       ShowChanged="@((bool show) => showSetNicknameModal = show)"
+    <Modal Show="@modals.IsOpen(ModalType.SetNickname)" 
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.SetNickname); else modals.Close(ModalType.SetNickname); })"
        Title="Definir Alcunha" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -933,26 +934,17 @@ else
 </Modal>
 
 <!-- Active Members Management Modal -->
-<Modal Show="@showActiveMembersManagementModal"
-       ShowChanged="@((bool show) => showActiveMembersManagementModal = show)"
+    <Modal Show="@modals.IsOpen(ModalType.ActiveMembersManagement)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.ActiveMembersManagement); else modals.Close(ModalType.ActiveMembersManagement); })"
        Title="Gestão de Membros Ativos"
        Size="Modal.ModalSize.ExtraLarge"
        Centered="true">
     <BodyContent>
-        @if (activeMembersLoading)
-        {
-            <div class="d-flex justify-content-center my-5">
-                <LoadingSpinner />
-            </div>
-        }
-        else if (allActiveMembers == null || !allActiveMembers.Any())
-        {
-            <EmptyState Title="Nenhum membro ativo encontrado"
-                       Message="Não há membros ativos (Caloiro, Tuno, Veterano, Tunossauro)."
-                       Icon="bi-person-badge" />
-        }
-        else
-        {
+        <LoadableContent Items="@allActiveMembers" IsLoading="@activeMembersLoading"
+                        EmptyTitle="Nenhum membro ativo encontrado"
+                        EmptyMessage="Não há membros ativos (Caloiro, Tuno, Veterano, Tunossauro)."
+                        EmptyIcon="bi-person-badge">
+            <ChildContent>
             <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
                 <div class="flex-grow-1">
                     <SearchBar @bind-Value="activeMembersSearchTerm"
@@ -1034,7 +1026,8 @@ else
                             PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
                             OnPageChanged="ChangeActiveMembersPage"
                             OnPageSizeChanged="ChangeActiveMembersPageSize" />
-        }
+            </ChildContent>
+        </LoadableContent>
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseActiveMembersManagementModal">Fechar</button>
@@ -1042,8 +1035,8 @@ else
 </Modal>
 
 <!-- Make Active Confirmation Modal -->
-<ConfirmDialog Show="@showMakeActiveConfirmModal"
-               ShowChanged="@((bool show) => showMakeActiveConfirmModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.MakeActiveConfirm)"
+               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.MakeActiveConfirm); else modals.Close(ModalType.MakeActiveConfirm); })"
                Title="Tornar Membro Ativo"
                Message="@($"Tem certeza que deseja tornar {memberToMakeActive?.GetDisplayName()} ativo? Isto irá resetar o estado de reforma e permitir que o membro participe sem necessidade de 3 meses consecutivos de atividade.")"
                ConfirmText="Tornar Ativo"
@@ -1054,26 +1047,17 @@ else
                Disabled="@isMakingActive" />
 
 <!-- Anniversaries Modal -->
-<Modal Show="@showAnniversariesModal"
-       ShowChanged="@((bool show) => showAnniversariesModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Anniversaries)"
+       ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.Anniversaries); else modals.Close(ModalType.Anniversaries); })"
        Title="Aniversários dos Membros"
        Size="Modal.ModalSize.ExtraLarge"
        Centered="true">
     <BodyContent>
-        @if (anniversariesLoading)
-        {
-            <div class="d-flex justify-content-center my-5">
-                <LoadingSpinner />
-            </div>
-        }
-        else if (allAnniversaries == null || !allAnniversaries.Any())
-        {
-            <EmptyState Title="Nenhum aniversário encontrado"
-                       Message="Não há membros com data de nascimento registada."
-                       Icon="bi-cake2" />
-        }
-        else
-        {
+        <LoadableContent Items="@allAnniversaries" IsLoading="@anniversariesLoading"
+                        EmptyTitle="Nenhum aniversário encontrado"
+                        EmptyMessage="Não há membros com data de nascimento registada."
+                        EmptyIcon="bi-cake2">
+            <ChildContent>
             <SearchBar @bind-Value="anniversariesSearchTerm"
                        Placeholder="Pesquisar aniversariantes por nome ou alcunha..."
                        OnSearch="ApplyAnniversariesSearch" />
@@ -1123,7 +1107,8 @@ else
                             PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
                             OnPageChanged="ChangeAnniversariesPage"
                             OnPageSizeChanged="ChangeAnniversariesPageSize" />
-        }
+            </ChildContent>
+        </LoadableContent>
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseAnniversariesModal">Fechar</button>
@@ -1131,8 +1116,8 @@ else
 </Modal>
 
 <!-- Birthday Notification Confirmation Modal -->
-<ConfirmDialog Show="@showBirthdayEmailModal"
-               ShowChanged="@((bool show) => showBirthdayEmailModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.BirthdayEmail)"
+               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.BirthdayEmail); else modals.Close(ModalType.BirthdayEmail); })"
                Title="Enviar notificação de aniversário?"
                ConfirmText="Sim"
                CancelText="Não"
@@ -1289,11 +1274,22 @@ else
         new FilterDropdownOption("retired", "Reformado")
     };
 
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showViewDetailsModal = false;
-    private bool showSetNicknameModal = false;
-    private bool showAnniversariesModal = false;
+    // Modal state management using MultiModalState
+    private enum ModalType
+    {
+        Edit,
+        Delete,
+        ViewDetails,
+        SetNickname,
+        Anniversaries,
+        ActiveMembersManagement,
+        MakeActiveConfirm,
+        ExpelConfirm,
+        ReactivateConfirm,
+        BirthdayEmail
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isSaving = false;
     private bool isSavingNickname = false;
@@ -1324,7 +1320,6 @@ else
     private PaginationHelper<ApplicationUser> anniversariesPaginationHelper = new() { PageSize = 12 };
     
     // Active Members Management modal
-    private bool showActiveMembersManagementModal = false;
     private bool activeMembersLoading = false;
     private List<ActiveMemberData> allActiveMembers = new();
     private List<ActiveMemberData> filteredActiveMembers = new();
@@ -1335,27 +1330,16 @@ else
     private PaginationHelper<ActiveMemberData> activeMembersPaginationHelper = new() { PageSize = 12 };
     
     // Make Active confirmation modal
-    private bool showMakeActiveConfirmModal = false;
     private ApplicationUser? memberToMakeActive = null;
     private bool isMakingActive = false;
     
     // Expel/Reactivate confirmation modals
-    private bool showExpelConfirmModal = false;
-    private bool showReactivateConfirmModal = false;
     private ApplicationUser? expellingUser = null;
     private ApplicationUser? reactivatingUser = null;
     private bool isExpelling = false;
     private bool isReactivating = false;
     
-    // Helper class for active members data
-    public class ActiveMemberData
-    {
-        public ApplicationUser Member { get; set; } = null!;
-        public MemberStatusResult? StatusData { get; set; }
-    }
-    
     // Birthday notification modal
-    private bool showBirthdayEmailModal = false;
     private ApplicationUser? selectedUserForBirthday = null;
     private List<ApplicationUser>? birthdaySubscribedUsers = null;
     private int birthdaySubscribedUsersCount = 0;
@@ -1367,14 +1351,6 @@ else
     private int EmailsTotal = 0;
     private int EmailsSent = 0;
     private string? LastRecipient = null;
-    
-    // Nickname form model
-    public class NicknameFormModel
-    {
-        [Required(ErrorMessage = "O nome de tuna é obrigatório")]
-        [MaxLength(80, ErrorMessage = "O nome de tuna não pode exceder 80 caracteres")]
-        public string? Nickname { get; set; }
-    }
     
     // Helper properties for month/year date pickers
     private DateTime? LeitaoDate
@@ -1865,7 +1841,7 @@ else
         selectedMentorCache = null;
         memberInstruments.Clear();
         selectedInstrumentToAdd = "";
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private async Task OpenEditModal(ApplicationUser user)
@@ -1941,13 +1917,13 @@ else
         memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(freshUser.Id)).ToList();
         selectedInstrumentToAdd = "";
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
         StateHasChanged();
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingUser = new();
         mentorSearchTerm = "";
         filteredMentors.Clear();
@@ -2446,12 +2422,12 @@ else
     private void OpenDeleteModal(ApplicationUser user)
     {
         deletingUser = user;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingUser = null;
     }
 
@@ -2537,17 +2513,20 @@ else
         // Reset expansion state when opening modal
         isViewingUserActivitiesExpanded = false;
         
-        showViewDetailsModal = true;
+        modals.Open(ModalType.ViewDetails);
     }
 
     private void CloseViewDetailsModal()
     {
-        OnViewDetailsModalChanged(false);
+        modals.Close(ModalType.ViewDetails);
     }
 
     private void OnViewDetailsModalChanged(bool isVisible)
     {
-        showViewDetailsModal = isVisible;
+        if (isVisible)
+            modals.Open(ModalType.ViewDetails);
+        else
+            modals.Close(ModalType.ViewDetails);
 
         if (!isVisible)
         {
@@ -2722,12 +2701,12 @@ else
         {
             Nickname = user.Nickname
         };
-        showSetNicknameModal = true;
+        modals.Open(ModalType.SetNickname);
     }
 
     private void CloseSetNicknameModal()
     {
-        showSetNicknameModal = false;
+        modals.Close(ModalType.SetNickname);
         nicknameSettingUser = null;
         nicknameForm = new NicknameFormModel();
         isSavingNickname = false;
@@ -2857,7 +2836,7 @@ else
     /// </summary>
     private async Task OpenActiveMembersManagementModal()
     {
-        showActiveMembersManagementModal = true;
+        modals.Open(ModalType.ActiveMembersManagement);
         activeMembersLoading = true;
         activeMembersSearchTerm = string.Empty;
         activeMembersStatusFilter = string.Empty;
@@ -2932,7 +2911,7 @@ else
     /// </summary>
     private void CloseActiveMembersManagementModal()
     {
-        showActiveMembersManagementModal = false;
+        modals.Close(ModalType.ActiveMembersManagement);
         allActiveMembers.Clear();
         filteredActiveMembers.Clear();
         paginatedActiveMembers.Clear();
@@ -3113,7 +3092,7 @@ else
     /// </summary>
     private async Task OpenAnniversariesModal()
     {
-        showAnniversariesModal = true;
+        modals.Open(ModalType.Anniversaries);
         anniversariesLoading = true;
         anniversariesSearchTerm = string.Empty;
         StateHasChanged();
@@ -3164,7 +3143,7 @@ else
     /// </summary>
     private void CloseAnniversariesModal()
     {
-        showAnniversariesModal = false;
+        modals.Close(ModalType.Anniversaries);
         allAnniversaries.Clear();
         filteredAnniversaries.Clear();
         paginatedAnniversaries.Clear();
@@ -3254,7 +3233,7 @@ else
         selectedUserForBirthday = user;
         birthdayEmailLoadingSubscribers = true;
         birthdayEmailErrorMessage = null;
-        showBirthdayEmailModal = true;
+        modals.Open(ModalType.BirthdayEmail);
         StateHasChanged();
 
         try
@@ -3285,7 +3264,7 @@ else
     /// </summary>
     private void CloseBirthdayEmailModal()
     {
-        showBirthdayEmailModal = false;
+        modals.Close(ModalType.BirthdayEmail);
         selectedUserForBirthday = null;
         birthdaySubscribedUsers = null;
         birthdaySubscribedUsersCount = 0;
@@ -3411,7 +3390,7 @@ else
     private void OpenMakeActiveConfirmModal(ApplicationUser member)
     {
         memberToMakeActive = member;
-        showMakeActiveConfirmModal = true;
+        modals.Open(ModalType.MakeActiveConfirm);
     }
     
     /// <summary>
@@ -3419,7 +3398,7 @@ else
     /// </summary>
     private void CloseMakeActiveConfirmModal()
     {
-        showMakeActiveConfirmModal = false;
+        modals.Close(ModalType.MakeActiveConfirm);
         memberToMakeActive = null;
     }
     
@@ -3503,7 +3482,7 @@ else
     private void OpenExpelConfirmModal(ApplicationUser user)
     {
         expellingUser = user;
-        showExpelConfirmModal = true;
+        modals.Open(ModalType.ExpelConfirm);
     }
     
     /// <summary>
@@ -3511,7 +3490,7 @@ else
     /// </summary>
     private void CloseExpelConfirmModal()
     {
-        showExpelConfirmModal = false;
+        modals.Close(ModalType.ExpelConfirm);
         expellingUser = null;
     }
     
@@ -3521,7 +3500,7 @@ else
     private void OpenReactivateConfirmModal(ApplicationUser user)
     {
         reactivatingUser = user;
-        showReactivateConfirmModal = true;
+        modals.Open(ModalType.ReactivateConfirm);
     }
     
     /// <summary>
@@ -3529,7 +3508,7 @@ else
     /// </summary>
     private void CloseReactivateConfirmModal()
     {
-        showReactivateConfirmModal = false;
+        modals.Close(ModalType.ReactivateConfirm);
         reactivatingUser = null;
     }
     

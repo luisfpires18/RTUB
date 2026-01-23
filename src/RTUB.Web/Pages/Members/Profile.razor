@@ -8,6 +8,7 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Application.Services
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
@@ -540,8 +541,8 @@
 </div>
 
 <!-- Upload Photo Modal -->
-<Modal Show="@showUploadModal"
-       ShowChanged="@((bool show) => showUploadModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Upload)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Upload, show))"
        Title="Carregar Foto de Perfil" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -570,8 +571,8 @@
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnImageCropped"
               AspectRatio="1"
               AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
@@ -579,8 +580,8 @@
               ImageQuality="0.9" />
 
 <!-- Change Password Modal -->
-<Modal Show="@showPasswordModal" 
-       ShowChanged="@((bool show) => showPasswordModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Password)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Password, show))"
        Title="Alterar Palavra-passe" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -639,9 +640,8 @@
     private List<ApplicationUser> eligibleMentors = new();
     private List<RoleAssignment> roleAssignments = new();
     private List<MemberInstrument> userInstrumentsForDisplay = new();
-    private bool showUploadModal = false;
-    private bool showCropperModal = false;
-    private bool showPasswordModal = false;
+    private enum ModalType { Upload, Cropper, Password }
+    private readonly MultiModalState<ModalType> modals = new();
     private string? uploadMessage;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
@@ -839,12 +839,12 @@
         uploadMessage = null;
         profileImageFileName = null;
         selectedFile = null;
-        showUploadModal = true;
+        modals.Open(ModalType.Upload);
     }
 
     private void CloseUploadModal()
     {
-        showUploadModal = false;
+        modals.Close(ModalType.Upload);
         uploadMessage = null;
     }
 
@@ -939,7 +939,7 @@
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
 
@@ -1177,12 +1177,12 @@
         ChangePasswordMessage = null;
         ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();
-        showPasswordModal = true;
+        modals.Open(ModalType.Password);
     }
 
     private void ClosePasswordModal()
     {
-        showPasswordModal = false;
+        modals.Close(ModalType.Password);
         ChangePasswordMessage = null;
         ChangePasswordSucceeded = false;
         passwordModel = new ChangePasswordModel();

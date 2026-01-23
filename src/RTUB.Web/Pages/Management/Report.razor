@@ -9,6 +9,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using ReportEntity = RTUB.Core.Entities.Report
 @attribute [Authorize]
 @inject IReportService ReportService
@@ -300,8 +301,8 @@ else
 }
 
 <!-- Activity Create/Edit Modal -->
-<Modal Show="@showActivityModal" 
-       ShowChanged="@((bool show) => showActivityModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Activity)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Activity, show))"
        Title="@(isCreateActivityMode ? "Nova Atividade" : "Editar Atividade")" 
        Centered="true"
        ShowCloseButton="true">
@@ -370,8 +371,8 @@ else
 </Modal>
 
 <!-- Transaction Create/Edit Modal -->
-<Modal Show="@showTransactionModal" 
-   ShowChanged="@((bool show) => showTransactionModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Transaction)" 
+   ShowChanged="@((bool show) => modals.Toggle(ModalType.Transaction, show))"
        Title="@(isCreateTransactionMode ? "Nova Transação" : "Editar Transação")" 
        Centered="true"
     ShowCloseButton="true">
@@ -480,8 +481,8 @@ else
 </Modal>
 
 <!-- Delete Activity Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteActivityModal"
-               ShowChanged="@((bool show) => showDeleteActivityModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteActivity)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteActivity, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem certeza que deseja eliminar a atividade {deletingActivity?.Name}?")"
                WarningMessage="Todas as transações associadas serão também eliminadas! Esta ação não pode ser desfeita."
@@ -492,8 +493,8 @@ else
                OnCancel="CloseDeleteActivityModal" />
 
 <!-- Delete Transaction Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteTransactionModal"
-               ShowChanged="@((bool show) => showDeleteTransactionModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteTransaction)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteTransaction, show))"
                Title="Confirmar Eliminação"
                Message="Tem certeza que deseja eliminar esta transação?"
                WarningMessage="Esta ação não pode ser desfeita."
@@ -504,8 +505,8 @@ else
                OnCancel="CloseDeleteTransactionModal" />
 
 <!-- Receipt Viewer Modal -->
-<Modal Show="@showReceiptModal"
-       ShowChanged="@((bool show) => showReceiptModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Receipt)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Receipt, show))"
        Title="Recibo da Transação"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -536,8 +537,8 @@ else
 </Modal>
 
 <!-- Bank/Cash Edit Modal -->
-<Modal Show="@showBankCashModal" 
-       ShowChanged="@((bool show) => showBankCashModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.BankCash)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.BankCash, show))"
        Title="@(isEditingBank ? "Editar Dinheiro no Banco" : "Editar Dinheiro em Caixa")" 
        Centered="true"
        ShowCloseButton="true">
@@ -563,11 +564,8 @@ else
     private List<Activity>? activities;
     private List<Transaction>? allTransactions;
 
-    private bool showActivityModal = false;
-    private bool showTransactionModal = false;
-    private bool showDeleteActivityModal = false;
-    private bool showDeleteTransactionModal = false;
-    private bool showReceiptModal = false;
+    private enum ModalType { Activity, Transaction, DeleteActivity, DeleteTransaction, Receipt, BankCash }
+    private readonly MultiModalState<ModalType> modals = new();
 
     private bool isCreateActivityMode = false;
     private bool isCreateTransactionMode = false;
@@ -629,7 +627,6 @@ else
     private List<Activity>? displayedActivities;
     
     // Bank/Cash edit modal state
-    private bool showBankCashModal = false;
     private bool isEditingBank = true;
     private decimal editingBankCashValue = 0;
     private Activity? bankActivity = null;
@@ -948,7 +945,7 @@ state.CurrentPage = newPage;
             Name = string.Empty,
             StartDate = DateTime.Today
         };
-        showActivityModal = true;
+        modals.Open(ModalType.Activity);
     }
 
     private void OpenEditActivityModal(Activity activity)
@@ -964,12 +961,12 @@ state.CurrentPage = newPage;
             StartDate = activity.StartDate,
             EndDate = activity.EndDate
         };
-        showActivityModal = true;
+        modals.Open(ModalType.Activity);
     }
 
     private void CloseActivityModal()
     {
-        showActivityModal = false;
+        modals.Close(ModalType.Activity);
         editingActivity = null;
         isActivityDateRange = false;
     }
@@ -1006,12 +1003,12 @@ state.CurrentPage = newPage;
     private void OpenDeleteActivityModal(Activity activity)
  {
         deletingActivity = activity;
-        showDeleteActivityModal = true;
+        modals.Open(ModalType.DeleteActivity);
     }
 
     private void CloseDeleteActivityModal()
     {
-        showDeleteActivityModal = false;
+        modals.Close(ModalType.DeleteActivity);
         deletingActivity = null;
     }
 
@@ -1042,7 +1039,7 @@ state.CurrentPage = newPage;
         receiptUploadError = null;
         editingTransactionReceiptUrl = null;
         deleteExistingReceipt = false;
-        showTransactionModal = true;
+        modals.Open(ModalType.Transaction);
     }
 
     private void OpenEditTransactionModal(Transaction transaction)
@@ -1064,12 +1061,12 @@ state.CurrentPage = newPage;
         receiptUploadError = null;
         editingTransactionReceiptUrl = transaction.ReceiptUrl;
         deleteExistingReceipt = false;
-        showTransactionModal = true;
+        modals.Open(ModalType.Transaction);
     }
 
     private void CloseTransactionModal()
     {
-        showTransactionModal = false;
+        modals.Close(ModalType.Transaction);
       editingTransaction = null;
         currentActivityId = 0;
         selectedReceiptFile = null;
@@ -1162,12 +1159,12 @@ state.CurrentPage = newPage;
     private void OpenDeleteTransactionModal(Transaction transaction)
     {
         deletingTransaction = transaction;
-    showDeleteTransactionModal = true;
+    modals.Open(ModalType.DeleteTransaction);
     }
 
   private void CloseDeleteTransactionModal()
     {
-   showDeleteTransactionModal = false;
+   modals.Close(ModalType.DeleteTransaction);
   deletingTransaction = null;
     }
 
@@ -1195,12 +1192,12 @@ state.CurrentPage = newPage;
     {
         if (string.IsNullOrEmpty(receiptUrl)) return;
         receiptToView = receiptUrl;
-        showReceiptModal = true;
+        modals.Open(ModalType.Receipt);
     }
 
     private void CloseReceiptModal()
     {
-        showReceiptModal = false;
+        modals.Close(ModalType.Receipt);
         receiptToView = null;
     }
 
@@ -1250,12 +1247,12 @@ state.CurrentPage = newPage;
     {
         isEditingBank = isBank;
         editingBankCashValue = isBank ? bankMoney : cashMoney;
-        showBankCashModal = true;
+        modals.Open(ModalType.BankCash);
     }
 
     private void CloseBankCashModal()
     {
-        showBankCashModal = false;
+        modals.Close(ModalType.BankCash);
         editingBankCashValue = 0;
     }
 

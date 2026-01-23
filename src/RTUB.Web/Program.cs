@@ -131,6 +131,9 @@ public class Program
         }
 
         // Register DbContextFactory for repositories that need isolated DbContext per operation (prevents EF tracking conflicts in Blazor Server)
+        // Register audit log appender
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
+
         // Use AddDbContextFactory with Scoped lifetime to avoid scoped/singleton conflicts
         services.AddDbContextFactory<ApplicationDbContext>(o =>
         {
@@ -300,6 +303,7 @@ public class Program
 
         // SQL Validation service for Database Viewer
         services.AddScoped<RTUB.Web.Services.ISqlValidationService, RTUB.Web.Services.SqlValidationService>();
+        services.AddScoped<RTUB.Application.Interfaces.IDatabaseViewerService, RTUB.Application.Services.DatabaseViewerService>();
 
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2

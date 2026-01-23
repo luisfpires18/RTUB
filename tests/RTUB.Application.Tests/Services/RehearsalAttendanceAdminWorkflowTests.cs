@@ -35,7 +35,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();

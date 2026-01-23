@@ -23,6 +23,12 @@ public interface IMessageRepository : IRepository<Message>
     Task<int> GetUnreadCountForConversationAsync(int conversationId, string userId);
 
     /// <summary>
+    /// Gets unread counts for multiple conversations in a single batch query
+    /// Returns a dictionary mapping conversation ID to unread count
+    /// </summary>
+    Task<Dictionary<int, int>> GetUnreadCountsForConversationsAsync(IEnumerable<int> conversationIds, string userId);
+
+    /// <summary>
     /// Marks all messages in a conversation as read by a user
     /// </summary>
     Task MarkConversationAsReadAsync(int conversationId, string userId);
@@ -31,4 +37,10 @@ public interface IMessageRepository : IRepository<Message>
     /// Gets the latest message in a conversation
     /// </summary>
     Task<Message?> GetLatestMessageAsync(int conversationId);
+
+    /// <summary>
+    /// Gets the latest messages for multiple conversations in a single batch query
+    /// Returns a dictionary mapping conversation ID to latest message (null if no messages)
+    /// </summary>
+    Task<Dictionary<int, Message?>> GetLatestMessagesForConversationsAsync(IEnumerable<int> conversationIds);
 }

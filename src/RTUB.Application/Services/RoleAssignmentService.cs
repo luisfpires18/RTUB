@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -50,9 +51,7 @@ public class RoleAssignmentService : IRoleAssignmentService
 
     public async Task UpdateRoleAssignmentAsync(int id, Position position, int startYear, int endYear, string? notes)
     {
-        var roleAssignment = await _roleAssignmentRepository.GetByIdAsync(id);
-        if (roleAssignment == null)
-            throw new EntityNotFoundException(nameof(RoleAssignment), id);
+        var roleAssignment = await _roleAssignmentRepository.GetByIdOrThrowAsync(id);
 
         roleAssignment.UpdateDetails(position, startYear, endYear, notes);
         await _roleAssignmentRepository.UpdateAsync(roleAssignment);
@@ -60,9 +59,7 @@ public class RoleAssignmentService : IRoleAssignmentService
 
     public async Task DeleteRoleAssignmentAsync(int id)
     {
-        var roleAssignment = await _roleAssignmentRepository.GetByIdAsync(id);
-        if (roleAssignment == null)
-            throw new EntityNotFoundException(nameof(RoleAssignment), id);
+        var roleAssignment = await _roleAssignmentRepository.GetByIdOrThrowAsync(id);
 
         await _roleAssignmentRepository.DeleteAsync(id);
     }

@@ -272,4 +272,42 @@ public class RequestServiceTests
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
+
+    [Fact]
+    public async Task UpdateRequestStatusAsync_WhenStatusUnchanged_DoesNotSendNotification()
+    {
+        // Arrange
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var currentStatus = request.Status;
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
+
+        // Act
+        await _requestService.UpdateRequestStatusAsync(request.Id, currentStatus);
+
+        // Assert
+        _emailServiceMock.Verify(
+            x => x.SendRequestStatusChangedAsync(
+                It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RequestStatus>(), It.IsAny<RequestStatus>()),
+            Times.Never,
+            "Should not send notification when status hasn't changed");
+    }
+
+    [Fact]
+    public async Task SetRequestDateRangeAsync_WithValidRequest_UpdatesRequest()
+    {
+        // Arrange
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var endDate = DateTime.Now.AddDays(35);
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
+
+        // Act
+        await _requestService.SetRequestDateRangeAsync(request.Id, endDate);
+
+        // Assert
+        request.PreferredEndDate.Should().Be(endDate);
+        request.IsDateRange.Should().BeTrue();
+        _mockRequestRepository.Verify(r => r.UpdateAsync(request), Times.Once);
+    }
 }

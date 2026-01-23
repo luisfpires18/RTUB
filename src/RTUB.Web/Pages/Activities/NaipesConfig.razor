@@ -7,6 +7,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize(Roles = "Admin")]
 @inject INaipeService NaipeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -91,7 +92,7 @@ else
 }
 
 <!-- Edit Modal -->
-<Modal @bind-Show="showEditModal" Title="@($"Editar {editingConfig?.InstrumentTypeName}")">
+<Modal Show="@modals.IsOpen(ModalType.Edit)" ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))" Title="@($"Editar {editingConfig?.InstrumentTypeName}")">
     <BodyContent>
         @if (editingConfig != null)
         {
@@ -280,7 +281,8 @@ else
     private List<NaipeTypeConfigDto> typeConfigs = new();
     
     // Edit modal state
-    private bool showEditModal = false;
+    private enum ModalType { Edit }
+    private readonly MultiModalState<ModalType> modals = new();
     private NaipeTypeConfigDto? editingConfig;
     private int editFormSortOrder;
     private bool editFormIsVisible;
@@ -321,12 +323,12 @@ else
         selectedFile = null;
         selectedFileName = null;
         imageUploadKey = Guid.NewGuid();
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingConfig = null;
         selectedFile = null;
         selectedFileName = null;

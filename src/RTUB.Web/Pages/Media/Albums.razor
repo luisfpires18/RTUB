@@ -11,6 +11,7 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IImageStorageService ImageStorageService
@@ -225,8 +226,8 @@ else
 
 <!-- CRUD Modals -->
 <CrudModalManager TEntity="Album"
-                  ShowEditModal="@showEditModal"
-                  ShowEditModalChanged="@((value) => showEditModal = value)"
+                  ShowEditModal="@modals.IsOpen(ModalType.Edit)"
+                  ShowEditModalChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
                   IsCreateMode="@isCreateMode"
                   EditingEntity="@editingAlbum"
                   CreateTitle="Criar Novo Álbum"
@@ -234,8 +235,8 @@ else
                   ModalSize="Modal.ModalSize.Default"
                   OnSave="SaveAlbum"
                   OnEditModalClosed="CloseEditModal"
-                  ShowDeleteModal="@showDeleteModal"
-                  ShowDeleteModalChanged="@((value) => showDeleteModal = value)"
+                  ShowDeleteModal="@modals.IsOpen(ModalType.Delete)"
+                  ShowDeleteModalChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                   DeletingEntity="@deletingAlbum"
                   DeleteTitle="Confirmar Eliminação"
                   OnDelete="DeleteAlbum"
@@ -372,8 +373,8 @@ else
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Album covers are displayed in 1:1 aspect ratio (square) for consistent presentation"
@@ -381,8 +382,8 @@ else
               ImageQuality="0.85" />
 
 <!-- Statistics Modal -->
-<Modal Show="@showStatisticsModal"
-       ShowChanged="@((value) => showStatisticsModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Statistics)"
+       ShowChanged="@((value) => modals.Toggle(ModalType.Statistics, value))"
        Title="Estatísticas de Música"
        Size="Modal.ModalSize.Large"
        ShowCloseButton="true">
@@ -589,10 +590,8 @@ else
     private PaginationHelper<Album> publicPaginationHelper = new() { PageSize = 6 };
     private PaginationHelper<Album> privatePaginationHelper = new() { PageSize = 6 };
 
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showCropperModal = false;
-    private bool showStatisticsModal = false;
+    private enum ModalType { Edit, Delete, Cropper, Statistics }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isLoadingStatistics = false;
     private bool isCreateMode = false;
     private Album? editingAlbum;
@@ -787,7 +786,7 @@ else
         selectedAuthorizedUsers = new List<ApplicationUser>();
         exclusiveMemberSearchTerm = string.Empty;
         filteredAvailableMembersForExclusive = new List<ApplicationUser>();
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private async Task OpenEditModal(Album album)
@@ -821,12 +820,12 @@ else
             }
         }
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingAlbum = null;
         uploadedImagePath = null;
         croppedImageBytes = null;
@@ -878,7 +877,7 @@ else
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
 
@@ -979,12 +978,12 @@ else
     private void OpenDeleteModal(Album album)
     {
         deletingAlbum = album;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingAlbum = null;
     }
 
@@ -1008,7 +1007,7 @@ else
     
     private async Task OpenStatisticsModal()
     {
-        showStatisticsModal = true;
+        modals.Open(ModalType.Statistics);
         isLoadingStatistics = true;
         StateHasChanged();
         
@@ -1110,7 +1109,7 @@ else
     
     private void CloseStatisticsModal()
     {
-        showStatisticsModal = false;
+        modals.Close(ModalType.Statistics);
     }
     
     private void HandleSongsPageChanged(int newPage)

@@ -12,6 +12,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.DTOs
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Core.Enums
 @attribute [Authorize]
 @inject IRehearsalService RehearsalService
@@ -181,10 +182,10 @@ else
 }
 
 <!-- Mark Attendance Modal (using unified ParticipationModal) -->
-@if (showAttendanceModal && selectedRehearsal != null && attendanceForm != null)
+@if (modals.IsOpen(ModalType.Attendance) && selectedRehearsal != null && attendanceForm != null)
 {
-    <ParticipationModal Show="@showAttendanceModal"
-                       ShowChanged="@((bool show) => showAttendanceModal = show)"
+    <ParticipationModal Show="@modals.IsOpen(ModalType.Attendance)"
+                       ShowChanged="@((bool show) => modals.Toggle(ModalType.Attendance, show))"
                        Title="@GetAttendanceModalTitle()"
                        ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@attendanceForm.WillAttend"
@@ -205,7 +206,7 @@ else
 }
 
 <!-- View Attendances Modal -->
-@if (showAttendancesModal && selectedRehearsal != null)
+@if (modals.IsOpen(ModalType.Attendances) && selectedRehearsal != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-lg">
@@ -530,7 +531,7 @@ else
 }
 
 <!-- Edit/Delete Modals -->
-@if (showEditModal && editingRehearsal != null)
+@if (modals.IsOpen(ModalType.Edit) && editingRehearsal != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
@@ -575,8 +576,8 @@ else
 }
 
 <!-- Delete Rehearsal Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((bool show) => showDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
                Title="Eliminar Ensaio"
                Message="@($"Tem a certeza que deseja eliminar o ensaio de {deletingRehearsal?.Date.ToString("dd MMM yyyy")}?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -587,8 +588,8 @@ else
                OnCancel="CloseDeleteModal" />
 
 <!-- Delete Attendance Confirmation Modal (Owner Only) -->
-<ConfirmDialog Show="@showDeleteAttendanceModal"
-               ShowChanged="@((bool show) => showDeleteAttendanceModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteAttendance)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteAttendance, show))"
                Title="Confirmar Eliminação de Presença"
                Message="@($"Tem a certeza que deseja eliminar a presença de {deletingAttendance?.User?.GetDisplayName() ?? deletingAttendance?.UserId} neste ensaio?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -599,8 +600,8 @@ else
                OnCancel="CloseDeleteAttendanceModal" />
 
 <!-- Cancel My Attendance Confirmation Modal -->
-<ConfirmDialog Show="@showCancelMyAttendanceModal"
-               ShowChanged="@((bool show) => showCancelMyAttendanceModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.CancelMyAttendance)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelMyAttendance, show))"
                Title="Cancelar Presença"
                Message="Tem a certeza que deseja cancelar a sua presença neste ensaio?"
                WarningMessage="Esta ação irá remover a sua inscrição."
@@ -611,8 +612,8 @@ else
                OnCancel="CloseCancelMyAttendanceModal" />
 
 <!-- Cancel Rehearsal Modal (Admin Only) -->
-<Modal Show="@showCancelRehearsalModal"
-       ShowChanged="@((bool show) => showCancelRehearsalModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CancelRehearsal)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelRehearsal, show))"
        Title="Cancelar Ensaio"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -659,10 +660,10 @@ else
 </Modal>
 
 <!-- Create Single Rehearsal Modal (Admin Only) -->
-@if (showCreateModal && isAdmin)
+@if (modals.IsOpen(ModalType.Create) && isAdmin)
 {
-    <Modal Show="@showCreateModal"
-           ShowChanged="@((bool show) => showCreateModal = show)"
+    <Modal Show="@modals.IsOpen(ModalType.Create)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.Create, show))"
            Title="Criar Ensaio"
            Size="Modal.ModalSize.Default"
            Centered="true">
@@ -719,10 +720,10 @@ else
 }
 
 <!-- Statistics Modal (Members) -->
-@if (showStatsModal)
+@if (modals.IsOpen(ModalType.Stats))
 {
-    <Modal Show="@showStatsModal"
-           ShowChanged="@((bool show) => showStatsModal = show)"
+    <Modal Show="@modals.IsOpen(ModalType.Stats)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.Stats, show))"
            Title="Estatísticas de Presenças"
            Size="Modal.ModalSize.Large"
            Centered="true">
@@ -835,7 +836,7 @@ else
 }
 
 <!-- Date Range Modal (Admin Only) -->
-@if (showDateRangeModal && isAdmin)
+@if (modals.IsOpen(ModalType.DateRange) && isAdmin)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
@@ -902,8 +903,8 @@ else
 }
 
 <!-- Ver Detalhes Modal -->
-<DetailsModal Show="@showRehearsalDetailsModal"
-              ShowChanged="@((bool show) => showRehearsalDetailsModal = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.RehearsalDetails)"
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.RehearsalDetails, show))"
               Title="Detalhes do Ensaio"
               HeaderTitle="@(selectedRehearsal != null ? $"Ensaio - {selectedRehearsal.Date:dd MMM yyyy}" : "")"
               IconClass="bi-music-note-beamed"
@@ -969,10 +970,10 @@ else
 </DetailsModal>
 
 <!-- Minhas Presenças Modal -->
-@if (showMyAttendancesModal)
+@if (modals.IsOpen(ModalType.MyAttendances))
 {
-    <Modal Show="@showMyAttendancesModal"
-           ShowChanged="@((bool show) => showMyAttendancesModal = show)"
+    <Modal Show="@modals.IsOpen(ModalType.MyAttendances)"
+           ShowChanged="@((bool show) => modals.Toggle(ModalType.MyAttendances, show))"
            Title="Minhas Presenças Recentes"
            Size="Modal.ModalSize.Large"
            Centered="true">
@@ -1053,8 +1054,8 @@ else
 }
 
 <!-- Push Notification Modal -->
-<Modal Show="@showPushNotificationModal"
-       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
        Title="Enviar notificação push de ensaio"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1182,14 +1183,6 @@ else
     private bool showAllRehearsals = false;
     private PaginationHelper<RehearsalAttendanceDisplay> rehearsalsPaginationHelper = new() { PageSize = 9 };
 
-    private class RehearsalAttendanceDisplay
-    {
-        public Rehearsal Rehearsal { get; set; } = null!;
-        public RehearsalAttendance? Attendance { get; set; }
-        public bool WillAttend => Attendance?.WillAttend ?? false;
-        public bool Attended => Attendance?.Attended ?? false;
-        public InstrumentType? Instrument => Attendance?.Instrument;
-    }
 
     private string FormatRehearsalDateWithDayOfWeek(Rehearsal rehearsal)
     {
@@ -1215,19 +1208,24 @@ else
     private SearchHelper<Rehearsal> searchHelper = new();
 
     // Modals
-    private bool showAttendanceModal = false;
-    private bool showAttendancesModal = false;
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showDeleteAttendanceModal = false;
-    private bool showCancelMyAttendanceModal = false;
-    private bool showCancelRehearsalModal = false;
-    private bool showCreateModal = false;
-    private bool showStatsModal = false;
-    private bool showDateRangeModal = false;
-    private bool showMyAttendancesModal = false;
-    private bool showRehearsalDetailsModal = false;
-    private bool showPushNotificationModal = false;
+    private enum ModalType
+    {
+        Attendance,
+        Attendances,
+        Edit,
+        Delete,
+        DeleteAttendance,
+        CancelMyAttendance,
+        CancelRehearsal,
+        Create,
+        Stats,
+        DateRange,
+        MyAttendances,
+        RehearsalDetails,
+        PushNotification
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
     
     private Rehearsal? selectedRehearsal;
     private bool isSelectedRehearsalPast = false;
@@ -1523,7 +1521,7 @@ else
             Notes = null
         };
         
-        showAttendanceModal = true;
+        modals.Open(ModalType.Attendance);
         StateHasChanged();
     }
 
@@ -1593,7 +1591,7 @@ else
         }
         
         isParticipationPreSelected = true; // Hide "Vais participar?" section in modal
-        showAttendanceModal = true;
+        modals.Open(ModalType.Attendance);
         StateHasChanged();
     }
 
@@ -1651,7 +1649,7 @@ else
 
     private void CloseAttendanceModal()
     {
-        showAttendanceModal = false;
+        modals.Close(ModalType.Attendance);
         selectedRehearsal = null;
         attendanceForm = null;
         wantToPlayRehearsal = false;
@@ -1760,13 +1758,13 @@ else
             FilterAvailableMembers();
         }
 
-        showAttendancesModal = true;
+        modals.Open(ModalType.Attendances);
         StateHasChanged();
     }
 
     private void CloseAttendancesModal()
     {
-        showAttendancesModal = false;
+        modals.Close(ModalType.Attendances);
         selectedRehearsal = null;
         isSelectedRehearsalPast = false;
         isSelectedRehearsalApprovable = false;
@@ -2153,7 +2151,7 @@ else
             wantToPlayRehearsal = false; // Disable if no instruments configured
         }
         
-        showAttendanceModal = true;
+        modals.Open(ModalType.Attendance);
         StateHasChanged();
     }
 
@@ -2163,13 +2161,13 @@ else
         if (attendance != null)
         {
             cancellingMyAttendance = attendance;
-            showCancelMyAttendanceModal = true;
+            modals.Open(ModalType.CancelMyAttendance);
         }
     }
     
     private void CloseCancelMyAttendanceModal()
     {
-        showCancelMyAttendanceModal = false;
+        modals.Close(ModalType.CancelMyAttendance);
         cancellingMyAttendance = null;
     }
     
@@ -2192,12 +2190,12 @@ else
         editTheme = rehearsal.Theme;
         editDescription = rehearsal.Description;
         editNotes = rehearsal.Notes;
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingRehearsal = null;
     }
 
@@ -2215,12 +2213,12 @@ else
     private void OpenDeleteModal(Rehearsal rehearsal)
     {
         deletingRehearsal = rehearsal;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingRehearsal = null;
     }
 
@@ -2240,12 +2238,12 @@ else
         selectedRehearsalForCancellation = rehearsal;
         cancelRehearsalReason = string.Empty;
         cancelRehearsalErrorMessage = null;
-        showCancelRehearsalModal = true;
+        modals.Open(ModalType.CancelRehearsal);
     }
     
     private void CloseCancelRehearsalModal()
     {
-        showCancelRehearsalModal = false;
+        modals.Close(ModalType.CancelRehearsal);
         selectedRehearsalForCancellation = null;
         cancelRehearsalReason = string.Empty;
         cancelRehearsalErrorMessage = null;
@@ -2294,12 +2292,12 @@ else
     private void OpenDeleteAttendanceModal(RehearsalAttendance attendance)
     {
         deletingAttendance = attendance;
-        showDeleteAttendanceModal = true;
+        modals.Open(ModalType.DeleteAttendance);
     }
 
     private void CloseDeleteAttendanceModal()
     {
-        showDeleteAttendanceModal = false;
+        modals.Close(ModalType.DeleteAttendance);
         deletingAttendance = null;
     }
 
@@ -2388,12 +2386,12 @@ else
             Date = DateTime.Today.AddDays(1),
             Location = "Centro Académico"
         };
-        showCreateModal = true;
+        modals.Open(ModalType.Create);
     }
 
     private void CloseCreateModal()
     {
-        showCreateModal = false;
+        modals.Close(ModalType.Create);
         // Clear feedback messages when modal closes
         createFeedbackMessage = "";
         createFeedbackIsError = false;
@@ -2437,12 +2435,12 @@ else
     // Statistics modal methods
     private void OpenStatsModal()
     {
-        showStatsModal = true;
+        modals.Open(ModalType.Stats);
     }
 
     private void CloseStatsModal()
     {
-        showStatsModal = false;
+        modals.Close(ModalType.Stats);
     }
 
     private async Task LoadStats()
@@ -2600,12 +2598,12 @@ else
             EndDate = DateTime.Today.AddMonths(1),
             Location = "Centro Académico"
         };
-        showDateRangeModal = true;
+        modals.Open(ModalType.DateRange);
     }
 
     private void CloseDateRangeModal()
     {
-        showDateRangeModal = false;
+        modals.Close(ModalType.DateRange);
         // Clear feedback messages when modal closes
         rangeFeedbackMessage = "";
         rangeFeedbackIsError = false;
@@ -2707,12 +2705,12 @@ else
     private async Task OpenMyAttendancesModal()
     {
         await LoadUserAttendances();
-        showMyAttendancesModal = true;
+        modals.Open(ModalType.MyAttendances);
     }
 
     private void CloseMyAttendancesModal()
     {
-        showMyAttendancesModal = false;
+        modals.Close(ModalType.MyAttendances);
     }
 
     private async Task LoadUserAttendances()
@@ -2798,12 +2796,12 @@ else
     private void OpenRehearsalDetailsModal(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
-        showRehearsalDetailsModal = true;
+        modals.Open(ModalType.RehearsalDetails);
     }
 
     private void CloseRehearsalDetailsModal()
     {
-        showRehearsalDetailsModal = false;
+        modals.Close(ModalType.RehearsalDetails);
     }
 
     // Push Notification Modal methods
@@ -2814,7 +2812,7 @@ else
         pushLoadingSubscribers = true;
         pushErrorMessage = null;
         filterOnlyLeitaoAndCaloiro = false;
-        showPushNotificationModal = true;
+        modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
         try
@@ -2852,7 +2850,7 @@ else
 
     private void ClosePushNotificationModal()
     {
-        showPushNotificationModal = false;
+        modals.Close(ModalType.PushNotification);
         selectedRehearsalForPush = null;
         customNotificationBody = string.Empty;
         pushSubscribedUsers = null;
@@ -2986,53 +2984,6 @@ else
     }
 
     // Form models for validation
-    private class RehearsalFormModel
-    {
-        [Required(ErrorMessage = "A data é obrigatória")]
-        public DateTime Date { get; set; } = DateTime.Today.AddDays(1);
-
-        [Required(ErrorMessage = "A localização é obrigatória")]
-        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
-        public string Location { get; set; } = "Centro Académico";
-
-        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
-        public string? Theme { get; set; }
-
-        [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
-        public string? Description { get; set; }
-
-        [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
-        public string? Notes { get; set; }
-    }
-
-    private class RehearsalRangeFormModel
-    {
-        [Required(ErrorMessage = "A data de início é obrigatória")]
-        public DateTime StartDate { get; set; } = DateTime.Today;
-
-        [Required(ErrorMessage = "A data de fim é obrigatória")]
-        public DateTime EndDate { get; set; } = DateTime.Today.AddMonths(1);
-
-        [Required(ErrorMessage = "A localização é obrigatória")]
-        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
-        public string Location { get; set; } = "Centro Académico";
-
-        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
-        public string? Theme { get; set; }
-
-        [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
-        public string? Description { get; set; }
-    }
-
-    private class AttendanceFormModel
-    {
-        public bool WillAttend { get; set; } = true;
-        
-        public InstrumentType? Instrument { get; set; }
-        
-        [MaxLength(500, ErrorMessage = "As notas não podem exceder 500 caracteres")]
-        public string? Notes { get; set; }
-    }
     
     /// <summary>
     /// Determines if the delete action should be available for rehearsals.

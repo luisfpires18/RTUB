@@ -10,6 +10,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.Extensions.Hosting
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject IDocumentStorageService DocumentStorageService
 @inject IFiscalYearService FiscalYearService
@@ -135,8 +136,8 @@ else
 }
 
 @* Create Folder Modal *@
-<Modal Show="@showCreateFolderModal" 
-       ShowChanged="@((bool show) => showCreateFolderModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CreateFolder)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CreateFolder, show))"
        Title="Criar Nova Pasta"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -170,8 +171,8 @@ else
 </Modal>
 
 @* Upload Document Modal *@
-<Modal Show="@showUploadModal" 
-       ShowChanged="@((bool show) => showUploadModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Upload)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Upload, show))"
        Title="@($"Carregar Documento - {selectedFolderName}")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -230,8 +231,8 @@ else
 </Modal>
 
 @* View Document Modal *@
-<Modal Show="@showViewModal" 
-       ShowChanged="@((bool show) => showViewModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.View)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.View, show))"
        Title="@viewingDocument?.FileName"
        Size="Modal.ModalSize.ExtraLarge"
        Centered="true"
@@ -323,12 +324,12 @@ else
     }
     
     // Create folder modal
-    private bool showCreateFolderModal = false;
+    private enum ModalType { CreateFolder, Upload, View }
+    private readonly MultiModalState<ModalType> modals = new();
     private string newFolderName = "";
     private string createFolderError = "";
     
     // Upload modal
-    private bool showUploadModal = false;
     private string selectedFolderPath = "";
     private string selectedFolderName = "";
     private IBrowserFile? selectedFile;
@@ -339,7 +340,6 @@ else
     private string uploadSuccess = "";
     
     // View document modal
-    private bool showViewModal = false;
     private bool isLoadingDocument = false;
     private string? documentUrl;
     private DocumentMetadata? viewingDocument;
@@ -478,12 +478,12 @@ else
     {
         newFolderName = "";
         createFolderError = "";
-        showCreateFolderModal = true;
+        modals.Open(ModalType.CreateFolder);
     }
 
     private void CloseCreateFolderModal()
     {
-        showCreateFolderModal = false;
+        modals.Close(ModalType.CreateFolder);
         newFolderName = "";
         createFolderError = "";
     }
@@ -538,12 +538,12 @@ else
         documentationFileName = null;
         uploadError = "";
         uploadSuccess = "";
-        showUploadModal = true;
+        modals.Open(ModalType.Upload);
     }
 
     private void CloseUploadModal()
     {
-        showUploadModal = false;
+        modals.Close(ModalType.Upload);
         selectedFolderPath = "";
         selectedFolderName = "";
         selectedFile = null;
@@ -631,7 +631,7 @@ else
     {
         viewingDocument = document;
         isLoadingDocument = true;
-        showViewModal = true;
+        modals.Open(ModalType.View);
         StateHasChanged();
         
         try
@@ -668,7 +668,7 @@ else
 
     private void CloseViewModal()
     {
-        showViewModal = false;
+        modals.Close(ModalType.View);
         isLoadingDocument = false;
         documentUrl = null;
         viewingDocument = null;

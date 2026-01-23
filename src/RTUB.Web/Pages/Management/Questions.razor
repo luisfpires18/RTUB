@@ -6,9 +6,11 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject IQuestionService QuestionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -138,8 +140,8 @@
 </div>
 
 <!-- Create Question Modal -->
-<Modal Show="@showCreateModal" 
-       ShowChanged="@((show) => { showCreateModal = show; if (!show) ClearMemberSelection(); })"
+<Modal Show="@modals.IsOpen(ModalType.Create)" 
+       ShowChanged="@((show) => { modals.Toggle(ModalType.Create, show); if (!show) ClearMemberSelection(); })"
        Title="Nova Pergunta"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -232,7 +234,7 @@
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="() => showCreateModal = false">
+                <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Create)">
                     Cancelar
                 </button>
                 <button type="submit" class="btn btn-primary" disabled="@(!CanSubmitQuestion())">
@@ -244,8 +246,8 @@
 </Modal>
 
 <!-- Delete Confirmation -->
-<ConfirmDialog Show="@showDeleteConfirm"
-               ShowChanged="@((value) => showDeleteConfirm = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                Title="Confirmar Eliminação"
                Message="Tem a certeza que deseja eliminar esta pergunta? Esta ação não pode ser desfeita."
                ConfirmText="Eliminar"
@@ -254,8 +256,8 @@
                OnConfirm="ConfirmDelete" />
 
 <!-- Close Confirmation -->
-<ConfirmDialog Show="@showCloseConfirm"
-               ShowChanged="@((value) => showCloseConfirm = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Close)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.Close, value))"
                Title="Fechar Pergunta"
                Message="Tem a certeza que deseja fechar esta pergunta? Depois de fechada, não serão aceites mais respostas."
                ConfirmText="Fechar"
@@ -264,8 +266,8 @@
                OnConfirm="ConfirmClose" />
 
 <!-- Reminder Confirmation -->
-<ConfirmDialog Show="@showReminderConfirm"
-               ShowChanged="@((value) => showReminderConfirm = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Reminder)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.Reminder, value))"
                Title="Enviar Lembrete"
                Message="Enviar notificação de lembrete para o membro designado?"
                ConfirmText="Enviar"
@@ -274,8 +276,8 @@
                OnConfirm="SendReminder" />
 
 <!-- View Full Content Modal -->
-<Modal Show="@showFullContentModal"
-       ShowChanged="@((show) => showFullContentModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.FullContent)"
+       ShowChanged="@((show) => modals.Toggle(ModalType.FullContent, show))"
        Title="Pergunta Completa"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -305,13 +307,13 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showFullContentModal = false">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.FullContent)">Fechar</button>
     </FooterContent>
 </Modal>
 
 <!-- Reply Modal -->
-<Modal Show="@showReplyModal"
-       ShowChanged="@((show) => showReplyModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Reply)"
+       ShowChanged="@((show) => modals.Toggle(ModalType.Reply, show))"
        Title="Respostas"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -440,7 +442,7 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showReplyModal = false">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Reply)">Fechar</button>
     </FooterContent>
 </Modal>
 
@@ -466,7 +468,6 @@
     private List<FilterDropdownOption> memberFilterOptions = new();
 
     // Create question modal
-    private bool showCreateModal = false;
     private NewQuestionModel newQuestionModel = new();
     private List<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> orgaoSocialMembers = new();
     
@@ -476,12 +477,18 @@
     private (ApplicationUser Member, OrgaoSocialGroup Group, Position Position)? selectedMember;
     private SearchHelper<(ApplicationUser Member, OrgaoSocialGroup Group, Position Position)> memberSearchHelper = new();
 
-    // Dialogs
-    private bool showDeleteConfirm = false;
-    private bool showCloseConfirm = false;
-    private bool showReminderConfirm = false;
-    private bool showFullContentModal = false;
-    private bool showReplyModal = false;
+    // Modals
+    private enum ModalType
+    {
+        Create,
+        FullContent,
+        Reply,
+        Delete,
+        Close,
+        Reminder
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
     private Question? questionToDelete;
     private Question? questionToClose;
     private Question? questionForReminder;
@@ -579,7 +586,7 @@
     {
         newQuestionModel = new NewQuestionModel();
         ClearMemberSelection();
-        showCreateModal = true;
+        modals.Open(ModalType.Create);
     }
 
     private void OnMemberSearch(string term)
@@ -637,7 +644,7 @@
             selectedMember.Value.Position,
             selectedMember.Value.Member.Id);
 
-        showCreateModal = false;
+        modals.Close(ModalType.Create);
         ClearMemberSelection();
         await LoadQuestionsAsync();
         StateHasChanged();
@@ -708,13 +715,13 @@
     private void OpenReplyModal(Question question)
     {
         questionToReply = question;
-        showReplyModal = true;
+        modals.Open(ModalType.Reply);
     }
 
     private void ShowDeleteConfirm(Question question)
     {
         questionToDelete = question;
-        showDeleteConfirm = true;
+        modals.Open(ModalType.Delete);
     }
 
     private async Task ConfirmDelete()
@@ -731,7 +738,7 @@
     private void ShowCloseConfirm(Question question)
     {
         questionToClose = question;
-        showCloseConfirm = true;
+        modals.Open(ModalType.Close);
     }
 
     private async Task ConfirmClose()
@@ -740,7 +747,7 @@
         {
             await QuestionService.CloseAsync(questionToClose.Id, currentUser.Id);
             questionToClose = null;
-            showReplyModal = false; // Close the modal if open
+            modals.Close(ModalType.Reply); // Close the modal if open
             await LoadQuestionsAsync();
             StateHasChanged();
         }
@@ -749,7 +756,7 @@
     private void ShowReminderConfirm(Question question)
     {
         questionForReminder = question;
-        showReminderConfirm = true;
+        modals.Open(ModalType.Reminder);
     }
 
     private async Task SendReminder()
@@ -764,7 +771,7 @@
     private void ShowFullContent(Question question)
     {
         questionToView = question;
-        showFullContentModal = true;
+        modals.Open(ModalType.FullContent);
     }
 
     private async Task HandleSearch(string term)
@@ -806,17 +813,6 @@
         closedPageSize = newPageSize;
         closedCurrentPage = 1;
         await LoadQuestionsAsync();
-    }
-
-    private class NewQuestionModel
-    {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "O título é obrigatório")]
-        [System.ComponentModel.DataAnnotations.MaxLength(100, ErrorMessage = "O título deve ter no máximo 100 caracteres")]
-        public string Title { get; set; } = string.Empty;
-
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "A pergunta é obrigatória")]
-        [System.ComponentModel.DataAnnotations.MinLength(10, ErrorMessage = "A pergunta deve ter pelo menos 10 caracteres")]
-        public string Content { get; set; } = string.Empty;
     }
 }
 
