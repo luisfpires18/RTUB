@@ -1,0 +1,96 @@
+@page "/share"
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Partilhar - RTUB</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-share"></i> Partilhar Conteúdo</h4>
+                </div>
+                <div class="card-body">
+                    @if (string.IsNullOrEmpty(SharedTitle) && string.IsNullOrEmpty(SharedText) && string.IsNullOrEmpty(SharedUrl))
+                    {
+                        <p class="text-muted">Nenhum conteúdo para partilhar.</p>
+                        <a href="/" class="btn btn-primary">Voltar ao Início</a>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Título</label>
+                            <input type="text" class="form-control" @bind="SharedTitle" readonly />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Texto</label>
+                            <textarea class="form-control" rows="3" @bind="SharedText" readonly></textarea>
+                        </div>
+                        @if (!string.IsNullOrEmpty(SharedUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">URL</label>
+                                <input type="text" class="form-control" @bind="SharedUrl" readonly />
+                            </div>
+                        }
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" @onclick="CopyToClipboard">
+                                <i class="bi bi-clipboard"></i> Copiar
+                            </button>
+                            <a href="/" class="btn btn-secondary">Voltar</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string SharedTitle { get; set; } = string.Empty;
+    private string SharedText { get; set; } = string.Empty;
+    private string SharedUrl { get; set; } = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Get shared data from query parameters (Web Share Target API)
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+
+        if (queryParams.TryGetValue("title", out var title))
+        {
+            SharedTitle = title.ToString();
+        }
+
+        if (queryParams.TryGetValue("text", out var text))
+        {
+            SharedText = text.ToString();
+        }
+
+        if (queryParams.TryGetValue("url", out var url))
+        {
+            SharedUrl = url.ToString();
+        }
+    }
+
+    private async Task CopyToClipboard()
+    {
+        var textToCopy = $"{SharedTitle}\n\n{SharedText}";
+        if (!string.IsNullOrEmpty(SharedUrl))
+        {
+            textToCopy += $"\n\n{SharedUrl}";
+        }
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", textToCopy);
+            // You could show a toast notification here
+        }
+        catch
+        {
+            // Fallback for older browsers
+        }
+    }
+}

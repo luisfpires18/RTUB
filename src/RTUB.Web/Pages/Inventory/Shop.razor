@@ -7,8 +7,10 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
 @using RTUB.Application.Helpers
+@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
 @inject IFiscalYearService FiscalYearService
 @inject IProductService ProductService
@@ -204,8 +206,8 @@ else
 
 <!-- CRUD Modal for Products -->
 <CrudModalManager TEntity="Product"
-                  ShowEditModal="@showProductEditModal"
-                  ShowEditModalChanged="@((value) => showProductEditModal = value)"
+                  ShowEditModal="@modals.IsOpen(ModalType.ProductEdit)"
+                  ShowEditModalChanged="@((value) => modals.Toggle(ModalType.ProductEdit, value))"
                   IsCreateMode="@isProductCreateMode"
                   EditingEntity="@editingProduct"
                   CreateTitle="Novo Produto"
@@ -213,8 +215,8 @@ else
                   ModalSize="Modal.ModalSize.Large"
                   OnSave="SaveProduct"
                   OnEditModalClosed="CloseProductEditModal"
-                  ShowDeleteModal="@showProductDeleteModal"
-                  ShowDeleteModalChanged="@((value) => showProductDeleteModal = value)"
+                  ShowDeleteModal="@modals.IsOpen(ModalType.ProductDelete)"
+                  ShowDeleteModalChanged="@((value) => modals.Toggle(ModalType.ProductDelete, value))"
                   DeletingEntity="@deletingProduct"
                   DeleteTitle="Confirmar Eliminação"
                   OnDelete="DeleteProduct"
@@ -306,7 +308,7 @@ else
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="() => showProductEditModal = false">Cancelar</button>
+                <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.ProductEdit)">Cancelar</button>
                 <button type="submit" class="btn btn-success">Guardar</button>
             </div>
         </EditForm>
@@ -322,8 +324,8 @@ else
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Product images are displayed in 1:1 aspect ratio (square) for consistent presentation"
@@ -332,7 +334,8 @@ else
 
 <!-- Reservation Modal -->
 <Modal Title="Reservar Produto" 
-       @bind-Show="showReservationModal"
+       Show="@modals.IsOpen(ModalType.Reservation)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Reservation, show))"
        Size="Modal.ModalSize.Default">
     <BodyContent>
         @if (selectedProduct != null)
@@ -421,7 +424,8 @@ else
 
 <!-- View Reservations Modal (Admin/Owner) -->
 <Modal Title="Reservas do Produto" 
-       @bind-Show="showViewReservationsModal"
+       Show="@modals.IsOpen(ModalType.ViewReservations)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.ViewReservations, show))"
        Size="Modal.ModalSize.Large">
     <BodyContent>
         @if (selectedProduct != null)
@@ -479,8 +483,8 @@ else
 </Modal>
 
 <!-- View User Reservation Modal -->
-<DetailsModal Show="@showUserReservationModal" 
-              ShowChanged="@((bool show) => showUserReservationModal = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.UserReservation)" 
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.UserReservation, show))"
               Title="Minha Reserva" 
               HeaderTitle="@(selectedProduct?.Name ?? "")"
               IconClass="bi-bag-fill"
@@ -522,8 +526,8 @@ else
 </DetailsModal>
 
 <!-- Product Details Modal -->
-<DetailsModal Show="@showProductDetailsModal" 
-              ShowChanged="@((bool show) => showProductDetailsModal = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.ProductDetails)" 
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.ProductDetails, show))"
               Title="Detalhes do Produto" 
               HeaderTitle="@(viewingProduct?.Name ?? "")"
               ImageUrl="@(viewingProduct != null && !string.IsNullOrEmpty(viewingProduct.ImageUrl) ? GetProductImageUrl(viewingProduct.ImageUrl) : null)"
@@ -578,8 +582,8 @@ else
 </DetailsModal>
 
 <!-- Delete Reservation Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteReservationModal"
-               ShowChanged="@((bool show) => showDeleteReservationModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteReservation)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteReservation, show))"
                Title="Anular Reserva"
                ConfirmText="Anular Reserva"
                ConfirmButtonClass="btn-danger"
@@ -601,8 +605,8 @@ else
 </ConfirmDialog>
 
 <!-- Admin Delete Reservation Confirmation Modal -->
-<ConfirmDialog Show="@showAdminDeleteReservationModal"
-               ShowChanged="@((bool show) => showAdminDeleteReservationModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.AdminDeleteReservation)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.AdminDeleteReservation, show))"
                Title="Eliminar Reserva"
                ConfirmText="Eliminar Reserva"
                ConfirmButtonClass="btn-danger"
@@ -642,14 +646,13 @@ else
         .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
 
     // Product Modal State
-    private bool showProductEditModal = false;
-    private bool showProductDeleteModal = false;
+    private enum ModalType { ProductEdit, ProductDelete, Cropper, Reservation, ViewReservations, UserReservation, ProductDetails, DeleteReservation, AdminDeleteReservation }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isProductCreateMode = false;
     private Product? editingProduct;
     private Product? deletingProduct;
 
     // Image Cropper
-    private bool showCropperModal = false;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string shopImageInputId = $"shop-image-{Guid.NewGuid():N}";
@@ -660,7 +663,6 @@ else
     private string? croppedProductImageFileName = "product-image.webp";
 
     // Reservation Modal State
-    private bool showReservationModal = false;
     private bool savingReservation = false;
     private Product? selectedProduct;
     private ReservationModel reservationModel = new();
@@ -668,37 +670,25 @@ else
     private string? reservationSuccess;
     
     // View Reservations Modal State (Admin)
-    private bool showViewReservationsModal = false;
     private bool loadingReservations = false;
     private List<ProductReservation> productReservations = new();
     
     // View User Reservation Detail Modal
-    private bool showUserReservationModal = false;
     private ProductReservation? userReservation;
     
     // Product Details Modal
-    private bool showProductDetailsModal = false;
     private Product? viewingProduct;
     
     // Delete Reservation Confirmation Modal
-    private bool showDeleteReservationModal = false;
     private ProductReservation? deletingReservation;
     
     // Admin Delete Reservation Confirmation Modal
-    private bool showAdminDeleteReservationModal = false;
     private ProductReservation? deletingAdminReservation;
     
     // Track user's reservations for each product
     private Dictionary<int, ProductReservation?> userReservations = new();
     private string? currentUserId;
     
-    // Model for reservation form
-    private class ReservationModel
-    {
-        public string? DisplayName { get; set; }
-        public bool HasSizes { get; set; }
-        public string? Size { get; set; }
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -823,7 +813,7 @@ else
         editingProduct = Product.CreateEmpty();
         isProductCreateMode = true;
         uploadedImagePath = null;
-        showProductEditModal = true;
+        modals.Open(ModalType.ProductEdit);
     }
 
     private void OpenEditProductModal(Product product)
@@ -831,13 +821,13 @@ else
         editingProduct = product;
         isProductCreateMode = false;
         uploadedImagePath = null;
-        showProductEditModal = true;
+        modals.Open(ModalType.ProductEdit);
     }
 
     private void OpenDeleteProductModal(Product product)
     {
         deletingProduct = product;
-        showProductDeleteModal = true;
+        modals.Open(ModalType.ProductDelete);
     }
 
     private async Task SaveProduct()
@@ -891,7 +881,7 @@ else
             }
             
             await LoadProducts();
-            showProductEditModal = false;
+            modals.Close(ModalType.ProductEdit);
             uploadedImagePath = null;
             croppedProductImageBytes = null;
         }
@@ -909,7 +899,7 @@ else
         {
             await ProductService.DeleteAsync(deletingProduct.Id);
             await LoadProducts();
-            showProductDeleteModal = false;
+            modals.Close(ModalType.ProductDelete);
         }
         catch (Exception ex)
         {
@@ -919,7 +909,7 @@ else
 
     private void CloseProductEditModal()
     {
-        showProductEditModal = false;
+        modals.Close(ModalType.ProductEdit);
         editingProduct = null;
         uploadedImagePath = null;
         shopImageFileName = null;
@@ -927,7 +917,7 @@ else
 
     private void CloseProductDeleteModal()
     {
-        showProductDeleteModal = false;
+        modals.Close(ModalType.ProductDelete);
         deletingProduct = null;
     }
 
@@ -981,7 +971,7 @@ else
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
     
@@ -1006,12 +996,12 @@ else
         reservationModel = new ReservationModel();
         reservationError = null;
         reservationSuccess = null;
-        showReservationModal = true;
+        modals.Open(ModalType.Reservation);
     }
     
     private void CloseReservationModal()
     {
-        showReservationModal = false;
+        modals.Close(ModalType.Reservation);
         selectedProduct = null;
         reservationModel = new ReservationModel();
         reservationError = null;
@@ -1084,7 +1074,7 @@ else
     {
         selectedProduct = product;
         loadingReservations = true;
-        showViewReservationsModal = true;
+        modals.Open(ModalType.ViewReservations);
         
         try
         {
@@ -1104,7 +1094,7 @@ else
     
     private void CloseViewReservationsModal()
     {
-        showViewReservationsModal = false;
+        modals.Close(ModalType.ViewReservations);
         selectedProduct = null;
         productReservations = new List<ProductReservation>();
     }
@@ -1113,12 +1103,12 @@ else
     private void OpenProductDetailsModal(Product product)
     {
         viewingProduct = product;
-        showProductDetailsModal = true;
+        modals.Open(ModalType.ProductDetails);
     }
     
     private void CloseProductDetailsModal()
     {
-        showProductDetailsModal = false;
+        modals.Close(ModalType.ProductDetails);
         viewingProduct = null;
     }
     
@@ -1129,13 +1119,13 @@ else
         if (userReservations.ContainsKey(product.Id))
         {
             userReservation = userReservations[product.Id];
-            showUserReservationModal = true;
+            modals.Open(ModalType.UserReservation);
         }
     }
     
     private void CloseUserReservationModal()
     {
-        showUserReservationModal = false;
+        modals.Close(ModalType.UserReservation);
         selectedProduct = null;
         userReservation = null;
     }
@@ -1145,12 +1135,12 @@ else
     {
         deletingReservation = reservation;
         selectedProduct = product;
-        showDeleteReservationModal = true;
+        modals.Open(ModalType.DeleteReservation);
     }
     
     private void CloseDeleteReservationModal()
     {
-        showDeleteReservationModal = false;
+        modals.Close(ModalType.DeleteReservation);
         deletingReservation = null;
     }
     
@@ -1183,12 +1173,12 @@ else
     private void OpenAdminDeleteReservationModal(ProductReservation reservation)
     {
         deletingAdminReservation = reservation;
-        showAdminDeleteReservationModal = true;
+        modals.Open(ModalType.AdminDeleteReservation);
     }
     
     private void CloseAdminDeleteReservationModal()
     {
-        showAdminDeleteReservationModal = false;
+        modals.Close(ModalType.AdminDeleteReservation);
         deletingAdminReservation = null;
     }
     

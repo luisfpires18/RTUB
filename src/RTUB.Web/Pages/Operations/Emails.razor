@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailNotificationService EmailNotificationService
@@ -172,8 +173,8 @@
     }
 
 <!-- Preview Modal -->
-<Modal Show="@showPreviewModal" 
-       ShowChanged="@((show) => showPreviewModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Preview)" 
+       ShowChanged="@((show) => modals.Toggle(ModalType.Preview, show))"
        Title="Pré-visualização do Email"
        Size="Modal.ModalSize.Large">
     <BodyContent>
@@ -198,7 +199,7 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showPreviewModal = false">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Fechar</button>
     </FooterContent>
 </Modal>
 
@@ -212,7 +213,8 @@
     private bool isRecipientsRemoval = false; // Track if message is for removal (show as red)
     private bool isSending = false;
     private bool isLoadingSubscribers = true;
-    private bool showPreviewModal = false;
+    private enum ModalType { Preview }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool titleError = false;
     private bool contentError = false;
     private bool isProcessingBulkRemove = false;
@@ -272,7 +274,7 @@
         {
             return;
         }
-        showPreviewModal = true;
+        modals.Open(ModalType.Preview);
     }
 
     private async Task SendEmails()

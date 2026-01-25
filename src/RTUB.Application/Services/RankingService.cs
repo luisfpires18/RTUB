@@ -42,7 +42,7 @@ public class RankingService : IRankingService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<int> CalculateTotalXpAsync(string userId)
+    public async Task<int> CalculateTotalXpAsync(string userId, CancellationToken cancellationToken = default)
     {
         var nowDate = DateTime.UtcNow.Date;
 
@@ -50,14 +50,14 @@ public class RankingService : IRankingService
         var rehearsalXp = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
             .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < nowDate)
-            .CountAsync() * _rankingConfig.Value.XpPerRehearsal;
+            .CountAsync(cancellationToken) * _rankingConfig.Value.XpPerRehearsal;
 
         // Calculate event XP with type-specific values - only count events with configured XP
         var eventTypes = await _enrollmentRepository.Query()
             .Include(e => e.Event)
             .Where(e => e.UserId == userId && e.WillAttend && (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => e.Event!.Type.ToString())
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var eventXp = 0;
         foreach (var eventType in eventTypes)
@@ -121,7 +121,7 @@ public class RankingService : IRankingService
         return currentLevelDef?.XpThreshold ?? 0;
     }
 
-    public async Task UpdateUserRankingAsync(string userId)
+    public async Task UpdateUserRankingAsync(string userId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
@@ -136,7 +136,7 @@ public class RankingService : IRankingService
             .AsEnumerable()
             .FirstOrDefault();
 
-        var totalXp = await CalculateTotalXpAsync(userId);
+        var totalXp = await CalculateTotalXpAsync(userId, cancellationToken);
         var level = GetLevelFromXp(totalXp);
 
         var oldXp = user.ExperiencePoints;
@@ -172,14 +172,14 @@ public class RankingService : IRankingService
         }
     }
 
-    public async Task<RankProgressInfo> GetRankProgressAsync(string userId)
+    public async Task<RankProgressInfo> GetRankProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         // Calculate current XP
-        var currentXp = await CalculateTotalXpAsync(userId);
+        var currentXp = await CalculateTotalXpAsync(userId, cancellationToken);
         return BuildRankProgressInfo(currentXp);
     }
 
-    public async Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds)
+    public async Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, CancellationToken cancellationToken = default)
     {
         var userIdList = userIds.ToList();
         if (!userIdList.Any())
@@ -195,14 +195,14 @@ public class RankingService : IRankingService
             .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && ra.Rehearsal!.Date < nowDate)
             .GroupBy(ra => ra.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
+            .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal, cancellationToken);
 
         // Batch load all enrollments with event types in a single query
         var enrollmentsByUser = await _enrollmentRepository.Query()
             .Include(e => e.Event)
             .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Calculate event XP for each user
         var eventXpByUser = enrollmentsByUser
@@ -226,7 +226,7 @@ public class RankingService : IRankingService
         return result;
     }
 
-    public async Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, DateTime startDate, DateTime endDate)
+    public async Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
     {
         var userIdList = userIds.ToList();
         if (!userIdList.Any())
@@ -247,7 +247,7 @@ public class RankingService : IRankingService
                         ra.Rehearsal!.Date < nowDate)
             .GroupBy(ra => ra.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
+            .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal, cancellationToken);
 
         // Batch load all enrollments with event types within date range in a single query
         // Also exclude future events (after today) to match "all years" behavior
@@ -258,7 +258,7 @@ public class RankingService : IRankingService
                        (e.Event!.EndDate ?? e.Event!.Date).Date <= endDateOnly &&
                        (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Calculate event XP for each user
         var eventXpByUser = enrollmentsByUser

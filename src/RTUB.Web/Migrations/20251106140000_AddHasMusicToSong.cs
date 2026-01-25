@@ -2,28 +2,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddHasMusicToSong : Migration
 {
     /// <inheritdoc />
-    public partial class AddHasMusicToSong : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<bool>(
-                name: "HasMusic",
-                table: "Songs",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: false);
-        }
+        migrationBuilder.AddColumn<bool>(
+            name: "HasMusic",
+            table: "Songs",
+            type: "INTEGER",
+            nullable: false,
+            defaultValue: false);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "HasMusic",
-                table: "Songs");
-        }
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "HasMusic",
+            table: "Songs");
     }
 }

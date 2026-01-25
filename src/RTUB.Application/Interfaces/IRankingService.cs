@@ -11,7 +11,7 @@ public interface IRankingService
     /// <summary>
     /// Calculates total XP for a user based on rehearsal and event attendance
     /// </summary>
-    Task<int> CalculateTotalXpAsync(string userId);
+    Task<int> CalculateTotalXpAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Determines the level based on XP amount
@@ -36,22 +36,22 @@ public interface IRankingService
     /// <summary>
     /// Updates user's XP and level in the database
     /// </summary>
-    Task UpdateUserRankingAsync(string userId);
+    Task UpdateUserRankingAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the rank progress information for a user
     /// </summary>
-    Task<RankProgressInfo> GetRankProgressAsync(string userId);
+    Task<RankProgressInfo> GetRankProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the rank progress information for multiple users in a single batch operation
     /// Optimized to avoid N+1 queries
     /// </summary>
-    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds);
+    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the rank progress information for multiple users within a date range
     /// Used for fiscal year filtering in leaderboard
     /// </summary>
-    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, DateTime startDate, DateTime endDate);
+    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
 }

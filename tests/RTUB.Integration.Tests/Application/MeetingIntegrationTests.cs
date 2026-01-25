@@ -6,8 +6,8 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
-using RTUB.Application.Services;
 using RTUB.Application.Repositories;
+using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Xunit;
@@ -29,7 +29,7 @@ public class MeetingIntegrationTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();

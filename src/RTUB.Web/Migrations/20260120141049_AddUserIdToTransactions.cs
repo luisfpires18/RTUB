@@ -1,49 +1,48 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddUserIdToTransactions : Migration
 {
     /// <inheritdoc />
-    public partial class AddUserIdToTransactions : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<string>(
-                name: "UserId",
-                table: "Transactions",
-                type: "TEXT",
-                nullable: true);
+        migrationBuilder.AddColumn<string>(
+            name: "UserId",
+            table: "Transactions",
+            type: "TEXT",
+            nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Transactions_UserId",
-                table: "Transactions",
-                column: "UserId");
+        migrationBuilder.CreateIndex(
+            name: "IX_Transactions_UserId",
+            table: "Transactions",
+            column: "UserId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_AspNetUsers_UserId",
-                table: "Transactions",
-                column: "UserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
-        }
+        migrationBuilder.AddForeignKey(
+            name: "FK_Transactions_AspNetUsers_UserId",
+            table: "Transactions",
+            column: "UserId",
+            principalTable: "AspNetUsers",
+            principalColumn: "Id",
+            onDelete: ReferentialAction.SetNull);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_AspNetUsers_UserId",
-                table: "Transactions");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropForeignKey(
+            name: "FK_Transactions_AspNetUsers_UserId",
+            table: "Transactions");
 
-            migrationBuilder.DropIndex(
-                name: "IX_Transactions_UserId",
-                table: "Transactions");
+        migrationBuilder.DropIndex(
+            name: "IX_Transactions_UserId",
+            table: "Transactions");
 
-            migrationBuilder.DropColumn(
-                name: "UserId",
-                table: "Transactions");
-        }
+        migrationBuilder.DropColumn(
+            name: "UserId",
+            table: "Transactions");
     }
 }

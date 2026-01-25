@@ -1,8 +1,8 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR.Client;
 using RTUB.Application.DTOs;
-using System.Collections.Concurrent;
 
 namespace RTUB.Web.Services;
 

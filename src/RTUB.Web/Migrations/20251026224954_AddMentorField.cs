@@ -1,20 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddMentorField : Migration
 {
     /// <inheritdoc />
-    public partial class AddMentorField : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // SQLite requires manual table rebuild for adding self-referential foreign key
-            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+        // SQLite requires manual table rebuild for adding self-referential foreign key
+        // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
 
-            // Step 1: Create new table with MentorId column and foreign key
-            migrationBuilder.Sql(@"
+        // Step 1: Create new table with MentorId column and foreign key
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""AspNetUsers_new"" (
                     ""Id"" TEXT NOT NULL CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY,
                     ""AccessFailedCount"" INTEGER NOT NULL,
@@ -50,8 +50,8 @@ namespace RTUB.Migrations
                 );
             ");
 
-            // Step 2: Copy data from old table to new table
-            migrationBuilder.Sql(@"
+        // Step 2: Copy data from old table to new table
+        migrationBuilder.Sql(@"
                 INSERT INTO ""AspNetUsers_new""
                     (""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
                      ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
@@ -71,26 +71,26 @@ namespace RTUB.Migrations
                 FROM ""AspNetUsers"";
             ");
 
-            // Step 3: Drop old table
-            migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
+        // Step 3: Drop old table
+        migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
 
-            // Step 4: Rename new table
-            migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_new"" RENAME TO ""AspNetUsers"";");
+        // Step 4: Rename new table
+        migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_new"" RENAME TO ""AspNetUsers"";");
 
-            // Step 5: Recreate indexes
-            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""IX_AspNetUsers_MentorId"" ON ""AspNetUsers"" (""MentorId"");");
-        }
+        // Step 5: Recreate indexes
+        migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""IX_AspNetUsers_MentorId"" ON ""AspNetUsers"" (""MentorId"");");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            // SQLite requires manual table rebuild for removing self-referential foreign key
-            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // SQLite requires manual table rebuild for removing self-referential foreign key
+        // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
 
-            // Step 1: Create new table without MentorId column and foreign key
-            migrationBuilder.Sql(@"
+        // Step 1: Create new table without MentorId column and foreign key
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""AspNetUsers_old"" (
                     ""Id"" TEXT NOT NULL CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY,
                     ""AccessFailedCount"" INTEGER NOT NULL,
@@ -124,8 +124,8 @@ namespace RTUB.Migrations
                 );
             ");
 
-            // Step 2: Copy data from current table to old table (excluding MentorId)
-            migrationBuilder.Sql(@"
+        // Step 2: Copy data from current table to old table (excluding MentorId)
+        migrationBuilder.Sql(@"
                 INSERT INTO ""AspNetUsers_old""
                     (""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
                      ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
@@ -145,15 +145,14 @@ namespace RTUB.Migrations
                 FROM ""AspNetUsers"";
             ");
 
-            // Step 3: Drop current table
-            migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
+        // Step 3: Drop current table
+        migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
 
-            // Step 4: Rename old table
-            migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_old"" RENAME TO ""AspNetUsers"";");
+        // Step 4: Rename old table
+        migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_old"" RENAME TO ""AspNetUsers"";");
 
-            // Step 5: Recreate indexes (without MentorId index)
-            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
-            migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
-        }
+        // Step 5: Recreate indexes (without MentorId index)
+        migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
+        migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
     }
 }

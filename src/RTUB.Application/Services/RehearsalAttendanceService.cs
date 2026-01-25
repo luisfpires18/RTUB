@@ -1,12 +1,13 @@
-using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
-using RTUB.Core.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Extensions;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -157,9 +158,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null)
     {
-        var attendance = await _attendanceRepository.GetByIdAsync(id);
-        if (attendance == null)
-            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+        var attendance = await _attendanceRepository.GetByIdOrThrowAsync(id);
 
         attendance.MarkAttendance(attended);
         if (instrument.HasValue)
@@ -182,9 +181,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
     public async Task CancelAttendanceAsync(int id, string? rejectorUserId = null)
     {
-        var attendance = await _attendanceRepository.GetByIdAsync(id);
-        if (attendance == null)
-            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+        var attendance = await _attendanceRepository.GetByIdOrThrowAsync(id);
 
         // Check if user was attending before canceling
         var wasAttending = attendance.WillAttend;
@@ -208,9 +205,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
     public async Task DeleteAttendanceAsync(int id)
     {
-        var attendance = await _attendanceRepository.GetByIdAsync(id);
-        if (attendance == null)
-            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+        var attendance = await _attendanceRepository.GetByIdOrThrowAsync(id);
 
         // Send cancellation notification before deleting if user was attending
         if (attendance.WillAttend)

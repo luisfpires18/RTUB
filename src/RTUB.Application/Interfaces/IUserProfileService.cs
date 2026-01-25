@@ -28,4 +28,12 @@ public interface IUserProfileService
     /// <param name="userId">The user ID to delete</param>
     /// <returns>True if deletion succeeded, false otherwise</returns>
     Task<bool> DeleteMemberWithRelatedDataAsync(string userId);
+
+    /// <summary>
+    /// Gets a user's categories (MemberCategory) without change tracking.
+    /// Useful for read-only checks like determining if a user is a Leitão.
+    /// </summary>
+    /// <param name="userId">The user ID to get categories for</param>
+    /// <returns>The user's categories, or empty collection if user not found</returns>
+    Task<IEnumerable<Core.Enums.MemberCategory>> GetUserCategoriesAsync(string userId);
 }

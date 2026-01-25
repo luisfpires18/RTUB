@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -83,9 +84,7 @@ public class BetService : IBetService
         if (bet == null)
             throw new ArgumentNullException(nameof(bet));
 
-        var existingBet = await _betRepository.GetByIdAsync(bet.Id);
-        if (existingBet == null)
-            throw new EntityNotFoundException(nameof(Bet), bet.Id);
+        var existingBet = await _betRepository.GetByIdOrThrowAsync(bet.Id);
 
         await _betRepository.UpdateAsync(bet);
     }
@@ -96,9 +95,7 @@ public class BetService : IBetService
     /// <param name="id">Bet ID to delete</param>
     public async Task DeleteBetAsync(int id)
     {
-        var bet = await _betRepository.GetByIdAsync(id);
-        if (bet == null)
-            throw new EntityNotFoundException(nameof(Bet), id);
+        var bet = await _betRepository.GetByIdOrThrowAsync(id);
 
         // Delete related entities first due to FK constraints
         // Using ExecuteDeleteAsync for efficient bulk deletion
@@ -256,9 +253,7 @@ public class BetService : IBetService
     /// <param name="reason">Cancellation reason</param>
     public async Task CancelBetAsync(int betId, string reason)
     {
-        var bet = await _betRepository.GetByIdAsync(betId);
-        if (bet == null)
-            throw new EntityNotFoundException(nameof(Bet), betId);
+        var bet = await _betRepository.GetByIdOrThrowAsync(betId);
 
         // Cancel the bet
         bet.Cancel(reason);
@@ -301,9 +296,7 @@ public class BetService : IBetService
     /// <param name="betId">Bet ID to uncancel</param>
     public async Task UncancelBetAsync(int betId)
     {
-        var bet = await _betRepository.GetByIdAsync(betId);
-        if (bet == null)
-            throw new EntityNotFoundException(nameof(Bet), betId);
+        var bet = await _betRepository.GetByIdOrThrowAsync(betId);
 
         bet.Uncancel();
         await _betRepository.UpdateAsync(bet);

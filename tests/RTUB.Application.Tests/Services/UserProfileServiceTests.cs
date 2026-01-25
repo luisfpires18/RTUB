@@ -1,17 +1,22 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
-using Microsoft.EntityFrameworkCore;
+using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
-public class UserProfileServiceTests
+public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
+    private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly Mock<ILeaderboardCommentRepository> _mockLeaderboardCommentRepository;
@@ -22,8 +27,16 @@ public class UserProfileServiceTests
     private readonly Mock<ILogger<UserProfileService>> _mockLogger;
     private readonly UserProfileService _service;
 
-    public UserProfileServiceTests()
+    public UserProfileServiceTests(DatabaseFixture fixture)
     {
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+
+        _context = _fixture.CreateContext();
+
         // Mock UserManager
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -39,6 +52,7 @@ public class UserProfileServiceTests
 
         _service = new UserProfileService(
             _mockUserManager.Object,
+            _context,
             _mockImageStorageService.Object,
             _mockLeaderboardCommentRepository.Object,
             _mockCommentRepository.Object,
@@ -256,5 +270,63 @@ public class UserProfileServiceTests
         // Assert
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("ApplicationUser with ID invalid-id not found");
+    }
+
+    [Fact]
+    public async Task GetUserCategoriesAsync_WithValidUser_ReturnsCategories()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
+            Email = "test@test.com",
+            EmailConfirmed = true,
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "TestUser",
+            PhoneNumber = "123456789",
+            Categories = new List<MemberCategory> { MemberCategory.Tuno, MemberCategory.Leitao }
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetUserCategoriesAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2);
+        result.Should().Contain(MemberCategory.Tuno);
+        result.Should().Contain(MemberCategory.Leitao);
+    }
+
+    [Fact]
+    public async Task GetUserCategoriesAsync_WithInvalidUser_ReturnsEmpty()
+    {
+        // Act
+        var result = await _service.GetUserCategoriesAsync("invalid-id");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetUserCategoriesAsync_WithNullUserId_ReturnsEmpty()
+    {
+        // Act
+        var result = await _service.GetUserCategoriesAsync(null!);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    public void Dispose()
+    {
+        _context?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

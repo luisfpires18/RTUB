@@ -1,10 +1,10 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
 using RTUB.Core.Constants;
-using System;
-using System.Collections.Generic;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 

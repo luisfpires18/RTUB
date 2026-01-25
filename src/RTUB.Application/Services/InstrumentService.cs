@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -52,9 +53,7 @@ public class InstrumentService : IInstrumentService
 
     public async Task UpdateAsync(Instrument instrument)
     {
-        var existingInstrument = await _instrumentRepository.GetByIdAsync(instrument.Id);
-        if (existingInstrument == null)
-            throw new EntityNotFoundException(nameof(Instrument), instrument.Id);
+        var existingInstrument = await _instrumentRepository.GetByIdOrThrowAsync(instrument.Id);
 
         existingInstrument.Update(instrument.Name, instrument.Condition, instrument.SerialNumber,
                                   instrument.Brand, instrument.Location);

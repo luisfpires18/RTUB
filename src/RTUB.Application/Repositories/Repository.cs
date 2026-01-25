@@ -109,9 +109,17 @@ public class Repository<T> : IRepository<T> where T : class
         return await _dbSet.AnyAsync(predicate).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Gets a queryable for complex queries (read-only, no-tracking)
+    /// Allows services to build custom queries while still using repository
+    /// Can be combined with QueryableExtensions (Paginate, WhereIf, etc.)
+    /// Note: This returns a no-tracking query for read-only operations.
+    /// If you need change tracking, use GetByIdAsync or explicitly attach entities.
+    /// </summary>
+    /// <returns>IQueryable for the entity type (no-tracking)</returns>
     public virtual IQueryable<T> Query()
     {
-        return _dbSet.AsQueryable();
+        return _dbSet.AsNoTracking().AsQueryable();
     }
 
     public virtual async Task<int> SaveChangesAsync()

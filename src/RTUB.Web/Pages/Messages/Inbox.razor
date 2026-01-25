@@ -11,6 +11,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Components
 @attribute [Authorize]
 @inject IMessagingService MessagingService
@@ -419,7 +420,7 @@
 </div>
 
 @* New Message Modal *@
-@if (showNewMessageModal)
+@if (modals.IsOpen(ModalType.NewMessage))
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down rtub-messages__modal">
@@ -512,7 +513,7 @@
 }
 
 @* New Group Modal *@
-@if (showNewGroupModal)
+@if (modals.IsOpen(ModalType.NewGroup))
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down rtub-messages__modal rtub-messages__modal--group">
@@ -619,7 +620,7 @@
 }
 
 @* Group Members Modal *@
-@if (showGroupMembersModal && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)
+@if (modals.IsOpen(ModalType.GroupMembers) && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -715,17 +716,16 @@
     private bool isInputFocusHandlerSetup = false;
 
     // Group members modal
-    private bool showGroupMembersModal = false;
+    private enum ModalType { GroupMembers, NewMessage, NewGroup }
+    private readonly MultiModalState<ModalType> modals = new();
     private string groupMembersSearchTerm = string.Empty;
 
     // New message modal
-    private bool showNewMessageModal = false;
     private string memberSearchTerm = string.Empty;
     private List<ApplicationUser> filteredMembers = new();
     private ApplicationUser? selectedMember;
     
     // New group modal
-    private bool showNewGroupModal = false;
     private string newGroupName = string.Empty;
     private string groupMemberSearchTerm = string.Empty;
     private List<ApplicationUser> filteredGroupMembers = new();
@@ -819,12 +819,12 @@
     {
         selectedConversation = null;
         messages.Clear();
-        showGroupMembersModal = false;
+        modals.Close(ModalType.GroupMembers);
     }
 
     private async Task OpenGroupMembersModal()
     {
-        showGroupMembersModal = true;
+        modals.Open(ModalType.GroupMembers);
         groupMembersSearchTerm = string.Empty;
         
         // Lock body scroll on mobile when modal opens
@@ -833,7 +833,7 @@
 
     private async Task CloseGroupMembersModal()
     {
-        showGroupMembersModal = false;
+        modals.Close(ModalType.GroupMembers);
         groupMembersSearchTerm = string.Empty;
         
         // Unlock body scroll when modal closes
@@ -983,7 +983,7 @@
     // New message modal methods
     private async Task OpenNewMessageModal()
     {
-        showNewMessageModal = true;
+        modals.Open(ModalType.NewMessage);
         memberSearchTerm = string.Empty;
         filteredMembers.Clear();
         selectedMember = null;
@@ -995,7 +995,7 @@
 
     private async Task CloseNewMessageModal()
     {
-        showNewMessageModal = false;
+        modals.Close(ModalType.NewMessage);
         memberSearchTerm = string.Empty;
         filteredMembers.Clear();
         selectedMember = null;
@@ -1074,7 +1074,7 @@
     // New group modal methods
     private async Task OpenNewGroupModal()
     {
-        showNewGroupModal = true;
+        modals.Open(ModalType.NewGroup);
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();
@@ -1086,7 +1086,7 @@
     
     private async Task CloseNewGroupModal()
     {
-        showNewGroupModal = false;
+        modals.Close(ModalType.NewGroup);
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();

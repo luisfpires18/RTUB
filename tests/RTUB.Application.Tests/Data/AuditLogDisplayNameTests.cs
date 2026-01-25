@@ -32,7 +32,7 @@ public class AuditLogDisplayNameTests : IDisposable
         var httpContextMock = new Mock<HttpContext>();
         _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContextMock.Object);
 
-        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext);
+        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext, new RTUB.Application.Services.AuditLogAppender());
     }
 
     [Fact]

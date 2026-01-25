@@ -1,11 +1,11 @@
-using RTUB.Application.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Services;
 
@@ -141,6 +141,7 @@ public class MeetingService : IMeetingService
         {
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
+            // Note: Exception is intentionally swallowed - notification failure should not break meeting creation
         }
 
         return createdMeeting;
@@ -148,9 +149,7 @@ public class MeetingService : IMeetingService
 
     public async Task UpdateMeetingAsync(Meeting meeting)
     {
-        var existingMeeting = await _meetingRepository.GetByIdAsync(meeting.Id);
-        if (existingMeeting == null)
-            throw new EntityNotFoundException(nameof(Meeting), meeting.Id);
+        var existingMeeting = await _meetingRepository.GetByIdOrThrowAsync(meeting.Id);
 
         existingMeeting.Type = meeting.Type;
         existingMeeting.Title = meeting.Title;
@@ -167,9 +166,7 @@ public class MeetingService : IMeetingService
 
     public async Task DeleteMeetingAsync(int id)
     {
-        var meeting = await _meetingRepository.GetByIdAsync(id);
-        if (meeting == null)
-            throw new EntityNotFoundException(nameof(Meeting), id);
+        var meeting = await _meetingRepository.GetByIdOrThrowAsync(id);
 
         await _meetingRepository.DeleteAsync(meeting);
     }

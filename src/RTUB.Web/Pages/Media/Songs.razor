@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using RTUB.Web.Services
 @inject IAlbumService AlbumService
 @inject ISongService SongService
@@ -130,8 +131,8 @@ else
 }
 
 <!-- View Lyrics Modal -->
-<Modal Show="@showViewLyricsModal" 
-       ShowChanged="@((value) => showViewLyricsModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.ViewLyrics)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.ViewLyrics, value))"
        Title="@($"Letra - {viewingSong?.Title}")" 
        Size="Modal.ModalSize.Large" 
        Centered="true"
@@ -147,8 +148,8 @@ else
 </Modal>
 
 <!-- View Lyrics PDF Modal -->
-<Modal Show="@showViewLyricsPdfModal" 
-       ShowChanged="@((value) => showViewLyricsPdfModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.ViewLyricsPdf)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.ViewLyricsPdf, value))"
        Title="@($"Letra - {viewingSong?.Title}")" 
        Size="Modal.ModalSize.ExtraLarge" 
        Centered="true"
@@ -182,8 +183,8 @@ else
 
 
 <!-- Links Modal -->
-<Modal Show="@showLinksModal" 
-       ShowChanged="@((value) => showLinksModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Links)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Links, value))"
        Title="@($"Links - {viewingSong?.Title}")" 
        Centered="true"
        OnClose="@CloseLinksModal">
@@ -222,8 +223,8 @@ else
 </Modal>
 
 <!-- Create Song Modal -->
-<Modal Show="@showCreateModal" 
-       ShowChanged="@((value) => showCreateModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Create)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Create, value))"
        Title="Criar Nova Música" 
        Size="Modal.ModalSize.Large" 
        Centered="true"
@@ -325,8 +326,8 @@ else
 </Modal>
 
 <!-- Edit Song Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((value) => showEditModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
        Title="Editar Música" 
        Size="Modal.ModalSize.Large" 
        Centered="true"
@@ -428,8 +429,8 @@ else
 </Modal>
 
 <!-- Delete Song Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((value) => showDeleteModal = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                Title="Confirmar Eliminação"
                Message="@($"Tem certeza que deseja eliminar a música {deletingSong?.Title}?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -440,8 +441,8 @@ else
                OnCancel="CloseDeleteModal" />
 
 <!-- Videos Modal (with Upload and View sections) -->
-<Modal Show="@showVideosModal" 
-       ShowChanged="@((value) => showVideosModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Videos)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Videos, value))"
        Title="@($"Vídeos - {viewingVideosForSong?.Title}")" 
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -612,13 +613,8 @@ else
         (s.MusicAuthor?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
     ) ?? Enumerable.Empty<Song>();
 
-    private bool showCreateModal = false;
-    private bool showEditModal = false;
-    private bool showViewLyricsModal = false;
-    private bool showViewLyricsPdfModal = false;
-    private bool showLinksModal = false;
-    private bool showDeleteModal = false;
-    private bool showVideosModal = false;
+    private enum ModalType { Create, Edit, ViewLyrics, ViewLyricsPdf, Links, Delete, Videos }
+    private readonly MultiModalState<ModalType> modals = new();
     private Song? editingSong;
     private Song? viewingSong;
     private Song? deletingSong;
@@ -783,13 +779,13 @@ else
                 editingYouTubeUrls.Add(string.Empty);
             }
 
-            showEditModal = true;
+            modals.Open(ModalType.Edit);
         }
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingSong = null;
         editingYouTubeUrls.Clear();
     }
@@ -804,7 +800,7 @@ else
             if (album != null && !string.IsNullOrEmpty(album.Title))
             {
                 isLoadingPdf = true;
-                showViewLyricsPdfModal = true;
+                modals.Open(ModalType.ViewLyricsPdf);
                 StateHasChanged();
                 
                 // Check cache first
@@ -852,22 +848,22 @@ else
         viewingSong = await SongService.GetSongByIdAsync(song.Id);
         
         // Don't clear viewingSong - just hide the PDF modal
-        showViewLyricsPdfModal = false;
+        modals.Close(ModalType.ViewLyricsPdf);
         isLoadingPdf = false;
         currentPdfUrl = null;
         
-        showViewLyricsModal = true;
+        modals.Open(ModalType.ViewLyrics);
     }
 
     private void CloseViewLyricsModal()
     {
-        showViewLyricsModal = false;
+        modals.Close(ModalType.ViewLyrics);
         viewingSong = null;
     }
     
     private void CloseViewLyricsPdfModal()
     {
-        showViewLyricsPdfModal = false;
+        modals.Close(ModalType.ViewLyricsPdf);
         isLoadingPdf = false;
         currentPdfUrl = null;
         viewingSong = null;
@@ -892,12 +888,12 @@ else
     private async Task OpenLinksModal(Song song)
     {
         viewingSong = await SongService.GetSongByIdAsync(song.Id);
-        showLinksModal = true;
+        modals.Open(ModalType.Links);
     }
 
     private void CloseLinksModal()
     {
-        showLinksModal = false;
+        modals.Close(ModalType.Links);
         viewingSong = null;
     }
 
@@ -992,12 +988,12 @@ else
         };
 
         editingYouTubeUrls = new List<string> { string.Empty };
-        showCreateModal = true;
+        modals.Open(ModalType.Create);
     }
 
     private void CloseCreateModal()
     {
-        showCreateModal = false;
+        modals.Close(ModalType.Create);
         editingSong = null;
         editingYouTubeUrls.Clear();
     }
@@ -1043,12 +1039,12 @@ else
     private void OpenDeleteSongModal(Song song)
     {
         deletingSong = song;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingSong = null;
     }
 
@@ -1312,12 +1308,12 @@ else
         songVideos = (await SongService.GetVideosBySongIdAsync(song.Id)).ToList();
         selectedVideoId = null; // No video selected by default
         videoUploadKey = Guid.NewGuid(); // Force InputFile to recreate to avoid JSException
-        showVideosModal = true;
+        modals.Open(ModalType.Videos);
     }
     
     private async Task CloseVideosModal()
     {
-        showVideosModal = false;
+        modals.Close(ModalType.Videos);
         viewingVideosForSong = null;
         songVideos = null;
         selectedVideoId = null;

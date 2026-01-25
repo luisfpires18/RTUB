@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
@@ -7,7 +8,6 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services;
 
@@ -1048,5 +1048,72 @@ public class MemberStatusService : IMemberStatusService
             TotalActivitiesCount = memberStatus.TotalActivitiesCount,
             HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
+    }
+
+    /// <summary>
+    /// Manually activates a retired member by setting IsRetired=false, removing old MemberStatus,
+    /// recalculating status, and setting OverrideRetired=true to prevent automatic re-retirement.
+    /// This is an administrative action that bypasses automatic retirement rules.
+    /// </summary>
+    /// <param name="userId">The user ID to activate</param>
+    /// <returns>The updated status result with IsRetired=false and OverrideRetired=true</returns>
+    public async Task<MemberStatusResult> ActivateMemberWithOverrideAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
+
+        // Step 1: Set IsRetired=false in AspNetUsers
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+
+        user.IsRetired = false;
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            _logger.LogError("Failed to update IsRetired for user {UserId}: {Errors}",
+                userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            throw new InvalidOperationException($"Failed to update IsRetired for user {userId}: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
+        }
+
+        // Step 2: Remove old MemberStatus record from database
+        var memberStatus = await _context.MemberStatuses
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+
+        if (memberStatus != null)
+        {
+            _context.MemberStatuses.Remove(memberStatus);
+            await _context.SaveChangesAsync();
+        }
+
+        // Step 3: Trigger a status update to recalculate the member's status
+        // This creates a proper MemberStatus record with all calculated fields
+        var updatedStatus = await UpdateMemberStatusAsync(userId);
+
+        // Step 4: OVERRIDE the calculated retirement status
+        // Force the member to be active regardless of their activity history
+        // This is a manual activation that bypasses automatic retirement rules
+        // Set OverrideRetired flag to prevent automatic re-retirement
+        memberStatus = await _context.MemberStatuses
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+
+        if (memberStatus != null)
+        {
+            // Force IsRetired to false - this overrides the automatic calculation
+            memberStatus.IsRetired = false;
+            // Set the override flag to prevent automatic retirement in future updates
+            memberStatus.OverrideRetired = true;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Manually activated member {UserId} ({UserName}) - set IsRetired=false and OverrideRetired=true",
+                userId, user.UserName);
+
+            // Update the result object to reflect the override
+            updatedStatus.IsRetired = false;
+        }
+
+        return updatedStatus;
     }
 }

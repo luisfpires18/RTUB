@@ -2,28 +2,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class AddIsPrivateToAlbum : Migration
 {
     /// <inheritdoc />
-    public partial class AddIsPrivateToAlbum : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<bool>(
-                name: "IsPrivate",
-                table: "Albums",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: false);
-        }
+        migrationBuilder.AddColumn<bool>(
+            name: "IsPrivate",
+            table: "Albums",
+            type: "INTEGER",
+            nullable: false,
+            defaultValue: false);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "IsPrivate",
-                table: "Albums");
-        }
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "IsPrivate",
+            table: "Albums");
     }
 }

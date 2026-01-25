@@ -1,7 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;

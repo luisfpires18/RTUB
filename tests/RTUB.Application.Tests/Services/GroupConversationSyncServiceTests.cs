@@ -121,7 +121,7 @@ public class GroupConversationSyncServiceTests
 
         var httpContextAccessor = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
         var auditContext = new AuditContext();
-        return new ApplicationDbContext(options, httpContextAccessor.Object, auditContext);
+        return new ApplicationDbContext(options, httpContextAccessor.Object, auditContext, new RTUB.Application.Services.AuditLogAppender());
     }
 
     // Helper classes for async query testing

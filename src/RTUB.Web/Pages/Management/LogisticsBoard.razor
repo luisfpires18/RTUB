@@ -13,6 +13,7 @@
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject ILogisticsBoardService BoardService
 @inject ILogisticsListService ListService
@@ -250,7 +251,7 @@
 </AuthorizeView>
 
 @* List Modal - Create/Edit *@
-@if (showListModal)
+@if (modals.IsOpen(ModalType.List))
 {
     <div class="modal fade show d-block logistics-modal" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
@@ -283,7 +284,7 @@
 }
 
 @* Card Modal - Create/Edit *@
-@if (showCardModal)
+@if (modals.IsOpen(ModalType.Card))
 {
     <div class="modal fade show d-block logistics-modal" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
@@ -354,7 +355,7 @@
 }
 
 @* Card Details Modal *@
-@if (showCardDetailsModal && selectedCard != null)
+@if (modals.IsOpen(ModalType.CardDetails) && selectedCard != null)
 {
     <div class="modal fade show d-block logistics-modal" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -659,8 +660,8 @@
 }
 
 @* Delete Modals using ConfirmDialog Component *@
-<ConfirmDialog Show="@showDeleteListModal"
-               ShowChanged="@((show) => showDeleteListModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteList)"
+               ShowChanged="@((show) => modals.Toggle(ModalType.DeleteList, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
                WarningMessage="Todos os cartões desta lista também serão eliminados."
@@ -670,8 +671,8 @@
                OnConfirm="ConfirmDeleteList"
                OnCancel="CloseDeleteListModal" />
 
-<ConfirmDialog Show="@showDeleteCardModal"
-               ShowChanged="@((show) => showDeleteCardModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteCard)"
+               ShowChanged="@((show) => modals.Toggle(ModalType.DeleteCard, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
                ConfirmText="Eliminar"
@@ -681,7 +682,7 @@
                OnCancel="CloseDeleteCardModal" />
 
 @* Create Reminder Modal *@
-@if (showCreateReminderModal)
+@if (modals.IsOpen(ModalType.CreateReminder))
 {
     <div class="modal fade show d-block logistics-modal" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
@@ -858,12 +859,12 @@
     private List<string> availableLabels = new();
 
     // List modal state
-    private bool showListModal = false;
+    private enum ModalType { List, Card, CardDetails, CreateReminder, DeleteList, DeleteCard }
+    private readonly MultiModalState<ModalType> modals = new();
     private LogisticsList? editingList = null;
     private string listName = string.Empty;
 
     // Card modal state
-    private bool showCardModal = false;
     private LogisticsCard? editingCard = null;
     private int currentListId = 0;
     private string cardTitle = string.Empty;
@@ -877,7 +878,6 @@
         (u.Email != null && u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
 
     // Card details modal state
-    private bool showCardDetailsModal = false;
     private LogisticsCard? selectedCard = null;
     private List<LabelItem>? cardLabels;
     private string newLabelText = string.Empty;
@@ -917,7 +917,6 @@
     private string? uploadSuccessMessage = null;
 
     // Create Reminder modal state
-    private bool showCreateReminderModal = false;
     private string selectedReminderCardId = string.Empty;
     private int selectedReminderFrequency = (int)ReminderFrequency.OneTime;
     private DateTime nextReminderDate = DateTime.Now.AddDays(1);
@@ -938,9 +937,7 @@
         .ToList();
 
     // Delete modal state
-    private bool showDeleteListModal = false;
     private LogisticsList? deletingList = null;
-    private bool showDeleteCardModal = false;
     private LogisticsCard? deletingCard = null;
 
     protected override async Task OnInitializedAsync()
@@ -1054,19 +1051,19 @@
     {
         editingList = null;
         listName = string.Empty;
-        showListModal = true;
+        modals.Open(ModalType.List);
     }
 
     private void OpenEditListModal(LogisticsList list)
     {
         editingList = list;
         listName = list.Name;
-        showListModal = true;
+        modals.Open(ModalType.List);
     }
 
     private void CloseListModal()
     {
-        showListModal = false;
+        modals.Close(ModalType.List);
         editingList = null;
         listName = string.Empty;
     }
@@ -1100,12 +1097,12 @@
     private void OpenDeleteListModal(LogisticsList list)
     {
         deletingList = list;
-        showDeleteListModal = true;
+        modals.Open(ModalType.DeleteList);
     }
 
     private void CloseDeleteListModal()
     {
-        showDeleteListModal = false;
+        modals.Close(ModalType.DeleteList);
         deletingList = null;
     }
 
@@ -1136,7 +1133,7 @@
         selectedUserId = string.Empty;
         selectedUserName = string.Empty;
         userSearchTerm = string.Empty;
-        showCardModal = true;
+        modals.Open(ModalType.Card);
     }
 
     private void OpenEditCardModal(LogisticsCard card)
@@ -1148,12 +1145,12 @@
         selectedUserId = card.AssignedToUserId ?? string.Empty;
         selectedUserName = card.AssignedToUser?.UserName ?? string.Empty;
         userSearchTerm = string.Empty;
-        showCardModal = true;
+        modals.Open(ModalType.Card);
     }
 
     private void CloseCardModal()
     {
-        showCardModal = false;
+        modals.Close(ModalType.Card);
         editingCard = null;
         currentListId = 0;
     }
@@ -1291,12 +1288,12 @@
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
         memberSearchTerm = string.Empty;
-        showCardDetailsModal = true;
+        modals.Open(ModalType.CardDetails);
     }
 
     private void CloseCardDetailsModal()
     {
-        showCardDetailsModal = false;
+        modals.Close(ModalType.CardDetails);
         selectedCard = null;
     }
 
@@ -1628,7 +1625,7 @@
         if (selectedCard != null)
         {
             deletingCard = selectedCard;
-            showDeleteCardModal = true;
+            modals.Open(ModalType.DeleteCard);
             CloseCardDetailsModal();
         }
     }
@@ -1636,12 +1633,12 @@
     private void OpenDeleteCardModal(LogisticsCard card)
     {
         deletingCard = card;
-        showDeleteCardModal = true;
+        modals.Open(ModalType.DeleteCard);
     }
 
     private void CloseDeleteCardModal()
     {
-        showDeleteCardModal = false;
+        modals.Close(ModalType.DeleteCard);
         deletingCard = null;
     }
 
@@ -1796,7 +1793,7 @@
     // Create Reminder Modal Methods
     private void OpenCreateReminderModal()
     {
-        showCreateReminderModal = true;
+        modals.Open(ModalType.CreateReminder);
         selectedReminderCardId = string.Empty;
         selectedReminderFrequency = (int)ReminderFrequency.OneTime;
         nextReminderDate = DateTime.Now.AddDays(1);
@@ -1807,7 +1804,7 @@
 
     private void CloseCreateReminderModal()
     {
-        showCreateReminderModal = false;
+        modals.Close(ModalType.CreateReminder);
         reminderErrorMessage = null;
     }
 

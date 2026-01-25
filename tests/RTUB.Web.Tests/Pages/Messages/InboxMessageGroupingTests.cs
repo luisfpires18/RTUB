@@ -1,6 +1,6 @@
-using Xunit;
 using FluentAssertions;
 using RTUB.Application.DTOs;
+using Xunit;
 
 namespace RTUB.Web.Tests.Pages.Messages;
 

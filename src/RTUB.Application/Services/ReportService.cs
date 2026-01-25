@@ -1,11 +1,12 @@
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Core.Constants;
 
 
 namespace RTUB.Application.Services;
@@ -18,64 +19,104 @@ public class ReportService : IReportService
 {
     private readonly IReportRepository _reportRepository;
 
+    /// <summary>
+    /// Initializes a new instance of the ReportService
+    /// </summary>
+    /// <param name="reportRepository">Repository for report operations</param>
     public ReportService(IReportRepository reportRepository)
     {
         _reportRepository = reportRepository;
     }
 
+    /// <summary>
+    /// Gets a report by its ID with all activities and transactions
+    /// </summary>
+    /// <param name="id">The ID of the report to retrieve</param>
+    /// <returns>The report if found, null otherwise</returns>
     public async Task<Report?> GetReportByIdAsync(int id)
     {
         // Get report with activities and transactions for computed properties
         return await _reportRepository.GetByIdWithActivitiesAsync(id);
     }
 
+    /// <summary>
+    /// Gets all reports with their activities and transactions
+    /// </summary>
+    /// <returns>Collection of all reports</returns>
     public async Task<IEnumerable<Report>> GetAllReportsAsync()
     {
         return await _reportRepository.GetAllWithActivitiesAsync();
     }
 
+    /// <summary>
+    /// Gets all published reports with their activities and transactions
+    /// </summary>
+    /// <returns>Collection of published reports</returns>
     public async Task<IEnumerable<Report>> GetPublishedReportsAsync()
     {
         // Get published reports with activities and transactions
         return await _reportRepository.GetPublishedWithActivitiesAsync();
     }
 
+    /// <summary>
+    /// Creates a new report
+    /// </summary>
+    /// <param name="title">The title of the report</param>
+    /// <param name="year">The fiscal year for the report</param>
+    /// <param name="summary">Optional summary text for the report</param>
+    /// <returns>The created report</returns>
     public async Task<Report> CreateReportAsync(string title, int year, string? summary = null)
     {
         var report = Report.Create(title, year, summary);
         return await _reportRepository.AddAsync(report);
     }
 
+    /// <summary>
+    /// Updates the summary of a report
+    /// </summary>
+    /// <param name="id">The ID of the report to update</param>
+    /// <param name="summary">The new summary text</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
     public async Task UpdateReportAsync(int id, string? summary)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.UpdateSummary(summary);
         await _reportRepository.UpdateAsync(report);
     }
 
+    /// <summary>
+    /// Publishes a report, making it publicly available
+    /// </summary>
+    /// <param name="id">The ID of the report to publish</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
     public async Task PublishReportAsync(int id)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.Publish();
         await _reportRepository.UpdateAsync(report);
     }
 
+    /// <summary>
+    /// Unpublishes a report, making it no longer publicly available
+    /// </summary>
+    /// <param name="id">The ID of the report to unpublish</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
     public async Task UnpublishReportAsync(int id)
     {
-        var report = await _reportRepository.GetByIdAsync(id);
-        if (report == null)
-            throw new EntityNotFoundException(nameof(Report), id);
+        var report = await _reportRepository.GetByIdOrThrowAsync(id);
 
         report.Unpublish();
         await _reportRepository.UpdateAsync(report);
     }
 
+    /// <summary>
+    /// Generates a PDF document for a report and stores it in the report entity
+    /// </summary>
+    /// <param name="reportId">The ID of the report to generate a PDF for</param>
+    /// <returns>The generated PDF as a byte array</returns>
+    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
     public async Task<byte[]> GenerateReportPdfAsync(int reportId)
     {
         var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
@@ -101,6 +142,11 @@ public class ReportService : IReportService
         return pdfData;
     }
 
+    /// <summary>
+    /// Deletes a report and all its associated activities and transactions
+    /// </summary>
+    /// <param name="reportId">The ID of the report to delete</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the report is not found</exception>
     public async Task DeleteReportAsync(int reportId)
     {
         var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);

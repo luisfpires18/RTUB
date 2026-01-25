@@ -1,11 +1,11 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RTUB.Application.Services.Geocoding;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using RTUB.Application.Data;
-using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Services.Geocoding;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;

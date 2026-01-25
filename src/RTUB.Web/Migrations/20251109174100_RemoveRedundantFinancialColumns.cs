@@ -1,20 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class RemoveRedundantFinancialColumns : Migration
 {
     /// <inheritdoc />
-    public partial class RemoveRedundantFinancialColumns : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // For SQLite, we need to rebuild tables to remove columns
-            // This is done manually to avoid transaction issues with PRAGMA statements
+        // For SQLite, we need to rebuild tables to remove columns
+        // This is done manually to avoid transaction issues with PRAGMA statements
 
-            // Reports table - recreate without financial columns
-            migrationBuilder.Sql(@"
+        // Reports table - recreate without financial columns
+        migrationBuilder.Sql(@"
                 CREATE TABLE Reports_New (
                     Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     Title TEXT NOT NULL,
@@ -30,17 +30,17 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO Reports_New (Id, Title, Year, Summary, PdfData, PublishedAt, IsPublished, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
                 SELECT Id, Title, Year, Summary, PdfData, PublishedAt, IsPublished, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Reports;
             ");
 
-            migrationBuilder.Sql("DROP TABLE Reports;");
-            migrationBuilder.Sql("ALTER TABLE Reports_New RENAME TO Reports;");
+        migrationBuilder.Sql("DROP TABLE Reports;");
+        migrationBuilder.Sql("ALTER TABLE Reports_New RENAME TO Reports;");
 
-            // Activities table - recreate without financial columns
-            migrationBuilder.Sql(@"
+        // Activities table - recreate without financial columns
+        migrationBuilder.Sql(@"
                 CREATE TABLE Activities_New (
                     Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     ReportId INTEGER NOT NULL,
@@ -54,26 +54,26 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO Activities_New (Id, ReportId, Name, Description, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
                 SELECT Id, ReportId, Name, Description, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Activities;
             ");
 
-            migrationBuilder.Sql("DROP TABLE Activities;");
-            migrationBuilder.Sql("ALTER TABLE Activities_New RENAME TO Activities;");
+        migrationBuilder.Sql("DROP TABLE Activities;");
+        migrationBuilder.Sql("ALTER TABLE Activities_New RENAME TO Activities;");
 
-            // Recreate indexes if any existed
-            migrationBuilder.Sql("CREATE INDEX IX_Activities_ReportId ON Activities (ReportId);");
-        }
+        // Recreate indexes if any existed
+        migrationBuilder.Sql("CREATE INDEX IX_Activities_ReportId ON Activities (ReportId);");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            // For SQLite, we need to rebuild tables to add columns back
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // For SQLite, we need to rebuild tables to add columns back
 
-            // Reports table - recreate with financial columns
-            migrationBuilder.Sql(@"
+        // Reports table - recreate with financial columns
+        migrationBuilder.Sql(@"
                 CREATE TABLE Reports_New (
                     Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     Title TEXT NOT NULL,
@@ -92,17 +92,17 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO Reports_New (Id, Title, Year, TotalIncome, TotalExpenses, FinalBalance, Summary, PdfData, PublishedAt, IsPublished, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
                 SELECT Id, Title, Year, '0', '0', '0', Summary, PdfData, PublishedAt, IsPublished, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Reports;
             ");
 
-            migrationBuilder.Sql("DROP TABLE Reports;");
-            migrationBuilder.Sql("ALTER TABLE Reports_New RENAME TO Reports;");
+        migrationBuilder.Sql("DROP TABLE Reports;");
+        migrationBuilder.Sql("ALTER TABLE Reports_New RENAME TO Reports;");
 
-            // Activities table - recreate with financial columns
-            migrationBuilder.Sql(@"
+        // Activities table - recreate with financial columns
+        migrationBuilder.Sql(@"
                 CREATE TABLE Activities_New (
                     Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     ReportId INTEGER NOT NULL,
@@ -119,17 +119,16 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO Activities_New (Id, ReportId, Name, Description, TotalIncome, TotalExpenses, Balance, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
                 SELECT Id, ReportId, Name, Description, '0', '0', '0', CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Activities;
             ");
 
-            migrationBuilder.Sql("DROP TABLE Activities;");
-            migrationBuilder.Sql("ALTER TABLE Activities_New RENAME TO Activities;");
+        migrationBuilder.Sql("DROP TABLE Activities;");
+        migrationBuilder.Sql("ALTER TABLE Activities_New RENAME TO Activities;");
 
-            // Recreate indexes if any existed
-            migrationBuilder.Sql("CREATE INDEX IX_Activities_ReportId ON Activities (ReportId);");
-        }
+        // Recreate indexes if any existed
+        migrationBuilder.Sql("CREATE INDEX IX_Activities_ReportId ON Activities (ReportId);");
     }
 }

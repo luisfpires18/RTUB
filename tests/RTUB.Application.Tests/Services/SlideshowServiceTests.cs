@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Moq;
 using MockQueryable.Moq;
+using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -396,5 +396,93 @@ public class SlideshowServiceTests
         // Assert
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Slideshow with ID 999 not found");
+    }
+
+    [Fact]
+    public async Task SetSlideshowImageAsync_SetsImageForSlideshow()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Test", 1);
+        var imageUrl = "https://example.com/test-image.webp";
+
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
+            .ReturnsAsync(slideshow);
+        _imageStorageServiceMock
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(imageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _service.SetSlideshowImageAsync(slideshow.Id, imageStream, "test.webp", "image/webp");
+
+        // Assert
+        slideshow.ImageUrl.Should().Be(imageUrl);
+        _mockSlideshowRepository.Verify(r => r.UpdateAsync(slideshow), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetSlideshowImageAsync_WithExistingImage_DeletesOldImage()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Test", 1);
+        var oldImageUrl = "https://example.com/old-image.webp";
+        var newImageUrl = "https://example.com/new-image.webp";
+
+        slideshow.SetImage(oldImageUrl);
+
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
+            .ReturnsAsync(slideshow);
+        _imageStorageServiceMock
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(newImageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _service.SetSlideshowImageAsync(slideshow.Id, imageStream, "test.webp", "image/webp");
+
+        // Assert
+        _imageStorageServiceMock.Verify(
+            x => x.DeleteImageAsync(oldImageUrl),
+            Times.Once,
+            "Old image should be deleted");
+        slideshow.ImageUrl.Should().Be(newImageUrl);
+    }
+
+    [Fact]
+    public async Task SetSlideshowImageAsync_WithNonExistentId_ThrowsException()
+    {
+        // Arrange
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Slideshow?)null);
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+
+        // Act
+        var act = async () => await _service.SetSlideshowImageAsync(999, imageStream, "test.webp", "image/webp");
+
+        // Assert
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("Slideshow with ID 999 not found");
+    }
+
+    [Fact]
+    public async Task DeleteSlideshowAsync_WithImage_DeletesImageFromStorage()
+    {
+        // Arrange
+        var slideshow = Slideshow.Create("Test", 1);
+        var imageUrl = "https://example.com/test-image.webp";
+        slideshow.SetImage(imageUrl);
+
+        _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
+            .ReturnsAsync(slideshow);
+
+        // Act
+        await _service.DeleteSlideshowAsync(slideshow.Id);
+
+        // Assert
+        _imageStorageServiceMock.Verify(
+            x => x.DeleteImageAsync(imageUrl),
+            Times.Once,
+            "Image should be deleted from storage");
+        _mockSlideshowRepository.Verify(r => r.DeleteAsync(slideshow), Times.Once);
     }
 }

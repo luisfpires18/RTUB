@@ -1,6 +1,8 @@
 @namespace RTUB.Shared
 @using Microsoft.JSInterop
+@using Microsoft.Extensions.Logging
 @inject IJSRuntime JSRuntime
+@inject ILogger<ImageCropper>? Logger
 @implements IAsyncDisposable
 
 <Modal Show="@ShowModal" ShowChanged="@ShowModalChanged" Title="Crop Image" Size="Modal.ModalSize.Large" Centered="true">
@@ -146,13 +148,37 @@
 
             if (string.IsNullOrEmpty(croppedBase64))
             {
-                errorMessage = "Failed to crop image";
+                errorMessage = "Failed to crop image. The selection might be too small or invalid.";
+                Logger?.LogWarning("ImageCropper: getCroppedImageAsBase64 returned null or empty");
                 return;
             }
 
             // Convert base64 to byte array
-            var base64Data = croppedBase64.Split(',')[1]; // Remove data:image/xxx;base64, prefix
+            string base64Data;
+            if (croppedBase64.Contains(","))
+            {
+                base64Data = croppedBase64.Split(',')[1]; // Remove data:image/xxx;base64, prefix
+            }
+            else
+            {
+                base64Data = croppedBase64; // Assume it's already just the base64 data
+            }
+            
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                errorMessage = "Failed to extract image data from cropped result.";
+                Logger?.LogWarning("ImageCropper: Base64 data extraction failed");
+                return;
+            }
+            
             var imageBytes = Convert.FromBase64String(base64Data);
+            
+            if (imageBytes == null || imageBytes.Length == 0)
+            {
+                errorMessage = "Failed to convert cropped image to bytes.";
+                Logger?.LogWarning("ImageCropper: Base64 to bytes conversion resulted in empty array");
+                return;
+            }
 
             // Invoke callback with cropped image
             await OnImageCropped.InvokeAsync(imageBytes);

@@ -1,6 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using RTUB.Core.Attributes;
 using RTUB.Core.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace RTUB.Core.Entities;
 

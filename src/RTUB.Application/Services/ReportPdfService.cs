@@ -1,13 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Report = RTUB.Core.Entities.Report;
-using Activity = RTUB.Core.Entities.Activity;
-using Transaction = RTUB.Core.Entities.Transaction;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Core.Constants;
+using Activity = RTUB.Core.Entities.Activity;
+using Report = RTUB.Core.Entities.Report;
+using Transaction = RTUB.Core.Entities.Transaction;
 
 namespace RTUB.Application.Services;
 
@@ -32,7 +32,7 @@ public class ReportPdfService
         };
     }
 
-    public byte[] GenerateReportPdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions)
+    public byte[] GenerateReportPdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions, decimal calotesTotal = 0)
     {
         // Generate cache key based on report content (use current time if UpdatedAt is null)
         var timestamp = report.UpdatedAt?.ToString("yyyyMMddHHmmss") ?? DateTime.UtcNow.ToString("yyyyMMddHHmmss");
@@ -98,7 +98,7 @@ public class ReportPdfService
                         var regularTransactions = allTransactions
                             .Where(x => !x.activity.IsHiddenFromCalculations())
                             .SelectMany(x => x.transactions);
-                        
+
                         var totalIncome = regularTransactions
                             .Where(t => t.Type == TransactionTypes.Income)
                             .Sum(t => t.Amount);
@@ -106,71 +106,86 @@ public class ReportPdfService
                             .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;
-                        
+
                         // Calculate bank and cash money from special activities
-                        var bankActivity = activities.FirstOrDefault(a => 
+                        var bankActivity = activities.FirstOrDefault(a =>
                             a.Name.Equals("DINHEIRO NO BANCO", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Equals("DINHEIRO BANCO", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Contains("BANCO", StringComparison.OrdinalIgnoreCase));
-                        
+
                         var cashActivity = activities.FirstOrDefault(a =>
                             a.Name.Equals("DINHEIRO EM CAIXA", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Equals("DINHEIRO CAIXA", StringComparison.OrdinalIgnoreCase) ||
                             a.Name.Contains("CAIXA", StringComparison.OrdinalIgnoreCase));
-                        
+
                         var bankMoney = bankActivity?.Balance ?? 0;
                         var cashMoney = cashActivity?.Balance ?? 0;
 
+                        // Count only non-hidden activities
+                        var visibleActivitiesCount = activities.Count(a => !a.IsHiddenFromActivityList());
+
                         column.Item().Background("#f8f9fa").Padding(15).Column(summaryColumn =>
                         {
+                            // Top row: 3 values
                             summaryColumn.Item().Row(row =>
                             {
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Receitas").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text($"€{totalIncome:N2}").FontSize(18).Bold().FontColor("#28a745");
+                                    col.Item().Text($"€{totalIncome:N2}").FontSize(16).Bold().FontColor("#28a745");
                                 });
 
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Despesas").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text($"€{totalExpenses:N2}").FontSize(18).Bold().FontColor("#dc3545");
+                                    col.Item().Text($"€{totalExpenses:N2}").FontSize(16).Bold().FontColor("#dc3545");
                                 });
 
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Saldo").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text($"€{balance:N2}").FontSize(18).Bold()
+                                    col.Item().Text($"€{balance:N2}").FontSize(16).Bold()
                                         .FontColor(balance >= 0 ? "#28a745" : "#dc3545");
+                                });
+                            });
+
+                            // Bottom row: 3 values
+                            summaryColumn.Item().PaddingTop(10).Row(row =>
+                            {
+                                row.RelativeItem().Column(col =>
+                                {
+                                    col.Item().Text("Calotes").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                    col.Item().Text($"€{calotesTotal:N2}").FontSize(16).Bold().FontColor("#dc3545");
                                 });
 
                                 row.RelativeItem().Column(col =>
                                 {
-                                    col.Item().Text("Atividades").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text(activities.Count.ToString()).FontSize(18).Bold().FontColor("#6f42c1");
-                                });
-                                
-                                row.RelativeItem().Column(col =>
-                                {
                                     col.Item().Text("Dinheiro no Banco").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text($"€{bankMoney:N2}").FontSize(18).Bold().FontColor("#6f42c1");
+                                    col.Item().Text($"€{bankMoney:N2}").FontSize(16).Bold().FontColor("#6f42c1");
                                 });
-                                
+
                                 row.RelativeItem().Column(col =>
                                 {
                                     col.Item().Text("Dinheiro em Caixa").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                    col.Item().Text($"€{cashMoney:N2}").FontSize(18).Bold().FontColor("#6f42c1");
+                                    col.Item().Text($"€{cashMoney:N2}").FontSize(16).Bold().FontColor("#6f42c1");
                                 });
                             });
                         });
 
-                        column.Item().PaddingTop(20).Text("Atividades e Transações")
+                        column.Item().PaddingTop(20).Text($"Atividades ({visibleActivitiesCount}) e Transações")
                             .FontSize(18)
                             .Bold()
                             .FontColor("#6f42c1");
 
+                        // Filter out hidden activities and sort by date ASC
+                        var visibleActivities = allTransactions
+                            .Where(x => !x.activity.IsHiddenFromActivityList())
+                            .OrderBy(x => x.activity.StartDate)
+                            .ThenBy(x => x.activity.EndDate ?? x.activity.StartDate)
+                            .ToList();
+
                         // Activities and Transactions
-                        foreach (var (activity, transactions) in allTransactions)
+                        foreach (var (activity, transactions) in visibleActivities)
                         {
                             column.Item().PaddingTop(15).Column(activityColumn =>
                             {

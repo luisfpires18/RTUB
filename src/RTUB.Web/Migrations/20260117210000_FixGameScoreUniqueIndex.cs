@@ -2,17 +2,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class FixGameScoreUniqueIndex : Migration
 {
     /// <inheritdoc />
-    public partial class FixGameScoreUniqueIndex : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // Remove duplicate records before creating unique index
-            // Keep only the record with the highest Points for each user/game combination
-            migrationBuilder.Sql(@"
+        // Remove duplicate records before creating unique index
+        // Keep only the record with the highest Points for each user/game combination
+        migrationBuilder.Sql(@"
                 DELETE FROM GameScores 
                 WHERE Id NOT IN (
                     SELECT MIN(gs.Id) 
@@ -28,30 +28,29 @@ namespace RTUB.Migrations
                 )
             ");
 
-            // Drop the existing index if it exists (it may be non-unique from previous migration)
-            migrationBuilder.Sql(@"
+        // Drop the existing index if it exists (it may be non-unique from previous migration)
+        migrationBuilder.Sql(@"
                 DROP INDEX IF EXISTS ""IX_GameScores_UserId_GameKey""
             ");
 
-            // Create the unique index
-            migrationBuilder.CreateIndex(
-                name: "IX_GameScores_UserId_GameKey",
-                table: "GameScores",
-                columns: new[] { "UserId", "GameKey" },
-                unique: true);
-        }
+        // Create the unique index
+        migrationBuilder.CreateIndex(
+            name: "IX_GameScores_UserId_GameKey",
+            table: "GameScores",
+            columns: new[] { "UserId", "GameKey" },
+            unique: true);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropIndex(
-                name: "IX_GameScores_UserId_GameKey",
-                table: "GameScores");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropIndex(
+            name: "IX_GameScores_UserId_GameKey",
+            table: "GameScores");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_GameScores_UserId_GameKey",
-                table: "GameScores",
-                columns: new[] { "UserId", "GameKey" });
-        }
+        migrationBuilder.CreateIndex(
+            name: "IX_GameScores_UserId_GameKey",
+            table: "GameScores",
+            columns: new[] { "UserId", "GameKey" });
     }
 }

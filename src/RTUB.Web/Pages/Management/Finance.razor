@@ -10,12 +10,15 @@
 @using RTUB.Application.Extensions
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using ReportEntity = RTUB.Core.Entities.Report
 @attribute [Authorize]
 @inherits CrudTablePageBase<ReportEntity>
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
+@inject IMemberDebtService MemberDebtService
+@inject IFiscalYearService FiscalYearService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.ReportPdfService PdfService
@@ -97,8 +100,8 @@
     }
 
 <!-- Create/Edit ReportEntity Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((value) => showEditModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
        Title="@(isCreateMode ? "Novo Relatório" : "Editar Relatório")" 
        Centered="true"
        ShowCloseButton="false">
@@ -145,8 +148,8 @@
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((value) => showDeleteModal = value)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                Title="Confirmar Eliminação"
                Message="@($"Eliminar relatório {deletingReport?.Title}?")"
                WarningMessage="Esta ação é irreversível."
@@ -157,8 +160,8 @@
                OnCancel="CloseDeleteModal" />
 
 <!-- Publish Confirmation Modal -->
-<Modal Show="@showPublishModal" 
-       ShowChanged="@((value) => showPublishModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Publish)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Publish, value))"
        Title="Confirmar Publicação" 
        Centered="true"
        OnClose="@ClosePublishModal">
@@ -177,9 +180,8 @@
 </Modal>
 
 @code {
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showPublishModal = false;
+    private enum ModalType { Edit, Delete, Publish }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private ReportEntity? editingReport;
     private ReportEntity? deletingReport;
@@ -366,12 +368,12 @@
         {
             Title = "Placeholder" // Temporary title to pass validation, will be auto-generated in SaveReport
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingReport = null;
         fiscalYearInput = DateTime.Now.Year;
         errorMessage = "";
@@ -439,12 +441,12 @@
     private void OpenDeleteModal(ReportEntity report)
     {
         deletingReport = report;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingReport = null;
     }
 
@@ -468,12 +470,12 @@
     private void OpenPublishModal(ReportEntity report)
     {
         publishingReport = report;
-        showPublishModal = true;
+        modals.Open(ModalType.Publish);
     }
 
     private void ClosePublishModal()
     {
-        showPublishModal = false;
+        modals.Close(ModalType.Publish);
         publishingReport = null;
     }
 
@@ -510,8 +512,24 @@
                 allTransactions.Add((activity, transactions));
             }
 
+            // Calculate calotes total for the fiscal year
+            decimal calotesTotal = 0;
+            try
+            {
+                var fiscalYear = await FiscalYearService.GetFiscalYearByStartYearAsync(report.Year);
+                if (fiscalYear != null)
+                {
+                    var debts = await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id);
+                    calotesTotal = debts.Sum(d => d.AmountOwed);
+                }
+            }
+            catch
+            {
+                // If calotes calculation fails, use 0 (non-critical)
+            }
+
             // Generate PDF using service
-            var pdfBytes = PdfService.GenerateReportPdf(report, activities, allTransactions);
+            var pdfBytes = PdfService.GenerateReportPdf(report, activities, allTransactions, calotesTotal);
 
             // Convert to base64 and trigger download
             var base64 = Convert.ToBase64String(pdfBytes);

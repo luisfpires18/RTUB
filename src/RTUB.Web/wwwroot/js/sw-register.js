@@ -21,30 +21,42 @@
         }
     });
 
-    // Register service worker on page load
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(function(registration) {
-                console.log('Service Worker registered successfully:', registration.scope);
-                
-                // Check for updates periodically (every hour) only when page is visible
-                // This prevents unnecessary resource usage when tab is in background
-                function scheduleUpdate() {
-                    setTimeout(function() {
-                        // Only update if page is visible to avoid unnecessary resource usage
-                        if (!document.hidden) {
-                            registration.update();
-                        }
-                        // Schedule next update
-                        scheduleUpdate();
-                    }, 60 * 60 * 1000);
-                }
-                scheduleUpdate();
+    // Register service worker immediately (not waiting for load event)
+    // This ensures PWABuilder and other tools can detect it
+    // Also register on load as fallback for older browsers
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', {
+                scope: '/'
             })
-            .catch(function(error) {
-                console.error('Service Worker registration failed:', error);
-            });
-    });
+                .then(function(registration) {
+                    console.log('Service Worker registered successfully:', registration.scope);
+                    
+                    // Check for updates periodically (every hour) only when page is visible
+                    // This prevents unnecessary resource usage when tab is in background
+                    function scheduleUpdate() {
+                        setTimeout(function() {
+                            // Only update if page is visible to avoid unnecessary resource usage
+                            if (!document.hidden) {
+                                registration.update();
+                            }
+                            // Schedule next update
+                            scheduleUpdate();
+                        }, 60 * 60 * 1000);
+                    }
+                    scheduleUpdate();
+                })
+                .catch(function(error) {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+    }
+
+    // Register immediately for PWABuilder detection
+    registerServiceWorker();
+    
+    // Also register on load as fallback
+    window.addEventListener('load', registerServiceWorker);
 
     // Listen for service worker updates
     navigator.serviceWorker.addEventListener('controllerchange', function() {

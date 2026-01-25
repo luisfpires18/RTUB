@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
@@ -9,7 +10,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Web.Extensions;
-using System.Security.Claims;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB;
@@ -131,6 +131,9 @@ public class Program
         }
 
         // Register DbContextFactory for repositories that need isolated DbContext per operation (prevents EF tracking conflicts in Blazor Server)
+        // Register audit log appender
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
+
         // Use AddDbContextFactory with Scoped lifetime to avoid scoped/singleton conflicts
         services.AddDbContextFactory<ApplicationDbContext>(o =>
         {
@@ -300,6 +303,7 @@ public class Program
 
         // SQL Validation service for Database Viewer
         services.AddScoped<RTUB.Web.Services.ISqlValidationService, RTUB.Web.Services.SqlValidationService>();
+        services.AddScoped<RTUB.Application.Interfaces.IDatabaseViewerService, RTUB.Application.Services.DatabaseViewerService>();
 
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2
@@ -482,6 +486,10 @@ public class Program
         // Add controller support for API endpoints
         services.AddControllers();
 
+        // --------- Health Checks ---------
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>("database");
+
         var app = builder.Build();
 
         // ---------- Migrate + seed ----------
@@ -627,6 +635,9 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseAntiforgery();
+
+        // --------- Health Checks ---------
+        app.MapHealthChecks("/health");
 
         // LOGIN (HTTP POST) — sets cookie, then redirects
         app.MapPost("/auth/login", async (HttpContext http,

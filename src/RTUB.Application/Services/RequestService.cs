@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 
 namespace RTUB.Application.Services;
@@ -91,9 +92,7 @@ public class RequestService : IRequestService
 
     public async Task SetRequestDateRangeAsync(int id, DateTime endDate)
     {
-        var request = await _requestRepository.GetByIdAsync(id);
-        if (request == null)
-            throw new EntityNotFoundException(nameof(Request), id);
+        var request = await _requestRepository.GetByIdOrThrowAsync(id);
 
         request.SetDateRange(endDate);
         await _requestRepository.UpdateAsync(request);
@@ -101,9 +100,7 @@ public class RequestService : IRequestService
 
     public async Task UpdateRequestStatusAsync(int id, RequestStatus status)
     {
-        var request = await _requestRepository.GetByIdAsync(id);
-        if (request == null)
-            throw new EntityNotFoundException(nameof(Request), id);
+        var request = await _requestRepository.GetByIdOrThrowAsync(id);
 
         var oldStatus = request.Status;
         request.UpdateStatus(status);
@@ -119,9 +116,7 @@ public class RequestService : IRequestService
 
     public async Task DeleteRequestAsync(int id)
     {
-        var request = await _requestRepository.GetByIdAsync(id);
-        if (request == null)
-            throw new EntityNotFoundException(nameof(Request), id);
+        var request = await _requestRepository.GetByIdOrThrowAsync(id);
 
         await _requestRepository.DeleteAsync(request);
     }

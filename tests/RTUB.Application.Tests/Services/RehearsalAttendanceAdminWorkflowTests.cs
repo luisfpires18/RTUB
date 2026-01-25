@@ -1,13 +1,13 @@
 using FluentAssertions;
-using Moq;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Moq;
 using RTUB.Application.Data;
-using RTUB.Application.Services;
-using RTUB.Application.Repositories;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Repositories;
+using RTUB.Application.Services;
 using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -35,7 +35,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();

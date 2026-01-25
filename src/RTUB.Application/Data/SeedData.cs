@@ -39,7 +39,7 @@ public static partial class SeedData
             }
         }
 
-        var isEmptyDb = false;
+        var isEmptyDb = true;
 
         Console.WriteLine(isEmptyDb ? $"Seeding just a owner..." : $"Seeding initial data...");
 

@@ -14,4 +14,6 @@ public interface IActivityService
     Task<Activity> CreateActivityAsync(int reportId, string name, DateTime startDate, string? description = null, DateTime? endDate = null);
     Task UpdateActivityAsync(int id, string name, DateTime startDate, string? description, DateTime? endDate = null);
     Task DeleteActivityAsync(int id);
+    Task LockActivityAsync(int id);
+    Task UnlockActivityAsync(int id);
 }

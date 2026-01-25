@@ -1,8 +1,8 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 
@@ -38,58 +38,18 @@ public class CloudflareImageStorageService : BaseCloudflareStorageService<Cloudf
 
     public async Task<string> UploadImageAsync(Stream fileStream, string fileName, string contentType, string entityType, string entityId)
     {
-        try
+        // Generate object key with timestamp for all entities
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
+
+        // Additional metadata specific to image uploads
+        var additionalMetadata = new Dictionary<string, string>
         {
-            // Generate object key with timestamp for all entities
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
+            { "x-amz-meta-entity-type", entityType },
+            { "x-amz-meta-entity-id", entityId }
+        };
 
-            var putRequest = new PutObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = objectKey,
-                InputStream = fileStream,
-                ContentType = "image/webp",
-                CannedACL = S3CannedACL.PublicRead,
-                UseChunkEncoding = false
-            };
-
-            // Add cache control headers for browser caching
-            // Since URLs include timestamp, they are immutable - cache for 1 year
-            putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";
-
-            // Add metadata to help with debugging
-            putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
-            putRequest.Metadata.Add("x-amz-meta-entity-type", entityType);
-            putRequest.Metadata.Add("x-amz-meta-entity-id", entityId);
-            putRequest.Metadata.Add("x-amz-meta-environment", _environment);
-
-            var response = await _s3Client.PutObjectAsync(putRequest);
-
-            if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
-            {
-                var publicUrl = $"{_publicBaseUrl}/{objectKey}";
-
-                return publicUrl;
-            }
-            else
-            {
-                var errorMsg = $"Failed to upload image. Status code: {response.HttpStatusCode}";
-                _logger.LogError(errorMsg);
-                throw new Exception(errorMsg);
-            }
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error uploading image for {EntityType}/{EntityId}. ErrorCode: {ErrorCode}, Message: {Message}",
-                entityType, entityId, ex.ErrorCode, ex.Message);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error uploading image for {EntityType}/{EntityId}", entityType, entityId);
-            throw;
-        }
+        return await UploadMediaAsync(fileStream, fileName, "image/webp", objectKey, _publicBaseUrl, additionalMetadata);
     }
 
     public async Task DeleteImageAsync(string imageUrl)

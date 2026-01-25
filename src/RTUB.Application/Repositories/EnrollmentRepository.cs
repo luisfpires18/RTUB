@@ -1,8 +1,8 @@
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using System.Linq;
 
 namespace RTUB.Application.Repositories;
 

@@ -10,6 +10,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Utilities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
@@ -80,16 +81,16 @@ else
 
 <!-- CRUD Modals -->
 <CrudModalManager TEntity="Slideshow"
-                  ShowEditModal="@showEditModal"
-                  ShowEditModalChanged="@((value) => showEditModal = value)"
+                  ShowEditModal="@modals.IsOpen(ModalType.Edit)"
+                  ShowEditModalChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
                   IsCreateMode="@isCreateMode"
                   EditingEntity="@editingSlide"
                   CreateTitle="Criar Novo Slide"
                   EditTitle="Editar Slide"
                   OnSave="SaveSlide"
                   OnEditModalClosed="CloseEditModal"
-                  ShowDeleteModal="@showDeleteModal"
-                  ShowDeleteModalChanged="@((value) => showDeleteModal = value)"
+                  ShowDeleteModal="@modals.IsOpen(ModalType.Delete)"
+                  ShowDeleteModalChanged="@((value) => modals.Toggle(ModalType.Delete, value))"
                   DeletingEntity="@deletingSlide"
                   DeleteTitle="Confirmar Eliminação"
                   OnDelete="DeleteSlide"
@@ -165,8 +166,8 @@ else
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
-              ShowModalChanged="OnCropperModalChanged"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
+              ShowModalChanged="@((bool show) => modals.Toggle(ModalType.Cropper, show))"
               OnImageCropped="OnImageCropped"
               AspectRatio="0"
               AspectRatioHelp="As imagens de apresentação podem ter qualquer proporção - use corte livre para manter as proporções originais"
@@ -174,9 +175,8 @@ else
               ImageQuality="0.9" />
 
 @code {
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showCropperModal = false;
+    private enum ModalType { Edit, Delete, Cropper }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private Slideshow? editingSlide;
     private Slideshow? deletingSlide;
@@ -237,7 +237,7 @@ else
             IsActive = true,
             IsExclusive = false
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void OpenEditModal(Slideshow slide)
@@ -257,12 +257,12 @@ else
             IsExclusive = slide.IsExclusive,
             CreatedAt = slide.CreatedAt
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingSlide = null;
         uploadedImagePath = null;
         imageUploadManager?.Reset();
@@ -307,7 +307,7 @@ else
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
 
@@ -398,7 +398,7 @@ else
     private void OpenDeleteModal(Slideshow slide)
     {
         deletingSlide = slide;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private async Task DeleteSlide()
@@ -408,7 +408,7 @@ else
         await SlideshowService.DeleteSlideshowAsync(deletingSlide.Id);
         await RefreshDataAsync();
 
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingSlide = null;
     }
 

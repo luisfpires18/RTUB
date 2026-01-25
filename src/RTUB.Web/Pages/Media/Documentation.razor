@@ -5,11 +5,14 @@
 @using RTUB.Application.Services
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.Extensions.Hosting
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject IDocumentStorageService DocumentStorageService
 @inject IFiscalYearService FiscalYearService
@@ -135,8 +138,8 @@ else
 }
 
 @* Create Folder Modal *@
-<Modal Show="@showCreateFolderModal" 
-       ShowChanged="@((bool show) => showCreateFolderModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CreateFolder)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CreateFolder, show))"
        Title="Criar Nova Pasta"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -170,8 +173,8 @@ else
 </Modal>
 
 @* Upload Document Modal *@
-<Modal Show="@showUploadModal" 
-       ShowChanged="@((bool show) => showUploadModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Upload)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Upload, show))"
        Title="@($"Carregar Documento - {selectedFolderName}")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -230,8 +233,8 @@ else
 </Modal>
 
 @* View Document Modal *@
-<Modal Show="@showViewModal" 
-       ShowChanged="@((bool show) => showViewModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.View)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.View, show))"
        Title="@viewingDocument?.FileName"
        Size="Modal.ModalSize.ExtraLarge"
        Centered="true"
@@ -298,8 +301,10 @@ else
     private bool isAdmin = false;
     private bool canDoAction = false;
     private string errorMessage = "";
+    private ApplicationUser? currentUser;
     
     private List<string> folders = new();
+    private List<string> allFolders = new(); // Store all folders before filtering
     private Dictionary<string, List<DocumentMetadata>> folderDocuments = new();
     
     // Fiscal year filtering
@@ -323,12 +328,12 @@ else
     }
     
     // Create folder modal
-    private bool showCreateFolderModal = false;
+    private enum ModalType { CreateFolder, Upload, View }
+    private readonly MultiModalState<ModalType> modals = new();
     private string newFolderName = "";
     private string createFolderError = "";
     
     // Upload modal
-    private bool showUploadModal = false;
     private string selectedFolderPath = "";
     private string selectedFolderName = "";
     private IBrowserFile? selectedFile;
@@ -339,7 +344,6 @@ else
     private string uploadSuccess = "";
     
     // View document modal
-    private bool showViewModal = false;
     private bool isLoadingDocument = false;
     private string? documentUrl;
     private DocumentMetadata? viewingDocument;
@@ -359,6 +363,42 @@ else
     private readonly string[] allowedExtensions = { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
     private const long maxFileSize = 50 * 1024 * 1024; // 50 MB
 
+    /// <summary>
+    /// Filters folders based on visibility rules (same logic as meetings page)
+    /// - Atas CV folders: Visible to Veterano, Tunossauro, and Magister
+    /// - Atas AG folders: Visible to all except Leitão
+    /// - Other folders: Visible to all (no filtering)
+    /// </summary>
+    private IEnumerable<string> FilterFoldersByVisibility(List<string> folderList)
+    {
+        if (currentUser == null || isAdmin || isMod)
+        {
+            // Admins and mods see everything
+            return folderList;
+        }
+
+        return folderList.Where(folder =>
+        {
+            // Check if folder is an ATA folder
+            if (folder.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase))
+            {
+                // CV folders: Veterano + Tunossauro + Magister (same logic as meetings page)
+                var role = currentUser.CurrentRole;
+                return role == "VETERANO" || 
+                       role == "TUNOSSAURO" || 
+                       (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
+            }
+            else if (folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
+            {
+                // AG folders: All except Leitão (same logic as meetings page)
+                return !currentUser.IsLeitao();
+            }
+            
+            // Other folders: visible to all
+            return true;
+        });
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -369,8 +409,8 @@ else
             isAdmin = authState.User.IsInRole("Admin");
             canDoAction = isMod || isAdmin;
             
-            // Check access permission for Gestão pages
-            var currentUser = await UserManager.GetUserAsync(authState.User);
+            // Get current user for visibility checks
+            currentUser = await UserManager.GetUserAsync(authState.User);
             if (currentUser != null && !isAdmin && !isMod)
             {
                 // Block Leitão members
@@ -435,9 +475,12 @@ else
                 }
             }
             
-            folders = expandedFolders;
+            allFolders = expandedFolders;
             
-            // Load documents for all folders in parallel (eliminates N+1 Cloudflare API calls)
+            // Filter folders based on visibility rules (same as meetings page)
+            folders = FilterFoldersByVisibility(expandedFolders).ToList();
+            
+            // Load documents for all visible folders in parallel (eliminates N+1 Cloudflare API calls)
             folderDocuments.Clear();
             
             var documentTasks = folders.Select(async folder =>
@@ -478,12 +521,12 @@ else
     {
         newFolderName = "";
         createFolderError = "";
-        showCreateFolderModal = true;
+        modals.Open(ModalType.CreateFolder);
     }
 
     private void CloseCreateFolderModal()
     {
-        showCreateFolderModal = false;
+        modals.Close(ModalType.CreateFolder);
         newFolderName = "";
         createFolderError = "";
     }
@@ -538,12 +581,12 @@ else
         documentationFileName = null;
         uploadError = "";
         uploadSuccess = "";
-        showUploadModal = true;
+        modals.Open(ModalType.Upload);
     }
 
     private void CloseUploadModal()
     {
-        showUploadModal = false;
+        modals.Close(ModalType.Upload);
         selectedFolderPath = "";
         selectedFolderName = "";
         selectedFile = null;
@@ -631,7 +674,7 @@ else
     {
         viewingDocument = document;
         isLoadingDocument = true;
-        showViewModal = true;
+        modals.Open(ModalType.View);
         StateHasChanged();
         
         try
@@ -668,7 +711,7 @@ else
 
     private void CloseViewModal()
     {
-        showViewModal = false;
+        modals.Close(ModalType.View);
         isLoadingDocument = false;
         documentUrl = null;
         viewingDocument = null;

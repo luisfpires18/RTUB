@@ -1,7 +1,7 @@
+using System.ComponentModel.DataAnnotations;
 using FluentAssertions;
 using RTUB.Core.Attributes;
 using RTUB.Core.Entities;
-using System.ComponentModel.DataAnnotations;
 
 namespace RTUB.Core.Tests.Attributes;
 

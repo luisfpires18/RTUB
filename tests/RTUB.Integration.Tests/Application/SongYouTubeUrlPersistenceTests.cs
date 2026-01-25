@@ -1,13 +1,13 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using RTUB.Application.Data;
-using RTUB.Application.Services;
-using RTUB.Application.Repositories;
-using RTUB.Application.Interfaces;
-using RTUB.Core.Entities;
+using Microsoft.EntityFrameworkCore;
 using Moq;
+using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
+using RTUB.Application.Repositories;
+using RTUB.Application.Services;
+using RTUB.Core.Entities;
 
 namespace RTUB.Integration.Tests;
 
@@ -28,7 +28,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
 

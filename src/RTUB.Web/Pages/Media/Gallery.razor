@@ -11,6 +11,7 @@
 @using RTUB.Core.Enums
 @using System.Globalization
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject IGalleryMediaService GalleryMediaService
 @inject IGalleryMediaStorageService GalleryMediaStorageService
 @inject UserManager<ApplicationUser> UserManager
@@ -128,12 +129,20 @@ else
 }
 
 <!-- Upload Modal -->
-<Modal Show="@showUploadModal"
-       ShowChanged="@((bool show) => showUploadModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Upload)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Upload, show))"
        Title="Carregar Media"
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
+        @if (!string.IsNullOrEmpty(uploadErrorMessage))
+        {
+            <Alert Type="Alert.AlertType.Error" 
+                   Message="@uploadErrorMessage" 
+                   Dismissible="true" 
+                   OnDismiss="() => uploadErrorMessage = null" 
+                   Icon="bi-exclamation-triangle" />
+        }
         <EditForm Model="@uploadModel" OnValidSubmit="HandleUploadClick">
             <DataAnnotationsValidator />
             <ErrorDisplay />
@@ -256,8 +265,8 @@ else
 </Modal>
 
 <!-- Edit Modal -->
-<Modal Show="@showEditModal"
-       ShowChanged="@((bool show) => showEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
        Title="Editar Media"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -369,8 +378,8 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((bool show) => showDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem certeza que deseja eliminar \"{deletingMedia?.Title}\"?")"
                WarningMessage="Esta ação não pode ser desfeita."
@@ -381,8 +390,8 @@ else
                OnCancel="CloseDeleteModal" />
 
 <!-- Lightbox Modal -->
-<DetailsModal Show="@showLightbox"
-              ShowChanged="@((bool show) => showLightbox = show)"
+<DetailsModal Show="@modals.IsOpen(ModalType.Lightbox)"
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.Lightbox, show))"
               Title="@(lightboxMedia?.Title ?? "")"
               HeaderTitle="@(lightboxMedia?.Title ?? "")"
               UseRectangularImage="true"
@@ -495,20 +504,26 @@ else
     private bool isEditing = false;
 
     // Modals
-    private bool showUploadModal = false;
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showLightbox = false;
+    private enum ModalType
+    {
+        Upload,
+        Edit,
+        Delete,
+        Lightbox
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
 
     // Upload
-    private UploadModel uploadModel = new();
+    private GalleryUploadModel uploadModel = new();
     private IBrowserFile? selectedFile = null;
     private string personSearchTerm = "";
     private string editPersonSearchTerm = "";
+    private string? uploadErrorMessage = null;
 
     // Edit
     private GalleryMedia? editingMedia = null;
-    private EditModel editModel = new();
+    private GalleryEditModel editModel = new();
 
     // Delete
     private GalleryMedia? deletingMedia = null;
@@ -676,16 +691,17 @@ else
     // Upload Modal
     private void OpenUploadModal()
     {
-        uploadModel = new UploadModel();
+        uploadModel = new GalleryUploadModel();
         selectedFile = null;
-        showUploadModal = true;
+        modals.Open(ModalType.Upload);
     }
 
     private void CloseUploadModal()
     {
-        showUploadModal = false;
-        uploadModel = new UploadModel();
+        modals.Close(ModalType.Upload);
+        uploadModel = new GalleryUploadModel();
         selectedFile = null;
+        uploadErrorMessage = null;
     }
 
     private async Task HandleFileSelected(IBrowserFile file)
@@ -736,7 +752,10 @@ else
             if (selectedFile.Size > maxSize)
             {
                 Logger.LogError("File size {Size} exceeds maximum allowed size {MaxSize}", selectedFile.Size, maxSize);
-                // TODO: Show user-friendly error message
+                var maxSizeMB = maxSize / (1024.0 * 1024.0);
+                var fileSizeMB = selectedFile.Size / (1024.0 * 1024.0);
+                uploadErrorMessage = $"O ficheiro é demasiado grande ({fileSizeMB:F2} MB). O tamanho máximo permitido é {maxSizeMB:F2} MB.";
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
@@ -805,6 +824,8 @@ else
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error uploading media");
+            uploadErrorMessage = "Ocorreu um erro ao carregar a media. Por favor, tente novamente.";
+            await InvokeAsync(StateHasChanged);
         }
         finally
         {
@@ -879,21 +900,21 @@ else
             selectedDate = new DateTime(media.Year, 1, 1);
         }
         
-        editModel = new EditModel
+        editModel = new GalleryEditModel
         {
             Title = media.Title,
             SelectedDate = selectedDate,
             TaggedPeopleIds = media.PeopleInMedia.Select(p => p.UserId).ToList(),
             IsPrivate = media.IsPrivate
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingMedia = null;
-        editModel = new EditModel();
+        editModel = new GalleryEditModel();
         filteredEditMembers.Clear();
         editPersonSearchTerm = "";
     }
@@ -1055,12 +1076,12 @@ else
     private void OpenDeleteModal(GalleryMedia media)
     {
         deletingMedia = media;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingMedia = null;
     }
 
@@ -1094,7 +1115,7 @@ else
     private async Task OpenLightbox(GalleryMedia media)
     {
         lightboxMedia = media;
-        showLightbox = true;
+        modals.Open(ModalType.Lightbox);
         
         // Set media session metadata for videos
         if (media.MediaType == MediaType.Video)
@@ -1119,7 +1140,7 @@ else
 
     private async Task CloseLightbox()
     {
-        showLightbox = false;
+        modals.Close(ModalType.Lightbox);
         lightboxMedia = null;
         
         // Clear media session when modal closes
@@ -1389,21 +1410,4 @@ else
         );
     }
 
-    // Models
-    private class UploadModel
-    {
-        public string Title { get; set; } = string.Empty;
-        public DateTime SelectedDate { get; set; } = DateTime.Today;
-        public List<string> TaggedPeopleIds { get; set; } = new();
-        public string? PreviewUrl { get; set; }
-        public bool IsPrivate { get; set; } = true;
-    }
-
-    private class EditModel
-    {
-        public string Title { get; set; } = string.Empty;
-        public DateTime SelectedDate { get; set; } = DateTime.Today;
-        public List<string> TaggedPeopleIds { get; set; } = new();
-        public bool IsPrivate { get; set; } = true;
-    }
 }

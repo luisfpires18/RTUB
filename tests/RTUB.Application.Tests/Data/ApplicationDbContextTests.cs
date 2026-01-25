@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,6 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Security.Claims;
 
 namespace RTUB.Application.Tests.Data;
 
@@ -31,7 +31,7 @@ public class ApplicationDbContextTests : IDisposable
         _auditContext = new AuditContext();
         SetupMockUser(_testUsername);
 
-        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext);
+        _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext, new RTUB.Application.Services.AuditLogAppender());
     }
 
     private void SetupMockUser(string username)

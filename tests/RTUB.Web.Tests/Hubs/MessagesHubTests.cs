@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -6,7 +7,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Web.Hubs;
 using RTUB.Web.Services;
-using System.Security.Claims;
 
 namespace RTUB.Web.Tests.Hubs;
 

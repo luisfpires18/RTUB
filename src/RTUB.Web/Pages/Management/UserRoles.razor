@@ -7,6 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -84,8 +85,8 @@ else
 }
 
 <!-- Edit Role Modal -->
-<Modal Show="@showEditRoleModal"
-       ShowChanged="@((value) => showEditRoleModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.EditRole)"
+       ShowChanged="@((value) => modals.Toggle(ModalType.EditRole, value))"
        Title="Editar Função de Utilizador"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -128,8 +129,8 @@ else
 </Modal>
 
 <!-- User Details Modal -->
-<Modal Show="@showUserDetailsModal"
-       ShowChanged="@((value) => showUserDetailsModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.UserDetails)"
+       ShowChanged="@((value) => modals.Toggle(ModalType.UserDetails, value))"
        Title="Detalhes do Utilizador"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -276,12 +277,12 @@ else
     private bool isCurrentUserOwner = false;
     
     // Edit role modal
-    private bool showEditRoleModal = false;
+    private enum ModalType { EditRole, UserDetails }
+    private readonly MultiModalState<ModalType> modals = new();
     private string selectedRoleInModal = "";
     private string currentRoleBeforeEdit = "";
     
     // User details modal
-    private bool showUserDetailsModal = false;
     private ApplicationUser? selectedUserForDetails = null;
     
     // Confirmation dialog
@@ -416,12 +417,12 @@ else
         selectedUser = user;
         currentRoleBeforeEdit = currentRole;
         selectedRoleInModal = currentRole;
-        showEditRoleModal = true;
+        modals.Open(ModalType.EditRole);
     }
     
     private void CloseEditRoleModal()
     {
-        showEditRoleModal = false;
+        modals.Close(ModalType.EditRole);
         selectedUser = null;
         selectedRoleInModal = "";
         currentRoleBeforeEdit = "";
@@ -434,13 +435,13 @@ else
         if (freshUser != null)
         {
             selectedUserForDetails = freshUser;
-            showUserDetailsModal = true;
+            modals.Open(ModalType.UserDetails);
         }
     }
     
     private void CloseUserDetailsModal()
     {
-        showUserDetailsModal = false;
+        modals.Close(ModalType.UserDetails);
         selectedUserForDetails = null;
     }
     

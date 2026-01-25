@@ -1,6 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Core.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace RTUB.Core.Entities;
 

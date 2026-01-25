@@ -35,7 +35,8 @@ public class DatabaseFixture : IDisposable
         return new ApplicationDbContext(
             options,
             Mock.Of<IHttpContextAccessor>(),
-            new AuditContext());
+            new AuditContext(),
+            new RTUB.Application.Services.AuditLogAppender());
     }
 
     /// <summary>

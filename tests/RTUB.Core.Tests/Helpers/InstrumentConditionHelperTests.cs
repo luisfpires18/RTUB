@@ -1,7 +1,7 @@
-using Xunit;
 using FluentAssertions;
 using RTUB.Core.Enums;
 using RTUB.Core.Helpers;
+using Xunit;
 
 namespace RTUB.Core.Tests.Helpers;
 

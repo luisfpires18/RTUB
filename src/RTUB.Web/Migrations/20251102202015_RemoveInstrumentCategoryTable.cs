@@ -1,19 +1,19 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RTUB.Migrations
+namespace RTUB.Migrations;
+
+/// <inheritdoc />
+public partial class RemoveInstrumentCategoryTable : Migration
 {
     /// <inheritdoc />
-    public partial class RemoveInstrumentCategoryTable : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            // SQLite requires table rebuild for foreign key changes
-            // Step 1: Create new Instruments table without foreign key
-            migrationBuilder.Sql(@"
+        // SQLite requires table rebuild for foreign key changes
+        // Step 1: Create new Instruments table without foreign key
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Instruments_new"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Instruments"" PRIMARY KEY AUTOINCREMENT,
                     ""Category"" TEXT NOT NULL DEFAULT '',
@@ -35,8 +35,8 @@ namespace RTUB.Migrations
                 );
             ");
 
-            // Step 2: Copy data from old table to new table (if old table exists)
-            migrationBuilder.Sql(@"
+        // Step 2: Copy data from old table to new table (if old table exists)
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Instruments_new""
                     (""Id"", ""Name"", ""SerialNumber"", ""Brand"", ""Condition"", ""PurchaseDate"",
                      ""PurchasePrice"", ""Location"", ""MaintenanceNotes"", ""LastMaintenanceDate"",
@@ -50,41 +50,41 @@ namespace RTUB.Migrations
                 WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='Instruments');
             ");
 
-            // Step 3: Drop old table
-            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""Instruments"";");
+        // Step 3: Drop old table
+        migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""Instruments"";");
 
-            // Step 4: Rename new table
-            migrationBuilder.Sql(@"ALTER TABLE ""Instruments_new"" RENAME TO ""Instruments"";");
+        // Step 4: Rename new table
+        migrationBuilder.Sql(@"ALTER TABLE ""Instruments_new"" RENAME TO ""Instruments"";");
 
-            // Step 5: Drop InstrumentCategories table
-            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""InstrumentCategories"";");
-        }
+        // Step 5: Drop InstrumentCategories table
+        migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""InstrumentCategories"";");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            // Recreate InstrumentCategories table
-            migrationBuilder.CreateTable(
-                name: "InstrumentCategories",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InstrumentCategories", x => x.Id);
-                });
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // Recreate InstrumentCategories table
+        migrationBuilder.CreateTable(
+            name: "InstrumentCategories",
+            columns: table => new
+            {
+                Id = table.Column<int>(type: "INTEGER", nullable: false)
+                    .Annotation("Sqlite:Autoincrement", true),
+                CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                Description = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
+                IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_InstrumentCategories", x => x.Id);
+            });
 
-            // Rebuild Instruments table with foreign key
-            migrationBuilder.Sql(@"
+        // Rebuild Instruments table with foreign key
+        migrationBuilder.Sql(@"
                 CREATE TABLE ""Instruments_old"" (
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Instruments"" PRIMARY KEY AUTOINCREMENT,
                     ""InstrumentCategoryId"" INTEGER NOT NULL DEFAULT 0,
@@ -107,7 +107,7 @@ namespace RTUB.Migrations
                 );
             ");
 
-            migrationBuilder.Sql(@"
+        migrationBuilder.Sql(@"
                 INSERT INTO ""Instruments_old""
                     (""Id"", ""Name"", ""SerialNumber"", ""Brand"", ""Condition"", ""PurchaseDate"",
                      ""PurchasePrice"", ""Location"", ""MaintenanceNotes"", ""LastMaintenanceDate"",
@@ -120,13 +120,12 @@ namespace RTUB.Migrations
                 FROM ""Instruments"";
             ");
 
-            migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
-            migrationBuilder.Sql(@"ALTER TABLE ""Instruments_old"" RENAME TO ""Instruments"";");
+        migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
+        migrationBuilder.Sql(@"ALTER TABLE ""Instruments_old"" RENAME TO ""Instruments"";");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Instruments_InstrumentCategoryId",
-                table: "Instruments",
-                column: "InstrumentCategoryId");
-        }
+        migrationBuilder.CreateIndex(
+            name: "IX_Instruments_InstrumentCategoryId",
+            table: "Instruments",
+            column: "InstrumentCategoryId");
     }
 }

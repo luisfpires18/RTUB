@@ -13,6 +13,7 @@
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize]
 @inject IMeetingService MeetingService
 @inject IMeetingRequestService MeetingRequestService
@@ -23,7 +24,10 @@
 @inject IPushNotificationFactory PushNotificationFactory
 @inject IPushNotificationService PushNotificationService
 @inject IMeetingAtaService MeetingAtaService
+@inject IMeetingAtaConfirmationService MeetingAtaConfirmationService
 @inject IAtaPdfService AtaPdfService
+@inject IDocumentStorageService DocumentStorageService
+@inject IHostEnvironment HostEnvironment
 @inject IJSRuntime JSRuntime
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -75,11 +79,6 @@ else
         </div>
     </div>
 
-    <!-- Purple Alert -->
-    <Alert Type="Alert.AlertType.Purple" 
-           Icon="bi-info-circle"
-           Message=" As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos." />
-
     <!-- Search Box and Fiscal Year Filter -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
         <div class="flex-grow-1 filter-search-container">
@@ -114,7 +113,8 @@ else
         {
             <EmptyState 
                 Title="Nenhuma reunião agendada." 
-                Icon="bi-calendar-x" />
+                Icon="bi-calendar-x"
+                Message="Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos." />
         }
         else
         {
@@ -300,8 +300,8 @@ else
 
 
 <!-- View Details Modal -->
-<Modal Show="@showViewDetailsModal" 
-       ShowChanged="@((bool show) => showViewDetailsModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.ViewDetails)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.ViewDetails, show))"
        Size="Modal.ModalSize.Large"
        Title="Detalhes da Reunião">
     <BodyContent>
@@ -373,8 +373,8 @@ else
 </Modal>
 
 <!-- Create/Edit Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((bool show) => showEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
        Size="Modal.ModalSize.Large"
        Title="@(isCreateMode ? "Nova Reunião" : "Editar Reunião")">
     <BodyContent>
@@ -474,8 +474,8 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((bool show) => showDeleteModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Delete)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
        Title="Confirmar Eliminação">
     <BodyContent>
         @if (deletingMeeting != null)
@@ -493,8 +493,8 @@ else
 </Modal>
 
 <!-- Email Notification Modal -->
-<Modal Show="@showEmailNotificationModal"
-       ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.EmailNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.EmailNotification, show))"
        Title="Enviar notificação da reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -617,8 +617,8 @@ else
 </Modal>
 
 <!-- Cancel Meeting Modal -->
-<Modal Show="@showCancelMeetingModal"
-       ShowChanged="@((bool show) => showCancelMeetingModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CancelMeeting)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelMeeting, show))"
        Title="Cancelar Reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -711,8 +711,8 @@ else
 </Modal>
 
 <!-- CV Meeting Proposal Modal -->
-<Modal Show="@showProposalModal" 
-       ShowChanged="@((bool show) => showProposalModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Proposal)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Proposal, show))"
        Size="Modal.ModalSize.Large"
        Title="@GetProposalModalTitle()">
     <BodyContent>
@@ -766,8 +766,8 @@ else
 </Modal>
 
 <!-- Request View Details Modal -->
-<Modal Show="@showRequestDetailsModal" 
-       ShowChanged="@((bool show) => showRequestDetailsModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.RequestDetails)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.RequestDetails, show))"
        Size="Modal.ModalSize.Large"
        Title="Detalhes do Pedido de Reunião">
     <BodyContent>
@@ -824,8 +824,8 @@ else
 </Modal>
 
 <!-- Delete Request Confirmation Modal -->
-<Modal Show="@showDeleteRequestModal" 
-       ShowChanged="@((bool show) => showDeleteRequestModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.DeleteRequest)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteRequest, show))"
        Title="Confirmar Eliminação">
     <BodyContent>
         @if (deletingRequest != null)
@@ -843,8 +843,8 @@ else
 </Modal>
 
 <!-- Send Reminder Confirmation Modal -->
-<Modal Show="@showReminderConfirmModal" 
-       ShowChanged="@((bool show) => showReminderConfirmModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.ReminderConfirm)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.ReminderConfirm, show))"
        Title="Enviar Lembrete">
     <BodyContent>
         @if (reminderRequest != null)
@@ -862,8 +862,8 @@ else
 </Modal>
 
 <!-- Push Notification Modal -->
-<Modal Show="@showPushNotificationModal"
-       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
        Title="Enviar notificação push da reunião"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -918,7 +918,7 @@ else
                             var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
                             @if (daysText != null)
                             {
-                                var reminderText = daysText == "hoje" ? "A reunião é hoje" : $"A reunião é em {daysText}";
+                                var reminderText = daysText == "hoje" ? "a reunião é hoje" : $"a reunião é em {daysText}";
                                 <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                             }
                             else
@@ -970,8 +970,8 @@ else
 <!-- Meeting Participation Modal -->
 @if (participationForm != null)
 {
-    <MeetingParticipationModal Show="@showParticipationModal"
-                               ShowChanged="@((bool show) => showParticipationModal = show)"
+    <MeetingParticipationModal Show="@modals.IsOpen(ModalType.Participation)"
+                               ShowChanged="@((bool show) => modals.Toggle(ModalType.Participation, show))"
                                Title="@GetParticipationModalTitle()"
                                ShowWillAttend="@(!isParticipationPreSelected)"
                                WillAttend="@participationForm.WillAttend"
@@ -988,8 +988,8 @@ else
 <!-- View Participants Modal -->
 @if (selectedMeetingForParticipants != null)
 {
-    <Modal Show="@showParticipantsModal" 
-           ShowChanged="@((bool show) => { if (!show) CloseParticipantsModal(); })"
+    <Modal Show="@modals.IsOpen(ModalType.Participants)" 
+           ShowChanged="@((bool show) => { modals.Toggle(ModalType.Participants, show); if (!show) CloseParticipantsModal(); })"
            Size="Modal.ModalSize.Large"
            Centered="true"
            Title="@($"Participantes - {selectedMeetingForParticipants.Title}")">
@@ -1165,8 +1165,8 @@ else
 }
 
 <!-- Delete Participation Confirmation Modal -->
-<Modal Show="@showDeleteParticipationModal"
-       ShowChanged="@((bool show) => showDeleteParticipationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.DeleteParticipation)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteParticipation, show))"
        Title="Confirmar Eliminação"
        Size="Modal.ModalSize.Small"
        Centered="true">
@@ -1186,8 +1186,8 @@ else
 </Modal>
 
 <!-- Remove Own Participation Confirmation Modal -->
-<ConfirmDialog Show="@showRemoveParticipationModal"
-               ShowChanged="@((bool show) => showRemoveParticipationModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.RemoveParticipation)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.RemoveParticipation, show))"
                Title="Confirmar Remoção de Participação"
                Message="Tem certeza que deseja remover sua participação nesta reunião?"
                ConfirmText="Sim, Remover"
@@ -1197,8 +1197,8 @@ else
                OnCancel="CloseRemoveParticipationModal" />
 
 <!-- Delete Ata Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteAtaModal"
-               ShowChanged="@((bool show) => showDeleteAtaModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteAta)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteAta, show))"
                Title="Confirmar Eliminação de Ata"
                Message="Tem certeza que deseja eliminar esta ata? Esta ação não pode ser desfeita."
                ConfirmText="Sim, Eliminar"
@@ -1208,8 +1208,8 @@ else
                OnCancel="CloseDeleteAtaConfirmation" />
 
 <!-- Meeting Ata Modal -->
-<Modal Show="@showAtaModal" 
-       ShowChanged="@((bool show) => showAtaModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Ata)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Ata, show))"
        Size="Modal.ModalSize.ExtraLarge"
        Title="@(editingAta?.Id > 0 ? "Editar Ata" : "Criar Ata")">
     <BodyContent>
@@ -1499,7 +1499,7 @@ else
                     </button>
                     @if (editingAta?.Id > 0)
                     {
-                        <button class="btn btn-warning" @onclick="PublishAta" disabled="@isAtaLoading" title="Publicar Ata">
+                        <button class="btn btn-warning" @onclick="OpenPublishAtaConfirmModal" disabled="@isAtaLoading" title="Publicar Ata">
                             <i class="bi bi-send me-1"></i>Publicar
                         </button>
                     }
@@ -1522,8 +1522,8 @@ else
 </Modal>
 
 <!-- View Ata Modal (Read-only for non-admin users) -->
-<Modal Show="@showViewAtaModal" 
-       ShowChanged="@((bool show) => showViewAtaModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.ViewAta)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.ViewAta, show))"
        Size="Modal.ModalSize.ExtraLarge"
        Title="Ver Ata">
     <BodyContent>
@@ -1639,6 +1639,63 @@ else
                     {
                         <p class="text-muted mb-0">Nenhum participante registado.</p>
                     }
+                    
+                    @* ATA Confirmations Section - Show who confirmed the ATA *@
+                    @if (viewingAta.Status == MeetingAtaStatus.Published && ataConfirmations != null && ataConfirmations.Any(c => c.IsConfirmed == true))
+                    {
+                        <hr class="my-3" />
+                        <p class="mb-2"><strong>Confirmaram a ata (@ataConfirmations.Count(c => c.IsConfirmed == true)):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var confirmation in ataConfirmations.Where(c => c.IsConfirmed == true && c.User != null))
+                            {
+                                <span class="badge bg-primary">@FormatUserNameForView(confirmation.User)</span>
+                            }
+                        </div>
+                    }
+                    
+                    @* ATA Confirmation/Refusal Section - Only for published ATAs and users who participated *@
+                    @if (viewingAta.Status == MeetingAtaStatus.Published && 
+                         currentUser != null && 
+                         presentParticipants.Any(p => p.UserId == currentUserId))
+                    {
+                        <hr class="my-3" />
+                        <div class="mt-3">
+                            <p class="mb-2 fw-semibold">Confirmação da Ata:</p>
+                            @if (userAtaConfirmation == null || userAtaConfirmation.IsConfirmed == null)
+                            {
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success btn-sm" @onclick="() => ConfirmAta(viewingAta.Id)" disabled="@isAtaConfirmationLoading">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Confirmar
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => RefuseAta(viewingAta.Id)" disabled="@isAtaConfirmationLoading">
+                                        <i class="bi bi-x-circle-fill me-1"></i>Recusar
+                                    </button>
+                                </div>
+                            }
+                            else if (userAtaConfirmation.IsConfirmed == true)
+                            {
+                                <div class="alert alert-success mb-0">
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                    <strong>Confirmaste esta ata</strong>
+                                    @if (!string.IsNullOrEmpty(userAtaConfirmation.Notes))
+                                    {
+                                        <p class="mb-0 mt-1"><small>@userAtaConfirmation.Notes</small></p>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-danger mb-0">
+                                    <i class="bi bi-x-circle-fill me-2"></i>
+                                    <strong>Recusaste esta ata</strong>
+                                    @if (!string.IsNullOrEmpty(userAtaConfirmation.Notes))
+                                    {
+                                        <p class="mb-0 mt-1"><small>@userAtaConfirmation.Notes</small></p>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -1715,6 +1772,18 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Publish ATA Confirmation Dialog -->
+<ConfirmDialog Show="@modals.IsOpen(ModalType.PublishAtaConfirm)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.PublishAtaConfirm, show))"
+               Title="Publicar Ata"
+               Message="Tem a certeza que deseja publicar esta ata? Após publicação, a ata ficará visível para os utilizadores autorizados e será criada uma pasta na Documentação."
+               ConfirmText="Sim, Publicar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-warning"
+               OnConfirm="PublishAta"
+               OnCancel="ClosePublishAtaConfirmModal"
+               Disabled="@isAtaLoading" />
+
 @code {
     private List<Meeting> meetings = new();
     private List<Meeting> upcomingMeetings = new();
@@ -1730,11 +1799,6 @@ else
     private int pastMeetingsPageSize = 12;
     private int pastMeetingsTotalCount = 0;
 
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showViewDetailsModal = false;
-    private bool showEmailNotificationModal = false;
-    private bool showCancelMeetingModal = false;
     private bool isCreateMode = false;
     private Meeting? editingMeeting;
     private Meeting? deletingMeeting;
@@ -1750,7 +1814,6 @@ else
     private bool isOwner = false;
     
     // Ata modal variables
-    private bool showAtaModal = false;
     private Meeting? ataMeeting;
     private MeetingAta? editingAta;
     private bool isAtaLoading = false;
@@ -1762,14 +1825,18 @@ else
     private string newAgendaPointTitle = string.Empty; // For adding new agenda points
     
     // Delete Ata confirmation modal
-    private bool showDeleteAtaModal = false;
     
     // View ATA modal variables (for non-admin users)
-    private bool showViewAtaModal = false;
     private MeetingAta? viewingAta;
     private bool isViewingAtaLoading = false;
     private Dictionary<int, bool> meetingHasAta = new(); // Track which meetings have ATAs
     private Dictionary<int, bool> meetingAtaPublished = new(); // Track which meeting ATAs are published
+    private Dictionary<int, MeetingAta?> meetingAtas = new(); // Cache existing ATAs for permission checks
+    
+    // ATA confirmation variables
+    private bool isAtaConfirmationLoading = false;
+    private MeetingAtaConfirmation? userAtaConfirmation;
+    private List<MeetingAtaConfirmation>? ataConfirmations;
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -1804,7 +1871,6 @@ else
     private string? cancelMeetingErrorMessage;
     
     // Push notification modal variables
-    private bool showPushNotificationModal = false;
     private Meeting? selectedMeetingForPush;
     private List<ApplicationUser>? pushRecipients;
     private List<ApplicationUser>? pushNonSubscribedUsers;
@@ -1821,7 +1887,6 @@ else
     private const string NotificationTypeReminder = "reminder";
     
     // Meeting participation modal variables
-    private bool showParticipationModal = false;
     private bool isEditingParticipation = false;
     private bool isParticipationPreSelected = false;
     private Meeting? selectedMeetingForParticipation;
@@ -1831,16 +1896,13 @@ else
     private Dictionary<int, int> participationCountsByMeeting = new();
     
     // Participants list modal variables
-    private bool showParticipantsModal = false;
     private Meeting? selectedMeetingForParticipants;
     private List<MeetingParticipation>? meetingParticipations;
     
     // Delete participation modal variables
-    private bool showDeleteParticipationModal = false;
     private MeetingParticipation? deletingParticipation;
     
     // Remove own participation modal variables (for users removing their own participation)
-    private bool showRemoveParticipationModal = false;
     private MeetingParticipation? removingParticipation;
     
     // Add member to participation variables (for admins)
@@ -1859,10 +1921,6 @@ else
     private int requestTotalCount = 0;
     private string selectedRequestStatusFilter = string.Empty;
     private List<string> requestStatusFilterOptions = new() { "Pendente", "Aceite", "Rejeitado" };
-    private bool showProposalModal = false;
-    private bool showRequestDetailsModal = false;
-    private bool showDeleteRequestModal = false;
-    private bool showReminderConfirmModal = false;
     private MeetingRequest? proposalRequest;
     private MeetingRequest? viewingRequest;
     private MeetingRequest? deletingRequest;
@@ -1875,6 +1933,31 @@ else
     private string selectedFiscalYear = "";
     private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
         .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
+    
+    // Modal state management using MultiModalState
+    private enum ModalType
+    {
+        ViewDetails,
+        Edit,
+        Delete,
+        EmailNotification,
+        CancelMeeting,
+        Proposal,
+        RequestDetails,
+        DeleteRequest,
+        ReminderConfirm,
+        PushNotification,
+        Participation,
+        Participants,
+        DeleteParticipation,
+        RemoveParticipation,
+        DeleteAta,
+        Ata,
+        ViewAta,
+        PublishAtaConfirm
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
     
     /// <summary>
     /// Gets the fiscal year date range from the selected fiscal year string
@@ -2037,6 +2120,7 @@ else
             // Load ATA existence and published status for past meetings in a single query (avoiding N+1)
             meetingHasAta.Clear();
             meetingAtaPublished.Clear();
+            meetingAtas.Clear();
             if (pastMeetings.Any())
             {
                 var meetingIds = pastMeetings.Select(m => m.Id);
@@ -2046,6 +2130,13 @@ else
                 {
                     meetingHasAta[meetingId] = status.HasValue;
                     meetingAtaPublished[meetingId] = status == MeetingAtaStatus.Published;
+                    
+                    // Cache the ATA if it exists for permission checks
+                    if (status.HasValue)
+                    {
+                        var ata = await MeetingAtaService.GetByMeetingIdAsync(meetingId);
+                        meetingAtas[meetingId] = ata;
+                    }
                 }
             }
         }
@@ -2112,12 +2203,12 @@ else
             TunoRepresentativeUserId = meeting.TunoRepresentativeUserId,
             TunoRepresentative = meeting.TunoRepresentative
         };
-        showViewDetailsModal = true;
+        modals.Open(ModalType.ViewDetails);
     }
 
     private void CloseViewDetailsModal()
     {
-        showViewDetailsModal = false;
+        modals.Close(ModalType.ViewDetails);
         viewingMeeting = null;
     }
 
@@ -2156,7 +2247,7 @@ else
         // Load Tuno users for representative selection
         await LoadTunoUsersForMeetingForm();
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private async Task OpenEditModal(Meeting meeting)
@@ -2177,7 +2268,7 @@ else
         // Load Tuno users for representative selection
         await LoadTunoUsersForMeetingForm();
         
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
     
     private async Task LoadTunoUsersForMeetingForm()
@@ -2193,7 +2284,7 @@ else
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingMeeting = null;
         tunoUsersForMeetingForm = null;
     }
@@ -2226,12 +2317,12 @@ else
     private void OpenDeleteModal(Meeting meeting)
     {
         deletingMeeting = meeting;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingMeeting = null;
     }
 
@@ -2299,7 +2390,7 @@ else
         emailLoadingSubscribers = true;
         emailErrorMessage = null;
         selectedTunoId = string.Empty;
-        showEmailNotificationModal = true;
+        modals.Open(ModalType.EmailNotification);
         StateHasChanged();
 
         try
@@ -2371,7 +2462,7 @@ else
 
     private void CloseEmailNotificationModal()
     {
-        showEmailNotificationModal = false;
+        modals.Close(ModalType.EmailNotification);
         selectedMeetingForEmail = null;
         subscribedUsers = null;
         nonSubscribedUsers = null;
@@ -2591,7 +2682,7 @@ else
         cancelMeetingReason = string.Empty;
         cancelMeetingLoadingSubscribers = true;
         cancelMeetingErrorMessage = null;
-        showCancelMeetingModal = true;
+        modals.Open(ModalType.CancelMeeting);
         StateHasChanged();
 
         try
@@ -2651,7 +2742,7 @@ else
 
     private void CloseCancelMeetingModal()
     {
-        showCancelMeetingModal = false;
+        modals.Close(ModalType.CancelMeeting);
         selectedMeetingForCancellation = null;
         notifySubscribersOnMeetingCancel = false;
         cancelMeetingReason = string.Empty;
@@ -2813,7 +2904,7 @@ else
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
         selectedPushNotificationType = NotificationTypeNew; // Reset to default
-        showPushNotificationModal = true;
+        modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
         try
@@ -2901,7 +2992,7 @@ else
 
     private void ClosePushNotificationModal()
     {
-        showPushNotificationModal = false;
+        modals.Close(ModalType.PushNotification);
         selectedMeetingForPush = null;
         pushRecipients = null;
         pushNonSubscribedUsers = null;
@@ -3122,7 +3213,14 @@ else
         
         var userPositions = currentUser.Positions ?? new List<Position>();
         
-        return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions);
+        // Check if ATA exists to allow secretaries to edit
+        MeetingAta? existingAta = null;
+        if (meetingHasAta.TryGetValue(meeting.Id, out var hasAta) && hasAta)
+        {
+            meetingAtas.TryGetValue(meeting.Id, out existingAta);
+        }
+        
+        return MeetingAtaService.CanCreateOrEditAta(currentUserId, meeting, userRoles, userPositions, existingAta);
     }
     
     private bool HasAtaForMeeting(int meetingId)
@@ -3138,8 +3236,10 @@ else
     private async Task OpenViewAtaModal(Meeting meeting)
     {
         isViewingAtaLoading = true;
-        showViewAtaModal = true;
+        modals.Open(ModalType.ViewAta);
         viewingAta = null;
+        userAtaConfirmation = null;
+        ataConfirmations = null;
         
         try
         {
@@ -3149,6 +3249,18 @@ else
             {
                 // Load with full details
                 viewingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
+                
+                // Load user's confirmation and all confirmations if ATA is published
+                if (viewingAta != null && viewingAta.Status == MeetingAtaStatus.Published)
+                {
+                    if (!string.IsNullOrEmpty(currentUserId))
+                    {
+                        userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(viewingAta.Id, currentUserId);
+                    }
+                    
+                    // Load all confirmations for this ATA
+                    ataConfirmations = (await MeetingAtaConfirmationService.GetConfirmationsByAtaIdAsync(viewingAta.Id)).ToList();
+                }
             }
         }
         catch (Exception ex)
@@ -3162,9 +3274,67 @@ else
         }
     }
     
+    private async Task<MeetingAtaConfirmation?> GetUserAtaConfirmationAsync(int ataId)
+    {
+        if (string.IsNullOrEmpty(currentUserId)) return null;
+        
+        try
+        {
+            return await MeetingAtaConfirmationService.GetUserConfirmationAsync(ataId, currentUserId);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+    
+    private async Task ConfirmAta(int ataId)
+    {
+        if (string.IsNullOrEmpty(currentUserId)) return;
+        
+        isAtaConfirmationLoading = true;
+        try
+        {
+            await MeetingAtaConfirmationService.ConfirmAtaAsync(ataId, currentUserId);
+            userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(ataId, currentUserId);
+            Logger.LogInformation("User {UserId} confirmed ATA {AtaId}", currentUserId, ataId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error confirming ATA {AtaId} for user {UserId}", ataId, currentUserId);
+        }
+        finally
+        {
+            isAtaConfirmationLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task RefuseAta(int ataId)
+    {
+        if (string.IsNullOrEmpty(currentUserId)) return;
+        
+        isAtaConfirmationLoading = true;
+        try
+        {
+            await MeetingAtaConfirmationService.RefuseAtaAsync(ataId, currentUserId);
+            userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(ataId, currentUserId);
+            Logger.LogInformation("User {UserId} refused ATA {AtaId}", currentUserId, ataId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refusing ATA {AtaId} for user {UserId}", ataId, currentUserId);
+        }
+        finally
+        {
+            isAtaConfirmationLoading = false;
+            StateHasChanged();
+        }
+    }
+    
     private void CloseViewAtaModal()
     {
-        showViewAtaModal = false;
+        modals.Close(ModalType.ViewAta);
         viewingAta = null;
     }
     
@@ -3189,7 +3359,7 @@ else
         ataMeeting = meeting;
         isAtaLoading = true;
         ataErrorMessage = null;
-        showAtaModal = true;
+        modals.Open(ModalType.Ata);
         ataParticipants = null;
         ataPresident = null;
         ataFirstSecretaryAG = null;
@@ -3275,7 +3445,7 @@ else
     
     private void CloseAtaModal()
     {
-        showAtaModal = false;
+        modals.Close(ModalType.Ata);
         ataMeeting = null;
         editingAta = null;
         ataErrorMessage = null;
@@ -3288,12 +3458,12 @@ else
     
     private void OpenDeleteAtaConfirmation()
     {
-        showDeleteAtaModal = true;
+        modals.Open(ModalType.DeleteAta);
     }
     
     private void CloseDeleteAtaConfirmation()
     {
-        showDeleteAtaModal = false;
+        modals.Close(ModalType.DeleteAta);
     }
     
     private async Task ConfirmDeleteAta()
@@ -3468,6 +3638,16 @@ else
         }
     }
     
+    private void OpenPublishAtaConfirmModal()
+    {
+        modals.Open(ModalType.PublishAtaConfirm);
+    }
+
+    private void ClosePublishAtaConfirmModal()
+    {
+        modals.Close(ModalType.PublishAtaConfirm);
+    }
+
     private async Task PublishAta()
     {
         if (editingAta == null || editingAta.Id <= 0 || ataMeeting == null) return;
@@ -3480,7 +3660,64 @@ else
             // First save any pending changes
             await MeetingAtaService.UpdateAtaAsync(editingAta);
             
-            // Publish the ata
+            // Load ata with all details for PDF generation
+            var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(editingAta.Id);
+            if (ataWithDetails == null)
+            {
+                ataErrorMessage = "Erro ao carregar dados da ata para gerar PDF.";
+                return;
+            }
+            
+            // Set meeting if not loaded
+            if (ataWithDetails.Meeting == null)
+            {
+                ataWithDetails.Meeting = ataMeeting;
+            }
+            
+            // Generate PDF
+            var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
+            
+            // Create folder in Documentation for the current fiscal year
+            var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+            string folderName;
+            
+            if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                folderName = $"Atas CV {fiscalYear}";
+            }
+            else if (ataMeeting.Type == MeetingType.AssembleiaGeralOrdinaria || 
+                     ataMeeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+            {
+                folderName = $"Atas AG {fiscalYear}";
+            }
+            else
+            {
+                folderName = $"Atas {fiscalYear}";
+            }
+            
+            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{fiscalYear}/{folderName}/";
+            
+            try
+            {
+                // Create folder if it doesn't exist (CreateFolderAsync checks for existence)
+                await DocumentStorageService.CreateFolderAsync(folderPath);
+                Logger.LogInformation("Created ATA folder: {FolderPath}", folderPath);
+                
+                // Generate PDF filename
+                var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
+                
+                // Upload PDF to documentation
+                using var pdfStream = new MemoryStream(pdfBytes);
+                await DocumentStorageService.UploadDocumentAsync(folderPath, fileName, pdfStream, "application/pdf");
+                Logger.LogInformation("Uploaded ATA PDF to: {FolderPath}{FileName}", folderPath, fileName);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the publish operation if folder/file creation fails
+                Logger.LogWarning(ex, "Failed to create ATA folder or upload PDF to {FolderPath}, but ATA was published", folderPath);
+            }
+            
+            // Publish the ata (after PDF generation and upload)
             await MeetingAtaService.PublishAtaAsync(editingAta.Id);
             
             // Update local state
@@ -3488,6 +3725,9 @@ else
             
             // Update the cache to reflect the published status
             meetingAtaPublished[ataMeeting.Id] = true;
+            
+            // Close confirmation modal
+            ClosePublishAtaConfirmModal();
             
             Logger.LogInformation("Ata published for meeting {MeetingId}", ataMeeting.Id);
         }
@@ -3733,7 +3973,7 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
-        showProposalModal = true;
+        modals.Open(ModalType.Proposal);
     }
     
     private void OpenAGProposalModal()
@@ -3744,7 +3984,7 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
-        showProposalModal = true;
+        modals.Open(ModalType.Proposal);
     }
     
     private void OpenDirecaoProposalModal()
@@ -3755,12 +3995,12 @@ else
             ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
             AuthorUserId = currentUserId
         };
-        showProposalModal = true;
+        modals.Open(ModalType.Proposal);
     }
     
     private void CloseProposalModal()
     {
-        showProposalModal = false;
+        modals.Close(ModalType.Proposal);
         proposalRequest = null;
     }
     
@@ -3798,24 +4038,24 @@ else
     private void OpenRequestDetailsModal(MeetingRequest request)
     {
         viewingRequest = request;
-        showRequestDetailsModal = true;
+        modals.Open(ModalType.RequestDetails);
     }
     
     private void CloseRequestDetailsModal()
     {
-        showRequestDetailsModal = false;
+        modals.Close(ModalType.RequestDetails);
         viewingRequest = null;
     }
     
     private void OpenDeleteRequestModal(MeetingRequest request)
     {
         deletingRequest = request;
-        showDeleteRequestModal = true;
+        modals.Open(ModalType.DeleteRequest);
     }
     
     private void CloseDeleteRequestModal()
     {
-        showDeleteRequestModal = false;
+        modals.Close(ModalType.DeleteRequest);
         deletingRequest = null;
     }
     
@@ -3855,7 +4095,7 @@ else
                 Statement = request.Description,
                 OrganizerUserId = currentUserId
             };
-            showEditModal = true;
+            modals.Open(ModalType.Edit);
             
             // Reload requests to show updated status
             await LoadMeetingRequestsAsync();
@@ -3884,13 +4124,13 @@ else
     private async Task SendMeetingRequestReminder(MeetingRequest request)
     {
         reminderRequest = request;
-        showReminderConfirmModal = true;
+        modals.Open(ModalType.ReminderConfirm);
         await Task.CompletedTask;
     }
     
     private void CloseReminderConfirmModal()
     {
-        showReminderConfirmModal = false;
+        modals.Close(ModalType.ReminderConfirm);
         reminderRequest = null;
     }
     
@@ -3962,12 +4202,12 @@ else
             };
         }
         
-        showParticipationModal = true;
+        modals.Open(ModalType.Participation);
     }
     
     private void CloseParticipationModal()
     {
-        showParticipationModal = false;
+        modals.Close(ModalType.Participation);
         selectedMeetingForParticipation = null;
         participationForm = null;
         isEditingParticipation = false;
@@ -4026,7 +4266,7 @@ else
     private async Task OpenParticipantsModal(Meeting meeting)
     {
         selectedMeetingForParticipants = meeting;
-        showParticipantsModal = true;
+        modals.Open(ModalType.Participants);
         
         try
         {
@@ -4041,7 +4281,7 @@ else
     
     private void CloseParticipantsModal()
     {
-        showParticipantsModal = false;
+        modals.Close(ModalType.Participants);
         selectedMeetingForParticipants = null;
         meetingParticipations = null;
         showAddMemberToParticipationSearch = false;
@@ -4060,12 +4300,12 @@ else
     private void OpenDeleteParticipationModal(MeetingParticipation participation)
     {
         deletingParticipation = participation;
-        showDeleteParticipationModal = true;
+        modals.Open(ModalType.DeleteParticipation);
     }
     
     private void CloseDeleteParticipationModal()
     {
-        showDeleteParticipationModal = false;
+        modals.Close(ModalType.DeleteParticipation);
         deletingParticipation = null;
     }
     
@@ -4114,12 +4354,12 @@ else
     private void OpenRemoveParticipationModal(MeetingParticipation participation)
     {
         removingParticipation = participation;
-        showRemoveParticipationModal = true;
+        modals.Open(ModalType.RemoveParticipation);
     }
     
     private void CloseRemoveParticipationModal()
     {
-        showRemoveParticipationModal = false;
+        modals.Close(ModalType.RemoveParticipation);
         removingParticipation = null;
     }
     

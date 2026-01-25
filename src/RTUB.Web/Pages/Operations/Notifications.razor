@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IPushNotificationService PushNotificationService
@@ -208,8 +209,8 @@
     }
 
 <!-- Preview Modal -->
-<Modal Show="@showPreviewModal" 
-       ShowChanged="@((show) => showPreviewModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Preview)" 
+       ShowChanged="@((show) => modals.Toggle(ModalType.Preview, show))"
        Title="Pré-visualização da Notificação"
        Size="Modal.ModalSize.Large">
     <BodyContent>
@@ -231,7 +232,7 @@
         </div>
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="() => showPreviewModal = false">Fechar</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Preview)">Fechar</button>
     </FooterContent>
 </Modal>
 
@@ -244,7 +245,8 @@
     private bool isRecipientsError = false;
     private bool isSending = false;
     private bool isLoadingSubscribers = true;
-    private bool showPreviewModal = false;
+    private enum ModalType { Preview }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool titleError = false;
     private bool contentError = false;
 
@@ -405,7 +407,7 @@
         {
             return;
         }
-        showPreviewModal = true;
+        modals.Open(ModalType.Preview);
     }
 
     private async Task SendNotifications()

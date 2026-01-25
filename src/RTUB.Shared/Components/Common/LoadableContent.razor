@@ -1,0 +1,107 @@
+@namespace RTUB.Shared
+@*
+    Reusable component for handling loading, empty, and content states.
+    Reduces repetitive @if (loading) / @if (empty) / else patterns across pages.
+*@
+@typeparam TItem
+
+@if (IsLoading)
+{
+    @if (LoadingContent != null)
+    {
+        @LoadingContent
+    }
+    else
+    {
+        <LoadingSpinner Label="@LoadingLabel" Message="@LoadingMessage" />
+    }
+}
+else if (Items == null || !Items.Any())
+{
+    @if (EmptyContent != null)
+    {
+        @EmptyContent
+    }
+    else
+    {
+        <EmptyState Title="@EmptyTitle" 
+                   Icon="@EmptyIcon" 
+                   Message="@EmptyMessage" />
+    }
+}
+else
+{
+    @if (ChildContent != null)
+    {
+        @ChildContent(Items!)
+    }
+}
+
+@code {
+    /// <summary>
+    /// The items to display when loaded and not empty
+    /// </summary>
+    [Parameter]
+    public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// Whether the content is currently loading
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// Title for the empty state (default: "No items found")
+    /// </summary>
+    [Parameter]
+    public string EmptyTitle { get; set; } = "No items found";
+
+    /// <summary>
+    /// Icon for the empty state (Bootstrap icon class, e.g., "bi-people")
+    /// </summary>
+    [Parameter]
+    public string EmptyIcon { get; set; } = "bi-info-circle";
+
+    /// <summary>
+    /// Optional message for the empty state
+    /// </summary>
+    [Parameter]
+    public string? EmptyMessage { get; set; }
+
+    /// <summary>
+    /// Custom loading content (overrides default LoadingSpinner)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? LoadingContent { get; set; }
+
+    /// <summary>
+    /// Custom empty content (overrides default EmptyState)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>
+    /// Content to render when items are loaded and not empty
+    /// Receives the items collection as a parameter
+    /// </summary>
+    [Parameter]
+    public RenderFragment<IEnumerable<TItem>>? ChildContent { get; set; }
+
+    /// <summary>
+    /// Context parameter name for ChildContent (defaults to "items" to avoid conflicts)
+    /// </summary>
+    [Parameter]
+    public string Context { get; set; } = "items";
+
+    /// <summary>
+    /// Label for the loading spinner (accessibility)
+    /// </summary>
+    [Parameter]
+    public string LoadingLabel { get; set; } = "A carregar...";
+
+    /// <summary>
+    /// Message to display below the loading spinner
+    /// </summary>
+    [Parameter]
+    public string? LoadingMessage { get; set; }
+}

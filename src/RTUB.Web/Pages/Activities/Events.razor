@@ -11,6 +11,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using System.Web
 @using Microsoft.AspNetCore.WebUtilities
 @inject IEventService EventService
@@ -266,8 +267,8 @@ else
 }
 
 <!-- Edit/Create Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((bool show) => showEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
        Title="@(isCreateMode ? "Criar Novo Evento" : "Editar Evento")" 
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -386,8 +387,8 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteModal"
-               ShowChanged="@((bool show) => showDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza de que pretende eliminar a atuação {deletingEvent?.Name}?")"
                WarningMessage="Esta ação não pode ser anulada."
@@ -400,8 +401,8 @@ else
 <!-- Enrollment Modal (using unified ParticipationModal) -->
 @if (enrollmentForm != null)
 {
-    <ParticipationModal Show="@showEnrollModal"
-                       ShowChanged="@((bool show) => showEnrollModal = show)"
+    <ParticipationModal Show="@modals.IsOpen(ModalType.Enroll)"
+                       ShowChanged="@((bool show) => modals.Toggle(ModalType.Enroll, show))"
                        Title="@GetEnrollmentModalTitle()"
                        ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@enrollmentForm.WillAttend"
@@ -422,8 +423,8 @@ else
 }
 
 <!-- Remove Enrollment Confirmation Modal -->
-<ConfirmDialog Show="@showRemoveEnrollmentModal"
-               ShowChanged="@((bool show) => showRemoveEnrollmentModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.RemoveEnrollment)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.RemoveEnrollment, show))"
                Title="Confirmar Cancelamento de Inscrição"
                Message="Tem certeza que deseja cancelar sua inscrição neste evento?"
                ConfirmText="Sim, Cancelar"
@@ -435,7 +436,7 @@ else
 <!-- View Enrollments Modal -->
 @if (selectedEvent != null)
 {
-    <Modal Show="@showEnrollmentListModal" 
+    <Modal Show="@modals.IsOpen(ModalType.EnrollmentList)" 
            ShowChanged="@((bool show) => { if (!show) CloseEnrollmentListModal(); })"
            Size="Modal.ModalSize.Large"
            Centered="true">
@@ -706,7 +707,7 @@ else
 
 <!-- Image Cropper Component -->
 <ImageCropper @ref="imageCropper"
-              ShowModal="showCropperModal"
+              ShowModal="@modals.IsOpen(ModalType.Cropper)"
               ShowModalChanged="OnCropperModalChanged"
               OnImageCropped="OnImageCropped"
               AspectRatio="1.5"
@@ -715,8 +716,8 @@ else
               ImageQuality="0.85" />
 
 <!-- Repertoire Modal -->
-<RepertoireModal Show="@showRepertoireModal"
-                ShowChanged="@((bool show) => showRepertoireModal = show)"
+<RepertoireModal Show="@modals.IsOpen(ModalType.Repertoire)"
+                ShowChanged="@((bool show) => modals.Toggle(ModalType.Repertoire, show))"
                 EventId="@(selectedEventForRepertoire?.Id ?? 0)"
                 EventName="@(selectedEventForRepertoire?.Name ?? "")"
                 EventDate="@(selectedEventForRepertoire?.Date ?? DateTime.Now)"
@@ -727,13 +728,13 @@ else
 <!-- Event Details Modal -->
 @if (selectedEvent != null)
 {
-    <DetailsModal Show="@showEventDetailsModal"
-                  ShowChanged="@((bool show) => showEventDetailsModal = show)"
+    <DetailsModal Show="@modals.IsOpen(ModalType.EventDetails)"
+                  ShowChanged="@((bool show) => modals.Toggle(ModalType.EventDetails, show))"
                   Title="Detalhes da Atuação"
                   HeaderTitle="@(selectedEvent?.Name ?? "")"
                   ImageUrl="@(selectedEvent != null && !string.IsNullOrEmpty(selectedEvent.ImageSrc) ? selectedEvent.ImageSrc : null)"
                   IconClass="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
-                  OnClose="@(() => showEventDetailsModal = false)">
+                  OnClose="@(() => modals.Close(ModalType.EventDetails))">
         <BadgesContent>
             @if (selectedEvent != null)
             {
@@ -787,8 +788,8 @@ else
 }
 
 <!-- Trophy Modal -->
-<Modal Show="@showTrophyModal"
-       ShowChanged="@((bool show) => showTrophyModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Trophy)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Trophy, show))"
        Title="@($"Prémios  de {selectedEventForTrophies?.Name ?? ""}")"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -843,8 +844,8 @@ else
 </Modal>
 
 <!-- Trophy Edit Modal -->
-<Modal Show="@showTrophyEditModal"
-       ShowChanged="@((bool show) => showTrophyEditModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.TrophyEdit)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.TrophyEdit, show))"
        Title="@(isTrophyCreateMode ? "Adicionar Prémio" : "Editar Prémio")"
        Size="Modal.ModalSize.Default"
        Centered="true">
@@ -870,8 +871,8 @@ else
 </Modal>
 
 <!-- Trophy Delete Modal -->
-<ConfirmDialog Show="@showTrophyDeleteModal"
-               ShowChanged="@((bool show) => showTrophyDeleteModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.TrophyDelete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.TrophyDelete, show))"
                Title="Confirmar Eliminação"
                Message="@($"Tem a certeza que deseja eliminar o prémio {deletingTrophy?.Name}?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -882,8 +883,8 @@ else
                OnCancel="CloseTrophyDeleteModal" />
 
 <!-- Trophies Statistics Modal -->
-<Modal Show="@showTrophiesStatsModal"
-       ShowChanged="@((value) => showTrophiesStatsModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.TrophiesStats)"
+       ShowChanged="@((value) => modals.Toggle(ModalType.TrophiesStats, value))"
        Title="Prémios Conquistados"
        Size="Modal.ModalSize.Large"
        ShowCloseButton="true">
@@ -981,8 +982,8 @@ else
 </Modal>
 
 <!-- Videos Modal (with Upload and View sections) -->
-<Modal Show="@showVideosModal" 
-       ShowChanged="@((value) => showVideosModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Videos)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Videos, value))"
        Title="@($"Vídeos - {selectedEventForVideos?.Name}")" 
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1159,8 +1160,8 @@ else
 </Modal>
 
 <!-- Edit Video Title Modal -->
-<Modal Show="@showEditVideoModal" 
-       ShowChanged="@((value) => showEditVideoModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.EditVideo)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.EditVideo, value))"
        Title="Renomear Vídeo" 
        Size="Modal.ModalSize.Default"
        Centered="true"
@@ -1185,8 +1186,8 @@ else
 </Modal>
 
 <!-- Delete Enrollment Confirmation Modal -->
-<ConfirmDialog Show="@showDeleteEnrollmentModal"
-               ShowChanged="@((bool show) => showDeleteEnrollmentModal = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteEnrollment)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteEnrollment, show))"
                Title="Confirmar Eliminação de Inscrição"
                Message="@($"Tem a certeza que deseja eliminar a inscrição de {deletingEnrollment?.User?.GetDisplayName()} neste evento?")"
                WarningMessage="Esta ação não pode ser revertida."
@@ -1197,8 +1198,8 @@ else
                OnCancel="CloseDeleteEnrollmentModal" />
 
 <!-- Email Notification Confirmation Modal -->
-<Modal Show="@showEmailNotificationModal"
-       ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.EmailNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.EmailNotification, show))"
        Title="Enviar notificação desta atuação"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1270,7 +1271,7 @@ else
                                 var daysText = GetDaysUntilEventText(selectedEventForEmail.Date);
                                 if (daysText != null)
                                 {
-                                    var reminderText = daysText == "hoje" ? "A atuação é hoje" : $"A atuação é em {daysText}";
+                                    var reminderText = daysText == "hoje" ? "a atuação é hoje" : $"a atuação é em {daysText}";
                                     <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                                 }
                                 else
@@ -1304,8 +1305,8 @@ else
 </Modal>
 
 <!-- Push Notification Confirmation Modal -->
-<Modal Show="@showPushNotificationModal"
-       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.PushNotification)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.PushNotification, show))"
        Title="Enviar notificação push desta atuação"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1370,7 +1371,7 @@ else
                                 var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
                                 if (daysText != null)
                                 {
-                                    var reminderText = daysText == "hoje" ? "A atuação é hoje" : $"A atuação é em {daysText}";
+                                    var reminderText = daysText == "hoje" ? "a atuação é hoje" : $"a atuação é em {daysText}";
                                     <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                                 }
                                 else
@@ -1404,8 +1405,8 @@ else
 </Modal>
 
 <!-- Cancel Event Confirmation Modal -->
-<Modal Show="@showCancelEventModal"
-       ShowChanged="@((bool show) => showCancelEventModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.CancelEvent)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.CancelEvent, show))"
        Title="Cancelar Evento"
        Size="Modal.ModalSize.Large"
        Centered="true"
@@ -1507,24 +1508,29 @@ else
     private ApplicationUser? currentUser;
     private List<MemberInstrument>? currentUserInstruments;
     private List<InstrumentType>? availableInstruments;
-    private bool showEditModal = false;
-    private bool showDeleteModal = false;
-    private bool showEnrollModal = false;
-    private bool showRemoveEnrollmentModal = false;
-    private bool showEnrollmentListModal = false;
-    private bool showCropperModal = false;
-    private bool showRepertoireModal = false;
-    private bool showEventDetailsModal = false;
-    private bool showTrophyModal = false;
-    private bool showTrophyEditModal = false;
-    private bool showTrophyDeleteModal = false;
-    private bool showVideosModal = false;
-    private bool showEditVideoModal = false;
-    private bool showDeleteEnrollmentModal = false;
-    private bool showEmailNotificationModal = false;
-    private bool showPushNotificationModal = false;
-    private bool showCancelEventModal = false;
-    private bool showTrophiesStatsModal = false;
+    private enum ModalType
+    {
+        Edit,
+        Delete,
+        Enroll,
+        RemoveEnrollment,
+        EnrollmentList,
+        Cropper,
+        Repertoire,
+        EventDetails,
+        Trophy,
+        TrophyEdit,
+        TrophyDelete,
+        Videos,
+        EditVideo,
+        DeleteEnrollment,
+        EmailNotification,
+        PushNotification,
+        CancelEvent,
+        TrophiesStats
+    }
+
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
@@ -1752,7 +1758,7 @@ else
                 showPastDateWarning = true;
             }
             
-            showEditModal = true;
+            modals.Open(ModalType.Edit);
         }
     }
     
@@ -2152,7 +2158,7 @@ else
             Location = string.Empty,
             Type = EventType.Atuacao
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void OpenEditModal(Event eventItem)
@@ -2180,12 +2186,12 @@ else
             Type = eventItem.Type,
             CreatedAt = eventItem.CreatedAt
         };
-        showEditModal = true;
+        modals.Open(ModalType.Edit);
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingEvent = null;
         uploadedImagePath = null;
         showPastDateWarning = false;
@@ -2238,7 +2244,7 @@ else
 
     private void OnCropperModalChanged(bool isOpen)
     {
-        showCropperModal = isOpen;
+        modals.Toggle(ModalType.Cropper, isOpen);
         StateHasChanged();
     }
 
@@ -2318,12 +2324,12 @@ else
     private void OpenDeleteModal(Event eventItem)
     {
         deletingEvent = eventItem;
-        showDeleteModal = true;
+        modals.Open(ModalType.Delete);
     }
 
     private void CloseDeleteModal()
     {
-        showDeleteModal = false;
+        modals.Close(ModalType.Delete);
         deletingEvent = null;
     }
 
@@ -2363,7 +2369,7 @@ else
             Instrument = defaultInstrument,
             Notes = string.Empty
         };
-        showEnrollModal = true;
+        modals.Open(ModalType.Enroll);
     }
 
     private void OpenEnrollModalWithParticipation(Event eventItem, bool willParticipate)
@@ -2411,7 +2417,7 @@ else
                 WillAttend = willParticipate
             };
         }
-        showEnrollModal = true;
+        modals.Open(ModalType.Enroll);
     }
 
     /// <summary>
@@ -2444,7 +2450,7 @@ else
             Notes = enrollment.Notes,
             WillAttend = enrollment.WillAttend
         };
-        showEnrollModal = true;
+        modals.Open(ModalType.Enroll);
     }
 
     private string GetEnrollmentModalTitle()
@@ -2463,7 +2469,7 @@ else
 
     private void CloseEnrollModal()
     {
-        showEnrollModal = false;
+        modals.Close(ModalType.Enroll);
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
@@ -2557,12 +2563,12 @@ else
     private void OpenRemoveEnrollmentModal(Enrollment enrollment)
     {
         removingEnrollment = enrollment;
-        showRemoveEnrollmentModal = true;
+        modals.Open(ModalType.RemoveEnrollment);
     }
 
     private void CloseRemoveEnrollmentModal()
     {
-        showRemoveEnrollmentModal = false;
+        modals.Close(ModalType.RemoveEnrollment);
         removingEnrollment = null;
     }
 
@@ -2611,7 +2617,7 @@ else
             FilterAvailableMembersForEnrollment();
         }
         
-        showEnrollmentListModal = true;
+        modals.Open(ModalType.EnrollmentList);
     }
     
     private async Task HandleViewEnrollments(Event eventItem)
@@ -2630,7 +2636,7 @@ else
 
     private void CloseEnrollmentListModal()
     {
-        showEnrollmentListModal = false;
+        modals.Close(ModalType.EnrollmentList);
         selectedEvent = null;
         eventEnrollments = null;
         filteredPerformingMembers.Clear();
@@ -2858,13 +2864,13 @@ else
     private void OpenRepertoireModal(Event eventItem)
     {
         selectedEventForRepertoire = eventItem;
-        showRepertoireModal = true;
+        modals.Open(ModalType.Repertoire);
     }
 
     private void OpenEventDetailsModal(Event eventItem)
     {
         selectedEvent = eventItem;
-        showEventDetailsModal = true;
+        modals.Open(ModalType.EventDetails);
     }
 
     private async Task HandleRepertoireChanged()
@@ -2878,12 +2884,12 @@ else
     {
         selectedEventForTrophies = eventItem;
         eventTrophies = (await TrophyService.GetByEventIdAsync(eventItem.Id)).ToList();
-        showTrophyModal = true;
+        modals.Open(ModalType.Trophy);
     }
 
     private void CloseTrophyModal()
     {
-        showTrophyModal = false;
+        modals.Close(ModalType.Trophy);
         selectedEventForTrophies = null;
         eventTrophies = null;
     }
@@ -2894,19 +2900,19 @@ else
         
         editingTrophy = new Trophy(selectedEventForTrophies.Id);
         isTrophyCreateMode = true;
-        showTrophyEditModal = true;
+        modals.Open(ModalType.TrophyEdit);
     }
 
     private void OpenEditTrophyModal(Trophy trophy)
     {
         editingTrophy = trophy;
         isTrophyCreateMode = false;
-        showTrophyEditModal = true;
+        modals.Open(ModalType.TrophyEdit);
     }
 
     private void CloseTrophyEditModal()
     {
-        showTrophyEditModal = false;
+        modals.Close(ModalType.TrophyEdit);
         editingTrophy = null;
         isTrophyCreateMode = false;
     }
@@ -2943,12 +2949,12 @@ else
     private void OpenDeleteTrophyModal(Trophy trophy)
     {
         deletingTrophy = trophy;
-        showTrophyDeleteModal = true;
+        modals.Open(ModalType.TrophyDelete);
     }
 
     private void CloseTrophyDeleteModal()
     {
-        showTrophyDeleteModal = false;
+        modals.Close(ModalType.TrophyDelete);
         deletingTrophy = null;
     }
 
@@ -2978,12 +2984,12 @@ else
     private void OpenDeleteEnrollmentModal(Enrollment enrollment)
     {
         deletingEnrollment = enrollment;
-        showDeleteEnrollmentModal = true;
+        modals.Open(ModalType.DeleteEnrollment);
     }
     
     private void CloseDeleteEnrollmentModal()
     {
-        showDeleteEnrollmentModal = false;
+        modals.Close(ModalType.DeleteEnrollment);
         deletingEnrollment = null;
     }
     
@@ -3036,7 +3042,7 @@ else
         emailLoadingSubscribers = true;
         emailErrorMessage = null;
         selectedNotificationType = NotificationTypeNew; // Reset to default
-        showEmailNotificationModal = true;
+        modals.Open(ModalType.EmailNotification);
         StateHasChanged();
 
         try
@@ -3069,7 +3075,7 @@ else
 
     private void CloseEmailNotificationModal()
     {
-        showEmailNotificationModal = false;
+        modals.Close(ModalType.EmailNotification);
         selectedEventForEmail = null;
         subscribedUsers = null;
         nonSubscribedUsers = null;
@@ -3192,7 +3198,7 @@ else
         pushLoadingSubscribers = true;
         pushErrorMessage = null;
         selectedPushNotificationType = NotificationTypeNew; // Reset to default
-        showPushNotificationModal = true;
+        modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
         try
@@ -3230,7 +3236,7 @@ else
 
     private void ClosePushNotificationModal()
     {
-        showPushNotificationModal = false;
+        modals.Close(ModalType.PushNotification);
         selectedEventForPush = null;
         pushSubscribedUsers = null;
         pushNonSubscribedUsers = null;
@@ -3360,7 +3366,7 @@ else
         cancelEventReason = string.Empty;
         cancelEventLoadingSubscribers = true;
         cancelEventErrorMessage = null;
-        showCancelEventModal = true;
+        modals.Open(ModalType.CancelEvent);
         StateHasChanged();
 
         try
@@ -3393,7 +3399,7 @@ else
 
     private void CloseCancelEventModal()
     {
-        showCancelEventModal = false;
+        modals.Close(ModalType.CancelEvent);
         selectedEventForCancellation = null;
         notifySubscribersOnCancel = false;
         cancelEventReason = string.Empty;
@@ -3715,12 +3721,12 @@ else
         }
         selectedVideoId = null;
         videoUploadKey = Guid.NewGuid();
-        showVideosModal = true;
+        modals.Open(ModalType.Videos);
     }
     
     private async Task CloseVideosModal()
     {
-        showVideosModal = false;
+        modals.Close(ModalType.Videos);
         selectedEventForVideos = null;
         eventVideos = null;
         selectedVideoId = null;
@@ -3929,12 +3935,12 @@ else
     {
         editingVideo = video;
         editingVideoTitle = video.Title ?? string.Empty;
-        showEditVideoModal = true;
+        modals.Open(ModalType.EditVideo);
     }
     
     private void CloseEditVideoModal()
     {
-        showEditVideoModal = false;
+        modals.Close(ModalType.EditVideo);
         editingVideo = null;
         editingVideoTitle = string.Empty;
     }
@@ -4079,7 +4085,7 @@ else
     // Trophies Statistics Modal methods
     private async Task OpenTrophiesStatsModal()
     {
-        showTrophiesStatsModal = true;
+        modals.Open(ModalType.TrophiesStats);
         isLoadingTrophiesStats = true;
         StateHasChanged();
         
@@ -4145,7 +4151,7 @@ else
     
     private void CloseTrophiesStatsModal()
     {
-        showTrophiesStatsModal = false;
+        modals.Close(ModalType.TrophiesStats);
     }
     
     private void HandleTrophiesStatsPageChanged(int newPage)
@@ -4176,13 +4182,4 @@ else
         StateHasChanged();
     }
     
-    // Trophy stats helper class
-    private class TrophyStatsByEvent
-    {
-        public int EventId { get; set; }
-        public string EventName { get; set; } = string.Empty;
-        public DateTime EventDate { get; set; }
-        public int TrophyCount { get; set; }
-        public List<Trophy> Trophies { get; set; } = new();
-    }
 }

@@ -1,13 +1,13 @@
-using RTUB.Application.Interfaces;
-using RTUB.Application.Data;
-using RTUB.Application.Extensions;
-using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
-using RTUB.Core.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
+using RTUB.Application.Extensions;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -127,9 +127,11 @@ public class MeetingRequestService : IMeetingRequestService
                 await _pushNotificationService.SendToUserAsync(userId, notification);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // TODO: log error; notification failure must not break request creation
+            // Log error; notification failure must not break request creation
+            _logger.LogError(ex, "Failed to send push notifications for meeting request {RequestId} (Title: {Title})", 
+                createdRequest.Id, createdRequest.Title);
         }
 
         return createdRequest;
@@ -137,9 +139,7 @@ public class MeetingRequestService : IMeetingRequestService
 
     public async Task UpdateStatusAsync(int id, RequestStatus status)
     {
-        var request = await _meetingRequestRepository.GetByIdAsync(id);
-        if (request == null)
-            throw new InvalidOperationException($"Meeting request with ID {id} not found");
+        var request = await _meetingRequestRepository.GetByIdOrThrowAsync(id);
 
         request.Status = status;
         await _meetingRequestRepository.UpdateAsync(request);
@@ -147,9 +147,7 @@ public class MeetingRequestService : IMeetingRequestService
 
     public async Task DeleteAsync(int id)
     {
-        var request = await _meetingRequestRepository.GetByIdAsync(id);
-        if (request == null)
-            throw new InvalidOperationException($"Meeting request with ID {id} not found");
+        var request = await _meetingRequestRepository.GetByIdOrThrowAsync(id);
 
         await _meetingRequestRepository.DeleteAsync(id);
     }
@@ -225,8 +223,10 @@ public class MeetingRequestService : IMeetingRequestService
 
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            // Log error; reminder notification failure should not break the flow
+            _logger.LogError(ex, "Failed to send reminder notification for meeting request {RequestId}", id);
             return false;
         }
     }

@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -33,7 +33,7 @@ public class AdminNotificationSkipTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext());
+        _context = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new RTUB.Application.Services.AuditLogAppender());
 
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();

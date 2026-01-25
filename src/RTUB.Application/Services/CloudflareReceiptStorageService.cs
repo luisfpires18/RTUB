@@ -1,8 +1,8 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 
@@ -38,15 +38,23 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
 
     public async Task<string> UploadReceiptAsync(Stream fileStream, string fileName, string contentType, int transactionId)
     {
+        // Determine file extension based on content type
+        var extension = GetFileExtension(contentType, fileName);
+
+        // Generate object key with timestamp
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var objectKey = $"receipts/{_environment}/{transactionId}_{timestamp}{extension}";
+
+        var additionalMetadata = new Dictionary<string, string>
+        {
+            { "x-amz-meta-transaction-id", transactionId.ToString() }
+        };
+
+        // Note: Receipt uploads use DisablePayloadSigning for non-seekable streams from Blazor
+        // This requires a custom implementation, so we'll keep the existing logic for now
+        // but could extend UploadMediaAsync to support this in the future
         try
         {
-            // Determine file extension based on content type
-            var extension = GetFileExtension(contentType, fileName);
-
-            // Generate object key with timestamp
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var objectKey = $"receipts/{_environment}/{transactionId}_{timestamp}{extension}";
-
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
@@ -58,23 +66,20 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
                 DisablePayloadSigning = true // Required for non-seekable streams from Blazor file uploads
             };
 
-            // Add cache control headers for browser caching
-            // Since URLs include timestamp, they are immutable - cache for 1 year
             putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";
-
-            // Add metadata to help with debugging
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
-            putRequest.Metadata.Add("x-amz-meta-transaction-id", transactionId.ToString());
             putRequest.Metadata.Add("x-amz-meta-environment", _environment);
             putRequest.Metadata.Add("x-amz-meta-original-filename", fileName);
+            foreach (var kvp in additionalMetadata)
+            {
+                putRequest.Metadata.Add(kvp.Key, kvp.Value);
+            }
 
             var response = await _s3Client.PutObjectAsync(putRequest);
 
             if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
             {
-                var publicUrl = $"{_publicBaseUrl}/{objectKey}";
-
-                return publicUrl;
+                return $"{_publicBaseUrl}/{objectKey}";
             }
             else
             {

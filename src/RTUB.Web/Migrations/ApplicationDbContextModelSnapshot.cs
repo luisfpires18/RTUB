@@ -164,6 +164,9 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -2102,6 +2105,52 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_MeetingAtaAttachments_MeetingAtaId");
 
                     b.ToTable("MeetingAtaAttachments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingAtaConfirmation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool?>("IsConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MeetingAtaId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MeetingAtaId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MeetingAtaConfirmations_AtaId_UserId");
+
+                    b.ToTable("MeetingAtaConfirmations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
@@ -4184,6 +4233,25 @@ namespace RTUB.Migrations
                     b.Navigation("MeetingAta");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.MeetingAtaConfirmation", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.MeetingAta", "MeetingAta")
+                        .WithMany("Confirmations")
+                        .HasForeignKey("MeetingAtaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MeetingAta");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.MeetingParticipation", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Meeting", "Meeting")
@@ -4646,6 +4714,8 @@ namespace RTUB.Migrations
                     b.Navigation("AgendaPoints");
 
                     b.Navigation("Attachments");
+
+                    b.Navigation("Confirmations");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.NaipeContent", b =>

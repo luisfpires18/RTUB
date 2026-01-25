@@ -63,4 +63,5 @@ public class MeetingAta : BaseEntity
     // Navigation properties
     public List<MeetingAtaAgendaPoint> AgendaPoints { get; set; } = new();
     public List<MeetingAtaAttachment> Attachments { get; set; } = new();
+    public List<MeetingAtaConfirmation> Confirmations { get; set; } = new();
 }

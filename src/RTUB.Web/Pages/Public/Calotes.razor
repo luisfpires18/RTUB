@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @inject IMemberDebtService MemberDebtService
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
@@ -168,8 +169,8 @@ else
 }
 
 <!-- Add/Edit Calote Modal (Admin only) -->
-<Modal Show="@showCaloteModal" 
-       ShowChanged="@((bool show) => showCaloteModal = show)"
+<Modal Show="@modals.IsOpen(ModalType.Calote)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Calote, show))"
        Title="@(isEditMode ? "Editar Calote" : "Adicionar Calote")"
        Size="Modal.ModalSize.Large"
        Centered="true">
@@ -288,8 +289,8 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal (Admin only) -->
-<ConfirmDialog Show="@showDeleteConfirmation"
-               ShowChanged="@((bool show) => showDeleteConfirmation = show)"
+<ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteConfirmation)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteConfirmation, show))"
                Title="Confirmar Remoção"
                Message="@($"Tem a certeza que deseja remover o calote de {deletingDebt?.User?.GetDisplayName() ?? "este membro"}?")"
                WarningMessage="Esta ação irá remover o registo de dívida."
@@ -302,8 +303,8 @@ else
 <!-- Details Modal - Shows all debts for a user -->
 @if (viewingDebtGroup != null)
 {
-    <DetailsModal Show="@showDetailsModal" 
-                  ShowChanged="@((bool show) => showDetailsModal = show)"
+    <DetailsModal Show="@modals.IsOpen(ModalType.Details)" 
+                  ShowChanged="@((bool show) => modals.Toggle(ModalType.Details, show))"
                   Title="Dívidas"
                   HeaderTitle="@viewingDebtGroup.User.GetDisplayName()"
                   ImageUrl="@viewingDebtGroup.User.ProfilePictureSrc"
@@ -376,13 +377,12 @@ else
     private decimal totalDebt => memberDebts.Sum(d => d.AmountOwed);
     
     // Modal state
-    private bool showCaloteModal = false;
-    private bool showDeleteConfirmation = false;
+    private enum ModalType { Calote, DeleteConfirmation, Details }
+    private readonly MultiModalState<ModalType> modals = new();
     private bool isEditMode = false;
     private string errorMessage = "";
     
     // Details Modal state
-    private bool showDetailsModal = false;
     private MemberDebtGroup? viewingDebtGroup;
     
     // Edit/Create state
@@ -577,13 +577,13 @@ else
         filteredMembersForModal.Clear();
         errorMessage = "";
         editingDebt = null;
-        showCaloteModal = true;
+        modals.Open(ModalType.Calote);
     }
     
     private void OpenAddCaloteForUser(ApplicationUser user)
     {
         // Close details modal and open add modal for specific user
-        showDetailsModal = false;
+        modals.Close(ModalType.Details);
         isEditMode = false;
         selectedMember = user;
         editAmount = 0;
@@ -592,13 +592,13 @@ else
         filteredMembersForModal.Clear();
         errorMessage = "";
         editingDebt = null;
-        showCaloteModal = true;
+        modals.Open(ModalType.Calote);
     }
     
     private async Task OpenEditCaloteFromDetails(MemberDebt debt)
     {
         // Close details modal and open edit modal
-        showDetailsModal = false;
+        modals.Close(ModalType.Details);
         await OpenEditCaloteModal(debt);
     }
     
@@ -613,12 +613,12 @@ else
         errorMessage = "";
         editingDebt = debt;
         
-        showCaloteModal = true;
+        modals.Open(ModalType.Calote);
     }
     
     private void CloseCaloteModal()
     {
-        showCaloteModal = false;
+        modals.Close(ModalType.Calote);
         isEditMode = false;
         selectedMember = null;
         editAmount = 0;
@@ -724,12 +724,12 @@ else
     private void OpenDeleteConfirmation(MemberDebt debt)
     {
         deletingDebt = debt;
-        showDeleteConfirmation = true;
+        modals.Open(ModalType.DeleteConfirmation);
     }
     
     private void CloseDeleteConfirmation()
     {
-        showDeleteConfirmation = false;
+        modals.Close(ModalType.DeleteConfirmation);
         deletingDebt = null;
     }
     
@@ -764,7 +764,7 @@ else
         {
             // Show error message to user
             errorMessage = $"Erro ao remover calote: {ex.Message}";
-            showDeleteConfirmation = false;
+            modals.Close(ModalType.DeleteConfirmation);
             deletingDebt = null;
         }
     }
@@ -772,12 +772,12 @@ else
     private void OpenDetailsModal(MemberDebtGroup group)
     {
         viewingDebtGroup = group;
-        showDetailsModal = true;
+        modals.Open(ModalType.Details);
     }
 
     private void CloseDetailsModal()
     {
-        showDetailsModal = false;
+        modals.Close(ModalType.Details);
         viewingDebtGroup = null;
     }
 }

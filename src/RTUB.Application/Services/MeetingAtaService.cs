@@ -90,26 +90,26 @@ public class MeetingAtaService : IMeetingAtaService
     public async Task<Dictionary<int, MeetingAtaStatus?>> GetAtaStatusForMeetingsAsync(IEnumerable<int> meetingIds)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        
+
         var meetingIdList = meetingIds.ToList();
-        
+
         // Query all ATAs for the given meeting IDs in a single query
         var ataStatuses = await context.MeetingAtas
             .Where(a => meetingIdList.Contains(a.MeetingId))
             .Select(a => new { a.MeetingId, a.Status })
             .ToDictionaryAsync(a => a.MeetingId, a => (MeetingAtaStatus?)a.Status);
-        
+
         // Create result dictionary with all meeting IDs, null for those without ATAs
         var result = new Dictionary<int, MeetingAtaStatus?>();
         foreach (var meetingId in meetingIdList)
         {
             result[meetingId] = ataStatuses.TryGetValue(meetingId, out var status) ? status : null;
         }
-        
+
         return result;
     }
 
-    public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions)
+    public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions, MeetingAta? existingAta = null)
     {
         // Owner role can create/edit any ata
         if (userRoles.Contains("Owner"))
@@ -126,6 +126,11 @@ public class MeetingAtaService : IMeetingAtaService
             if (!string.IsNullOrEmpty(meeting.DelegatedAtaWriterMemberId) &&
                 meeting.DelegatedAtaWriterMemberId == userId)
                 return true;
+
+            // If ATA exists, check if user is the secretary (FirstSecretaryUserId)
+            if (existingAta != null && !string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                existingAta.FirstSecretaryUserId == userId)
+                return true;
         }
 
         // For AG meetings (Assembleia Geral Ordinária and Extraordinária)
@@ -135,6 +140,17 @@ public class MeetingAtaService : IMeetingAtaService
             // User has PresidenteMesaAssembleia position
             if (userPositions.Contains(Position.PresidenteMesaAssembleia))
                 return true;
+
+            // If ATA exists, check if user is one of the secretaries
+            if (existingAta != null)
+            {
+                if (!string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                    existingAta.FirstSecretaryUserId == userId)
+                    return true;
+                if (!string.IsNullOrEmpty(existingAta.SecondSecretaryUserId) &&
+                    existingAta.SecondSecretaryUserId == userId)
+                    return true;
+            }
         }
 
         return false;

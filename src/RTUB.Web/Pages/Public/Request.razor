@@ -5,6 +5,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Shared
+@using RTUB.Shared.Base
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using RequestEntity = RTUB.Core.Entities.Request
@@ -209,8 +210,8 @@
 </div>
 
 <!-- Edit Label Modal -->
-<Modal Show="@showEditModal" 
-       ShowChanged="@((value) => showEditModal = value)"
+<Modal Show="@modals.IsOpen(ModalType.Edit)" 
+       ShowChanged="@((value) => modals.Toggle(ModalType.Edit, value))"
        Title="Editar Conteúdo"
        Size="Modal.ModalSize.Large"
        OnClose="CloseEditModal">
@@ -255,7 +256,8 @@
     private string endDateValidationError = string.Empty;
     private Label? whatToExpectLabel;
     private Label? editingLabel;
-    private bool showEditModal = false;
+    private enum ModalType { Edit }
+    private readonly MultiModalState<ModalType> modals = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -283,13 +285,13 @@
                 Content = whatToExpectLabel.Content,
                 IsActive = whatToExpectLabel.IsActive
             };
-            showEditModal = true;
+            modals.Open(ModalType.Edit);
         }
     }
 
     private void CloseEditModal()
     {
-        showEditModal = false;
+        modals.Close(ModalType.Edit);
         editingLabel = null;
     }
 
@@ -309,7 +311,7 @@
             // Reload the label to get updated content
             await LoadLabel();
             
-            showEditModal = false;
+            modals.Close(ModalType.Edit);
             editingLabel = null;
             StateHasChanged();
         }

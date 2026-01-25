@@ -1,9 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using RTUB.Application.Interfaces;
 using RTUB.Application.DTOs;
+using RTUB.Application.Interfaces;
 using RTUB.Web.Services;
-using System.Security.Claims;
 
 namespace RTUB.Web.Hubs;
 
