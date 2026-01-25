@@ -6,8 +6,10 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
 @using RTUB.Core.Enums
+@using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using ReportEntity = RTUB.Core.Entities.Report
@@ -30,18 +32,26 @@ else
 {
     
     <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div class="w-100">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                    <h1 class="mb-0 text-center flex-grow-1">@report.Title</h1>
-                </div>
-                <p class="lead page-header-subtitle mb-0 text-light-theme text-center">Ano Letivo: @report.Year</p>
+        <div class="discussion-header">
+            <div class="discussion-header-actions">
+                <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
             </div>
 
-            <div class="page-header-actions justify-content-lg-end">
+            <div class="discussion-header-title">
+                <h1 class="mb-2">@report.Title</h1>
+                <p class="mb-0 text-muted">Ano Letivo: @report.Year</p>
+            </div>
+
+            <div class="discussion-header-actions page-header-actions justify-content-end justify-content-lg-end">
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenTransactionHistoryModal" title="Histórico de Transações">
+                            <i class="bi bi-clock-history"></i> Histórico de Transações
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
                 <button class="btn btn-success" @onclick="ViewCalotes" title="Ver Calotes">
                     <i class="bi bi-cash-coin"></i> Ver Calotes
                 </button>
@@ -204,7 +214,7 @@ else
                                 }
                                 else
                                 {
-                                    <button type="button" class="btn btn-sm btn-secondary" title="Bloquear atividade (marcar como concluída)" @onclick:stopPropagation="true" @onclick="() => LockActivity(activity.Id)">
+                                    <button type="button" class="btn btn-sm btn-primary btn-primary-purple" title="Bloquear atividade (marcar como concluída)" @onclick:stopPropagation="true" @onclick="() => LockActivity(activity.Id)">
                                         <i class="bi bi-lock"></i>
                                     </button>
                                 }
@@ -217,12 +227,6 @@ else
                                 <button type="button" class="btn btn-sm btn-danger" title="Eliminar atividade" @onclick:stopPropagation="true" @onclick="() => OpenDeleteActivityModal(activity)">
                                     <i class="bi bi-trash"></i>
                                 </button>
-                            }
-                            @if (activity.IsLocked)
-                            {
-                                <span class="badge bg-warning ms-1" title="Atividade bloqueada - não é possível adicionar transações">
-                                    <i class="bi bi-lock-fill"></i> Bloqueada
-                                </span>
                             }
                             <span class="ms-1">
                                 <i class="bi @(expandedActivityIds.Contains(activity.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
@@ -584,6 +588,73 @@ else
     </BodyContent>
 </Modal>
 
+<!-- Transaction History Modal -->
+<Modal Show="@modals.IsOpen(ModalType.TransactionHistory)" 
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.TransactionHistory, show))"
+       Title="Histórico de Transações" 
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (isLoadingTransactionHistory)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        }
+        else if (transactionHistoryLogs == null || !transactionHistoryLogs.Any())
+        {
+            <EmptyState Title="Nenhum histórico encontrado"
+                        Icon="bi-clock-history"
+                        Message="Não há registos de transações para este relatório." />
+        }
+        else
+        {
+            <div class="statistics-container">
+                <div class="mb-4">
+                    <h4 class="mb-3"><i class="bi bi-clock-history"></i> Histórico de Transações</h4>
+                    <div class="stats-card-grid">
+                        @foreach (var entry in transactionHistoryLogs)
+                        {
+                            <div class="stats-card">
+                                <div class="stats-card-content" style="flex: 1;">
+                                    <div class="stats-card-title">@entry.TransactionDescription</div>
+                                    <div class="stats-card-subtitle">
+                                        <i class="bi bi-calendar3 me-1"></i>@entry.Timestamp.ToString("dd/MM/yyyy HH:mm")
+                                        <span class="ms-2">
+                                            <i class="bi bi-folder me-1"></i>@entry.ActivityName
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    <span class="badge @GetActionBadgeClass(entry.Action)">
+                                        @GetActionLabel(entry.Action)
+                                    </span>
+                                    <small class="text-muted">@(entry.UserName ?? "Sistema")</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="mt-3">
+                        <TablePagination CurrentPage="@transactionHistoryCurrentPage"
+                                        PageSize="@transactionHistoryPageSize"
+                                        TotalItems="@transactionHistoryTotalCount"
+                                        ItemLabel="transações"
+                                        PageSizeOptions="@(new[] { 10, 20, 30, 50 })"
+                                        OnPageChanged="@HandleTransactionHistoryPageChange"
+                                        OnPageSizeChanged="@HandleTransactionHistoryPageSizeChange" />
+                    </div>
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTransactionHistoryModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     [Parameter]
     public int ReportId { get; set; }
@@ -592,7 +663,7 @@ else
     private List<Activity>? activities;
     private List<Transaction>? allTransactions;
 
-    private enum ModalType { Activity, Transaction, DeleteActivity, DeleteTransaction, Receipt, BankCash }
+    private enum ModalType { Activity, Transaction, DeleteActivity, DeleteTransaction, Receipt, BankCash, TransactionHistory }
     private readonly MultiModalState<ModalType> modals = new();
 
     private bool isCreateActivityMode = false;
@@ -659,6 +730,13 @@ else
     private decimal editingBankCashValue = 0;
     private Activity? bankActivity = null;
     private Activity? cashActivity = null;
+
+    // Transaction history modal state
+    private List<TransactionHistoryEntryDto> transactionHistoryLogs = new();
+    private bool isLoadingTransactionHistory = false;
+    private int transactionHistoryCurrentPage = 1;
+    private int transactionHistoryPageSize = 10;
+    private int transactionHistoryTotalCount = 0;
 
     private void ToggleAccordion(int activityId)
     {
@@ -1413,5 +1491,87 @@ state.CurrentPage = newPage;
         await LoadTransactions();
         
         CloseBankCashModal();
+    }
+
+    // Transaction History methods
+    private async Task OpenTransactionHistoryModal()
+    {
+        modals.Open(ModalType.TransactionHistory);
+        transactionHistoryCurrentPage = 1;
+        await LoadTransactionHistory();
+    }
+
+    private void CloseTransactionHistoryModal()
+    {
+        modals.Close(ModalType.TransactionHistory);
+        transactionHistoryLogs.Clear();
+        transactionHistoryTotalCount = 0;
+    }
+
+    private async Task LoadTransactionHistory()
+    {
+        if (report == null) return;
+
+        isLoadingTransactionHistory = true;
+        StateHasChanged();
+
+        try
+        {
+            var (entries, totalCount) = await TransactionService.GetTransactionHistoryForReportAsync(
+                ReportId,
+                transactionHistoryCurrentPage,
+                transactionHistoryPageSize
+            );
+
+            transactionHistoryLogs = entries.ToList();
+            transactionHistoryTotalCount = totalCount;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading transaction history for report {ReportId}", ReportId);
+            transactionHistoryLogs = new List<TransactionHistoryEntryDto>();
+            transactionHistoryTotalCount = 0;
+        }
+        finally
+        {
+            isLoadingTransactionHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleTransactionHistoryPageChange(int page)
+    {
+        transactionHistoryCurrentPage = page;
+        await LoadTransactionHistory();
+    }
+
+    private async Task HandleTransactionHistoryPageSizeChange(int pageSize)
+    {
+        transactionHistoryPageSize = pageSize;
+        transactionHistoryCurrentPage = 1;
+        await LoadTransactionHistory();
+    }
+
+
+    private string GetActionLabel(string action)
+    {
+        return action switch
+        {
+            "Created" => "Criado",
+            "Modified" => "Modificado",
+            "Deleted" => "Eliminado",
+            _ => action
+        };
+    }
+
+    private string GetActionBadgeClass(string action)
+    {
+        return action switch
+        {
+            "Created" => "bg-success",
+            "Modified" => "bg-warning",
+            "Deleted" => "bg-danger",
+            _ => "bg-secondary"
+        };
     }
 }

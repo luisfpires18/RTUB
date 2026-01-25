@@ -23,6 +23,8 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     private readonly DatabaseFixture _fixture;
     private readonly TransactionService _service;
     private readonly Mock<IReceiptStorageService> _mockReceiptStorageService;
+    private readonly Mock<IAuditLogService> _mockAuditLogService;
+    private readonly Mock<IActivityService> _mockActivityService;
 
     public TransactionServiceTests(DatabaseFixture fixture)
     {
@@ -35,7 +37,13 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockReceiptStorageService = new Mock<IReceiptStorageService>();
-        _service = new TransactionService(new TransactionRepository(_context), _mockReceiptStorageService.Object);
+        _mockAuditLogService = new Mock<IAuditLogService>();
+        _mockActivityService = new Mock<IActivityService>();
+        _service = new TransactionService(
+            new TransactionRepository(_context), 
+            _mockReceiptStorageService.Object,
+            _mockAuditLogService.Object,
+            _mockActivityService.Object);
     }
 
     #region Create Tests
