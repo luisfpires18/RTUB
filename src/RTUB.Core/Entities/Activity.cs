@@ -24,6 +24,12 @@ public class Activity : BaseEntity
     [DateGreaterThan(nameof(StartDate), ErrorMessage = "A data de fim não pode ser anterior à data de início")]
     public DateTime? EndDate { get; set; }
 
+    /// <summary>
+    /// Indicates if the activity is locked (marked as done).
+    /// When locked, no more transactions can be added.
+    /// </summary>
+    public bool IsLocked { get; set; }
+
     // Navigation properties
     public virtual Report? Report { get; set; }
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
@@ -104,5 +110,23 @@ public class Activity : BaseEntity
         return name.Contains("CALOTES") ||
                name.Contains("BANCO") ||
                name.Contains("CAIXA");
+    }
+
+    /// <summary>
+    /// Locks the activity, marking it as done and preventing new transactions
+    /// </summary>
+    public void Lock()
+    {
+        IsLocked = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Unlocks the activity, allowing new transactions to be added
+    /// </summary>
+    public void Unlock()
+    {
+        IsLocked = false;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

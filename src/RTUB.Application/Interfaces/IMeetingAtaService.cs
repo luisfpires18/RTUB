@@ -59,8 +59,9 @@ public interface IMeetingAtaService
     /// <param name="meeting">Meeting entity</param>
     /// <param name="userRoles">User's role names</param>
     /// <param name="userPositions">User's positions</param>
+    /// <param name="existingAta">Optional existing ATA to check if user is secretary</param>
     /// <returns>True if user can create/edit, false otherwise</returns>
-    bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions);
+    bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions, MeetingAta? existingAta = null);
 
     /// <summary>
     /// Determines if a user can view an ata

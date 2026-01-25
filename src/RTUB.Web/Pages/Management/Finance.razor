@@ -17,6 +17,8 @@
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
+@inject IMemberDebtService MemberDebtService
+@inject IFiscalYearService FiscalYearService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.ReportPdfService PdfService
@@ -510,8 +512,24 @@
                 allTransactions.Add((activity, transactions));
             }
 
+            // Calculate calotes total for the fiscal year
+            decimal calotesTotal = 0;
+            try
+            {
+                var fiscalYear = await FiscalYearService.GetFiscalYearByStartYearAsync(report.Year);
+                if (fiscalYear != null)
+                {
+                    var debts = await MemberDebtService.GetDebtsForFiscalYearAsync(fiscalYear.Id);
+                    calotesTotal = debts.Sum(d => d.AmountOwed);
+                }
+            }
+            catch
+            {
+                // If calotes calculation fails, use 0 (non-critical)
+            }
+
             // Generate PDF using service
-            var pdfBytes = PdfService.GenerateReportPdf(report, activities, allTransactions);
+            var pdfBytes = PdfService.GenerateReportPdf(report, activities, allTransactions, calotesTotal);
 
             // Convert to base64 and trigger download
             var base64 = Convert.ToBase64String(pdfBytes);

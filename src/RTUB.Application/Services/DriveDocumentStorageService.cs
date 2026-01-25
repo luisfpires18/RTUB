@@ -187,6 +187,17 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
             folderPath += "/";
         }
 
+        // Ensure folder exists before uploading (only create if it doesn't exist)
+        // Note: DriveDocumentStorageService doesn't have ObjectExistsAsync, so we'll try to create and catch if it exists
+        try
+        {
+            await CreateFolderAsync(folderPath);
+        }
+        catch
+        {
+            // Folder might already exist, which is fine - continue with upload
+        }
+
         var documentPath = folderPath + fileName;
 
         try

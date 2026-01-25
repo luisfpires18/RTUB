@@ -69,19 +69,14 @@ public class MultiModalState<TKey> where TKey : notnull
     /// <summary>
     /// Sets the state of a modal based on the provided boolean value.
     /// Used for ShowChanged event handlers in Blazor components.
+    /// This method directly sets the state without closing other modals,
+    /// allowing nested modals (e.g., ImageCropper inside CrudModalManager) to coexist.
     /// </summary>
     /// <param name="key">The modal key</param>
     /// <param name="isOpen">True to open the modal, false to close it</param>
     public void Toggle(TKey key, bool isOpen)
     {
-        if (isOpen)
-        {
-            Open(key);
-        }
-        else
-        {
-            Close(key);
-        }
+        _states[key] = isOpen;
     }
 
     /// <summary>

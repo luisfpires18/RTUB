@@ -326,10 +326,7 @@ public class LogisticsCardService : ILogisticsCardService
         // Build folder path: docs/{EnvironmentName}/{FiscalYear}/Logistics/{BoardName}/
         var folderPath = $"docs/{environmentName}/{fiscalYear}/Logistics/{sanitizedBoardName}/";
 
-        // Ensure folder exists
-        await _documentStorageService.CreateFolderAsync(folderPath);
-
-        // Upload the document
+        // Upload the document (folder will be created automatically if it doesn't exist)
         return await _documentStorageService.UploadDocumentAsync(folderPath, fileName, fileStream, contentType);
     }
 
@@ -354,10 +351,9 @@ public class LogisticsCardService : ILogisticsCardService
         // Build folder path: docs/{EnvironmentName}/{FiscalYear}/Logistics/{BoardName}/
         var folderPath = $"docs/{environmentName}/{fiscalYear}/Logistics/{sanitizedBoardName}/";
 
-        // Ensure folder exists before listing (prevents null reference when folder hasn't been created yet)
-        await _documentStorageService.CreateFolderAsync(folderPath);
-
         // List all documents in the folder
+        // Note: ListDocumentsInFolderAsync handles non-existent folders gracefully by returning an empty list
+        // Folders are only created when files are actually uploaded via UploadCardAttachmentAsync
         return await _documentStorageService.ListDocumentsInFolderAsync(folderPath);
     }
 

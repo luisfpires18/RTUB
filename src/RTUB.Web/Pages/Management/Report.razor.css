@@ -1,3 +1,31 @@
+/* Discussion header styles for centered title */
+.discussion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    text-align: left;
+}
+
+.discussion-header-title {
+    flex: 1 1 200px;
+    min-width: 0;
+    text-align: center;
+}
+
+.discussion-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.discussion-header .page-header-actions {
+    width: auto;
+    max-width: none;
+    margin-left: auto;
+}
+
 /* Mobile responsiveness - prevent horizontal scrolling on page */
 @media (max-width: 767.98px) {
     .summary-cards-container {
@@ -19,6 +47,27 @@
         white-space: nowrap;
     }
 }
+
+@media (max-width: 576px) {
+    .discussion-header {
+        justify-content: flex-start;
+    }
+
+    .discussion-header-title {
+        order: 2;
+        width: 100%;
+    }
+
+    .discussion-header-actions:first-child {
+        order: 1;
+    }
+
+    .discussion-header-actions:last-child {
+        order: 3;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
 /* Compact transaction card grid */
 .transaction-grid {
     display: grid;
@@ -31,4 +80,54 @@
     .transaction-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Statistics Cards for Transaction History */
+.statistics-container {
+    padding: 0.5rem 0;
+}
+
+.stats-card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    transition: all 0.2s ease;
+}
+
+.stats-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
+    background-color: #252525;
+}
+
+.stats-card-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.stats-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 0.25rem;
+}
+
+.stats-card-subtitle {
+    font-size: 0.875rem;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

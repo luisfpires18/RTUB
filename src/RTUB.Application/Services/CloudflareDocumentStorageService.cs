@@ -208,6 +208,13 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
                 folderPath += "/";
             }
 
+            // Ensure folder exists before uploading (only create if it doesn't exist)
+            var folderExists = await ObjectExistsAsync(folderPath);
+            if (!folderExists)
+            {
+                await CreateFolderAsync(folderPath);
+            }
+
             var documentPath = folderPath + fileName;
 
             await PutObjectAsync(documentPath, fileStream, contentType, request =>

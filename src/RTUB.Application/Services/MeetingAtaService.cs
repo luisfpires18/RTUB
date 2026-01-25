@@ -109,7 +109,7 @@ public class MeetingAtaService : IMeetingAtaService
         return result;
     }
 
-    public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions)
+    public bool CanCreateOrEditAta(string userId, Meeting meeting, IEnumerable<string> userRoles, IEnumerable<Position> userPositions, MeetingAta? existingAta = null)
     {
         // Owner role can create/edit any ata
         if (userRoles.Contains("Owner"))
@@ -126,6 +126,11 @@ public class MeetingAtaService : IMeetingAtaService
             if (!string.IsNullOrEmpty(meeting.DelegatedAtaWriterMemberId) &&
                 meeting.DelegatedAtaWriterMemberId == userId)
                 return true;
+
+            // If ATA exists, check if user is the secretary (FirstSecretaryUserId)
+            if (existingAta != null && !string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                existingAta.FirstSecretaryUserId == userId)
+                return true;
         }
 
         // For AG meetings (Assembleia Geral Ordinária and Extraordinária)
@@ -135,6 +140,17 @@ public class MeetingAtaService : IMeetingAtaService
             // User has PresidenteMesaAssembleia position
             if (userPositions.Contains(Position.PresidenteMesaAssembleia))
                 return true;
+
+            // If ATA exists, check if user is one of the secretaries
+            if (existingAta != null)
+            {
+                if (!string.IsNullOrEmpty(existingAta.FirstSecretaryUserId) &&
+                    existingAta.FirstSecretaryUserId == userId)
+                    return true;
+                if (!string.IsNullOrEmpty(existingAta.SecondSecretaryUserId) &&
+                    existingAta.SecondSecretaryUserId == userId)
+                    return true;
+            }
         }
 
         return false;

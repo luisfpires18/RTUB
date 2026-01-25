@@ -139,6 +139,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMeetingRequestService, MeetingRequestService>();
         services.AddScoped<IMeetingParticipationService, MeetingParticipationService>();
         services.AddScoped<IMeetingAtaService, MeetingAtaService>();
+        services.AddScoped<IMeetingAtaConfirmationService, MeetingAtaConfirmationService>();
         services.AddScoped<IAtaPdfService, AtaPdfService>();
 
         return services;

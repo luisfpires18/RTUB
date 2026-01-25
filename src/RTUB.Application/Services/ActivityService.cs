@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -92,11 +93,34 @@ public class ActivityService : IActivityService
     /// <exception cref="EntityNotFoundException">Thrown when the activity is not found</exception>
     public async Task UpdateActivityAsync(int id, string name, DateTime startDate, string? description, DateTime? endDate = null)
     {
-        var activity = await _activityRepository.GetByIdAsync(id);
-        if (activity == null)
-            throw new EntityNotFoundException(nameof(Activity), id);
-
+        var activity = await _activityRepository.GetByIdOrThrowAsync(id);
+        var wasLocked = activity.IsLocked; // Preserve lock status
         activity.UpdateDetails(name, startDate, description, endDate);
+        activity.IsLocked = wasLocked; // Restore lock status
+        await _activityRepository.UpdateAsync(activity);
+    }
+
+    /// <summary>
+    /// Locks an activity, marking it as done and preventing new transactions
+    /// </summary>
+    /// <param name="id">The ID of the activity to lock</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the activity is not found</exception>
+    public async Task LockActivityAsync(int id)
+    {
+        var activity = await _activityRepository.GetByIdOrThrowAsync(id);
+        activity.Lock();
+        await _activityRepository.UpdateAsync(activity);
+    }
+
+    /// <summary>
+    /// Unlocks an activity, allowing new transactions to be added
+    /// </summary>
+    /// <param name="id">The ID of the activity to unlock</param>
+    /// <exception cref="EntityNotFoundException">Thrown when the activity is not found</exception>
+    public async Task UnlockActivityAsync(int id)
+    {
+        var activity = await _activityRepository.GetByIdOrThrowAsync(id);
+        activity.Unlock();
         await _activityRepository.UpdateAsync(activity);
     }
 
