@@ -20,6 +20,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Report> Logger
 
 @if (report == null)
 {
@@ -193,6 +194,21 @@ else
                             <span class="text-white-full fw-semibold">@activity.Name</span>
                         </div>
                         <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                            @if (CanCreateReports())
+                            {
+                                @if (activity.IsLocked)
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning" title="Desbloquear atividade (permitir transações)" @onclick:stopPropagation="true" @onclick="() => UnlockActivity(activity.Id)">
+                                        <i class="bi bi-unlock"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-secondary" title="Bloquear atividade (marcar como concluída)" @onclick:stopPropagation="true" @onclick="() => LockActivity(activity.Id)">
+                                        <i class="bi bi-lock"></i>
+                                    </button>
+                                }
+                            }
                             @if (!report.IsPublished && CanCreateReports())
                             {
                                 <button type="button" class="btn btn-sm btn-light" title="Editar atividade" @onclick:stopPropagation="true" @onclick="() => OpenEditActivityModal(activity)">
@@ -201,6 +217,12 @@ else
                                 <button type="button" class="btn btn-sm btn-danger" title="Eliminar atividade" @onclick:stopPropagation="true" @onclick="() => OpenDeleteActivityModal(activity)">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                            }
+                            @if (activity.IsLocked)
+                            {
+                                <span class="badge bg-warning ms-1" title="Atividade bloqueada - não é possível adicionar transações">
+                                    <i class="bi bi-lock-fill"></i> Bloqueada
+                                </span>
                             }
                             <span class="ms-1">
                                 <i class="bi @(expandedActivityIds.Contains(activity.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
@@ -228,11 +250,17 @@ else
 
    <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-2">
        <h6 class="mb-0">Transações</h6>
-       @if (!report.IsPublished && CanCreateReports())
+       @if (!report.IsPublished && CanCreateReports() && !activity.IsLocked)
        {
            <button class="btn btn-sm btn-success" @onclick="() => OpenCreateTransactionModal(activity.Id)">
                <i class="bi bi-plus"></i> Nova Transação
            </button>
+       }
+       @if (activity.IsLocked)
+       {
+           <span class="text-muted small">
+               <i class="bi bi-lock-fill"></i> Atividade bloqueada - não é possível adicionar transações
+           </span>
        }
    </div>
 
@@ -1021,6 +1049,32 @@ state.CurrentPage = newPage;
   await LoadActivities();
         await LoadTransactions();
      CloseDeleteActivityModal();
+    }
+
+    private async Task LockActivity(int activityId)
+    {
+        try
+        {
+            await ActivityService.LockActivityAsync(activityId);
+            await LoadActivities();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error locking activity {ActivityId}", activityId);
+        }
+    }
+
+    private async Task UnlockActivity(int activityId)
+    {
+        try
+        {
+            await ActivityService.UnlockActivityAsync(activityId);
+            await LoadActivities();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error unlocking activity {ActivityId}", activityId);
+        }
     }
 
     // Transaction CRUD

@@ -26,6 +26,8 @@
 @inject IMemberStatusService MemberStatusService
 @inject IMemberStatisticsService MemberStatisticsService
 @inject IUserProfileService UserProfileService
+@inject IPushNotificationService PushNotificationService
+@inject IPushNotificationFactory PushNotificationFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject NavigationManager NavigationManager
@@ -992,6 +994,15 @@ else
                                         title="Tornar este membro ativo"
                                         @onclick="() => OpenMakeActiveConfirmModal(member)">
                                     <i class="bi bi-person-check-fill"></i>
+                                </button>
+                            }
+                            @if (showEncouragement && isAdmin)
+                            {
+                                <button type="button" 
+                                        class="member-card-lite-action-btn" 
+                                        title="Enviar notificação push de lembrete"
+                                        @onclick="() => SendReminderPushNotification(member)">
+                                    <i class="bi bi-bell text-white"></i>
                                 </button>
                             }
                         </ActionContent>
@@ -3627,6 +3638,40 @@ else
             isReactivating = false;
             CloseReactivateConfirmModal();
             StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Checks if user can send push notifications (Admin or Owner)
+    /// </summary>
+    private bool CanSendPushNotifications()
+    {
+        return isAdmin || isOwner;
+    }
+
+    /// <summary>
+    /// Sends a reminder push notification to a member about participating in an activity this month
+    /// </summary>
+    private async Task SendReminderPushNotification(ApplicationUser member)
+    {
+        try
+        {
+            var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Lembrete: Participa numa Atividade!",
+                Body = $"Participa numa atividade este mês para voltares ao ativo, {member.Nickname ?? member.FirstName}!",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = $"{baseUrl}/events",
+                Tag = $"member-reminder-{member.Id}-{DateTime.UtcNow.Ticks}"
+            };
+
+            await PushNotificationService.SendToUserAsync(member.Id, notification);
+            _logger.LogInformation("Sent reminder push notification to member {MemberId} ({MemberName})", member.Id, member.GetDisplayName());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending reminder push notification to member {MemberId}", member.Id);
         }
     }
 }
