@@ -162,6 +162,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
+        
+        // Track Created entities to update EntityId after SaveChanges
+        // (EntityId is 0/null before save, gets assigned after)
+        var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();
 
         // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
         // This prevents issues when entities with navigation properties to ApplicationUser are added
@@ -190,6 +194,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (createdLog != null)
                     {
                         auditEntries.Add(createdLog);
+                        // Track for EntityId update after SaveChanges
+                        pendingCreatedAuditLogs.Add((createdLog, entry.Entity));
                     }
                     break;
 
@@ -269,6 +275,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Update EntityId for Created audit logs now that IDs are assigned
+        foreach (var (auditLog, entity) in pendingCreatedAuditLogs)
+        {
+            if (entity.Id > 0)
+            {
+                auditLog.EntityId = entity.Id;
+            }
+        }
 
         // Resolve any missing user/role names asynchronously after the main save
         if (pendingRoleAudits.Any())

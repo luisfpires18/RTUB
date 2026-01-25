@@ -79,12 +79,6 @@ else
         </div>
     </div>
 
-    <!-- Information about Assembleias Gerais -->
-    <EmptyState 
-        Title="Sobre Assembleias Gerais" 
-        Icon="bi-info-circle"
-        Message="As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos." />
-
     <!-- Search Box and Fiscal Year Filter -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
         <div class="flex-grow-1 filter-search-container">
@@ -120,7 +114,7 @@ else
             <EmptyState 
                 Title="Nenhuma reunião agendada." 
                 Icon="bi-calendar-x"
-                Message="Não existem reuniões agendadas no momento." />
+                Message="Não existem reuniões agendadas no momento. As assembleias gerais podem ser convocadas por iniciativa da Mesa da Assembleia Geral, ou a pedido da Direcção, do Conselho Fiscal, do Conselho de Veteranos, ou de pelo menos 20% dos Associados Efectivos." />
         }
         else
         {
@@ -924,7 +918,7 @@ else
                             var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
                             @if (daysText != null)
                             {
-                                var reminderText = daysText == "hoje" ? "A reunião é hoje" : $"A reunião é em {daysText}";
+                                var reminderText = daysText == "hoje" ? "a reunião é hoje" : $"a reunião é em {daysText}";
                                 <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
                             }
                             else
@@ -1646,6 +1640,19 @@ else
                         <p class="text-muted mb-0">Nenhum participante registado.</p>
                     }
                     
+                    @* ATA Confirmations Section - Show who confirmed the ATA *@
+                    @if (viewingAta.Status == MeetingAtaStatus.Published && ataConfirmations != null && ataConfirmations.Any(c => c.IsConfirmed == true))
+                    {
+                        <hr class="my-3" />
+                        <p class="mb-2"><strong>Confirmaram a ata (@ataConfirmations.Count(c => c.IsConfirmed == true)):</strong></p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var confirmation in ataConfirmations.Where(c => c.IsConfirmed == true && c.User != null))
+                            {
+                                <span class="badge bg-primary">@FormatUserNameForView(confirmation.User)</span>
+                            }
+                        </div>
+                    }
+                    
                     @* ATA Confirmation/Refusal Section - Only for published ATAs and users who participated *@
                     @if (viewingAta.Status == MeetingAtaStatus.Published && 
                          currentUser != null && 
@@ -1829,6 +1836,7 @@ else
     // ATA confirmation variables
     private bool isAtaConfirmationLoading = false;
     private MeetingAtaConfirmation? userAtaConfirmation;
+    private List<MeetingAtaConfirmation>? ataConfirmations;
 
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -3231,6 +3239,7 @@ else
         modals.Open(ModalType.ViewAta);
         viewingAta = null;
         userAtaConfirmation = null;
+        ataConfirmations = null;
         
         try
         {
@@ -3241,10 +3250,16 @@ else
                 // Load with full details
                 viewingAta = await MeetingAtaService.GetByIdWithDetailsAsync(existingAta.Id);
                 
-                // Load user's confirmation if ATA is published
-                if (viewingAta != null && viewingAta.Status == MeetingAtaStatus.Published && !string.IsNullOrEmpty(currentUserId))
+                // Load user's confirmation and all confirmations if ATA is published
+                if (viewingAta != null && viewingAta.Status == MeetingAtaStatus.Published)
                 {
-                    userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(viewingAta.Id, currentUserId);
+                    if (!string.IsNullOrEmpty(currentUserId))
+                    {
+                        userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(viewingAta.Id, currentUserId);
+                    }
+                    
+                    // Load all confirmations for this ATA
+                    ataConfirmations = (await MeetingAtaConfirmationService.GetConfirmationsByAtaIdAsync(viewingAta.Id)).ToList();
                 }
             }
         }
@@ -3645,8 +3660,22 @@ else
             // First save any pending changes
             await MeetingAtaService.UpdateAtaAsync(editingAta);
             
-            // Publish the ata
-            await MeetingAtaService.PublishAtaAsync(editingAta.Id);
+            // Load ata with all details for PDF generation
+            var ataWithDetails = await MeetingAtaService.GetByIdWithDetailsAsync(editingAta.Id);
+            if (ataWithDetails == null)
+            {
+                ataErrorMessage = "Erro ao carregar dados da ata para gerar PDF.";
+                return;
+            }
+            
+            // Set meeting if not loaded
+            if (ataWithDetails.Meeting == null)
+            {
+                ataWithDetails.Meeting = ataMeeting;
+            }
+            
+            // Generate PDF
+            var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
             
             // Create folder in Documentation for the current fiscal year
             var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
@@ -3673,12 +3702,23 @@ else
                 // Create folder if it doesn't exist (CreateFolderAsync checks for existence)
                 await DocumentStorageService.CreateFolderAsync(folderPath);
                 Logger.LogInformation("Created ATA folder: {FolderPath}", folderPath);
+                
+                // Generate PDF filename
+                var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
+                
+                // Upload PDF to documentation
+                using var pdfStream = new MemoryStream(pdfBytes);
+                await DocumentStorageService.UploadDocumentAsync(folderPath, fileName, pdfStream, "application/pdf");
+                Logger.LogInformation("Uploaded ATA PDF to: {FolderPath}{FileName}", folderPath, fileName);
             }
             catch (Exception ex)
             {
-                // Log but don't fail the publish operation if folder creation fails
-                Logger.LogWarning(ex, "Failed to create ATA folder {FolderPath}, but ATA was published", folderPath);
+                // Log but don't fail the publish operation if folder/file creation fails
+                Logger.LogWarning(ex, "Failed to create ATA folder or upload PDF to {FolderPath}, but ATA was published", folderPath);
             }
+            
+            // Publish the ata (after PDF generation and upload)
+            await MeetingAtaService.PublishAtaAsync(editingAta.Id);
             
             // Update local state
             editingAta.Status = MeetingAtaStatus.Published;

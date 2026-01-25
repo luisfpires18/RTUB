@@ -157,6 +157,37 @@ public class MultiModalStateTests
         modals.IsOpen(TestModalType.Edit).Should().BeTrue();
         modals.IsOpen(TestModalType.Delete).Should().BeFalse();
     }
+
+    [Fact]
+    public void Toggle_WithBool_OpensModalWithoutClosingOthers()
+    {
+        // Arrange
+        var modals = new MultiModalState<string>();
+        modals.Open("Edit"); // Open Edit modal
+
+        // Act - Toggle with bool (used by ShowChanged callbacks)
+        modals.Toggle("Cropper", true);
+
+        // Assert - Both modals should be open (allows nested modals)
+        modals.IsOpen("Edit").Should().BeTrue();
+        modals.IsOpen("Cropper").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Toggle_WithBool_ClosesModalWithoutAffectingOthers()
+    {
+        // Arrange
+        var modals = new MultiModalState<string>();
+        modals.Open("Edit");
+        modals.Toggle("Cropper", true); // Open Cropper without closing Edit
+
+        // Act - Close Cropper
+        modals.Toggle("Cropper", false);
+
+        // Assert - Edit should still be open
+        modals.IsOpen("Edit").Should().BeTrue();
+        modals.IsOpen("Cropper").Should().BeFalse();
+    }
 }
 
 /// <summary>
