@@ -23,6 +23,23 @@
     @* Preconnect for performance *@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    @* Service Worker Registration - Must be in head for PWABuilder detection *@
+    <script>
+        // Register service worker immediately for PWABuilder and PWA detection
+        // This must run synchronously in the head to be detected by PWABuilder
+        (function() {
+            if ('serviceWorker' in navigator) {
+                // Register immediately without waiting for page load
+                navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                    .then(function(registration) {
+                        console.log('[SW] Service Worker registered:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.error('[SW] Service Worker registration failed:', error);
+                    });
+            }
+        })();
+    </script>
     @* HeadOutlet allows MainLayout to inject additional head content dynamically *@
     <HeadOutlet />
 </head>
