@@ -156,8 +156,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Act & Assert
         var act = async () => await _service.UpdateCardAsync(999, "Title", "Description");
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*não encontrado*");
+        await act.Should().ThrowAsync<RTUB.Core.Exceptions.EntityNotFoundException>();
     }
 
     [Fact]
@@ -496,6 +495,138 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         // Assert
         var updated = await _context.LogisticsCards.FindAsync(card.Id);
         updated!.AttachmentsJson.Should().Be(attachmentsJson);
+    }
+
+    [Fact]
+    public async Task UploadCardAttachmentAsync_WithValidFile_UploadsFile()
+    {
+        // Arrange
+        var board = LogisticsBoard.Create("Test Board");
+        _context.LogisticsBoards.Add(board);
+        await _context.SaveChangesAsync();
+
+        var list = LogisticsList.Create("Test List", board.Id, 0);
+        _context.LogisticsLists.Add(list);
+        await _context.SaveChangesAsync();
+
+        var card = LogisticsCard.Create("Test Card", list.Id, 0);
+        _context.LogisticsCards.Add(card);
+        await _context.SaveChangesAsync();
+
+        var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
+        var expectedPath = "docs/TestEnvironment/2024-2025/Logistics/Test Board/test-file.pdf";
+        mockDocumentStorage.Setup(s => s.UploadDocumentAsync(
+            It.IsAny<string>(), 
+            "test-file.pdf", 
+            It.IsAny<Stream>(), 
+            "application/pdf"))
+            .ReturnsAsync(expectedPath);
+
+        var service = new LogisticsCardService(
+            new LogisticsCardRepository(_context),
+            new EventRepository(_context),
+            mockDocumentStorage.Object,
+            new Repository<LogisticsCardAssignment>(_context),
+            new Repository<LogisticsCardReminder>(_context));
+
+        var fileStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+        var boardName = "Test Board";
+        var fileName = "test-file.pdf";
+        var contentType = "application/pdf";
+        var environmentName = "TestEnvironment";
+
+        // Act
+        var result = await service.UploadCardAttachmentAsync(
+            card.Id, boardName, fileName, fileStream, contentType, environmentName);
+
+        // Assert
+        result.Should().Be(expectedPath);
+        mockDocumentStorage.Verify(s => s.UploadDocumentAsync(
+            It.Is<string>(path => path.Contains("docs/TestEnvironment") && path.Contains("Logistics/Test Board")),
+            fileName,
+            It.IsAny<Stream>(),
+            contentType), Times.Once);
+    }
+
+    [Fact]
+    public async Task UploadCardAttachmentAsync_WithInvalidCard_ThrowsException()
+    {
+        // Arrange
+        var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
+        var service = new LogisticsCardService(
+            new LogisticsCardRepository(_context),
+            new EventRepository(_context),
+            mockDocumentStorage.Object,
+            new Repository<LogisticsCardAssignment>(_context),
+            new Repository<LogisticsCardReminder>(_context));
+
+        var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var boardName = "Test Board";
+        var fileName = "test-file.pdf";
+        var contentType = "application/pdf";
+        var environmentName = "TestEnvironment";
+
+        // Act
+        var act = async () => await service.UploadCardAttachmentAsync(
+            999, boardName, fileName, fileStream, contentType, environmentName);
+
+        // Assert
+        await act.Should().ThrowAsync<RTUB.Core.Exceptions.EntityNotFoundException>();
+        mockDocumentStorage.Verify(s => s.UploadDocumentAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>()), 
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UploadCardAttachmentAsync_SanitizesBoardName()
+    {
+        // Arrange
+        var board = LogisticsBoard.Create("Test Board");
+        _context.LogisticsBoards.Add(board);
+        await _context.SaveChangesAsync();
+
+        var list = LogisticsList.Create("Test List", board.Id, 0);
+        _context.LogisticsLists.Add(list);
+        await _context.SaveChangesAsync();
+
+        var card = LogisticsCard.Create("Test Card", list.Id, 0);
+        _context.LogisticsCards.Add(card);
+        await _context.SaveChangesAsync();
+
+        var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
+        var expectedPath = "docs/TestEnvironment/2024-2025/Logistics/TestBoard/test-file.pdf";
+        mockDocumentStorage.Setup(s => s.UploadDocumentAsync(
+            It.IsAny<string>(), 
+            It.IsAny<string>(), 
+            It.IsAny<Stream>(), 
+            It.IsAny<string>()))
+            .ReturnsAsync(expectedPath);
+
+        var service = new LogisticsCardService(
+            new LogisticsCardRepository(_context),
+            new EventRepository(_context),
+            mockDocumentStorage.Object,
+            new Repository<LogisticsCardAssignment>(_context),
+            new Repository<LogisticsCardReminder>(_context));
+
+        var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var boardName = "Test/Board..Name"; // Contains path traversal attempts
+        var fileName = "test-file.pdf";
+        var contentType = "application/pdf";
+        var environmentName = "TestEnvironment";
+
+        // Act
+        var result = await service.UploadCardAttachmentAsync(
+            card.Id, boardName, fileName, fileStream, contentType, environmentName);
+
+        // Assert
+        result.Should().Be(expectedPath);
+        // Verify that the path contains sanitized board name (no slashes or dots)
+        mockDocumentStorage.Verify(s => s.UploadDocumentAsync(
+            It.Is<string>(path => !path.Contains("../") && !path.Contains("//")),
+            It.IsAny<string>(),
+            It.IsAny<Stream>(),
+            It.IsAny<string>()), Times.Once);
     }
 
     public void Dispose()

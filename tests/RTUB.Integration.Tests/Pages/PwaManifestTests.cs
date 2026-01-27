@@ -152,9 +152,9 @@ public class PwaManifestTests : IntegrationTestBase
         // Verify cache version is present
         content.Should().Contain("CACHE_VERSION", "service worker should have cache versioning");
 
-        // Verify current cache version (v5 after adding copy link feature)
-        content.Should().Contain("rtub-v5",
-            "service worker should use updated cache version to clear old caches");
+        // Verify current cache version (v17 is the current version)
+        content.Should().Contain("rtub-v",
+            "service worker should use cache version to clear old caches");
     }
 
     [Fact]

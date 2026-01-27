@@ -104,9 +104,7 @@ public class TransactionService : ITransactionService
 
     public async Task DeleteTransactionAsync(int id)
     {
-        var transaction = await _transactionRepository.GetByIdAsync(id);
-        if (transaction == null)
-            throw new EntityNotFoundException(nameof(Transaction), id);
+        var transaction = await _transactionRepository.GetByIdOrThrowAsync(id);
 
         // Delete receipt from storage if exists
         if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
@@ -119,9 +117,7 @@ public class TransactionService : ITransactionService
 
     public async Task<string?> UploadReceiptAsync(int transactionId, Stream fileStream, string fileName, string contentType)
     {
-        var transaction = await _transactionRepository.GetByIdAsync(transactionId);
-        if (transaction == null)
-            throw new EntityNotFoundException(nameof(Transaction), transactionId);
+        var transaction = await _transactionRepository.GetByIdOrThrowAsync(transactionId);
 
         // Delete old receipt if exists
         if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
@@ -139,9 +135,7 @@ public class TransactionService : ITransactionService
 
     public async Task DeleteReceiptAsync(int transactionId)
     {
-        var transaction = await _transactionRepository.GetByIdAsync(transactionId);
-        if (transaction == null)
-            throw new EntityNotFoundException(nameof(Transaction), transactionId);
+        var transaction = await _transactionRepository.GetByIdOrThrowAsync(transactionId);
 
         if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
         {

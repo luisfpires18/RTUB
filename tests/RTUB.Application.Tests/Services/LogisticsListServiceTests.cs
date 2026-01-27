@@ -256,14 +256,16 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
         // Act
         await _service.DeleteListAsync(list.Id);
 
-        // Assert
-        var deletedList = await _context.LogisticsLists.FindAsync(list.Id);
+        // Assert - Use a fresh context to avoid tracking issues
+        using var freshContext = _fixture.CreateContext();
+        var deletedList = await freshContext.LogisticsLists.FindAsync(list.Id);
         deletedList.Should().BeNull();
 
-        var cards = await _context.LogisticsCards
+        var cards = await freshContext.LogisticsCards
             .Where(c => c.ListId == list.Id)
             .ToListAsync();
         cards.Should().BeEmpty();
+        freshContext.Dispose();
     }
 
     [Fact]

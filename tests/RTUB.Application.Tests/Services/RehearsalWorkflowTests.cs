@@ -40,6 +40,7 @@ public class RehearsalWorkflowTests : IDisposable
         // Register required dependencies for ApplicationDbContext
         services.AddScoped<IHttpContextAccessor>(_ => Mock.Of<IHttpContextAccessor>());
         services.AddScoped<AuditContext>();
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();

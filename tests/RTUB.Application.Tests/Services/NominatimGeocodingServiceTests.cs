@@ -35,6 +35,7 @@ public class NominatimGeocodingServiceTests
         // Add required dependencies for ApplicationDbContext
         services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor>(new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>().Object);
         services.AddScoped<RTUB.Application.Services.AuditContext>();
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
 
         // Setup in-memory database for testing (scoped)
         services.AddDbContext<ApplicationDbContext>(options =>

@@ -110,7 +110,7 @@ public class AuditLogAppenderTests : IDisposable
         // Verify changes are logged
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().NotBeNull();
-        changes.Should().ContainKey("Name");
+        changes.Should().ContainKey("Title"); // Album uses Title, not Name
     }
 
     [Fact]
@@ -203,6 +203,8 @@ public class AuditLogAppenderTests : IDisposable
         {
             UserName = "testuser",
             Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
             Nickname = "TestUser"
         };
         _context.Users.Add(user);
@@ -249,6 +251,8 @@ public class AuditLogAppenderTests : IDisposable
         {
             UserName = "targetuser",
             Email = "target@example.com",
+            FirstName = "Target",
+            LastName = "User",
             Nickname = "TargetUser"
         };
         _context.Users.Add(user);
@@ -283,7 +287,10 @@ public class AuditLogAppenderTests : IDisposable
         var user = new ApplicationUser
         {
             UserName = "targetuser",
-            Email = "target@example.com"
+            Email = "target@example.com",
+            FirstName = "Target",
+            LastName = "User",
+            Nickname = "TargetUser"
         };
         _context.Users.Add(user);
         _context.SaveChanges();
@@ -312,6 +319,9 @@ public class AuditLogAppenderTests : IDisposable
         {
             UserName = "targetuser",
             Email = "target@example.com",
+            FirstName = "Target",
+            LastName = "User",
+            Nickname = "TargetUser",
             PasswordHash = "oldhash"
         };
         _context.Users.Add(user);

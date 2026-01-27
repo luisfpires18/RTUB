@@ -209,9 +209,11 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         // Act
         await _service.DeleteBoardAsync(board.Id);
 
-        // Assert
-        var deleted = await _context.LogisticsBoards.FindAsync(board.Id);
+        // Assert - Use a fresh context to avoid tracking issues
+        using var freshContext = _fixture.CreateContext();
+        var deleted = await freshContext.LogisticsBoards.FindAsync(board.Id);
         deleted.Should().BeNull();
+        freshContext.Dispose();
     }
 
     [Fact]

@@ -80,6 +80,11 @@ public class DatabaseFixture : IDisposable
         context.Labels.RemoveRange(context.Labels);
         context.Requests.RemoveRange(context.Requests);
         context.FiscalYears.RemoveRange(context.FiscalYears);
+        context.Messages.RemoveRange(context.Messages);
+        context.Conversations.RemoveRange(context.Conversations);
+        context.UserBets.RemoveRange(context.UserBets);
+        context.BetOptions.RemoveRange(context.BetOptions);
+        context.Bets.RemoveRange(context.Bets);
 
         await context.SaveChangesAsync();
     }

@@ -297,8 +297,8 @@ public class MeetingCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-envelope-fill", "email button should have envelope icon");
-        cut.Markup.Should().Contain("Notificar", "email button should show 'Notificar' text");
-        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Notificar"));
+        cut.Markup.Should().Contain("Email", "email button should show 'Email' text");
+        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Email"));
         emailButtons.Should().NotBeEmpty("email button element should exist for admin");
     }
 
@@ -321,8 +321,8 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().NotContain("Notificar", "email button should not appear for non-admin");
-        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Notificar"));
+        cut.Markup.Should().NotContain("Email", "email button should not appear for non-admin");
+        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Email"));
         emailButtons.Should().BeEmpty("no email button elements should exist for non-admin");
     }
 
@@ -517,7 +517,7 @@ public class MeetingCardTests : TestContext
             .Add(p => p.OnSendEmail, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var emailButton = cut.FindAll("button").First(b => b.TextContent.Contains("Notificar"));
+        var emailButton = cut.FindAll("button").First(b => b.TextContent.Contains("Email"));
         emailButton.Click();
 
         // Assert

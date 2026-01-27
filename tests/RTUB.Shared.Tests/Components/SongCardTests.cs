@@ -226,7 +226,7 @@ public class SongCardTests : TestContext
             .Add(p => p.CanDelete, false));
 
         // Assert
-        var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Links"));
+        var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("bi-link-45deg"));
         linksButtons.Should().Contain(b => !b.HasAttribute("disabled"), "links button should be enabled when links present");
     }
 
@@ -243,7 +243,7 @@ public class SongCardTests : TestContext
             .Add(p => p.CanDelete, false));
 
         // Assert
-        var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Links"));
+        var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("bi-link-45deg"));
         linksButtons.Should().Contain(b => b.HasAttribute("disabled"), "links button should be disabled when no links");
     }
 
@@ -375,7 +375,7 @@ public class SongCardTests : TestContext
             .Add(p => p.OnViewLinks, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var linksButton = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Links")).First(b => !b.HasAttribute("disabled"));
+        var linksButton = cut.FindAll("button").Where(b => b.InnerHtml.Contains("bi-link-45deg")).First(b => !b.HasAttribute("disabled"));
         linksButton.Click();
 
         // Assert

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
@@ -343,12 +344,7 @@ public class MessagingService : IMessagingService
 
     public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body)
     {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-
-        if (conversation == null)
-        {
-            throw new InvalidOperationException("Conversation not found");
-        }
+        var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
 
         if (!conversation.IsGroup)
         {
