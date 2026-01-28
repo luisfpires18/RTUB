@@ -1343,37 +1343,43 @@ else
                 }
                 else
                 {
-                    <!-- Notification Type Selection -->
+                    <!-- Custom Notification Message -->
                     <div class="mb-3">
-                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                        <select class="form-select" @bind="selectedPushNotificationType">
-                            <option value="@NotificationTypeNew">Nova Atuação</option>
-                            <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
-                        </select>
+                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
+                                  rows="4" 
+                                  @bind="customNotificationBody" 
+                                  placeholder="Ex: Atuação importante, confirma a tua presença!"
+                                  maxlength="500"></textarea>
                         <small class="text-muted">
-                            @if (selectedPushNotificationType == NotificationTypeNew)
-                            {
-                                <text>Notifica os membros sobre uma nova atuação criada.</text>
-                            }
-                            else
-                            {
-                                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
-                                if (daysText != null)
-                                {
-                                    var reminderText = daysText == "hoje" ? "a atuação é hoje" : $"a atuação é em {daysText}";
-                                    <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
-                                }
-                                else
-                                {
-                                    <text>Não é possível enviar lembretes para eventos passados.</text>
-                                }
-                            }
+                            A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres.
                         </small>
+                    </div>
+
+                    <!-- Filter Option -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="eventFilterLeitaoCaloiro"
+                                   @bind="filterOnlyLeitaoAndCaloiro"
+                                   @bind:after="OnEventFilterChanged" />
+                            <label class="form-check-label text-white-full" for="eventFilterLeitaoCaloiro">
+                                Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
+                            </label>
+                        </div>
+                        @if (filterOnlyLeitaoAndCaloiro)
+                        {
+                            <small class="text-warning d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>
+                                As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
+                            </small>
+                        }
                     </div>
                     
                     <EmailRecipientsPreview 
-                        SubscribedUsers="@(pushSubscribedUsers ?? new List<ApplicationUser>())"
-                        NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsers="@(pushFilteredSubscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
                         SubscribedUsersTitle="Membros que irão receber:"
                         NonSubscribedUsersTitle="Quem não irá receber:"
                         ShowNonSubscribedUsers="true"
@@ -1646,12 +1652,15 @@ else
     // Push notification modal variables
     private List<ApplicationUser>? pushSubscribedUsers;
     private List<ApplicationUser>? pushNonSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
     private int pushSubscribedUsersCount = 0;
     private int pushTotalUsersCount = 0;
     private bool pushLoadingSubscribers = false;
     private string? pushErrorMessage;
-    private string selectedPushNotificationType = NotificationTypeNew;
     private bool IsSendingPushNotifications = false;
+    private string? customNotificationBody;
+    private bool filterOnlyLeitaoAndCaloiro = false;
     
     // Notification type constants
     private const string NotificationTypeNew = "new";
@@ -3125,7 +3134,8 @@ else
         selectedEventForPush = eventItem;
         pushLoadingSubscribers = true;
         pushErrorMessage = null;
-        selectedPushNotificationType = NotificationTypeNew; // Reset to default
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
         modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
@@ -3148,8 +3158,7 @@ else
                 .OrderBy(u => u.Nickname ?? u.FirstName)
                 .ToList();
             
-            pushSubscribedUsersCount = pushSubscribedUsers.Count;
-            pushTotalUsersCount = allUsers.Count;
+            ApplyPushNotificationFilter();
         }
         catch (Exception ex)
         {
@@ -3168,16 +3177,26 @@ else
         selectedEventForPush = null;
         pushSubscribedUsers = null;
         pushNonSubscribedUsers = null;
+        pushFilteredSubscribedUsers = null;
+        pushFilteredNonSubscribedUsers = null;
         pushSubscribedUsersCount = 0;
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
     }
 
     private async Task SendPushNotification()
     {
-        if (selectedEventForPush == null || pushSubscribedUsers == null || !pushSubscribedUsers.Any())
+        if (selectedEventForPush == null || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any())
         {
             ClosePushNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customNotificationBody))
+        {
+            pushErrorMessage = "A mensagem da notificação é obrigatória.";
             return;
         }
 
@@ -3190,27 +3209,14 @@ else
             // Get the base URL
             var baseUri = Navigation.BaseUri.TrimEnd('/');
 
-            // Determine if this is a reminder notification
-            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
-
-            // Validate event is in the future for reminders
-            if (isReminder)
-            {
-                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
-                if (daysText == null)
-                {
-                    pushErrorMessage = "Não é possível enviar lembretes para eventos passados.";
-                    IsSendingPushNotifications = false;
-                    StateHasChanged();
-                    return;
-                }
-            }
-
             // Create the push notification using the factory
             SendPushNotificationDto notification;
             try
             {
-                notification = PushNotificationFactory.CreateEventNotification(selectedEventForPush, isReminder, baseUri);
+                notification = PushNotificationFactory.CreateEventCustomNotification(
+                    selectedEventForPush,
+                    customNotificationBody!,
+                    baseUri);
             }
             catch (ArgumentException ex)
             {
@@ -3220,8 +3226,9 @@ else
                 return;
             }
 
-            // Broadcast to all subscribed users
-            await PushNotificationService.BroadcastAsync(notification);
+            // Send to filtered subscribed users only
+            var recipientIds = pushFilteredSubscribedUsers.Select(u => u.Id).ToList();
+            await PushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
 
             // Success - close modal
             ClosePushNotificationModal();
@@ -3235,6 +3242,36 @@ else
             IsSendingPushNotifications = false;
             StateHasChanged();
         }
+    }
+
+    private void ApplyPushNotificationFilter()
+    {
+        if (filterOnlyLeitaoAndCaloiro)
+        {
+            // Filter to include ONLY users with Leitao OR Caloiro category
+            pushFilteredSubscribedUsers = pushSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+        }
+        else
+        {
+            // No filter - use original lists directly
+            pushFilteredSubscribedUsers = pushSubscribedUsers;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
+        }
+
+        // Update counts based on filtered lists
+        pushSubscribedUsersCount = pushFilteredSubscribedUsers?.Count ?? 0;
+        pushTotalUsersCount = (pushFilteredSubscribedUsers?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
+    }
+
+    private void OnEventFilterChanged()
+    {
+        ApplyPushNotificationFilter();
     }
 
     private void OnDateChanged()

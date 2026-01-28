@@ -23,6 +23,13 @@ public interface IUserBetRepository : IRepository<UserBet>
     Task<IEnumerable<UserBet>> GetByBetIdAsync(int betId);
 
     /// <summary>
+    /// Gets all bets placed on a specific bet with user information included (for display purposes)
+    /// </summary>
+    /// <param name="betId">Bet ID</param>
+    /// <returns>Collection of user bets with user navigation property loaded</returns>
+    Task<IEnumerable<UserBet>> GetByBetIdWithUsersAsync(int betId);
+
+    /// <summary>
     /// Gets user's bet for a specific bet (if exists)
     /// </summary>
     /// <param name="userId">User ID</param>

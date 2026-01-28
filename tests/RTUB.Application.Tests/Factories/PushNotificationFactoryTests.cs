@@ -1,5 +1,6 @@
 using RTUB.Application.Factories;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using Xunit;
 
 namespace RTUB.Application.Tests.Factories;
@@ -366,6 +367,86 @@ public class PushNotificationFactoryTests
 
         // Assert
         Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+    }
+
+    // Event custom notification tests
+
+    [Fact]
+    public void CreateEventCustomNotification_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var testEvent = Event.Create("Test Event", DateTime.UtcNow.AddDays(5), "Test Location", EventType.Atuacao, "Desc");
+        testEvent.Id = 123;
+        var customBody = "Mensagem personalizada para a atuação.";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateEventCustomNotification(testEvent, customBody, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal(testEvent.Name, notification.Title);
+        Assert.Equal(customBody, notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("event-custom-123", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateEventCustomNotification_ThrowsOnInvalidArguments()
+    {
+        var testEvent = Event.Create("Test Event", DateTime.UtcNow.AddDays(5), "Test Location", EventType.Atuacao, "Desc");
+        testEvent.Id = 1;
+
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(null!, "body", "https://rtub.example.com"));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateEventCustomNotification(testEvent, null!, "https://rtub.example.com"));
+        Assert.Throws<ArgumentException>(() => _factory.CreateEventCustomNotification(testEvent, string.Empty, "https://rtub.example.com"));
+        Assert.Throws<ArgumentException>(() => _factory.CreateEventCustomNotification(testEvent, "body", ""));
+    }
+
+    // Meeting custom notification tests
+
+    [Fact]
+    public void CreateMeetingCustomNotification_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var meeting = new Meeting
+        {
+            Id = 42,
+            Title = "Reunião Geral",
+            Date = new DateTime(2025, 5, 10, 21, 0, 0),
+            Type = MeetingType.AssembleiaGeralOrdinaria
+        };
+        var customBody = "Mensagem personalizada para a reunião.";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateMeetingCustomNotification(meeting, customBody, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Contains("Reunião - ", notification.Title);
+        Assert.Equal(customBody, notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("meeting-custom-42", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateMeetingCustomNotification_ThrowsOnInvalidArguments()
+    {
+        var meeting = new Meeting
+        {
+            Id = 1,
+            Title = "Reunião Teste",
+            Date = DateTime.UtcNow.AddDays(1),
+            Type = MeetingType.AssembleiaGeralOrdinaria
+        };
+
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(null!, "body", "https://rtub.example.com"));
+        Assert.Throws<ArgumentNullException>(() => _factory.CreateMeetingCustomNotification(meeting, null!, "https://rtub.example.com"));
+        Assert.Throws<ArgumentException>(() => _factory.CreateMeetingCustomNotification(meeting, string.Empty, "https://rtub.example.com"));
+        Assert.Throws<ArgumentException>(() => _factory.CreateMeetingCustomNotification(meeting, "body", ""));
     }
 
     // Rehearsal Non-Attendance Notification Tests

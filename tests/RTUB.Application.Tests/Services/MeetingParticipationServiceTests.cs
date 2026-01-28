@@ -32,7 +32,14 @@ public class MeetingParticipationServiceTests : IClassFixture<DatabaseFixture>, 
     public async Task UpdateParticipationAsync_WhenWillAttendDoesNotChange_DoesNotUpdateParticipatedAt()
     {
         // Arrange
-        var meeting = Meeting.Create("Test Meeting", DateTime.Now.AddDays(3), "Location");
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(3),
+            Location = "Location",
+            Statement = "Test Statement",
+            Type = RTUB.Core.Enums.MeetingType.AssembleiaGeralOrdinaria
+        };
         _context.Meetings.Add(meeting);
         await _context.SaveChangesAsync();
 
@@ -51,7 +58,14 @@ public class MeetingParticipationServiceTests : IClassFixture<DatabaseFixture>, 
     public async Task UpdateParticipationAsync_WhenWillAttendChanges_UpdatesParticipatedAt()
     {
         // Arrange
-        var meeting = Meeting.Create("Test Meeting", DateTime.Now.AddDays(3), "Location");
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(3),
+            Location = "Location",
+            Statement = "Test Statement",
+            Type = RTUB.Core.Enums.MeetingType.AssembleiaGeralOrdinaria
+        };
         _context.Meetings.Add(meeting);
         await _context.SaveChangesAsync();
 

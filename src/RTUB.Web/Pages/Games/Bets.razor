@@ -1790,17 +1790,20 @@
         
         try
         {
-            // Load all user bets for this bet
-            var userBets = await UserBetRepository.GetByBetIdAsync(bet.Id);
+            // Load all user bets for this bet with user information for display
+            var userBets = await UserBetRepository.GetByBetIdWithUsersAsync(bet.Id);
             var betOptions = GetBetOptions(bet.Id);
             
             allUserBetsForBet = userBets.Select(ub => 
             {
                 var option = betOptions.FirstOrDefault(o => o.Id == ub.BetOptionId);
+                var displayName = ub.User != null 
+                    ? ub.User.GetDisplayName() 
+                    : "Unknown";
                 return new UserBetDisplayInfo
                 {
                     UserId = ub.UserId,
-                    DisplayName = ub.User?.Nickname ?? ub.User?.UserName ?? "Unknown",
+                    DisplayName = displayName,
                     AvatarUrl = ub.User?.ProfilePictureSrc,
                     OptionTitle = option?.Title ?? "Unknown",
                     FidelisAmount = ub.FidelisAmount,

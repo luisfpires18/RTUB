@@ -20,6 +20,16 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder, string baseUrl);
 
     /// <summary>
+    /// Creates a custom push notification for an event, similar to rehearsal custom notifications.
+    /// Uses the event context for URL and tag but allows a fully custom body message.
+    /// </summary>
+    /// <param name="event">The event to notify about.</param>
+    /// <param name="customBody">Custom message body provided by the user.</param>
+    /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com").</param>
+    /// <returns>A SendPushNotificationDto ready to be sent.</returns>
+    SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody, string baseUrl);
+
+    /// <summary>
     /// Creates a custom push notification for a rehearsal.
     /// </summary>
     /// <param name="rehearsal">The rehearsal to notify about</param>
@@ -27,6 +37,14 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody, string baseUrl);
+
+    /// <summary>
+    /// Creates a reminder push notification for a rehearsal (used by background schedulers).
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal to remind about.</param>
+    /// <param name="baseUrl">The base URL of the application.</param>
+    /// <returns>A SendPushNotificationDto ready to be sent.</returns>
+    SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal, string baseUrl);
 
     /// <summary>
     /// Creates a push notification for event repertoire changes.
@@ -99,6 +117,16 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateMeetingNotification(Meeting meeting, bool isReminder, string baseUrl);
+
+    /// <summary>
+    /// Creates a custom push notification for a meeting, mirroring the rehearsal custom notification pattern.
+    /// Uses meeting context for URL and tag while allowing a custom body message.
+    /// </summary>
+    /// <param name="meeting">The meeting to notify about.</param>
+    /// <param name="customBody">Custom message body provided by the user.</param>
+    /// <param name="baseUrl">The base URL of the application.</param>
+    /// <returns>A SendPushNotificationDto ready to be sent.</returns>
+    SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody, string baseUrl);
 
     /// <summary>
     /// Creates a push notification for new performance requests.

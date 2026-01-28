@@ -340,7 +340,10 @@
                     <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">
                         <i class="bi bi-x-circle me-2"></i>Cancelar
                     </button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveCard" disabled="@string.IsNullOrWhiteSpace(cardTitle)">
+                    <button type="button"
+                            class="btn @(string.IsNullOrWhiteSpace(cardTitle) ? "btn-outline-light" : "btn-primary btn-primary-purple")"
+                            @onclick="SaveCard"
+                            disabled="@string.IsNullOrWhiteSpace(cardTitle)">
                         <i class="bi bi-check-circle me-2"></i>Guardar
                     </button>
                 </div>

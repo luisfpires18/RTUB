@@ -36,6 +36,18 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<UserBet>> GetByBetIdWithUsersAsync(int betId)
+    {
+        // Using AsNoTracking() for display purposes - no modifications needed
+        // Including User navigation property for display in modals
+        return await _dbSet
+            .AsNoTracking()
+            .Where(ub => ub.BetId == betId)
+            .Include(ub => ub.User)
+            .Include(ub => ub.BetOption)
+            .ToListAsync();
+    }
+
     public async Task<UserBet?> GetUserBetForBetAsync(string userId, int betId)
     {
         return await _dbSet
