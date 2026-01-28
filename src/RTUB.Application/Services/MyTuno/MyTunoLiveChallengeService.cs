@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;

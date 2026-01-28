@@ -9,16 +9,13 @@ public class MyTunoHub : Hub
 {
     private readonly MyTunoPresenceService _presenceService;
     private readonly MyTunoLiveChallengeService _challengeService;
-    private readonly MyTunoBattleService _battleService;
 
     public MyTunoHub(
         MyTunoPresenceService presenceService,
-        MyTunoLiveChallengeService challengeService,
-        MyTunoBattleService battleService)
+        MyTunoLiveChallengeService challengeService)
     {
         _presenceService = presenceService;
         _challengeService = challengeService;
-        _battleService = battleService;
     }
 
     public async Task JoinMyTuno()
