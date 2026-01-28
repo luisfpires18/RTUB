@@ -17,9 +17,4 @@ public class RehearsalApprovalReminderOptions
     /// Default is 15:00 (3 PM).
     /// </summary>
     public string ScheduledTime { get; set; } = "15:00";
-
-    /// <summary>
-    /// The role name that should receive the rehearsal approval reminders.
-    /// </summary>
-    public string EnsaiadorRoleName { get; set; } = "Ensaiador";
 }

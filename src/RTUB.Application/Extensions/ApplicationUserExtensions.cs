@@ -97,7 +97,6 @@ public static class ApplicationUserExtensions
         return user.Positions.Contains(Position.PrimeiroTesoureiro) ||
                user.Positions.Contains(Position.SegundoTesoureiro);
     }
-
     #endregion
 
     #region Combined Checks

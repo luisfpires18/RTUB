@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,14 +10,17 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
 /// Background service that sends daily reminders to the Ensaiador role
 /// when past rehearsals still have pending attendance approvals.
+/// Uses the Positions collection on ApplicationUser to check for Position.Ensaiador.
 /// </summary>
 public class RehearsalApprovalReminderBackgroundService : BackgroundService
 {
@@ -78,12 +85,6 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_options.EnsaiadorRoleName))
-        {
-            _logger.LogWarning("Ensaiador role name is not configured. Skipping rehearsal approval reminders.");
-            return;
-        }
-
         using var scope = _serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -104,16 +105,15 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
                 return;
             }
 
-            var recipients = await userManager.GetUsersInRoleAsync(_options.EnsaiadorRoleName);
-            var recipientIds = recipients
-                .Select(u => u.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct()
-                .ToList();
+            var ensaiador = await userManager.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Positions.Contains(Position.Ensaiador));
 
-            if (!recipientIds.Any())
+            var userId = ensaiador?.Id;
+
+            if (string.IsNullOrEmpty(userId))
             {
-                _logger.LogWarning("No users found for role {RoleName}. Skipping rehearsal approval reminders.", _options.EnsaiadorRoleName);
+                _logger.LogWarning("No users found with Position Ensaiador. Skipping rehearsal approval reminders.");
                 _lastRunDate = today;
                 return;
             }
@@ -122,20 +122,12 @@ public class RehearsalApprovalReminderBackgroundService : BackgroundService
                 pendingRehearsalCount,
                 "/");
 
-            foreach (var userId in recipientIds)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                await pushNotificationService.SendToUserAsync(userId, notification);
-            }
+            await pushNotificationService.SendToUserAsync(userId, notification);
 
             _logger.LogInformation(
-                "Sent rehearsal approval reminder for {Count} rehearsals to {RecipientCount} users",
+                "Sent rehearsal approval reminder for {Count} rehearsals to {UserName}",
                 pendingRehearsalCount,
-                recipientIds.Count);
+                ensaiador!.UserName);
 
             _lastRunDate = today;
         }
