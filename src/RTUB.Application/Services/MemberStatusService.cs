@@ -61,7 +61,10 @@ public class MemberStatusService : IMemberStatusService
 
         var now = DateTime.UtcNow;
 
-        var cached = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        // Query MemberStatus without tracking to avoid navigation property conflicts
+        var cached = await _context.MemberStatuses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
         var isCacheFresh = cached is not null && (now - cached.LastUpdatedAt) < CacheFreshDuration;
         var isCacheStale = cached is not null && (now - cached.LastUpdatedAt) >= CacheStaleMinAge;
 
@@ -70,6 +73,13 @@ public class MemberStatusService : IMemberStatusService
         var activity = await ComputeActivityDataAsync(userId, now);
 
         var computed = ComputeStatusResult(user, cached, activity, now);
+
+        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
+        var userEntry = _context.Entry(user);
+        if (userEntry.State != EntityState.Detached)
+        {
+            userEntry.State = EntityState.Detached;
+        }
 
         // Persist cache if missing or stale
         if (cached is null)
@@ -85,6 +95,9 @@ public class MemberStatusService : IMemberStatusService
         }
         else if (isCacheStale)
         {
+            // Attach the existing entity for update
+            _context.MemberStatuses.Attach(cached);
+            _context.Entry(cached).State = EntityState.Modified;
             ApplyToEntity(cached, computed, now);
             await _context.SaveChangesAsync();
         }
@@ -119,12 +132,25 @@ public class MemberStatusService : IMemberStatusService
 
         var now = DateTime.UtcNow;
 
-        var existing = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        // Query MemberStatus without tracking to avoid navigation property conflicts
+        // We'll attach it later if needed
+        var existing = await _context.MemberStatuses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+        
         var activity = await ComputeActivityDataAsync(userId, now);
 
         var beforeIsRetired = existing?.IsRetired ?? user.IsRetired;
 
         var computed = ComputeStatusResult(user, existing, activity, now);
+
+        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
+        // The user will be re-attached when UserManager.UpdateAsync is called in SyncUserRetiredFlagAsync
+        var userEntry = _context.Entry(user);
+        if (userEntry.State != EntityState.Detached)
+        {
+            userEntry.State = EntityState.Detached;
+        }
 
         if (existing is null)
         {
@@ -134,6 +160,12 @@ public class MemberStatusService : IMemberStatusService
                 CreatedAt = now
             };
             _context.MemberStatuses.Add(existing);
+        }
+        else
+        {
+            // Attach the existing entity for update
+            _context.MemberStatuses.Attach(existing);
+            _context.Entry(existing).State = EntityState.Modified;
         }
 
         ApplyToEntity(existing, computed, now);
@@ -260,7 +292,18 @@ public class MemberStatusService : IMemberStatusService
 
         var now = DateTime.UtcNow;
 
-        var status = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        // Query MemberStatus without tracking to avoid navigation property conflicts
+        var status = await _context.MemberStatuses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+        
+        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
+        var userEntry = _context.Entry(user);
+        if (userEntry.State != EntityState.Detached)
+        {
+            userEntry.State = EntityState.Detached;
+        }
+
         if (status is null)
         {
             status = new MemberStatus
@@ -269,6 +312,12 @@ public class MemberStatusService : IMemberStatusService
                 CreatedAt = now
             };
             _context.MemberStatuses.Add(status);
+        }
+        else
+        {
+            // Attach the existing entity for update
+            _context.MemberStatuses.Attach(status);
+            _context.Entry(status).State = EntityState.Modified;
         }
 
         status.OverrideRetired = true;
