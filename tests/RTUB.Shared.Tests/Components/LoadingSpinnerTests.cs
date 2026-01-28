@@ -2,6 +2,7 @@ using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using RTUB.Shared;
+using RTUB.Shared.Enums;
 
 namespace RTUB.Shared.Tests.Components;
 
@@ -100,7 +101,7 @@ public class LoadingSpinnerTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
-            .Add(p => p.Size, LoadingSpinner.SpinnerSize.Small));
+            .Add(p => p.Size, SpinnerSize.Small));
 
         // Assert
         cut.Markup.Should().Contain("spinner-border-sm", "spinner should have small size class");
@@ -112,7 +113,7 @@ public class LoadingSpinnerTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<LoadingSpinner>(parameters => parameters
             .Add(p => p.Show, true)
-            .Add(p => p.Size, LoadingSpinner.SpinnerSize.Large));
+            .Add(p => p.Size, SpinnerSize.Large));
 
         // Assert
         cut.Markup.Should().Contain("spinner-border-lg", "spinner should have large size class");
@@ -153,14 +154,14 @@ public class LoadingSpinnerTests : TestContext
     }
 
     [Theory]
-    [InlineData(LoadingSpinner.SpinnerColor.Secondary, "text-secondary")]
-    [InlineData(LoadingSpinner.SpinnerColor.Success, "text-success")]
-    [InlineData(LoadingSpinner.SpinnerColor.Danger, "text-danger")]
-    [InlineData(LoadingSpinner.SpinnerColor.Warning, "text-warning")]
-    [InlineData(LoadingSpinner.SpinnerColor.Info, "text-info")]
-    [InlineData(LoadingSpinner.SpinnerColor.Dark, "text-dark")]
-    [InlineData(LoadingSpinner.SpinnerColor.Purple, "text-purple")]
-    public void LoadingSpinner_AppliesCorrectColor_ForEachColorType(LoadingSpinner.SpinnerColor color, string expectedClass)
+    [InlineData(SpinnerColor.Secondary, "text-secondary")]
+    [InlineData(SpinnerColor.Success, "text-success")]
+    [InlineData(SpinnerColor.Danger, "text-danger")]
+    [InlineData(SpinnerColor.Warning, "text-warning")]
+    [InlineData(SpinnerColor.Info, "text-info")]
+    [InlineData(SpinnerColor.Dark, "text-dark")]
+    [InlineData(SpinnerColor.Purple, "text-purple")]
+    public void LoadingSpinner_AppliesCorrectColor_ForEachColorType(SpinnerColor color, string expectedClass)
     {
         // Arrange & Act
         var cut = RenderComponent<LoadingSpinner>(parameters => parameters

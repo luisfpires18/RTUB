@@ -37,7 +37,7 @@
 @if (currentUser != null && currentUser.IsLeitao())
 {
     <div class="text-center p-5">
-        <i class="bi bi-lock-fill" style="font-size: 3rem; color: var(--bs-primary);"></i>
+        <i class="bi bi-lock-fill icon-large-primary"></i>
         <h2 class="mt-3">Acesso Restrito</h2>
         <p class="text-light-theme">Esta página não está disponível para utilizadores Leitão.</p>
     </div>
@@ -121,7 +121,8 @@ else
             <div class="meeting-grid">
                 @foreach (var meeting in upcomingMeetings)
                 {
-                    <MeetingCard Meeting="@meeting"
+                    <MeetingCard @key="meeting.Id"
+                                Meeting="@meeting"
                                 Organizer="@meeting.Organizer"
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
@@ -363,7 +364,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-file-text text-primary me-2"></i>Declaração
                 </label>
-                <p class="text-light-theme" style="white-space: pre-line;">@viewingMeeting.Statement</p>
+                <p class="text-light-theme content-pre-line">@viewingMeeting.Statement</p>
             </div>
         }
     </BodyContent>
@@ -446,7 +447,7 @@ else
                             {
                                 @foreach (var tuno in tunoUsersForMeetingForm)
                                 {
-                                    <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                                    <option value="@tuno.Id" @key="tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                                 }
                             }
                         </InputSelect>
@@ -505,11 +506,9 @@ else
             <!-- Loading Overlay for Sending Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando emails...</h5>
                         <p class="text-white-full mb-0">
                             @EmailsSent / @EmailsTotal
@@ -537,11 +536,7 @@ else
 
             @if (emailLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             else if (!string.IsNullOrEmpty(emailErrorMessage))
             {
@@ -570,7 +565,7 @@ else
                     
                     @if (showEmailPreview)
                     {
-                        <div class="mt-2 p-3 border rounded" style="max-height: 400px; overflow-y: auto; background-color: transparent;">
+                        <div class="mt-2 p-3 border rounded preview-container-scrollable">
                             <h6 class="text-muted mb-2">Pré-visualização do Email:</h6>
                             <div>
                                 @((MarkupString)emailPreviewHtml)
@@ -629,11 +624,9 @@ else
             <!-- Loading Overlay for Sending Cancellation Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
                         <p class="text-white-full mb-0">
                             @EmailsSent / @EmailsTotal
@@ -666,11 +659,7 @@ else
 
             @if (cancelMeetingLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             
             <div class="mb-3 form-check">
@@ -805,7 +794,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-file-text text-primary me-2"></i>Descrição/Motivo
                 </label>
-                <p class="text-light-theme" style="white-space: pre-line;">@viewingRequest.Description</p>
+                <p class="text-light-theme content-pre-line">@viewingRequest.Description</p>
             </div>
 
             <div class="mb-3">
@@ -886,11 +875,7 @@ else
 
             @if (pushLoadingRecipients)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar destinatários..." />
             }
             else if (!string.IsNullOrEmpty(pushErrorMessage))
             {
@@ -937,7 +922,7 @@ else
                             <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in pushTunoUsers)
                             {
-                                <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                                <option value="@tuno.Id" @key="tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                             }
                         </select>
                         <small class="text-muted">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</small>
@@ -1045,7 +1030,7 @@ else
                     <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
                         @foreach (var participation in notGoingParticipants)
                         {
-                            <EnrollmentCard 
+                            <EnrollmentCard @key="participation.Id" 
                                 AvatarUrl="@participation.User?.ProfilePictureSrc"
                                 TunaName="@participation.User?.Nickname"
                                 FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
@@ -1128,7 +1113,7 @@ else
                                     <div class="member-list member-list-scrollable mt-2">
                                         @foreach (var member in filteredAvailableMembersForParticipation)
                                         {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
                                                  @onclick="() => AddMemberToMeeting(member)"
                                                  tabindex="0"
                                                  @onkeydown="@(async (e) => await HandleMemberItemKeyDownForParticipation(e, member))">
@@ -1373,7 +1358,7 @@ else
                                 var displayName = !string.IsNullOrEmpty(user.Nickname)
                                     ? $"{user.FirstName} \"{user.Nickname}\" {user.LastName}"
                                     : $"{user.FirstName} {user.LastName}";
-                                <span class="badge bg-success">@displayName</span>
+                                <span class="badge bg-success" @key="participant.UserId">@displayName</span>
                             }
                         </div>
                     }
@@ -1394,7 +1379,7 @@ else
                     {
                         @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2">
+                            <div class="card mb-2" @key="point.Id">
                                 <div class="card-body p-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong>@point.PointNumber. @point.Title</strong>
@@ -1539,7 +1524,7 @@ else
         else if (viewingAta == null)
         {
             <div class="text-center p-4">
-                <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+                <i class="bi bi-file-earmark-x text-muted icon-large"></i>
                 <p class="mt-2 text-light-theme">Ata não encontrada.</p>
             </div>
         }
@@ -1631,7 +1616,7 @@ else
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var participant in presentParticipants)
                             {
-                                <span class="badge bg-success">@FormatUserNameForView(participant.User)</span>
+                                <span class="badge bg-success" @key="participant.UserId">@FormatUserNameForView(participant.User)</span>
                             }
                         </div>
                     }
@@ -1712,7 +1697,7 @@ else
                     <div class="modal-section-body">
                         @foreach (var point in viewingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2">
+                            <div class="card mb-2" @key="point.Id">
                                 <div class="card-body p-3">
                                     <h6 class="mb-2">@point.PointNumber. @point.Title</h6>
                                     @if (!string.IsNullOrEmpty(point.DiscussionSummary))
@@ -2126,17 +2111,26 @@ else
                 var meetingIds = pastMeetings.Select(m => m.Id);
                 var ataStatuses = await MeetingAtaService.GetAtaStatusForMeetingsAsync(meetingIds);
                 
+                // Batch load all ATAs for meetings that have them to avoid N+1 queries
+                var meetingIdsWithAta = ataStatuses
+                    .Where(kvp => kvp.Value.HasValue)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                
+                if (meetingIdsWithAta.Any())
+                {
+                    var atasDict = await MeetingAtaService.GetByMeetingIdsAsync(meetingIdsWithAta);
+                    foreach (var kvp in atasDict)
+                    {
+                        meetingAtas[kvp.Key] = kvp.Value;
+                    }
+                }
+                
+                // Set status flags
                 foreach (var (meetingId, status) in ataStatuses)
                 {
                     meetingHasAta[meetingId] = status.HasValue;
                     meetingAtaPublished[meetingId] = status == MeetingAtaStatus.Published;
-                    
-                    // Cache the ATA if it exists for permission checks
-                    if (status.HasValue)
-                    {
-                        var ata = await MeetingAtaService.GetByMeetingIdAsync(meetingId);
-                        meetingAtas[meetingId] = ata;
-                    }
                 }
             }
         }

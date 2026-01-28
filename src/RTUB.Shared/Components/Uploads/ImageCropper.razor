@@ -17,19 +17,19 @@
         </div>
 
         <div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">
-            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(-90)" title="Rotate Left">
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(-90)" title="Rotate Left" aria-label="Rodar para a esquerda">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </button>
-            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(90)" title="Rotate Right">
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(90)" title="Rotate Right" aria-label="Rodar para a direita">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
-            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(0.1)" title="Zoom In">
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(0.1)" title="Zoom In" aria-label="Aumentar zoom">
                 <i class="bi bi-zoom-in"></i>
             </button>
-            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(-0.1)" title="Zoom Out">
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(-0.1)" title="Zoom Out" aria-label="Diminuir zoom">
                 <i class="bi bi-zoom-out"></i>
             </button>
-            <button class="btn btn-sm btn-outline-light" @onclick="Reset" title="Reset">
+            <button class="btn btn-sm btn-outline-light" @onclick="Reset" title="Reset" aria-label="Repor">
                 <i class="bi bi-arrow-clockwise"></i> Reset
             </button>
         </div>
@@ -42,8 +42,8 @@
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="Crop">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" aria-label="Cancelar">Cancel</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="Crop" aria-label="Cortar imagem">
             <i class="bi bi-check-lg"></i> Crop & Save
         </button>
     </FooterContent>

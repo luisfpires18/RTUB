@@ -35,7 +35,7 @@
     </div>
 
     <div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch">
-        <div class="flex-lg-grow-1" style="min-width: 260px;">
+        <div class="flex-lg-grow-1 search-bar-container">
             <SearchBar
                 @bind-Value="SearchTerm"
                 OnSearch="UpdateSearch"
@@ -60,7 +60,8 @@ else
     <div class="slideshow-list mb-4">
         @foreach (var slide in PaginatedItems)
         {
-            <SlideshowCard Slide="@slide"
+            <SlideshowCard @key="slide.Id"
+                          Slide="@slide"
                           ImageUrl="@GetSlideshowImageUrl(slide.ImageSrc)"
                           ShowAdminControls="true"
                           OnClick="@((s) => { })"

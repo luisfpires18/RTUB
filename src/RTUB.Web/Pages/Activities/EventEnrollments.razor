@@ -15,6 +15,8 @@
 @attribute [Authorize]
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
+@inject IEnrollmentFilterService EnrollmentFilterService
+@inject IEnrollmentStatisticsService EnrollmentStatisticsService
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IUserProfileService UserProfileService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -128,7 +130,7 @@
                 <div class="enrollment-card-grid-compact mb-4">
                     @foreach (var enrollment in paginatedPerformingMembers)
                     {
-                        <EnrollmentCard 
+                        <EnrollmentCard @key="enrollment.Id" 
                             AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                             TunaName="@enrollment.User?.Nickname"
                             FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
@@ -188,7 +190,7 @@
                 <div class="enrollment-card-grid-compact">
                     @foreach (var enrollment in paginatedLeitoes)
                     {
-                        <EnrollmentCard 
+                        <EnrollmentCard @key="enrollment.Id" 
                             AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                             TunaName="@enrollment.User?.Nickname"
                             FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
@@ -230,7 +232,7 @@
                 <div class="enrollment-card-grid-compact">
                     @foreach (var enrollment in paginatedNotAttending)
                     {
-                        <EnrollmentCard 
+                        <EnrollmentCard @key="enrollment.Id" 
                             AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                             TunaName="@enrollment.User?.Nickname"
                             FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
@@ -843,9 +845,11 @@
         // Fetch all member instruments in one query
         var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
         
-        // Calculate counts using the Event entity methods
-        primaryInstrumentCounts = selectedEvent.GetPrimaryInstrumentCounts(memberInstruments);
-        otherInstrumentCounts = selectedEvent.GetOtherInstrumentCounts(memberInstruments);
+        // Use service to calculate counts (business logic extracted)
+        (primaryInstrumentCounts, otherInstrumentCounts) = EnrollmentStatisticsService.CalculateInstrumentCounts(
+            selectedEvent,
+            memberInstruments
+        );
     }
 
     private void OpenDeleteEnrollmentModal(Enrollment enrollment)

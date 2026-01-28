@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -212,8 +213,8 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Act & Assert
         var act = async () => await _service.UpdateListAsync(999, "Name");
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*não encontrada*");
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("*not found*");
     }
 
     [Fact]

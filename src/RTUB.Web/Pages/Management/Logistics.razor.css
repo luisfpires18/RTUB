@@ -70,3 +70,30 @@
         width: 100%;
     }
 }
+
+/* Modal styles */
+.modal-backdrop-custom {
+    background: rgba(0,0,0,0.7);
+}
+
+.modal-header-custom {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+/* Scrollable event list */
+.event-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Event list item */
+.event-list-item {
+    color: #E0E0E0;
+    background-color: #1A1A1A;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.event-list-item:hover {
+    background-color: #6E56CF;
+    color: #FFFFFF;
+}

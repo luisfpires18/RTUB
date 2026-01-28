@@ -143,6 +143,20 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
 
+        // Create test users to avoid issues with Include navigation property
+        var users = new[] { "user1", "user2", "user3" };
+        var testUsers = users.Select(userId => new ApplicationUser
+        {
+            Id = userId,
+            UserName = userId,
+            Email = $"{userId}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = userId
+        }).ToList();
+        _context.Users.AddRange(testUsers);
+        await _context.SaveChangesAsync();
+
         var att1 = RehearsalAttendance.Create(rehearsal.Id, "user1");
         var att2 = RehearsalAttendance.Create(rehearsal.Id, "user2");
         var att3 = RehearsalAttendance.Create(rehearsal.Id, "user3");
@@ -166,6 +180,19 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var rehearsalDate = DateTime.Now.AddDays(7);
         var rehearsal = Rehearsal.Create(rehearsalDate, "Test Location", "Test Theme");
         _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        // Create test user to avoid issues with Include navigation property
+        var testUser = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
+            Email = "user1@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "user1"
+        };
+        _context.Users.Add(testUser);
         await _context.SaveChangesAsync();
 
         var attendance = RehearsalAttendance.Create(rehearsal.Id, "user1");
@@ -570,6 +597,49 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         fromDb!.WillAttend.Should().BeFalse();
         fromDb.Instrument.Should().BeNull();
         fromDb.Notes.Should().Be("Can't make it today");
+    }
+
+    [Fact]
+    public async Task MarkAttendanceAsync_WhenWillAttendDoesNotChange_DoesNotUpdateCheckedInAt()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user-checkin-static";
+
+        var initial = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Guitarra);
+        var originalCheckedInAt = initial.CheckedInAt;
+
+        // Act - call again with same WillAttend value
+        var updated = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
+
+        // Assert
+        updated.Id.Should().Be(initial.Id);
+        updated.CheckedInAt.Should().Be(originalCheckedInAt, "check-in time should remain the same when WillAttend does not change");
+    }
+
+    [Fact]
+    public async Task MarkAttendanceAsync_WhenWillAttendChanges_UpdatesCheckedInAt()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user-checkin-change";
+
+        var initial = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Guitarra);
+        var originalCheckedInAt = initial.CheckedInAt;
+
+        // Act - toggle attendance to false
+        var updated = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, false, null, "Not going");
+
+        // Assert
+        updated.Id.Should().Be(initial.Id);
+        updated.WillAttend.Should().BeFalse();
+        updated.CheckedInAt.Should().BeAfter(originalCheckedInAt, "check-in time should be refreshed when WillAttend changes");
     }
 
     [Fact]

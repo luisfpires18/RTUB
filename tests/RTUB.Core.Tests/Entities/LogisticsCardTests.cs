@@ -9,7 +9,7 @@ public class LogisticsCardTests
     #region Create Tests
 
     [Fact]
-    public void Create_WithValidData_ShouldCreateInstance()
+    public void Create_WithValidData_ReturnsCard()
     {
         // Arrange
         var title = "Setup Stage";
@@ -29,7 +29,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void Create_WithDescription_ShouldCreateInstance()
+    public void Create_WithDescription_ReturnsCard()
     {
         // Arrange
         var title = "Setup Stage";
@@ -47,7 +47,7 @@ public class LogisticsCardTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void Create_WithEmptyTitle_ShouldThrowException(string? title)
+    public void Create_WithEmptyTitle_ThrowsArgumentException(string? title)
     {
         // Act
         var act = () => LogisticsCard.Create(title!, 1, 0);
@@ -62,7 +62,7 @@ public class LogisticsCardTests
     #region UpdateContent Tests
 
     [Fact]
-    public void UpdateContent_WithValidData_ShouldUpdateProperties()
+    public void UpdateContent_WithValidData_UpdatesProperties()
     {
         // Arrange
         var card = LogisticsCard.Create("Old Title", 1, 0);
@@ -81,7 +81,7 @@ public class LogisticsCardTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void UpdateContent_WithEmptyTitle_ShouldThrowException(string? title)
+    public void UpdateContent_WithEmptyTitle_ThrowsArgumentException(string? title)
     {
         // Arrange
         var card = LogisticsCard.Create("Valid Title", 1, 0);
@@ -99,7 +99,7 @@ public class LogisticsCardTests
     #region MoveToList Tests
 
     [Fact]
-    public void MoveToList_ShouldUpdateListIdAndPosition()
+    public void MoveToList_WithNewListIdAndPosition_UpdatesListIdAndPosition()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -117,7 +117,7 @@ public class LogisticsCardTests
     #region UpdatePosition Tests
 
     [Fact]
-    public void UpdatePosition_ShouldUpdatePosition()
+    public void UpdatePosition_WithNewPosition_UpdatesPosition()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -134,7 +134,7 @@ public class LogisticsCardTests
     #region AssociateWithEvent Tests
 
     [Fact]
-    public void AssociateWithEvent_WithValidEventId_ShouldSetEventId()
+    public void AssociateWithEvent_WithValidEventId_SetsEventId()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -147,7 +147,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void AssociateWithEvent_WithNull_ShouldRemoveAssociation()
+    public void AssociateWithEvent_WithNull_RemovesAssociation()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -165,7 +165,7 @@ public class LogisticsCardTests
     #region AssignToUser Tests
 
     [Fact]
-    public void AssignToUser_WithValidUserId_ShouldSetAssignedToUserId()
+    public void AssignToUser_WithValidUserId_SetsAssignedToUserId()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -178,7 +178,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void AssignToUser_WithNull_ShouldRemoveAssignment()
+    public void AssignToUser_WithNull_RemovesAssignment()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -199,7 +199,7 @@ public class LogisticsCardTests
     [InlineData(CardStatus.Todo)]
     [InlineData(CardStatus.InProgress)]
     [InlineData(CardStatus.Done)]
-    public void SetStatus_WithValidStatus_ShouldUpdateStatus(CardStatus status)
+    public void SetStatus_WithValidStatus_UpdatesStatus(CardStatus status)
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -216,7 +216,7 @@ public class LogisticsCardTests
     #region SetLabels Tests
 
     [Fact]
-    public void SetLabels_WithValidLabels_ShouldSetLabels()
+    public void SetLabels_WithValidLabels_SetsLabels()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -229,7 +229,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void SetLabels_WithNull_ShouldClearLabels()
+    public void SetLabels_WithNull_ClearsLabels()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -247,7 +247,7 @@ public class LogisticsCardTests
     #region SetDates Tests
 
     [Fact]
-    public void SetDates_WithValidDates_ShouldSetDates()
+    public void SetDates_WithValidDates_SetsDates()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -265,7 +265,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void SetDates_WithNullValues_ShouldClearDates()
+    public void SetDates_WithNullValues_ClearsDates()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -285,7 +285,7 @@ public class LogisticsCardTests
     #region SetChecklist Tests
 
     [Fact]
-    public void SetChecklist_WithValidJson_ShouldSetChecklist()
+    public void SetChecklist_WithValidJson_SetsChecklist()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -299,7 +299,7 @@ public class LogisticsCardTests
     }
 
     [Fact]
-    public void SetChecklist_WithNull_ShouldClearChecklist()
+    public void SetChecklist_WithNull_ClearsChecklist()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);
@@ -349,7 +349,7 @@ public class LogisticsCardTests
     #region Navigation Properties Tests
 
     [Fact]
-    public void NavigationProperties_WhenNotSet_ShouldBeNull()
+    public void NavigationProperties_WhenNotSet_AreNull()
     {
         // Arrange
         var card = LogisticsCard.Create("Card", 1, 0);

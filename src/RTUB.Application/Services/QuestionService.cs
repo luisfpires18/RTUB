@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -101,7 +102,7 @@ public class QuestionService : IQuestionService
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
         {
-            throw new InvalidOperationException($"Question {questionId} not found");
+            throw new InvalidOperationException($"Question with ID {questionId} not found.");
         }
 
         var isAuthor = authorId == question.AuthorId;
@@ -210,7 +211,7 @@ public class QuestionService : IQuestionService
         var question = await _questionRepository.GetByIdAsync(questionId);
         if (question == null)
         {
-            throw new InvalidOperationException($"Question {questionId} not found");
+            throw new InvalidOperationException($"Question with ID {questionId} not found.");
         }
 
         // Only the author can send manual reminders

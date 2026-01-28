@@ -45,6 +45,72 @@
     }
 }
 
+/* Filter dropdown container */
+.filter-dropdown-narrow {
+    max-width: 300px;
+}
+
+/* Badge label - dynamic color is acceptable, but ensure white text */
+.badge-label {
+    color: white;
+}
+
+/* Modal backdrop */
+.logistics-modal-backdrop {
+    background: rgba(0,0,0,0.7);
+}
+
+/* Modal header */
+.logistics-modal-header {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+/* Scrollable lists */
+.list-group-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.member-list-scrollable-override {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Badge padding */
+.badge-padded {
+    padding: 0.4rem 0.6rem;
+}
+
+/* Close button small */
+.btn-close-small {
+    font-size: 0.6rem;
+    padding: 0;
+}
+
+/* Color input */
+.color-input-narrow {
+    max-width: 60px;
+}
+
+/* Dropdown positioning */
+.dropdown-absolute {
+    top: 100%;
+    z-index: 1000;
+}
+
+/* Avatar sizes */
+.member-avatar-tiny {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.member-avatar-small-override {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
 /* Enhanced card hover states */
 .kanban-card {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

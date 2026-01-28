@@ -12,6 +12,7 @@ public interface ITransactionService
     Task<Transaction?> GetTransactionByIdAsync(int id);
     Task<IEnumerable<Transaction>> GetAllTransactionsAsync();
     Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId);
+    Task<IEnumerable<Transaction>> GetTransactionsByActivityIdsAsync(IEnumerable<int> activityIds);
     Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type);
     Task<IEnumerable<Transaction>> GetTransactionsByUserIdAsync(string userId);
     Task<Transaction> CreateTransactionAsync(DateTime date, string description, string category, decimal amount, string type, int? activityId = null, Stream? receiptStream = null, string? receiptFileName = null, string? receiptContentType = null, string? userId = null);

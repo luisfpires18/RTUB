@@ -24,6 +24,9 @@ public class AlbumsPageTests : PageTestBase
     private const string SkipModal = "Modal renders outside component fragment; cannot assert modal markup in bUnit.";
 
     private readonly Mock<IAlbumService> _mockAlbumService;
+    private readonly Mock<IAlbumStatisticsService> _mockAlbumStatisticsService;
+    private readonly Mock<IAlbumFilterService> _mockAlbumFilterService;
+    private readonly Mock<IAlbumImageService> _mockAlbumImageService;
     private readonly Mock<ISongService> _mockSongService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
@@ -33,6 +36,9 @@ public class AlbumsPageTests : PageTestBase
     {
         // Setup service mocks
         _mockAlbumService = SetupService<IAlbumService>();
+        _mockAlbumStatisticsService = SetupService<IAlbumStatisticsService>();
+        _mockAlbumFilterService = SetupService<IAlbumFilterService>();
+        _mockAlbumImageService = SetupService<IAlbumImageService>();
         _mockSongService = SetupService<ISongService>();
         _mockImageStorageService = SetupService<IImageStorageService>();
         _mockUserManager = SetupUserManager();
@@ -52,6 +58,31 @@ public class AlbumsPageTests : PageTestBase
         _mockSongService
             .Setup(x => x.GetAllSongsAsync())
             .ReturnsAsync(new List<Song>());
+
+        _mockAlbumStatisticsService
+            .Setup(x => x.LoadStatisticsAsync(It.IsAny<bool>()))
+            .ReturnsAsync(new AlbumStatisticsDto
+            {
+                SongsStats = new List<(Song Song, int PlayCount)>(),
+                AlbumsStats = new List<(Album Album, int PlayCount)>(),
+                UserStats = null
+            });
+
+        _mockAlbumFilterService
+            .Setup(x => x.FilterAvailableMembersForExclusive(It.IsAny<IEnumerable<ApplicationUser>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Returns(new List<ApplicationUser>());
+
+        _mockAlbumImageService
+            .Setup(x => x.GetAlbumImageUrl(It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((string imageSrc, int refreshTrigger) => string.IsNullOrEmpty(imageSrc) ? string.Empty : imageSrc);
+
+        _mockAlbumFilterService
+            .Setup(x => x.FilterAvailableMembersForExclusive(It.IsAny<IEnumerable<ApplicationUser>>(), It.IsAny<IEnumerable<string>>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Returns(new List<ApplicationUser>());
+
+        _mockAlbumImageService
+            .Setup(x => x.GetAlbumImageUrl(It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((string imageSrc, int refreshTrigger) => string.IsNullOrEmpty(imageSrc) ? string.Empty : imageSrc);
 
         SetupAuthentication("test-user", "Test User");
     }

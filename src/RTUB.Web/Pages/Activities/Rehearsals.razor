@@ -17,6 +17,10 @@
 @attribute [Authorize]
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
+@inject IRehearsalAttendanceFilterService AttendanceFilterService
+@inject IRehearsalFilterService RehearsalFilterService
+@inject IRehearsalStatisticsService RehearsalStatisticsService
+@inject IRehearsalUrlService RehearsalUrlService
 @inject IFiscalYearService FiscalYearService
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IPushNotificationService PushNotificationService
@@ -72,7 +76,7 @@
 
 @if (loading)
 {
-    <p>A carregar ensaios...</p>
+    <LoadingSpinner Message="A carregar ensaios..." />
 }
 else
 {
@@ -92,7 +96,8 @@ else
                 var userAttendance = GetUserAttendance(rehearsal.Id);
                 var attendanceCount = rehearsal.Attendances.Count(a => a.WillAttend);
 
-                <RehearsalCard Rehearsal="@rehearsal"
+                <RehearsalCard @key="rehearsal.Id"
+                               Rehearsal="@rehearsal"
                                UserAttendance="@userAttendance"
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
@@ -148,7 +153,8 @@ else
                 var attendanceCount = rehearsal.Attendances.Count(a => a.WillAttend);
                 var hasPendingApprovals = isAdmin && rehearsal.Attendances.Any(a => a.WillAttend && !a.Attended);
 
-                <RehearsalCard Rehearsal="@rehearsal"
+                <RehearsalCard @key="rehearsal.Id"
+                               Rehearsal="@rehearsal"
                                UserAttendance="@userAttendance"
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
@@ -208,7 +214,7 @@ else
 <!-- View Attendances Modal -->
 @if (modals.IsOpen(ModalType.Attendances) && selectedRehearsal != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -248,7 +254,7 @@ else
                                 @foreach (var attendance in paginatedMainParticipants)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                     <EnrollmentCard 
+                                     <EnrollmentCard @key="attendance.Id" 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
                                         FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
@@ -327,7 +333,7 @@ else
                                 @foreach (var attendance in paginatedLeitoes)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                    <EnrollmentCard 
+                                    <EnrollmentCard @key="attendance.Id" 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
                                         FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
@@ -491,7 +497,7 @@ else
                                                 <div class="member-list member-list-scrollable mt-2">
                                                     @foreach (var member in filteredAvailableMembers)
                                                     {
-                                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                        <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
                                                              @onclick="() => AddMemberToRehearsal(member)"
                                                              tabindex="0"
                                                              @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
@@ -533,7 +539,7 @@ else
 <!-- Edit/Delete Modals -->
 @if (modals.IsOpen(ModalType.Edit) && editingRehearsal != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -838,10 +844,10 @@ else
 <!-- Date Range Modal (Admin Only) -->
 @if (modals.IsOpen(ModalType.DateRange) && isAdmin)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block modal-backdrop-custom" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header" style="background: rgba(var(--bs-primary-rgb), 0.1);">
+                <div class="modal-header modal-header-custom">
                     <h5 class="modal-title">Criar Ensaios (Intervalo)</h5>
                     <button type="button" class="btn-close" @onclick="CloseDateRangeModal"></button>
                 </div>
@@ -951,7 +957,7 @@ else
                 <InfoSection SectionTitle="Notas" 
                             IconClass="bi-file-text" 
                             CssClass="mb-3">
-                    <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRehearsal.Notes</p>
+                    <p class="text-white-full mb-0 content-pre-line">@selectedRehearsal.Notes</p>
                 </InfoSection>
             }
 
@@ -962,7 +968,7 @@ else
                              IconClass="bi-exclamation-triangle-fill"
                              CssClass="mb-3"
                              Style="background-color: rgba(220, 38, 38, 0.1); border-left: 4px solid #DC2626;">
-                    <p class="mb-0" style="white-space: pre-line; color: #FCA5A5;">@selectedRehearsal.CancellationReason</p>
+                    <p class="mb-0 cancellation-reason-text">@selectedRehearsal.CancellationReason</p>
                 </InfoSection>
             }
         }
@@ -1006,7 +1012,7 @@ else
                 <div class="activity-card-lite-grid">
                     @foreach (var item in paginatedRehearsalAttendances)
                     {
-                        <ActivityCardLite>
+                        <ActivityCardLite @key="item.Rehearsal.Id">
                             <div class="activity-card-lite-row">
                                 <span class="activity-card-lite-value w-100 text-center">@FormatRehearsalDateWithDayOfWeek(item.Rehearsal)</span>
                             </div>
@@ -1066,11 +1072,9 @@ else
             <!-- Loading Overlay for Sending Push Notifications -->
             @if (IsSendingPushNotifications)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando notificações push...</h5>
                     </div>
                 </div>
@@ -1092,11 +1096,7 @@ else
 
                 @if (pushLoadingSubscribers)
                 {
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">A carregar...</span>
-                        </div>
-                    </div>
+                    <LoadingSpinner Message="A carregar subscritores..." />
                 }
                 else if (!string.IsNullOrEmpty(pushErrorMessage))
                 {
@@ -1195,7 +1195,6 @@ else
     private List<Rehearsal> filteredPreviousRehearsals = new();
     private List<Rehearsal> paginatedPreviousRehearsals = new();
     private string previousRehearsalsSearch = "";
-    private SearchHelper<Rehearsal> previousSearchHelper = new();
     private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 12 };
 
     // Fiscal year filtering
@@ -1205,7 +1204,6 @@ else
     private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
         .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
     private string searchTerm = "";
-    private SearchHelper<Rehearsal> searchHelper = new();
 
     // Modals
     private enum ModalType
@@ -1360,7 +1358,7 @@ else
         }
 
         // Load fiscal years
-        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync() ?? new List<FiscalYear>();
         fiscalYears = allFiscalYears
             .Where(fy => fy.StartYear >= FiscalYearHelper.AppYearCreated)
             .Select(fy => fy.GetFiscalYearString())
@@ -1414,7 +1412,7 @@ else
         }
 
         // Load all rehearsals within the fiscal year date range
-        var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
+        var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate) ?? new List<Rehearsal>();
         
         // Split into upcoming and previous (include cancelled rehearsals)
         upcomingRehearsals = allRehearsals
@@ -1446,16 +1444,9 @@ else
 
     private void FilterRehearsals()
     {
-        var filtered = upcomingRehearsals.AsEnumerable();
-
-        // Apply search filter (fiscal year filter already applied in LoadData)
-        searchHelper.SearchTerm = searchTerm;
-        filteredUpcomingRehearsals = searchHelper.FilterMultiple(filtered.ToList(), new List<Func<Rehearsal, string>>
-        {
-            r => r.Theme ?? "",
-            r => r.Location ?? "",
-            r => r.Notes ?? ""
-        });
+        // Use service to filter rehearsals
+        filteredUpcomingRehearsals = RehearsalFilterService.FilterRehearsals(upcomingRehearsals, searchTerm)
+            ?? upcomingRehearsals;
 
         // Apply pagination to upcoming rehearsals
         paginatedUpcomingRehearsals = upcomingRehearsalsPagination.GetPageData(filteredUpcomingRehearsals);
@@ -1683,27 +1674,9 @@ else
             return;
         }
 
-        var queryParams = new List<string>();
-        
-        // Add fiscal year if not default
-        if (!string.IsNullOrEmpty(selectedFiscalYear) && selectedFiscalYear != currentFiscalYear)
-        {
-            queryParams.Add($"fy={Uri.EscapeDataString(selectedFiscalYear)}");
-        }
-        
-        // Add search terms if not empty
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            queryParams.Add($"qNext={Uri.EscapeDataString(searchTerm)}");
-        }
-        
-        if (!string.IsNullOrWhiteSpace(previousRehearsalsSearch))
-        {
-            queryParams.Add($"qPrev={Uri.EscapeDataString(previousRehearsalsSearch)}");
-        }
-        
-        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = Navigation.ToAbsoluteUri("/rehearsals" + queryString).ToString();
+        // Use service to build query string
+        var queryString = RehearsalUrlService.BuildQueryString(selectedFiscalYear, currentFiscalYear, searchTerm, previousRehearsalsSearch);
+        var newUrl = Navigation.ToAbsoluteUri("/rehearsals" + (string.IsNullOrEmpty(queryString) ? "" : "?" + queryString)).ToString();
         Navigation.NavigateTo(newUrl, false); // false = don't force reload
     }
 
@@ -1718,14 +1691,7 @@ else
         
         selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id)).ToList();
 
-        // Load user details for display
-        foreach (var attendance in selectedRehearsalAttendances)
-        {
-            if (attendance.User == null)
-            {
-                attendance.User = await UserManager.FindByIdAsync(attendance.UserId);
-            }
-        }
+        // User details are now loaded via Include in the repository method to avoid N+1 queries
 
         // Initialize filtered attendances and reset pagination
         attendanceSearchTerm = "";
@@ -1804,62 +1770,15 @@ else
             return;
         }
 
-        var filtered = selectedRehearsalAttendances.AsEnumerable();
+        // Use service to filter attendances
+        filteredAttendances = AttendanceFilterService.FilterAttendances(
+            selectedRehearsalAttendances,
+            attendanceApprovalFilter,
+            attendanceSearchTerm);
 
-        // Apply approval status filter
-        if (attendanceApprovalFilter == "Pendente")
-        {
-            filtered = filtered.Where(a => a.WillAttend && !a.Attended);
-        }
-        else if (attendanceApprovalFilter == "Aprovado")
-        {
-            filtered = filtered.Where(a => a.WillAttend && a.Attended);
-        }
-
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(attendanceSearchTerm))
-        {
-            var search = attendanceSearchTerm.ToLower();
-            filtered = filtered.Where(a => 
-                (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
-                (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
-                (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
-                (a.User?.Email?.ToLower().Contains(search) ?? false));
-        }
-
-        filteredAttendances = filtered
-            .OrderByDescending(a => a.CheckedInAt)
-            .ToList();
-
-        // Split into main participants and leitões
-        var mainParticipants = filtered
-            .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.CheckedInAt)
-            .ToList();
-        
-        var leitoes = filtered
-            .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.CheckedInAt)
-            .ToList();
-        
-        // Filter not attending members with search
-        var notAttending = selectedRehearsalAttendances
-            .Where(a => a.User != null && !a.WillAttend)
-            .AsEnumerable();
-        
-        if (!string.IsNullOrWhiteSpace(attendanceSearchTerm))
-        {
-            var search = attendanceSearchTerm.ToLower();
-            notAttending = notAttending.Where(a => 
-                (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
-                (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
-                (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
-                (a.User?.Email?.ToLower().Contains(search) ?? false));
-        }
-        
-        filteredMainParticipants = mainParticipants;
-        filteredLeitoes = leitoes;
-        filteredNotAttending = notAttending.OrderByDescending(a => a.CheckedInAt).ToList();
+        // Split into categories using service
+        (filteredMainParticipants, filteredLeitoes, filteredNotAttending) = 
+            AttendanceFilterService.SplitAttendancesByCategory(selectedRehearsalAttendances, attendanceSearchTerm);
 
         // Reset to page 1 when filters change
         attendancesPagination.GoToPage(1);
@@ -2001,9 +1920,9 @@ else
         // Fetch all member instruments in one query
         var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
         
-        // Calculate counts using the Rehearsal entity methods
-        primaryInstrumentCounts = selectedRehearsal.GetPrimaryInstrumentCounts(memberInstruments);
-        otherInstrumentCounts = selectedRehearsal.GetOtherInstrumentCounts(memberInstruments);
+        // Use service to calculate counts
+        (primaryInstrumentCounts, otherInstrumentCounts) = 
+            RehearsalStatisticsService.CalculateInstrumentCounts(selectedRehearsal, memberInstruments);
     }
 
     private async Task HandleAddMemberSearchChanged(string searchTerm)
@@ -2339,18 +2258,9 @@ else
     // Previous rehearsals filtering and pagination
     private void FilterPreviousRehearsals()
     {
-        var filtered = previousRehearsals.AsEnumerable();
-
-        // Apply search filter (fiscal year filter already applied in LoadData)
-        previousSearchHelper.SearchTerm = previousRehearsalsSearch;
-        filteredPreviousRehearsals = previousSearchHelper.FilterMultiple(
-            filtered.ToList(),
-            new List<Func<Rehearsal, string>>
-            {
-                r => r.Theme ?? "",
-                r => r.Location ?? ""
-            }
-        );
+        // Use service to filter previous rehearsals
+        filteredPreviousRehearsals = RehearsalFilterService.FilterRehearsals(previousRehearsals, previousRehearsalsSearch)
+            ?? previousRehearsals;
 
         paginatedPreviousRehearsals = previousRehearsalsPagination.GetPageData(filteredPreviousRehearsals);
     }
@@ -2455,13 +2365,8 @@ else
             totalPastRehearsalsInRange = rehearsals
                 .Count(r => r.Date.Date < DateTime.Today && !r.IsCanceled);
             
-            // Get all attendances for these rehearsals
-            var allAttendances = new List<RehearsalAttendance>();
-            foreach (var rehearsalId in rehearsalIds)
-            {
-                var attendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsalId);
-                allAttendances.AddRange(attendances);
-            }
+            // Batch load all attendances for all rehearsals to avoid N+1 queries
+            var allAttendances = (await AttendanceService.GetAttendancesByRehearsalIdsAsync(rehearsalIds)).ToList();
             
             // Filter to only WillAttend entries
             var filteredAttendances = allAttendances
@@ -2479,12 +2384,18 @@ else
                 })
                 .ToList();
 
+            // Batch load all users to avoid N+1 queries
+            var userIds = stats.Select(s => s.UserId).Distinct().ToList();
+            var users = await UserManager.Users
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id);
+
             attendanceStatsUsers = new List<UserAttendanceStats>();
             
             foreach (var stat in stats)
             {
-                var user = await UserManager.FindByIdAsync(stat.UserId);
-                if (user != null)
+                if (users.TryGetValue(stat.UserId, out var user))
                 {
                     attendanceStatsUsers.Add(new UserAttendanceStats
                     {

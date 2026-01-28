@@ -13,6 +13,8 @@
 @inherits CrudTablePageBase<Request>
 @inject IRequestService RequestService
 @inject IFiscalYearService FiscalYearService
+@inject IFiscalYearHelper FiscalYearHelperService
+@inject IRequestToEventService RequestToEventService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -27,13 +29,13 @@
 
     <!-- Search and Filter Controls -->
     <div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch">
-        <div class="flex-grow-1" style="min-width: 360px; max-width: 640px;">
+        <div class="flex-grow-1 search-bar-container">
             <SearchBar
                 @bind-Value="SearchTerm"
                 OnSearch="UpdateSearch"
                 Placeholder="Pesquisar por nome, email, tipo de evento..." />
         </div>
-        <div class="flex-lg-shrink-0" style="min-width: 200px;">
+        <div class="flex-lg-shrink-0 filter-dropdown-container">
             <FilterDropdown
                 SelectedValue="@selectedFiscalYear"
                 SelectedValueChanged="@(value => selectedFiscalYear = value)"
@@ -41,7 +43,7 @@
                 AllItemsLabel="Todos os anos"
                 Options="@fiscalYearOptions" />
         </div>
-        <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 240px;">
+        <div class="flex-lg-shrink-0 ms-lg-auto filter-dropdown-container-wide">
             <FilterDropdown
                 Items="@statusFilterOptions"
                 SelectedValue="@selectedStatusFilter"
@@ -70,7 +72,8 @@
                                 OnReject="@(() => OpenRejectModal(req))" />
                 </Authorized>
                 <NotAuthorized>
-                    <RequestCard Request="@req"
+                    <RequestCard @key="req.Id"
+                                Request="@req"
                                 IsOwner="false"
                                 ShowAdminActions="@CanApproveRefuseRequests()"
                                 OnViewDetails="@(() => ViewRequest(req))"
@@ -108,7 +111,8 @@ else
         {
             <AuthorizeView Roles="Admin">
                 <Authorized Context="ownerContext">
-                    <RequestCard Request="@req"
+                    <RequestCard @key="req.Id"
+                                Request="@req"
                                 IsOwner="true"
                                 ShowAdminActions="false"
                                 OnViewDetails="@(() => ViewRequest(req))"
@@ -117,7 +121,8 @@ else
                                 OnReject="@(() => {})" />
                 </Authorized>
                 <NotAuthorized>
-                    <RequestCard Request="@req"
+                    <RequestCard @key="req.Id"
+                                Request="@req"
                                 IsOwner="false"
                                 ShowAdminActions="false"
                                 OnViewDetails="@(() => ViewRequest(req))"
@@ -199,7 +204,7 @@ else
                 <InfoSection SectionTitle="Informações Adicionais" 
                             IconClass="bi-file-text" 
                             CssClass="mb-4">
-                    <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRequest.Message</p>
+                    <p class="text-white-full mb-0 request-message">@selectedRequest.Message</p>
                 </InfoSection>
             }
         }
@@ -384,7 +389,7 @@ else
         // Apply fiscal year filter if selected
         if (!string.IsNullOrEmpty(selectedFiscalYear))
         {
-            var fiscalYearRange = GetFiscalYearDateRange(selectedFiscalYear);
+            var fiscalYearRange = FiscalYearHelperService.GetFiscalYearDateRange(selectedFiscalYear);
             if (fiscalYearRange.HasValue)
             {
                 var (startDate, endDate) = fiscalYearRange.Value;
@@ -420,24 +425,6 @@ else
         UpdateAnsweredPagination();
     }
 
-    /// <summary>
-    /// Gets the fiscal year date range from the selected fiscal year string
-    /// </summary>
-    /// <returns>A tuple with start and end dates, or null if no valid fiscal year is selected</returns>
-    private (DateTime startDate, DateTime endDate)? GetFiscalYearDateRange(string fiscalYear)
-    {
-        if (string.IsNullOrEmpty(fiscalYear)) return null;
-        
-        var parts = fiscalYear.Split('-');
-        if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-        {
-            var startDate = new DateTime(startYear, 9, 1); // September 1st
-            var endDate = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year (end of day)
-            return (startDate, endDate);
-        }
-        
-        return null;
-    }
 
     private void OnFiscalYearChanged()
     {
@@ -488,23 +475,8 @@ else
     {
         if (approvingRequest != null)
         {
-            // Build event name: "EventType em Location"
-            var eventName = $"{approvingRequest.EventType} em {approvingRequest.Location}";
-            
-            // Build description: "Pedido de Name"
-            var description = $"Pedido de {approvingRequest.Name}";
-            
-            // Navigate to events page with query parameters to pre-fill the modal
-            var queryParams = new Dictionary<string, object?>
-            {
-                ["openModal"] = "true",
-                ["name"] = eventName,
-                ["location"] = approvingRequest.Location,
-                ["date"] = approvingRequest.PreferredDate.ToString("yyyy-MM-dd"),
-                ["description"] = description,
-                ["type"] = "Atuacao", // Default event type
-                ["requestId"] = approvingRequest.Id
-            };
+            // Use service to create navigation parameters
+            var queryParams = RequestToEventService.CreateEventNavigationParameters(approvingRequest);
             
             var uri = Navigation.GetUriWithQueryParameters("/events", queryParams);
             Navigation.NavigateTo(uri);

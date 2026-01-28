@@ -15,7 +15,7 @@
     Available to all authenticated users
 *@
 
-<button class="btn btn-outline-secondary" @onclick="OpenMyEnrollmentsModal" title="Minhas Inscrições" style="min-width: 170px;">
+<button class="btn btn-outline-secondary btn-my-enrollments" @onclick="OpenMyEnrollmentsModal" title="Minhas Inscrições" aria-label="Ver minhas inscrições">
     <i class="bi bi-calendar-check"></i> Minhas Inscrições
 </button>
 
@@ -99,7 +99,7 @@
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseMyEnrollmentsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyEnrollmentsModal" aria-label="Fechar modal">Fechar</button>
         </FooterContent>
     </Modal>
 }

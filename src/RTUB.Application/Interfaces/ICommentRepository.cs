@@ -16,4 +16,9 @@ public interface ICommentRepository : IRepository<Comment>
     /// Gets count of comments by post ID
     /// </summary>
     Task<int> GetCountByPostIdAsync(int postId);
+
+    /// <summary>
+    /// Gets counts of comments for multiple post IDs (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<Dictionary<int, int>> GetCountsByPostIdsAsync(IEnumerable<int> postIds);
 }

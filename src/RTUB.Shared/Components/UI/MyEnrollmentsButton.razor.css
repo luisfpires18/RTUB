@@ -1,10 +1,5 @@
-/* Show All Toggle Styles */
-.form-check-input:checked {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-}
+/* Scoped styles for MyEnrollmentsButton component */
 
-.form-check-label {
-    cursor: pointer;
-    user-select: none;
+.btn-my-enrollments {
+    min-width: 170px;
 }

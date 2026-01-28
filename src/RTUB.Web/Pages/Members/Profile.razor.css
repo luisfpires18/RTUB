@@ -18,3 +18,17 @@
 .notification-toggle-row .form-check {
     margin-bottom: 0;
 }
+
+/* Flex container constraints */
+.flex-min-width-zero {
+    min-width: 0;
+}
+
+/* Progress bar styles */
+.progress-compact {
+    height: 8px;
+}
+
+.progress-bar-width {
+    /* Width is set dynamically via inline style binding, but we ensure it works */
+}

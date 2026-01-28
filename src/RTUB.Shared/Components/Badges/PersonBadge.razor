@@ -7,12 +7,12 @@
     No avatar - just text and optional close button
 *@
 
-<span class="badge bg-primary @AdditionalClasses" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+<span class="badge bg-primary person-badge @AdditionalClasses">
     @Name
     @if (ShowCloseButton)
     {
         <span role="button" 
-              style="cursor: pointer; line-height: 1; padding: 0; margin: 0; opacity: 0.8;" 
+              class="person-badge-close" 
               @onclick="OnClose" 
               @onclick:stopPropagation="true"
               aria-label="Remover">×</span>

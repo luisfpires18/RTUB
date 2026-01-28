@@ -27,4 +27,9 @@ public interface IBetOptionRepository : IRepository<BetOption>
     /// </summary>
     /// <param name="betId">Bet ID</param>
     Task DeleteByBetIdAsync(int betId);
+
+    /// <summary>
+    /// Gets all options for multiple bets (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<Dictionary<int, List<BetOption>>> GetOptionsByBetIdsAsync(IEnumerable<int> betIds);
 }

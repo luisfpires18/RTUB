@@ -10,6 +10,7 @@ public interface IRehearsalAttendanceService
 {
     Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId);
+    Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds);
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId);
 
     /// <summary>

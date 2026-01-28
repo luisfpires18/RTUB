@@ -12,6 +12,8 @@
 @using RTUB.Core.Enums
 @attribute [Authorize]
 @inject INaipeService NaipeService
+@inject INaipeContentFilterService NaipeContentFilterService
+@inject INaipeAuthorizationService NaipeAuthorizationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
@@ -45,7 +47,7 @@
     <div class="instrument-selector py-3">
         @foreach (var config in typeConfigs)
         {
-            <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")"
+            <button class="instrument-selector-item @(selectedInstrument == config.InstrumentType ? "active" : "")" @key="config.InstrumentType"
                     @onclick="() => SelectInstrument(config.InstrumentType)">
                 @if (!string.IsNullOrEmpty(config.PictureUrl))
                 {
@@ -64,12 +66,7 @@
 <!-- Content Grid -->
 @if (loading)
 {
-    <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">A carregar...</span>
-        </div>
-        <p class="mt-3">A carregar conteúdo...</p>
-    </div>
+    <LoadingSpinner Message="A carregar conteúdo..." />
 }
 else if (!selectedInstrument.HasValue)
 {
@@ -105,10 +102,11 @@ else
         <div class="naipe-grid mb-3">
             @foreach (var content in paginatedContent)
             {
-                <NaipeCard Content="@content"
+                <NaipeCard @key="content.Id"
+                           Content="@content"
                            PlayCount="@content.PlayCount"
-                           CanEdit="@(isAdmin || content.CreatedByUserId == currentUserId)"
-                           CanDelete="@(isAdmin || content.CreatedByUserId == currentUserId)"
+                           CanEdit="@(CanEditContent(content.CreatedByUserId))"
+                           CanDelete="@(CanDeleteContent(content.CreatedByUserId))"
                            OnView="@(() => OpenViewModal(content))"
                            OnEdit="@(() => OpenEditModal(content))"
                            OnDelete="@(() => OpenDeleteConfirmation(content))" />
@@ -150,7 +148,7 @@ else
                         CssClass="mb-4">
                 @if (viewingContent.IsVideo)
                 {
-                    <video controls playsinline preload="metadata" class="w-100 rounded" style="max-height: 400px; background: #000;" @onplay="OnVideoPlayed">
+                    <video controls playsinline preload="metadata" class="w-100 rounded video-player" @onplay="OnVideoPlayed">
                         @* Primary source with detected/stored MIME type *@
                         <source src="@viewingContent.Url" type="@viewingContent.MimeType">
                         @* Fallback: For MOV files (common from iPhones), also try as MP4 since browsers may handle the container *@
@@ -168,8 +166,7 @@ else
                 else
                 {
                     <img src="@viewingContent.Url" alt="@viewingContent.Title" 
-                         class="img-fluid w-100 rounded" 
-                         style="max-height: 500px; object-fit: contain; background: #000;" />
+                         class="img-fluid w-100 rounded content-image" />
                 }
             </InfoSection>
 
@@ -179,7 +176,7 @@ else
                 <InfoSection SectionTitle="Descrição"
                             IconClass="bi-file-text"
                             CssClass="mb-4">
-                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingContent.Description</p>
+                    <p class="text-white-full mb-0 content-description">@viewingContent.Description</p>
                 </InfoSection>
             }
 
@@ -219,11 +216,7 @@ else
                 <!-- Comments List -->
                 @if (loadingComments)
                 {
-                    <div class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">A carregar comentários...</span>
-                        </div>
-                    </div>
+                    <LoadingSpinner Size="@SpinnerSize.Small" Message="A carregar comentários..." />
                 }
                 else if (!comments.Any())
                 {
@@ -234,7 +227,7 @@ else
                     <div class="comments-list">
                         @foreach (var comment in comments.OrderByDescending(c => c.CreatedAt))
                         {
-                            <NaipeCommentItem Comment="@comment" OnDelete="@DeleteComment" />
+                            <NaipeCommentItem @key="comment.Id" Comment="@comment" OnDelete="@DeleteComment" />
                         }
                     </div>
                 }
@@ -257,7 +250,7 @@ else
                     <InputSelect class="form-select" @bind-Value="contentForm.InstrumentType">
                         @foreach (var type in Enum.GetValues<InstrumentType>())
                         {
-                            <option value="@type">@StatusHelper.GetInstrumentDisplay(type)</option>
+                            <option value="@type" @key="type">@StatusHelper.GetInstrumentDisplay(type)</option>
                         }
                     </InputSelect>
                     <ValidationMessage For="@(() => contentForm.InstrumentType)" />
@@ -353,6 +346,7 @@ else
     private bool loading = true;
     private bool isAdmin = false;
     private string? currentUserId;
+    private AuthenticationState? cachedAuthState;
     private List<NaipeContentDto> allContent = new();
     private List<NaipeContentDto> filteredContent = new();
     private List<NaipeContentDto> paginatedContent = new();
@@ -401,8 +395,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        cachedAuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = cachedAuthState.User;
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -426,8 +420,8 @@ else
             await NaipeService.InitializeTypeConfigsAsync();
             
             // Load visible type configs and content
-            typeConfigs = await NaipeService.GetVisibleTypeConfigsAsync();
-            allContent = await NaipeService.GetAllContentAsync();
+            typeConfigs = await NaipeService.GetVisibleTypeConfigsAsync() ?? new List<NaipeTypeConfigDto>();
+            allContent = await NaipeService.GetAllContentAsync() ?? new List<NaipeContentDto>();
             ApplyFilters();
         }
         finally
@@ -452,29 +446,9 @@ else
 
     private void ApplyFilters()
     {
-        // First, get content for the selected instrument (no search filter)
-        if (selectedInstrument.HasValue)
-        {
-            contentForInstrument = allContent.Where(c => c.InstrumentType == selectedInstrument.Value).ToList();
-        }
-        else
-        {
-            contentForInstrument = new List<NaipeContentDto>();
-        }
-
-        // Apply search filter
-        filteredContent = contentForInstrument;
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            var search = searchTerm.ToLower();
-            filteredContent = filteredContent.Where(c =>
-                c.Title.ToLower().Contains(search) ||
-                (c.Description?.ToLower().Contains(search) ?? false)
-            ).ToList();
-        }
-
-        // Sort by SortOrder
-        filteredContent = filteredContent.OrderBy(c => c.SortOrder).ThenBy(c => c.CreatedAt).ToList();
+        // Use service to filter content
+        filteredContent = NaipeContentFilterService.FilterContent(allContent ?? new List<NaipeContentDto>(), selectedInstrument, searchTerm)
+            ?? new List<NaipeContentDto>();
 
         // Apply pagination
         paginatedContent = filteredContent
@@ -668,10 +642,14 @@ else
             return;
 
         // For edit: verify ownership (owner or admin)
-        if (editingContent != null && !isAdmin && editingContent.CreatedByUserId != currentUserId)
+        if (editingContent != null)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem editar.");
-            return;
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (!NaipeAuthorizationService.CanEditContent(authState, currentUserId, editingContent.CreatedByUserId))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem editar.");
+                return;
+            }
         }
         
         // Validate file is selected for new content
@@ -712,13 +690,15 @@ else
             else
             {
                 // Update existing content
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var canEdit = NaipeAuthorizationService.CanEditContent(authState, currentUserId, editingContent.CreatedByUserId);
                 await NaipeService.UpdateContentAsync(
                     editingContent.Id,
                     contentForm.Title,
                     contentForm.Description,
                     contentForm.SortOrder,
                     currentUserId!,
-                    isAdmin
+                    canEdit
                 );
 
                 // Update local copy
@@ -763,7 +743,7 @@ else
             return;
 
         // Only owner or admin can delete content
-        if (!isAdmin && contentToDelete.CreatedByUserId != currentUserId)
+        if (!CanDeleteContent(contentToDelete.CreatedByUserId))
         {
             await JSRuntime.InvokeVoidAsync("alert", "Apenas o criador do conteúdo ou administradores podem eliminar.");
             return;
@@ -771,7 +751,9 @@ else
 
         try
         {
-            await NaipeService.DeleteContentAsync(contentToDelete.Id, currentUserId!, isAdmin);
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var canDelete = NaipeAuthorizationService.CanDeleteContent(authState, currentUserId, contentToDelete.CreatedByUserId);
+            await NaipeService.DeleteContentAsync(contentToDelete.Id, currentUserId!, canDelete);
             allContent.Remove(contentToDelete);
             ApplyFilters();
             contentToDelete = null;
@@ -780,6 +762,18 @@ else
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Erro ao eliminar: {ex.Message}");
         }
+    }
+
+    private bool CanEditContent(string contentCreatedByUserId)
+    {
+        if (cachedAuthState == null) return false;
+        return NaipeAuthorizationService.CanEditContent(cachedAuthState, currentUserId, contentCreatedByUserId);
+    }
+
+    private bool CanDeleteContent(string contentCreatedByUserId)
+    {
+        if (cachedAuthState == null) return false;
+        return NaipeAuthorizationService.CanDeleteContent(cachedAuthState, currentUserId, contentCreatedByUserId);
     }
 
 }

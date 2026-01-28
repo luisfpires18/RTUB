@@ -354,10 +354,13 @@ public class Program
         services.AddQuestionServices();
         services.AddRankingServices();
         services.AddGameServices();
+        services.AddFinanceServices();
         services.AddBettingServices();
         services.AddEmailServices();
         services.AddStorageServices();
         services.AddMemberQueryServices();
+        services.AddMemberServices();
+        services.AddRoleServices();
         services.AddPushNotificationServices();
         services.AddMessagingServices();
 

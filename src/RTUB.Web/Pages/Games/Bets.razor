@@ -248,7 +248,7 @@
                             <div class="selected-members-chips mb-2">
                                 @foreach (var member in selectedMatchMembers)
                                 {
-                                    <div class="member-chip-with-odds mb-2">
+                                    <div class="member-chip-with-odds mb-2" @key="member.Id">
                                         <span class="member-chip">
                                             <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()" class="member-chip-avatar" />
                                             <span class="member-chip-name">@member.GetDisplayName()</span>
@@ -281,16 +281,14 @@
                             
                             @if (!string.IsNullOrWhiteSpace(matchMemberSearchTerm) && filteredAvailableMembersForMatch.Any())
                             {
-                                <div class="member-list member-list-scrollable mt-2" style="max-height: 200px;">
+                                <div class="member-list member-list-scrollable mt-2 member-list-scrollable-override">
                                     @foreach (var member in filteredAvailableMembersForMatch)
                                     {
                                         <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                             @onclick="() => AddMatchMember(member)"
-                                             style="cursor: pointer;">
+                                             @onclick="() => AddMatchMember(member)">
                                             <div class="d-flex align-items-center">
                                                 <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                     class="member-avatar-small me-2" 
-                                                     style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                                     class="member-avatar-small me-2" />
                                                 <div>
                                                     <strong>@member.GetDisplayName()</strong>
                                                 </div>
@@ -322,14 +320,13 @@
                         @* Existing decision options *@
                         @foreach (var option in decisionOptions)
                         {
-                            <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="d-flex align-items-center gap-2 mb-2" @key="option.Id">
                                 <input type="text" 
                                        class="form-control" 
                                        @bind="option.Title" 
                                        placeholder="Nome da opção..." />
                                 <input type="number" 
-                                       class="form-control" 
-                                       style="width: 120px;" 
+                                       class="form-control odds-input-narrow" 
                                        step="0.01" 
                                        min="1.01" 
                                        max="999.99"
@@ -448,7 +445,7 @@
         {
             <div class="mb-3">
                 <div class="d-flex align-items-center justify-content-center">
-                    <span class="badge" style="background-color: #8a2be2; font-size: 1rem; padding: 0.5rem 1rem;">
+                    <span class="badge badge-purple">
                         <i class="bi bi-coin me-2"></i>
                         <strong>Saldo Atual:</strong> @currentUser.FidelisBalance.ToString("F2") Fidelis
                     </span>
@@ -463,7 +460,7 @@
                     <option value="0">Selecione uma opção...</option>
                     @foreach (var option in GetBetOptions(selectedBet.Id))
                     {
-                        <option value="@option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
+                        <option value="@option.Id" @key="option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
                     }
                 </select>
             </div>
@@ -479,7 +476,7 @@
                     if (selectedOption != null)
                     {
                         var potentialWinnings = betAmount * selectedOption.Odds;
-                        <small style="color: #8a2be2; font-weight: 600;">
+                        <small class="text-purple">
                             <i class="bi bi-trophy me-1"></i>
                             Ganhos potenciais: @potentialWinnings.ToString("F2") Fidelis
                         </small>
@@ -527,7 +524,7 @@
             }
             else if (selectedBet.WinningOptionId.HasValue)
             {
-                <span class="badge" style="background-color: #8a2be2; color: white;">Resolvido</span>
+                <span class="badge badge-purple-resolved">Resolvido</span>
             }
         }
     </BadgesContent>
@@ -687,13 +684,12 @@
                     <div class="comments-list">
                         @foreach (var comment in betComments)
                         {
-                            <div class="leaderboard-comment-item mb-3">
+                            <div class="leaderboard-comment-item mb-3" @key="comment.Id">
                                 <div class="comment-header d-flex justify-content-between align-items-start mb-2">
                                     <div class="d-flex align-items-center">
                                         <img src="@(comment.AuthorAvatarUrl ?? "/images/default-avatar.webp")" 
                                              alt="@comment.AuthorName" 
-                                             class="comment-avatar me-2" 
-                                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+                                             class="comment-avatar me-2" />
                                         <div class="comment-meta">
                                             <span class="comment-author fw-bold">@comment.AuthorName</span>
                                             <span class="comment-date text-muted small ms-2">@comment.CreatedAt.ToString("dd MMM, HH:mm")</span>
@@ -708,7 +704,7 @@
                                         </button>
                                     }
                                 </div>
-                                <div class="comment-body mb-2" style="white-space: pre-line;">
+                                <div class="comment-body mb-2 comment-body-pre-line">
                                     @comment.Text
                                 </div>
                                 @if (!string.IsNullOrEmpty(comment.MediaUrl))
@@ -716,11 +712,11 @@
                                     <div class="comment-media mt-2">
                                         @if (comment.MediaType == "image")
                                         {
-                                            <img src="@comment.MediaUrl" alt="Imagem" class="img-fluid rounded" style="max-height: 300px;" />
+                                            <img src="@comment.MediaUrl" alt="Imagem" class="img-fluid rounded comment-media" />
                                         }
                                         else if (comment.MediaType == "video")
                                         {
-                                            <video controls playsinline preload="metadata" class="w-100 rounded" style="max-height: 300px;">
+                                            <video controls playsinline preload="metadata" class="w-100 rounded comment-media">
                                                 <source src="@comment.MediaUrl" type="video/mp4" />
                                                 <source src="@comment.MediaUrl" type="video/quicktime" />
                                                 <p class="text-warning p-2 small">
@@ -762,7 +758,7 @@
                     <option value="0">Selecione a opção vencedora...</option>
                     @foreach (var option in GetBetOptions(selectedBet.Id))
                     {
-                        <option value="@option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
+                        <option value="@option.Id" @key="option.Id">@option.Title (Odds: @option.Odds.ToString("F2")x)</option>
                     }
                 </select>
             </div>
@@ -800,11 +796,7 @@
     <BodyContent>
         @if (isLoadingAllBets)
         {
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-            </div>
+            <LoadingSpinner Message="A carregar apostas..." />
         }
         else if (allUserBetsForBet == null || !allUserBetsForBet.Any())
         {
@@ -819,12 +811,11 @@
                 <div class="stats-card-grid">
                     @foreach (var userBetInfo in paginatedUserBetsForBet)
                     {
-                        <div class="stats-card">
+                        <div class="stats-card" @key="userBetInfo.UserId">
                             <div class="stats-card-position">
                                 <img src="@(userBetInfo.AvatarUrl ?? "/images/default-avatar.webp")" 
                                      alt="@userBetInfo.DisplayName" 
-                                     class="rounded-circle" 
-                                     style="width: 40px; height: 40px; object-fit: cover;" />
+                                     class="rounded-circle member-avatar-medium" />
                             </div>
                             <div class="stats-card-content">
                                 <div class="stats-card-title">@userBetInfo.DisplayName</div>
@@ -988,8 +979,10 @@
     // DECISION options methods
     private void AddDecisionOption()
     {
+        var maxId = decisionOptions.Any() ? decisionOptions.Max(o => o.Id) : 0;
         decisionOptions.Add(new DecisionOptionModel
         {
+            Id = maxId + 1,
             Title = string.Empty,
             Odds = DEFAULT_MATCH_ODDS
         });
@@ -1020,14 +1013,24 @@
                 userBetsCache = userBets.ToDictionary(ub => ub.BetId, ub => (UserBet?)ub);
             }
 
-            // Load bet options for all bets
-            foreach (var bet in futureBets.Concat(pastBets))
+            // Batch load bet options and discussion counts for all bets to avoid N+1 queries
+            var allBetIds = futureBets.Concat(pastBets).Select(b => b.Id).ToList();
+            
+            if (allBetIds.Any())
             {
-                var options = await BetService.GetBetOptionsAsync(bet.Id);
-                betOptionsCache[bet.Id] = options.ToList();
+                // Batch load bet options
+                var betOptionsDict = await BetService.GetBetOptionsByBetIdsAsync(allBetIds);
+                foreach (var kvp in betOptionsDict)
+                {
+                    betOptionsCache[kvp.Key] = kvp.Value;
+                }
                 
-                // Load discussion count
-                discussionCountsCache[bet.Id] = await GetDiscussionPostCount(bet.Id);
+                // Batch load discussion counts
+                var discussionCountsDict = await BetCommentService.GetCommentCountsByBetIdsAsync(allBetIds);
+                foreach (var kvp in discussionCountsDict)
+                {
+                    discussionCountsCache[kvp.Key] = kvp.Value;
+                }
             }
 
             ApplyFutureBetsPagination();
@@ -1796,6 +1799,7 @@
                 var option = betOptions.FirstOrDefault(o => o.Id == ub.BetOptionId);
                 return new UserBetDisplayInfo
                 {
+                    UserId = ub.UserId,
                     DisplayName = ub.User?.Nickname ?? ub.User?.UserName ?? "Unknown",
                     AvatarUrl = ub.User?.ProfilePictureSrc,
                     OptionTitle = option?.Title ?? "Unknown",

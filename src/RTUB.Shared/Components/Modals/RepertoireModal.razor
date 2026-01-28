@@ -29,8 +29,9 @@
                         @foreach (var date in eventDates)
                         {
                             <li class="nav-item">
-                                <button class="nav-link @(selectedDate == date ? "active" : "")" 
-                                        @onclick="() => SelectDate(date)">
+                                <button class="nav-link @(selectedDate == date ? "active" : "")" @key="date"
+                                        @onclick="() => SelectDate(date)"
+                                        aria-label="Selecionar data @date.ToString("dd/MM/yyyy")">
                                     @date.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("pt-PT"))
                                     @if (IsAdmin)
                                     {
@@ -58,7 +59,7 @@
                             <option value="0">Selecionar música...</option>
                             @foreach (var song in availableSongs)
                             {
-                                <option value="@song.Id">@song.Title</option>
+                                <option value="@song.Id" @key="song.Id">@song.Title</option>
                             }
                         </select>
                         <button class="btn btn-success" @onclick="AddSongToRepertoire" disabled="@(selectedSongId == 0)">

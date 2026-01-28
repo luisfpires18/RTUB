@@ -20,11 +20,7 @@
 
 @if (isLoading)
 {
-    <div class="d-flex justify-content-center my-5">
-        <div class="spinner-border text-purple" role="status">
-            <span class="visually-hidden">A carregar...</span>
-        </div>
-    </div>
+    <LoadingSpinner Message="A carregar hall of fame..." Color="@SpinnerColor.Purple" />
 }
 else
 {
@@ -42,7 +38,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostRecentCaloiro)
                                 {
-                                    <div class="col-md-@(mostRecentCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostRecentCaloiro.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -80,7 +76,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostRecentTuno)
                                 {
-                                    <div class="col-md-@(mostRecentTuno.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostRecentTuno.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -160,7 +156,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostPositions)
                                 {
-                                    <div class="col-md-@(mostPositions.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostPositions.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -202,7 +198,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostMagister)
                                 {
-                                    <div class="col-md-@(mostMagister.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostMagister.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -240,7 +236,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostInstruments)
                                 {
-                                    <div class="col-md-@(mostInstruments.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostInstruments.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -320,7 +316,7 @@ else
                             <div class="row">
                                 @foreach (var member in shortestLeitao)
                                 {
-                                    <div class="col-md-@(shortestLeitao.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(shortestLeitao.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -362,7 +358,7 @@ else
                             <div class="row">
                                 @foreach (var member in longestCaloiro)
                                 {
-                                    <div class="col-md-@(longestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(longestCaloiro.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -442,7 +438,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostRehearsals)
                                 {
-                                    <div class="col-md-@(mostRehearsals.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostRehearsals.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -480,7 +476,7 @@ else
                             <div class="row">
                                 @foreach (var member in mostPerformances)
                                 {
-                                    <div class="col-md-@(mostPerformances.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostPerformances.Count > 1 ? "6" : "12") text-center mb-3" @key="member.User.Id">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))

@@ -13,6 +13,11 @@ public interface ITransactionRepository : IRepository<Transaction>
     Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId);
 
     /// <summary>
+    /// Gets transactions for multiple activity IDs (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<IEnumerable<Transaction>> GetTransactionsByActivityIdsAsync(IEnumerable<int> activityIds);
+
+    /// <summary>
     /// Gets transactions by type (income/expense)
     /// </summary>
     Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type);

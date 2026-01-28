@@ -170,22 +170,21 @@
                         </div>
                     </div>
 
-                    <div class="subscriber-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="subscriber-list subscriber-list-scrollable">
                         @{
                             var filteredUsers = GetFilteredUsers();
                             var usersToShow = GetPagedUsers(filteredUsers);
                         }
                         @foreach (var user in usersToShow)
                         {
-                            <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                            <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full" @key="user.Id">
                                 <input class="form-check-input me-2" 
                                        type="checkbox" 
                                        @onchange="(e) => ToggleUserSelection(user, (bool)(e.Value ?? false))"
                                        checked="@IsUserSelected(user)" />
                                 <img src="@user.ProfilePictureSrc" 
                                      alt="@(user.Nickname ?? user.FirstName)"
-                                     class="member-avatar-small me-2" 
-                                     style="width: 32px; height: 32px; border-radius: 50%;" />
+                                     class="member-avatar-small me-2" />
                                 <span class="flex-grow-1">@(user.Nickname ?? $"{user.FirstName} {user.LastName}")</span>
                             </div>
                         }
@@ -214,19 +213,19 @@
        Title="Pré-visualização da Notificação"
        Size="Modal.ModalSize.Large">
     <BodyContent>
-        <div class="notification-preview" style="background-color: #F7F7FB; padding: 20px; border-radius: 8px;">
-            <div style="background-color: white; max-width: 600px; margin: 0 auto; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div class="d-flex align-items-start mb-3">
-                    <img src="/icons/rtub-logo-192.png" alt="RTUB Logo" style="width: 48px; height: 48px; margin-right: 16px; border-radius: 8px;" />
-                    <div style="flex: 1;">
-                        <h4 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0B0B0F;">
+        <div class="notification-preview">
+            <div class="notification-preview-card">
+                <div class="notification-preview-header">
+                    <img src="/icons/rtub-logo-192.png" alt="RTUB Logo" class="notification-preview-logo" />
+                    <div class="notification-preview-content">
+                        <h4 class="notification-preview-title">
                             @title
                         </h4>
-                        <p style="margin: 0; font-size: 14px; color: #666666; white-space: pre-wrap;">@content</p>
+                        <p class="notification-preview-body">@content</p>
                     </div>
                 </div>
-                <div style="padding-top: 12px; border-top: 1px solid #E0E0E0;">
-                    <small style="color: #999999; font-size: 12px;">Notificação Push RTUB</small>
+                <div class="notification-preview-footer">
+                    <small class="notification-preview-footer-text">Notificação Push RTUB</small>
                 </div>
             </div>
         </div>

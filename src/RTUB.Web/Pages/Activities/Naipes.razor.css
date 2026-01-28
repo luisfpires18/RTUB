@@ -1,0 +1,17 @@
+/* Video player constraints */
+.video-player {
+    max-height: 400px;
+    background: #000;
+}
+
+/* Image display constraints */
+.content-image {
+    max-height: 500px;
+    object-fit: contain;
+    background: #000;
+}
+
+/* Content description display */
+.content-description {
+    white-space: pre-line;
+}

@@ -1,0 +1,35 @@
+/* Member list scrollable */
+.member-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Avatar sizes */
+.member-avatar-medium {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+}
+
+.member-avatar-small {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+/* Question content display */
+.question-content-display {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Reply content display */
+.reply-content-display {
+    white-space: pre-line;
+}
+
+/* Replies list scrollable */
+.replies-list-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+}

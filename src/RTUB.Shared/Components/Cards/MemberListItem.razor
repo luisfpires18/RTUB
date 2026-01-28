@@ -12,7 +12,7 @@
         @foreach (var category in User.Categories.Where(c =>
             c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
         {
-            <CategoryBadge Category="category" AdditionalClasses="me-1" />
+            <CategoryBadge @key="@($"category-{User.Id}-{category}")" Category="category" AdditionalClasses="me-1" />
         }
         @* Then display current fiscal year position if exists *@
         @if (CurrentFiscalYearPosition != null)
@@ -26,18 +26,18 @@
     </td>
     <td>-</td>
     <td>
-        <button class="btn btn-sm btn-info me-1" @onclick="OnViewDetails" title="View Details">
+        <button class="btn btn-sm btn-info me-1" @onclick="OnViewDetails" title="View Details" aria-label="Ver detalhes">
             <i class="bi bi-eye"></i>
         </button>
         @if (IsAdmin)
         {
-            <button class="btn btn-sm btn-light me-1" @onclick="OnEdit" title="Edit">
+            <button class="btn btn-sm btn-light me-1" @onclick="OnEdit" title="Edit" aria-label="Editar membro">
                 <i class="bi bi-pencil"></i>
             </button>
         }
         @if (IsOwner)
         {
-            <button class="btn btn-sm btn-danger" @onclick="OnDelete" title="Delete">
+            <button class="btn btn-sm btn-danger" @onclick="OnDelete" title="Delete" aria-label="Eliminar membro">
                 <i class="bi bi-trash"></i>
             </button>
         }

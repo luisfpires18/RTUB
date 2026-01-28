@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -115,9 +116,7 @@ public class LogisticsListService : ILogisticsListService
     /// <exception cref="InvalidOperationException">Thrown when the list is not found</exception>
     public async Task UpdateListAsync(int id, string name)
     {
-        var list = await _listRepository.GetByIdAsync(id);
-        if (list == null)
-            throw new InvalidOperationException($"Lista com ID {id} não encontrada");
+        var list = await _listRepository.GetByIdOrThrowAsync(id);
 
         list.UpdateName(name);
         await _listRepository.UpdateAsync(list);
@@ -131,9 +130,7 @@ public class LogisticsListService : ILogisticsListService
     /// <exception cref="InvalidOperationException">Thrown when the list is not found</exception>
     public async Task UpdateListPositionAsync(int id, int position)
     {
-        var list = await _listRepository.GetByIdAsync(id);
-        if (list == null)
-            throw new InvalidOperationException($"Lista com ID {id} não encontrada");
+        var list = await _listRepository.GetByIdOrThrowAsync(id);
 
         list.UpdatePosition(position);
         await _listRepository.UpdateAsync(list);

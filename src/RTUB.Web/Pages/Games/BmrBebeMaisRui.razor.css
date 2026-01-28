@@ -1,0 +1,9 @@
+/* Layout balance spacer */
+.header-spacer {
+    width: 38px;
+}
+
+/* Gold text color for special elements */
+.text-gold {
+    color: gold;
+}

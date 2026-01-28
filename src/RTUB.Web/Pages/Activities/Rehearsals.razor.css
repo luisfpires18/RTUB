@@ -32,3 +32,41 @@
     cursor: pointer;
     user-select: none;
 }
+
+/* Modal backdrop */
+.modal-backdrop-custom {
+    background-color: rgba(0,0,0,0.5);
+}
+
+/* Modal header */
+.modal-header-custom {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+/* Content display */
+.content-pre-line {
+    white-space: pre-line;
+}
+
+/* Cancellation reason styles */
+.cancellation-reason-text {
+    white-space: pre-line;
+    color: #FCA5A5;
+}
+
+/* Loading overlay */
+.loading-overlay-container {
+    min-height: 200px;
+}
+
+.loading-overlay-backdrop {
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+    border-radius: 8px;
+}
+
+/* Spinner size */
+.spinner-large {
+    width: 3rem;
+    height: 3rem;
+}

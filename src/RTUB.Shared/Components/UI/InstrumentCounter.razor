@@ -24,7 +24,7 @@
                 <div class="instrument-counter-grid">
                     @foreach (var kvp in InstrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
                     {
-                        <div class="instrument-counter-box">
+                        <div class="instrument-counter-box" @key="kvp.Key">
                             <div class="instrument-counter-number">@kvp.Value</div>
                             <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
                         </div>

@@ -310,10 +310,9 @@ public class MessageRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task GetConversationMessagesAsync_TracksApplicationUser()
+    public async Task GetConversationMessagesAsync_DoesNotTrackApplicationUser()
     {
-        // Arrange - Note: GetConversationMessagesAsync does NOT use AsNoTracking(), so ApplicationUser WILL be tracked
-        // This test documents the current behavior. Consider adding AsNoTracking() for read-only operations.
+        // Arrange - GetConversationMessagesAsync uses AsNoTracking() to prevent tracking conflicts
         var user1 = CreateTestUser("tracking-test-user1", "tracking1@test.com");
         var conversation = CreateTestConversation("tracking-test-user1;user2");
         var message = CreateTestMessage(conversation.Id, user1.Id);
@@ -322,13 +321,13 @@ public class MessageRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
         var result = await _repository.GetConversationMessagesAsync(conversation.Id);
         var firstMessage = result.First();
 
-        // Modify the user through the tracked message
+        // Modify the user through the non-tracked message
         firstMessage.Sender!.Email = "modified@test.com";
         await _context.SaveChangesAsync();
 
-        // Verify user WAS tracked (current behavior - this may need to be changed to use AsNoTracking())
+        // Verify user was NOT tracked (AsNoTracking() prevents tracking)
         var freshUser = await _context.Users.FindAsync(user1.Id);
-        freshUser!.Email.Should().Be("modified@test.com", "ApplicationUser is currently tracked when loading messages (consider adding AsNoTracking())");
+        freshUser!.Email.Should().Be("tracking1@test.com", "ApplicationUser should NOT be tracked when using AsNoTracking()");
     }
 
     [Fact]

@@ -24,6 +24,10 @@ public class SongsPageTests : PageTestBase
 
     private readonly Mock<IAlbumService> _mockAlbumService;
     private readonly Mock<ISongService> _mockSongService;
+    private readonly Mock<ISongContentService> _mockSongContentService;
+    private readonly Mock<ISongUrlCacheService> _mockSongUrlCacheService;
+    private readonly Mock<ISongPlayService> _mockSongPlayService;
+    private readonly Mock<ISongValidationService> _mockSongValidationService;
     private readonly Mock<IAudioStorageService> _mockAudioStorageService;
     private readonly Mock<ILyricStorageService> _mockLyricStorageService;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
@@ -36,6 +40,10 @@ public class SongsPageTests : PageTestBase
         // Setup service mocks
         _mockAlbumService = SetupService<IAlbumService>();
         _mockSongService = SetupService<ISongService>();
+        _mockSongContentService = SetupService<ISongContentService>();
+        _mockSongUrlCacheService = SetupService<ISongUrlCacheService>();
+        _mockSongPlayService = SetupService<ISongPlayService>();
+        _mockSongValidationService = SetupService<ISongValidationService>();
         _mockAudioStorageService = SetupService<IAudioStorageService>();
         _mockLyricStorageService = SetupService<ILyricStorageService>();
         _mockAuditLogService = SetupService<IAuditLogService>();
@@ -45,6 +53,34 @@ public class SongsPageTests : PageTestBase
         _mockAuditLogService
             .Setup(x => x.AddAsync(It.IsAny<AuditLog>()))
             .Returns(Task.CompletedTask);
+
+        _mockSongContentService
+            .Setup(x => x.GetCleanVideoTitle(It.IsAny<SongVideo>(), It.IsAny<Song>(), It.IsAny<int>()))
+            .Returns((SongVideo video, Song song, int num) => video.Title ?? $"{song.Title} - Vídeo {num}");
+
+        _mockSongUrlCacheService
+            .Setup(x => x.GetCachedUrl(It.IsAny<string>()))
+            .Returns((string?)null);
+
+        _mockSongUrlCacheService
+            .Setup(x => x.CacheUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
+            .Verifiable();
+
+        _mockSongPlayService
+            .Setup(x => x.ShouldIncrementPlayCount(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<int?>()))
+            .Returns(true);
+
+        _mockSongPlayService
+            .Setup(x => x.GetLastPlayTime(It.IsAny<int>()))
+            .Returns((DateTime?)null);
+
+        _mockSongPlayService
+            .Setup(x => x.RecordPlayTime(It.IsAny<int>(), It.IsAny<DateTime>()))
+            .Verifiable();
+
+        _mockSongValidationService
+            .Setup(x => x.ValidateVideoFileSize(It.IsAny<Microsoft.AspNetCore.Components.Forms.IBrowserFile>(), It.IsAny<long>()))
+            .Returns(true);
 
         Services.AddSingleton(new RTUB.Web.Services.MediaQueueService());
         Services.AddSingleton(new RTUB.Web.Interop.MediaSessionInterop(MockJSRuntime.Object));

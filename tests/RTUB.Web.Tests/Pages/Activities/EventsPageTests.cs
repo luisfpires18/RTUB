@@ -22,6 +22,10 @@ namespace RTUB.Web.Tests.Pages.Activities;
 public class EventsPageTests : PageTestBase
 {
     private readonly Mock<IEventService> _mockEventService;
+    private readonly Mock<IEventFilterService> _mockEventFilterService;
+    private readonly Mock<IEventUrlService> _mockEventUrlService;
+    private readonly Mock<IEnrollmentFilterService> _mockEnrollmentFilterService;
+    private readonly Mock<IEnrollmentStatisticsService> _mockEnrollmentStatisticsService;
     private readonly Mock<IFiscalYearService> _mockFiscalYearService;
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
     private readonly Mock<IMemberInstrumentService> _mockMemberInstrumentService;
@@ -43,6 +47,10 @@ public class EventsPageTests : PageTestBase
     {
         // Setup service mocks
         _mockEventService = SetupService<IEventService>();
+        _mockEventFilterService = SetupService<IEventFilterService>();
+        _mockEventUrlService = SetupService<IEventUrlService>();
+        _mockEnrollmentFilterService = SetupService<IEnrollmentFilterService>();
+        _mockEnrollmentStatisticsService = SetupService<IEnrollmentStatisticsService>();
         _mockFiscalYearService = SetupService<IFiscalYearService>();
         _mockEnrollmentService = SetupService<IEnrollmentService>();
         _mockMemberInstrumentService = SetupService<IMemberInstrumentService>();
@@ -68,6 +76,37 @@ public class EventsPageTests : PageTestBase
             .Setup(x => x.InvokeAsync<bool>(It.Is<string>(s => s == "pwaHelper.isMobilePwaOrBrowser"), It.IsAny<object[]>()))
             .Returns(new ValueTask<bool>(false));
         Services.AddSingleton(new RTUB.Web.Interop.PwaHelperInterop(MockJSRuntime.Object));
+
+        // Setup default service responses for new services
+        _mockEventFilterService
+            .Setup(x => x.FilterEvents(It.IsAny<IEnumerable<Event>>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((IEnumerable<Event> events, string? fiscalYear, string? eventType, string? search) =>
+            {
+                var eventsList = events?.ToList() ?? new List<Event>();
+                var today = DateTime.Today;
+                var future = eventsList.Where(e => e.Date >= today).OrderBy(e => e.Date).ToList();
+                var past = eventsList.Where(e => e.Date < today).OrderByDescending(e => e.Date).ToList();
+                return (future, past);
+            });
+
+        _mockEventUrlService
+            .Setup(x => x.BuildQueryString(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns("");
+
+        _mockEnrollmentFilterService
+            .Setup(x => x.FilterEnrollments(It.IsAny<IEnumerable<Enrollment>>(), It.IsAny<string>()))
+            .Returns((IEnumerable<Enrollment> enrollments, string? search) =>
+            {
+                var enrollmentsList = enrollments?.ToList() ?? new List<Enrollment>();
+                var performing = enrollmentsList.Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var leitoes = enrollmentsList.Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var notAttending = enrollmentsList.Where(e => e.User != null && !e.WillAttend).ToList();
+                return (performing, leitoes, notAttending);
+            });
+
+        _mockEnrollmentStatisticsService
+            .Setup(x => x.CalculateInstrumentCounts(It.IsAny<Event>(), It.IsAny<Dictionary<string, List<MemberInstrument>>>()))
+            .Returns((new Dictionary<InstrumentType, int>(), new Dictionary<InstrumentType, int>()));
 
         // Setup default service responses
         _mockEventService

@@ -8,6 +8,7 @@ using Microsoft.JSInterop;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using System.Reflection;
 
 namespace RTUB.Web.Tests.Pages.Base;
 
@@ -39,6 +40,43 @@ public abstract class PageTestBase : TestContext
 
         Services.AddSingleton(MockLoggerFactory.Object);
         Services.AddSingleton(MockJSRuntime.Object);
+
+        // Register default mocks for all application interfaces to avoid "no registered service" failures
+        // when pages inject newly extracted services.
+        RegisterDefaultApplicationInterfaceMocks();
+    }
+
+    private void RegisterDefaultApplicationInterfaceMocks()
+    {
+        var interfacesAssembly = typeof(IMemberStatusService).Assembly;
+        var interfaceTypes = interfacesAssembly
+            .GetTypes()
+            .Where(t =>
+                t.IsInterface &&
+                t.Namespace == typeof(IMemberStatusService).Namespace &&
+                !t.IsGenericTypeDefinition)
+            .ToList();
+
+        foreach (var interfaceType in interfaceTypes)
+        {
+            if (Services.Any(sd => sd.ServiceType == interfaceType))
+            {
+                continue;
+            }
+
+            var mockType = typeof(Mock<>).MakeGenericType(interfaceType);
+            var mockInstance = Activator.CreateInstance(mockType);
+            if (mockInstance is null)
+            {
+                continue;
+            }
+
+            if (mockInstance is Mock baseMock)
+            {
+                baseMock.DefaultValue = DefaultValue.Empty;
+                Services.AddSingleton(interfaceType, baseMock.Object);
+            }
+        }
     }
 
     /// <summary>

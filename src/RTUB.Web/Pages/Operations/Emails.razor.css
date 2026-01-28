@@ -1,0 +1,49 @@
+/* Email preview container */
+.email-preview {
+    background-color: #F7F7FB;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.email-preview-card {
+    background-color: white;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.email-preview-title {
+    margin: 0 0 16px 0;
+    font-size: 28px;
+    font-weight: 600;
+    color: #0B0B0F;
+}
+
+.email-preview-greeting {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: #333333;
+}
+
+.email-preview-content-box {
+    margin: 24px 0;
+    padding: 20px;
+    background-color: #F7F7FB;
+    border-left: 4px solid #6E56CF;
+    border-radius: 8px;
+}
+
+.email-preview-content {
+    margin: 0;
+    font-size: 16px;
+    color: #333333;
+    white-space: pre-wrap;
+}
+
+.email-preview-closing {
+    margin: 16px 0 0 0;
+    font-size: 16px;
+    color: #333333;
+}

@@ -7,7 +7,7 @@
     Supports collapsible mode to show only header
 *@
 
-<div class="rank-gamified-card w-100 @(IsCollapsible ? "rank-collapsible" : "") @(isCollapsed ? "rank-collapsed" : "")" style="min-width: 0; overflow: hidden;">
+<div class="rank-gamified-card w-100 @(IsCollapsible ? "rank-collapsible" : "") @(isCollapsed ? "rank-collapsed" : "")">
     <div class="rank-header-area @(IsCollapsible ? "rank-header-clickable" : "")"
          @onclick="ToggleCollapsed"
          @onkeydown="HandleKeyDown"
@@ -18,7 +18,7 @@
          aria-label="@(IsCollapsible ? (isCollapsed ? "Expandir informações de rank" : "Recolher informações de rank") : "")">
         <div class="rank-header-grid @(RankProgress.IsMaxLevel ? "no-next" : "")">
             <!-- Left: Large Level Badge -->
-            <div class="rank-current-level-badge" style="min-width: 0;">
+            <div class="rank-current-level-badge">
                 <div class="level-badge-inner">
                     <div class="level-badge-label">LV</div>
                     <div class="level-badge-number">@RankProgress.CurrentLevel</div>
@@ -26,7 +26,7 @@
             </div>
 
             <!-- Center: Rank Name -->
-            <div class="rank-title-center" style="min-width: 0;">
+            <div class="rank-title-center">
                 <div class="rank-subtitle">Nível de alcoolismo</div>
                 <h2 class="rank-name-title">@RankProgress.CurrentRankName</h2>
                 @if (RankProgress.IsMaxLevel)
@@ -60,7 +60,7 @@
     {
         <!-- Motivational Text -->
         <div class="rank-motivational-text">
-            <p style="color: #ffffff; font-size: 0.9rem; text-align: center; margin-bottom: 1.5rem; font-style: italic;">
+            <p class="rank-motivational-text-content">
                 Participa em atividades da tuna para ganhar experiência em alcoolismo
             </p>
         </div>
