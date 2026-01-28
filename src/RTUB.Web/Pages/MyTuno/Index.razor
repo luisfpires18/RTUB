@@ -3,6 +3,7 @@
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Services.MyTuno
+@using CharacterEntity = RTUB.Core.Entities.Character
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject MyTunoCharacterService CharacterService
 @inject UserManager<ApplicationUser> UserManager
@@ -48,7 +49,7 @@
 </div>
 
 @code {
-    private Character? _character;
+    private CharacterEntity? _character;
     private ApplicationUser? _user;
 
     protected override async Task OnInitializedAsync()
