@@ -13,6 +13,8 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @inject IRoleAssignmentService RoleAssignmentService
+@inject IRoleAssignmentValidationService RoleAssignmentValidationService
+@inject IRoleManagementService RoleManagementService
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
 @inject IDocumentStorageService DocumentStorageService
@@ -39,7 +41,7 @@
 
             @if (fiscalYears.Any())
             {
-                <div class="flex-sm-shrink-0 align-self-lg-end" style="min-width: 240px;">
+                <div class="flex-sm-shrink-0 align-self-lg-end filter-dropdown-container">
                     <FilterDropdown SelectedValue="@selectedFiscalYear"
                                     SelectedValueChanged="@(value => selectedFiscalYear = value)"
                                     OnChange="@OnFiscalYearChanged"
@@ -721,9 +723,9 @@ else
         }
         else if (!string.IsNullOrEmpty(rgiPdfUrl))
         {
-            <div class="pdf-viewer-container" style="height: 80vh;">
+            <div class="pdf-viewer-container">
                 <iframe src="@(rgiPdfUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
-                        style="width: 100%; height: 100%; border: none;"
+                        class="pdf-viewer-iframe"
                         title="Regulamentos Gerais Internos">
                 </iframe>
             </div>
@@ -767,7 +769,7 @@ else
                 <select class="form-select" @bind="newStartYear">
                     @foreach (var year in availableFiscalYearStartYears)
                     {
-                        <option value="@year">@year-@(year + 1)</option>
+                        <option value="@year" @key="year">@year-@(year + 1)</option>
                     }
                 </select>
             </div>
@@ -802,7 +804,7 @@ else
             <div class="member-list member-list-scrollable">
                 @foreach (var member in filteredMembers.Take(20))
                 {
-                    <div class="member-item p-2 mb-2 border rounded clickable-row"
+                    <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
                          @onclick="() => SelectMember(member)">
                         <div class="d-flex align-items-center">
                             <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
@@ -1137,74 +1139,26 @@ else
 
         errorMessage = "";
 
-        // Check if member is LEITAO
-        if (selectedMember.IsLeitao())
+        // Get all existing assignments for validation
+        var existingAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
+
+        // Use service to validate role assignment
+        var validationError = RoleAssignmentValidationService.ValidateRoleAssignment(
+            selectedMember,
+            selectedPosition.Value,
+            selectedFiscalYear,
+            existingAssignments);
+
+        if (validationError != null)
         {
-            errorMessage = "Não é possível atribuir cargos a membros LEITÃO.";
+            errorMessage = validationError;
             return;
         }
 
-        // President positions that Caloiro cannot hold
-        var presidentPositions = new[]
-        {
-            Position.Magister,
-            Position.PresidenteMesaAssembleia,
-            Position.PresidenteConselhoFiscal,
-            Position.PresidenteConselhoVeteranos
-        };
-
-        // Check if member is CALOIRO and trying to assign a President position
-        if (selectedMember.IsCaloiro() &&
-            presidentPositions.Contains(selectedPosition.Value))
-        {
-            errorMessage = "CALOIRO não pode ser atribuído a cargos de Presidente.";
-            return;
-        }
-
-        // Check if position is Presidente do Conselho de Veteranos and member is not Tuno Veterano
-        if (selectedPosition.Value == Position.PresidenteConselhoVeteranos)
-        {
-            var isTunoVeterano = selectedMember.IsTuno() && selectedMember.QualifiesForVeterano();
-
-            if (!isTunoVeterano)
-            {
-                errorMessage = "Presidente do Conselho de Veteranos deve ser TUNO VETERANO (mínimo 2 anos como Tuno).";
-                return;
-            }
-        }
-
+        // Parse fiscal year (already validated by service)
         var parts = selectedFiscalYear.Split('-');
-        if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear) || !int.TryParse(parts[1], out var endYear))
-        {
-            errorMessage = "Ano letivo inválido.";
-            return;
-        }
-
-        // Check if this position is already assigned for this fiscal year
-        var existing = (await RoleAssignmentService.GetAllRoleAssignmentsAsync())
-            .FirstOrDefault(r => r.Position == selectedPosition.Value &&
-                                 r.StartYear == startYear &&
-                                 r.EndYear == endYear);
-
-        if (existing != null)
-        {
-            errorMessage = "Este cargo já está atribuído para este ano letivo.";
-            return;
-        }
-
-        // Check if member already has a position assigned in this fiscal year
-        // Skip this check for Ensaiador position since it's not an official member role
-        if (selectedPosition.Value != Position.Ensaiador)
-        {
-            var memberHasAssignment = (await RoleAssignmentService.GetRoleAssignmentsByUserIdAsync(selectedMember.Id))
-                .Any(r => r.StartYear == startYear && r.EndYear == endYear);
-
-            if (memberHasAssignment)
-            {
-                errorMessage = "Este membro já tem um cargo atribuído para este ano letivo.";
-                return;
-            }
-        }
+        int.TryParse(parts[0], out var startYear);
+        int.TryParse(parts[1], out var endYear);
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var currentUserId = UserManager.GetUserId(authState.User);
@@ -1218,39 +1172,17 @@ else
             currentUserId
         );
 
-        // Update user's current Positions property and promote to Admin ONLY if fiscal year is current
+        // Use service to promote user if fiscal year is current
         int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-
-        bool isFiscalYearCurrent = (startYear == currentFiscalStartYear);
-
         var user = await UserManager.FindByIdAsync(selectedMember.Id);
-        if (user != null && isFiscalYearCurrent)
+        if (user != null)
         {
-            var positions = user.Positions.ToList();
-            if (!positions.Contains(selectedPosition.Value))
-            {
-                positions.Add(selectedPosition.Value);
-                user.Positions = positions;
-                await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
-            }
-
-            // Promote user from Member to Admin or Mod role
-            // CALOIRO members get Mod role, others get Admin role
-            var currentRoles = await UserManager.GetRolesAsync(user);
-            var isCaloiro = user.Categories.Contains(MemberCategory.Caloiro);
-            var targetRole = isCaloiro ? "Mod" : "Admin";
-            
-            if (!currentRoles.Contains("Admin") && !currentRoles.Contains("Mod"))
-            {
-                // Remove Member role if present
-                if (currentRoles.Contains("Member"))
-                {
-                    await UserManager.RemoveFromRoleAsync(user, "Member");
-                }
-                // Add appropriate role (Mod for Caloiro, Admin for others)
-                await UserManager.AddToRoleAsync(user, targetRole);
-            }
+            await SetAuditContextToCurrentUser();
+            await RoleManagementService.PromoteUserForPositionAsync(
+                user,
+                selectedPosition.Value,
+                startYear,
+                currentFiscalStartYear);
         }
 
         await LoadRoleAssignments();
@@ -1285,42 +1217,17 @@ else
         
         await RoleAssignmentService.DeleteRoleAssignmentAsync(removingAssignment.Id);
 
-        // Remove from user's current Positions property ONLY if fiscal year is current
+        // Use service to demote user if fiscal year is current
         int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-        bool isFiscalYearCurrent = (removingAssignment.StartYear == currentFiscalStartYear);
-
         var user = await UserManager.FindByIdAsync(removingAssignment.UserId);
-        if (user != null && isFiscalYearCurrent)
+        if (user != null)
         {
-            var positions = user.Positions.ToList();
-            if (positions.Contains(removingAssignment.Position))
-            {
-                positions.Remove(removingAssignment.Position);
-                user.Positions = positions;
-                await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
-            }
-
-            // Check if user has no more positions - if so, demote from Admin/Mod to Member
-            var userRoles = await UserManager.GetRolesAsync(user);
-            if (!positions.Any() && (userRoles.Contains("Admin") || userRoles.Contains("Mod")) && !userRoles.Contains("Owner"))
-            {
-                // Remove Admin or Mod role
-                if (userRoles.Contains("Admin"))
-                {
-                    await UserManager.RemoveFromRoleAsync(user, "Admin");
-                }
-                if (userRoles.Contains("Mod"))
-                {
-                    await UserManager.RemoveFromRoleAsync(user, "Mod");
-                }
-                
-                // Add Member role
-                await UserManager.AddToRoleAsync(user, "Member");
-                
-                // Invalidate security stamp to force fresh cookies and token refresh
-                await UserManager.UpdateSecurityStampAsync(user);
-            }
+            await SetAuditContextToCurrentUser();
+            await RoleManagementService.DemoteUserForPositionAsync(
+                user,
+                removingAssignment.Position,
+                removingAssignment.StartYear,
+                currentFiscalStartYear);
         }
 
         await LoadRoleAssignments();

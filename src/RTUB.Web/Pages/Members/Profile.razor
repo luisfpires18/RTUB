@@ -63,7 +63,7 @@
         }
 
         <!-- Profile Header Card -->
-        <div class="w-100 d-flex flex-column align-items-stretch overflow-hidden" style="min-width: 0;">
+        <div class="w-100 d-flex flex-column align-items-stretch overflow-hidden flex-min-width-zero">
             <ProfileHeader User="@user"
                            ImageRefreshTrigger="@imageRefreshTrigger"
                            OnChangePassword="@OpenChangePasswordModal"
@@ -71,13 +71,13 @@
         </div>
 
         <!-- Profile Content -->
-        <div class="d-flex flex-column w-100 align-items-stretch overflow-hidden" style="min-width: 0;">
+        <div class="d-flex flex-column w-100 align-items-stretch overflow-hidden flex-min-width-zero">
             <div class="w-100">
             
             @* Rank/Level Section *@
             @if (rankProgress != null)
             {
-                <div class="w-100 overflow-hidden" style="min-width: 0;">
+                <div class="w-100 overflow-hidden flex-min-width-zero">
                     <RankCard RankProgress="@rankProgress" IsCollapsible="true" InitiallyCollapsed="true" />
                 </div>
             }
@@ -280,7 +280,7 @@
                                             </div>
                                             @if (memberStatusResultValue.ProgressMonths.HasValue && memberStatusResultValue.ProgressTotalMonths.HasValue)
                                             {
-                                                <div class="progress" style="height: 8px;">
+                                                <div class="progress progress-compact">
                                                     <div class="progress-bar bg-primary" 
                                                          role="progressbar" 
                                                          style="width: @((memberStatusResultValue.ProgressMonths.Value * 100.0 / memberStatusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
@@ -338,7 +338,7 @@
                                         <option value="">Selecionar instrumento...</option>
                                         @foreach (var instrument in Enum.GetValues<InstrumentType>().Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                                         {
-                                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                            <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                         }
                                     </select>
                                     <button type="button"
@@ -409,7 +409,7 @@
                                         <div class="member-list member-list-scrollable">
                                             @foreach (var mentorItem in filteredMentors.Take(20))
                                             {
-                                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                <div class="member-item p-2 mb-2 border rounded clickable-row" @key="mentorItem.Id"
                                                      @onclick="() => SelectMentor(mentorItem)">
                                                     <div class="d-flex align-items-center">
                                                         <img src="@mentorItem.ProfilePictureSrc" alt="@mentorItem.GetDisplayName()"

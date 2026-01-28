@@ -6,6 +6,7 @@ namespace RTUB.Application.DTOs;
 /// </summary>
 public class DecisionOptionModel
 {
+    public int Id { get; set; } = 0;
     public string Title { get; set; } = string.Empty;
     public decimal Odds { get; set; } = 1.50m;
 }

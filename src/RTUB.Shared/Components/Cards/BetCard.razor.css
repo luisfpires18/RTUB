@@ -242,6 +242,17 @@
     color: black;
 }
 
+/* Resolved badge style */
+.bet-resolved-badge {
+    background-color: #8a2be2;
+    color: white;
+}
+
+/* Category badge container */
+.bet-category-badge-container {
+    z-index: 1;
+}
+
 /* Mobile adjustments for bet-specific styles */
 @media (max-width: 768px) {
     .bet-options-preview {

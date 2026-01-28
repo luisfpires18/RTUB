@@ -15,6 +15,11 @@
 @using System.Web
 @using Microsoft.AspNetCore.WebUtilities
 @inject IEventService EventService
+@inject IEventFilterService EventFilterService
+@inject IEventUrlService EventUrlService
+@inject IEventStatisticsService EventStatisticsService
+@inject IEnrollmentFilterService EnrollmentFilterService
+@inject IEnrollmentStatisticsService EnrollmentStatisticsService
 @inject IFiscalYearService FiscalYearService
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
@@ -52,7 +57,7 @@
                         </button>
                     </Authorized>
                 </AuthorizeView>
-                <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
+                <button class="btn btn-purple btn-purple-light" @onclick="OpenTrophiesStatsModal" title="Ver Prémios">
                     <i class="bi bi-trophy-fill"></i> Prémios
                 </button>
                 <AuthorizeView>
@@ -173,7 +178,7 @@ else
 
 @if (filteredPreviousEvents == null)
 {
-    <p>A carregar atuações anteriores...</p>
+    <LoadingSpinner Message="A carregar atuações anteriores..." />
 }
 else if (!filteredPreviousEvents.Any())
 {
@@ -768,7 +773,7 @@ else
                     <InfoSection SectionTitle="Descrição" 
                                 IconClass="bi-file-text" 
                                 CssClass="mb-3">
-                        <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
+                        <p class="text-white-full mb-0 content-pre-line">@selectedEvent.Description</p>
                     </InfoSection>
                 }
 
@@ -779,7 +784,7 @@ else
                                 IconClass="bi-exclamation-triangle-fill" 
                                 CssClass="mb-3"
                                 Style="background-color: rgba(220, 38, 38, 0.1); border-left: 4px solid #DC2626;">
-                        <p class="mb-0" style="white-space: pre-line; color: #FCA5A5;">@selectedEvent.CancellationReason</p>
+                        <p class="mb-0 cancellation-reason-text">@selectedEvent.CancellationReason</p>
                     </InfoSection>
                 }
             }
@@ -815,7 +820,7 @@ else
                 @foreach (var trophy in eventTrophies)
                 {
                     <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 text-center p-3 position-relative trophy-card" style="background-color: #151516; border: 2px solid #2f2f2f; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
+                        <div class="card h-100 text-center p-3 position-relative trophy-card">
                             <AuthorizeView Roles="Admin">
                                 <Authorized>
                                     <div class="position-absolute top-0 end-0 p-2">
@@ -829,7 +834,7 @@ else
                                 </Authorized>
                             </AuthorizeView>
                             <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                                <i class="bi bi-trophy-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                                <i class="bi bi-trophy-fill text-warning mb-3 trophy-icon-large"></i>
                                 <h5 class="card-title mb-0">@trophy.Name</h5>
                             </div>
                         </div>
@@ -891,11 +896,7 @@ else
     <BodyContent>
         @if (isLoadingTrophiesStats)
         {
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-            </div>
+            <LoadingSpinner Message="A carregar estatísticas de troféus..." />
         }
         else if (trophiesStatsByEvent == null || !trophiesStatsByEvent.Any())
         {
@@ -914,9 +915,8 @@ else
                         var startIndex = (trophiesStatsPaginationHelper.CurrentPage - 1) * trophiesStatsPaginationHelper.PageSize;
                         var position = paginatedTrophiesStats.IndexOf(eventGroup) + startIndex + 1;
                         <div class="user-stats-group mb-3">
-                            <div class="user-stats-header @(eventGroup.TrophyCount > 0 ? "" : "not-expandable")" 
-                                 @onclick="() => { if (eventGroup.TrophyCount > 0) ToggleTrophiesStats(eventGroup.EventId); }" 
-                                 style="@(eventGroup.TrophyCount > 0 ? "cursor: pointer;" : "")">
+                            <div class="user-stats-header @(eventGroup.TrophyCount > 0 ? "user-stats-header-clickable" : "not-expandable")" 
+                                 @onclick="() => { if (eventGroup.TrophyCount > 0) ToggleTrophiesStats(eventGroup.EventId); }">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="stats-card-position me-2">
                                         @if (position == 1)
@@ -1000,12 +1000,7 @@ else
                     
                     @if (isUploadingVideo)
                     {
-                        <div class="text-center py-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">A carregar...</span>
-                            </div>
-                            <p class="mt-2">A enviar vídeo...</p>
-                        </div>
+                        <LoadingSpinner Message="A enviar vídeo..." />
                     }
                     else
                     {
@@ -1210,9 +1205,9 @@ else
             <!-- Loading Overlay for Sending Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <div class="spinner-border text-primary mb-3 spinner-large" role="status">
                             <span class="visually-hidden">A enviar...</span>
                         </div>
                         <h5 class="text-white mb-2">Enviando emails...</h5>
@@ -1239,11 +1234,7 @@ else
 
                 @if (emailLoadingSubscribers)
                 {
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">A carregar...</span>
-                        </div>
-                    </div>
+                    <LoadingSpinner Message="A carregar subscritores..." />
                 }
                 else if (!string.IsNullOrEmpty(emailErrorMessage))
                 {
@@ -1317,11 +1308,9 @@ else
             <!-- Loading Overlay for Sending Push Notifications -->
             @if (IsSendingPushNotifications)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando notificações push...</h5>
                     </div>
                 </div>
@@ -1354,37 +1343,43 @@ else
                 }
                 else
                 {
-                    <!-- Notification Type Selection -->
+                    <!-- Custom Notification Message -->
                     <div class="mb-3">
-                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                        <select class="form-select" @bind="selectedPushNotificationType">
-                            <option value="@NotificationTypeNew">Nova Atuação</option>
-                            <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
-                        </select>
+                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
+                                  rows="4" 
+                                  @bind="customNotificationBody" 
+                                  placeholder="Ex: Atuação importante, confirma a tua presença!"
+                                  maxlength="500"></textarea>
                         <small class="text-muted">
-                            @if (selectedPushNotificationType == NotificationTypeNew)
-                            {
-                                <text>Notifica os membros sobre uma nova atuação criada.</text>
-                            }
-                            else
-                            {
-                                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
-                                if (daysText != null)
-                                {
-                                    var reminderText = daysText == "hoje" ? "a atuação é hoje" : $"a atuação é em {daysText}";
-                                    <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
-                                }
-                                else
-                                {
-                                    <text>Não é possível enviar lembretes para eventos passados.</text>
-                                }
-                            }
+                            A notificação usará automaticamente o nome do evento como título. Máximo 500 caracteres.
                         </small>
+                    </div>
+
+                    <!-- Filter Option -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="eventFilterLeitaoCaloiro"
+                                   @bind="filterOnlyLeitaoAndCaloiro"
+                                   @bind:after="OnEventFilterChanged" />
+                            <label class="form-check-label text-white-full" for="eventFilterLeitaoCaloiro">
+                                Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
+                            </label>
+                        </div>
+                        @if (filterOnlyLeitaoAndCaloiro)
+                        {
+                            <small class="text-warning d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>
+                                As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
+                            </small>
+                        }
                     </div>
                     
                     <EmailRecipientsPreview 
-                        SubscribedUsers="@(pushSubscribedUsers ?? new List<ApplicationUser>())"
-                        NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsers="@(pushFilteredSubscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
                         SubscribedUsersTitle="Membros que irão receber:"
                         NonSubscribedUsersTitle="Quem não irá receber:"
                         ShowNonSubscribedUsers="true"
@@ -1417,9 +1412,9 @@ else
             <!-- Loading Overlay for Sending Cancellation Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <div class="spinner-border text-primary mb-3 spinner-large" role="status">
                             <span class="visually-hidden">A enviar...</span>
                         </div>
                         <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
@@ -1657,12 +1652,15 @@ else
     // Push notification modal variables
     private List<ApplicationUser>? pushSubscribedUsers;
     private List<ApplicationUser>? pushNonSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
     private int pushSubscribedUsersCount = 0;
     private int pushTotalUsersCount = 0;
     private bool pushLoadingSubscribers = false;
     private string? pushErrorMessage;
-    private string selectedPushNotificationType = NotificationTypeNew;
     private bool IsSendingPushNotifications = false;
+    private string? customNotificationBody;
+    private bool filterOnlyLeitaoAndCaloiro = false;
     
     // Notification type constants
     private const string NotificationTypeNew = "new";
@@ -1806,69 +1804,19 @@ else
             return;
         }
         
-        // Determine the date range based on selected fiscal year
-        DateTime? fiscalYearStart = null;
-        DateTime? fiscalYearEnd = null;
+        // Use service to filter events (business logic extracted)
+        var (futureEvents, previousEvents) = EventFilterService.FilterEvents(
+            allEvents,
+            selectedFiscalYear,
+            selectedEventType,
+            previousEventsSearch
+        );
         
-        if (!string.IsNullOrEmpty(selectedFiscalYear))
-        {
-            var parts = selectedFiscalYear.Split('-');
-            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-            {
-                fiscalYearStart = new DateTime(startYear, 9, 1); // September 1st
-                fiscalYearEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
-            }
-        }
-        
-        // Apply fiscal year and event type filters
-        var filtered = allEvents.AsEnumerable();
-        
-        // Filter by fiscal year
-        if (fiscalYearStart.HasValue && fiscalYearEnd.HasValue)
-        {
-            filtered = filtered.Where(e => e.Date >= fiscalYearStart.Value && e.Date <= fiscalYearEnd.Value);
-        }
-        
-        // Filter by event type
-        if (!string.IsNullOrEmpty(selectedEventType) && Enum.TryParse<EventType>(selectedEventType, out var eventTypeFilter))
-        {
-            filtered = filtered.Where(e => e.Type == eventTypeFilter);
-        }
-        
-        var filteredList = filtered.ToList();
-        
-        // Split into future and past events
-        var today = DateTime.Today;
-        filteredFutureEvents = filteredList
-            .Where(e => e.Date >= today)
-            .OrderBy(e => e.Date)
-            .ToList();
+        filteredFutureEvents = futureEvents;
+        filteredPreviousEvents = previousEvents;
         
         // For backward compatibility, assign to events as well
         events = filteredFutureEvents;
-        
-        // Filter previous events (also apply search)
-        var previousFiltered = filteredList.Where(e => e.Date < today);
-        
-        // Apply search filter to previous events
-        if (!string.IsNullOrWhiteSpace(previousEventsSearch))
-        {
-            searchHelper.SearchTerm = previousEventsSearch;
-            filteredPreviousEvents = searchHelper.FilterMultiple(previousFiltered.ToList(), new List<Func<Event, string>>
-            {
-                e => e.Name ?? "",
-                e => e.Location ?? "",
-                e => e.Description ?? ""
-            })
-            .OrderByDescending(e => e.Date)
-            .ToList();
-        }
-        else
-        {
-            filteredPreviousEvents = previousFiltered
-                .OrderByDescending(e => e.Date)
-                .ToList();
-        }
         
         // Reset pagination when filters change
         futureEventsPaginationHelper.Reset();
@@ -1898,22 +1846,9 @@ else
             return;
         }
 
-        var queryParams = new List<string>();
-        
-        // Add fiscal year if not default
-        if (!string.IsNullOrEmpty(selectedFiscalYear) && selectedFiscalYear != currentFiscalYear)
-        {
-            queryParams.Add($"fy={Uri.EscapeDataString(selectedFiscalYear)}");
-        }
-        
-        // Add event type if selected
-        if (!string.IsNullOrEmpty(selectedEventType))
-        {
-            queryParams.Add($"type={Uri.EscapeDataString(selectedEventType)}");
-        }
-        
-        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-        var newUrl = Navigation.ToAbsoluteUri("/events" + queryString).ToString();
+        // Use service to build query string (business logic extracted)
+        var queryString = EventUrlService.BuildQueryString(selectedFiscalYear, currentFiscalYear, selectedEventType);
+        var newUrl = Navigation.ToAbsoluteUri("/events" + (string.IsNullOrEmpty(queryString) ? "" : "?" + queryString)).ToString();
         Navigation.NavigateTo(newUrl, false); // false = don't force reload
     }
     
@@ -2827,9 +2762,11 @@ else
         // Fetch all member instruments in one query
         var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
         
-        // Calculate counts using the Event entity methods
-        primaryInstrumentCounts = selectedEvent.GetPrimaryInstrumentCounts(memberInstruments);
-        otherInstrumentCounts = selectedEvent.GetOtherInstrumentCounts(memberInstruments);
+        // Use service to calculate counts (business logic extracted)
+        (primaryInstrumentCounts, otherInstrumentCounts) = EnrollmentStatisticsService.CalculateInstrumentCounts(
+            selectedEvent,
+            memberInstruments
+        );
     }
 
     private string GetEventTypeDisplay(EventType type)
@@ -3197,7 +3134,8 @@ else
         selectedEventForPush = eventItem;
         pushLoadingSubscribers = true;
         pushErrorMessage = null;
-        selectedPushNotificationType = NotificationTypeNew; // Reset to default
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
         modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
@@ -3220,8 +3158,7 @@ else
                 .OrderBy(u => u.Nickname ?? u.FirstName)
                 .ToList();
             
-            pushSubscribedUsersCount = pushSubscribedUsers.Count;
-            pushTotalUsersCount = allUsers.Count;
+            ApplyPushNotificationFilter();
         }
         catch (Exception ex)
         {
@@ -3240,16 +3177,26 @@ else
         selectedEventForPush = null;
         pushSubscribedUsers = null;
         pushNonSubscribedUsers = null;
+        pushFilteredSubscribedUsers = null;
+        pushFilteredNonSubscribedUsers = null;
         pushSubscribedUsersCount = 0;
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
     }
 
     private async Task SendPushNotification()
     {
-        if (selectedEventForPush == null || pushSubscribedUsers == null || !pushSubscribedUsers.Any())
+        if (selectedEventForPush == null || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any())
         {
             ClosePushNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customNotificationBody))
+        {
+            pushErrorMessage = "A mensagem da notificação é obrigatória.";
             return;
         }
 
@@ -3262,27 +3209,14 @@ else
             // Get the base URL
             var baseUri = Navigation.BaseUri.TrimEnd('/');
 
-            // Determine if this is a reminder notification
-            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
-
-            // Validate event is in the future for reminders
-            if (isReminder)
-            {
-                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
-                if (daysText == null)
-                {
-                    pushErrorMessage = "Não é possível enviar lembretes para eventos passados.";
-                    IsSendingPushNotifications = false;
-                    StateHasChanged();
-                    return;
-                }
-            }
-
             // Create the push notification using the factory
             SendPushNotificationDto notification;
             try
             {
-                notification = PushNotificationFactory.CreateEventNotification(selectedEventForPush, isReminder, baseUri);
+                notification = PushNotificationFactory.CreateEventCustomNotification(
+                    selectedEventForPush,
+                    customNotificationBody!,
+                    baseUri);
             }
             catch (ArgumentException ex)
             {
@@ -3292,8 +3226,9 @@ else
                 return;
             }
 
-            // Broadcast to all subscribed users
-            await PushNotificationService.BroadcastAsync(notification);
+            // Send to filtered subscribed users only
+            var recipientIds = pushFilteredSubscribedUsers.Select(u => u.Id).ToList();
+            await PushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
 
             // Success - close modal
             ClosePushNotificationModal();
@@ -3307,6 +3242,36 @@ else
             IsSendingPushNotifications = false;
             StateHasChanged();
         }
+    }
+
+    private void ApplyPushNotificationFilter()
+    {
+        if (filterOnlyLeitaoAndCaloiro)
+        {
+            // Filter to include ONLY users with Leitao OR Caloiro category
+            pushFilteredSubscribedUsers = pushSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+        }
+        else
+        {
+            // No filter - use original lists directly
+            pushFilteredSubscribedUsers = pushSubscribedUsers;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
+        }
+
+        // Update counts based on filtered lists
+        pushSubscribedUsersCount = pushFilteredSubscribedUsers?.Count ?? 0;
+        pushTotalUsersCount = (pushFilteredSubscribedUsers?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
+    }
+
+    private void OnEventFilterChanged()
+    {
+        ApplyPushNotificationFilter();
     }
 
     private void OnDateChanged()
@@ -4106,37 +4071,8 @@ else
     
     private async Task LoadTrophiesStatistics()
     {
-        // Get all past events
-        var pastEvents = (await EventService.GetPastEventsAsync(100)).ToList();
-        
-        // Get all trophies
-        var allTrophies = (await TrophyService.GetAllAsync()).ToList();
-        
-        // Group trophies by event
-        var trophiesByEvent = allTrophies
-            .Where(t => t.EventId > 0)
-            .GroupBy(t => t.EventId)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        
-        // Create stats for all past events (only festivals can have trophies)
-        var groupedByEvent = pastEvents
-            .Where(evt => evt.Type == EventType.Festival)
-            .Select(evt => {
-                var eventTrophies = trophiesByEvent.TryGetValue(evt.Id, out var trophyList) ? trophyList : new List<Trophy>();
-                return new TrophyStatsByEvent
-                {
-                    EventId = evt.Id,
-                    EventName = evt.Name ?? "Evento desconhecido",
-                    EventDate = evt.Date,
-                    TrophyCount = eventTrophies.Count,
-                    Trophies = eventTrophies
-                };
-            })
-            .OrderByDescending(s => s.TrophyCount)
-            .ThenByDescending(s => s.EventDate)
-            .ToList();
-        
-        trophiesStatsByEvent = groupedByEvent;
+        // Use service to get trophy statistics
+        trophiesStatsByEvent = await EventStatisticsService.GetTrophyStatisticsByEventAsync(100);
         
         // Set up pagination
         paginatedTrophiesStats = trophiesStatsPaginationHelper.GetPageData(trophiesStatsByEvent);

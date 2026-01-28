@@ -58,6 +58,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return await _attendanceRepository.GetAttendancesByRehearsalIdAsync(rehearsalId);
     }
 
+    public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds)
+    {
+        return await _attendanceRepository.GetAttendancesByRehearsalIdsAsync(rehearsalIds);
+    }
+
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId)
     {
         return await _attendanceRepository.GetAttendancesByUserIdAsync(userId);
@@ -75,7 +80,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             var wasAttending = existing.WillAttend;
 
             // Update existing attendance
-            existing.WillAttend = willAttend;
+            if (existing.WillAttend != willAttend)
+            {
+                existing.WillAttend = willAttend;
+                // Update enlist/check-in time only when attendance intent actually changes
+                existing.CheckedInAt = DateTime.UtcNow;
+            }
             // Always update instrument (including setting to null to clear it)
             existing.UpdateInstrument(instrument);
             // Always update notes, even if empty (allows clearing notes)

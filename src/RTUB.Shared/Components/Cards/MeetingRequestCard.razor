@@ -11,14 +11,14 @@
     <div class="position-relative">
         @if (IsAuthor)
         {
-            <div class="request-admin-overlay" style="flex-direction: column;">
-                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+            <div class="request-admin-overlay request-admin-overlay-column">
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar" aria-label="Eliminar pedido">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
                 @if (ShowReminder && MeetingRequest.Status == RequestStatus.Pending)
                 {
-                    <button class="btn btn-sm" style="background-color: rgba(255, 255, 255, 0.85); border: none; padding: 6px 10px;" @onclick="HandleSendReminder" title="Enviar Lembrete">
-                        <i class="bi bi-bell-fill" style="font-size: 1.1rem; color: #333; transition: transform 0.2s ease;"></i>
+                    <button class="btn btn-sm btn-send-reminder" @onclick="HandleSendReminder" title="Enviar Lembrete" aria-label="Enviar lembrete">
+                        <i class="bi bi-bell-fill btn-send-reminder-icon"></i>
                     </button>
                 }
             </div>
@@ -81,7 +81,8 @@
                 <!-- View Details button -->
                 <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
                         @onclick="HandleViewDetails" 
-                        title="Ver Detalhes">
+                        title="Ver Detalhes"
+                        aria-label="Ver detalhes do pedido">
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
                 </button>
@@ -91,14 +92,16 @@
                     <!-- Accept button -->
                     <button class="btn btn-sm btn-success d-flex align-items-center" 
                             @onclick="HandleAccept" 
-                            title="Aceitar">
+                            title="Aceitar"
+                            aria-label="Aceitar pedido">
                         <i class="bi bi-check-circle-fill"></i>
                     </button>
 
                     <!-- Reject button -->
                     <button class="btn btn-sm btn-danger d-flex align-items-center" 
                             @onclick="HandleReject" 
-                            title="Rejeitar">
+                            title="Rejeitar"
+                            aria-label="Rejeitar pedido">
                         <i class="bi bi-x-circle-fill"></i>
                     </button>
                 }

@@ -101,7 +101,25 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
         return await _dbSet
             .AsNoTracking()
             .Include(a => a.Rehearsal)
+            .Include(a => a.User) // Include User to avoid N+1 queries
             .Where(a => a.RehearsalId == rehearsalId)
+            .OrderBy(a => a.CheckedInAt)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds)
+    {
+        var rehearsalIdsList = rehearsalIds.ToList();
+        if (!rehearsalIdsList.Any())
+        {
+            return Enumerable.Empty<RehearsalAttendance>();
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Include(a => a.Rehearsal)
+            .Include(a => a.User) // Include User to avoid N+1 queries
+            .Where(a => rehearsalIdsList.Contains(a.RehearsalId))
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync();
     }

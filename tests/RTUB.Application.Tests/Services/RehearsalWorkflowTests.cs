@@ -239,6 +239,19 @@ public class RehearsalWorkflowTests : IDisposable
             DateTime.Today.AddDays(1),
             "Location");
 
+        // Create test user to avoid issues with Include navigation property
+        var testUser = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
+            Email = "user1@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "user1"
+        };
+        _context.Users.Add(testUser);
+        await _context.SaveChangesAsync();
+
         var firstAttendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, "user1");
 
         // Act - try to enroll again

@@ -16,7 +16,7 @@
             <div class="modal-content">
                 @if (!string.IsNullOrEmpty(Title) || ShowCloseButton || HeaderActions != null)
                 {
-                    <div class="modal-header" style="background: rgba(var(--bs-primary-rgb), 0.1);">
+                    <div class="modal-header modal-header-primary">
                         @if (HeaderActions != null)
                         {
                             <div class="modal-header-actions">
@@ -29,7 +29,7 @@
                         }
                         @if (ShowCloseButton)
                         {
-                            <button type="button" class="btn-close" @onclick="Close"></button>
+                            <button type="button" class="btn-close" @onclick="Close" aria-label="Fechar modal"></button>
                         }
                     </div>
                 }

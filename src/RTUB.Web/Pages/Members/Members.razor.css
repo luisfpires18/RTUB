@@ -169,3 +169,82 @@
         min-width: 40px;
     }
 }
+
+/* Search bar container */
+.search-bar-container {
+    min-width: 360px;
+    max-width: 640px;
+}
+
+/* Filter dropdown containers */
+.filter-dropdown-container {
+    min-width: 200px;
+    max-width: 240px;
+}
+
+/* Form check cursor */
+.form-check-input-clickable,
+.form-check-label-clickable {
+    cursor: pointer;
+}
+
+/* Avatar large */
+.member-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--bs-primary);
+}
+
+/* Progress bar compact */
+.progress-compact {
+    height: 8px;
+}
+
+/* Section divider */
+.section-divider {
+    border-top: 1px solid #343536;
+    padding-top: 1rem;
+}
+
+/* Section header clickable */
+.section-header-clickable {
+    cursor: pointer;
+}
+
+/* Scrollable container */
+.scrollable-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Activity list item */
+.activity-list-item {
+    background-color: #1a1a1b;
+    border-color: #343536;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+/* Subscriber list scrollable */
+.subscriber-list-scrollable {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Loading overlay */
+.loading-overlay-container {
+    min-height: 200px;
+}
+
+.loading-overlay-backdrop {
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+    border-radius: 8px;
+}
+
+/* Spinner size */
+.spinner-large {
+    width: 3rem;
+    height: 3rem;
+}

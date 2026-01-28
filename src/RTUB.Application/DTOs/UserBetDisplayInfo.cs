@@ -6,6 +6,7 @@ namespace RTUB.Application.DTOs;
 /// </summary>
 public class UserBetDisplayInfo
 {
+    public string UserId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public string OptionTitle { get; set; } = string.Empty;

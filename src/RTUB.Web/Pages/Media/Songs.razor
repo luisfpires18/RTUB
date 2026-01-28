@@ -11,6 +11,10 @@
 @using RTUB.Web.Services
 @inject IAlbumService AlbumService
 @inject ISongService SongService
+@inject ISongContentService SongContentService
+@inject ISongUrlCacheService SongUrlCacheService
+@inject ISongPlayService SongPlayService
+@inject ISongValidationService SongValidationService
 @inject IAudioStorageService AudioStorageService
 @inject ILyricStorageService LyricStorageService
 @inject ILogger<Songs> Logger
@@ -31,7 +35,7 @@ else
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
+                <button class="btn btn-outline-light btn-sm" @onclick="GoBack" aria-label="Voltar">
                     <i class="bi bi-arrow-left"></i>
                 </button>
             </div>
@@ -39,7 +43,7 @@ else
             <AuthorizeView Roles="Admin,Mod">
                 <Authorized>
                     <div class="page-header-actions justify-content-lg-end">
-                        <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música">
+                        <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música" aria-label="Criar Nova Música">
                             <i class="bi bi-plus-lg"></i> Adicionar Música
                         </button>
                     </div>
@@ -94,7 +98,8 @@ else
         <div class="song-grid">
             @foreach (var song in filteredSongs.OrderBy(s => s.TrackNumber))
             {
-                <SongCard Song="@song"
+                <SongCard @key="song.Id"
+                         Song="@song"
                          PlayCount="@(songPlayCounts.ContainsKey(song.Id) ? songPlayCounts[song.Id] : 0)"
                          LinkCount="@(songLinkCounts.ContainsKey(song.Id) ? songLinkCounts[song.Id] : 0)"
                          VideoCount="@(songVideoCounts.ContainsKey(song.Id) ? songVideoCounts[song.Id] : 0)"
@@ -123,7 +128,7 @@ else
             <audio id="rtub-audio-player" src="@currentAudioUrl" controls class="audio-element">
                 Seu navegador não suporta o elemento de áudio.
             </audio>
-            <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar">
+            <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar" aria-label="Fechar player de áudio">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
@@ -166,10 +171,10 @@ else
         }
         else if (!string.IsNullOrEmpty(currentPdfUrl))
         {
-            <div class="pdf-viewer-container" style="height: 80vh; overflow: auto;">
+            <div class="pdf-viewer-container">
                 @* Enable PDF toolbar on mobile for zoom controls, hide on desktop for cleaner UX *@
                 <iframe src="@GetPdfViewerUrl(currentPdfUrl)" 
-                        style="width: 100%; height: 100%; border: none;"
+                        class="pdf-viewer-iframe"
                         allow="fullscreen"
                         title="@($"Letra - {viewingSong?.Title}")">
                 </iframe>
@@ -459,12 +464,7 @@ else
                 
                 @if (isUploadingVideo)
                 {
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">A carregar...</span>
-                        </div>
-                        <p class="mt-2">A enviar vídeo...</p>
-                    </div>
+                    <LoadingSpinner Message="A enviar vídeo..." />
                 }
                 else
                 {
@@ -650,13 +650,6 @@ else
     private bool isLoadingPdf = false;
     private string? currentPdfUrl;
     
-    // URL cache for performance (session-based with size limit)
-    private Dictionary<string, string> urlCache = new();
-    private const int MaxCacheSize = 100; // Limit cache to 100 URLs per session
-    
-    // Video title detection constants
-    private const int MaxCleanTitleLength = 50;
-    private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
     
     // Media session constants
     private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
@@ -805,26 +798,16 @@ else
                 
                 // Check cache first
                 string cacheKey = $"lyric_{album.Title}_{song.Title}";
-                string? pdfUrl = null;
+                string? pdfUrl = SongUrlCacheService.GetCachedUrl(cacheKey);
                 
-                if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
-                {
-                    pdfUrl = cachedUrl;
-                }
-                else
+                if (pdfUrl == null)
                 {
                     pdfUrl = await LyricStorageService.GetLyricPdfUrlAsync(album.Title, song.Title);
                     
                     // Cache the URL for session with size limit
                     if (!string.IsNullOrEmpty(pdfUrl))
                     {
-                        // If cache is at limit, remove oldest entry (first key)
-                        if (urlCache.Count >= MaxCacheSize)
-                        {
-                            var firstKey = urlCache.Keys.First();
-                            urlCache.Remove(firstKey);
-                        }
-                        urlCache[cacheKey] = pdfUrl;
+                        SongUrlCacheService.CacheUrl(cacheKey, pdfUrl);
                     }
                 }
                 
@@ -1082,12 +1065,9 @@ else
             // Check cache first for performance
             string cacheKey = $"audio_{album.Title}_{song.TrackNumber}_{song.Title}";
             
-            string? audioUrl = null;
-            if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
-            {
-                audioUrl = cachedUrl;
-            }
-            else
+            string? audioUrl = SongUrlCacheService.GetCachedUrl(cacheKey);
+            
+            if (audioUrl == null)
             {
                 // Generate pre-signed URL for the audio file (lazy loading - only on play)
                 audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
@@ -1095,13 +1075,7 @@ else
                 // Cache the URL for session with size limit
                 if (!string.IsNullOrEmpty(audioUrl))
                 {
-                    // If cache is at limit, remove oldest entry (first key)
-                    if (urlCache.Count >= MaxCacheSize)
-                    {
-                        var firstKey = urlCache.Keys.First();
-                        urlCache.Remove(firstKey);
-                    }
-                    urlCache[cacheKey] = audioUrl;
+                    SongUrlCacheService.CacheUrl(cacheKey, audioUrl);
                 }
             }
             
@@ -1389,11 +1363,9 @@ else
         if (viewingVideosForSong == null) return;
         
         var file = e.File;
-        var maxFileSize = 100 * 1024 * 1024; // 100MB
         
-        if (file.Size > maxFileSize)
+        if (!SongValidationService.ValidateVideoFileSize(file))
         {
-            Logger.LogWarning("Video file size exceeds maximum allowed size of 100MB");
             selectedVideoName = null;
             selectedVideoFile = null;
             return;
@@ -1516,26 +1488,7 @@ else
         if (viewingVideosForSong == null) 
             return $"Vídeo {videoNumber}";
         
-        // If no title exists, generate generic one
-        if (string.IsNullOrWhiteSpace(video.Title))
-        {
-            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
-        }
-        
-        // Check if title looks like a storage key (long, contains file extensions, or path separators)
-        var title = video.Title.Trim();
-        var looksLikeKey = title.Length > MaxCleanTitleLength || 
-                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
-                          title.Contains("/") ||
-                          title.Contains("\\");
-        
-        if (looksLikeKey)
-        {
-            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
-        }
-        
-        // Title looks good, use as-is
-        return title;
+        return SongContentService.GetCleanVideoTitle(video, viewingVideosForSong, videoNumber);
     }
     
     /// <summary>
@@ -1606,18 +1559,14 @@ else
             {
                 // Get or generate audio URL for each track
                 string cacheKey = $"audio_{album.Title}_{track.TrackNumber}_{track.Title}";
-                string? audioUrl = null;
+                string? audioUrl = SongUrlCacheService.GetCachedUrl(cacheKey);
                 
-                if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
-                {
-                    audioUrl = cachedUrl;
-                }
-                else
+                if (audioUrl == null)
                 {
                     audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, track.TrackNumber, track.Title);
-                    if (!string.IsNullOrEmpty(audioUrl) && urlCache.Count < MaxCacheSize)
+                    if (!string.IsNullOrEmpty(audioUrl))
                     {
-                        urlCache[cacheKey] = audioUrl;
+                        SongUrlCacheService.CacheUrl(cacheKey, audioUrl);
                     }
                 }
                 

@@ -1,0 +1,37 @@
+/* Scoped styles for ProfileHeader component */
+
+.profile-header-card {
+    min-width: 0;
+}
+
+.profile-header-card .card-body {
+    min-width: 0;
+}
+
+.profile-header-card .row {
+    min-width: 0;
+}
+
+.profile-header-card .col-12 {
+    min-width: 0;
+}
+
+.profile-header-card .text-center {
+    min-width: 0;
+}
+
+.profile-avatar-wrapper {
+    min-width: 0;
+}
+
+.profile-header-info-centered {
+    min-width: 0;
+}
+
+.profile-badges {
+    min-width: 0;
+}
+
+.profile-header-actions {
+    min-width: 0;
+}

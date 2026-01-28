@@ -17,6 +17,8 @@
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
+@inject ITransactionFilterService TransactionFilterService
+@inject IFinanceManagementService FinanceManagementService
 @inject IMemberDebtService MemberDebtService
 @inject IFiscalYearService FiscalYearService
 @inject NavigationManager NavigationManager
@@ -47,7 +49,7 @@ else
             <div class="discussion-header-actions page-header-actions justify-content-end justify-content-lg-end">
                 <AuthorizeView Roles="Admin">
                     <Authorized>
-                        <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenTransactionHistoryModal" title="Histórico de Transações">
+                        <button class="btn btn-purple btn-purple-light" @onclick="OpenTransactionHistoryModal" title="Histórico de Transações">
                             <i class="bi bi-clock-history"></i> Histórico de Transações
                         </button>
                     </Authorized>
@@ -89,8 +91,7 @@ else
             <div class="card text-center summary-card position-relative">
                 @if (CanCreateReports() && !report.IsPublished)
                 {
-                    <button class="btn btn-sm admin-btn-edit position-absolute" 
-                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                    <button class="btn btn-sm admin-btn-edit position-absolute summary-card-edit-btn" 
                             @onclick="() => OpenBankCashEditModal(true)"
                             title="Editar">
                         <i class="bi bi-pencil"></i>
@@ -106,8 +107,7 @@ else
             <div class="card text-center summary-card position-relative">
                 @if (CanCreateReports() && !report.IsPublished)
                 {
-                    <button class="btn btn-sm admin-btn-edit position-absolute" 
-                            style="top: 4px; right: 4px; padding: 2px 6px; font-size: 0.7rem;"
+                    <button class="btn btn-sm admin-btn-edit position-absolute summary-card-edit-btn" 
                             @onclick="() => OpenBankCashEditModal(false)"
                             title="Editar">
                         <i class="bi bi-pencil"></i>
@@ -303,7 +303,8 @@ else
             <div class="transaction-grid">
                 @foreach (var transaction in filteredTransactions)
                 {
-                    <TransactionCard Transaction="@transaction"
+                    <TransactionCard @key="transaction.Id"
+                                     Transaction="@transaction"
                                      CanEdit="@(!report.IsPublished && CanCreateReports())"
                                      OnViewReceipt="OpenReceiptModal"
                                      OnEdit="OpenEditTransactionModal"
@@ -488,7 +489,7 @@ else
                         }
                         else
                         {
-                            <img src="@editingTransactionReceiptUrl" alt="Recibo atual" class="img-thumbnail mt-1" style="max-height: 150px;" />
+                            <img src="@editingTransactionReceiptUrl" alt="Recibo atual" class="img-thumbnail mt-1 receipt-thumbnail" />
                         }
                     </div>
                 }
@@ -558,7 +559,7 @@ else
             else
             {
                 <div class="text-center">
-                    <img src="@receiptToView" alt="Recibo" class="img-fluid" style="max-height: 70vh;" />
+                    <img src="@receiptToView" alt="Recibo" class="img-fluid receipt-viewer" />
                 </div>
             }
         }
@@ -598,11 +599,7 @@ else
     <BodyContent>
         @if (isLoadingTransactionHistory)
         {
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-            </div>
+            <LoadingSpinner Message="A carregar histórico de transações..." />
         }
         else if (transactionHistoryLogs == null || !transactionHistoryLogs.Any())
         {
@@ -618,8 +615,8 @@ else
                     <div class="stats-card-grid">
                         @foreach (var entry in transactionHistoryLogs)
                         {
-                            <div class="stats-card">
-                                <div class="stats-card-content" style="flex: 1;">
+                            <div class="stats-card" @key="entry.Id">
+                                <div class="stats-card-content">
                                     <div class="stats-card-title">@entry.TransactionDescription</div>
                                     <div class="stats-card-subtitle">
                                         <i class="bi bi-calendar3 me-1"></i>@entry.Timestamp.ToString("dd/MM/yyyy HH:mm")
@@ -850,18 +847,19 @@ else
 
     private async Task LoadTransactions()
     {
-        // Load all transactions (ActivityService already filters by report)
-var allActivityTransactions = new List<Transaction>();
-        
-    // Since we need all transactions for the report, we get them via activities
+        // Batch load all transactions for all activities to avoid N+1 queries
         var reportActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
-        foreach (var activity in reportActivities)
-      {
-            var activityTransactions = await TransactionService.GetTransactionsByActivityIdAsync(activity.Id);
-            allActivityTransactions.AddRange(activityTransactions);
-      }
+        var activityIds = reportActivities.Select(a => a.Id).ToList();
         
-        allTransactions = allActivityTransactions.OrderByDescending(t => t.Date).ToList();
+        if (activityIds.Any())
+        {
+            var allActivityTransactions = await TransactionService.GetTransactionsByActivityIdsAsync(activityIds);
+            allTransactions = allActivityTransactions.OrderByDescending(t => t.Date).ToList();
+        }
+        else
+        {
+            allTransactions = new List<Transaction>();
+        }
     }
 
     private List<Transaction> GetActivityTransactions(int activityId)
@@ -883,43 +881,13 @@ var allActivityTransactions = new List<Transaction>();
     var state = GetTableState(activityId);
         var transactions = GetActivityTransactions(activityId);
 
-        // Filter
-        if (!string.IsNullOrWhiteSpace(state.SearchTerm))
-  {
-     var search = state.SearchTerm.ToLower();
-            transactions = transactions
-    .Where(t =>
-       (t.Description?.ToLower().Contains(search) ?? false) ||
-   (t.Category?.ToLower().Contains(search) ?? false))
-      .ToList();
-        }
-
-        // Sort
-        transactions = state.SortColumn switch
-        {
-            "Date" => state.SortDescending
-            ? transactions.OrderByDescending(t => t.Date).ToList()
-          : transactions.OrderBy(t => t.Date).ToList(),
-            "Description" => state.SortDescending
-    ? transactions.OrderByDescending(t => t.Description).ToList()
-     : transactions.OrderBy(t => t.Description).ToList(),
-            "Category" => state.SortDescending
-          ? transactions.OrderByDescending(t => t.Category).ToList()
-      : transactions.OrderBy(t => t.Category).ToList(),
-    "Type" => state.SortDescending
-    ? transactions.OrderByDescending(t => t.Type).ToList()
-                : transactions.OrderBy(t => t.Type).ToList(),
-          "Amount" => state.SortDescending
-        ? transactions.OrderByDescending(t => t.Amount).ToList()
-  : transactions.OrderBy(t => t.Amount).ToList(),
-        _ => transactions.OrderByDescending(t => t.Date).ToList()
-  };
-
-        // Paginate
-      return transactions
-        .Skip((state.CurrentPage - 1) * state.PageSize)
-        .Take(state.PageSize)
-            .ToList();
+        return TransactionFilterService.GetFilteredSortedPaginatedTransactions(
+            transactions,
+            state.SearchTerm,
+            state.SortColumn,
+            state.SortDescending,
+            state.CurrentPage,
+            state.PageSize);
     }
 
     private void SetSearch(int activityId, string value)
@@ -1392,98 +1360,12 @@ state.CurrentPage = newPage;
     {
         if (report == null) return;
 
-        var activityName = isEditingBank ? "DINHEIRO NO BANCO" : "DINHEIRO EM CAIXA";
-        var currentActivity = isEditingBank ? bankActivity : cashActivity;
-        var newValue = editingBankCashValue;
-
-        // If activity doesn't exist, create it
-        if (currentActivity == null)
-        {
-            currentActivity = await ActivityService.CreateActivityAsync(
-                ReportId,
-                activityName,
-                DateTime.Today,
-                null, // description
-                null  // endDate
-            );
-        }
-
-        // Get existing transactions for this activity
-        var existingTransactions = (await TransactionService.GetTransactionsByActivityIdAsync(currentActivity.Id)).ToList();
-        
-        // Best practice: Update existing transaction instead of delete+create to produce a single "Modified" audit log
-        if (existingTransactions.Count == 1)
-        {
-            var existingTransaction = existingTransactions[0];
-            
-            if (newValue == 0)
-            {
-                // Delete the transaction if new value is zero
-                await TransactionService.DeleteTransactionAsync(existingTransaction.Id);
-            }
-            else
-            {
-                // Update the existing transaction (produces single "Modified" audit log)
-                var type = newValue >= 0 ? "Income" : "Expense";
-                var amount = Math.Abs(newValue);
-                await TransactionService.UpdateTransactionAsync(
-                    existingTransaction.Id,
-                    DateTime.Today,
-                    activityName,
-                    "Saldo",
-                    amount,
-                    type
-                );
-            }
-        }
-        else if (existingTransactions.Count > 1)
-        {
-            // Multiple transactions exist - keep the first one and delete the rest, then update the first
-            var transactionToKeep = existingTransactions[0];
-            
-            // Delete extra transactions
-            foreach (var t in existingTransactions.Skip(1))
-            {
-                await TransactionService.DeleteTransactionAsync(t.Id);
-            }
-            
-            if (newValue == 0)
-            {
-                // Delete the remaining transaction if new value is zero
-                await TransactionService.DeleteTransactionAsync(transactionToKeep.Id);
-            }
-            else
-            {
-                // Update the remaining transaction
-                var type = newValue >= 0 ? "Income" : "Expense";
-                var amount = Math.Abs(newValue);
-                await TransactionService.UpdateTransactionAsync(
-                    transactionToKeep.Id,
-                    DateTime.Today,
-                    activityName,
-                    "Saldo",
-                    amount,
-                    type
-                );
-            }
-        }
-        else
-        {
-            // No existing transactions - create a new one if value is non-zero
-            if (newValue != 0)
-            {
-                var type = newValue >= 0 ? "Income" : "Expense";
-                var amount = Math.Abs(newValue);
-                await TransactionService.CreateTransactionAsync(
-                    DateTime.Today,
-                    activityName,
-                    "Saldo",
-                    amount,
-                    type,
-                    currentActivity.Id
-                );
-            }
-        }
+        await FinanceManagementService.SaveBankCashValueAsync(
+            ReportId,
+            isEditingBank,
+            editingBankCashValue,
+            ActivityService,
+            TransactionService);
 
         // Reload data
         await LoadBankAndCashMoney();

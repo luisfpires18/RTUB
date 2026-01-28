@@ -63,6 +63,14 @@ public class BetCommentService : IBetCommentService
     }
 
     /// <summary>
+    /// Get comment counts for multiple bets (batch operation to avoid N+1 queries)
+    /// </summary>
+    public async Task<Dictionary<int, int>> GetCommentCountsByBetIdsAsync(IEnumerable<int> betIds)
+    {
+        return await _betCommentRepository.GetCountsByBetIdsAsync(betIds);
+    }
+
+    /// <summary>
     /// Add a new comment to a bet
     /// </summary>
     public async Task<BetCommentDto> AddCommentAsync(int betId, string authorId, string text, string? mediaUrl = null, string? mediaType = null)

@@ -279,3 +279,64 @@
     }
 }
 
+/* Header clickable */
+.ranks-timeline-header {
+    cursor: pointer;
+}
+
+/* Ranking story panel */
+.ranking-story-panel {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    border-radius: 8px;
+    padding: 1.5rem;
+    position: relative;
+}
+
+/* Edit button positioning */
+.ranking-story-edit-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+/* Content display */
+.ranking-story-content {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+/* Avatar large */
+.member-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--bs-primary);
+}
+
+/* Badge styles */
+.badge-purple {
+    background-color: #8a2be2;
+}/* Modal section header */
+.modal-section-header {
+    cursor: pointer;
+}
+
+/* Modal section body */
+.modal-section-body-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Activity list item */
+.activity-list-item {
+    background-color: #1a1a1b;
+    border-color: #343536;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+/* Badge alignment */
+.badge-center {
+    align-self: center;
+}

@@ -36,10 +36,10 @@
         @if (IsAdmin)
         {
             <div class="admin-overlay">
-                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar" aria-label="Editar reunião">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
-                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar" aria-label="Eliminar reunião">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
@@ -104,7 +104,8 @@
                     <div class="event-buttons-container justify-content-center">
                         <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
                                 @onclick="OnViewParticipants" 
-                                title="Participantes">
+                                title="Participantes"
+                                aria-label="Ver participantes">
                             <i class="bi bi-people"></i>
                             <span class="enrollment-count-centered">@ParticipationCount</span>
                         </button>
@@ -115,14 +116,16 @@
                         <!-- Green "Vou" button -->
                         <button class="btn event-icon-btn btn-going @GetGoingButtonClass()" 
                                 @onclick="OnParticipateGoing" 
-                                title="@GetGoingButtonTitle()">
+                                title="@GetGoingButtonTitle()"
+                                aria-label="@GetGoingButtonTitle()">
                             <i class="bi bi-check-circle-fill"></i>
                         </button>
                         
                         <!-- Red "Não vou" button -->
                         <button class="btn event-icon-btn btn-not-going @GetNotGoingButtonClass()" 
                                 @onclick="OnParticipateNotGoing" 
-                                title="@GetNotGoingButtonTitle()">
+                                title="@GetNotGoingButtonTitle()"
+                                aria-label="@GetNotGoingButtonTitle()">
                             <i class="bi bi-x-circle-fill"></i>
                         </button>
                     </div>
@@ -139,7 +142,8 @@
                     <div class="event-buttons-container justify-content-center">
                         <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
                                 @onclick="OnViewParticipants" 
-                                title="Participantes">
+                                title="Participantes"
+                                aria-label="Ver participantes">
                             <i class="bi bi-people"></i>
                             <span class="enrollment-count-centered">@ParticipationCount</span>
                         </button>
@@ -152,7 +156,8 @@
                             <!-- Remove participation button for user's own participation -->
                             <button class="btn event-icon-btn btn-danger" 
                                     @onclick="HandleRemoveParticipation" 
-                                    title="Remover Participação">
+                                    title="Remover Participação"
+                                    aria-label="Remover participação">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         </div>
@@ -197,13 +202,15 @@
                     </button>
                     <button class="btn btn-sm btn-primary btn-primary-purple d-flex align-items-center gap-2"
                             @onclick="HandleSendPushNotification"
-                            title="Enviar notificação push">
+                            title="Enviar notificação push"
+                            aria-label="Enviar notificação push">
                         <i class="bi bi-bell-fill"></i>
                         <span>Push</span>
                     </button>
                     <button class="btn btn-sm btn-danger d-flex align-items-center gap-2"
                             @onclick="HandleCancel"
-                            title="Cancelar reunião">
+                            title="Cancelar reunião"
+                            aria-label="Cancelar reunião">
                         <i class="bi bi-x-circle-fill"></i>
                         <span>Cancelar</span>
                     </button>
@@ -212,7 +219,8 @@
                 {
                     <button class="btn btn-sm btn-warning d-flex align-items-center gap-2"
                             @onclick="HandleUncancel"
-                            title="Reverter cancelamento">
+                            title="Reverter cancelamento"
+                            aria-label="Reverter cancelamento">
                         <i class="bi bi-arrow-counterclockwise"></i>
                         <span>Reverter</span>
                     </button>

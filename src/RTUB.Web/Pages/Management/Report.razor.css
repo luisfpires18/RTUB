@@ -131,3 +131,25 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Button styles */
+.btn-purple-light {
+    font-weight: 400;
+}
+
+/* Edit button positioning */
+.summary-card-edit-btn {
+    top: 4px;
+    right: 4px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+}
+
+/* Image constraints */
+.receipt-thumbnail {
+    max-height: 150px;
+}
+
+.receipt-viewer {
+    max-height: 70vh;
+}

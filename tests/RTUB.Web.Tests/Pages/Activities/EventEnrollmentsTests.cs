@@ -9,6 +9,7 @@ using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using RTUB.Pages.Activities;
 using RTUB.Web.Tests.Pages.Base;
 using Xunit;
@@ -22,6 +23,8 @@ namespace RTUB.Web.Tests.Pages.Activities;
 public class EventEnrollmentsTests : PageTestBase
 {
     private readonly Mock<IEventService> _mockEventService;
+    private readonly Mock<IEnrollmentFilterService> _mockEnrollmentFilterService;
+    private readonly Mock<IEnrollmentStatisticsService> _mockEnrollmentStatisticsService;
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
     private readonly Mock<IMemberInstrumentService> _mockMemberInstrumentService;
     private readonly Mock<IUserProfileService> _mockUserProfileService;
@@ -31,6 +34,8 @@ public class EventEnrollmentsTests : PageTestBase
     {
         // Setup service mocks
         _mockEventService = SetupService<IEventService>();
+        _mockEnrollmentFilterService = SetupService<IEnrollmentFilterService>();
+        _mockEnrollmentStatisticsService = SetupService<IEnrollmentStatisticsService>();
         _mockEnrollmentService = SetupService<IEnrollmentService>();
         _mockMemberInstrumentService = SetupService<IMemberInstrumentService>();
         _mockUserProfileService = SetupService<IUserProfileService>();
@@ -50,6 +55,22 @@ public class EventEnrollmentsTests : PageTestBase
         var mockDbSet = emptyUsers.BuildMockDbSet();
         SetupAsyncQueryable(mockDbSet);
         _mockUserManager.Setup(x => x.Users).Returns(mockDbSet.Object);
+
+        // Setup default service responses for new services
+        _mockEnrollmentFilterService
+            .Setup(x => x.FilterEnrollments(It.IsAny<IEnumerable<Enrollment>>(), It.IsAny<string>()))
+            .Returns((IEnumerable<Enrollment> enrollments, string? search) =>
+            {
+                var enrollmentsList = enrollments?.ToList() ?? new List<Enrollment>();
+                var performing = enrollmentsList.Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var leitoes = enrollmentsList.Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var notAttending = enrollmentsList.Where(e => e.User != null && !e.WillAttend).ToList();
+                return (performing, leitoes, notAttending);
+            });
+
+        _mockEnrollmentStatisticsService
+            .Setup(x => x.CalculateInstrumentCounts(It.IsAny<Event>(), It.IsAny<Dictionary<string, List<MemberInstrument>>>()))
+            .Returns((new Dictionary<InstrumentType, int>(), new Dictionary<InstrumentType, int>()));
 
         // Setup authentication
         SetupAuthentication("test-user", "Test User");

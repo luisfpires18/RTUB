@@ -178,21 +178,21 @@
        Title="Pré-visualização do Email"
        Size="Modal.ModalSize.Large">
     <BodyContent>
-        <div class="email-preview" style="background-color: #F7F7FB; padding: 20px; border-radius: 8px;">
-            <div style="background-color: white; max-width: 600px; margin: 0 auto; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 600; color: #0B0B0F;">
+        <div class="email-preview">
+            <div class="email-preview-card">
+                <h2 class="email-preview-title">
                     @title
                 </h2>
                 
-                <p style="margin: 0 0 16px 0; font-size: 16px; color: #333333;">
+                <p class="email-preview-greeting">
                     Olá [Nome do Utilizador]
                 </p>
                 
-                <div style="margin: 24px 0; padding: 20px; background-color: #F7F7FB; border-left: 4px solid #6E56CF; border-radius: 8px;">
-                    <p style="margin: 0; font-size: 16px; color: #333333; white-space: pre-wrap;">@content</p>
+                <div class="email-preview-content-box">
+                    <p class="email-preview-content">@content</p>
                 </div>
                 
-                <p style="margin: 16px 0 0 0; font-size: 16px; color: #333333;">
+                <p class="email-preview-closing">
                     Saudações RTUBianas.
                 </p>
             </div>

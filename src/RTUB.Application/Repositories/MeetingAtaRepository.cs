@@ -35,6 +35,23 @@ public class MeetingAtaRepository : IMeetingAtaRepository
             .FirstOrDefaultAsync(a => a.MeetingId == meetingId);
     }
 
+    public async Task<Dictionary<int, MeetingAta>> GetByMeetingIdsAsync(IEnumerable<int> meetingIds)
+    {
+        var meetingIdsList = meetingIds.ToList();
+        if (!meetingIdsList.Any())
+        {
+            return new Dictionary<int, MeetingAta>();
+        }
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var atas = await context.MeetingAtas
+            .AsNoTracking()
+            .Where(a => meetingIdsList.Contains(a.MeetingId))
+            .ToListAsync();
+
+        return atas.ToDictionary(a => a.MeetingId);
+    }
+
     public async Task<MeetingAta?> GetByIdWithDetailsAsync(int id)
     {
         await using var context = await _contextFactory.CreateDbContextAsync();

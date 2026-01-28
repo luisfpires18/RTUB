@@ -46,6 +46,14 @@ public class BetsPageTests : PageTestBase
             .Setup(x => x.GetCommentCountForBetAsync(It.IsAny<int>()))
             .ReturnsAsync(0);
 
+        _mockBetCommentService
+            .Setup(x => x.GetCommentCountsByBetIdsAsync(It.IsAny<IEnumerable<int>>()))
+            .ReturnsAsync(new Dictionary<int, int>());
+
+        _mockBetService
+            .Setup(x => x.GetBetOptionsByBetIdsAsync(It.IsAny<IEnumerable<int>>()))
+            .ReturnsAsync(new Dictionary<int, List<BetOption>>());
+
         _mockUserManager
             .Setup(x => x.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
             .ReturnsAsync((ApplicationUser?)null);
@@ -117,6 +125,14 @@ public class BetsPageTests : PageTestBase
         _mockBetService
             .Setup(x => x.GetBetOptionsAsync(1))
             .ReturnsAsync(new List<BetOption>());
+
+        _mockBetService
+            .Setup(x => x.GetBetOptionsByBetIdsAsync(It.Is<IEnumerable<int>>(ids => ids.Contains(1))))
+            .ReturnsAsync(new Dictionary<int, List<BetOption>> { { 1, new List<BetOption>() } });
+
+        _mockBetCommentService
+            .Setup(x => x.GetCommentCountsByBetIdsAsync(It.Is<IEnumerable<int>>(ids => ids.Contains(1))))
+            .ReturnsAsync(new Dictionary<int, int> { { 1, 0 } });
 
         var cut = RenderComponent<Bets>();
         cut.WaitForState(() => cut.Markup.Contains("Test Bet") || cut.Markup.Contains("Apostas Futuras"), TimeSpan.FromSeconds(2));

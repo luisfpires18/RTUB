@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -33,6 +34,11 @@ public class MeetingAtaService : IMeetingAtaService
     public async Task<MeetingAta?> GetByMeetingIdAsync(int meetingId)
     {
         return await _ataRepository.GetByMeetingIdAsync(meetingId);
+    }
+
+    public async Task<Dictionary<int, MeetingAta>> GetByMeetingIdsAsync(IEnumerable<int> meetingIds)
+    {
+        return await _ataRepository.GetByMeetingIdsAsync(meetingIds);
     }
 
     public async Task<MeetingAta?> GetByIdWithDetailsAsync(int id)
@@ -71,7 +77,9 @@ public class MeetingAtaService : IMeetingAtaService
     {
         var ata = await _ataRepository.GetByIdAsync(id);
         if (ata == null)
+        {
             throw new EntityNotFoundException(nameof(MeetingAta), id);
+        }
 
         // Only allow deletion if the ata is still in Draft status
         if (ata.Status == MeetingAtaStatus.Published)

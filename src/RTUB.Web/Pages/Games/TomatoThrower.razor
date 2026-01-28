@@ -12,6 +12,7 @@
 @inject IGameScoreService GameScoreService
 @inject IMemberDebtService MemberDebtService
 @inject IFiscalYearService FiscalYearService
+@inject ITimeFormatter TimeFormatter
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
@@ -30,18 +31,13 @@
                 <h1 class="mb-0"><i class="bi bi-egg-fried"></i> Atira Tomates</h1>
             </div>
             <!-- Empty element to balance the layout -->
-            <div style="width: 38px;"></div>
+            <div class="header-spacer"></div>
         </div>
     </div>
 
     @if (isLoadingDebtors)
     {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">A carregar caloteiros...</span>
-            </div>
-            <p class="mt-3">A carregar caloteiros...</p>
-        </div>
+        <LoadingSpinner Message="A carregar caloteiros..." />
     }
     else if (!debtors.Any())
     {
@@ -80,7 +76,7 @@
                             <div class="debtors-list">
                                 @foreach (var debtor in debtors.Take(5))
                                 {
-                                    <div class="debtor-preview-item">
+                                    <div class="debtor-preview-item" @key="debtor.Id">
                                         <img src="@debtor.Avatar" alt="@debtor.Name" />
                                         <span>@debtor.Name</span>
                                     </div>
@@ -221,6 +217,7 @@
             debtors = userDebts
                 .Select(d => new DebtorData
                 {
+                    Id = d.UserId,
                     Name = !string.IsNullOrEmpty(d.User.Nickname) ? d.User.Nickname : $"{d.User.FirstName} {d.User.LastName}",
                     Avatar = d.User.ProfilePictureSrc,
                     DebtAmount = d.TotalDebt
@@ -330,12 +327,6 @@
         }
     }
 
-    private string FormatTime(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}:{ts.Seconds:D2}";
-        return $"0:{(int)seconds:D2}";
-    }
 
     public async ValueTask DisposeAsync()
     {
@@ -356,6 +347,7 @@
     
     private class DebtorData
     {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = "";
         public string Avatar { get; set; } = "";
         public decimal DebtAmount { get; set; }

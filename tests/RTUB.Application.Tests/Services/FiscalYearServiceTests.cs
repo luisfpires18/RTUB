@@ -3,6 +3,7 @@ using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -178,7 +179,7 @@ public class FiscalYearServiceTests
             .ReturnsAsync((FiscalYear?)null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _service.DeleteFiscalYearAsync(999));
     }
 

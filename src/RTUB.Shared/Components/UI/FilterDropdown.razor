@@ -33,12 +33,12 @@
             {
                 var isSelected = optionData.option.Value == CurrentValue;
                 var isFocused = optionData.index == focusedIndex;
-                <div class="filter-dropdown__option @(isSelected ? "is-selected" : string.Empty) @(isFocused ? "is-focused" : string.Empty)"
+                <div class="filter-dropdown__option @(isSelected ? "is-selected" : string.Empty) @(isFocused ? "is-focused" : string.Empty)" @key="@(optionData.option.Value?.GetHashCode() ?? optionData.index)"
                      role="option"
                      tabindex="-1"
                      aria-selected="@isSelected"
                      @onmouseenter="() => focusedIndex = optionData.index"
-                     @onclick="() => SelectOption(optionData.option.Value)">
+                     @onclick="() => SelectOption(optionData.option.Value ?? string.Empty)">
                     @optionData.option.Label
                 </div>
             }

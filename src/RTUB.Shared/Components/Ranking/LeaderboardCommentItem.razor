@@ -56,7 +56,7 @@
             <div class="likes-list">
                 @foreach (var name in Comment.LikedByNames)
                 {
-                    <div class="like-item">
+                    <div class="like-item" @key="@name.GetHashCode()">
                         <i class="bi bi-person-circle me-2"></i>
                         <span>@name</span>
                     </div>

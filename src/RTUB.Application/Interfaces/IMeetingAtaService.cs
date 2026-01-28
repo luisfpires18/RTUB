@@ -19,6 +19,11 @@ public interface IMeetingAtaService
     Task<MeetingAta?> GetByMeetingIdAsync(int meetingId);
 
     /// <summary>
+    /// Gets meeting atas for multiple meetings (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<Dictionary<int, MeetingAta>> GetByMeetingIdsAsync(IEnumerable<int> meetingIds);
+
+    /// <summary>
     /// Gets a meeting ata by ID with all details (Meeting, Users, AgendaPoints, Attachments)
     /// </summary>
     Task<MeetingAta?> GetByIdWithDetailsAsync(int id);

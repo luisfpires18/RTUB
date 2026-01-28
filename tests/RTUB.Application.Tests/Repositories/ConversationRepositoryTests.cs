@@ -424,8 +424,7 @@ public class ConversationRepositoryTests : IClassFixture<DatabaseFixture>, IDisp
     [Fact]
     public async Task GetUserConversationsAsync_DoesNotTrackApplicationUser()
     {
-        // Arrange - Note: GetUserConversationsAsync does NOT use AsNoTracking(), so ApplicationUser WILL be tracked
-        // This test documents the current behavior. Consider adding AsNoTracking() for read-only operations.
+        // Arrange - GetUserConversationsAsync should be read-only and should not track entities.
         var user1 = CreateTestUser("conv-tracking-test-user1", "tracking1@test.com");
         var conversation = CreateTestConversation($"conv-tracking-test-user1;user2-{Guid.NewGuid()}");
         var message = CreateTestMessage(conversation.Id, user1.Id);
@@ -440,9 +439,9 @@ public class ConversationRepositoryTests : IClassFixture<DatabaseFixture>, IDisp
         firstConversation.Title = "Modified";
         await _context.SaveChangesAsync();
 
-        // Verify conversation WAS tracked (current behavior)
+        // Verify conversation was NOT tracked (so the DB value does not change)
         var freshConversation = await _context.Conversations.FindAsync(conversation.Id);
-        freshConversation!.Title.Should().Be("Modified", "Conversation is currently tracked (consider adding AsNoTracking())");
+        freshConversation!.Title.Should().NotBe("Modified", "Conversation should not be tracked for this query (AsNoTracking())");
     }
 
     public void Dispose()

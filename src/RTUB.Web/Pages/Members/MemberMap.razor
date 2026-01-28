@@ -20,12 +20,7 @@
 
 @if (isLoading)
 {
-    <div class="text-center py-5">
-        <div class="spinner-border text-purple" role="status">
-            <span class="visually-hidden">A carregar...</span>
-        </div>
-        <p class="mt-3 text-light-theme">A carregar o mapa...</p>
-    </div>
+    <LoadingSpinner Message="A carregar o mapa..." Color="@SpinnerColor.Purple" />
 }
 else if (hasError)
 {

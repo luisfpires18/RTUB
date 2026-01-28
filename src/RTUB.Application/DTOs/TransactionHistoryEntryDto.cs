@@ -6,6 +6,11 @@ namespace RTUB.Application.DTOs;
 public class TransactionHistoryEntryDto
 {
     /// <summary>
+    /// Unique identifier for this entry (uses AuditLogId)
+    /// </summary>
+    public int Id => AuditLogId;
+
+    /// <summary>
     /// The audit log ID
     /// </summary>
     public int AuditLogId { get; set; }

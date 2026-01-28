@@ -133,6 +133,19 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _context.SaveChangesAsync();
 
         var users = new[] { "user1", "user2", "user3", "user4", "user5" };
+        
+        // Create test users to avoid issues with Include navigation property
+        var testUsers = users.Select(userId => new ApplicationUser
+        {
+            Id = userId,
+            UserName = userId,
+            Email = $"{userId}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = userId
+        }).ToList();
+        _context.Users.AddRange(testUsers);
+        await _context.SaveChangesAsync();
 
         // Act - Admin adds multiple members
         foreach (var userId in users)
@@ -176,6 +189,29 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(12), "Test Location");
         _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        // Create test users to avoid issues with Include navigation property
+        var userIds = new List<string>();
+        for (int i = 0; i < 3; i++)
+        {
+            userIds.Add($"admin-user-{i}");
+        }
+        for (int i = 0; i < 2; i++)
+        {
+            userIds.Add($"regular-user-{i}");
+        }
+        
+        var testUsers = userIds.Select(userId => new ApplicationUser
+        {
+            Id = userId,
+            UserName = userId,
+            Email = $"{userId}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = userId
+        }).ToList();
+        _context.Users.AddRange(testUsers);
         await _context.SaveChangesAsync();
 
         // Admin adds 3 members (pre-approved)
@@ -314,6 +350,20 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 
         // Add members with slight delays to ensure different timestamps
         var userIds = new[] { "user-a", "user-b", "user-c" };
+        
+        // Create test users to avoid issues with Include navigation property
+        var testUsers = userIds.Select(userId => new ApplicationUser
+        {
+            Id = userId,
+            UserName = userId,
+            Email = $"{userId}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = userId
+        }).ToList();
+        _context.Users.AddRange(testUsers);
+        await _context.SaveChangesAsync();
+        
         foreach (var userId in userIds)
         {
             var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);

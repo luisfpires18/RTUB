@@ -738,7 +738,8 @@ public class RehearsalCardTests : TestContext
 
         // Assert - Ver Presenças button should be yellow with clock icon for pending approvals
         cut.Markup.Should().Contain("bi-clock-fill", "should show clock icon on Ver Presenças button");
-        cut.Markup.Should().Contain("#f39c12", "Ver Presenças button should have yellow background color");
+        // Styling moved to CSS (no inline hex in markup). Assert semantic class instead.
+        cut.Markup.Should().Contain("btn-pending-approvals", "Ver Presenças button should use the pending-approvals styling class");
         cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
     }
 

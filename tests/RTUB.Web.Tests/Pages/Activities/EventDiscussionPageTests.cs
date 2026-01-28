@@ -46,6 +46,10 @@ public class EventDiscussionPageTests : PageTestBase
             .ReturnsAsync(0);
 
         _mockCommentService
+            .Setup(x => x.GetCountsByPostIdsAsync(It.IsAny<IEnumerable<int>>()))
+            .ReturnsAsync(new Dictionary<int, int>());
+
+        _mockCommentService
             .Setup(x => x.GetByPostIdAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync(new List<Comment>());
 
@@ -160,6 +164,10 @@ public class EventDiscussionPageTests : PageTestBase
         _mockPostService
             .Setup(x => x.GetByDiscussionIdAsync(1, 1, 20, It.IsAny<string>()))
             .ReturnsAsync(posts);
+
+        _mockCommentService
+            .Setup(x => x.GetCountsByPostIdsAsync(It.Is<IEnumerable<int>>(ids => ids.Contains(1) && ids.Contains(2))))
+            .ReturnsAsync(new Dictionary<int, int> { { 1, 0 }, { 2, 0 } });
 
         // Act
         var cut = RenderComponent<EventDiscussionPage>(parameters => parameters

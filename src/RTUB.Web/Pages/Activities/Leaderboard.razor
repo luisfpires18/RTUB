@@ -33,9 +33,7 @@
         </div>
         <div class="leaderboard-body">
             <div class="text-center p-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
+                <LoadingSpinner Message="A carregar leaderboard..." />
             </div>
         </div>
     </div>
@@ -57,7 +55,7 @@ else
 {
     <!-- Ranks Timeline Section - Collapsible -->
     <div class="ranks-timeline-container mb-4">
-        <div class="ranks-timeline-header" @onclick="ToggleClassificationLevels" style="cursor: pointer;">
+        <div class="ranks-timeline-header" @onclick="ToggleClassificationLevels">
             <h3>
                 <i class="bi bi-trophy"></i> Níveis de Alcoolismo
                 <i class="bi @(isClassificationExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
@@ -68,17 +66,17 @@ else
             @* Ranking Story Section *@
             @if (rankingStoryLabel != null && rankingStoryLabel.IsActive)
             {
-                <div class="ranking-story-panel mb-4" style="background-color: #1a1a1b; border: 1px solid #343536; border-radius: 8px; padding: 1.5rem; position: relative;">
+                <div class="ranking-story-panel mb-4">
                     @if (rankingStoryLabel != null)
                     {
-                        <div style="position: absolute; top: 1rem; right: 1rem;">
+                        <div class="ranking-story-edit-btn">
                             <LabelEditButton CurrentLabel="@rankingStoryLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
                         </div>
                     }
                     <h5 class="text-white mb-3">
                         <i class="bi bi-info-circle-fill text-primary me-2"></i>@rankingStoryLabel!.Title
                     </h5>
-                    <div class="text-white-opacity" style="white-space: pre-line; line-height: 1.6;">
+                    <div class="text-white-opacity ranking-story-content">
                         @rankingStoryLabel!.Content
                     </div>
                 </div>
@@ -194,7 +192,7 @@ else
         <div class="leaderboard-body">
             @foreach (var item in paginatedLeaderboardUsers)
             {
-                <LeaderboardCard 
+                <LeaderboardCard @key="item.User.Id" 
                     Position="@item.Position"
                     AvatarUrl="@item.User.ProfilePictureSrc"
                     Nickname="@item.User.Nickname"
@@ -232,7 +230,7 @@ else
             <!-- Centered Header Section -->
             <div class="text-center mb-4">
                 <img src="@viewingItem.User.ProfilePictureSrc" alt="@viewingItem.User.GetDisplayName()"
-                     class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
+                     class="member-avatar-large mb-3" />
                 
                 @if (!string.IsNullOrEmpty(viewingItem.User.Nickname))
                 {
@@ -246,7 +244,7 @@ else
                 
                 <!-- Badges -->
                 <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
-                    <span class="badge" style="background-color: #8a2be2;">
+                    <span class="badge badge-purple">
                         <i class="bi bi-star-fill"></i> Nível @viewingItem.RankProgress.CurrentLevel
                     </span>
                     <span class="badge bg-info">
@@ -268,11 +266,7 @@ else
                 <div class="modal-section-body">
                     @if (xpBreakdown == null)
                     {
-                        <div class="text-center py-3">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">A carregar estatísticas...</span>
-                            </div>
-                        </div>
+                        <LoadingSpinner Size="@SpinnerSize.Small" Message="A carregar estatísticas..." />
                     }
                     else
                     {
@@ -303,7 +297,7 @@ else
                             {
                                 @foreach (var eventTypeXp in xpBreakdown.EventsByType)
                                 {
-                                    <div class="mb-2 ps-3">
+                                    <div class="mb-2 ps-3" @key="eventTypeXp.TypeName">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <span>
                                                 <i class="bi bi-calendar-event-fill me-2 text-muted"></i>
@@ -331,7 +325,6 @@ else
             {
                 <div class="modal-info-section mb-4">
                     <div class="modal-section-header" 
-                         style="cursor: pointer;" 
                          @onclick="ToggleActivitiesExpanded">
                         <h6 class="modal-section-title d-flex justify-content-between align-items-center">
                             <span>
@@ -344,14 +337,13 @@ else
                     
                     @if (isActivitiesExpanded)
                     {
-                        <div class="modal-section-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="modal-section-body modal-section-body-scrollable">
                             @if (attendedActivities.Any())
                             {
                                 <div class="list-group">
                                     @foreach (var activity in attendedActivities)
                                     {
-                                        <div class="list-group-item d-flex justify-content-between align-items-start" 
-                                             style="background-color: #1a1a1b; border-color: #343536; margin-bottom: 0.5rem; border-radius: 4px;">
+                                        <div class="list-group-item d-flex justify-content-between align-items-start activity-list-item">
                                             <div class="flex-grow-1">
                                                 <div class="d-flex align-items-center mb-1">
                                                     <i class="bi @(activity.IsRehearsal ? "bi-music-note-list" : "bi-calendar-event-fill") me-2"></i>
@@ -366,7 +358,7 @@ else
                                                     </span>
                                                 </div>
                                             </div>
-                                            <span class="badge bg-success ms-3" style="align-self: center;">
+                                            <span class="badge bg-success ms-3 badge-center">
                                                 +@activity.XpEarned XP
                                             </span>
                                         </div>
@@ -425,11 +417,7 @@ else
                     <!-- Comments List -->
                     @if (comments == null)
                     {
-                        <div class="text-center py-3">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">A carregar comentários...</span>
-                            </div>
-                        </div>
+                        <LoadingSpinner Size="@SpinnerSize.Small" Message="A carregar comentários..." />
                     }
                     else if (!comments.Any())
                     {
@@ -440,7 +428,7 @@ else
                         <div class="comments-list">
                             @foreach (var comment in comments)
                             {
-                                <LeaderboardCommentItem 
+                                <LeaderboardCommentItem @key="comment.Id" 
                                     Comment="@comment"
                                     OnLikeToggle="@HandleLikeToggle"
                                     OnDelete="@HandleDeleteComment" />

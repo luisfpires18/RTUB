@@ -26,6 +26,11 @@
 @inject IMemberStatusService MemberStatusService
 @inject IMemberStatisticsService MemberStatisticsService
 @inject IUserProfileService UserProfileService
+@inject IMemberFilterService MemberFilterService
+@inject IActiveMemberFilterService ActiveMemberFilterService
+@inject IMemberMentorService MemberMentorService
+@inject IMemberPositionService MemberPositionService
+@inject IMemberAnniversaryService MemberAnniversaryService
 @inject IPushNotificationService PushNotificationService
 @inject IPushNotificationFactory PushNotificationFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -72,13 +77,13 @@
 
     <!-- Search and Controls -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap search-controls-container">
-        <div class="flex-grow-1" style="min-width: 360px; max-width: 640px;">
+        <div class="flex-grow-1 search-bar-container">
             <SearchBar @bind-Value="searchTerm"
                        Placeholder="Pesquisar membros..."
                        OnSearch="@HandleSearchChanged" />
         </div>
         <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch ms-lg-auto">
-            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+            <div class="flex-sm-shrink-0 filter-dropdown-container">
                 <FilterDropdown SelectedValue="@selectedCategoryFilter"
                                 SelectedValueChanged="@OnCategoryFilterChanged"
                                 OnChange="@ApplyFilters"
@@ -88,7 +93,7 @@
             @* SubCategory dropdown - only show when Tuno is selected *@
             @if (selectedCategoryFilter == "Tuno")
             {
-                <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                <div class="flex-sm-shrink-0 filter-dropdown-container">
                     <FilterDropdown SelectedValue="@selectedSubCategoryFilter"
                                     SelectedValueChanged="@(value => selectedSubCategoryFilter = value)"
                                     OnChange="@ApplyFilters"
@@ -96,18 +101,18 @@
                                     Options="@subCategoryFilterOptions" />
                 </div>
             }
-            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+            <div class="flex-sm-shrink-0 filter-dropdown-container">
                 <FilterDropdown SelectedValue="@selectedInstrumentFilter"
                                 SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
                                 OnChange="@ApplyFilters"
                                 AllItemsLabel="Instrumento"
                                 Options="@instrumentFilterOptions" />
             </div>
-            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+            <div class="flex-sm-shrink-0 filter-dropdown-container">
                 <div class="form-check form-switch d-flex align-items-center active-only-toggle">
-                    <input class="form-check-input" type="checkbox" role="switch" id="showActiveOnlySwitch"
-                           @bind="showActiveOnly" @bind:after="ApplyFilters" style="cursor: pointer;">
-                    <label class="form-check-label ms-2" for="showActiveOnlySwitch" style="cursor: pointer;">
+                    <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showActiveOnlySwitch"
+                           @bind="showActiveOnly" @bind:after="ApplyFilters">
+                    <label class="form-check-label ms-2 form-check-label-clickable" for="showActiveOnlySwitch">
                         Mostrar só ativos
                     </label>
                 </div>
@@ -449,7 +454,7 @@ else
                         <option value="">Selecionar instrumento...</option>
                         @foreach (var instrument in AllInstrumentTypes.Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                         {
-                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                            <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                         }
                     </select>
                     <button type="button"
@@ -466,7 +471,7 @@ else
                     <div class="list-group">
                         @foreach (var memberInstrument in memberInstruments)
                         {
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="list-group-item d-flex justify-content-between align-items-center" @key="memberInstrument.Id">
                                 <div class="d-flex align-items-center gap-2">
                                     <input type="radio" 
                                            name="primaryInstrument" 
@@ -521,7 +526,7 @@ else
                         <div class="member-list member-list-scrollable">
                             @foreach (var mentor in filteredMentors.Take(20))
                             {
-                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                <div class="member-item p-2 mb-2 border rounded clickable-row" @key="mentor.Id"
                                      @onclick="() => SelectMentor(mentor)">
                                     <div class="d-flex align-items-center">
                                         <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
@@ -624,7 +629,7 @@ else
             <!-- Centered Header Section -->
             <div class="text-center mb-4">
                 <img src="@viewingUser.ProfilePictureSrc" alt="@viewingUser.GetDisplayName()"
-                     class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
+                     class="member-avatar-large mb-3" />
                 
                 @if (!string.IsNullOrEmpty(viewingUser.Nickname))
                 {
@@ -649,7 +654,7 @@ else
                     {
                         @foreach (var position in viewingUser.Positions)
                         {
-                            <PositionBadge Position="position" />
+                            <PositionBadge @key="position" Position="position" />
                         }
                     }
                 </div>
@@ -784,7 +789,7 @@ else
                                                 </div>
                                                 @if (statusResultValue.ProgressMonths.HasValue && statusResultValue.ProgressTotalMonths.HasValue)
                                                 {
-                                                    <div class="progress" style="height: 8px;">
+                                                    <div class="progress progress-compact">
                                                         <div class="progress-bar bg-primary" 
                                                              role="progressbar" 
                                                              style="width: @((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
@@ -825,9 +830,8 @@ else
                         @* Collapsible Attended Activities Section *@
                         @if (viewingUserAttendedActivities != null)
                         {
-                            <div class="mt-3" style="border-top: 1px solid #343536; padding-top: 1rem;">
-                                <div class="d-flex justify-content-between align-items-center" 
-                                     style="cursor: pointer;" 
+                            <div class="mt-3 section-divider">
+                                <div class="d-flex justify-content-between align-items-center section-header-clickable" 
                                      @onclick="ToggleViewingUserActivitiesExpanded">
                                     <h6 class="mb-0">
                                         <i class="bi bi-list-ul me-2 text-primary"></i>
@@ -838,14 +842,13 @@ else
                                 
                                 @if (isViewingUserActivitiesExpanded)
                                 {
-                                    <div class="mt-3" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="mt-3 scrollable-container">
                                         @if (viewingUserAttendedActivities.Any())
                                         {
                                             <div class="list-group">
                                                 @foreach (var activity in viewingUserAttendedActivities)
                                                 {
-                                                    <div class="list-group-item d-flex justify-content-between align-items-start" 
-                                                         style="background-color: #1a1a1b; border-color: #343536; margin-bottom: 0.5rem; border-radius: 4px;">
+                                                    <div class="list-group-item d-flex justify-content-between align-items-start activity-list-item">
                                                         <div class="flex-grow-1">
                                                             <div class="d-flex align-items-center mb-1">
                                                                 <i class="bi @(activity.IsRehearsal ? "bi-music-note-list" : "bi-calendar-event-fill") me-2"></i>
@@ -953,7 +956,7 @@ else
                                Placeholder="Pesquisar membros por nome ou alcunha..."
                                OnSearch="ApplyActiveMembersSearch" />
                 </div>
-                <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                <div class="flex-sm-shrink-0 filter-dropdown-container">
                     <FilterDropdown SelectedValue="@activeMembersStatusFilter"
                                     SelectedValueChanged="@(value => activeMembersStatusFilter = value)"
                                     OnChange="@ApplyActiveMembersStatusFilter"
@@ -978,7 +981,8 @@ else
                         : string.Empty;
                     var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     var isRetired = statusData?.IsRetired ?? member.IsRetired;
-                    <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
+                    <MemberCardLite @key="member.Id"
+                                    AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
                                     FullName="@($"{member.FirstName} {member.LastName}")"
@@ -1084,7 +1088,8 @@ else
                     var ageText = member.DateOfBirth.HasValue
                         ? (DateTime.Now.Year - member.DateOfBirth.Value.Year).ToString()
                         : "-";
-                    <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
+                    <MemberCardLite @key="member.Id"
+                                    AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
                                     FullName="@($"{member.FirstName} {member.LastName}")"
@@ -1143,9 +1148,9 @@ else
             <!-- Loading Overlay for Sending Birthday Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <div class="spinner-border text-primary mb-3 spinner-large" role="status">
                             <span class="visually-hidden">A enviar...</span>
                         </div>
                         <h5 class="text-white mb-2">Enviando emails de aniversário...</h5>
@@ -1173,11 +1178,7 @@ else
 
             @if (birthdayEmailLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             else if (!string.IsNullOrEmpty(birthdayEmailErrorMessage))
             {
@@ -1198,10 +1199,10 @@ else
                 {
                     <div class="mb-3">
                         <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
-                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
+                        <div class="subscriber-list subscriber-list-scrollable">
                             @foreach (var user in birthdaySubscribedUsers)
                             {
-                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full" @key="user.Id">
                                     @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
                                 </div>
                             }
@@ -1246,7 +1247,6 @@ else
     private Dictionary<string, MemberStatusResult?> leitoesStatusData = new();
 
     // Helper instances
-    private SearchHelper<ApplicationUser> searchHelper = new();
     private SortableTableHelper<ApplicationUser> sortHelper = new() { SortColumn = nameof(ApplicationUser.Nickname) };
     private PaginationHelper<ApplicationUser> paginationHelper = new() { PageSize = 30 };
     private PaginationHelper<ApplicationUser> paginationHelperLeitoes = new() { PageSize = 18 };
@@ -1327,7 +1327,6 @@ else
     private List<ApplicationUser> filteredAnniversaries = new();
     private List<ApplicationUser> paginatedAnniversaries = new();
     private string anniversariesSearchTerm = string.Empty;
-    private SearchHelper<ApplicationUser> anniversariesSearchHelper = new();
     private PaginationHelper<ApplicationUser> anniversariesPaginationHelper = new() { PageSize = 12 };
     
     // Active Members Management modal
@@ -1337,7 +1336,6 @@ else
     private List<ActiveMemberData> paginatedActiveMembers = new();
     private string activeMembersSearchTerm = string.Empty;
     private string activeMembersStatusFilter = string.Empty;
-    private SearchHelper<ActiveMemberData> activeMembersSearchHelper = new();
     private PaginationHelper<ActiveMemberData> activeMembersPaginationHelper = new() { PageSize = 12 };
     
     // Make Active confirmation modal
@@ -1400,7 +1398,6 @@ else
     // Mentor search variables
     private string mentorSearchTerm = "";
     private List<ApplicationUser> filteredMentors = new();
-    private SearchHelper<ApplicationUser> mentorSearchHelper = new();
     private ApplicationUser? selectedMentorCache = null;
 
     // Authorization flags
@@ -1531,130 +1528,15 @@ else
     {
         if (users == null) return;
 
-        // Use SearchHelper for filtering
-        searchHelper.SearchTerm = searchTerm;
-        var allFilteredUsers = searchHelper.FilterMultiple(users, new List<Func<ApplicationUser, string>>
-        {
-            u => u.FirstName ?? "",
-            u => u.LastName ?? "",
-            u => u.Nickname ?? "",
-            u => u.Email ?? "",
-            u => u.PhoneNumber ?? "",
-            u => u.City ?? ""
-        });
-
-        // Filter by IsRetired status
-        // When showActiveOnly is ON (true), show only active members (IsRetired = false)
-        // When showActiveOnly is OFF (false), show all members
-        if (showActiveOnly)
-        {
-            allFilteredUsers = allFilteredUsers
-                .Where(u => !u.IsRetired)
-                .ToList();
-        }
-
-        // Apply instrument filter to all users before separating (applies to both grids)
-        // Now checks both primary and secondary instruments
-        if (!string.IsNullOrEmpty(selectedInstrumentFilter))
-        {
-            var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
-            allFilteredUsers = allFilteredUsers
-                .Where(u => userAllInstruments.ContainsKey(u.Id) && 
-                           userAllInstruments[u.Id].Any(i => i.InstrumentType == instrumentEnum))
-                .ToList();
-        }
-        
-        // Apply category filter to all users before separating (affects which grids are shown)
-        // Now supports VETERANO, TUNOSSAURO, and TUNO HONORARIO subcategories
-        // TunoHonorario members ONLY appear in TunoHonorario filter (special case)
-        if (!string.IsNullOrEmpty(selectedCategoryFilter))
-        {
-            var categoryEnum = Enum.Parse<MemberCategory>(selectedCategoryFilter);
-            
-            // Special handling for TunoHonorario: they are exclusive and don't appear in other filters
-            if (categoryEnum == MemberCategory.TunoHonorario)
-            {
-                // Only show users with explicit TunoHonorario category
-                allFilteredUsers = allFilteredUsers
-                    .Where(u => u.Categories.Contains(MemberCategory.TunoHonorario))
-                    .ToList();
-            }
-            // When Tuno is selected as category, apply subcategory filter if set
-            else if (categoryEnum == MemberCategory.Tuno)
-            {
-                // If subcategory filter is set, apply it
-                if (!string.IsNullOrEmpty(selectedSubCategoryFilter))
-                {
-                    var subCategoryEnum = Enum.Parse<MemberCategory>(selectedSubCategoryFilter);
-                    
-                    if (subCategoryEnum == MemberCategory.Tuno)
-                    {
-                        // Show only base Tuno (not Veterano, not Tunossauro, not Fundador)
-                        allFilteredUsers = allFilteredUsers
-                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                                       u.Categories.Contains(MemberCategory.Tuno) &&
-                                       !u.QualifiesForVeterano() &&
-                                       !u.QualifiesForTunossauro() &&
-                                       !u.Categories.Contains(MemberCategory.Fundador))
-                            .ToList();
-                    }
-                    else if (subCategoryEnum == MemberCategory.Veterano)
-                    {
-                        // Show Veterano
-                        allFilteredUsers = allFilteredUsers
-                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                                       u.QualifiesForVeterano() &&
-                                       !u.QualifiesForTunossauro())
-                            .ToList();
-                    }
-                    else if (subCategoryEnum == MemberCategory.Tunossauro)
-                    {
-                        // Show Tunossauro
-                        allFilteredUsers = allFilteredUsers
-                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                                       u.QualifiesForTunossauro())
-                            .ToList();
-                    }
-                    else if (subCategoryEnum == MemberCategory.Fundador)
-                    {
-                        // Show Fundador
-                        allFilteredUsers = allFilteredUsers
-                            .Where(u => u.Categories.Contains(MemberCategory.Fundador))
-                            .ToList();
-                    }
-                }
-                else
-                {
-                    // No subcategory filter - show all Tuno (including Veterano, Tunossauro, Fundador)
-                    allFilteredUsers = allFilteredUsers
-                        .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                                   (u.Categories.Contains(MemberCategory.Tuno) ||
-                                    u.QualifiesForVeterano() ||
-                                    u.QualifiesForTunossauro()))
-                        .ToList();
-                }
-            }
-            else
-            {
-                // For other categories (Leitao, Caloiro), exclude TunoHonorario members
-                allFilteredUsers = allFilteredUsers
-                    .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                               u.Categories.Contains(categoryEnum))
-                    .ToList();
-            }
-        }
-        else if (string.IsNullOrWhiteSpace(searchTerm))
-        {
-            // When no filter or search is selected, exclude TunoHonorario from general view
-            // (they only appear when specifically filtering by TunoHonorario or via search)
-            allFilteredUsers = allFilteredUsers
-                .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario))
-                .ToList();
-        }
-        
-        // Separate Leitões from regular members
-        filteredLeitoes = allFilteredUsers.Where(u => u.IsLeitao()).ToList();
-        filteredRegularMembers = allFilteredUsers.Where(u => !u.IsLeitao()).ToList();
+        // Use service to filter members
+        (filteredRegularMembers, filteredLeitoes, var allFilteredUsers) = MemberFilterService.FilterMembers(
+            users,
+            searchTerm,
+            showActiveOnly,
+            selectedInstrumentFilter,
+            selectedCategoryFilter,
+            selectedSubCategoryFilter,
+            userAllInstruments);
         
         filteredUsers = filteredRegularMembers.Concat(filteredLeitoes).ToList(); // Keep for backwards compatibility
 
@@ -1786,31 +1668,11 @@ else
 
     private void FilterMentors()
     {
-        if (string.IsNullOrEmpty(mentorSearchTerm))
-        {
-            filteredMentors.Clear();
-            return;
-        }
-
-        // Use SearchHelper for multi-word search support
-        // Only search by FirstName, LastName, and Nickname (NOT Email)
-        // Use accent-insensitive search
-        mentorSearchHelper.SearchTerm = mentorSearchTerm;
-        
-        // Exclude the user being edited from mentor candidates
-        var availableMentors = eligibleMentors;
-        if (!isCreateMode && !string.IsNullOrEmpty(editingUser?.Id))
-        {
-            availableMentors = eligibleMentors.Where(u => u.Id != editingUser.Id).ToList();
-        }
-        
-        filteredMentors = mentorSearchHelper.FilterMultiple(availableMentors, new List<Func<ApplicationUser, string>>
-        {
-            u => u.FirstName ?? "",
-            u => u.LastName ?? "",
-            u => $"{u.FirstName} {u.LastName}",
-            u => u.Nickname ?? ""
-        }, caseSensitive: false, accentSensitive: false);
+        // Use service to filter mentors
+        filteredMentors = MemberMentorService.FilterMentors(
+            eligibleMentors,
+            mentorSearchTerm,
+            (!isCreateMode && !string.IsNullOrEmpty(editingUser?.Id)) ? editingUser.Id : null);
     }
 
     private void SelectMentor(ApplicationUser mentor)
@@ -2556,18 +2418,8 @@ else
 
     private Position? GetCurrentFiscalYearPosition(string userId)
     {
-        int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-
-        // Check if user has a role assignment for current fiscal year
-        if (userRoleAssignments.ContainsKey(userId))
-        {
-            var currentAssignment = userRoleAssignments[userId]
-                .FirstOrDefault(ra => ra.StartYear == currentFiscalStartYear);
-
-            return currentAssignment?.Position;
-        }
-
-        return null;
+        // Use service to get current fiscal year position
+        return MemberPositionService.GetCurrentFiscalYearPosition(userId, userRoleAssignments);
     }
 
     // Dynamic field visibility based on selected category
@@ -2965,43 +2817,11 @@ else
     {
         activeMembersSearchTerm = term ?? string.Empty;
 
-        var membersToFilter = allActiveMembers;
-        
-        // Apply status filter first
-        if (!string.IsNullOrEmpty(activeMembersStatusFilter))
-        {
-            if (activeMembersStatusFilter == "active")
-            {
-                // Show members who are not retired (either by statusData or by member.IsRetired)
-                membersToFilter = membersToFilter.Where(m => 
-                    m.StatusData?.IsRetired == false || 
-                    (m.StatusData == null && !m.Member.IsRetired)).ToList();
-            }
-            else if (activeMembersStatusFilter == "retired")
-            {
-                // Show members who are retired (either by statusData or by member.IsRetired)
-                membersToFilter = membersToFilter.Where(m => 
-                    m.StatusData?.IsRetired == true || 
-                    (m.StatusData == null && m.Member.IsRetired)).ToList();
-            }
-        }
-
-        // Apply search filter
-        if (string.IsNullOrWhiteSpace(activeMembersSearchTerm))
-        {
-            filteredActiveMembers = membersToFilter;
-        }
-        else
-        {
-            activeMembersSearchHelper.SearchTerm = activeMembersSearchTerm;
-            filteredActiveMembers = activeMembersSearchHelper.FilterMultiple(membersToFilter, new List<Func<ActiveMemberData, string>>
-            {
-                m => m.Member.FirstName ?? string.Empty,
-                m => m.Member.LastName ?? string.Empty,
-                m => $"{m.Member.FirstName} {m.Member.LastName}",
-                m => m.Member.Nickname ?? string.Empty
-            }, caseSensitive: false, accentSensitive: false);
-        }
+        // Use service to filter active members
+        filteredActiveMembers = ActiveMemberFilterService.FilterActiveMembers(
+            allActiveMembers,
+            activeMembersStatusFilter,
+            activeMembersSearchTerm);
 
         activeMembersPaginationHelper.CurrentPage = 1;
         UpdateActiveMembersPagination();
@@ -3196,21 +3016,8 @@ else
     {
         anniversariesSearchTerm = term ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(anniversariesSearchTerm))
-        {
-            filteredAnniversaries = allAnniversaries;
-        }
-        else
-        {
-            anniversariesSearchHelper.SearchTerm = anniversariesSearchTerm;
-            filteredAnniversaries = anniversariesSearchHelper.FilterMultiple(allAnniversaries, new List<Func<ApplicationUser, string>>
-            {
-                u => u.FirstName ?? string.Empty,
-                u => u.LastName ?? string.Empty,
-                u => $"{u.FirstName} {u.LastName}",
-                u => u.Nickname ?? string.Empty
-            }, caseSensitive: false, accentSensitive: false);
-        }
+        // Use service to filter anniversaries
+        filteredAnniversaries = MemberAnniversaryService.FilterAnniversaries(allAnniversaries, anniversariesSearchTerm);
 
         anniversariesPaginationHelper.CurrentPage = 1;
         UpdateAnniversariesPagination();

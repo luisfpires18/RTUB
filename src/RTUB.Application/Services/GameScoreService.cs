@@ -115,4 +115,22 @@ public class GameScoreService : IGameScoreService
             SubmittedAt = score.CreatedAt
         };
     }
+
+    /// <summary>
+    /// Filters leaderboard scores by search term (user name or nickname)
+    /// </summary>
+    /// <param name="scores">Collection of scores to filter</param>
+    /// <param name="searchTerm">Search term to filter by</param>
+    /// <returns>Filtered list of scores</returns>
+    public List<GameScoreDto> FilterLeaderboardScores(IEnumerable<GameScoreDto> scores, string searchTerm)
+    {
+        if (scores == null) return new List<GameScoreDto>();
+        if (string.IsNullOrWhiteSpace(searchTerm)) return scores.ToList();
+        
+        var search = searchTerm.ToLower();
+        return scores.Where(s => 
+            (s.UserName?.ToLower().Contains(search) ?? false) ||
+            (s.UserNickname?.ToLower().Contains(search) ?? false)
+        ).ToList();
+    }
 }

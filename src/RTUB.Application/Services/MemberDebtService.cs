@@ -28,18 +28,20 @@ public class MemberDebtService : IMemberDebtService
         return await _memberDebtRepository.GetByUserIdAndFiscalYearIdAsync(userId, fiscalYearId);
     }
 
-    public async Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId)
+    public async Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId, DateTime? compromisedUntil = null)
     {
         // No duplicate check - multiple debts per user per fiscal year are now allowed
         var memberDebt = MemberDebt.Create(userId, amount, description, fiscalYearId);
+        memberDebt.CompromisedUntil = compromisedUntil;
         return await _memberDebtRepository.AddAsync(memberDebt);
     }
 
-    public async Task UpdateDebtAsync(int debtId, decimal amount, string? description)
+    public async Task UpdateDebtAsync(int debtId, decimal amount, string? description, DateTime? compromisedUntil = null)
     {
         var memberDebt = await _memberDebtRepository.GetByIdOrThrowAsync(debtId);
 
         memberDebt.UpdateDetails(amount, description);
+        memberDebt.CompromisedUntil = compromisedUntil;
         await _memberDebtRepository.UpdateAsync(memberDebt);
     }
 
@@ -53,8 +55,14 @@ public class MemberDebtService : IMemberDebtService
     public async Task<Dictionary<string, decimal>> GetUsersWithDebtsAsync(int fiscalYearId)
     {
         var debts = await _memberDebtRepository.GetByFiscalYearIdAsync(fiscalYearId);
-        // Sum all debts per user (multiple debts per user are now allowed)
-        return debts
+        var today = DateTime.UtcNow.Date;
+
+        // Exclude debts that are still under a future compromise-to-pay-until date.
+        var eligibleDebts = debts.Where(d =>
+            !d.CompromisedUntil.HasValue || d.CompromisedUntil.Value.Date <= today);
+
+        // Sum all eligible debts per user (multiple debts per user are now allowed)
+        return eligibleDebts
             .GroupBy(d => d.UserId)
             .ToDictionary(g => g.Key, g => g.Sum(d => d.AmountOwed));
     }

@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -446,8 +448,10 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.GetOrCreateOneToOneAsync(user1Id, user2Id))
             .ReturnsAsync(conversation);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(user2Id))
-            .ReturnsAsync(user2);
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (one-to-one conversation)
+        var users = new List<ApplicationUser> { user2 };
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversation.Id, user1Id))
             .ReturnsAsync(0);
@@ -519,8 +523,12 @@ public class MessagingServiceTests
         _mockUserManager.Setup(um => um.FindByIdAsync(creatorId))
             .ReturnsAsync(creator);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        // Note: creatorId will be added to participantIds in CreateGroupConversationAsync
+        var allParticipantIds = new List<string>(participantIds) { creatorId };
+        var users = allParticipantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(0);
@@ -567,8 +575,12 @@ public class MessagingServiceTests
         _mockUserManager.Setup(um => um.FindByIdAsync(creatorId))
             .ReturnsAsync(creator);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        // Note: creatorId will be added to participantIds in CreateGroupConversationAsync
+        var allParticipantIds = new List<string>(participantIds) { creatorId };
+        var users = allParticipantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(0);
@@ -700,8 +712,10 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.AddAsync(It.IsAny<Conversation>()))
             .ReturnsAsync((Conversation c) => { c.Id = 1; return c; });
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(0);
@@ -740,8 +754,10 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.GetGroupByTitleAsync(groupTitle))
             .ReturnsAsync(existingConversation);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(0);
@@ -1340,8 +1356,10 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.AddAsync(It.IsAny<Conversation>()))
             .ReturnsAsync((Conversation c) => { c.Id = 1; return c; });
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(0);
@@ -1394,8 +1412,10 @@ public class MessagingServiceTests
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(userId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(otherUserId))
-            .ReturnsAsync(otherUser);
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (one-to-one conversation)
+        var users = new List<ApplicationUser> { otherUser };
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, userId))
             .ReturnsAsync(0);
@@ -1464,8 +1484,11 @@ public class MessagingServiceTests
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(userId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        var participantIds = conversation.GetParticipantIds().ToList();
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, userId))
             .ReturnsAsync(0);
@@ -1501,8 +1524,11 @@ public class MessagingServiceTests
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(creatorId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        var participantIds = conversation.GetParticipantIds().ToList();
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, creatorId))
             .ReturnsAsync(0);
@@ -1538,8 +1564,11 @@ public class MessagingServiceTests
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(nonCreatorId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
 
-        _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
-            .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
+        // Setup Users IQueryable for batch loading in MapConversationToDtoAsync (group conversation)
+        var participantIds = conversation.GetParticipantIds().ToList();
+        var users = participantIds.Select(id => new ApplicationUser { Id = id, FirstName = "User", LastName = id }).ToList();
+        var mockUsers = users.BuildMockDbSet().Object;
+        _mockUserManager.Setup(um => um.Users).Returns(mockUsers);
 
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, nonCreatorId))
             .ReturnsAsync(0);

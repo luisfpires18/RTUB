@@ -110,7 +110,8 @@
                 <div class="question-grid">
                     @foreach (var question in closedQuestions)
                     {
-                        <QuestionCard Question="@question"
+                        <QuestionCard @key="question.Id"
+                                     Question="@question"
                                      ReplyCount="@GetReplyCount(question)"
                                      IsAuthor="@IsQuestionAuthor(question)"
                                      CanReply="@CanReplyToQuestion(question)"
@@ -159,14 +160,14 @@
                 
                 @if (filteredMembers.Any())
                 {
-                    <div class="member-list member-list-scrollable mt-2" style="max-height: 200px; overflow-y: auto;">
+                    <div class="member-list member-list-scrollable mt-2">
                         @foreach (var item in filteredMembers.Take(10))
                         {
                             <div class="member-item p-2 mb-2 border rounded clickable-row"
                                  @onclick="() => SelectMember(item)">
                                 <div class="d-flex align-items-center">
                                     <img src="@item.Member.ProfilePictureSrc" alt="@item.Member.GetDisplayName()"
-                                         class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover;" />
+                                         class="rounded-circle me-2 member-avatar-medium" />
                                     <div>
                                         @if (!string.IsNullOrEmpty(item.Member.Nickname))
                                         {
@@ -287,9 +288,8 @@
             <div class="mb-3">
                 <div class="d-flex align-items-center mb-2">
                     <img src="@(questionToView.Author.ProfilePictureSrc ?? "")"
-                         class="rounded-circle me-2"
-                         alt="@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")"
-                         style="width: 40px; height: 40px; object-fit: cover;" />
+                         class="rounded-circle me-2 member-avatar-small"
+                         alt="@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")" />
                     <div>
                         <strong>@(questionToView.Author.Nickname ?? questionToView.Author.UserName ?? "Autor")</strong>
                         <div class="text-muted small">@questionToView.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
@@ -301,7 +301,7 @@
                 </div>
             </div>
             <h5 class="mb-3">@questionToView.Title</h5>
-            <div class="p-3 bg-dark rounded" style="white-space: pre-wrap; word-break: break-word;">
+            <div class="p-3 bg-dark rounded question-content-display">
                 @questionToView.Content
             </div>
         }
@@ -328,9 +328,8 @@
             <div class="mb-4 p-3 bg-dark rounded">
                 <div class="d-flex align-items-center mb-2">
                     <img src="@(questionToReply.Author.ProfilePictureSrc ?? "")"
-                         class="rounded-circle me-2"
-                         alt="@(questionToReply.Author.Nickname ?? questionToReply.Author.UserName ?? "Autor")"
-                         style="width: 40px; height: 40px; object-fit: cover;" />
+                         class="rounded-circle me-2 member-avatar-small"
+                         alt="@(questionToReply.Author.Nickname ?? questionToReply.Author.UserName ?? "Autor")" />
                     <div class="flex-grow-1">
                         <strong>@(questionToReply.Author.Nickname ?? questionToReply.Author.UserName ?? "Autor")</strong>
                         <div class="text-muted small">@questionToReply.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
@@ -366,7 +365,7 @@
                     <span class="ms-1">(@receiverRoleText)</span>
                 </div>
                 <h5 class="mb-2">@questionToReply.Title</h5>
-                <div style="white-space: pre-wrap; word-break: break-word;">
+                <div class="question-content-display">
                     @questionToReply.Content
                 </div>
             </div>
@@ -383,15 +382,14 @@
                 }
                 else
                 {
-                    <div class="replies-list mb-3" style="max-height: 400px; overflow-y: auto;">
+                    <div class="replies-list mb-3 replies-list-scrollable">
                         @foreach (var reply in questionToReply.Replies.Where(r => !r.IsDeleted).OrderBy(r => r.CreatedAt))
                         {
-                            <div class="reply-item mb-3 p-3 bg-dark rounded">
+                            <div class="reply-item mb-3 p-3 bg-dark rounded" @key="reply.Id">
                                 <div class="d-flex align-items-start mb-2">
                                     <img src="@(reply.Author.ProfilePictureSrc)"
-                                         class="rounded-circle me-2"
-                                         alt="@(reply.Author.Nickname ?? reply.Author.UserName)"
-                                         style="width: 36px; height: 36px; object-fit: cover;" />
+                                         class="rounded-circle me-2 member-avatar-medium"
+                                         alt="@(reply.Author.Nickname ?? reply.Author.UserName)" />
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <strong>@(reply.Author.Nickname ?? reply.Author.UserName)</strong>
@@ -405,7 +403,7 @@
                                         </small>
                                     </div>
                                 </div>
-                                <div style="white-space: pre-line;">@reply.Content</div>
+                                <div class="reply-content-display">@reply.Content</div>
                             </div>
                         }
                     </div>

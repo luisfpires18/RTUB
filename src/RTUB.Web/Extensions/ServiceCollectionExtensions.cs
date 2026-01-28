@@ -85,8 +85,22 @@ public static class ServiceCollectionExtensions
         // Core domain services
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IAlbumService, AlbumService>();
+        services.AddScoped<IAlbumStatisticsService, AlbumStatisticsService>();
+        services.AddScoped<IAlbumFilterService, AlbumFilterService>();
+        services.AddScoped<IAlbumImageService, AlbumImageService>();
+        services.AddScoped<IEventFilterService, EventFilterService>();
+        services.AddScoped<IEventUrlService, EventUrlService>();
+        services.AddScoped<IEventStatisticsService, EventStatisticsService>();
+        services.AddScoped<IEventDiscussionService, EventDiscussionService>();
+        services.AddScoped<IEventAuthorizationService, EventAuthorizationService>();
+        services.AddScoped<IEnrollmentFilterService, EnrollmentFilterService>();
+        services.AddScoped<IEnrollmentStatisticsService, EnrollmentStatisticsService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISongService, SongService>();
+        services.AddScoped<ISongContentService, SongContentService>();
+        services.AddScoped<ISongUrlCacheService, SongUrlCacheService>();
+        services.AddScoped<ISongPlayService, SongPlayService>();
+        services.AddScoped<ISongValidationService, SongValidationService>();
         services.AddScoped<IRequestService, RequestService>();
         services.AddScoped<ISlideshowService, SlideshowService>();
         services.AddScoped<ILabelService, LabelService>();
@@ -103,6 +117,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRetirementStatusService, RetirementStatusService>();
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
         services.AddScoped<INaipeService, NaipeService>();
+        services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
+        services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
+        services.AddScoped<INaipeConfigService, NaipeConfigService>();
 
         return services;
     }
@@ -114,6 +131,10 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IRehearsalService, RehearsalService>();
         services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
+        services.AddScoped<IRehearsalAttendanceFilterService, RehearsalAttendanceFilterService>();
+        services.AddScoped<IRehearsalFilterService, RehearsalFilterService>();
+        services.AddScoped<IRehearsalStatisticsService, RehearsalStatisticsService>();
+        services.AddScoped<IRehearsalUrlService, RehearsalUrlService>();
 
         return services;
     }
@@ -173,6 +194,32 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers member-related services
+    /// </summary>
+    public static IServiceCollection AddMemberServices(this IServiceCollection services)
+    {
+        services.AddScoped<IMemberFilterService, MemberFilterService>();
+        services.AddScoped<IActiveMemberFilterService, ActiveMemberFilterService>();
+        services.AddScoped<IMemberMentorService, MemberMentorService>();
+        services.AddScoped<IMemberPositionService, MemberPositionService>();
+        services.AddScoped<IMemberAnniversaryService, MemberAnniversaryService>();
+        services.AddScoped<IMemberHierarchyService, MemberHierarchyService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers role assignment and management services
+    /// </summary>
+    public static IServiceCollection AddRoleServices(this IServiceCollection services)
+    {
+        services.AddScoped<IRoleAssignmentValidationService, RoleAssignmentValidationService>();
+        services.AddScoped<IRoleManagementService, RoleManagementService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registers question services for Orgãos Sociais Q&A
     /// </summary>
     public static IServiceCollection AddQuestionServices(this IServiceCollection services)
@@ -202,6 +249,23 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IGameScoreService, GameScoreService>();
         services.AddScoped<IGameService, GameService>();
+        services.AddScoped<IGameFilterService, GameFilterService>();
+        services.AddScoped<ITimeFormatter, TimeFormatter>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers finance and transaction services
+    /// </summary>
+    public static IServiceCollection AddFinanceServices(this IServiceCollection services)
+    {
+        services.AddScoped<ITransactionFilterService, TransactionFilterService>();
+        services.AddScoped<IDebtService, DebtService>();
+        services.AddScoped<IFinanceManagementService, FinanceManagementService>();
+        services.AddScoped<IFiscalYearHelper, FiscalYearHelperService>();
+        services.AddScoped<IRequestToEventService, RequestToEventService>();
+        services.AddScoped<IRequestValidationService, RequestValidationService>();
 
         return services;
     }
@@ -283,6 +347,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IGroupConversationSyncService, GroupConversationSyncService>();
         services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
+        services.AddScoped<IMessagingDisplayService, MessagingDisplayService>();
+        services.AddScoped<IMessagingSortService, MessagingSortService>();
 
         return services;
     }

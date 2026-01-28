@@ -11,6 +11,7 @@
 @inject IJSRuntime JSRuntime
 @inject IOptions<AvoidQuestionsConfiguration> GameConfig
 @inject IGameScoreService GameScoreService
+@inject ITimeFormatter TimeFormatter
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
@@ -28,7 +29,7 @@
                 <h1 class="mb-0"><i class="bi bi-controller"></i> Evitar Perguntas</h1>
             </div>
             <!-- Empty element to balance the layout -->
-            <div style="width: 38px;"></div>
+            <div class="header-spacer"></div>
         </div>
     </div>
 
@@ -50,7 +51,7 @@
         </div>
         <div class="stat-item">
             <i class="bi bi-clock-fill text-info"></i>
-            <span class="stat-value">@FormatTime(timeElapsed)</span>
+            <span class="stat-value">@TimeFormatter.FormatTime(timeElapsed)</span>
             <span class="stat-label">Tempo</span>
         </div>
     </div>
@@ -92,7 +93,7 @@
                             <span class="final-stat-label">Nível Máximo</span>
                         </div>
                         <div class="final-stat">
-                            <span class="final-stat-value">@FormatTime(finalTime)</span>
+                            <span class="final-stat-value">@TimeFormatter.FormatTime(finalTime)</span>
                             <span class="final-stat-label">Tempo Sobrevivido</span>
                         </div>
                         <div class="final-stat">
@@ -255,12 +256,6 @@
         }
     }
 
-    private string FormatTime(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}:{ts.Seconds:D2}";
-        return $"0:{(int)seconds:D2}";
-    }
 
     public async ValueTask DisposeAsync()
     {
