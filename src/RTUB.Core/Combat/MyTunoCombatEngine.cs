@@ -57,7 +57,7 @@ public sealed class MyTunoCombatEngine : ICombatEngine
 
         if (defenderHp <= 0)
         {
-            events.Add(new CombatEvent(CombatEventType.Ko, round, winnerId: attacker.Id, loserId: defender.Id));
+            events.Add(new CombatEvent(CombatEventType.Ko, round, WinnerId: attacker.Id, LoserId: defender.Id));
             return true;
         }
 
@@ -70,7 +70,7 @@ public sealed class MyTunoCombatEngine : ICombatEngine
 
         if (attackerHp <= 0)
         {
-            events.Add(new CombatEvent(CombatEventType.Ko, round, winnerId: defender.Id, loserId: attacker.Id));
+            events.Add(new CombatEvent(CombatEventType.Ko, round, WinnerId: defender.Id, LoserId: attacker.Id));
             return true;
         }
 
