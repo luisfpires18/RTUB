@@ -55,7 +55,7 @@ public class MyTunoBattleService
 
     private async Task<MyTunoBattle> RunBattleAsync(Character attacker, Character defender, MyTunoBattleMode mode)
     {
-        var seed = RandomNumberGenerator.GetInt64(long.MinValue, long.MaxValue);
+        var seed = CreateSeed();
         var combatResult = _combatEngine.Simulate(
             new CombatantStats("A", attacker.Hp, attacker.Power, attacker.Speed),
             new CombatantStats("B", defender.Hp, defender.Power, defender.Speed),
@@ -138,5 +138,13 @@ public class MyTunoBattleService
         {
             character.Level += 1;
         }
+    }
+
+    private static long CreateSeed()
+    {
+        var buffer = new byte[8];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(buffer);
+        return BitConverter.ToInt64(buffer, 0);
     }
 }
