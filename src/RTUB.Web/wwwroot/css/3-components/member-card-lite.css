@@ -97,8 +97,13 @@
 }
 
 .member-card-lite-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
     display: inline-flex;
     justify-content: flex-end;
+    gap: 0.4rem;
+    z-index: 10;
 }
 
 .member-card-lite-progress {
@@ -107,9 +112,6 @@
 
 /* Top-right action button */
 .member-card-lite-action-btn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
     background-color: rgba(110, 86, 207, 0.95);
     border: none;
     border-radius: 50%;

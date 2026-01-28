@@ -5,11 +5,11 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using RTUB.Application.DTOs
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Configuration
-@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Base
@@ -981,6 +981,7 @@ else
                         : string.Empty;
                     var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     var isRetired = statusData?.IsRetired ?? member.IsRetired;
+                    var canMakeActive = isRetired || statusData?.ProgressTotalMonths == 3;
                     <MemberCardLite @key="member.Id"
                                     AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
@@ -991,9 +992,9 @@ else
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
                         <ActionContent>
-                            @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
+                            @if (canMakeActive && isAdmin)
                             {
-                                <button type="button" 
+                                <button type="button"
                                         class="member-card-lite-action-btn" 
                                         title="Tornar este membro ativo"
                                         @onclick="() => OpenMakeActiveConfirmModal(member)">
@@ -1001,14 +1002,14 @@ else
                                 </button>
                             }
                             @if (showEncouragement && isAdmin)
-                            {
-                                <button type="button" 
-                                        class="member-card-lite-action-btn" 
-                                        title="Enviar notificação push de lembrete"
-                                        @onclick="() => SendReminderPushNotification(member)">
-                                    <i class="bi bi-bell text-white"></i>
-                                </button>
-                            }
+                                {
+                                    <button type="button" 
+                                            class="member-card-lite-action-btn" 
+                                            title="Enviar notificação push de lembrete"
+                                        @onclick="() => OpenReminderConfirmModal(member)">
+                                        <i class="bi bi-bell text-white"></i>
+                                    </button>
+                                }
                         </ActionContent>
                         <StatusContent>
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
@@ -1051,7 +1052,7 @@ else
 
 <!-- Make Active Confirmation Modal -->
 <ConfirmDialog Show="@modals.IsOpen(ModalType.MakeActiveConfirm)"
-               ShowChanged="@((bool show) => { if (show) modals.Open(ModalType.MakeActiveConfirm); else modals.Close(ModalType.MakeActiveConfirm); })"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.MakeActiveConfirm, show))"
                Title="Tornar Membro Ativo"
                Message="@($"Tem certeza que deseja tornar {memberToMakeActive?.GetDisplayName()} ativo? Isto irá resetar o estado de reforma e permitir que o membro participe sem necessidade de 3 meses consecutivos de atividade.")"
                ConfirmText="Tornar Ativo"
@@ -1060,6 +1061,18 @@ else
                OnConfirm="MakeActiveAsync"
                OnCancel="CloseMakeActiveConfirmModal"
                Disabled="@isMakingActive" />
+
+<!-- Reminder Push Confirmation Modal -->
+<ConfirmDialog Show="@modals.IsOpen(ModalType.ReminderConfirm)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.ReminderConfirm, show))"
+               Title="Enviar Lembrete Push"
+               Message="@($"Deseja enviar um lembrete push para {reminderMember?.GetDisplayName()}?")"
+               ConfirmText="Enviar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-primary btn-primary-purple"
+               OnConfirm="SendReminderPushNotificationAsync"
+               OnCancel="CloseReminderConfirmModal"
+               Disabled="@isSendingReminder" />
 
 <!-- Anniversaries Modal -->
 <Modal Show="@modals.IsOpen(ModalType.Anniversaries)"
@@ -1295,6 +1308,7 @@ else
         Anniversaries,
         ActiveMembersManagement,
         MakeActiveConfirm,
+        ReminderConfirm,
         ExpelConfirm,
         ReactivateConfirm,
         BirthdayEmail
@@ -1341,6 +1355,10 @@ else
     // Make Active confirmation modal
     private ApplicationUser? memberToMakeActive = null;
     private bool isMakingActive = false;
+
+    // Reminder push confirmation modal
+    private ApplicationUser? reminderMember = null;
+    private bool isSendingReminder = false;
     
     // Expel/Reactivate confirmation modals
     private ApplicationUser? expellingUser = null;
@@ -2391,15 +2409,12 @@ else
 
     private void CloseViewDetailsModal()
     {
-        modals.Close(ModalType.ViewDetails);
+        OnViewDetailsModalChanged(false);
     }
 
     private void OnViewDetailsModalChanged(bool isVisible)
     {
-        if (isVisible)
-            modals.Open(ModalType.ViewDetails);
-        else
-            modals.Close(ModalType.ViewDetails);
+        modals.Toggle(ModalType.ViewDetails, isVisible);
 
         if (!isVisible)
         {
@@ -3208,7 +3223,7 @@ else
     private void OpenMakeActiveConfirmModal(ApplicationUser member)
     {
         memberToMakeActive = member;
-        modals.Open(ModalType.MakeActiveConfirm);
+        modals.Toggle(ModalType.MakeActiveConfirm, true);
     }
     
     /// <summary>
@@ -3216,8 +3231,26 @@ else
     /// </summary>
     private void CloseMakeActiveConfirmModal()
     {
-        modals.Close(ModalType.MakeActiveConfirm);
+        modals.Toggle(ModalType.MakeActiveConfirm, false);
         memberToMakeActive = null;
+    }
+
+    /// <summary>
+    /// Opens the confirmation dialog to send a reminder push notification
+    /// </summary>
+    private void OpenReminderConfirmModal(ApplicationUser member)
+    {
+        reminderMember = member;
+        modals.Toggle(ModalType.ReminderConfirm, true);
+    }
+
+    /// <summary>
+    /// Closes the reminder push confirmation dialog
+    /// </summary>
+    private void CloseReminderConfirmModal()
+    {
+        modals.Toggle(ModalType.ReminderConfirm, false);
+        reminderMember = null;
     }
     
     /// <summary>
@@ -3459,26 +3492,38 @@ else
     /// <summary>
     /// Sends a reminder push notification to a member about participating in an activity this month
     /// </summary>
-    private async Task SendReminderPushNotification(ApplicationUser member)
+    private async Task SendReminderPushNotificationAsync()
     {
+        if (reminderMember == null || isSendingReminder)
+        {
+            return;
+        }
+
+        isSendingReminder = true;
+        StateHasChanged();
+
         try
         {
             var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Lembrete: Participa numa Atividade!",
-                Body = $"Participa numa atividade este mês para voltares ao ativo, {member.Nickname ?? member.FirstName}!",
-                Icon = "/icons/rtub-logo-192.png",
-                Url = $"{baseUrl}/events",
-                Tag = $"member-reminder-{member.Id}-{DateTime.UtcNow.Ticks}"
-            };
+            var member = reminderMember;
+            var displayName = member.UserName;
+            var notification = PushNotificationFactory.CreateMemberActivityReminderNotification(
+                displayName,
+                member.Id,
+                baseUrl);
 
             await PushNotificationService.SendToUserAsync(member.Id, notification);
             _logger.LogInformation("Sent reminder push notification to member {MemberId} ({MemberName})", member.Id, member.GetDisplayName());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending reminder push notification to member {MemberId}", member.Id);
+            _logger.LogError(ex, "Error sending reminder push notification to member {MemberId}", reminderMember?.Id);
+        }
+        finally
+        {
+            isSendingReminder = false;
+            CloseReminderConfirmModal();
+            StateHasChanged();
         }
     }
 }

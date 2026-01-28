@@ -350,4 +350,13 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateCalotesReminderNotification(decimal amountOwed, string baseUrl);
+
+    /// <summary>
+    /// Creates a reminder push notification for a member to participate in activities.
+    /// </summary>
+    /// <param name="userDisplayName">Display name of the member receiving the reminder</param>
+    /// <param name="userId">The member's user ID</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl);
 }
