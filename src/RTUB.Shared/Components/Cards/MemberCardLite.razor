@@ -7,7 +7,9 @@
 <div class="member-card-lite">
     @if (ActionContent != null)
     {
-        @ActionContent
+        <div class="member-card-lite-actions">
+            @ActionContent
+        </div>
     }
     <div class="member-card-lite-header">
         <img src="@GetAvatarSrc()"
