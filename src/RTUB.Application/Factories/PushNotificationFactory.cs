@@ -1015,7 +1015,7 @@ public class PushNotificationFactory : IPushNotificationFactory
     /// <summary>
     /// Creates a reminder push notification for a member to participate in activities.
     /// </summary>
-    public SendPushNotificationDto CreateMemberActivityReminderNotification(string userDisplayName, string userId, string baseUrl)
+    public SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using RTUB.Application.DTOs
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -991,9 +992,9 @@ else
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
                         <ActionContent>
-                            @if (canMakeActive)
+                            @if (canMakeActive && isAdmin)
                             {
-                                <button type="button" 
+                                <button type="button"
                                         class="member-card-lite-action-btn" 
                                         title="Tornar este membro ativo"
                                         @onclick="() => OpenMakeActiveConfirmModal(member)">
@@ -1001,14 +1002,14 @@ else
                                 </button>
                             }
                             @if (showEncouragement && isAdmin)
-                            {
-                                <button type="button" 
-                                        class="member-card-lite-action-btn" 
-                                        title="Enviar notificação push de lembrete"
-                                    @onclick="() => OpenReminderConfirmModal(member)">
-                                    <i class="bi bi-bell text-white"></i>
-                                </button>
-                            }
+                                {
+                                    <button type="button" 
+                                            class="member-card-lite-action-btn" 
+                                            title="Enviar notificação push de lembrete"
+                                        @onclick="() => OpenReminderConfirmModal(member)">
+                                        <i class="bi bi-bell text-white"></i>
+                                    </button>
+                                }
                         </ActionContent>
                         <StatusContent>
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
@@ -3505,7 +3506,7 @@ else
         {
             var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
             var member = reminderMember;
-            var displayName = member.Nickname ?? member.FirstName;
+            var displayName = member.UserName;
             var notification = PushNotificationFactory.CreateMemberActivityReminderNotification(
                 displayName,
                 member.Id,

@@ -358,5 +358,5 @@ public interface IPushNotificationFactory
     /// <param name="userId">The member's user ID</param>
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateMemberActivityReminderNotification(string userDisplayName, string userId, string baseUrl);
+    SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl);
 }
