@@ -1,0 +1,1160 @@
+@page "/my-tuno"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@attribute [Authorize]
+@inject ICharacterService CharacterService
+@inject IUpgradeService UpgradeService
+@inject IBattleRepository BattleRepository
+@inject IInventoryService InventoryService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject ILogger<MyTunoHome> Logger
+@using RTUB.Application.DTOs
+@using RTUB.Shared.Components.UI
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<PageTitle>My Tuno - RTUB</PageTitle>
+
+<div class="my-tuno-home-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-sword"></i> My Tuno</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">
+                    Luta contra oponentes AI e melhora o teu personagem.
+                </p>
+            </div>
+            @if (isOwner)
+            {
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                        <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
+                    </button>
+                    <button class="btn btn-primary" @onclick="CreateCharactersForAllMembers" disabled="@creatingCharacters">
+                        @if (creatingCharacters)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <text>A criar...</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-plus me-2"></i>
+                            <text>Criar Tuno para Todos os Membros</text>
+                        }
+                    </button>
+                </div>
+            }
+            else
+            {
+                <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                    <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (character == null)
+    {
+        <EmptyState Title="Personagem não encontrado"
+                    Message="Ocorreu um erro ao carregar o teu personagem."
+                    Icon="bi-person-x" />
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Inventory -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column gap-3">
+                        @if (currentUser != null)
+                        {
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded" style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-coin text-success me-2 fs-4"></i>
+                                    <span class="fw-semibold">Fidelis</span>
+                                </span>
+                                <strong class="text-success fs-4">@currentUser.FidelisBalance.ToString("F2")</strong>
+                            </div>
+                            
+                            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" 
+                                 style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-cup-straw text-warning me-2"></i>
+                                    <span>Cerveja</span>
+                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong class="text-warning">@beerQuantity</strong>
+                                    <button class="btn btn-sm btn-warning" 
+                                            @onclick="UseBeer"
+                                            disabled="@(usingBeer || beerQuantity == 0 || character == null || character.CurrentHP >= character.TotalHP)">
+                                        @if (usingBeer)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <text>Usar</text>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Summary Card -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- HP Bar (above character sprite) -->
+                        @{
+                            var currentHP = character!.CurrentHP ?? character.TotalHP;
+                            var hpProgress = character.TotalHP > 0 ? Math.Min(100, (currentHP * 100.0 / character.TotalHP)) : 0;
+                        }
+                        <div class="xp-bar-container mb-3">
+                            <div class="xp-bar-bg">
+                                <div class="xp-bar-fill hp-bar-fill" 
+                                     style="width: @(hpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                                     role="progressbar" 
+                                     aria-valuenow="@currentHP" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="@character.TotalHP">
+                                </div>
+                            </div>
+                            <div class="xp-bar-text">
+                                <span class="xp-current">HP: @currentHP</span>
+                                <span class="xp-separator">/</span>
+                                <span class="xp-max">@character.TotalHP</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Character Sprite -->
+                        <div class="text-center mb-3">
+                            <img src="/sprites/games/my-tuno/default_tuno.png" 
+                                 alt="My Tuno Character" 
+                                 class="character-sprite img-fluid"
+                                 style="max-height: 200px; max-width: 100%; object-fit: contain;" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h4 class="text-center mb-3">Nível @character.Level</h4>
+                            @{
+                                var xpForNextLevel = character.Level * 100;
+                                var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
+                            }
+                            <!-- XP Bar matching Profile.razor style -->
+                            <div class="xp-bar-container">
+                                <div class="xp-bar-bg">
+                                    <div class="xp-bar-fill" 
+                                         style="width: @(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                                         role="progressbar" 
+                                         aria-valuenow="@character.XP" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="@xpForNextLevel">
+                                    </div>
+                                </div>
+                                <div class="xp-bar-text">
+                                    <span class="xp-current">@character.XP XP</span>
+                                    <span class="xp-separator">/</span>
+                                    <span class="xp-max">@xpForNextLevel XP</span>
+                                </div>
+                            </div>
+                        </div>
+                        <hr />
+                        
+                        <!-- Colored Stat Boxes -->
+                        <div class="d-flex flex-column gap-2">
+                            <!-- HP Stat Box -->
+                            <div class="p-2 border border-danger rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-heart-fill text-danger me-2"></i>
+                                    <span>HP</span>
+                                </span>
+                                <strong class="text-danger">@currentHP / @character.TotalHP</strong>
+                            </div>
+                            
+                            <!-- Restore HP Button (appears when HP < Max and character is alive) -->
+                            @if (currentHP > 0 && currentHP < character.TotalHP)
+                            {
+                                <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" 
+                                     style="background-color: #1e1e1e;">
+                                    <span class="d-flex align-items-center">
+                                        <i class="bi bi-heart-pulse text-success me-2"></i>
+                                        <span>Restaurar HP</span>
+                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong class="text-success">@GetRestoreCost() <i class="bi bi-coin text-warning"></i></strong>
+                                        <button class="btn btn-sm btn-success" 
+                                                @onclick="RestoreHP"
+                                                disabled="@(restoringHP || currentUser == null || currentUser.FidelisBalance < GetRestoreCost())">
+                                            @if (restoringHP)
+                                            {
+                                                <span class="spinner-border spinner-border-sm"></span>
+                                            }
+                                            else
+                                            {
+                                                <text>Restaurar</text>
+                                            }
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            
+                            <!-- Power Stat Box -->
+                            <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-lightning-fill text-success me-2"></i>
+                                    <span>Power</span>
+                                </span>
+                                <strong class="text-success">@character.TotalPower</strong>
+                            </div>
+                            
+                            <!-- Speed Stat Box -->
+                            <div class="p-2 border border-primary rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-speedometer2 text-primary me-2"></i>
+                                    <span>Speed</span>
+                                </span>
+                                <strong class="text-primary">@character.TotalSpeed</strong>
+                            </div>
+                            
+                            <!-- Critical Stat Box -->
+                            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-bullseye text-warning me-2"></i>
+                                    <span>Crítico</span>
+                                </span>
+                                <strong class="text-warning">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
+                            </div>
+                        </div>
+                        
+                        @if (currentHP <= 0)
+                        {
+                            var reviveCost = GetReviveCost();
+                            var canAffordRevive = currentUser?.FidelisBalance >= reviveCost;
+                            
+                            <div class="alert alert-danger mt-3 mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>Personagem derrotado!</strong> Precisa de reviver para lutar.
+                            </div>
+                            <button class="btn btn-success w-100 mb-2" @onclick="ReviveCharacter" disabled="@(reviving || !canAffordRevive)">
+                                @if (reviving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <text>A reviver...</text>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-heart-fill me-2"></i>
+                                    <text>Reviver (@reviveCost.ToString("F2") Fidelis)</text>
+                                }
+                            </button>
+                            @if (currentUser != null && !canAffordRevive)
+                            {
+                                <small class="text-danger d-block mt-2 text-center">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Saldo insuficiente
+                                </small>
+                            }
+                        }
+                        
+                        <hr />
+                        <button class="btn btn-primary btn-lg w-100" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
+                            <i class="bi bi-sword me-2"></i>Ir para Arena
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Leaderboard</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (leaderboardLoading)
+                        {
+                            <LoadingSpinner Message="A carregar leaderboard..." />
+                        }
+                        else if (leaderboardEntries == null || !leaderboardEntries.Any())
+                        {
+                            <EmptyState Title="Leaderboard vazio"
+                                        Message="Ainda não há jogadores com vitórias."
+                                        Icon="bi-trophy" />
+                        }
+                        else
+                        {
+                            <div class="stats-card-grid">
+                                @for (int i = 0; i < paginatedLeaderboard.Count; i++)
+                                {
+                                    var entry = paginatedLeaderboard[i];
+                                    var position = ((leaderboardCurrentPage - 1) * leaderboardPageSize) + i + 1;
+                                    <div class="stats-card">
+                                        <div class="stats-card-position">
+                                            @if (position == 1)
+                                            {
+                                                <span class="stats-medal gold">🥇</span>
+                                            }
+                                            else if (position == 2)
+                                            {
+                                                <span class="stats-medal silver">🥈</span>
+                                            }
+                                            else if (position == 3)
+                                            {
+                                                <span class="stats-medal bronze">🥉</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="stats-position">@position</span>
+                                            }
+                                        </div>
+                                        <img src="@(entry.AvatarUrl ?? "/images/default-avatar.webp")"
+                                             alt="@entry.DisplayName"
+                                             class="stats-avatar"
+                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                        <div class="stats-card-content">
+                                            <div class="stats-card-title">@entry.DisplayName</div>
+                                            <div class="stats-card-subtitle">Vitórias @entry.Wins • Nível @entry.Level</div>
+                                        </div>
+                                        <div class="stats-card-count">
+                                            <i class="bi bi-trophy"></i>
+                                            <span>@entry.Wins</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            
+                            @if (leaderboardEntries.Count > leaderboardPageSize)
+                            {
+                                <div class="mt-3">
+                                    <TablePagination CurrentPage="@leaderboardCurrentPage"
+                                                    PageSize="@leaderboardPageSize"
+                                                    TotalItems="@leaderboardEntries.Count"
+                                                    ItemLabel="jogadores"
+                                                    OnPageChanged="ChangeLeaderboardPage"
+                                                    PageSizeOptions="@(new[] { 5, 10, 20 })"
+                                                    OnPageSizeChanged="ChangeLeaderboardPageSize"
+                                                    ShowInfo="false" />
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrade Shop Section -->
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Loja de Upgrades</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Melhora as estatísticas do teu personagem usando Fidelis.
+                        @if (currentUser != null)
+                        {
+                            <span class="badge bg-success ms-2 mytuno-balance-badge">
+                                <i class="bi bi-coin me-1"></i>
+                                Saldo: @currentUser.FidelisBalance.ToString("F2") Fidelis
+                            </span>
+                        }
+                    </p>
+
+                    <div class="row g-4">
+                        <!-- HP Upgrade Card -->
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card h-100 upgrade-card upgrade-card--hp">
+                                <div class="card-header upgrade-card__header">
+                                    <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP</h5>
+                                </div>
+                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">HP Atual:</span>
+                                            <strong class="fs-5">@character.TotalHP</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Upgrades:</span>
+                                            <strong>@character.HpUpgrades</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Próximo Upgrade:</span>
+                                            <strong class="text-success">+10 HP</strong>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
+                                            <span class="text-muted">Custo:</span>
+                                            @if (hpCostLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@hpCost.ToString("F2") Fidelis</strong>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-danger w-100 upgrade-card__button" 
+                                            @onclick="() => PurchaseUpgrade(StatType.HP)"
+                                            disabled="@(purchasing || hpCostLoading || (currentUser?.FidelisBalance ?? 0) < hpCost)">
+                                        @if (purchasing && purchasingStat == StatType.HP)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <text>A comprar...</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-cart-plus me-2"></i>
+                                            <text>Comprar Upgrade</text>
+                                        }
+                                    </button>
+                                    @if (currentUser != null && currentUser.FidelisBalance < hpCost)
+                                    {
+                                        <small class="text-danger d-block mt-2 text-center">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Saldo insuficiente
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Power Upgrade Card -->
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card h-100 upgrade-card upgrade-card--power">
+                                <div class="card-header upgrade-card__header bg-success text-white">
+                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power</h5>
+                                </div>
+                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Power Atual:</span>
+                                            <strong class="fs-5">@character.TotalPower</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Upgrades:</span>
+                                            <strong>@character.PowerUpgrades</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Próximo Upgrade:</span>
+                                            <strong class="text-success">+2 Power</strong>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
+                                            <span class="text-muted">Custo:</span>
+                                            @if (powerCostLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@powerCost.ToString("F2") Fidelis</strong>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-success w-100 upgrade-card__button" 
+                                            @onclick="() => PurchaseUpgrade(StatType.Power)"
+                                            disabled="@(purchasing || powerCostLoading || (currentUser?.FidelisBalance ?? 0) < powerCost)">
+                                        @if (purchasing && purchasingStat == StatType.Power)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <text>A comprar...</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-cart-plus me-2"></i>
+                                            <text>Comprar Upgrade</text>
+                                        }
+                                    </button>
+                                    @if (currentUser != null && currentUser.FidelisBalance < powerCost)
+                                    {
+                                        <small class="text-danger d-block mt-2 text-center">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Saldo insuficiente
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speed Upgrade Card -->
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card h-100 upgrade-card upgrade-card--speed">
+                                <div class="card-header upgrade-card__header">
+                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed</h5>
+                                </div>
+                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Speed Atual:</span>
+                                            <strong class="fs-5">@character.TotalSpeed</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Upgrades:</span>
+                                            <strong>@character.SpeedUpgrades</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Próximo Upgrade:</span>
+                                            <strong class="text-success">+1 Speed</strong>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
+                                            <span class="text-muted">Custo:</span>
+                                            @if (speedCostLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@speedCost.ToString("F2") Fidelis</strong>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-info w-100 upgrade-card__button" 
+                                            @onclick="() => PurchaseUpgrade(StatType.Speed)"
+                                            disabled="@(purchasing || speedCostLoading || (currentUser?.FidelisBalance ?? 0) < speedCost)">
+                                        @if (purchasing && purchasingStat == StatType.Speed)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <text>A comprar...</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-cart-plus me-2"></i>
+                                            <text>Comprar Upgrade</text>
+                                        }
+                                    </button>
+                                    @if (currentUser != null && currentUser.FidelisBalance < speedCost)
+                                    {
+                                        <small class="text-danger d-block mt-2 text-center">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Saldo insuficiente
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Critical Chance Upgrade Card -->
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card h-100 upgrade-card upgrade-card--critical">
+                                <div class="card-header upgrade-card__header bg-warning text-dark">
+                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Crítico</h5>
+                                </div>
+                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Chance Atual:</span>
+                                            <strong class="fs-5">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Upgrades:</span>
+                                            <strong>@character.CriticalUpgrades</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Próximo Upgrade:</span>
+                                            <strong class="text-warning">+0.5% Crit</strong>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
+                                            <span class="text-muted">Custo:</span>
+                                            @if (criticalCostLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@criticalCost.ToString("F2") Fidelis</strong>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-warning w-100 upgrade-card__button"
+                                            @onclick="() => PurchaseUpgrade(StatType.CriticalChance)"
+                                            disabled="@(purchasing || criticalCostLoading || (currentUser?.FidelisBalance ?? 0) < criticalCost)">
+                                        @if (purchasing && purchasingStat == StatType.CriticalChance)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <text>A comprar...</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-bullseye me-2"></i>
+                                            <text>Comprar Upgrade</text>
+                                        }
+                                    </button>
+                                    @if (currentUser != null && currentUser.FidelisBalance < criticalCost)
+                                    {
+                                        <small class="text-danger d-block mt-2 text-center">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Saldo insuficiente
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success/Error Messages -->
+                    @if (!string.IsNullOrEmpty(toastMessage))
+                    {
+                        <div class="mt-3">
+                            <Alert Type="@(toastIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+                                   Message="@toastMessage"
+                                   Dismissible="true"
+                                   OnDismiss="@(() => toastMessage = string.Empty)" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Purchase Confirmation Modal -->
+    @if (showConfirmModal)
+    {
+        <Modal Show="@showConfirmModal"
+               ShowChanged="@((bool show) => { if (!show) showConfirmModal = false; })"
+               Title="Confirmar Compra"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <p>Tens a certeza que queres comprar um upgrade de <strong>@purchasingStat</strong>?</p>
+                <p class="mb-0">
+                    <strong>Custo:</strong> @SelectedUpgradeCost.ToString("F2") Fidelis
+                </p>
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="() => showConfirmModal = false">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                </button>
+                <button class="btn btn-primary" @onclick="ConfirmPurchase">
+                    <i class="bi bi-check-lg me-2"></i>Confirmar
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
+    <!-- Info Modal -->
+    @if (showInfoModal)
+    {
+        <DetailsModal Show="@showInfoModal"
+                      ShowChanged="@((bool show) => showInfoModal = show)"
+                      Title="Sobre My Tuno"
+                      HeaderTitle="My Tuno"
+                      ImageUrl="/sprites/games/my-tuno/default_tuno.png"
+                      UseRectangularImage="false"
+                      OnClose="CloseInfoModal">
+            <BadgesContent>
+                <span class="badge bg-primary">Versão @myTunoVersion</span>
+            </BadgesContent>
+            <Sections>
+                <InfoSection SectionTitle="Descrição" IconClass="bi-info-circle">
+                    <p class="text-white-full mb-0">@myTunoDescription</p>
+                </InfoSection>
+                <InfoSection SectionTitle="Próximas Funcionalidades" IconClass="bi-star">
+                    <p class="text-white-full mb-0">@myTunoNextFeatures</p>
+                </InfoSection>
+            </Sections>
+        </DetailsModal>
+    }
+</div>
+
+@code {
+    // Configuration defaults - MUST match values in appsettings.json MyTuno section
+    // These are fallbacks in case configuration fails to load
+    private const string DefaultVersion = "1.0.0";
+    private const string DefaultDescription = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
+    private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
+    
+    private Character? character;
+    private ApplicationUser? currentUser;
+    private List<MyTunoLeaderboardEntry>? leaderboardEntries;
+    private bool loading = true;
+    private bool isOwner = false;
+    private bool creatingCharacters = false;
+    private bool leaderboardLoading = false;
+    private bool reviving = false;
+    private bool restoringHP = false;
+    private int beerQuantity = 0;
+    private bool usingBeer = false;
+    
+    // Info modal state
+    private bool showInfoModal = false;
+    private string myTunoVersion = DefaultVersion;
+    private string myTunoDescription = DefaultDescription;
+    private string myTunoNextFeatures = DefaultNextFeatures;
+    
+    // Leaderboard pagination
+    private int leaderboardCurrentPage = 1;
+    private int leaderboardPageSize = 6;
+    private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
+        .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
+        .Take(leaderboardPageSize)
+        .ToList() ?? new();
+    
+    // Upgrade shop state
+    private bool purchasing = false;
+    private StatType? purchasingStat = null;
+    private bool showConfirmModal = false;
+    private decimal hpCost = 0;
+    private decimal powerCost = 0;
+    private decimal speedCost = 0;
+    private decimal criticalCost = 0;
+    private bool hpCostLoading = true;
+    private bool powerCostLoading = true;
+    private bool speedCostLoading = true;
+    private bool criticalCostLoading = true;
+    private string toastMessage = string.Empty;
+    private bool toastIsError = false;
+    private decimal SelectedUpgradeCost => purchasingStat switch
+    {
+        StatType.HP => hpCost,
+        StatType.Power => powerCost,
+        StatType.Speed => speedCost,
+        StatType.CriticalChance => criticalCost,
+        _ => 0
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load configuration values with fallback to constants
+        myTunoVersion = Configuration["MyTuno:Version"] ?? DefaultVersion;
+        myTunoDescription = Configuration["MyTuno:Description"] ?? DefaultDescription;
+        myTunoNextFeatures = Configuration["MyTuno:NextFeatures"] ?? DefaultNextFeatures;
+        
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            loading = true;
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                if (currentUser != null)
+                {
+                    // Check if user is Owner
+                    isOwner = user.IsInRole("Owner");
+                    
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    if (character != null)
+                    {
+                        await LoadUpgradeCosts();
+                        beerQuantity = await InventoryService.GetBeerQuantityAsync(currentUser.Id);
+                    }
+                }
+            }
+
+            await LoadLeaderboardAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading My Tuno home data");
+            toastMessage = "Erro ao carregar dados.";
+            toastIsError = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadLeaderboardAsync()
+    {
+        try
+        {
+            leaderboardLoading = true;
+            leaderboardEntries = await BattleRepository.GetTopLeaderboardAsync(50);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading leaderboard data");
+            leaderboardEntries = new List<MyTunoLeaderboardEntry>();
+        }
+        finally
+        {
+            leaderboardLoading = false;
+        }
+    }
+
+    private async Task LoadUpgradeCosts()
+    {
+        if (currentUser == null) return;
+
+        try
+        {
+            hpCostLoading = true;
+            powerCostLoading = true;
+            speedCostLoading = true;
+            criticalCostLoading = true;
+            StateHasChanged();
+
+            hpCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.HP);
+            powerCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Power);
+            speedCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Speed);
+            criticalCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.CriticalChance);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading upgrade costs");
+            toastMessage = "Erro ao carregar os custos dos upgrades.";
+            toastIsError = true;
+        }
+        finally
+        {
+            hpCostLoading = false;
+            powerCostLoading = false;
+            speedCostLoading = false;
+            criticalCostLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void PurchaseUpgrade(StatType statType)
+    {
+        purchasingStat = statType;
+        showConfirmModal = true;
+    }
+
+    private async Task ConfirmPurchase()
+    {
+        if (currentUser == null || purchasingStat == null) return;
+
+        showConfirmModal = false;
+        purchasing = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await UpgradeService.PurchaseUpgradeAsync(currentUser.Id, purchasingStat.Value);
+
+            if (result.Success)
+            {
+                // Reload user and character to get updated values
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                }
+                await LoadUpgradeCosts();
+
+                toastMessage = $"Upgrade de {purchasingStat} comprado com sucesso!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = result.ErrorMessage ?? "Erro ao comprar upgrade.";
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error purchasing upgrade");
+            toastMessage = "Erro ao processar a compra. Por favor, tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            purchasing = false;
+            purchasingStat = null;
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateToArena()
+    {
+        Navigation.NavigateTo("/my-tuno/arena");
+    }
+
+    private void NavigateToUpgrade()
+    {
+        // Scroll to upgrade section instead of navigating
+        // This is handled by removing the button or keeping it for now
+    }
+
+    private async Task CreateCharactersForAllMembers()
+    {
+        if (!isOwner) return;
+
+        try
+        {
+            creatingCharacters = true;
+            StateHasChanged();
+
+            var count = await CharacterService.CreateCharactersForAllMembersAsync();
+            toastMessage = $"Criados {count} personagens para membros sem personagem.";
+            toastIsError = false;
+
+            // Reload data to refresh character list
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating characters for all members");
+            toastMessage = $"Erro ao criar personagens: {ex.Message}";
+            toastIsError = true;
+        }
+        finally
+        {
+            creatingCharacters = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ChangeLeaderboardPage(int page)
+    {
+        leaderboardCurrentPage = page;
+    }
+
+    private void ChangeLeaderboardPageSize(int newPageSize)
+    {
+        leaderboardPageSize = newPageSize;
+        leaderboardCurrentPage = 1; // Reset to first page when changing page size
+    }
+
+    private void OpenInfoModal()
+    {
+        showInfoModal = true;
+    }
+
+    private void CloseInfoModal()
+    {
+        showInfoModal = false;
+    }
+
+    private decimal GetReviveCost()
+    {
+        if (character == null) return 0;
+        // Cost scales with level: 2.5 Fidelis * level
+        return 2.5m * character.Level;
+    }
+
+    private decimal GetRestoreCost()
+    {
+        return 50m;  // Fixed cost of 50 Fidelis
+    }
+
+    private async Task ReviveCharacter()
+    {
+        if (character == null || currentUser == null) return;
+
+        try
+        {
+            reviving = true;
+            var cost = GetReviveCost();
+
+            if (currentUser.FidelisBalance < cost)
+            {
+                // Error message now shown inline under button
+                return;
+            }
+
+            // Deduct Fidelis
+            currentUser.FidelisBalance -= cost;
+            await UserManager.UpdateAsync(currentUser);
+
+            // Restore HP to max
+            character.CurrentHP = character.TotalHP;
+            await CharacterService.UpdateCharacterAsync(character);
+
+            // Reload data
+            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
+            if (updatedUser != null)
+            {
+                currentUser = updatedUser;
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            }
+
+            toastMessage = "Personagem revivido com sucesso!";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reviving character");
+            toastMessage = "Erro ao reviver personagem.";
+            toastIsError = true;
+        }
+        finally
+        {
+            reviving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestoreHP()
+    {
+        if (character == null || currentUser == null) return;
+        
+        try
+        {
+            restoringHP = true;
+            var restoreCost = GetRestoreCost();
+            
+            // Check if user has enough Fidelis
+            if (currentUser.FidelisBalance < restoreCost)
+            {
+                toastMessage = $"Precisas de {restoreCost} Fidelis para restaurar HP completo!";
+                toastIsError = true;
+                return;
+            }
+            
+            // Check if character is alive
+            if (character.CurrentHP <= 0)
+            {
+                toastMessage = "Usa Reviver em vez de Restaurar!";
+                toastIsError = true;
+                return;
+            }
+            
+            // Check if already at full HP
+            if (character.CurrentHP >= character.TotalHP)
+            {
+                toastMessage = "HP já está cheio!";
+                toastIsError = false;
+                return;
+            }
+            
+            // Restore HP to full
+            character.RestoreHP();
+            
+            // Deduct Fidelis
+            currentUser.FidelisBalance -= restoreCost;
+            await UserManager.UpdateAsync(currentUser);
+            
+            // Save character
+            await CharacterService.UpdateCharacterAsync(character);
+            
+            // Reload data
+            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
+            if (updatedUser != null)
+            {
+                currentUser = updatedUser;
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            }
+            
+            toastMessage = $"HP restaurado! (-{restoreCost} Fidelis)";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error restoring HP for character {CharacterId}", character?.Id);
+            toastMessage = "Erro ao restaurar HP";
+            toastIsError = true;
+        }
+        finally
+        {
+            restoringHP = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCharacterAsync()
+    {
+        if (currentUser == null) return;
+
+        try
+        {
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading character");
+            toastMessage = "Erro ao carregar personagem.";
+            toastIsError = true;
+        }
+    }
+
+    private async Task UseBeer()
+    {
+        try
+        {
+            usingBeer = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, healedAmount, message) = await InventoryService.UseBeerAsync(currentUser.Id);
+            
+            if (success)
+            {
+                // Update beer quantity
+                beerQuantity--;
+                
+                // Reload character to get updated HP
+                await LoadCharacterAsync();
+                
+                // Show success message
+                toastMessage = $"Recuperaste {healedAmount} HP!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar cerveja";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using beer for user");
+        }
+        finally
+        {
+            usingBeer = false;
+            StateHasChanged();
+        }
+    }
+}

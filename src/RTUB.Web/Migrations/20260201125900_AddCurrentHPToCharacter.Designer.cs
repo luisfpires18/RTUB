@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260201125900_AddCurrentHPToCharacter")]
+    partial class AddCurrentHPToCharacter
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -283,38 +286,6 @@ namespace RTUB.Migrations
                     b.ToTable("AlbumAccesses");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AndroidTesterLogin", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("LoginDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AndroidTesterLogins");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -362,9 +333,6 @@ namespace RTUB.Migrations
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsAndroidTester")
-                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsExpelled")
                         .HasColumnType("INTEGER");
@@ -1650,47 +1618,6 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Instruments");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_InventoryItems_UserId");
-
-                    b.HasIndex("UserId", "Type")
-                        .IsUnique()
-                        .HasDatabaseName("IX_InventoryItems_UserId_Type");
-
-                    b.ToTable("InventoryItems");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Label", b =>
@@ -4040,17 +3967,6 @@ namespace RTUB.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.AndroidTesterLogin", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.ApplicationUser", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Mentor")
@@ -4283,17 +4199,6 @@ namespace RTUB.Migrations
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
                         .WithMany()

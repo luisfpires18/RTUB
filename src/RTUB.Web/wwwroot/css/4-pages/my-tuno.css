@@ -1,0 +1,60 @@
+/*
+ * My Tuno Page Styles
+ * Styles for the My Tuno game pages
+ */
+
+/* Character Sprite Styling */
+.character-sprite {
+    display: block;
+    margin: 0 auto;
+    image-rendering: auto; /* Use browser's default smooth scaling */
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.2s ease-in-out;
+}
+
+.character-sprite:hover {
+    transform: scale(1.05);
+}
+
+/* Character Summary Card Enhancements */
+.my-tuno-home-page .card-body {
+    position: relative;
+}
+
+/* Remove gradients from upgrade buttons */
+.my-tuno-home-page .btn-warning {
+    background-image: none !important;
+    background-color: #ffc107 !important;
+}
+
+.my-tuno-home-page .btn-warning:hover:not(:disabled) {
+    background-color: #e0a800 !important;
+    background-image: none !important;
+}
+
+.my-tuno-home-page .btn-warning:active:not(:disabled) {
+    background-color: #d39e00 !important;
+    background-image: none !important;
+}
+
+.my-tuno-home-page .btn-danger {
+    background-image: none !important;
+    background-color: #dc3545 !important;
+}
+
+.my-tuno-home-page .btn-danger:hover:not(:disabled) {
+    background-color: #c82333 !important;
+    background-image: none !important;
+}
+
+.my-tuno-home-page .btn-danger:active:not(:disabled) {
+    background-color: #bd2130 !important;
+    background-image: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .character-sprite {
+        max-height: 150px !important;
+    }
+}
