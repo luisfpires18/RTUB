@@ -886,34 +886,6 @@ else
             }
             else
             {
-                <!-- Notification Type Selection -->
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                    <select class="form-select" @bind="selectedPushNotificationType">
-                        <option value="@NotificationTypeNew">Nova Reunião</option>
-                        <option value="@NotificationTypeReminder">Lembrete de Reunião</option>
-                    </select>
-                    <small class="text-muted">
-                        @if (selectedPushNotificationType == NotificationTypeNew)
-                        {
-                            <text>Notifica os membros sobre uma nova reunião convocada.</text>
-                        }
-                        else if (selectedMeetingForPush != null)
-                        {
-                            var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
-                            @if (daysText != null)
-                            {
-                                var reminderText = daysText == "hoje" ? "a reunião é hoje" : $"a reunião é em {daysText}";
-                                <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
-                            }
-                            else
-                            {
-                                <text>Não é possível enviar lembretes para reuniões passadas.</text>
-                            }
-                        }
-                    </small>
-                </div>
-                
                 @if (selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
                 {
                     <div class="mb-3">
@@ -929,9 +901,43 @@ else
                     </div>
                 }
                 
+                <!-- Custom Notification Message -->
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                    <textarea class="form-control" 
+                              rows="4" 
+                              @bind="customNotificationBody" 
+                              placeholder="Ex: Reunião importante, confirma a tua presença!"
+                              maxlength="500"></textarea>
+                    <small class="text-muted">
+                        A notificação terá um título automático com a data da reunião. Máximo 500 caracteres.
+                    </small>
+                </div>
+
+                <!-- Filter Option -->
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               id="meetingFilterLeitaoCaloiro"
+                               @bind="filterOnlyLeitaoAndCaloiro"
+                               @bind:after="OnMeetingFilterChanged" />
+                        <label class="form-check-label text-white-full" for="meetingFilterLeitaoCaloiro">
+                            Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
+                        </label>
+                    </div>
+                    @if (filterOnlyLeitaoAndCaloiro)
+                    {
+                        <small class="text-warning d-block mt-1">
+                            <i class="bi bi-info-circle me-1"></i>
+                            As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
+                        </small>
+                    }
+                </div>
+
                 <EmailRecipientsPreview 
-                    SubscribedUsers="@(pushRecipients ?? new List<ApplicationUser>())"
-                    NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsers="@(pushFilteredRecipients ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
                     SubscribedUsersTitle="Destinatários com subscrições push ativas:"
                     NonSubscribedUsersTitle="Membros sem subscrição push:"
                     ShowNonSubscribedUsers="true"
@@ -1859,17 +1865,16 @@ else
     private Meeting? selectedMeetingForPush;
     private List<ApplicationUser>? pushRecipients;
     private List<ApplicationUser>? pushNonSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredRecipients;
+    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
     private List<ApplicationUser>? pushTunoUsers;
     private int pushRecipientCount = 0;
     private int pushTotalUsersCount = 0;
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
-    private string selectedPushNotificationType = NotificationTypeNew;
-    
-    // Notification type constants
-    private const string NotificationTypeNew = "new";
-    private const string NotificationTypeReminder = "reminder";
+    private string? customNotificationBody;
+    private bool filterOnlyLeitaoAndCaloiro = false;
     
     // Meeting participation modal variables
     private bool isEditingParticipation = false;
@@ -2897,7 +2902,8 @@ else
         pushLoadingRecipients = true;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
-        selectedPushNotificationType = NotificationTypeNew; // Reset to default
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
         modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
@@ -2969,8 +2975,7 @@ else
                 .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
                 .ToList();
             
-            pushRecipientCount = pushRecipients.Count;
-            pushTotalUsersCount = eligibleUsers.Count;
+            ApplyMeetingPushFilter();
         }
         catch (Exception ex)
         {
@@ -2990,19 +2995,28 @@ else
         selectedMeetingForPush = null;
         pushRecipients = null;
         pushNonSubscribedUsers = null;
+        pushFilteredRecipients = null;
+        pushFilteredNonSubscribedUsers = null;
         pushTunoUsers = null;
         pushRecipientCount = 0;
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
-        selectedPushNotificationType = NotificationTypeNew;
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
     }
 
     private async Task SendMeetingPushNotification()
     {
-        if (selectedMeetingForPush == null || pushRecipients == null || !pushRecipients.Any())
+        if (selectedMeetingForPush == null || pushFilteredRecipients == null || !pushFilteredRecipients.Any())
         {
             ClosePushNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customNotificationBody))
+        {
+            pushErrorMessage = "A mensagem da notificação é obrigatória.";
             return;
         }
 
@@ -3015,27 +3029,14 @@ else
             // Use the base URL from Navigation
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
             
-            // Check if it's a reminder
-            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
-            
-            // Validate reminder for past meetings
-            if (isReminder)
-            {
-                var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
-                if (daysText == null)
-                {
-                    pushErrorMessage = "Não é possível enviar lembretes para reuniões passadas.";
-                    pushLoadingRecipients = false;
-                    StateHasChanged();
-                    return;
-                }
-            }
-            
             // Create the notification
-            var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, isReminder, baseUrl);
+            var notification = PushNotificationFactory.CreateMeetingCustomNotification(
+                selectedMeetingForPush,
+                customNotificationBody!,
+                baseUrl);
 
             // Build final recipient list
-            var finalRecipients = pushRecipients.ToList();
+            var finalRecipients = pushFilteredRecipients.ToList();
             
             // Add selected Tuno if applicable for CV meetings
             if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos && 
@@ -3083,6 +3084,33 @@ else
             pushLoadingRecipients = false;
             StateHasChanged();
         }
+    }
+
+    private void ApplyMeetingPushFilter()
+    {
+        if (filterOnlyLeitaoAndCaloiro)
+        {
+            pushFilteredRecipients = pushRecipients?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+        }
+        else
+        {
+            pushFilteredRecipients = pushRecipients;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
+        }
+
+        pushRecipientCount = pushFilteredRecipients?.Count ?? 0;
+        pushTotalUsersCount = (pushFilteredRecipients?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
+    }
+
+    private void OnMeetingFilterChanged()
+    {
+        ApplyMeetingPushFilter();
     }
     
     private string GetYearsAsTunoDisplay(ApplicationUser user)

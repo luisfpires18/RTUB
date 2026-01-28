@@ -166,6 +166,42 @@ public class PendingRequestReminderService : BackgroundService
 
         _logger.LogInformation("Found {Count} pending meeting requests", pendingRequests.Count);
 
+        var today = DateTime.UtcNow.Date;
+
+        // 1) Automatically expire pending requests whose proposed date has already passed.
+        // These should move out of "Pendente" so they can no longer be accepted.
+        var expiredRequests = pendingRequests
+            .Where(r => r.ProposedDateTime.Date < today)
+            .ToList();
+
+        if (expiredRequests.Any())
+        {
+            foreach (var request in expiredRequests)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+
+                // Use "Rejected" as the non-answer state to keep enum surface small.
+                request.Status = RequestStatus.Rejected;
+                await meetingRequestRepository.UpdateAsync(request);
+                _logger.LogInformation(
+                    "Auto-expired meeting request {RequestId} ('{Title}') because the proposed date {ProposedDate} has passed.",
+                    request.Id,
+                    request.Title,
+                    request.ProposedDateTime);
+            }
+
+            // Remove expired ones from the list we will send reminders for
+            pendingRequests = pendingRequests
+                .Where(r => r.ProposedDateTime.Date >= today)
+                .ToList();
+        }
+
+        if (!pendingRequests.Any())
+        {
+            _logger.LogInformation("All pending meeting requests are now expired; no reminders to send.");
+            return;
+        }
+
         // Load all users once for position-based filtering with AsNoTracking to prevent tracking issues
         var allUsers = await userManager.Users.AsNoTracking().ToListAsync(cancellationToken);
 

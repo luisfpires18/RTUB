@@ -393,9 +393,10 @@
 
 /* View button */
 .avatar-card-actions {
-    padding: 0 1rem 1rem 1rem;
+    padding: 0.75rem 1rem 1rem 1rem;
     display: flex;
     justify-content: center;
+    margin-top: auto;
 }
 
 .btn-purple {

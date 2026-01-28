@@ -18,6 +18,12 @@ public class MemberDebt : BaseEntity
     [MaxLength(500, ErrorMessage = "A descrição não pode exceder 500 caracteres")]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// Optional date until which the member has committed to pay this debt.
+    /// While this date is in the future, we should not send calote reminder notifications.
+    /// </summary>
+    public DateTime? CompromisedUntil { get; set; }
+
     [Required(ErrorMessage = "O ano fiscal é obrigatório")]
     [Range(1, int.MaxValue, ErrorMessage = "ID de Ano Fiscal inválido")]
     public int FiscalYearId { get; set; }
