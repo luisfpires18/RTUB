@@ -132,6 +132,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BetOption> BetOptions { get; set; }
     public DbSet<UserBet> UserBets { get; set; }
 
+    // My Tuno DbSets
+    public DbSet<Character> Characters { get; set; }
+    public DbSet<Battle> Battles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -730,6 +734,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         var game = Games.Local.FirstOrDefault(g => g.Key == gameScore.GameKey);
                         var gameName = game?.Title ?? gameScore.GameKey;
                         return gameName;
+                    }
+                    break;
+
+                case "Character":
+                    if (entry.Entity is Character character)
+                    {
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var userName = character.User?.Nickname
+                            ?? character.User?.UserName
+                            ?? ResolveUserIdToNickname(character.UserId)
+                            ?? character.UserId;
+                        return $"Character - {userName} (Level {character.Level})";
+                    }
+                    break;
+
+                case "Battle":
+                    if (entry.Entity is Battle battle)
+                    {
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var attackerName = battle.Attacker?.User?.Nickname
+                            ?? battle.Attacker?.User?.UserName
+                            ?? (battle.Attacker != null ? ResolveUserIdToNickname(battle.Attacker.UserId) : null)
+                            ?? "Unknown";
+                        var defenderName = battle.Defender?.User?.Nickname
+                            ?? battle.Defender?.User?.UserName
+                            ?? (battle.Defender != null ? ResolveUserIdToNickname(battle.Defender.UserId) : null)
+                            ?? "Unknown";
+                        return $"Battle: {attackerName} vs {defenderName}";
                     }
                     break;
             }

@@ -1,0 +1,50 @@
+.character-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.character-card-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.character-card-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border: 3px solid #dee2e6;
+}
+
+.character-card-image-placeholder {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9ecef;
+    color: #6c757d;
+    font-size: 2rem;
+    border: 3px solid #dee2e6;
+}
+
+.character-card-info {
+    flex-grow: 1;
+}
+
+.character-card-stats {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.character-card-stats .d-flex {
+    padding: 0.25rem 0;
+}
+
+.character-card-stats strong {
+    font-weight: 600;
+}

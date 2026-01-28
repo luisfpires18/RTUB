@@ -1,0 +1,193 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+using RTUB.Application.DTOs;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
+
+namespace RTUB.Application.Services;
+
+/// <summary>
+/// Service for managing battles
+/// Handles battle creation, combat simulation, and reward distribution
+/// </summary>
+public class BattleService : IBattleService
+{
+    private readonly ICharacterRepository _characterRepository;
+    private readonly IBattleRepository _battleRepository;
+    private readonly IMatchmakingService _matchmakingService;
+    private readonly ICombatEngine _combatEngine;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<BattleService> _logger;
+
+    // Reward constants
+    private const int BaseWinXP = 50;
+    private const int BaseLossXP = 20;
+    private const int BaseDrawXP = 30;
+    private const decimal BaseWinFidelis = 10m;
+    private const decimal BaseLossFidelis = 5m;
+    private const decimal BaseDrawFidelis = 7.5m;
+
+    public BattleService(
+        ICharacterRepository characterRepository,
+        IBattleRepository battleRepository,
+        IMatchmakingService matchmakingService,
+        ICombatEngine combatEngine,
+        UserManager<ApplicationUser> userManager,
+        ILogger<BattleService> logger)
+    {
+        _characterRepository = characterRepository;
+        _battleRepository = battleRepository;
+        _matchmakingService = matchmakingService;
+        _combatEngine = combatEngine;
+        _userManager = userManager;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Creates and executes a battle vs AI opponent
+    /// </summary>
+    public async Task<Battle> CreateBattleVsAIAsync(int playerCharacterId)
+    {
+        // Load player character
+        var playerCharacter = await _characterRepository.GetByIdAsync(playerCharacterId);
+        if (playerCharacter == null)
+            throw new EntityNotFoundException(nameof(Character), playerCharacterId);
+
+        // Find AI opponent
+        var aiOpponent = await _matchmakingService.FindAIOpponentAsync(playerCharacter);
+        if (aiOpponent == null)
+        {
+            _logger.LogWarning("No AI opponent found for character {CharacterId}. Player may need to wait for more member characters to be created.", playerCharacterId);
+            throw new InvalidOperationException("Nenhum oponente AI disponível. Aguarda até que mais membros criem personagens.");
+        }
+
+        // Generate seed for deterministic combat
+        var seed = GenerateSeed();
+
+        // Run combat simulation
+        var combatResult = _combatEngine.Simulate(playerCharacter, aiOpponent, seed);
+
+        // Calculate rewards based on outcome
+        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome);
+
+        // Create battle record
+        var battle = Battle.Create(playerCharacterId, aiOpponent.Id, seed, combatResult.Outcome);
+        battle.SetRewards(xpReward, fidelisReward);
+
+        // Serialize replay events to JSON
+        var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
+        {
+            WriteIndented = false
+        });
+        battle.SetReplay(replayJson);
+
+        // Persist battle
+        await _battleRepository.AddAsync(battle);
+
+        // Apply rewards to player character and user
+        await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        _logger.LogInformation(
+            "Battle created: Player {PlayerCharacterId} vs AI {AIOpponentId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
+            playerCharacterId, aiOpponent.Id, combatResult.Outcome, xpReward, fidelisReward);
+
+        return battle;
+    }
+
+    /// <summary>
+    /// Creates and executes a battle vs a specific opponent character
+    /// </summary>
+    public async Task<Battle> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId)
+    {
+        // Load player character
+        var playerCharacter = await _characterRepository.GetByIdAsync(playerCharacterId);
+        if (playerCharacter == null)
+            throw new EntityNotFoundException(nameof(Character), playerCharacterId);
+
+        // Load opponent character
+        var opponentCharacter = await _characterRepository.GetByIdAsync(opponentCharacterId);
+        if (opponentCharacter == null)
+            throw new EntityNotFoundException(nameof(Character), opponentCharacterId);
+
+        if (playerCharacterId == opponentCharacterId)
+            throw new InvalidOperationException("Não podes lutar contra ti mesmo");
+
+        // Generate seed for deterministic combat
+        var seed = GenerateSeed();
+
+        // Run combat simulation
+        var combatResult = _combatEngine.Simulate(playerCharacter, opponentCharacter, seed);
+
+        // Calculate rewards based on outcome
+        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome);
+
+        // Create battle record
+        var battle = Battle.Create(playerCharacterId, opponentCharacterId, seed, combatResult.Outcome);
+        battle.SetRewards(xpReward, fidelisReward);
+
+        // Serialize replay events to JSON
+        var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
+        {
+            WriteIndented = false
+        });
+        battle.SetReplay(replayJson);
+
+        // Persist battle
+        await _battleRepository.AddAsync(battle);
+
+        // Apply rewards to player character and user
+        await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        _logger.LogInformation(
+            "Battle created: Player {PlayerCharacterId} vs Opponent {OpponentCharacterId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
+            playerCharacterId, opponentCharacterId, combatResult.Outcome, xpReward, fidelisReward);
+
+        return battle;
+    }
+
+    /// <summary>
+    /// Calculates XP and Fidelis rewards based on battle outcome
+    /// </summary>
+    private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome)
+    {
+        return outcome switch
+        {
+            BattleOutcome.AttackerWon => (BaseWinXP, BaseWinFidelis),
+            BattleOutcome.DefenderWon => (BaseLossXP, BaseLossFidelis),
+            BattleOutcome.Draw => (BaseDrawXP, BaseDrawFidelis),
+            _ => (0, 0m)
+        };
+    }
+
+    /// <summary>
+    /// Applies XP and Fidelis rewards to the player
+    /// Note: AI opponents do not receive rewards
+    /// </summary>
+    private async Task ApplyRewardsAsync(Character character, int xp, decimal fidelis)
+    {
+        // Add XP to character (handles level-ups)
+        character.AddXP(xp);
+
+        // Update character
+        await _characterRepository.UpdateAsync(character);
+
+        // Add Fidelis to user
+        var user = await _userManager.FindByIdAsync(character.UserId);
+        if (user != null)
+        {
+            user.FidelisBalance += fidelis;
+            await _userManager.UpdateAsync(user);
+        }
+    }
+
+    /// <summary>
+    /// Generates a random seed for combat simulation
+    /// </summary>
+    private static int GenerateSeed()
+    {
+        return new Random().Next(int.MinValue, int.MaxValue);
+    }
+}

@@ -73,6 +73,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBetRepository, BetRepository>();
         services.AddScoped<IBetOptionRepository, BetOptionRepository>();
         services.AddScoped<IUserBetRepository, UserBetRepository>();
+        services.AddScoped<ICharacterRepository, CharacterRepository>();
+        services.AddScoped<IBattleRepository, BattleRepository>();
 
         return services;
     }
@@ -120,6 +122,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
         services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
         services.AddScoped<INaipeConfigService, NaipeConfigService>();
+        services.AddScoped<ICharacterService, CharacterService>();
+        services.AddScoped<IUpgradeService, UpgradeService>();
+        services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
+        services.AddScoped<IMatchmakingService, MatchmakingService>();
+        services.AddScoped<IBattleService, BattleService>();
 
         return services;
     }

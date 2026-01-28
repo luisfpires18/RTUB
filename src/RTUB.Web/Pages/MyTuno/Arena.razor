@@ -1,0 +1,475 @@
+@page "/my-tuno/arena"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.Cards
+@using System.Text.Json
+@attribute [Authorize]
+@inject ICharacterService CharacterService
+@inject IBattleService BattleService
+@inject IBattleRepository BattleRepository
+@inject ICharacterRepository CharacterRepository
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Arena> Logger
+@implements IAsyncDisposable
+
+<PageTitle>Arena - My Tuno - RTUB</PageTitle>
+
+<div class="arena-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="mb-2"><i class="bi bi-sword"></i> Arena</h1>
+                    <p class="lead page-header-subtitle mb-0 text-light-theme">
+                        Escolhe um oponente para lutar.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (character == null)
+    {
+        <EmptyState Title="Personagem não encontrado"
+                    Message="Ocorreu um erro ao carregar o teu personagem."
+                    Icon="bi-person-x" />
+    }
+    else
+    {
+        <!-- Live Battle Animation -->
+        @if (showBattleAnimation && currentBattle != null)
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
+                </div>
+                <div class="card-body p-0">
+                    <canvas id="liveBattleCanvas" class="w-100" style="background: #1a1a1a; display: block;"></canvas>
+                </div>
+            </div>
+        }
+
+        <!-- Battle Result -->
+        @if (currentBattle != null && !showBattleAnimation)
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-trophy me-2"></i>Batalha Concluída!</h5>
+                    <div class="mb-3">
+                        <strong>Resultado:</strong>
+                        @if (currentBattle.Outcome == BattleOutcome.AttackerWon)
+                        {
+                            <span class="badge bg-success ms-2">Vitória</span>
+                        }
+                        else if (currentBattle.Outcome == BattleOutcome.DefenderWon)
+                        {
+                            <span class="badge bg-danger ms-2">Derrota</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark ms-2">Empate</span>
+                        }
+                    </div>
+                    <div>
+                        <strong>Recompensas:</strong>
+                        <span class="badge bg-info me-2">+@currentBattle.AttackerXP XP</span>
+                        <span class="badge bg-success">+@currentBattle.AttackerFidelis.ToString("F2") Fidelis</span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Opponent Selection -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
+            </div>
+            <div class="card-body">
+                @if (opponentCharacters == null || !opponentCharacters.Any())
+                {
+                    <EmptyState Title="Nenhum oponente disponível"
+                                Message="Ainda não há outros personagens para lutar."
+                                Icon="bi-person-x" />
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var opponent in opponentCharacters)
+                        {
+                            <div class="col-md-6 col-lg-4 col-xl-3">
+                                <CharacterCard Character="@opponent"
+                                             OnFight="() => FightOpponent(opponent)"
+                                             IsDisabled="@(fighting || showBattleAnimation)"
+                                             IsFighting="@(fightingOpponentId == opponent.Id)" />
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Battle History -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Histórico de Batalhas</h5>
+            </div>
+            <div class="card-body">
+                @if (battles == null || !battles.Any())
+                {
+                    <EmptyState Title="Nenhuma batalha encontrada"
+                                Message="Ainda não lutaste nenhuma batalha. Escolhe um oponente acima!"
+                                Icon="bi-sword" />
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Oponente</th>
+                                    <th>Resultado</th>
+                                    <th>XP</th>
+                                    <th>Fidelis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var battle in paginatedBattles)
+                                {
+                                    <tr>
+                                        <td>@battle.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            @if (battle.Defender?.User != null)
+                                            {
+                                                <span>@battle.Defender.User.UserName</span>
+                                                <small class="text-muted d-block">(Nível @battle.Defender.Level)</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">AI Opponent</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (battle.Outcome == BattleOutcome.AttackerWon)
+                                            {
+                                                <span class="badge bg-success">Vitória</span>
+                                            }
+                                            else if (battle.Outcome == BattleOutcome.DefenderWon)
+                                            {
+                                                <span class="badge bg-danger">Derrota</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark">Empate</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">+@battle.AttackerXP</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">+@battle.AttackerFidelis.ToString("F2")</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (totalPages > 1)
+                    {
+                        <TablePagination CurrentPage="@currentPage"
+                                        PageSize="@pageSize"
+                                        TotalItems="@battles.Count"
+                                        ItemLabel="batalhas"
+                                        OnPageChanged="ChangePage"
+                                        PageSizeOptions="@(new[] { 10, 20, 30, 50 })"
+                                        OnPageSizeChanged="ChangePageSize" />
+                    }
+                }
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <Alert Type="Alert.AlertType.Error" Message="@errorMessage" Dismissible="true" OnDismiss="() => errorMessage = string.Empty" />
+    }
+</div>
+
+@code {
+    private Character? character;
+    private ApplicationUser? currentUser;
+    private List<Character>? opponentCharacters;
+    private List<Battle>? battles;
+    private Battle? currentBattle;
+    private bool loading = true;
+    private bool fighting = false;
+    private bool showBattleAnimation = false;
+    private int? fightingOpponentId = null;
+    private string errorMessage = string.Empty;
+    private DotNetObjectReference<Arena>? objRef;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private int totalPages => battles != null ? (int)Math.Ceiling(battles.Count / (double)pageSize) : 0;
+    private List<Battle> paginatedBattles => battles?
+        .Skip((currentPage - 1) * pageSize)
+        .Take(pageSize)
+        .ToList() ?? new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Reset animation state on page load
+        showBattleAnimation = false;
+        fighting = false;
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // No initialization needed here - it's done when battle starts
+        // This method is kept for potential future use
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            loading = true;
+            errorMessage = string.Empty;
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    if (character != null)
+                    {
+                        await LoadOpponentsAsync();
+                        await LoadBattleHistoryAsync();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading arena data");
+            errorMessage = "Erro ao carregar dados da arena.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadOpponentsAsync()
+    {
+        if (character == null) return;
+
+        try
+        {
+            var allOpponents = await CharacterRepository.GetMemberCharactersAsync(character.Id);
+            
+            // Randomly select 4 opponents (or all if less than 4 available)
+            var random = new Random();
+            opponentCharacters = allOpponents
+                .OrderBy(x => random.Next())
+                .Take(Math.Min(4, allOpponents.Count))
+                .ToList();
+            opponentCharacters = allOpponents
+                .OrderBy(x => random.Next())
+                .Take(4)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading opponents");
+            errorMessage = "Erro ao carregar oponentes.";
+        }
+    }
+
+    private async Task LoadBattleHistoryAsync()
+    {
+        if (character == null) return;
+
+        try
+        {
+            battles = (await BattleRepository.GetByAttackerCharacterIdAsync(character.Id))
+                .OrderByDescending(b => b.CreatedAt)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading battle history");
+            errorMessage = "Erro ao carregar histórico de batalhas.";
+        }
+    }
+
+    private async Task FightOpponent(Character opponent)
+    {
+        if (character == null || currentUser == null || opponent == null) return;
+
+        try
+        {
+            fighting = true;
+            fightingOpponentId = opponent.Id;
+            showBattleAnimation = true;
+            errorMessage = string.Empty;
+            currentBattle = null;
+            StateHasChanged();
+
+            // Create battle vs specific opponent
+            currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);
+
+            // Start live battle animation
+            if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
+            {
+                try
+                {
+                    // Check if liveBattle module is available
+                    var isLiveBattleAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.liveBattle !== 'undefined'");
+                    if (!isLiveBattleAvailable)
+                    {
+                        Logger.LogWarning("liveBattle module not available - skipping animation");
+                        showBattleAnimation = false;
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        // Initialize if not already done
+                        if (objRef == null)
+                        {
+                            objRef = DotNetObjectReference.Create(this);
+                        }
+                        
+                        // Wait for canvas to be rendered, then initialize
+                        StateHasChanged(); // Trigger render to show canvas
+                        await Task.Delay(100); // Give time for canvas to render
+                        
+                        // Initialize the battle animation
+                        await JSRuntime.InvokeVoidAsync("liveBattle.init", "liveBattleCanvas", objRef);
+                        await JSRuntime.InvokeVoidAsync("liveBattle.startBattle", currentBattle.ReplayJson);
+                        
+                        // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
+                        // This is a safety net in case the JS callback fails
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(30000); // 30 seconds max (battles should finish faster)
+                            if (showBattleAnimation)
+                            {
+                                Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
+                                showBattleAnimation = false;
+                                await InvokeAsync(StateHasChanged);
+                            }
+                        });
+                    }
+                }
+                catch (JSException ex)
+                {
+                    Logger.LogError(ex, "Error starting battle animation: {Message}", ex.Message);
+                    // Continue without animation
+                    showBattleAnimation = false;
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Unexpected error starting battle animation");
+                    showBattleAnimation = false;
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                // No replay data, don't show animation
+                showBattleAnimation = false;
+            }
+
+            // Reload character and battle history
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            await LoadBattleHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting battle");
+            errorMessage = $"Erro ao iniciar batalha: {ex.Message}";
+            showBattleAnimation = false;
+        }
+        finally
+        {
+            fighting = false;
+            fightingOpponentId = null;
+            // Reset showBattleAnimation if battle creation failed or has no replay data
+            // If battle has replay data, let JS callback handle resetting it
+            if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
+            {
+                showBattleAnimation = false;
+            }
+            StateHasChanged(); // Ensure UI updates
+        }
+    }
+
+    [JSInvokable]
+    public void OnBattleFinished()
+    {
+        showBattleAnimation = false;
+        StateHasChanged();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void ChangePage(int page)
+    {
+        currentPage = page;
+    }
+
+    private void ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (objRef != null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("liveBattle.dispose");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore if JS context is disconnected
+            }
+            objRef?.Dispose();
+        }
+    }
+}
