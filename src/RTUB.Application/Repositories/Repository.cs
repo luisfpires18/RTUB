@@ -86,14 +86,45 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task DeleteAsync(T entity)
     {
-        // If entity is detached (loaded with AsNoTracking), attach it first
+        DetachLocalDuplicate(entity);
+
+        // Check if entity is already tracked
         var entry = _context.Entry(entity);
         if (entry.State == EntityState.Detached)
         {
-            _dbSet.Attach(entity);
+            // Try to find a tracked entity with the same key
+            var entityType = _context.Model.FindEntityType(typeof(T));
+            var primaryKey = entityType?.FindPrimaryKey();
+            if (primaryKey != null)
+            {
+                var keyValues = primaryKey.Properties
+                    .Select(p => p.PropertyInfo?.GetValue(entity))
+                    .ToArray();
+
+                var trackedEntity = _dbSet.Find(keyValues);
+                if (trackedEntity != null)
+                {
+                    // Delete the tracked entity instead
+                    _dbSet.Remove(trackedEntity);
+                }
+                else
+                {
+                    // No tracked entity found, attach and delete the provided entity
+                    _dbSet.Attach(entity);
+                    _dbSet.Remove(entity);
+                }
+            }
+            else
+            {
+                _dbSet.Attach(entity);
+                _dbSet.Remove(entity);
+            }
+        }
+        else
+        {
+            _dbSet.Remove(entity);
         }
 
-        _dbSet.Remove(entity);
         await SaveChangesAsync().ConfigureAwait(false);
     }
 

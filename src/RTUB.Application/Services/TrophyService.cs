@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -79,9 +80,7 @@ public class TrophyService : ITrophyService
     /// <exception cref="EntityNotFoundException">Thrown when the trophy is not found</exception>
     public async Task UpdateAsync(Trophy trophy)
     {
-        var existingTrophy = await _trophyRepository.GetByIdAsync(trophy.Id);
-        if (existingTrophy == null)
-            throw new EntityNotFoundException(nameof(Trophy), trophy.Id);
+        var existingTrophy = await _trophyRepository.GetByIdOrThrowAsync(trophy.Id);
 
         existingTrophy.Update(trophy.Name);
         await _trophyRepository.UpdateAsync(existingTrophy);

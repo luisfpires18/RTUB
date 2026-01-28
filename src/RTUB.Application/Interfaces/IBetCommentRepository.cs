@@ -23,4 +23,9 @@ public interface IBetCommentRepository : IRepository<BetComment>
     /// </summary>
     /// <param name="betId">Bet ID</param>
     Task DeleteByBetIdAsync(int betId);
+
+    /// <summary>
+    /// Gets comment counts for multiple bets (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<Dictionary<int, int>> GetCountsByBetIdsAsync(IEnumerable<int> betIds);
 }

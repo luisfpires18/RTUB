@@ -40,23 +40,23 @@
                             }
                             @foreach (var category in displayCategories)
                             {
-                                <CategoryBadge Category="category" AdditionalClasses="me-1 mb-1" />
+                                <CategoryBadge @key="@($"category-{User.Id}-{category}")" Category="category" AdditionalClasses="me-1 mb-1" />
                             }
                             @if (User.Positions.Any())
                             {
                                 @foreach (var position in User.Positions)
                                 {
-                                    <PositionBadge Position="position" AdditionalClasses="me-1 mb-1" />
+                                    <PositionBadge @key="position" Position="position" AdditionalClasses="me-1 mb-1" />
                                 }
                             }
                         </div>
 
                         <!-- Primary Actions -->
-                        <div class="d-flex gap-2 justify-content-center flex-wrap w-100" style="min-width: 0;">
-                            <button class="btn btn-sm btn-outline-light" @onclick="OnUploadPhoto">
+                        <div class="d-flex gap-2 justify-content-center flex-wrap w-100 profile-header-actions">
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnUploadPhoto" aria-label="Carregar foto de perfil">
                                 <i class="bi bi-upload"></i> Carregar Foto
                             </button>
-                            <button class="btn btn-sm btn-outline-light" @onclick="OnChangePassword">
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnChangePassword" aria-label="Alterar palavra-passe">
                                 <i class="bi bi-key"></i> Alterar Palavra-passe
                             </button>
                         </div>

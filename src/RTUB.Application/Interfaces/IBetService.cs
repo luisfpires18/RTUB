@@ -78,6 +78,13 @@ public interface IBetService
     Task<IEnumerable<BetOption>> GetBetOptionsAsync(int betId);
 
     /// <summary>
+    /// Gets all options for multiple bets (batch operation to avoid N+1 queries)
+    /// </summary>
+    /// <param name="betIds">Collection of bet IDs</param>
+    /// <returns>Dictionary mapping bet ID to list of options</returns>
+    Task<Dictionary<int, List<BetOption>>> GetBetOptionsByBetIdsAsync(IEnumerable<int> betIds);
+
+    /// <summary>
     /// Cancels a bet and refunds all user bets
     /// </summary>
     /// <param name="betId">Bet ID to cancel</param>

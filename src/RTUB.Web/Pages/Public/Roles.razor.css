@@ -1,0 +1,15 @@
+/* Filter dropdown minimum width */
+.filter-dropdown-container {
+    min-width: 240px;
+}
+
+/* PDF viewer container */
+.pdf-viewer-container {
+    height: 80vh;
+}
+
+.pdf-viewer-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}

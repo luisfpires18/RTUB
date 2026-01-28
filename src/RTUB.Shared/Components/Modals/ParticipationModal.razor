@@ -79,14 +79,14 @@
                                 {
                                     @foreach (var instrument in AvailableInstruments)
                                     {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                        <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 }
                                 else
                                 {
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                        <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 }
                             </InputSelect>
@@ -105,14 +105,14 @@
                             {
                                 @foreach (var instrument in AvailableInstruments)
                                 {
-                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                 }
                             }
                             else
                             {
                                 @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                 {
-                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    <option value="@instrument" @key="instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                 }
                             }
                         </InputSelect>

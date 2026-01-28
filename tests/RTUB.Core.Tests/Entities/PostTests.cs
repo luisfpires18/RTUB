@@ -95,7 +95,7 @@ public class PostTests
     }
 
     [Fact]
-    public void Pin_SetsIsPinnedToTrue()
+    public void Pin_WhenCalled_SetsIsPinnedToTrue()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -109,7 +109,7 @@ public class PostTests
     }
 
     [Fact]
-    public void Unpin_SetsIsPinnedToFalse()
+    public void Unpin_WhenCalled_SetsIsPinnedToFalse()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -124,7 +124,7 @@ public class PostTests
     }
 
     [Fact]
-    public void Lock_SetsIsLockedToTrue()
+    public void Lock_WhenCalled_SetsIsLockedToTrue()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -138,7 +138,7 @@ public class PostTests
     }
 
     [Fact]
-    public void Unlock_SetsIsLockedToFalse()
+    public void Unlock_WhenCalled_SetsIsLockedToFalse()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -153,7 +153,7 @@ public class PostTests
     }
 
     [Fact]
-    public void SoftDelete_SetsIsDeletedToTrue()
+    public void SoftDelete_WhenCalled_SetsIsDeletedToTrue()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -167,7 +167,7 @@ public class PostTests
     }
 
     [Fact]
-    public void UpdateLastActivity_UpdatesLastActivityAt()
+    public void UpdateLastActivity_WhenCalled_UpdatesLastActivityAt()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");
@@ -182,7 +182,7 @@ public class PostTests
     }
 
     [Fact]
-    public void SetMentions_SetsMentionsJson()
+    public void SetMentions_WithValidJson_SetsMentionsJson()
     {
         // Arrange
         var post = Post.Create(1, "user1", "Test Post", "Test Body");

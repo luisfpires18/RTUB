@@ -18,6 +18,25 @@
     color: var(--bs-danger);
 }
 
+/* Commitment badge - similar to debt badge but purple */
+.calote-commitment-badge {
+    background-color: rgba(110, 86, 207, 0.2);
+    border: 1px solid rgba(110, 86, 207, 0.6);
+    border-radius: 1rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    margin: 0.5rem 1rem 0 1rem;
+    margin-bottom: 1rem;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.calote-commitment-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(110, 86, 207, 0.95);
+}
+
 /* Member list in modal */
 .member-list-scrollable {
     max-height: 400px;
@@ -54,5 +73,9 @@
 @media (max-width: 768px) {
     .calote-debt-value {
         font-size: 1rem;
+    }
+
+    .calote-commitment-value {
+        font-size: 0.85rem;
     }
 }

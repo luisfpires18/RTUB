@@ -28,6 +28,7 @@ public class CachedGeocodingServiceTests
         var services = new ServiceCollection();
         services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor>(new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>().Object);
         services.AddScoped<AuditContext>();
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
 
         // Setup in-memory database for testing (scoped)
         services.AddDbContext<ApplicationDbContext>(options =>

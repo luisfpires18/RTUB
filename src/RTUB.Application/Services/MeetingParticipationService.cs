@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -64,15 +65,15 @@ public class MeetingParticipationService : IMeetingParticipationService
         bool willAttend,
         string? notes = null)
     {
-        var participation = await _participationRepository.GetByIdAsync(participationId);
-
-        if (participation == null)
-        {
-            throw new EntityNotFoundException(nameof(MeetingParticipation), participationId);
-        }
+        var participation = await _participationRepository.GetByIdOrThrowAsync(participationId);
 
         // Update participation fields
-        participation.UpdateAttendance(willAttend);
+        if (participation.WillAttend != willAttend)
+        {
+            participation.UpdateAttendance(willAttend);
+            // Update enlist/participation time only when attendance intent actually changes
+            participation.ParticipatedAt = DateTime.UtcNow;
+        }
         participation.UpdateNotes(notes);
 
         await _participationRepository.UpdateAsync(participation);
@@ -82,9 +83,7 @@ public class MeetingParticipationService : IMeetingParticipationService
 
     public async Task DeleteParticipationAsync(int id)
     {
-        var participation = await _participationRepository.GetByIdAsync(id);
-        if (participation == null)
-            throw new EntityNotFoundException(nameof(MeetingParticipation), id);
+        var participation = await _participationRepository.GetByIdOrThrowAsync(id);
 
         await _participationRepository.DeleteAsync(id);
     }

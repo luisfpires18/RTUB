@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -62,9 +63,7 @@ public class FiscalYearService : IFiscalYearService
 
     public async Task DeleteFiscalYearAsync(int id)
     {
-        var fiscalYear = await _fiscalYearRepository.GetByIdAsync(id);
-        if (fiscalYear == null)
-            throw new InvalidOperationException($"Fiscal year with ID {id} not found");
+        var fiscalYear = await _fiscalYearRepository.GetByIdOrThrowAsync(id);
 
         await _fiscalYearRepository.DeleteAsync(id);
     }

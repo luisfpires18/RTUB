@@ -157,10 +157,16 @@ public class GameScoreServiceTests
             .ReturnsAsync((GameScore?)null);
 
         GameScore? capturedScore = null;
+        // AddAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
             .Callback<GameScore>(s => capturedScore = s)
-            .ReturnsAsync((GameScore s) => s);
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+                return s;
+            });
         _mockGameScoreRepository
             .Setup(r => r.SaveChangesAsync())
             .ReturnsAsync(1);
@@ -191,9 +197,14 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
+        // UpdateAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(Task.CompletedTask);
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+            });
         _mockGameScoreRepository
             .Setup(r => r.SaveChangesAsync())
             .ReturnsAsync(1);
@@ -243,9 +254,14 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync(existingScore);
+        // UpdateAsync internally calls SaveChangesAsync, so we need to set up both
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(Task.CompletedTask);
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+            });
         _mockGameScoreRepository
             .Setup(r => r.SaveChangesAsync())
             .ReturnsAsync(1);
@@ -273,9 +289,17 @@ public class GameScoreServiceTests
         _mockGameScoreRepository
             .Setup(r => r.GetUserScoreAsync(userId, gameKey))
             .ReturnsAsync((GameScore?)null);
+        // AddAsync internally calls SaveChangesAsync, so we need to set up both
+        // AddAsync internally calls SaveChangesAsync, so we need to set up both
+        // The mock should return the score and call SaveChangesAsync internally
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .ReturnsAsync((GameScore s) => s);
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+                return s;
+            });
         _mockGameScoreRepository
             .Setup(r => r.SaveChangesAsync())
             .ReturnsAsync(1);
@@ -396,13 +420,29 @@ public class GameScoreServiceTests
                 return callCount == 1 ? null : existingScore;
             });
 
+        // AddAsync internally calls SaveChangesAsync, so we need to set up both
+        var addCallCount = 0;
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .ReturnsAsync((GameScore s) => s);
+            .Returns(async (GameScore s) =>
+            {
+                addCallCount++;
+                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
+                // On first call, SaveChangesAsync throws DbUpdateException
+                if (addCallCount == 1)
+                {
+                    await _mockGameScoreRepository.Object.SaveChangesAsync();
+                }
+                return s;
+            });
 
         _mockGameScoreRepository
             .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
-            .Returns(Task.CompletedTask);
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+            });
 
         // Setup SaveChangesAsync to fail on first call (insert) and succeed on second call (update)
         var saveCallCount = 0;
@@ -450,9 +490,29 @@ public class GameScoreServiceTests
                 return callCount == 1 ? null : existingScore;
             });
 
+        // AddAsync internally calls SaveChangesAsync, so we need to set up both
+        var addCallCount = 0;
         _mockGameScoreRepository
             .Setup(r => r.AddAsync(It.IsAny<GameScore>()))
-            .ReturnsAsync((GameScore s) => s);
+            .Returns(async (GameScore s) =>
+            {
+                addCallCount++;
+                // Simulate the repository's behavior: AddAsync calls SaveChangesAsync internally
+                // On first call, SaveChangesAsync throws DbUpdateException
+                if (addCallCount == 1)
+                {
+                    await _mockGameScoreRepository.Object.SaveChangesAsync();
+                }
+                return s;
+            });
+
+        _mockGameScoreRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<GameScore>()))
+            .Returns(async (GameScore s) =>
+            {
+                // Simulate the repository's behavior: UpdateAsync calls SaveChangesAsync internally
+                await _mockGameScoreRepository.Object.SaveChangesAsync();
+            });
 
         var saveCallCount = 0;
         _mockGameScoreRepository

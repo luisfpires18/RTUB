@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -154,8 +155,8 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
     {
         // Act & Assert
         var act = async () => await _service.UpdateBoardAsync(999, "Name", "Description");
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*não encontrado*");
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("*not found*");
     }
 
     [Fact]
@@ -209,9 +210,11 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         // Act
         await _service.DeleteBoardAsync(board.Id);
 
-        // Assert
-        var deleted = await _context.LogisticsBoards.FindAsync(board.Id);
+        // Assert - Use a fresh context to avoid tracking issues
+        using var freshContext = _fixture.CreateContext();
+        var deleted = await freshContext.LogisticsBoards.FindAsync(board.Id);
         deleted.Should().BeNull();
+        freshContext.Dispose();
     }
 
     [Fact]

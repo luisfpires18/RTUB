@@ -160,6 +160,13 @@
     }
 }
 
+/* Pending approvals button */
+.btn-pending-approvals {
+    background-color: #f39c12;
+    border-color: #f39c12;
+    color: #fff;
+}
+
 /* Very small screens - further compact mode */
 @media (max-width: 375px) {
     .rehearsal-icon-btn {

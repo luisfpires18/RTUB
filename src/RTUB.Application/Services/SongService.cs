@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
@@ -289,10 +290,7 @@ public class SongService : ISongService
     public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
     {
         // Fetch video by id
-        var video = await _songVideoRepository.GetByIdAsync(videoId);
-
-        if (video == null)
-            throw new EntityNotFoundException(nameof(SongVideo), videoId);
+        var video = await _songVideoRepository.GetByIdOrThrowAsync(videoId);
 
         // Check permissions: only allow if user is the uploader OR is an admin
         if (video.CreatedByUserId != userId && !isAdmin)

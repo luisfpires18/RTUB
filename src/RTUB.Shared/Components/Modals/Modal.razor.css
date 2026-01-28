@@ -1,0 +1,5 @@
+/* Scoped styles for Modal component */
+
+.modal-header-primary {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}

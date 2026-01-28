@@ -232,9 +232,7 @@ public class NaipeService : INaipeService
 
     public async Task<NaipeCommentDto> AddCommentAsync(int contentId, string authorId, string text)
     {
-        var content = await _naipeContentRepository.GetByIdAsync(contentId);
-        if (content == null)
-            throw new EntityNotFoundException(nameof(NaipeContent), contentId);
+        _ = await _naipeContentRepository.GetByIdOrThrowAsync(contentId);
 
         var comment = NaipeComment.Create(contentId, authorId, text);
         var createdComment = await _naipeCommentRepository.AddAsync(comment);
@@ -259,9 +257,7 @@ public class NaipeService : INaipeService
 
     public async Task DeleteCommentAsync(int commentId, string userId, bool isAdmin)
     {
-        var comment = await _naipeCommentRepository.GetByIdAsync(commentId);
-        if (comment == null)
-            throw new InvalidOperationException("Comment not found");
+        var comment = await _naipeCommentRepository.GetByIdOrThrowAsync(commentId);
 
         if (!CanDeleteComment(comment, userId, isAdmin))
             throw new UnauthorizedAccessException("You do not have permission to delete this comment");
@@ -395,9 +391,7 @@ public class NaipeService : INaipeService
 
     public async Task UpdateTypeConfigAsync(int id, string? pictureUrl, bool isVisible, int sortOrder)
     {
-        var config = await _naipeTypeConfigRepository.GetByIdAsync(id);
-        if (config == null)
-            throw new EntityNotFoundException(nameof(NaipeTypeConfig), id);
+        var config = await _naipeTypeConfigRepository.GetByIdOrThrowAsync(id);
 
         config.Update(pictureUrl, isVisible, sortOrder);
         await _naipeTypeConfigRepository.UpdateAsync(config);
@@ -405,9 +399,7 @@ public class NaipeService : INaipeService
 
     public async Task<string> UploadTypeConfigPictureAsync(int id, Stream fileStream, string fileName, string contentType)
     {
-        var config = await _naipeTypeConfigRepository.GetByIdAsync(id);
-        if (config == null)
-            throw new EntityNotFoundException(nameof(NaipeTypeConfig), id);
+        var config = await _naipeTypeConfigRepository.GetByIdOrThrowAsync(id);
 
         // Upload image to Cloudflare R2
         var url = await _naipeMediaStorageService.UploadImageAsync(fileStream, fileName, contentType, $"typeconfig_{config.InstrumentType}");

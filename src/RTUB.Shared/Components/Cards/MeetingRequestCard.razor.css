@@ -1,0 +1,17 @@
+/* Scoped styles for MeetingRequestCard component */
+
+.request-admin-overlay-column {
+    flex-direction: column;
+}
+
+.btn-send-reminder {
+    background-color: rgba(255, 255, 255, 0.85);
+    border: none;
+    padding: 6px 10px;
+}
+
+.btn-send-reminder-icon {
+    font-size: 1.1rem;
+    color: #333;
+    transition: transform 0.2s ease;
+}

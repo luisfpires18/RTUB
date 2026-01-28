@@ -53,7 +53,7 @@
                     <option value="">-- Select a table --</option>
                     @foreach (var table in tables)
                     {
-                        <option value="@table">@table</option>
+                        <option value="@table" @key="table">@table</option>
                     }
                 </select>
             </div>
@@ -67,7 +67,7 @@
                     <div class="table-list">
                         @foreach (var table in tables)
                         {
-                            <button class="table-list-item @(selectedTable == table ? "active" : "")"
+                            <button class="table-list-item @(selectedTable == table ? "active" : "")" @key="table"
                                     @onclick="() => SelectTable(table)">
                                 <i class="bi bi-table me-2"></i>
                                 @table
@@ -106,8 +106,7 @@
                             <textarea class="form-control query-textarea" 
                                       @bind="customQuery" 
                                       rows="3"
-                                      placeholder="Enter a SELECT query (e.g., SELECT * FROM Events WHERE Id > 10)"
-                                      style="font-family: 'Courier New', monospace;"></textarea>
+                                      placeholder="Enter a SELECT query (e.g., SELECT * FROM Events WHERE Id > 10)"></textarea>
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button class="btn btn-purple btn-sm" 
@@ -142,8 +141,7 @@
                             <textarea class="form-control query-textarea" 
                                       @bind="modifyQuery" 
                                       rows="8"
-                                      placeholder="Enter your SQL query here (INSERT, UPDATE, DELETE)"
-                                      style="font-family: 'Courier New', monospace;"></textarea>
+                                      placeholder="Enter your SQL query here (INSERT, UPDATE, DELETE)"></textarea>
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button class="btn btn-purple" 
@@ -245,10 +243,10 @@
                                 <tbody>
                                     @foreach (var row in rows)
                                     {
-                                        <tr>
+                                        <tr @key="@($"row-{row.GetHashCode()}")">
                                             @foreach (var column in columns)
                                             {
-                                                <td data-label="@column">
+                                                <td data-label="@column" @key="column">
                                                     @FormatCellValue(row.ContainsKey(column) ? row[column] : null)
                                                 </td>
                                             }

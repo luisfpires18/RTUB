@@ -4,7 +4,7 @@
 @using RTUB.Application.Helpers
 @inject UserManager<ApplicationUser> UserManager
 
-<button class="btn btn-purple" style="font-weight: normal;" @onclick="OpenLoginsModal" title="Ver logins">
+<button class="btn btn-purple btn-login-statistics" @onclick="OpenLoginsModal" title="Ver logins" aria-label="Ver registos de login">
     <i class="bi bi-box-arrow-in-right"></i> Logins
 </button>
 
@@ -76,7 +76,7 @@
             }
         </BodyContent>
         <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseLoginsModal">Fechar</button>
+            <button type="button" class="btn btn-secondary" @onclick="CloseLoginsModal" aria-label="Fechar modal">Fechar</button>
         </FooterContent>
     </Modal>
 }

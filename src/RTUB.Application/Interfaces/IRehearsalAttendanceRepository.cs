@@ -13,6 +13,11 @@ public interface IRehearsalAttendanceRepository : IRepository<RehearsalAttendanc
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId);
 
     /// <summary>
+    /// Get all attendance records for multiple rehearsals (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdsAsync(IEnumerable<int> rehearsalIds);
+
+    /// <summary>
     /// Get all attendance records for a user
     /// </summary>
     Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId);

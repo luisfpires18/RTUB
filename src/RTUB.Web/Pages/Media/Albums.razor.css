@@ -48,6 +48,16 @@
     flex-shrink: 0;
     width: 50px;
     text-align: center;
+}
+
+/* Button styles */
+.btn-purple-light {
+    font-weight: 400;
+}
+
+/* User stats header */
+.user-stats-header {
+    cursor: pointer;
     font-size: 1.5rem;
 }
 

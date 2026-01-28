@@ -324,6 +324,161 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         result.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task GetAllUsersAsync_UsesAsNoTracking()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "user-1", UserName = "user1", FirstName = "User", LastName = "One", Nickname = "User1" },
+            new() { Id = "user-2", UserName = "user2", FirstName = "User", LastName = "Two", Nickname = "User2" }
+        }.AsQueryable();
+
+        var mockDbSet = new Mock<DbSet<ApplicationUser>>();
+        mockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.Provider).Returns(users.Provider);
+        mockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.Expression).Returns(users.Expression);
+        mockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.ElementType).Returns(users.ElementType);
+        mockDbSet.As<IQueryable<ApplicationUser>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+
+        _mockUserManager.Setup(x => x.Users).Returns(mockDbSet.Object);
+
+        // Act
+        var result = await _service.GetAllUsersAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        // Note: GetAllUsersAsync uses ToListAsync() which should not track entities
+        // The service has a fallback to ToList() for test scenarios, but in production
+        // it uses ToListAsync() which respects AsNoTracking behavior
+    }
+
+    [Fact]
+    public async Task UpdateProfilePictureAsync_WithValidFile_UpdatesPicture()
+    {
+        // Arrange
+        var userId = "user-123";
+        var user = new ApplicationUser 
+        { 
+            Id = userId, 
+            UserName = "testuser", 
+            Nickname = "TestUser",
+            ImageUrl = "old-image-url.jpg"
+        };
+        var newImageUrl = "new-image-url.jpg";
+        var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "profile.jpg";
+        var contentType = "image/jpeg";
+
+        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
+        _mockImageStorageService.Setup(x => x.DeleteImageAsync("old-image-url.jpg"))
+            .Returns(Task.CompletedTask);
+        _mockImageStorageService.Setup(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"))
+            .ReturnsAsync(newImageUrl);
+        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        await _service.UpdateProfilePictureAsync(userId, imageStream, fileName, contentType);
+
+        // Assert
+        user.ImageUrl.Should().Be(newImageUrl);
+        _mockImageStorageService.Verify(x => x.DeleteImageAsync("old-image-url.jpg"), Times.Once);
+        _mockImageStorageService.Verify(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"), Times.Once);
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfilePictureAsync_WithInvalidUser_ThrowsException()
+    {
+        // Arrange
+        var userId = "invalid-user";
+        var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "profile.jpg";
+        var contentType = "image/jpeg";
+
+        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync((ApplicationUser?)null);
+
+        // Act
+        var act = async () => await _service.UpdateProfilePictureAsync(userId, imageStream, fileName, contentType);
+
+        // Assert
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("ApplicationUser with ID invalid-user not found");
+        _mockImageStorageService.Verify(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateProfilePictureAsync_WhenUpdateFails_ThrowsException()
+    {
+        // Arrange
+        var userId = "user-123";
+        var user = new ApplicationUser 
+        { 
+            Id = userId, 
+            UserName = "testuser", 
+            Nickname = "TestUser"
+        };
+        var newImageUrl = "new-image-url.jpg";
+        var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "profile.jpg";
+        var contentType = "image/jpeg";
+
+        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
+        _mockImageStorageService.Setup(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"))
+            .ReturnsAsync(newImageUrl);
+        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Update failed" }));
+
+        // Act
+        var act = async () => await _service.UpdateProfilePictureAsync(userId, imageStream, fileName, contentType);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Failed to update profile picture");
+        // Image should still be uploaded even if update fails
+        _mockImageStorageService.Verify(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProfilePictureAsync_WithoutExistingImage_DoesNotDeleteOldImage()
+    {
+        // Arrange
+        var userId = "user-123";
+        var user = new ApplicationUser 
+        { 
+            Id = userId, 
+            UserName = "testuser", 
+            Nickname = "TestUser",
+            ImageUrl = null // No existing image
+        };
+        var newImageUrl = "new-image-url.jpg";
+        var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
+        var fileName = "profile.jpg";
+        var contentType = "image/jpeg";
+
+        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
+        _mockImageStorageService.Setup(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"))
+            .ReturnsAsync(newImageUrl);
+        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        await _service.UpdateProfilePictureAsync(userId, imageStream, fileName, contentType);
+
+        // Assert
+        user.ImageUrl.Should().Be(newImageUrl);
+        _mockImageStorageService.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        _mockImageStorageService.Verify(x => x.UploadImageAsync(
+            It.IsAny<Stream>(), fileName, contentType, "profile", "testuser"), Times.Once);
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

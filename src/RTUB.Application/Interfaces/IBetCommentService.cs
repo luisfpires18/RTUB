@@ -19,6 +19,11 @@ public interface IBetCommentService
     Task<int> GetCommentCountForBetAsync(int betId);
 
     /// <summary>
+    /// Get comment counts for multiple bets (batch operation to avoid N+1 queries)
+    /// </summary>
+    Task<Dictionary<int, int>> GetCommentCountsByBetIdsAsync(IEnumerable<int> betIds);
+
+    /// <summary>
     /// Add a new comment to a bet
     /// </summary>
     Task<BetCommentDto> AddCommentAsync(int betId, string authorId, string text, string? mediaUrl = null, string? mediaType = null);

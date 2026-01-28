@@ -20,6 +20,14 @@ public class BetService : IBetService
     private readonly IBetCommentRepository _betCommentRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
+    /// <summary>
+    /// Initializes a new instance of the BetService
+    /// </summary>
+    /// <param name="betRepository">Repository for bet operations</param>
+    /// <param name="betOptionRepository">Repository for bet option operations</param>
+    /// <param name="userBetRepository">Repository for user bet operations</param>
+    /// <param name="betCommentRepository">Repository for bet comment operations</param>
+    /// <param name="userManager">User manager for user operations</param>
     public BetService(
         IBetRepository betRepository,
         IBetOptionRepository betOptionRepository,
@@ -136,6 +144,9 @@ public class BetService : IBetService
         var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
 
         // Batch load all users at once to avoid N+1 queries
+        // Note: Users are loaded with tracking (default) because we need to modify them.
+        // This is safe because UserBetRepository.GetByBetIdAsync() no longer includes
+        // the User navigation property, so there are no tracking conflicts.
         var users = await _userManager.Users
             .Where(u => userIds.Contains(u.Id))
             .ToListAsync();
@@ -247,6 +258,16 @@ public class BetService : IBetService
     }
 
     /// <summary>
+    /// Gets all options for multiple bets, grouped by bet ID
+    /// </summary>
+    /// <param name="betIds">Collection of bet IDs</param>
+    /// <returns>Dictionary mapping bet IDs to their options</returns>
+    public async Task<Dictionary<int, List<BetOption>>> GetBetOptionsByBetIdsAsync(IEnumerable<int> betIds)
+    {
+        return await _betOptionRepository.GetOptionsByBetIdsAsync(betIds);
+    }
+
+    /// <summary>
     /// Cancels a bet and refunds all user bets
     /// </summary>
     /// <param name="betId">Bet ID to cancel</param>
@@ -266,6 +287,9 @@ public class BetService : IBetService
         var userIds = userBets.Select(ub => ub.UserId).Distinct().ToList();
 
         // Batch load all users at once to avoid N+1 queries
+        // Note: Users are loaded with tracking (default) because we need to modify them.
+        // This is safe because UserBetRepository.GetByBetIdAsync() no longer includes
+        // the User navigation property, so there are no tracking conflicts.
         var users = await _userManager.Users
             .Where(u => userIds.Contains(u.Id))
             .ToListAsync();

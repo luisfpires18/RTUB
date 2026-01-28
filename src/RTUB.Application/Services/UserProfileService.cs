@@ -68,14 +68,19 @@ public class UserProfileService : IUserProfileService
     {
         // Note: Using ToListAsync when the underlying provider supports it (EF Core),
         // with fallback to synchronous ToList() for mocked UserManager in tests
+        // Using AsNoTracking() for read-only operation
         try
         {
-            return await _userManager.Users.ToListAsync();
+            return await _userManager.Users
+                .AsNoTracking()
+                .ToListAsync();
         }
         catch (InvalidOperationException)
         {
             // Fallback for test scenarios where UserManager.Users may not support async
-            return _userManager.Users.ToList();
+            return _userManager.Users
+                .AsNoTracking()
+                .ToList();
         }
     }
 

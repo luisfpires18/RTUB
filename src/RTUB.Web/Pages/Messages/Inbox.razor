@@ -15,6 +15,8 @@
 @using RTUB.Components
 @attribute [Authorize]
 @inject IMessagingService MessagingService
+@inject IMessagingDisplayService MessagingDisplayService
+@inject IMessagingSortService MessagingSortService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -223,7 +225,7 @@
                                     </h5>
                                     @if (selectedConversation.IsGroup && selectedConversation.GroupParticipants?.Any() == true)
                                     {
-                                        <small class="text-muted rtub-messages__group-preview" @onclick="OpenGroupMembersModal" @onclick:stopPropagation="true" style="cursor: pointer;">
+                                        <small class="text-muted rtub-messages__group-preview" @onclick="OpenGroupMembersModal" @onclick:stopPropagation="true">
                                             <i class="bi bi-people me-1"></i>
                                             @selectedConversation.GroupParticipants.Count membros
                                             <i class="bi bi-chevron-right ms-1"></i>
@@ -270,18 +272,14 @@
                             <div class="rtub-messages__thread-wrapper">
                                 @if (isLoadingMessages)
                                 {
-                                    <div class="text-center py-5">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">A carregar...</span>
-                                        </div>
-                                    </div>
+                                    <LoadingSpinner Message="A carregar mensagens..." />
                                 }
                                 else
                                 {
                                     @for (var i = 0; i < messages.Count; i++)
                                     {
                                         var message = messages[i];
-                                        var groupPosition = GetMessageGroupPosition(i);
+                                        var groupPosition = MessagingDisplayService.GetMessageGroupPosition(messages, i);
                                         var showAvatar = groupPosition == MessageGroupPosition.First || groupPosition == MessageGroupPosition.Single;
                                         var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
                                         var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
@@ -422,7 +420,7 @@
 @* New Message Modal *@
 @if (modals.IsOpen(ModalType.NewMessage))
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down rtub-messages__modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -444,7 +442,7 @@
                         <div class="rtub-messages__member-list mb-3">
                             @foreach (var member in filteredMembers.Take(10))
                             {
-                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable"
+                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable" @key="member.Id"
                                      @onclick="() => SelectMember(member)">
                                     <div class="d-flex align-items-center">
                                         <img src="@GetAvatarUrl(member.ImageUrl)" 
@@ -515,7 +513,7 @@
 @* New Group Modal *@
 @if (modals.IsOpen(ModalType.NewGroup))
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down rtub-messages__modal rtub-messages__modal--group">
             <div class="modal-content">
                 <div class="modal-header">
@@ -590,7 +588,7 @@
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var member in selectedGroupMembers)
                                 {
-                                    <span class="badge bg-primary d-flex align-items-center gap-1">
+                                    <span class="badge bg-primary d-flex align-items-center gap-1" @key="member.Id">
                                         @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
                                         <button type="button" class="btn-close btn-close-white btn-sm" 
                                                 @onclick="() => RemoveGroupMember(member)"
@@ -622,7 +620,7 @@
 @* Group Members Modal *@
 @if (modals.IsOpen(ModalType.GroupMembers) && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal fade show d-block rtub-messages__modal-backdrop" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
@@ -658,7 +656,7 @@
                         {
                             @foreach (var participant in filteredParticipants)
                             {
-                                <div class="rtub-messages__group-member">
+                                <div class="rtub-messages__group-member" @key="participant.Id">
                                     <img src="@GetAvatarUrl(participant.Avatar)"
                                          alt="@(participant.Nickname ?? participant.Name)"
                                          class="rtub-messages__group-member-avatar"
@@ -942,10 +940,7 @@
         }
         
         // Re-sort conversations (pinned first, then by LastMessageAt)
-        conversations = conversations
-            .OrderByDescending(c => c.IsPinned)
-            .ThenByDescending(c => c.LastMessageAt)
-            .ToList();
+        conversations = MessagingSortService.SortConversations(conversations);
         
         StateHasChanged();
     }
@@ -1016,7 +1011,9 @@
         var lowerSearch = searchTerm.ToLower();
         
         // Query database directly using EF.Functions.Like for better performance
+        // Using AsNoTracking() for read-only search operation
         filteredMembers = await UserManager.Users
+            .AsNoTracking()
             .Where(m => m.Id != currentUserId && // Don't show current user
                        (EF.Functions.Like(m.Nickname, $"%{searchTerm}%") ||
                         EF.Functions.Like(m.FirstName, $"%{searchTerm}%") ||
@@ -1105,7 +1102,9 @@
         }
         
         // Query database directly using EF.Functions.Like for better performance
+        // Using AsNoTracking() for read-only search operation
         filteredGroupMembers = await UserManager.Users
+            .AsNoTracking()
             .Where(m => m.Id != currentUserId && // Don't show current user
                        (EF.Functions.Like(m.Nickname, $"%{searchTerm}%") ||
                         EF.Functions.Like(m.FirstName, $"%{searchTerm}%") ||
@@ -1167,52 +1166,6 @@
         }
     }
 
-    /// <summary>
-    /// Enum representing the position of a message within a group of consecutive messages from the same sender.
-    /// </summary>
-    private enum MessageGroupPosition
-    {
-        Single,  // Only message in the group
-        First,   // First message in a group
-        Middle,  // Middle message in a group
-        Last     // Last message in a group
-    }
-
-    /// <summary>
-    /// Determines the position of a message within a group of consecutive messages from the same sender.
-    /// </summary>
-    private MessageGroupPosition GetMessageGroupPosition(int index)
-    {
-        if (index < 0 || index >= messages.Count)
-        {
-            return MessageGroupPosition.Single;
-        }
-
-        var currentMessage = messages[index];
-        var previousMessage = index > 0 ? messages[index - 1] : null;
-        var nextMessage = index < messages.Count - 1 ? messages[index + 1] : null;
-
-        var hasSamePreviousSender = previousMessage != null && previousMessage.SenderId == currentMessage.SenderId;
-        var hasSameNextSender = nextMessage != null && nextMessage.SenderId == currentMessage.SenderId;
-
-        if (!hasSamePreviousSender && !hasSameNextSender)
-        {
-            return MessageGroupPosition.Single;
-        }
-        
-        if (!hasSamePreviousSender && hasSameNextSender)
-        {
-            return MessageGroupPosition.First;
-        }
-        
-        if (hasSamePreviousSender && hasSameNextSender)
-        {
-            return MessageGroupPosition.Middle;
-        }
-        
-        // hasSamePreviousSender && !hasSameNextSender
-        return MessageGroupPosition.Last;
-    }
 
     /// <summary>
     /// Gets the CSS class for the message group position.
@@ -1358,9 +1311,7 @@
                         {
                             conversation.LastMessageAt = message.CreatedAt;
                             // Truncate the preview if it exceeds the max length
-                            conversation.LastMessagePreview = message.Body.Length > MessagePreviewMaxLength
-                                ? message.Body[..MessagePreviewMaxLength] + "..."
-                                : message.Body;
+                            conversation.LastMessagePreview = MessagingDisplayService.TruncateMessagePreview(message.Body, MessagePreviewMaxLength);
                             conversation.LastMessageSenderId = message.SenderId;
                         }
                         
@@ -1751,10 +1702,7 @@
                             conversationInList.LastMessageSenderId = currentUserId;
                             
                             // Re-sort conversations
-                            conversations = conversations
-                                .OrderByDescending(c => c.IsPinned)
-                                .ThenByDescending(c => c.LastMessageAt)
-                                .ToList();
+                            conversations = MessagingSortService.SortConversations(conversations);
                         }
                         else
                         {

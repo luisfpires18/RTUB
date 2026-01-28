@@ -1,3 +1,20 @@
+/* Search bar container */
+.search-bar-container {
+    min-width: 360px;
+    max-width: 640px;
+}
+
+/* Filter dropdown containers */
+.filter-dropdown-container {
+    min-width: 200px;
+    max-width: 240px;
+}
+
+/* Product description display */
+.product-description {
+    white-space: pre-line;
+}
+
 /* Mobile responsiveness for Shop page */
 @media (max-width: 768px) {
     /* Make filter dropdowns full width like search bar on mobile */

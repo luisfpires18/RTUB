@@ -28,7 +28,7 @@
             }
             else if (Bet.IsResolved())
             {
-                <span class="badge fs-6" style="background-color: #8a2be2; color: white;">
+                <span class="badge fs-6 bet-resolved-badge">
                     <i class="bi bi-check-circle-fill me-1"></i>RESOLVIDO
                 </span>
             }
@@ -41,7 +41,7 @@
         </div>
         
         @* Category badge in bottom-left corner *@
-        <div class="position-absolute bottom-0 start-0 p-2" style="z-index: 1;">
+        <div class="position-absolute bottom-0 start-0 p-2 bet-category-badge-container">
             @if (Bet.BetCategory == BetCategory.MATCH)
             {
                 <div class="badge bg-primary">
@@ -61,14 +61,16 @@
             <div class="admin-overlay">
                 <button class="btn btn-sm music-btn-edit" 
                         @onclick="OnEdit" 
-                        title="Editar aposta">
+                        title="Editar aposta"
+                        aria-label="Editar aposta">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
                 @if (ShowDeleteButton)
                 {
                     <button class="btn btn-sm music-btn-delete" 
                             @onclick="OnDelete" 
-                            title="Eliminar aposta">
+                            title="Eliminar aposta"
+                            aria-label="Eliminar aposta">
                         <i class="bi bi-trash music-icon-delete"></i>
                     </button>
                 }
@@ -80,7 +82,8 @@
                 <div class="position-absolute bottom-0 end-0 p-2">
                     <button class="btn btn-sm btn-warning music-btn-resolve" 
                             @onclick="OnResolve" 
-                            title="Resolver aposta">
+                            title="Resolver aposta"
+                            aria-label="Resolver aposta">
                         <i class="bi bi-trophy-fill"></i>
                     </button>
                 </div>
@@ -92,7 +95,8 @@
                 <div class="position-absolute bottom-0 end-0 p-2">
                     <button class="btn btn-sm btn-admin-notification" 
                             @onclick="OnSendPushNotification" 
-                            title="Notificar por push">
+                            title="Notificar por push"
+                            aria-label="Notificar por push">
                         <i class="bi bi-bell-fill"></i>
                     </button>
                 </div>
@@ -127,7 +131,7 @@
                     var isUserOption = UserBet?.BetOptionId == option.Id;
                     var optionClass = isWinningOption ? "bet-option-winner" : (isUserOption ? "bet-option-user" : "bet-option-default");
                     
-                    <div class="bet-option @optionClass">
+                    <div class="bet-option @optionClass" @key="option.Id">
                         <span class="bet-option-title">@option.Title</span>
                         <span class="bet-option-odds">@option.Odds.ToString("F2")x</span>
                         @if (isWinningOption)
@@ -217,28 +221,31 @@
                     {
                         <!-- Discussion + See All Bets + Apostar buttons -->
                         <div class="event-buttons-container">
-                            <!-- Discussion button with count (opens modal with details + comments) -->
-                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
-                                    @onclick="OnViewDetails" 
-                                    title="Discussão">
-                                <i class="bi bi-chat-dots"></i>
-                                @if (DiscussionCount > 0)
-                                {
-                                    <span class="enrollment-count-centered">@DiscussionCount</span>
-                                }
-                            </button>
+                        <!-- Discussion button with count (opens modal with details + comments) -->
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
+                                @onclick="OnViewDetails"
+                                title="Discussão"
+                                aria-label="Ver discussão">
+                            <i class="bi bi-chat-dots"></i>
+                            @if (DiscussionCount > 0)
+                            {
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
+                            }
+                        </button>
 
-                            <!-- See All Bets button (shows all member bets for this bet) -->
-                            <button class="btn event-icon-btn btn-outline-info" 
-                                    @onclick="OnViewAllBets" 
-                                    title="Ver todas as apostas">
-                                <i class="bi bi-people-fill"></i>
-                            </button>
+                        <!-- See All Bets button (shows all member bets for this bet) -->
+                        <button class="btn event-icon-btn btn-outline-info" 
+                                @onclick="OnViewAllBets" 
+                                title="Ver todas as apostas"
+                                aria-label="Ver todas as apostas">
+                            <i class="bi bi-people-fill"></i>
+                        </button>
 
                             <!-- Place Bet button (always green, even after betting) -->
                             <button class="btn event-icon-btn btn-success" 
                                     @onclick="OnPlaceBet" 
                                     title="@(UserBet != null ? "Ver Aposta / Apostar" : "Apostar")"
+                                    aria-label="@(UserBet != null ? "Ver Aposta / Apostar" : "Apostar")"
                                     disabled="@(UserBet != null)">
                                 <i class="bi bi-cash-coin"></i>
                             </button>
@@ -254,7 +261,8 @@
                         <!-- Discussion button with count (opens modal with details + comments) -->
                         <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary"
                                 @onclick="OnViewDetails"
-                                title="Discussão">
+                                title="Discussão"
+                                aria-label="Ver discussão">
                             <i class="bi bi-chat-dots"></i>
                             @if (DiscussionCount > 0)
                             {
@@ -265,7 +273,8 @@
                         <!-- See All Bets button (shows all member bets for this bet) -->
                         <button class="btn event-icon-btn btn-outline-info" 
                                 @onclick="OnViewAllBets" 
-                                title="Ver todas as apostas">
+                                title="Ver todas as apostas"
+                                aria-label="Ver todas as apostas">
                             <i class="bi bi-people-fill"></i>
                         </button>
                     </div>

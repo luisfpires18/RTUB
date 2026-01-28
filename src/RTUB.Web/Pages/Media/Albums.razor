@@ -13,6 +13,9 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @inject IAlbumService AlbumService
+@inject IAlbumStatisticsService AlbumStatisticsService
+@inject IAlbumFilterService AlbumFilterService
+@inject IAlbumImageService AlbumImageService
 @inject ISongService SongService
 @inject IImageStorageService ImageStorageService
 @inject NavigationManager NavigationManager
@@ -31,7 +34,7 @@
         <div class="page-header-actions justify-content-lg-end d-flex gap-2">
             <AuthorizeView>
                 <Authorized>
-                    <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenStatisticsModal" title="Ver Estatísticas">
+                    <button class="btn btn-purple btn-purple-light" @onclick="OpenStatisticsModal" title="Ver Estatísticas" aria-label="Ver Estatísticas">
                         <i class="bi bi-bar-chart-fill"></i> Estatísticas
                     </button>
                 </Authorized>
@@ -50,7 +53,7 @@
 
 @if (albums == null)
 {
-    <p>A carregar álbuns...</p>
+    <LoadingSpinner Message="A carregar álbuns..." />
 }
 else if (!albums.Any())
 {
@@ -66,7 +69,7 @@ else
         <div class="row">
             @foreach (var album in paginatedPublicAlbums)
             {
-                <div class="col-md-4 col-lg-2 mb-4">
+                <div class="col-md-4 col-lg-2 mb-4" @key="album.Id">
                     <div class="card album-card h-100">
                         <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
                             @if (!string.IsNullOrEmpty(album.CoverImageSrc))
@@ -82,12 +85,12 @@ else
                             <AuthorizeView Roles="Admin,Mod">
                                 <Authorized Context="modAuth">
                                     <div class="admin-overlay">
-                                        <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                        <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar" aria-label="Editar álbum">
                                             <i class="bi bi-pencil music-icon-edit"></i>
                                         </button>
                                         <AuthorizeView Roles="Admin">
                                             <Authorized Context="adminAuth">
-                                                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar" aria-label="Eliminar álbum">
                                                     <i class="bi bi-trash music-icon-delete"></i>
                                                 </button>
                                             </Authorized>
@@ -145,7 +148,7 @@ else
                 <div class="row">
                     @foreach (var album in paginatedPrivateAlbums)
                     {
-                        <div class="col-md-4 col-lg-2 mb-4">
+                        <div class="col-md-4 col-lg-2 mb-4" @key="album.Id">
                             <div class="card album-card h-100">
                                 <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
                                     @if (!string.IsNullOrEmpty(album.CoverImageSrc))
@@ -161,12 +164,12 @@ else
                                     <AuthorizeView Roles="Admin,Mod">
                                         <Authorized Context="modAuth">
                                             <div class="admin-overlay">
-                                                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar" aria-label="Editar álbum">
                                                     <i class="bi bi-pencil music-icon-edit"></i>
                                                 </button>
                                                 <AuthorizeView Roles="Admin">
                                                     <Authorized Context="adminAuth">
-                                                        <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                        <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar" aria-label="Eliminar álbum">
                                                             <i class="bi bi-trash music-icon-delete"></i>
                                                         </button>
                                                     </Authorized>
@@ -390,11 +393,7 @@ else
     <BodyContent>
         @if (isLoadingStatistics)
         {
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-            </div>
+            <LoadingSpinner Message="A carregar estatísticas..." />
         }
         else
         {
@@ -527,7 +526,7 @@ else
                                 {
                                     var isExpanded = userStatsExpanded.GetValueOrDefault(userGroup.UserId, false);
                                     <div class="user-stats-group mb-4">
-                                        <div class="user-stats-header" @onclick="() => ToggleUserStats(userGroup.UserId)" style="cursor: pointer;">
+                                        <div class="user-stats-header" @onclick="() => ToggleUserStats(userGroup.UserId)">
                                             <img src="@userGroup.ProfilePictureSrc" alt="@userGroup.Nickname" class="user-stats-avatar" />
                                             <div class="user-stats-info">
                                                 <div class="user-stats-nickname">@userGroup.Nickname</div>
@@ -541,7 +540,7 @@ else
                                             <div class="stats-card-grid mt-2">
                                                 @foreach (var song in userGroup.Songs)
                                                 {
-                                                    <div class="stats-card stats-card-detailed">
+                                                    <div class="stats-card stats-card-detailed" @key="song.SongTitle">
                                                         <div class="stats-card-content">
                                                             <div class="stats-card-title">@song.SongTitle</div>
                                                             <div class="stats-card-subtitle">@song.AlbumTitle</div>
@@ -609,15 +608,14 @@ else
     private List<(Song Song, int PlayCount)> paginatedSongsStats = new();
     private List<(Album Album, int PlayCount)> allAlbumsStats = new();
     private List<(Album Album, int PlayCount)> paginatedAlbumsStats = new();
-    private List<(UserPlayInfo User, Song Song, Album Album, int PlayCount)> detailedStats = new();
-    private List<UserStatsGroup> allUserStats = new();
-    private List<UserStatsGroup> paginatedUserStats = new();
+    private List<UserStatsGroupDto> allUserStats = new();
+    private List<UserStatsGroupDto> paginatedUserStats = new();
     private Dictionary<string, bool> userStatsExpanded = new(); // Track collapsed/expanded state
     
     // Statistics pagination helpers
     private PaginationHelper<(Song Song, int PlayCount)> songsPaginationHelper = new() { PageSize = 5 };
     private PaginationHelper<(Album Album, int PlayCount)> albumsPaginationHelper = new() { PageSize = 5 };
-    private PaginationHelper<UserStatsGroup> usersPaginationHelper = new() { PageSize = 5 };
+    private PaginationHelper<UserStatsGroupDto> usersPaginationHelper = new() { PageSize = 5 };
     
     // Exclusive album feature - member selection
     private List<ApplicationUser> allMembersForExclusive = new();
@@ -625,25 +623,6 @@ else
     private List<ApplicationUser> selectedAuthorizedUsers = new();
     private string exclusiveMemberSearchTerm = string.Empty;
     private string? currentUserId;
-    
-    // Helper class for grouping user stats
-    public class UserStatsGroup
-    {
-        public string UserId { get; set; } = "";
-        public string Nickname { get; set; } = "";
-        public string FirstName { get; set; } = "";
-        public string LastName { get; set; } = "";
-        public string ProfilePictureSrc { get; set; } = "";
-        public List<SongPlayInfo> Songs { get; set; } = new();
-        public int TotalPlays => Songs.Sum(s => s.PlayCount);
-    }
-    
-    public class SongPlayInfo
-    {
-        public string SongTitle { get; set; } = "";
-        public string AlbumTitle { get; set; } = "";
-        public int PlayCount { get; set; }
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -1029,24 +1008,16 @@ else
     
     private async Task LoadStatistics()
     {
-        // Load all statistics data (not just top N)
-        var allSongsTask = SongService.GetAllSongsWithPlayCountAsync();
-        var allAlbumsTask = SongService.GetAllAlbumsWithPlayCountAsync();
-        
         // Check if user is admin for detailed stats
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var authUser = authState.User;
         bool isAdmin = authUser.IsInRole("Admin");
         
-        Task<IEnumerable<(UserPlayInfo, Song, Album, int)>>? detailedStatsTask = null;
-        if (isAdmin)
-        {
-            detailedStatsTask = SongService.GetDetailedPlayStatsAsync();
-        }
+        // Use service to load statistics (business logic extracted)
+        var statistics = await AlbumStatisticsService.LoadStatisticsAsync(isAdmin);
         
-        // Wait for tasks to complete
-        allSongsStats = (await allSongsTask).ToList();
-        allAlbumsStats = (await allAlbumsTask).ToList();
+        allSongsStats = statistics.SongsStats;
+        allAlbumsStats = statistics.AlbumsStats;
         
         // Set up pagination for songs
         paginatedSongsStats = songsPaginationHelper.GetPageData(allSongsStats);
@@ -1054,31 +1025,9 @@ else
         // Set up pagination for albums
         paginatedAlbumsStats = albumsPaginationHelper.GetPageData(allAlbumsStats);
         
-        if (detailedStatsTask != null)
+        if (statistics.UserStats != null)
         {
-            detailedStats = (await detailedStatsTask).ToList();
-            
-            // Group by user
-            allUserStats = detailedStats
-                .GroupBy(s => s.User.UserId)
-                .Select(g => new UserStatsGroup
-                {
-                    UserId = g.First().User.UserId,
-                    Nickname = g.First().User.Nickname,
-                    FirstName = g.First().User.FirstName,
-                    LastName = g.First().User.LastName,
-                    ProfilePictureSrc = g.First().User.ProfilePictureSrc,
-                    Songs = g.Select(s => new SongPlayInfo
-                    {
-                        SongTitle = s.Song.Title,
-                        AlbumTitle = s.Album.Title,
-                        PlayCount = s.PlayCount
-                    })
-                    .OrderByDescending(s => s.PlayCount)
-                    .ToList()
-                })
-                .OrderByDescending(u => u.TotalPlays)
-                .ToList();
+            allUserStats = statistics.UserStats;
             
             // Set up pagination for users
             paginatedUserStats = usersPaginationHelper.GetPageData(allUserStats);
@@ -1172,16 +1121,7 @@ else
     
     private string GetAlbumImageUrl(string imageSrc)
     {
-        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
-        
-        // Add refresh trigger only when an image has been updated
-        // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?r={imageRefreshTrigger}";
-        }
-        
-        return imageSrc;
+        return AlbumImageService.GetAlbumImageUrl(imageSrc, imageRefreshTrigger);
     }
     
     // Exclusive album member selection methods
@@ -1194,25 +1134,13 @@ else
     
     private void FilterAvailableMembersForExclusive()
     {
-        if (string.IsNullOrWhiteSpace(exclusiveMemberSearchTerm))
-        {
-            filteredAvailableMembersForExclusive = new List<ApplicationUser>();
-            return;
-        }
-        
-        // Get list of already selected user IDs
-        var selectedUserIds = selectedAuthorizedUsers.Select(u => u.Id).ToHashSet();
-        
-        // Filter members who are not already selected
-        var search = exclusiveMemberSearchTerm.ToLower();
-        filteredAvailableMembersForExclusive = allMembersForExclusive
-            .Where(u => !selectedUserIds.Contains(u.Id))
-            .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
-                       (u.LastName?.ToLower().Contains(search) ?? false) ||
-                       (u.Nickname?.ToLower().Contains(search) ?? false))
-            .OrderBy(u => u.FirstName)
-            .Take(10) // Limit results for performance
-            .ToList();
+        var selectedUserIds = selectedAuthorizedUsers.Select(u => u.Id);
+        filteredAvailableMembersForExclusive = AlbumFilterService.FilterAvailableMembersForExclusive(
+            allMembersForExclusive,
+            selectedUserIds,
+            exclusiveMemberSearchTerm,
+            maxResults: 10
+        );
     }
     
     private void AddAuthorizedUser(ApplicationUser user)

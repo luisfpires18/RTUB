@@ -56,7 +56,8 @@
                 <div class="document-grid">
                     @foreach (var doc in Documents)
                     {
-                        <DocumentCard Document="@doc"
+                        <DocumentCard @key="doc.FilePath"
+                                     Document="@doc"
                                     IsAdmin="@IsAdmin"
                                     OnView="@OnDocumentView"
                                     OnDownload="@OnDocumentDownload"

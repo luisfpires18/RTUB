@@ -99,6 +99,56 @@
     vertical-align: middle;
 }
 
+/* Button styles */
+.btn-purple-light {
+    font-weight: 400;
+}
+
+/* Content display */
+.content-pre-line {
+    white-space: pre-line;
+}
+
+/* Cancellation reason styles */
+.cancellation-reason-text {
+    white-space: pre-line;
+    color: #FCA5A5;
+}
+
+/* Trophy card */
+.trophy-card {
+    background-color: #151516;
+    border: 2px solid #2f2f2f;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Trophy icon */
+.trophy-icon-large {
+    font-size: 3rem;
+}
+
+/* User stats header clickable */
+.user-stats-header-clickable {
+    cursor: pointer;
+}
+
+/* Loading overlay */
+.loading-overlay-container {
+    min-height: 200px;
+}
+
+.loading-overlay-backdrop {
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+    border-radius: 8px;
+}
+
+/* Spinner size */
+.spinner-large {
+    width: 3rem;
+    height: 3rem;
+}
+
 .drag-handle-video:hover {
     opacity: 1;
     color: #a88ee5;

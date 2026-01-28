@@ -10,6 +10,7 @@
 @using Microsoft.JSInterop
 @using RequestEntity = RTUB.Core.Entities.Request
 @inject IRequestService RequestService
+@inject IRequestValidationService RequestValidationService
 @inject IEmailNotificationService EmailNotificationService
 @inject ILabelService LabelService
 @inject NavigationManager Navigation
@@ -177,7 +178,7 @@
                             <ul class="text-white text-white-opacity">
                                 @foreach (var line in whatToExpectLabel.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                                 {
-                                    <li>@line</li>
+                                    <li @key="@($"line-{line.GetHashCode()}")">@line</li>
                                 }
                             </ul>
                         }

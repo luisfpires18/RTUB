@@ -24,6 +24,22 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Transaction>> GetTransactionsByActivityIdsAsync(IEnumerable<int> activityIds)
+    {
+        var activityIdsList = activityIds.ToList();
+        if (!activityIdsList.Any())
+        {
+            return Enumerable.Empty<Transaction>();
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Include(t => t.Activity)
+            .Where(t => activityIdsList.Contains(t.ActivityId ?? 0))
+            .OrderBy(t => t.Date)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type)
     {
         return await _dbSet

@@ -1,0 +1,17 @@
+/* Scoped styles for ProfileField component */
+
+.profile-field {
+    min-width: 0;
+}
+
+.profile-field-label {
+    min-width: 0;
+}
+
+.profile-field-value {
+    min-width: 0;
+}
+
+.profile-field-tooltip-icon {
+    font-size: 0.85em;
+}

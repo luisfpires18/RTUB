@@ -1433,7 +1433,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task ActivateMemberWithOverrideAsync_ShouldSetIsRetiredFalseAndOverrideRetiredTrue()
+    public async Task ActivateMemberWithOverrideAsync_WithRetiredMember_SetsIsRetiredFalseAndOverrideRetiredTrue()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
@@ -1487,7 +1487,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task ActivateMemberWithOverrideAsync_WhenUserNotFound_ShouldThrow()
+    public async Task ActivateMemberWithOverrideAsync_WhenUserNotFound_ThrowsInvalidOperationException()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();

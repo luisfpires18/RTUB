@@ -1533,6 +1533,16 @@
     text-overflow: ellipsis;
 }
 
+/* Group preview clickable */
+.rtub-messages__group-preview {
+    cursor: pointer;
+}
+
+/* Modal backdrop */
+.rtub-messages__modal-backdrop {
+    background-color: rgba(0,0,0,0.5);
+}
+
 .rtub-messages__group-preview {
     font-size: 0.75rem;
 }
@@ -1613,4 +1623,9 @@
     color: #888;
     font-size: 0.875rem;
     font-style: italic;
+}
+
+/* Modal backdrop */
+.rtub-messages__modal-backdrop {
+    background-color: rgba(0,0,0,0.5);
 }

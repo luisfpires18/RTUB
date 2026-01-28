@@ -72,7 +72,7 @@
                 }
                 @foreach (var user in subscribedToShow)
                 {
-                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full" @key="user.Id">
                         @if (OnRemoveUser.HasDelegate && OnRemoveMultipleUsers.HasDelegate)
                         {
                             <input class="form-check-input me-2" 
@@ -178,7 +178,7 @@
                 }
                 @foreach (var user in nonSubscribedToShow)
                 {
-                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full" @key="user.Id">
                         @if (OnAddUser.HasDelegate && OnAddMultipleUsers.HasDelegate)
                         {
                             <input class="form-check-input me-2" 

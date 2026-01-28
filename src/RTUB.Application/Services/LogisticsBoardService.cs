@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -121,9 +122,7 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <exception cref="InvalidOperationException">Thrown when the board is not found</exception>
     public async Task UpdateBoardAsync(int id, string name, string description)
     {
-        var board = await _boardRepository.GetByIdAsync(id);
-        if (board == null)
-            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+        var board = await _boardRepository.GetByIdOrThrowAsync(id);
 
         board.UpdateDetails(name, description);
         await _boardRepository.UpdateAsync(board);
@@ -137,9 +136,7 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <exception cref="InvalidOperationException">Thrown when the board is not found</exception>
     public async Task AssociateBoardWithEventAsync(int id, int? eventId)
     {
-        var board = await _boardRepository.GetByIdAsync(id);
-        if (board == null)
-            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+        var board = await _boardRepository.GetByIdOrThrowAsync(id);
 
         board.AssociateWithEvent(eventId);
         await _boardRepository.UpdateAsync(board);
@@ -180,9 +177,7 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <exception cref="InvalidOperationException">Thrown when the board is not found</exception>
     public async Task MarkBoardAsCompletedAsync(int id)
     {
-        var board = await _boardRepository.GetByIdAsync(id);
-        if (board == null)
-            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+        var board = await _boardRepository.GetByIdOrThrowAsync(id);
 
         board.MarkAsCompleted();
         await _boardRepository.UpdateAsync(board);
@@ -195,9 +190,7 @@ public class LogisticsBoardService : ILogisticsBoardService
     /// <exception cref="InvalidOperationException">Thrown when the board is not found</exception>
     public async Task MarkBoardAsNotCompletedAsync(int id)
     {
-        var board = await _boardRepository.GetByIdAsync(id);
-        if (board == null)
-            throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
+        var board = await _boardRepository.GetByIdOrThrowAsync(id);
 
         board.MarkAsNotCompleted();
         await _boardRepository.UpdateAsync(board);

@@ -93,6 +93,62 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a reminder push notification for a rehearsal.
+    /// Title format: "Ensaio - DD/MMM DayOfWeek", body indicates upcoming rehearsal.
+    /// Used by background schedulers (day before and same day).
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalReminderNotification(Rehearsal rehearsal, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        var whenText = rehearsal.Date.Date == DateTime.UtcNow.Date
+            ? "é hoje"
+            : "é amanhã";
+
+        var locationText = string.IsNullOrWhiteSpace(rehearsal.Location)
+            ? string.Empty
+            : $" em {rehearsal.Location}";
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = $"O ensaio {whenText}{locationText}. Não te esqueças de confirmar a tua presença!",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-reminder-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a custom push notification for an event.
+    /// Mirrors the rehearsal custom notification pattern but uses the event context.
+    /// </summary>
+    public SendPushNotificationDto CreateEventCustomNotification(Event @event, string customBody, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventUrl = BuildEventUrl(baseUrl);
+
+        // Use the event name as the title to keep things familiar
+        var title = @event.Name;
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = customBody,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventUrl,
+            Tag = $"event-custom-{@event.Id}"
+        };
+    }
+
+    /// <summary>
     /// Builds the event URL from the base URL.
     /// </summary>
     private static string BuildEventUrl(string baseUrl)
@@ -330,6 +386,28 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Tag = $"meeting-{meeting.Id}"
             };
         }
+    }
+
+    /// <summary>
+    /// Creates a custom push notification for a meeting.
+    /// </summary>
+    public SendPushNotificationDto CreateMeetingCustomNotification(Meeting meeting, string customBody, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(meeting);
+        ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var meetingUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var title = $"Reunião - {FormatEventDate(meeting.Date)}";
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = customBody,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = meetingUrl,
+            Tag = $"meeting-custom-{meeting.Id}"
+        };
     }
 
     /// <summary>

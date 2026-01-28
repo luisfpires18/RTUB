@@ -29,7 +29,19 @@ public class UserBetRepository : Repository<UserBet>, IUserBetRepository
     public async Task<IEnumerable<UserBet>> GetByBetIdAsync(int betId)
     {
         // Not using AsNoTracking() because these entities will be modified in BetService
+        // Not including User navigation property to avoid tracking conflicts - users are loaded separately in BetService
         return await _dbSet
+            .Where(ub => ub.BetId == betId)
+            .Include(ub => ub.BetOption)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<UserBet>> GetByBetIdWithUsersAsync(int betId)
+    {
+        // Using AsNoTracking() for display purposes - no modifications needed
+        // Including User navigation property for display in modals
+        return await _dbSet
+            .AsNoTracking()
             .Where(ub => ub.BetId == betId)
             .Include(ub => ub.User)
             .Include(ub => ub.BetOption)

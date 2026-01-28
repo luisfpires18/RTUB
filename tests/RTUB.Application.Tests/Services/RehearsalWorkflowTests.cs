@@ -40,6 +40,7 @@ public class RehearsalWorkflowTests : IDisposable
         // Register required dependencies for ApplicationDbContext
         services.AddScoped<IHttpContextAccessor>(_ => Mock.Of<IHttpContextAccessor>());
         services.AddScoped<AuditContext>();
+        services.AddScoped<RTUB.Application.Interfaces.IAuditLogAppender, RTUB.Application.Services.AuditLogAppender>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
@@ -237,6 +238,19 @@ public class RehearsalWorkflowTests : IDisposable
         var rehearsal = await _rehearsalService.CreateRehearsalAsync(
             DateTime.Today.AddDays(1),
             "Location");
+
+        // Create test user to avoid issues with Include navigation property
+        var testUser = new ApplicationUser
+        {
+            Id = "user1",
+            UserName = "user1",
+            Email = "user1@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "user1"
+        };
+        _context.Users.Add(testUser);
+        await _context.SaveChangesAsync();
 
         var firstAttendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, "user1");
 

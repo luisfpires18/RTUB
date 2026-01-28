@@ -18,6 +18,7 @@ public class NaipeContentRepository : Repository<NaipeContent>, INaipeContentRep
     public async Task<IEnumerable<NaipeContent>> GetContentByInstrumentTypeAsync(InstrumentType instrumentType)
     {
         return await _dbSet
+            .AsNoTracking() // Read-only operation - used for mapping to DTOs
             .Include(nc => nc.CreatedByUser)
             .Include(nc => nc.Comments.Where(c => c.DeletedAt == null))
             .Include(nc => nc.PlayCounts)
@@ -30,6 +31,7 @@ public class NaipeContentRepository : Repository<NaipeContent>, INaipeContentRep
     public async Task<IEnumerable<NaipeContent>> GetAllContentWithDetailsAsync()
     {
         return await _dbSet
+            .AsNoTracking() // Read-only operation - used for mapping to DTOs
             .Include(nc => nc.CreatedByUser)
             .Include(nc => nc.Comments.Where(c => c.DeletedAt == null))
             .Include(nc => nc.PlayCounts)
@@ -42,6 +44,7 @@ public class NaipeContentRepository : Repository<NaipeContent>, INaipeContentRep
     public async Task<NaipeContent?> GetByIdWithDetailsAsync(int id)
     {
         return await _dbSet
+            .AsNoTracking() // Read-only operation - used for mapping to DTOs
             .Include(nc => nc.CreatedByUser)
             .Include(nc => nc.Comments.Where(c => c.DeletedAt == null))
                 .ThenInclude(c => c.Author)

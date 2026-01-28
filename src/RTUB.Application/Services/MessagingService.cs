@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Constants;
 using RTUB.Core.Entities;
@@ -343,12 +345,7 @@ public class MessagingService : IMessagingService
 
     public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body)
     {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-
-        if (conversation == null)
-        {
-            throw new InvalidOperationException("Conversation not found");
-        }
+        var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
 
         if (!conversation.IsGroup)
         {
@@ -456,11 +453,11 @@ public class MessagingService : IMessagingService
 
     public async Task UpdateGroupParticipantsAsync(int conversationId, List<string> participantIds)
     {
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+        var conversation = await _conversationRepository.GetByIdOrThrowAsync(conversationId);
 
-        if (conversation == null || !conversation.IsGroup)
+        if (!conversation.IsGroup)
         {
-            throw new InvalidOperationException("Conversation not found or not a group");
+            throw new InvalidOperationException("Conversation is not a group");
         }
 
         conversation.SetParticipants(participantIds);
@@ -557,22 +554,32 @@ public class MessagingService : IMessagingService
             }
         }
 
-        // For group conversations, load participant info
+        // For group conversations, batch load participant info
         if (conversation.IsGroup)
         {
-            var participantIds = conversation.GetParticipantIds();
-            foreach (var participantId in participantIds)
+            var participantIds = conversation.GetParticipantIds().ToList();
+            if (participantIds.Any())
             {
-                var user = await _userManager.FindByIdAsync(participantId);
-                if (user != null)
+                // Batch load all participants at once to avoid N+1 queries and tracking conflicts
+                var users = await _userManager.Users
+                    .AsNoTracking()
+                    .Where(u => participantIds.Contains(u.Id))
+                    .ToListAsync();
+                
+                var userDict = users.ToDictionary(u => u.Id);
+                
+                foreach (var participantId in participantIds)
                 {
-                    dto.GroupParticipants.Add(new GroupParticipantDto
+                    if (userDict.TryGetValue(participantId, out var user))
                     {
-                        UserId = participantId,
-                        Name = $"{user.FirstName} {user.LastName}",
-                        Nickname = user.Nickname,
-                        Avatar = user.ImageUrl
-                    });
+                        dto.GroupParticipants.Add(new GroupParticipantDto
+                        {
+                            UserId = participantId,
+                            Name = $"{user.FirstName} {user.LastName}",
+                            Nickname = user.Nickname,
+                            Avatar = user.ImageUrl
+                        });
+                    }
                 }
             }
         }
@@ -582,7 +589,11 @@ public class MessagingService : IMessagingService
             var otherParticipantId = conversation.GetOtherParticipantId(currentUserId);
             if (otherParticipantId != null)
             {
-                var otherUser = await _userManager.FindByIdAsync(otherParticipantId);
+                // Load user with AsNoTracking() to avoid tracking conflicts
+                var otherUser = await _userManager.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == otherParticipantId);
+                
                 if (otherUser != null)
                 {
                     dto.OtherParticipantId = otherParticipantId;

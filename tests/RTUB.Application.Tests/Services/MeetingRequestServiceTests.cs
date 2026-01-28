@@ -186,7 +186,7 @@ public class MeetingRequestServiceTests
             .ReturnsAsync((MeetingRequest?)null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<RTUB.Core.Exceptions.EntityNotFoundException>(
             async () => await _service.UpdateStatusAsync(999, RequestStatus.Confirmed)
         );
     }
@@ -227,7 +227,7 @@ public class MeetingRequestServiceTests
             .ReturnsAsync((MeetingRequest?)null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<RTUB.Core.Exceptions.EntityNotFoundException>(
             async () => await _service.DeleteAsync(999)
         );
     }

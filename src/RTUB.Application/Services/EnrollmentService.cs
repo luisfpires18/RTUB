@@ -97,7 +97,12 @@ public class EnrollmentService : IEnrollmentService
         var wasAttending = enrollment.WillAttend;
 
         // Update enrollment fields
-        enrollment.WillAttend = willAttend;
+        if (enrollment.WillAttend != willAttend)
+        {
+            enrollment.WillAttend = willAttend;
+            // Update enlist time only when attendance intent actually changes
+            enrollment.EnrolledAt = DateTime.UtcNow;
+        }
         enrollment.Instrument = instrument;
         enrollment.Notes = notes;
         enrollment.OtherInstruments = otherInstruments;

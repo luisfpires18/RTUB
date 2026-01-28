@@ -12,6 +12,8 @@
 @inject NavigationManager NavigationManager
 @inject IGameScoreService GameScoreService
 @inject IGameService GameService
+@inject IGameFilterService GameFilterService
+@inject ITimeFormatter TimeFormatter
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @attribute [Authorize]
@@ -41,7 +43,7 @@
         <div class="games-grid">
             @foreach (var game in paginatedGames)
             {
-                <GameCard 
+                <GameCard @key="game.Key" 
                     Title="@game.Title"
                     Description="@game.Description"
                     ImageUrl="@game.ImageUrl"
@@ -133,11 +135,7 @@
         <BodyContent>
             @if (leaderboardLoading)
             {
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar leaderboard..." />
             }
             else if (leaderboardScores == null || !leaderboardScores.Any())
             {
@@ -158,7 +156,7 @@
                 
                 <div class="stats-card-grid">
                     @{
-                        var filteredScores = FilterLeaderboardScores();
+                        var filteredScores = GameScoreService.FilterLeaderboardScores(leaderboardScores ?? new List<GameScoreDto>(), leaderboardSearchTerm);
                         var startIndex = (leaderboardPage - 1) * leaderboardPageSize;
                         var paginatedScores = filteredScores.Skip(startIndex).Take(leaderboardPageSize).ToList();
                     }
@@ -193,7 +191,7 @@
                                 <div class="stats-card-title">@(score.UserNickname ?? score.UserName)</div>
                                 @if (selectedGameKey != "bmr-bebe-mais-rui" && selectedGameKey != "tomato-thrower" && selectedGameKey != "passaro-maluco")
                                 {
-                                    <div class="stats-card-subtitle">Nível @score.MaxLevel • @FormatTimeSurvived(score.TimeSurvived)</div>
+                                    <div class="stats-card-subtitle">Nível @score.MaxLevel • @TimeFormatter.FormatTimeSurvived(score.TimeSurvived)</div>
                                 }
                             </div>
                             <div class="stats-card-count">
@@ -275,8 +273,14 @@
         
         try
         {
-            allGames = await GameService.GetAllGamesAsync();
-            filteredGames = FilterGamesByUserCategory(allGames);
+            allGames = await GameService.GetAllGamesAsync() ?? new List<GameDto>();
+            // If the filter service isn't configured (e.g. in tests), fall back to minimal rules:
+            // - Admin: sees all
+            // - Leitao: hides MembersOnly games
+            filteredGames = GameFilterService.FilterGamesByUserCategory(allGames, isLeitao, isAdmin)
+                ?? (isAdmin
+                    ? allGames
+                    : (isLeitao ? allGames.Where(g => !g.MembersOnly).ToList() : allGames));
             ApplyPagination();
         }
         finally
@@ -284,18 +288,6 @@
             loading = false;
             StateHasChanged();
         }
-    }
-
-    private List<GameDto> FilterGamesByUserCategory(List<GameDto> games)
-    {
-        // Leitao users cannot see members-only games (unless they're admin)
-        if (isLeitao && !isAdmin)
-        {
-            return games.Where(g => !g.MembersOnly).ToList();
-        }
-        
-        // All other users (including admins) see all games
-        return games;
     }
 
     private void ApplyPagination()
@@ -415,17 +407,6 @@
         leaderboardPage = 1;
     }
     
-    private List<GameScoreDto> FilterLeaderboardScores()
-    {
-        if (leaderboardScores == null) return new List<GameScoreDto>();
-        if (string.IsNullOrWhiteSpace(leaderboardSearchTerm)) return leaderboardScores;
-        
-        var search = leaderboardSearchTerm.ToLower();
-        return leaderboardScores.Where(s => 
-            (s.UserName?.ToLower().Contains(search) ?? false) ||
-            (s.UserNickname?.ToLower().Contains(search) ?? false)
-        ).ToList();
-    }
     
     private Task HandleLeaderboardSearch(string searchTerm)
     {
@@ -450,10 +431,4 @@
         return Task.CompletedTask;
     }
 
-    private string FormatTimeSurvived(TimeSpan time)
-    {
-        if (time.TotalMinutes >= 1)
-            return $"{(int)time.TotalMinutes}m {time.Seconds}s";
-        return $"{time.Seconds}s";
-    }
 }

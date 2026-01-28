@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Forms;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -47,6 +48,11 @@ public class CommentService : ICommentService
     public async Task<int> GetCountByPostIdAsync(int postId)
     {
         return await _commentRepository.GetCountByPostIdAsync(postId);
+    }
+
+    public async Task<Dictionary<int, int>> GetCountsByPostIdsAsync(IEnumerable<int> postIds)
+    {
+        return await _commentRepository.GetCountsByPostIdsAsync(postIds);
     }
 
     public async Task<Comment> CreateAsync(int postId, string authorId, string body, string? mentionsJson = null, IReadOnlyList<IBrowserFile>? imageFiles = null)
@@ -98,9 +104,7 @@ public class CommentService : ICommentService
 
     public async Task UpdateAsync(int id, string body, string? mentionsJson = null)
     {
-        var comment = await _commentRepository.GetByIdAsync(id);
-        if (comment == null)
-            throw new EntityNotFoundException(nameof(Comment), id);
+        var comment = await _commentRepository.GetByIdOrThrowAsync(id);
 
         comment.Edit(body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -113,9 +117,7 @@ public class CommentService : ICommentService
 
     public async Task SoftDeleteAsync(int id)
     {
-        var comment = await _commentRepository.GetByIdAsync(id);
-        if (comment == null)
-            throw new EntityNotFoundException(nameof(Comment), id);
+        var comment = await _commentRepository.GetByIdOrThrowAsync(id);
 
         // Get images before soft delete
         var images = await _commentImageRepository.GetByCommentIdAsync(id);

@@ -19,7 +19,7 @@
                     <ul class="error-display-list">
                         @foreach (var error in Errors)
                         {
-                            <li class="error-display-item">@error</li>
+                            <li class="error-display-item" @key="@error.GetHashCode()">@error</li>
                         }
                     </ul>
                 }

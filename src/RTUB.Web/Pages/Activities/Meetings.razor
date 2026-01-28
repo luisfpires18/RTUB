@@ -37,7 +37,7 @@
 @if (currentUser != null && currentUser.IsLeitao())
 {
     <div class="text-center p-5">
-        <i class="bi bi-lock-fill" style="font-size: 3rem; color: var(--bs-primary);"></i>
+        <i class="bi bi-lock-fill icon-large-primary"></i>
         <h2 class="mt-3">Acesso Restrito</h2>
         <p class="text-light-theme">Esta página não está disponível para utilizadores Leitão.</p>
     </div>
@@ -121,7 +121,8 @@ else
             <div class="meeting-grid">
                 @foreach (var meeting in upcomingMeetings)
                 {
-                    <MeetingCard Meeting="@meeting"
+                    <MeetingCard @key="meeting.Id"
+                                Meeting="@meeting"
                                 Organizer="@meeting.Organizer"
                                 IsAdmin="@CanManageMeeting(meeting)"
                                 UserParticipation="@GetUserParticipation(meeting.Id)"
@@ -363,7 +364,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-file-text text-primary me-2"></i>Declaração
                 </label>
-                <p class="text-light-theme" style="white-space: pre-line;">@viewingMeeting.Statement</p>
+                <p class="text-light-theme content-pre-line">@viewingMeeting.Statement</p>
             </div>
         }
     </BodyContent>
@@ -446,7 +447,7 @@ else
                             {
                                 @foreach (var tuno in tunoUsersForMeetingForm)
                                 {
-                                    <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                                    <option value="@tuno.Id" @key="tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                                 }
                             }
                         </InputSelect>
@@ -505,11 +506,9 @@ else
             <!-- Loading Overlay for Sending Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando emails...</h5>
                         <p class="text-white-full mb-0">
                             @EmailsSent / @EmailsTotal
@@ -537,11 +536,7 @@ else
 
             @if (emailLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             else if (!string.IsNullOrEmpty(emailErrorMessage))
             {
@@ -570,7 +565,7 @@ else
                     
                     @if (showEmailPreview)
                     {
-                        <div class="mt-2 p-3 border rounded" style="max-height: 400px; overflow-y: auto; background-color: transparent;">
+                        <div class="mt-2 p-3 border rounded preview-container-scrollable">
                             <h6 class="text-muted mb-2">Pré-visualização do Email:</h6>
                             <div>
                                 @((MarkupString)emailPreviewHtml)
@@ -629,11 +624,9 @@ else
             <!-- Loading Overlay for Sending Cancellation Emails -->
             @if (IsSendingEmails)
             {
-                <div class="position-relative" style="min-height: 200px;">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">A enviar...</span>
-                        </div>
+                <div class="position-relative loading-overlay-container">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center loading-overlay-backdrop">
+                        <LoadingSpinner Size="@SpinnerSize.Large" Color="@SpinnerColor.Light" Centered="false" AdditionalContainerClass="mb-3" />
                         <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
                         <p class="text-white-full mb-0">
                             @EmailsSent / @EmailsTotal
@@ -666,11 +659,7 @@ else
 
             @if (cancelMeetingLoadingSubscribers)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar subscritores..." />
             }
             
             <div class="mb-3 form-check">
@@ -805,7 +794,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-file-text text-primary me-2"></i>Descrição/Motivo
                 </label>
-                <p class="text-light-theme" style="white-space: pre-line;">@viewingRequest.Description</p>
+                <p class="text-light-theme content-pre-line">@viewingRequest.Description</p>
             </div>
 
             <div class="mb-3">
@@ -886,11 +875,7 @@ else
 
             @if (pushLoadingRecipients)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
+                <LoadingSpinner Message="A carregar destinatários..." />
             }
             else if (!string.IsNullOrEmpty(pushErrorMessage))
             {
@@ -901,34 +886,6 @@ else
             }
             else
             {
-                <!-- Notification Type Selection -->
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                    <select class="form-select" @bind="selectedPushNotificationType">
-                        <option value="@NotificationTypeNew">Nova Reunião</option>
-                        <option value="@NotificationTypeReminder">Lembrete de Reunião</option>
-                    </select>
-                    <small class="text-muted">
-                        @if (selectedPushNotificationType == NotificationTypeNew)
-                        {
-                            <text>Notifica os membros sobre uma nova reunião convocada.</text>
-                        }
-                        else if (selectedMeetingForPush != null)
-                        {
-                            var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
-                            @if (daysText != null)
-                            {
-                                var reminderText = daysText == "hoje" ? "a reunião é hoje" : $"a reunião é em {daysText}";
-                                <text>Lembra os membros que @reminderText e de confirmarem a presença.</text>
-                            }
-                            else
-                            {
-                                <text>Não é possível enviar lembretes para reuniões passadas.</text>
-                            }
-                        }
-                    </small>
-                </div>
-                
                 @if (selectedMeetingForPush?.Type == MeetingType.ConselhoVeteranos && pushTunoUsers != null)
                 {
                     <div class="mb-3">
@@ -937,16 +894,50 @@ else
                             <option value="">Nenhum representante selecionado</option>
                             @foreach (var tuno in pushTunoUsers)
                             {
-                                <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
+                                <option value="@tuno.Id" @key="tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}") - @GetYearsAsTunoDisplay(tuno)</option>
                             }
                         </select>
                         <small class="text-muted">Opcionalmente adicione um representante de Tunos à lista de destinatários para reuniões CV.</small>
                     </div>
                 }
                 
+                <!-- Custom Notification Message -->
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                    <textarea class="form-control" 
+                              rows="4" 
+                              @bind="customNotificationBody" 
+                              placeholder="Ex: Reunião importante, confirma a tua presença!"
+                              maxlength="500"></textarea>
+                    <small class="text-muted">
+                        A notificação terá um título automático com a data da reunião. Máximo 500 caracteres.
+                    </small>
+                </div>
+
+                <!-- Filter Option -->
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               id="meetingFilterLeitaoCaloiro"
+                               @bind="filterOnlyLeitaoAndCaloiro"
+                               @bind:after="OnMeetingFilterChanged" />
+                        <label class="form-check-label text-white-full" for="meetingFilterLeitaoCaloiro">
+                            Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
+                        </label>
+                    </div>
+                    @if (filterOnlyLeitaoAndCaloiro)
+                    {
+                        <small class="text-warning d-block mt-1">
+                            <i class="bi bi-info-circle me-1"></i>
+                            As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
+                        </small>
+                    }
+                </div>
+
                 <EmailRecipientsPreview 
-                    SubscribedUsers="@(pushRecipients ?? new List<ApplicationUser>())"
-                    NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsers="@(pushFilteredRecipients ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
                     SubscribedUsersTitle="Destinatários com subscrições push ativas:"
                     NonSubscribedUsersTitle="Membros sem subscrição push:"
                     ShowNonSubscribedUsers="true"
@@ -1045,7 +1036,7 @@ else
                     <div class="enrollment-card-grid enrollment-card-grid-mobile-two">
                         @foreach (var participation in notGoingParticipants)
                         {
-                            <EnrollmentCard 
+                            <EnrollmentCard @key="participation.Id" 
                                 AvatarUrl="@participation.User?.ProfilePictureSrc"
                                 TunaName="@participation.User?.Nickname"
                                 FullName="@($"{participation.User?.FirstName} {participation.User?.LastName}".Trim())"
@@ -1128,7 +1119,7 @@ else
                                     <div class="member-list member-list-scrollable mt-2">
                                         @foreach (var member in filteredAvailableMembersForParticipation)
                                         {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row" @key="member.Id"
                                                  @onclick="() => AddMemberToMeeting(member)"
                                                  tabindex="0"
                                                  @onkeydown="@(async (e) => await HandleMemberItemKeyDownForParticipation(e, member))">
@@ -1373,7 +1364,7 @@ else
                                 var displayName = !string.IsNullOrEmpty(user.Nickname)
                                     ? $"{user.FirstName} \"{user.Nickname}\" {user.LastName}"
                                     : $"{user.FirstName} {user.LastName}";
-                                <span class="badge bg-success">@displayName</span>
+                                <span class="badge bg-success" @key="participant.UserId">@displayName</span>
                             }
                         </div>
                     }
@@ -1394,7 +1385,7 @@ else
                     {
                         @foreach (var point in editingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2">
+                            <div class="card mb-2" @key="point.Id">
                                 <div class="card-body p-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong>@point.PointNumber. @point.Title</strong>
@@ -1539,7 +1530,7 @@ else
         else if (viewingAta == null)
         {
             <div class="text-center p-4">
-                <i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+                <i class="bi bi-file-earmark-x text-muted icon-large"></i>
                 <p class="mt-2 text-light-theme">Ata não encontrada.</p>
             </div>
         }
@@ -1631,7 +1622,7 @@ else
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var participant in presentParticipants)
                             {
-                                <span class="badge bg-success">@FormatUserNameForView(participant.User)</span>
+                                <span class="badge bg-success" @key="participant.UserId">@FormatUserNameForView(participant.User)</span>
                             }
                         </div>
                     }
@@ -1712,7 +1703,7 @@ else
                     <div class="modal-section-body">
                         @foreach (var point in viewingAta.AgendaPoints.OrderBy(p => p.PointNumber))
                         {
-                            <div class="card mb-2">
+                            <div class="card mb-2" @key="point.Id">
                                 <div class="card-body p-3">
                                     <h6 class="mb-2">@point.PointNumber. @point.Title</h6>
                                     @if (!string.IsNullOrEmpty(point.DiscussionSummary))
@@ -1874,17 +1865,16 @@ else
     private Meeting? selectedMeetingForPush;
     private List<ApplicationUser>? pushRecipients;
     private List<ApplicationUser>? pushNonSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredRecipients;
+    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
     private List<ApplicationUser>? pushTunoUsers;
     private int pushRecipientCount = 0;
     private int pushTotalUsersCount = 0;
     private bool pushLoadingRecipients = false;
     private string? pushErrorMessage;
     private string selectedPushTunoId = string.Empty;
-    private string selectedPushNotificationType = NotificationTypeNew;
-    
-    // Notification type constants
-    private const string NotificationTypeNew = "new";
-    private const string NotificationTypeReminder = "reminder";
+    private string? customNotificationBody;
+    private bool filterOnlyLeitaoAndCaloiro = false;
     
     // Meeting participation modal variables
     private bool isEditingParticipation = false;
@@ -2126,17 +2116,26 @@ else
                 var meetingIds = pastMeetings.Select(m => m.Id);
                 var ataStatuses = await MeetingAtaService.GetAtaStatusForMeetingsAsync(meetingIds);
                 
+                // Batch load all ATAs for meetings that have them to avoid N+1 queries
+                var meetingIdsWithAta = ataStatuses
+                    .Where(kvp => kvp.Value.HasValue)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                
+                if (meetingIdsWithAta.Any())
+                {
+                    var atasDict = await MeetingAtaService.GetByMeetingIdsAsync(meetingIdsWithAta);
+                    foreach (var kvp in atasDict)
+                    {
+                        meetingAtas[kvp.Key] = kvp.Value;
+                    }
+                }
+                
+                // Set status flags
                 foreach (var (meetingId, status) in ataStatuses)
                 {
                     meetingHasAta[meetingId] = status.HasValue;
                     meetingAtaPublished[meetingId] = status == MeetingAtaStatus.Published;
-                    
-                    // Cache the ATA if it exists for permission checks
-                    if (status.HasValue)
-                    {
-                        var ata = await MeetingAtaService.GetByMeetingIdAsync(meetingId);
-                        meetingAtas[meetingId] = ata;
-                    }
                 }
             }
         }
@@ -2903,7 +2902,8 @@ else
         pushLoadingRecipients = true;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
-        selectedPushNotificationType = NotificationTypeNew; // Reset to default
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
         modals.Open(ModalType.PushNotification);
         StateHasChanged();
 
@@ -2975,8 +2975,7 @@ else
                 .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
                 .ToList();
             
-            pushRecipientCount = pushRecipients.Count;
-            pushTotalUsersCount = eligibleUsers.Count;
+            ApplyMeetingPushFilter();
         }
         catch (Exception ex)
         {
@@ -2996,19 +2995,28 @@ else
         selectedMeetingForPush = null;
         pushRecipients = null;
         pushNonSubscribedUsers = null;
+        pushFilteredRecipients = null;
+        pushFilteredNonSubscribedUsers = null;
         pushTunoUsers = null;
         pushRecipientCount = 0;
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
         selectedPushTunoId = string.Empty;
-        selectedPushNotificationType = NotificationTypeNew;
+        customNotificationBody = string.Empty;
+        filterOnlyLeitaoAndCaloiro = false;
     }
 
     private async Task SendMeetingPushNotification()
     {
-        if (selectedMeetingForPush == null || pushRecipients == null || !pushRecipients.Any())
+        if (selectedMeetingForPush == null || pushFilteredRecipients == null || !pushFilteredRecipients.Any())
         {
             ClosePushNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customNotificationBody))
+        {
+            pushErrorMessage = "A mensagem da notificação é obrigatória.";
             return;
         }
 
@@ -3021,27 +3029,14 @@ else
             // Use the base URL from Navigation
             var baseUrl = Navigation.BaseUri.TrimEnd('/');
             
-            // Check if it's a reminder
-            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
-            
-            // Validate reminder for past meetings
-            if (isReminder)
-            {
-                var daysText = GetDaysUntilMeetingText(selectedMeetingForPush.Date);
-                if (daysText == null)
-                {
-                    pushErrorMessage = "Não é possível enviar lembretes para reuniões passadas.";
-                    pushLoadingRecipients = false;
-                    StateHasChanged();
-                    return;
-                }
-            }
-            
             // Create the notification
-            var notification = PushNotificationFactory.CreateMeetingNotification(selectedMeetingForPush, isReminder, baseUrl);
+            var notification = PushNotificationFactory.CreateMeetingCustomNotification(
+                selectedMeetingForPush,
+                customNotificationBody!,
+                baseUrl);
 
             // Build final recipient list
-            var finalRecipients = pushRecipients.ToList();
+            var finalRecipients = pushFilteredRecipients.ToList();
             
             // Add selected Tuno if applicable for CV meetings
             if (selectedMeetingForPush.Type == MeetingType.ConselhoVeteranos && 
@@ -3089,6 +3084,33 @@ else
             pushLoadingRecipients = false;
             StateHasChanged();
         }
+    }
+
+    private void ApplyMeetingPushFilter()
+    {
+        if (filterOnlyLeitaoAndCaloiro)
+        {
+            pushFilteredRecipients = pushRecipients?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
+                .ToList();
+        }
+        else
+        {
+            pushFilteredRecipients = pushRecipients;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
+        }
+
+        pushRecipientCount = pushFilteredRecipients?.Count ?? 0;
+        pushTotalUsersCount = (pushFilteredRecipients?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
+    }
+
+    private void OnMeetingFilterChanged()
+    {
+        ApplyMeetingPushFilter();
     }
     
     private string GetYearsAsTunoDisplay(ApplicationUser user)

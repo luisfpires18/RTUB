@@ -21,12 +21,12 @@ public interface IMemberDebtService
     /// <summary>
     /// Adds a new debt for a member
     /// </summary>
-    Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId);
+    Task<MemberDebt> AddDebtAsync(string userId, decimal amount, string? description, int fiscalYearId, DateTime? compromisedUntil = null);
 
     /// <summary>
     /// Updates an existing debt
     /// </summary>
-    Task UpdateDebtAsync(int debtId, decimal amount, string? description);
+    Task UpdateDebtAsync(int debtId, decimal amount, string? description, DateTime? compromisedUntil = null);
 
     /// <summary>
     /// Deletes a debt

@@ -3,8 +3,11 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.Interfaces
+@using RTUB.Shared.Enums
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
+@inject IMemberHierarchyService MemberHierarchyService
 @inject IJSRuntime JSRuntime
 
 <h1 class="text-center mb-4"><i class="bi bi-diagram-3"></i> Hierarquia da Tuna - Família</h1>
@@ -12,11 +15,7 @@
 
 @if (isLoading)
 {
-    <div class="d-flex justify-content-center my-5">
-        <div class="spinner-border text-purple" role="status">
-            <span class="visually-hidden">A carregar...</span>
-        </div>
-    </div>
+    <LoadingSpinner Message="A carregar hierarquia..." Color="SpinnerColor.Purple" />
 }
 else if (!members.Any())
 {
@@ -75,50 +74,16 @@ else
     {
         // Load all members excluding Leitões (only show Caloiro, Tuno, Veterano, Tunossauro)
         // Must load to memory first before using IsEffectiveMember() extension method
-        members = UserManager.Users
+        var allMembers = UserManager.Users
             .ToList()
             .Where(u => u.IsEffectiveMember())
-            .OrderBy(u => u.FirstName)
-            .ThenBy(u => u.LastName)
             .ToList();
 
-        // Build mentor-to-afilhados mapping
-        // Only include mentors who are Tunos (not Caloiros)
-        mentorToAfilhados.Clear();
-        foreach (var member in members)
-        {
-            if (!string.IsNullOrEmpty(member.MentorId))
-            {
-                // Get the mentor
-                var mentor = members.FirstOrDefault(m => m.Id == member.MentorId);
-                
-                // Only add if mentor is Tuno, Veterano, or Tunossauro (not Caloiro)
-                if (mentor != null && mentor.IsTunoOrHigher())
-                {
-                    if (!mentorToAfilhados.ContainsKey(member.MentorId))
-                    {
-                        mentorToAfilhados[member.MentorId] = new List<ApplicationUser>();
-                    }
-                    mentorToAfilhados[member.MentorId].Add(member);
-                }
-            }
-        }
-
-        // Find root members (those without mentors or whose mentor is not in the displayed list or not a valid Tuno mentor)
-        rootMembers = members
-            .Where(m => 
-            {
-                if (string.IsNullOrEmpty(m.MentorId))
-                    return true;
-                    
-                var mentor = members.FirstOrDefault(mem => mem.Id == m.MentorId);
-                
-                // Include as root if mentor doesn't exist OR mentor is not a Tuno/Veterano/Tunossauro
-                return mentor == null || !mentor.IsTunoOrHigher();
-            })
-            .OrderBy(m => m.FirstName)
-            .ThenBy(m => m.LastName)
-            .ToList();
+        // Use service to build hierarchy
+        (rootMembers, mentorToAfilhados) = MemberHierarchyService.BuildHierarchy(allMembers);
+        
+        // Keep members list for rendering
+        members = allMembers;
     }
 
     private RenderFragment RenderMemberNode(ApplicationUser member) => __builder =>
@@ -149,7 +114,7 @@ else
                 <div class="children-container">
                     @foreach (var afilhado in mentorToAfilhados[member.Id].OrderBy(a => a.YearCaloiro ?? int.MaxValue).ThenBy(a => a.MonthCaloiro ?? int.MaxValue).ThenBy(a => a.FirstName).ThenBy(a => a.LastName))
                     {
-                        <div class="child-node">
+                        <div class="child-node" @key="afilhado.Id">
                             @RenderMemberNode(afilhado)
                         </div>
                     }

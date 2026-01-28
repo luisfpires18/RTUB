@@ -473,3 +473,9 @@
         min-width: 100%;
     }
 }
+
+/* Changes display */
+.changes-display {
+    max-height: 400px;
+    overflow-y: auto;
+}

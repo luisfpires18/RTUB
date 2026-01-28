@@ -45,13 +45,13 @@
     <!-- Filters -->
     <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap justify-content-between">
         <div class="d-flex flex-column flex-sm-row gap-2 flex-grow-1">
-            <div class="flex-grow-1" style="min-width: 300px; max-width: 400px;">
+            <div class="flex-grow-1 search-field-container">
                 <label class="form-label fw-semibold">Pesquisar</label>
                 <SearchBar @bind-Value="titleSearchTerm"
                            Placeholder="Pesquisar por título..."
                            OnSearch="HandleTitleSearchChanged" />
             </div>
-            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+            <div class="flex-sm-shrink-0 filter-year-container">
                 <label class="form-label fw-semibold">Ano</label>
                 <FilterDropdown IconClass="bi-calendar3"
                                AllItemsLabel="Todos os anos"
@@ -59,7 +59,7 @@
                                @bind-SelectedValue="selectedYear"
                                OnChange="ApplyFilters" />
             </div>
-            <div class="flex-grow-1" style="min-width: 300px; max-width: 400px;">
+            <div class="flex-grow-1 search-field-container">
                 <label class="form-label fw-semibold">Pessoas</label>
                 <FilterDropdown IconClass="bi-people"
                                AllItemsLabel="Todas as pessoas"
@@ -68,12 +68,12 @@
                                OnChange="ApplyFilters" />
             </div>
         </div>
-        <div class="flex-sm-shrink-0" style="min-width: 150px; max-width: 180px;">
+        <div class="flex-sm-shrink-0 items-per-page-container">
             <label class="form-label fw-semibold">Itens por página</label>
             <select class="form-select" @bind="pageSize" @bind:after="ApplyFilters">
                 @foreach (var size in pageSizeOptions)
                 {
-                    <option value="@size">@size</option>
+                    <option value="@size" @key="size">@size</option>
                 }
             </select>
         </div>
@@ -102,7 +102,7 @@ else
         @foreach (var yearGroup in groupedMedia)
         {
             <!-- Year badge/pill -->
-            <div class="timeline-year-node">
+            <div class="timeline-year-node" @key="yearGroup.Key">
                 <div class="timeline-year-marker">
                     <div class="timeline-year-dot"></div>
                     <h2 class="timeline-year-label">@yearGroup.Key</h2>
@@ -196,14 +196,14 @@ else
                 
                 @if (!string.IsNullOrEmpty(personSearchTerm) && filteredMembers.Any())
                 {
-                    <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                    <div class="list-group mt-2 member-list-scrollable">
                         @foreach (var member in filteredMembers.Take(10))
                         {
                             <button type="button" 
                                     class="list-group-item list-group-item-action"
                                     @onclick="() => TogglePersonTag(member.Id)">
                                 <div class="d-flex align-items-center">
-                                    <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" />
+                                    <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2 member-avatar-tiny" />
                                     <span>@(member.Nickname ?? $"{member.FirstName} {member.LastName}")</span>
                                 </div>
                             </button>
@@ -227,7 +227,7 @@ else
                                 var person = allMembers.FirstOrDefault(m => m.Id == personId);
                                 if (person != null)
                                 {
-                                    <PersonBadge Name="@(person.Nickname ?? person.FirstName)"
+                                    <PersonBadge @key="personId" Name="@(person.Nickname ?? person.FirstName)"
                                                 ShowCloseButton="true"
                                                 OnClose="() => RemovePersonTag(personId)" />
                                 }
@@ -308,14 +308,14 @@ else
                     
                     @if (!string.IsNullOrEmpty(editPersonSearchTerm) && filteredEditMembers.Any())
                     {
-                        <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                        <div class="list-group mt-2 member-list-scrollable">
                             @foreach (var member in filteredEditMembers.Take(10))
                             {
-                                <button type="button" 
+                                <button type="button" @key="member.Id" 
                                         class="list-group-item list-group-item-action"
                                         @onclick="() => ToggleEditPersonTag(member.Id)">
                                     <div class="d-flex align-items-center">
-                                        <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" />
+                                        <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2 member-avatar-tiny" />
                                         <span>@(member.Nickname ?? $"{member.FirstName} {member.LastName}")</span>
                                     </div>
                                 </button>
@@ -446,7 +446,7 @@ else
                                 <div class="d-flex flex-wrap gap-1 mt-1">
                                     @foreach (var tag in lightboxMedia.PeopleInMedia)
                                     {
-                                        <PersonBadge Name="@(tag.User.Nickname ?? tag.User.FirstName)"
+                                        <PersonBadge @key="tag.User.Id" Name="@(tag.User.Nickname ?? tag.User.FirstName)"
                                                     ShowCloseButton="false" />
                                     }
                                 </div>

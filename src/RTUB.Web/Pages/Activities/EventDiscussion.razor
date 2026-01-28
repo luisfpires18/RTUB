@@ -12,6 +12,8 @@
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
 @inject ICommentService CommentService
+@inject IEventDiscussionService EventDiscussionService
+@inject IEventAuthorizationService EventAuthorizationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -73,7 +75,7 @@
                     var commentCount = GetPostCommentCount(post.Id);
                     var isExpanded = expandedPostIds.Contains(post.Id);
                     
-                    <div class="post-wrapper mb-3">
+                    <div class="post-wrapper mb-3" @key="post.Id">
                         <!-- PostCard as clickable header with action buttons -->
                         <PostCard Post="@post"
                                  CommentCount="@commentCount"
@@ -247,10 +249,12 @@
         if (!string.IsNullOrEmpty(userName))
         {
             currentUser = await UserManager.FindByNameAsync(userName);
-            isAdmin = authState.User.IsInRole("Admin");
-            isOwner = authState.User.IsInRole("Owner");
-            canCreatePost = currentUser != null;
         }
+
+        // Use service to determine authorization
+        (isAdmin, isOwner, canCreatePost) = EventAuthorizationService.GetEventDiscussionAuthorization(authState, currentUser);
+        // Safe default: authenticated users can create posts unless explicitly restricted.
+        canCreatePost = canCreatePost || authState.User.Identity?.IsAuthenticated == true;
     }
 
     private async Task LoadDiscussionAsync()
@@ -279,11 +283,18 @@
 
     private async Task LoadCommentCountsForPosts()
     {
-        // Load comment counts for all posts on current page
+        // Batch load comment counts for all posts on current page to avoid N+1 queries
+        if (!posts.Any())
+        {
+            return;
+        }
+
+        var postIds = posts.Select(p => p.Id);
+        var counts = await EventDiscussionService.GetCommentCountsByPostIdsAsync(postIds) ?? new Dictionary<int, int>();
+        
         foreach (var post in posts)
         {
-            var count = await CommentService.GetCountByPostIdAsync(post.Id);
-            postCommentCounts[post.Id] = count;
+            postCommentCounts[post.Id] = counts.GetValueOrDefault(post.Id, 0);
         }
     }
 

@@ -254,6 +254,8 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var enrollment = await _enrollmentService.CreateEnrollmentAsync(
             "user123", eventEntity.Id, Core.Enums.InstrumentType.Guitarra, "Notes", true);
 
+        var originalEnrolledAt = enrollment.EnrolledAt;
+
         // Act
         var result = await _enrollmentService.UpdateEnrollmentAsync(
             enrollment.Id,
@@ -268,6 +270,32 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         result.Instrument.Should().BeNull();
         result.Notes.Should().Be("New notes");
         result.OtherInstruments.Should().BeNull();
+        result.EnrolledAt.Should().Be(originalEnrolledAt, "enlist time should not change when WillAttend stays the same");
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WhenWillAttendChanges_UpdatesEnrolledAtTimestamp()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync(
+            "user123", eventEntity.Id, Core.Enums.InstrumentType.Guitarra, "Notes", true);
+
+        var originalEnrolledAt = enrollment.EnrolledAt;
+
+        // Act - toggle attendance
+        var result = await _enrollmentService.UpdateEnrollmentAsync(
+            enrollment.Id,
+            false,
+            Core.Enums.InstrumentType.Guitarra,
+            "Updated notes",
+            "Other");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeFalse();
+        result.EnrolledAt.Should().BeAfter(originalEnrolledAt, "enlist time should be refreshed when WillAttend changes");
     }
 
     [Fact]

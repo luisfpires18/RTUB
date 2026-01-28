@@ -1,3 +1,4 @@
+@namespace RTUB.Shared
 @using Microsoft.Extensions.Logging
 @using Microsoft.AspNetCore.Components.Authorization
 @using RTUB.Application.DTOs
@@ -17,14 +18,14 @@
                 Receba notificações sobre atuações, ensaios, mensagens e outras atualizações importantes da RTUB.
             </p>
             <div class="push-prompt-buttons">
-                <button class="btn btn-primary btn-primary-purple" @onclick="HandleAllow" disabled="@IsProcessing">
+                <button class="btn btn-primary btn-primary-purple" @onclick="HandleAllow" disabled="@IsProcessing" aria-label="Ativar notificações push">
                     @if (IsProcessing)
                     {
                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                     }
                     Ativar
                 </button>
-                <button class="btn btn-outline-secondary" @onclick="HandleDismiss" disabled="@IsProcessing">
+                <button class="btn btn-outline-secondary" @onclick="HandleDismiss" disabled="@IsProcessing" aria-label="Dispensar">
                     Agora Não
                 </button>
             </div>

@@ -10,6 +10,8 @@ This document outlines testing best practices for the RTUB project, focusing on 
 - [Mocking](#mocking)
 - [Code Coverage](#code-coverage)
 
+**See also:** `docs/tests-structure.md` for project layout, Unit/Integration separation, and test data builders.
+
 ## Test Organization
 
 ### Project Structure
@@ -18,7 +20,6 @@ This document outlines testing best practices for the RTUB project, focusing on 
 tests/
 ├── RTUB.Unit.Tests/        # Unit tests for business logic
 ├── RTUB.Integration.Tests/ # Integration tests for API/UI
-└── RTUB.E2E.Tests/         # End-to-end tests (if applicable)
 ```
 
 ### Naming Conventions

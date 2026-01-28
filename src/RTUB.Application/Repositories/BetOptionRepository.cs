@@ -34,6 +34,27 @@ public class BetOptionRepository : Repository<BetOption>, IBetOptionRepository
             .FirstOrDefaultAsync(o => o.Id == id);
     }
 
+    public async Task<Dictionary<int, List<BetOption>>> GetOptionsByBetIdsAsync(IEnumerable<int> betIds)
+    {
+        var betIdsList = betIds.ToList();
+        if (!betIdsList.Any())
+        {
+            return new Dictionary<int, List<BetOption>>();
+        }
+
+        var options = await _dbSet
+            .AsNoTracking()
+            .Where(o => betIdsList.Contains(o.BetId))
+            .Include(o => o.MemberA)
+            .Include(o => o.MemberB)
+            .ToListAsync();
+
+        // Group by bet ID
+        return options
+            .GroupBy(o => o.BetId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
     public async Task DeleteByBetIdAsync(int betId)
     {
         // Use ExecuteDeleteAsync to bypass change tracker and avoid FK issues

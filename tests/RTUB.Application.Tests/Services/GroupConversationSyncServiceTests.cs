@@ -62,6 +62,11 @@ public class GroupConversationSyncServiceTests
         // Arrange
         var mockUserManager = CreateMockUserManager();
         SetupEmptyUserManager(mockUserManager);
+        
+        // Mock GetUsersInRoleAsync to return empty list (not null)
+        mockUserManager
+            .Setup(m => m.GetUsersInRoleAsync("Owner"))
+            .ReturnsAsync(new List<ApplicationUser>());
 
         var service = new GroupConversationSyncService(
             _mockMessagingService.Object,
