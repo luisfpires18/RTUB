@@ -980,7 +980,6 @@ else
                         : string.Empty;
                     var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     var isRetired = statusData?.IsRetired ?? member.IsRetired;
-                    var canMakeActive = isRetired || showEncouragement;
                     <MemberCardLite @key="member.Id"
                                     AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
@@ -991,7 +990,7 @@ else
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
                         <ActionContent>
-                            @if (canMakeActive)
+                            @if (isRetired)
                             {
                                 <button type="button" 
                                         class="member-card-lite-action-btn" 
