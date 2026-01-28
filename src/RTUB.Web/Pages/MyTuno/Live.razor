@@ -1,0 +1,174 @@
+@page "/my-tuno/live"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
+@using RTUB.Core.Entities
+@inject NavigationManager NavigationManager
+
+<PageTitle>My Tuno - Live Challenge</PageTitle>
+
+<div class="container mt-4">
+    <h1>Live Challenge</h1>
+    <p class="text-muted">Desafia utilizadores online e acompanha o resultado em tempo real.</p>
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <div class="alert alert-info">@_statusMessage</div>
+    }
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Utilizadores online</h5>
+            @if (_onlineUserIds.Count == 0)
+            {
+                <p class="text-muted mb-0">Sem utilizadores online.</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var userId in _onlineUserIds)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@userId</span>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => SendChallengeAsync(userId)">Desafiar</button>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Desafios recebidos</h5>
+            @if (_incomingChallenges.Count == 0)
+            {
+                <p class="text-muted mb-0">Sem desafios pendentes.</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var challenge in _incomingChallenges)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Pedido @challenge.Id de @challenge.RequesterUserId</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-success" @onclick="() => AcceptChallengeAsync(challenge.Id)">Aceitar</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeclineChallengeAsync(challenge.Id)">Recusar</button>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_lastReplayJson))
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Replay (JSON)</h5>
+                <pre class="bg-light p-2 small">@_lastReplayJson</pre>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private HubConnection? _hubConnection;
+    private List<string> _onlineUserIds = new();
+    private List<MyTunoChallengeRequest> _incomingChallenges = new();
+    private string? _statusMessage;
+    private string? _lastReplayJson;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/my-tuno"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<List<string>>("Presence/OnlineList", users =>
+        {
+            _onlineUserIds = users;
+            StateHasChanged();
+        });
+
+        _hubConnection.On<MyTunoChallengeRequest>("Challenge/ChallengeReceived", challenge =>
+        {
+            _incomingChallenges.Add(challenge);
+            StateHasChanged();
+        });
+
+        _hubConnection.On<int>("Challenge/ChallengeSent", _ =>
+        {
+            _statusMessage = "Desafio enviado!";
+            StateHasChanged();
+        });
+
+        _hubConnection.On<int, int>("Challenge/ChallengeAccepted", (requestId, battleId) =>
+        {
+            _statusMessage = $"Desafio aceite. Match #{battleId}";
+            _incomingChallenges.RemoveAll(c => c.Id == requestId);
+            StateHasChanged();
+        });
+
+        _hubConnection.On<int>("Challenge/ChallengeDeclined", requestId =>
+        {
+            _statusMessage = "Desafio recusado.";
+            _incomingChallenges.RemoveAll(c => c.Id == requestId);
+            StateHasChanged();
+        });
+
+        _hubConnection.On<string>("Match/MatchEventBatch", replayJson =>
+        {
+            _lastReplayJson = replayJson;
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+        await _hubConnection.InvokeAsync("JoinMyTuno");
+    }
+
+    private async Task SendChallengeAsync(string targetUserId)
+    {
+        if (_hubConnection == null)
+        {
+            return;
+        }
+
+        _statusMessage = null;
+        await _hubConnection.InvokeAsync("SendChallenge", targetUserId);
+    }
+
+    private async Task AcceptChallengeAsync(int requestId)
+    {
+        if (_hubConnection == null)
+        {
+            return;
+        }
+
+        _statusMessage = null;
+        await _hubConnection.InvokeAsync("AcceptChallenge", requestId);
+    }
+
+    private async Task DeclineChallengeAsync(int requestId)
+    {
+        if (_hubConnection == null)
+        {
+            return;
+        }
+
+        _statusMessage = null;
+        await _hubConnection.InvokeAsync("DeclineChallenge", requestId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.InvokeAsync("LeaveMyTuno");
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

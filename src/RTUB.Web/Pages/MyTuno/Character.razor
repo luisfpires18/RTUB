@@ -1,0 +1,72 @@
+@page "/my-tuno/character"
+@attribute [Authorize]
+@using System.Security.Claims
+@using RTUB.Application.Services.MyTuno
+@using RTUB.Core.Enums
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject MyTunoCharacterService CharacterService
+@inject MyTunoUpgradeService UpgradeService
+
+<PageTitle>My Tuno - Personagem</PageTitle>
+
+<div class="container mt-4">
+    <h1>Perfil do Personagem</h1>
+
+    @if (_character == null)
+    {
+        <div class="alert alert-info">A carregar personagem...</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Stats</h5>
+                        <p class="mb-1"><strong>HP:</strong> @_character.Hp</p>
+                        <p class="mb-1"><strong>Power:</strong> @_character.Power</p>
+                        <p class="mb-1"><strong>Speed:</strong> @_character.Speed</p>
+                        <p class="mb-1"><strong>Level:</strong> @_character.Level</p>
+                        <p class="mb-0"><strong>XP:</strong> @_character.Xp</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Upgrades</h5>
+                        <p class="mb-1">HP upgrades: @_character.HpUpgrades (custo atual @GetCost(MyTunoStatType.Hp))</p>
+                        <p class="mb-1">Power upgrades: @_character.PowerUpgrades (custo atual @GetCost(MyTunoStatType.Power))</p>
+                        <p class="mb-0">Speed upgrades: @_character.SpeedUpgrades (custo atual @GetCost(MyTunoStatType.Speed))</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Character? _character;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        _character = await CharacterService.GetOrCreateAsync(userId);
+    }
+
+    private decimal GetCost(MyTunoStatType statType)
+    {
+        if (_character == null)
+        {
+            return 0;
+        }
+
+        return UpgradeService.GetUpgradeCost(statType, _character);
+    }
+}

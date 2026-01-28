@@ -1,0 +1,107 @@
+@page "/my-tuno/arena"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
+@using RTUB.Application.Services.MyTuno
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject MyTunoBattleService BattleService
+@inject ApplicationDbContext DbContext
+
+<PageTitle>My Tuno - Arena</PageTitle>
+
+<div class="container mt-4">
+    <h1>Arena</h1>
+    <p class="text-muted">Batalhas automáticas contra adversários offline.</p>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="alert alert-danger">@_errorMessage</div>
+    }
+
+    <button class="btn btn-primary mb-3" @onclick="StartBattleAsync">Iniciar Auto Battle</button>
+
+    @if (_latestBattle != null)
+    {
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Última batalha</h5>
+                <p class="mb-1"><strong>Resultado:</strong> @_latestBattle.Outcome</p>
+                <p class="mb-1"><strong>Recompensas:</strong> +@_latestBattle.AttackerXpDelta XP / +@_latestBattle.AttackerFidelisDelta Fidelis</p>
+                <NavLink class="btn btn-outline-secondary btn-sm" href="@($"/my-tuno/replay/{_latestBattle.Id}")">Ver Replay</NavLink>
+            </div>
+        </div>
+    }
+
+    <h5>Histórico recente</h5>
+    @if (_recentBattles.Count == 0)
+    {
+        <p class="text-muted">Sem batalhas registadas.</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var battle in _recentBattles)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>@battle.StartedAt.ToLocalTime():g - @battle.Outcome</span>
+                    <NavLink class="btn btn-sm btn-outline-secondary" href="@($"/my-tuno/replay/{battle.Id}")">Replay</NavLink>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private string? _errorMessage;
+    private MyTunoBattle? _latestBattle;
+    private List<MyTunoBattle> _recentBattles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistoryAsync();
+    }
+
+    private async Task StartBattleAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return;
+            }
+
+            _latestBattle = await BattleService.RunAsyncBattleAsync(userId);
+            await LoadHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        var characterId = await DbContext.Characters
+            .Where(c => c.UserId == userId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        _recentBattles = await DbContext.MyTunoBattles
+            .AsNoTracking()
+            .Where(b => b.AttackerCharacterId == characterId || b.DefenderCharacterId == characterId)
+            .OrderByDescending(b => b.StartedAt)
+            .Take(5)
+            .ToListAsync();
+    }
+}

@@ -1,0 +1,76 @@
+@page "/my-tuno/replay/{BattleId:int}"
+@attribute [Authorize]
+@using System.Text.Json
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
+@using RTUB.Core.Combat
+@inject ApplicationDbContext DbContext
+
+<PageTitle>My Tuno - Replay</PageTitle>
+
+<div class="container mt-4">
+    <h1>Replay</h1>
+
+    @if (_battle == null)
+    {
+        <div class="alert alert-info">A carregar replay...</div>
+    }
+    else if (_replay == null)
+    {
+        <div class="alert alert-warning">Replay indisponível.</div>
+    }
+    else
+    {
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Resumo</h5>
+                <p class="mb-1"><strong>Modo:</strong> @_battle.Mode</p>
+                <p class="mb-1"><strong>Resultado:</strong> @_battle.Outcome</p>
+                <p class="mb-0"><strong>Seed:</strong> @_battle.Seed</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Eventos</h5>
+                <ul class="list-group">
+                    @foreach (var evt in _replay.Events)
+                    {
+                        <li class="list-group-item">
+                            <strong>@evt.Type</strong> (Ronda @evt.Round)
+                            @if (evt.Damage.HasValue)
+                            {
+                                <span> - Dano: @evt.Damage</span>
+                            }
+                            @if (evt.HpAfter.HasValue)
+                            {
+                                <span> - HP: @evt.HpAfter</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int BattleId { get; set; }
+
+    private MyTunoBattle? _battle;
+    private CombatReplay? _replay;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _battle = await DbContext.MyTunoBattles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == BattleId);
+
+        if (_battle == null || string.IsNullOrWhiteSpace(_battle.ReplayJson))
+        {
+            return;
+        }
+
+        _replay = JsonSerializer.Deserialize<CombatReplay>(_battle.ReplayJson);
+    }
+}

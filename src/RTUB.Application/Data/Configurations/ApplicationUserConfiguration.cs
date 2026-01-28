@@ -36,5 +36,8 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.PrimitiveCollection(u => u.Categories)
             .ElementType()
             .HasConversion<int>();
+
+        builder.Property(u => u.RowVersion)
+            .IsRowVersion();
     }
 }

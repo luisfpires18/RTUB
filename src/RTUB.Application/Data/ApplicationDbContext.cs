@@ -132,6 +132,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BetOption> BetOptions { get; set; }
     public DbSet<UserBet> UserBets { get; set; }
 
+    // My Tuno DbSets
+    public DbSet<Character> Characters { get; set; }
+    public DbSet<MyTunoBattle> MyTunoBattles { get; set; }
+    public DbSet<MyTunoChallengeRequest> MyTunoChallengeRequests { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

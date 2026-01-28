@@ -1,0 +1,66 @@
+@page "/my-tuno"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Services.MyTuno
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject MyTunoCharacterService CharacterService
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>My Tuno</PageTitle>
+
+<div class="container mt-4">
+    <h1 class="mb-3">My Tuno</h1>
+    <p class="text-muted">Uma arena dedicada ao teu personagem, com progressão, upgrades e batalhas.</p>
+
+    @if (_character == null || _user == null)
+    {
+        <div class="alert alert-info">A carregar dados do personagem...</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Resumo</h5>
+                        <p class="card-text mb-1"><strong>Nível:</strong> @_character.Level</p>
+                        <p class="card-text mb-1"><strong>XP:</strong> @_character.Xp</p>
+                        <p class="card-text"><strong>Fidelis:</strong> @_user.FidelisBalance</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Atalhos</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <NavLink class="btn btn-primary" href="/my-tuno/character">Perfil do Personagem</NavLink>
+                            <NavLink class="btn btn-outline-primary" href="/my-tuno/shop">Loja de Upgrades</NavLink>
+                            <NavLink class="btn btn-outline-secondary" href="/my-tuno/arena">Arena</NavLink>
+                            <NavLink class="btn btn-outline-success" href="/my-tuno/live">Live Challenge</NavLink>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Character? _character;
+    private ApplicationUser? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        _user = await UserManager.FindByIdAsync(userId);
+        _character = await CharacterService.GetOrCreateAsync(userId);
+    }
+}

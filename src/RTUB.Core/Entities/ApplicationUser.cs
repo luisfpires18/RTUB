@@ -52,6 +52,9 @@ public class ApplicationUser : IdentityUser
     // Betting system - Fidelis currency balance (default 10 for new users)
     public decimal FidelisBalance { get; set; } = 10m;
 
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
+
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
 

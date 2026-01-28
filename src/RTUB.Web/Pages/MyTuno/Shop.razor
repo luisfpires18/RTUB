@@ -1,0 +1,108 @@
+@page "/my-tuno/shop"
+@attribute [Authorize]
+@using System.Security.Claims
+@using RTUB.Application.Services.MyTuno
+@using RTUB.Core.Enums
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject MyTunoCharacterService CharacterService
+@inject MyTunoUpgradeService UpgradeService
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>My Tuno - Loja</PageTitle>
+
+<div class="container mt-4">
+    <h1>Loja de Upgrades</h1>
+
+    @if (_character == null || _user == null)
+    {
+        <div class="alert alert-info">A carregar dados...</div>
+    }
+    else
+    {
+        <div class="alert alert-secondary">
+            Fidelis disponível: <strong>@_user.FidelisBalance</strong>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">HP</h5>
+                        <p class="card-text">HP atual: @_character.Hp</p>
+                        <p class="card-text">Custo: @UpgradeService.GetUpgradeCost(MyTunoStatType.Hp, _character)</p>
+                        <button class="btn btn-primary" @onclick="() => UpgradeAsync(MyTunoStatType.Hp)">Comprar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Power</h5>
+                        <p class="card-text">Power atual: @_character.Power</p>
+                        <p class="card-text">Custo: @UpgradeService.GetUpgradeCost(MyTunoStatType.Power, _character)</p>
+                        <button class="btn btn-primary" @onclick="() => UpgradeAsync(MyTunoStatType.Power)">Comprar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Speed</h5>
+                        <p class="card-text">Speed atual: @_character.Speed</p>
+                        <p class="card-text">Custo: @UpgradeService.GetUpgradeCost(MyTunoStatType.Speed, _character)</p>
+                        <button class="btn btn-primary" @onclick="() => UpgradeAsync(MyTunoStatType.Speed)">Comprar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Character? _character;
+    private ApplicationUser? _user;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return;
+        }
+
+        _character = await CharacterService.GetOrCreateAsync(userId);
+        _user = await UserManager.FindByIdAsync(userId);
+    }
+
+    private async Task UpgradeAsync(MyTunoStatType statType)
+    {
+        if (_user == null)
+        {
+            return;
+        }
+
+        _errorMessage = null;
+        try
+        {
+            var result = await UpgradeService.UpgradeAsync(_user.Id, statType);
+            _character!.Hp = result.NewHp;
+            _character.Power = result.NewPower;
+            _character.Speed = result.NewSpeed;
+            _character.HpUpgrades = result.HpUpgrades;
+            _character.PowerUpgrades = result.PowerUpgrades;
+            _character.SpeedUpgrades = result.SpeedUpgrades;
+            _user.FidelisBalance = result.FidelisBalance;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}

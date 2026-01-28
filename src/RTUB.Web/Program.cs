@@ -370,6 +370,13 @@ public class Program
         services.AddRoleServices();
         services.AddPushNotificationServices();
         services.AddMessagingServices();
+        services.AddScoped<RTUB.Application.Services.MyTuno.MyTunoCharacterService>();
+        services.AddScoped<RTUB.Application.Services.MyTuno.MyTunoUpgradeService>();
+        services.AddScoped<RTUB.Application.Services.MyTuno.MyTunoMatchmakingService>();
+        services.AddScoped<RTUB.Application.Services.MyTuno.MyTunoBattleService>();
+        services.AddScoped<RTUB.Application.Services.MyTuno.MyTunoLiveChallengeService>();
+        services.AddSingleton<RTUB.Application.Services.MyTuno.MyTunoPresenceService>();
+        services.AddSingleton<RTUB.Core.Combat.ICombatEngine, RTUB.Core.Combat.MyTunoCombatEngine>();
 
         // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();
@@ -781,6 +788,7 @@ public class Program
 
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
+        app.MapHub<RTUB.Web.Hubs.MyTunoHub>("/hubs/my-tuno");
 
         // Map API controllers
         app.MapControllers();
