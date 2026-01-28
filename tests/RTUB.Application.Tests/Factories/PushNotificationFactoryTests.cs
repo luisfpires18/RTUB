@@ -201,6 +201,37 @@ public class PushNotificationFactoryTests
     }
 
     [Fact]
+    public void CreatePendingRehearsalApprovalsReminderNotification_SinglePending_ReusesSingularBody()
+    {
+        // Arrange
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(1, baseUrl);
+
+        // Assert
+        Assert.Equal("Lembrete: Ensaios Pendentes", notification.Title);
+        Assert.Equal("Existe 1 ensaio passado com presenças pendentes para aprovar.", notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("pending-rehearsal-approvals-reminder", notification.Tag);
+    }
+
+    [Fact]
+    public void CreatePendingRehearsalApprovalsReminderNotification_MultiplePending_UsesPluralBody()
+    {
+        // Arrange
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreatePendingRehearsalApprovalsReminderNotification(3, baseUrl);
+
+        // Assert
+        Assert.Equal("Existem 3 ensaios passados com presenças pendentes para aprovar.", notification.Body);
+        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+    }
+
+    [Fact]
     public void CreateEventNotification_EventToday_ReminderCalculatesCorrectDays()
     {
         // Arrange

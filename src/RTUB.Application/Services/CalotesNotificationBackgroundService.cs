@@ -20,7 +20,6 @@ public class CalotesNotificationBackgroundService : BackgroundService
     private DateTime _lastRunDate = DateTime.MinValue;
 
     private const int StartupDelaySeconds = 15;
-    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public CalotesNotificationBackgroundService(
         ILogger<CalotesNotificationBackgroundService> logger,
@@ -114,6 +113,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
 
             // 3. Send notifications to each user with debt
             var notificationsSent = 0;
+            var baseUrl = "/";
             foreach (var (userId, amount) in usersWithDebts)
             {
                 if (cancellationToken.IsCancellationRequested) break;
@@ -124,7 +124,7 @@ public class CalotesNotificationBackgroundService : BackgroundService
                     continue;
                 }
 
-                var notification = pushNotificationFactory.CreateCalotesReminderNotification(amount, DefaultBaseUrl);
+                var notification = pushNotificationFactory.CreateCalotesReminderNotification(amount, baseUrl);
                 await pushNotificationService.SendToUserAsync(userId, notification);
                 notificationsSent++;
 

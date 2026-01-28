@@ -24,7 +24,6 @@ public class WeeklyNotificationBackgroundService : BackgroundService
     private DateTime _lastRunDate = DateTime.MinValue;
 
     private const int StartupDelaySeconds = 20;
-    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public WeeklyNotificationBackgroundService(
         ILogger<WeeklyNotificationBackgroundService> logger,
@@ -136,7 +135,7 @@ public class WeeklyNotificationBackgroundService : BackgroundService
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
-            var baseUrl = DefaultBaseUrl;
+            var baseUrl = "/";
             var sentCount = 0;
 
             foreach (var user in allUsers)

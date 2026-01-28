@@ -748,6 +748,28 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for pending rehearsal approvals.
+    /// </summary>
+    public SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalsUrl = $"{baseUrl.TrimEnd('/')}/rehearsals";
+        var bodyText = pendingRehearsalCount == 1
+            ? "Existe 1 ensaio passado com presenças pendentes para aprovar."
+            : $"Existem {pendingRehearsalCount} ensaios passados com presenças pendentes para aprovar.";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Lembrete: Ensaios Pendentes",
+            Body = bodyText,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalsUrl,
+            Tag = "pending-rehearsal-approvals-reminder"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification for a new question.
     /// </summary>
     public SendPushNotificationDto CreateNewQuestionNotification(string questionTitle, string authorName, int questionId, string baseUrl)

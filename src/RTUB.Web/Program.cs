@@ -78,6 +78,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.PendingRequestReminderOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.PendingRequestReminderOptions.SectionName));
 
+        // Configure Rehearsal Approval Reminder Scheduler
+        services.Configure<RTUB.Application.Configuration.RehearsalApprovalReminderOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.RehearsalApprovalReminderOptions.SectionName));
+
         // Configure Question Notification Scheduler
         services.Configure<RTUB.Application.Configuration.QuestionNotificationOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.QuestionNotificationOptions.SectionName));
@@ -403,6 +407,9 @@ public class Program
 
         // Background worker for sending pending request reminders
         services.AddHostedService<PendingRequestReminderService>();
+
+        // Background worker for sending rehearsal approval reminders
+        services.AddHostedService<RehearsalApprovalReminderBackgroundService>();
 
         // Background worker for sending question notification reminders
         services.AddHostedService<QuestionNotificationBackgroundService>();
