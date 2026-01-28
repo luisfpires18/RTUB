@@ -396,6 +396,11 @@ namespace RTUB.Migrations
                     b.Property<bool>("RequirePasswordChange")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("TEXT");
 
@@ -430,6 +435,167 @@ namespace RTUB.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.Character", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Hp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HpUpgrades")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Power")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PowerUpgrades")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Speed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SpeedUpgrades")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Xp")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Characters");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MyTunoBattle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AttackerCharacterId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("AttackerFidelisDelta")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AttackerXpDelta")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DefenderCharacterId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("DefenderFidelisDelta")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DefenderXpDelta")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReplayJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Seed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttackerCharacterId", "StartedAt");
+
+                    b.HasIndex("DefenderCharacterId", "StartedAt");
+
+                    b.ToTable("MyTunoBattles");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MyTunoChallengeRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RequesterUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TargetUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequesterUserId");
+
+                    b.HasIndex("TargetUserId", "Status");
+
+                    b.ToTable("MyTunoChallengeRequests");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.AuditLog", b =>
@@ -3842,6 +4008,55 @@ namespace RTUB.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Mentor");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.Character", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MyTunoBattle", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Character", "AttackerCharacter")
+                        .WithMany()
+                        .HasForeignKey("AttackerCharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.Character", "DefenderCharacter")
+                        .WithMany()
+                        .HasForeignKey("DefenderCharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttackerCharacter");
+
+                    b.Navigation("DefenderCharacter");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.MyTunoChallengeRequest", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Requester")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Target")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Requester");
+
+                    b.Navigation("Target");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.BetComment", b =>
