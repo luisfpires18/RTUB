@@ -93,10 +93,6 @@ public class Program
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
 
-        // Configure Bet Settlement Scheduler
-        services.Configure<RTUB.Application.Configuration.BetSettlementOptions>(
-            builder.Configuration.GetSection(RTUB.Application.Configuration.BetSettlementOptions.SectionName));
-
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -415,9 +411,6 @@ public class Program
 
         // Background worker for sending activity (event/rehearsal/meeting) reminders
         services.AddHostedService<ActivityReminderBackgroundService>();
-
-        // Background worker for settling bets at midnight
-        services.AddHostedService<BetSettlementBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
