@@ -23,29 +23,35 @@
 
 <main>
 <div class="d-flex flex-column gap-3 mb-4">
-    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-        <div class="w-100">
-            <div class="d-flex align-items-center justify-content-center mb-2 position-relative">
-                <button class="btn btn-outline-light btn-sm position-absolute" style="left: 0;" @onclick="GoBack">
+    <div class="d-flex flex-column gap-3">
+        <div class="d-flex flex-column d-lg-grid align-items-lg-center gap-3" style="grid-template-columns: 1fr auto 1fr;">
+            <button class="btn btn-outline-light btn-sm d-lg-none align-self-start" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="d-none d-lg-flex align-items-lg-center">
+                <button class="btn btn-outline-light btn-sm" @onclick="GoBack">
                     <i class="bi bi-arrow-left"></i>
                 </button>
-                <h1 class="mb-0 w-100 text-center"><i class="bi bi-cash-coin"></i> Calotes</h1>
             </div>
-            <p class="lead page-header-subtitle mb-0 text-light-theme text-center">
-                Registo de dívidas de membros à Tuna.
-            </p>
-        </div>
-
-        <div class="page-header-actions justify-content-lg-end">
-            <AuthorizeView Roles="Mod,Admin">
-                <Authorized>
-                    <button class="btn btn-success" 
-                            @onclick="OpenAddCaloteModal" 
-                            title="Adicionar Calote">
-                        <i class="bi bi-plus-lg"></i> Adicionar Calote
-                    </button>
-                </Authorized>
-            </AuthorizeView>
+            <div class="text-center">
+                <div class="d-flex align-items-center justify-content-center mb-2 position-relative mx-auto">
+                    <h1 class="mb-0 w-100 text-center"><i class="bi bi-cash-coin"></i> Calotes</h1>
+                </div>
+                <p class="lead page-header-subtitle mb-0 text-light-theme text-center">
+                    Registo de dívidas de membros à Tuna.
+                </p>
+            </div>
+            <div class="page-header-actions justify-content-lg-end">
+                <AuthorizeView Roles="Mod,Admin">
+                    <Authorized>
+                        <button class="btn btn-success"
+                                @onclick="OpenAddCaloteModal"
+                                title="Adicionar Calote">
+                            <i class="bi bi-plus-lg"></i> Adicionar Calote
+                        </button>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
         </div>
     </div>
 

@@ -391,6 +391,18 @@
                OnConfirm="CloseSuccessModal"
                OnCancel="CloseSuccessModal" />
 
+@* Success Dialog for Bet Resolution *@
+<ConfirmDialog Show="@modals.IsOpen(ModalType.ResolveSuccess)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.ResolveSuccess, show))"
+               Title="Aposta Resolvida"
+               Message="Aposta resolvida com sucesso!"
+               ConfirmText="OK"
+               CancelText=""
+               ConfirmButtonClass="btn-success"
+               ShowCloseButton="false"
+               OnConfirm="CloseResolveSuccessModal"
+               OnCancel="CloseResolveSuccessModal" />
+
 @* Delete Comment Confirmation *@
 <ConfirmDialog Show="@modals.IsOpen(ModalType.DeleteComment)"
                ShowChanged="@((bool show) => modals.Toggle(ModalType.DeleteComment, show))"
@@ -875,7 +887,7 @@
     private string pastBetsSearch = string.Empty;
 
     // Modals
-    private enum ModalType { Edit, Delete, PlaceBet, Details, Resolve, Success, DeleteComment, PushNotification, AllBets, Cropper }
+    private enum ModalType { Edit, Delete, PlaceBet, Details, Resolve, Success, ResolveSuccess, DeleteComment, PushNotification, AllBets, Cropper }
     private readonly MultiModalState<ModalType> modals = new();
     private bool isCreateMode = false;
     private bool isSaving = false;
@@ -1420,6 +1432,11 @@
         modals.Close(ModalType.Success);
     }
 
+    private void CloseResolveSuccessModal()
+    {
+        modals.Close(ModalType.ResolveSuccess);
+    }
+
     private async Task OpenBetDetailsModal(Bet bet)
     {
         selectedBet = bet;
@@ -1705,7 +1722,7 @@
             await BetService.ResolveBetAsync(selectedBet.Id, selectedWinningOptionId);
             await LoadBets();
             CloseResolveModal();
-            await JSRuntime.InvokeVoidAsync("alert", "Aposta resolvida com sucesso!");
+            modals.Open(ModalType.ResolveSuccess);
         }
         catch (Exception ex)
         {
