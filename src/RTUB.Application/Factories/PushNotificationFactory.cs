@@ -1011,4 +1011,25 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = "calotes-reminder"
         };
     }
+
+    /// <summary>
+    /// Creates a reminder push notification for a member to participate in activities.
+    /// </summary>
+    public SendPushNotificationDto CreateMemberActivityReminderNotification(string userDisplayName, string userId, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventsUrl = $"{baseUrl.TrimEnd('/')}/events";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Lembrete: Participa numa Atividade!",
+            Body = $"Participa numa atividade este mês para voltares ao ativo, {userDisplayName}!",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventsUrl,
+            Tag = $"member-reminder-{userId}-{DateTime.UtcNow.Ticks}"
+        };
+    }
 }

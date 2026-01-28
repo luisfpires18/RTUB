@@ -9,7 +9,6 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Configuration
-@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Base
@@ -3505,14 +3504,11 @@ else
         {
             var baseUrl = NavigationManager.BaseUri.TrimEnd('/');
             var member = reminderMember;
-            var notification = new SendPushNotificationDto
-            {
-                Title = "Lembrete: Participa numa Atividade!",
-                Body = $"Participa numa atividade este mês para voltares ao ativo, {member.Nickname ?? member.FirstName}!",
-                Icon = "/icons/rtub-logo-192.png",
-                Url = $"{baseUrl}/events",
-                Tag = $"member-reminder-{member.Id}-{DateTime.UtcNow.Ticks}"
-            };
+            var displayName = member.Nickname ?? member.FirstName;
+            var notification = PushNotificationFactory.CreateMemberActivityReminderNotification(
+                displayName,
+                member.Id,
+                baseUrl);
 
             await PushNotificationService.SendToUserAsync(member.Id, notification);
             _logger.LogInformation("Sent reminder push notification to member {MemberId} ({MemberName})", member.Id, member.GetDisplayName());
