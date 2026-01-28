@@ -26,7 +26,6 @@ public class ActivityReminderBackgroundService : BackgroundService
     private DateTime _lastRunDate = DateTime.MinValue;
 
     private const int StartupDelaySeconds = 25;
-    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public ActivityReminderBackgroundService(
         ILogger<ActivityReminderBackgroundService> logger,
@@ -91,7 +90,7 @@ public class ActivityReminderBackgroundService : BackgroundService
 
         try
         {
-            var baseUrl = DefaultBaseUrl;
+            var baseUrl = "/";
 
             // Load non-retired users once
             var activeUsers = await context.Users
@@ -299,4 +298,3 @@ public class ActivityReminderBackgroundService : BackgroundService
         return nextRun;
     }
 }
-

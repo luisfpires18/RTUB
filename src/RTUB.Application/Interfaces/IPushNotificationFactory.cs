@@ -237,6 +237,14 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreatePendingMeetingRequestReminderNotification(MeetingRequest meetingRequest, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification for pending rehearsal approvals.
+    /// </summary>
+    /// <param name="pendingRehearsalCount">Number of rehearsals with pending attendance approvals</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreatePendingRehearsalApprovalsReminderNotification(int pendingRehearsalCount, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification for a new question.
     /// </summary>
     /// <param name="questionTitle">Title of the question</param>

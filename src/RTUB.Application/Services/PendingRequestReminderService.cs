@@ -23,7 +23,6 @@ public class PendingRequestReminderService : BackgroundService
     private DateTime _lastRunDate = DateTime.MinValue;
 
     private const int StartupDelaySeconds = 15;
-    private const string DefaultBaseUrl = "https://rtub.pt";
 
     public PendingRequestReminderService(
         ILogger<PendingRequestReminderService> logger,
@@ -93,11 +92,14 @@ public class PendingRequestReminderService : BackgroundService
         try
         {
             // 1. Send reminders for pending public requests to admins
+            var baseUrl = "/";
+
             await SendPublicRequestRemindersAsync(
                 requestRepository,
                 pushNotificationService,
                 pushNotificationFactory,
                 userManager,
+                baseUrl,
                 cancellationToken);
 
             // 2. Send reminders for pending meeting requests
@@ -106,6 +108,7 @@ public class PendingRequestReminderService : BackgroundService
                 pushNotificationService,
                 pushNotificationFactory,
                 userManager,
+                baseUrl,
                 cancellationToken);
 
             _lastRunDate = today;
@@ -121,6 +124,7 @@ public class PendingRequestReminderService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
+        string baseUrl,
         CancellationToken cancellationToken)
     {
         var pendingCount = await requestRepository.GetPendingCountAsync();
@@ -133,7 +137,7 @@ public class PendingRequestReminderService : BackgroundService
 
         _logger.LogInformation("Found {Count} pending public requests", pendingCount);
 
-        var notification = pushNotificationFactory.CreatePendingPublicRequestsReminderNotification(pendingCount, DefaultBaseUrl);
+        var notification = pushNotificationFactory.CreatePendingPublicRequestsReminderNotification(pendingCount, baseUrl);
 
         // Get admin and owner user IDs
         var adminUsers = await userManager.GetUsersInRoleAsync("Admin");
@@ -154,6 +158,7 @@ public class PendingRequestReminderService : BackgroundService
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         UserManager<ApplicationUser> userManager,
+        string baseUrl,
         CancellationToken cancellationToken)
     {
         var pendingRequests = (await meetingRequestRepository.GetPendingWithAuthorAsync()).ToList();
@@ -216,7 +221,7 @@ public class PendingRequestReminderService : BackgroundService
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var notification = pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, DefaultBaseUrl);
+            var notification = pushNotificationFactory.CreatePendingMeetingRequestReminderNotification(request, baseUrl);
 
             // Determine recipients based on meeting type
             IEnumerable<string> positionRecipientIds = Enumerable.Empty<string>();
