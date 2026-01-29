@@ -512,6 +512,62 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification when a bet is resolved.
+    /// </summary>
+    /// <param name="bet">The bet that was resolved</param>
+    /// <param name="isWinner">Whether the recipient won</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    public SendPushNotificationDto CreateBetResolvedNotification(Bet bet, bool isWinner, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var betsUrl = $"{baseUrl.TrimEnd('/')}/bets";
+        var title = isWinner ? "Aposta ganha" : "Aposta perdida";
+        var body = isWinner
+            ? $"Parabéns! Ganhaste a aposta \"{bet.Title}\"."
+            : $"A aposta \"{bet.Title}\" foi resolvida e não foi vencedora.";
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = body,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = betsUrl,
+            Tag = $"bet-resolved-{bet.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when a meeting request is rejected or expired.
+    /// </summary>
+    /// <param name="meetingRequest">The meeting request that was rejected</param>
+    /// <param name="isExpired">Whether the request expired due to date</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    public SendPushNotificationDto CreateMeetingRequestRejectedNotification(MeetingRequest meetingRequest, bool isExpired, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(meetingRequest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var meetingsUrl = $"{baseUrl.TrimEnd('/')}/meetings";
+        var title = "Pedido de reunião rejeitado";
+        var body = isExpired
+            ? $"O teu pedido \"{meetingRequest.Title}\" expirou porque a data proposta já passou."
+            : $"O teu pedido \"{meetingRequest.Title}\" foi rejeitado.";
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = body,
+            Icon = "/icons/rtub-logo-192.png",
+            Url = meetingsUrl,
+            Tag = $"meeting-request-rejected-{meetingRequest.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification when someone marks attendance for a rehearsal.
     /// </summary>
     public SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)

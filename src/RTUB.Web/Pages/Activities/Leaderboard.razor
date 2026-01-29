@@ -225,7 +225,8 @@ else
            ShowChanged="@((bool show) => modals.Toggle(ModalType.Details, show))"
            Title="Detalhes da Classificação"
            Size="Modal.ModalSize.Large"
-           Centered="true">
+           Centered="true"
+           OnClose="CloseDetailsModal">
         <BodyContent>
             <!-- Centered Header Section -->
             <div class="text-center mb-4">

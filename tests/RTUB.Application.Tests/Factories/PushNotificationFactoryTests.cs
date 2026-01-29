@@ -797,4 +797,92 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.Equal("https://rtub.example.com/events", notification.Url);
     }
+
+    [Fact]
+    public void CreateBetResolvedNotification_Winner_ReturnsWinningMessage()
+    {
+        // Arrange
+        var bet = new Bet
+        {
+            Id = 42,
+            Title = "Aposta do Derby",
+            DateTime = DateTime.UtcNow.AddDays(-1)
+        };
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: true, baseUrl);
+
+        // Assert
+        Assert.Equal("Aposta ganha", notification.Title);
+        Assert.Contains("Ganhaste a aposta", notification.Body);
+        Assert.Equal("https://rtub.example.com/bets", notification.Url);
+        Assert.Equal("bet-resolved-42", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateBetResolvedNotification_Loser_ReturnsLosingMessage()
+    {
+        // Arrange
+        var bet = new Bet
+        {
+            Id = 77,
+            Title = "Aposta do Jogo",
+            DateTime = DateTime.UtcNow.AddDays(-1)
+        };
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreateBetResolvedNotification(bet, isWinner: false, baseUrl);
+
+        // Assert
+        Assert.Equal("Aposta perdida", notification.Title);
+        Assert.Contains("não foi vencedora", notification.Body);
+        Assert.Equal("https://rtub.example.com/bets", notification.Url);
+        Assert.Equal("bet-resolved-77", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateMeetingRequestRejectedNotification_Expired_ReturnsExpirationMessage()
+    {
+        // Arrange
+        var request = new MeetingRequest
+        {
+            Id = 15,
+            Title = "Reunião extraordinária",
+            ProposedDateTime = DateTime.UtcNow.AddDays(-2)
+        };
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: true, baseUrl);
+
+        // Assert
+        Assert.Equal("Pedido de reunião rejeitado", notification.Title);
+        Assert.Contains("expirou porque a data proposta já passou", notification.Body);
+        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("meeting-request-rejected-15", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateMeetingRequestRejectedNotification_Rejected_ReturnsRejectionMessage()
+    {
+        // Arrange
+        var request = new MeetingRequest
+        {
+            Id = 21,
+            Title = "Reunião de Direção",
+            ProposedDateTime = DateTime.UtcNow.AddDays(5)
+        };
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreateMeetingRequestRejectedNotification(request, isExpired: false, baseUrl);
+
+        // Assert
+        Assert.Equal("Pedido de reunião rejeitado", notification.Title);
+        Assert.Contains("foi rejeitado", notification.Body);
+        Assert.Equal("https://rtub.example.com/meetings", notification.Url);
+        Assert.Equal("meeting-request-rejected-21", notification.Tag);
+    }
 }

@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -18,6 +20,10 @@ public class BetService : IBetService
     private readonly IBetOptionRepository _betOptionRepository;
     private readonly IUserBetRepository _userBetRepository;
     private readonly IBetCommentRepository _betCommentRepository;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<BetService> _logger;
     private readonly UserManager<ApplicationUser> _userManager;
 
     /// <summary>
@@ -33,12 +39,20 @@ public class BetService : IBetService
         IBetOptionRepository betOptionRepository,
         IUserBetRepository userBetRepository,
         IBetCommentRepository betCommentRepository,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<BetService> logger,
         UserManager<ApplicationUser> userManager)
     {
         _betRepository = betRepository;
         _betOptionRepository = betOptionRepository;
         _userBetRepository = userBetRepository;
         _betCommentRepository = betCommentRepository;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
         _userManager = userManager;
     }
 
@@ -182,6 +196,8 @@ public class BetService : IBetService
         {
             await _userManager.UpdateAsync(user);
         }
+
+        await SendResolvedBetNotificationsAsync(bet, userBets, winningOptionId);
     }
 
     /// <summary>
@@ -235,6 +251,53 @@ public class BetService : IBetService
         // Create user bet
         var userBet = UserBet.Create(userId, betId, optionId, fidelisAmount);
         return await _userBetRepository.AddAsync(userBet);
+    }
+
+    private async Task SendResolvedBetNotificationsAsync(Bet bet, IEnumerable<UserBet> userBets, int winningOptionId)
+    {
+        var recipientResults = userBets
+            .GroupBy(userBet => userBet.UserId)
+            .Select(group => new
+            {
+                UserId = group.Key,
+                IsWinner = group.Any(userBet => userBet.BetOptionId == winningOptionId)
+            })
+            .ToList();
+
+        if (!recipientResults.Any())
+        {
+            return;
+        }
+
+        var baseUrl = GetBaseUrl();
+
+        foreach (var recipient in recipientResults)
+        {
+            try
+            {
+                var notification = _pushNotificationFactory.CreateBetResolvedNotification(bet, recipient.IsWinner, baseUrl);
+                await _pushNotificationService.SendToUserAsync(recipient.UserId, notification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to send bet resolved notification for bet {BetId} to user {UserId}",
+                    bet.Id,
+                    recipient.UserId);
+            }
+        }
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+
+        return "https://rtub.pt";
     }
 
     /// <summary>
