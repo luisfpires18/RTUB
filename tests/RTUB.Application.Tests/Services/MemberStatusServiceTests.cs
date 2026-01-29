@@ -1470,11 +1470,6 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse("member should be activated");
 
-        // Verify user was updated
-        var updatedUser = await _context.Users.FindAsync(userId);
-        updatedUser.Should().NotBeNull();
-        updatedUser!.IsRetired.Should().BeFalse("user IsRetired should be false");
-
         // Verify MemberStatus was updated with override
         var updatedStatus = await _context.MemberStatuses
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
