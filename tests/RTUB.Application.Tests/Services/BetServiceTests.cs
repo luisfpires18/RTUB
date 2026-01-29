@@ -1,6 +1,8 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
@@ -8,6 +10,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -26,6 +29,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     private readonly UserBetRepository _userBetRepository;
     private readonly BetCommentRepository _betCommentRepository;
     private readonly BetService _betService;
+    private readonly Mock<IPushNotificationFactory> _pushNotificationFactory;
+    private readonly Mock<IPushNotificationService> _pushNotificationService;
+    private readonly Mock<IHttpContextAccessor> _httpContextAccessor;
+    private readonly Mock<ILogger<BetService>> _logger;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private ApplicationUser _testUser1;
     private ApplicationUser _testUser2;
@@ -43,6 +50,16 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _betOptionRepository = new BetOptionRepository(_context);
         _userBetRepository = new UserBetRepository(_context);
         _betCommentRepository = new BetCommentRepository(_context);
+        _pushNotificationFactory = new Mock<IPushNotificationFactory>();
+        _pushNotificationService = new Mock<IPushNotificationService>();
+        _httpContextAccessor = new Mock<IHttpContextAccessor>();
+        _logger = new Mock<ILogger<BetService>>();
+        _pushNotificationFactory
+            .Setup(factory => factory.CreateBetResolvedNotification(It.IsAny<Bet>(), It.IsAny<bool>(), It.IsAny<string>()))
+            .Returns(new SendPushNotificationDto());
+        _pushNotificationService
+            .Setup(service => service.SendToUserAsync(It.IsAny<string>(), It.IsAny<SendPushNotificationDto>()))
+            .Returns(Task.CompletedTask);
 
         // Setup UserManager mock
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
@@ -54,6 +71,10 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _betOptionRepository,
             _userBetRepository,
             _betCommentRepository,
+            _pushNotificationFactory.Object,
+            _pushNotificationService.Object,
+            _httpContextAccessor.Object,
+            _logger.Object,
             _mockUserManager.Object);
 
         // Create test users (only if they don't exist for shared database)

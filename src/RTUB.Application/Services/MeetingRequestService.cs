@@ -143,6 +143,11 @@ public class MeetingRequestService : IMeetingRequestService
 
         request.Status = status;
         await _meetingRequestRepository.UpdateAsync(request);
+
+        if (status == RequestStatus.Rejected)
+        {
+            await SendRejectionNotificationAsync(request, isExpired: false);
+        }
     }
 
     public async Task DeleteAsync(int id)
@@ -239,5 +244,27 @@ public class MeetingRequestService : IMeetingRequestService
             return $"{request.Scheme}://{request.Host}";
         }
         return "https://rtub.pt"; // Fallback
+    }
+
+    private async Task SendRejectionNotificationAsync(MeetingRequest request, bool isExpired)
+    {
+        if (string.IsNullOrWhiteSpace(request.AuthorUserId))
+        {
+            return;
+        }
+
+        try
+        {
+            var baseUrl = GetBaseUrl();
+            var notification = _pushNotificationFactory.CreateMeetingRequestRejectedNotification(request, isExpired, baseUrl);
+            await _pushNotificationService.SendToUserAsync(request.AuthorUserId, notification);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to send rejection notification for meeting request {RequestId}",
+                request.Id);
+        }
     }
 }

@@ -193,6 +193,25 @@ public class PendingRequestReminderService : BackgroundService
                     request.Id,
                     request.Title,
                     request.ProposedDateTime);
+
+                if (!string.IsNullOrWhiteSpace(request.AuthorUserId))
+                {
+                    try
+                    {
+                        var notification = pushNotificationFactory.CreateMeetingRequestRejectedNotification(
+                            request,
+                            isExpired: true,
+                            baseUrl);
+                        await pushNotificationService.SendToUserAsync(request.AuthorUserId, notification);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            ex,
+                            "Failed to send auto-expired meeting request notification for request {RequestId}",
+                            request.Id);
+                    }
+                }
             }
 
             // Remove expired ones from the list we will send reminders for
