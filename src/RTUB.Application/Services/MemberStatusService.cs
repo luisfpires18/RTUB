@@ -18,7 +18,7 @@ public class MemberStatusService : IMemberStatusService
     private static readonly TimeSpan CacheFreshDuration = TimeSpan.FromHours(1);
     private static readonly TimeSpan CacheStaleMinAge = TimeSpan.FromHours(1);
 
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IAuditLogService _auditLogService;
@@ -26,14 +26,14 @@ public class MemberStatusService : IMemberStatusService
     private readonly MemberStatusUpdateOptions _options;
 
     public MemberStatusService(
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
         IAuditLogService auditLogService,
         ILogger<MemberStatusService> logger,
         IOptions<MemberStatusUpdateOptions> options)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _userManager = userManager;
         _pushNotificationService = pushNotificationService;
         _auditLogService = auditLogService;
@@ -61,8 +61,10 @@ public class MemberStatusService : IMemberStatusService
 
         var now = DateTime.UtcNow;
 
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
         // Query MemberStatus without tracking to avoid navigation property conflicts
-        var cached = await _context.MemberStatuses
+        var cached = await context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
         var isCacheFresh = cached is not null && (now - cached.LastUpdatedAt) < CacheFreshDuration;
@@ -70,16 +72,9 @@ public class MemberStatusService : IMemberStatusService
 
         // Always compute "dynamic" aspects from actual activities (tests rely on this),
         // but only persist cache when missing/stale.
-        var activity = await ComputeActivityDataAsync(userId, now);
+        var activity = await ComputeActivityDataAsync(context, userId, now);
 
         var computed = ComputeStatusResult(user, cached, activity, now);
-
-        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
-        var userEntry = _context.Entry(user);
-        if (userEntry.State != EntityState.Detached)
-        {
-            userEntry.State = EntityState.Detached;
-        }
 
         // Persist cache if missing or stale
         if (cached is null)
@@ -89,17 +84,17 @@ public class MemberStatusService : IMemberStatusService
                 UserId = userId,
                 CreatedAt = now
             };
-            _context.MemberStatuses.Add(cached);
+            context.MemberStatuses.Add(cached);
             ApplyToEntity(cached, computed, now);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         else if (isCacheStale)
         {
             // Attach the existing entity for update
-            _context.MemberStatuses.Attach(cached);
-            _context.Entry(cached).State = EntityState.Modified;
+            context.MemberStatuses.Attach(cached);
+            context.Entry(cached).State = EntityState.Modified;
             ApplyToEntity(cached, computed, now);
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
 
         // Update ApplicationUser.IsRetired if needed (and not overridden)
@@ -131,26 +126,19 @@ public class MemberStatusService : IMemberStatusService
         }
 
         var now = DateTime.UtcNow;
+        await using var context = await _contextFactory.CreateDbContextAsync();
 
         // Query MemberStatus without tracking to avoid navigation property conflicts
         // We'll attach it later if needed
-        var existing = await _context.MemberStatuses
+        var existing = await context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
         
-        var activity = await ComputeActivityDataAsync(userId, now);
+        var activity = await ComputeActivityDataAsync(context, userId, now);
 
         var beforeIsRetired = existing?.IsRetired ?? user.IsRetired;
 
         var computed = ComputeStatusResult(user, existing, activity, now);
-
-        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
-        // The user will be re-attached when UserManager.UpdateAsync is called in SyncUserRetiredFlagAsync
-        var userEntry = _context.Entry(user);
-        if (userEntry.State != EntityState.Detached)
-        {
-            userEntry.State = EntityState.Detached;
-        }
 
         if (existing is null)
         {
@@ -159,17 +147,17 @@ public class MemberStatusService : IMemberStatusService
                 UserId = userId,
                 CreatedAt = now
             };
-            _context.MemberStatuses.Add(existing);
+            context.MemberStatuses.Add(existing);
         }
         else
         {
             // Attach the existing entity for update
-            _context.MemberStatuses.Attach(existing);
-            _context.Entry(existing).State = EntityState.Modified;
+            context.MemberStatuses.Attach(existing);
+            context.Entry(existing).State = EntityState.Modified;
         }
 
         ApplyToEntity(existing, computed, now);
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         await SyncUserRetiredFlagAsync(user, existing, computed.IsRetired);
 
@@ -225,7 +213,9 @@ public class MemberStatusService : IMemberStatusService
             return 0;
         }
 
-        var activeUserIds = await _context.Users
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var activeUserIds = await context.Users
             .AsNoTracking()
             .Where(u => !u.IsRetired)
             .Select(u => u.Id)
@@ -291,19 +281,13 @@ public class MemberStatusService : IMemberStatusService
         }
 
         var now = DateTime.UtcNow;
+        await using var context = await _contextFactory.CreateDbContextAsync();
 
         // Query MemberStatus without tracking to avoid navigation property conflicts
-        var status = await _context.MemberStatuses
+        var status = await context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
         
-        // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
-        var userEntry = _context.Entry(user);
-        if (userEntry.State != EntityState.Detached)
-        {
-            userEntry.State = EntityState.Detached;
-        }
-
         if (status is null)
         {
             status = new MemberStatus
@@ -311,13 +295,13 @@ public class MemberStatusService : IMemberStatusService
                 UserId = userId,
                 CreatedAt = now
             };
-            _context.MemberStatuses.Add(status);
+            context.MemberStatuses.Add(status);
         }
         else
         {
             // Attach the existing entity for update
-            _context.MemberStatuses.Attach(status);
-            _context.Entry(status).State = EntityState.Modified;
+            context.MemberStatuses.Attach(status);
+            context.Entry(status).State = EntityState.Modified;
         }
 
         status.OverrideRetired = true;
@@ -327,7 +311,7 @@ public class MemberStatusService : IMemberStatusService
         user.IsRetired = false;
         await _userManager.UpdateAsync(user);
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         // Return current computed status (with override applied)
         return await GetMemberStatusAsync(userId);
@@ -340,16 +324,16 @@ public class MemberStatusService : IMemberStatusService
         int TotalActivitiesCount,
         bool HasActivityInCurrentMonth);
 
-    private async Task<ActivityData> ComputeActivityDataAsync(string userId, DateTime nowUtc)
+    private static async Task<ActivityData> ComputeActivityDataAsync(ApplicationDbContext context, string userId, DateTime nowUtc)
     {
         var nowMonth = (nowUtc.Year, nowUtc.Month);
 
         // Rehearsals: only past, not canceled, attended=true (approved)
-        var rehearsalDates = await _context.RehearsalAttendances
+        var rehearsalDates = await context.RehearsalAttendances
             .AsNoTracking()
             .Where(a => a.UserId == userId && a.Attended)
             .Join(
-                _context.Rehearsals.AsNoTracking(),
+                context.Rehearsals.AsNoTracking(),
                 a => a.RehearsalId,
                 r => r.Id,
                 (a, r) => new { r.Date, r.IsCanceled })
@@ -358,11 +342,11 @@ public class MemberStatusService : IMemberStatusService
             .ToListAsync();
 
         // Events: only past (end date if multi-day), not canceled, WillAttend=true
-        var eventDates = await _context.Enrollments
+        var eventDates = await context.Enrollments
             .AsNoTracking()
             .Where(e => e.UserId == userId && e.WillAttend)
             .Join(
-                _context.Events.AsNoTracking(),
+                context.Events.AsNoTracking(),
                 e => e.EventId,
                 ev => ev.Id,
                 (e, ev) => new { Start = ev.Date, End = ev.EndDate ?? ev.Date, ev.IsCancelled })
