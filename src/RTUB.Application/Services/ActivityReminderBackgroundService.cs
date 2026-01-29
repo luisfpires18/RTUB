@@ -14,7 +14,7 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Background service that sends scheduled reminders for events, rehearsals and meetings.
-/// - Events: reminder 7 days before, for non-retired users.
+/// - Events: daily reminders from 7 days before through the event day, for non-retired users.
 /// - Rehearsals: reminder 1 day before and on the same day, for non-retired users.
 /// - Meetings: reminder 5 days before, for eligible non-retired users only (CV, AG, Direção rules).
 /// </summary>
@@ -126,16 +126,20 @@ public class ActivityReminderBackgroundService : BackgroundService
         DateTime today,
         CancellationToken cancellationToken)
     {
-        var targetDate = today.AddDays(7);
+        var startDate = today;
+        var endDate = today.AddDays(7);
 
         var upcomingEvents = await context.Events
             .AsNoTracking()
-            .Where(e => !e.IsCancelled && e.Date.Date == targetDate)
+            .Where(e => !e.IsCancelled && e.Date.Date >= startDate && e.Date.Date <= endDate)
             .ToListAsync(cancellationToken);
 
         if (!upcomingEvents.Any())
         {
-            _logger.LogInformation("No events found that require 7-day reminders on {Date}", targetDate.ToString("yyyy-MM-dd"));
+            _logger.LogInformation(
+                "No events found that require daily reminders between {StartDate} and {EndDate}",
+                startDate.ToString("yyyy-MM-dd"),
+                endDate.ToString("yyyy-MM-dd"));
             return;
         }
 
