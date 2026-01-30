@@ -1,6 +1,5 @@
 @namespace RTUB.Shared
 @using RTUB.Application.DTOs
-@using RTUB.Application.Interfaces
 @*
     DocumentCard Component
     Displays a document with file information and actions (view/download)
@@ -36,14 +35,6 @@
         </div>
 
         <div class="document-actions mt-auto">
-            @if (IsPdf)
-            {
-                <button class="btn document-icon-btn" 
-                        @onclick="HandleView" 
-                        title="Ver documento">
-                    <i class="bi bi-eye-fill"></i>
-                </button>
-            }
             <button class="btn document-icon-btn" 
                     @onclick="HandleDownload" 
                     title="Download documento">
@@ -67,12 +58,6 @@
     public bool IsAdmin { get; set; }
 
     /// <summary>
-    /// Callback when the view button is clicked
-    /// </summary>
-    [Parameter]
-    public EventCallback<DocumentMetadata> OnView { get; set; }
-
-    /// <summary>
     /// Callback when the download button is clicked
     /// </summary>
     [Parameter]
@@ -83,8 +68,6 @@
     /// </summary>
     [Parameter]
     public EventCallback<DocumentMetadata> OnDelete { get; set; }
-
-    private bool IsPdf => Document.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
 
     private string GetFileIcon()
     {
@@ -110,14 +93,6 @@
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         else
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
-    }
-
-    private async Task HandleView()
-    {
-        if (OnView.HasDelegate)
-        {
-            await OnView.InvokeAsync(Document);
-        }
     }
 
     private async Task HandleDownload()

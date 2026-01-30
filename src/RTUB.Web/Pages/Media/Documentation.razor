@@ -98,7 +98,6 @@ else
                    DefaultExpanded="@isFirstFolder"
                    IsAdmin="@canDoAction"
                    OnUpload="@HandleUploadRequest"
-                   OnDocumentView="@HandleDocumentView"
                    OnDocumentDownload="@HandleDocumentDownload"
                    OnDocumentDelete="@HandleDocumentDeleteRequest"
                    OnFolderDelete="@HandleFolderDeleteRequest" />
@@ -228,45 +227,6 @@ else
     </FooterContent>
 </Modal>
 
-@* View Document Modal *@
-<Modal Show="@modals.IsOpen(ModalType.View)" 
-       ShowChanged="@((bool show) => modals.Toggle(ModalType.View, show))"
-       Title="@viewingDocument?.FileName"
-       Size="Modal.ModalSize.ExtraLarge"
-       Centered="true"
-       OnClose="@CloseViewModal">
-    <BodyContent>
-        @if (isLoadingDocument)
-        {
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">A carregar...</span>
-                </div>
-                <p class="mt-3">A carregar documento...</p>
-            </div>
-        }
-        else if (!string.IsNullOrEmpty(documentUrl))
-        {
-            <div class="pdf-viewer-container">
-                <iframe src="@(documentUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
-                        class="pdf-viewer-iframe"
-                        title="@viewingDocument?.FileName">
-                </iframe>
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> 
-                O documento não está disponível no momento.
-            </div>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Fechar</button>
-    </FooterContent>
-</Modal>
-
 @* Delete Document Confirmation Dialog *@
 <ConfirmDialog Show="@showDeleteDialog"
                ShowChanged="@((bool show) => showDeleteDialog = show)"
@@ -324,7 +284,7 @@ else
     }
     
     // Create folder modal
-    private enum ModalType { CreateFolder, Upload, View }
+    private enum ModalType { CreateFolder, Upload }
     private readonly MultiModalState<ModalType> modals = new();
     private string newFolderName = "";
     private string createFolderError = "";
@@ -338,11 +298,6 @@ else
     private bool isUploading = false;
     private string uploadError = "";
     private string uploadSuccess = "";
-    
-    // View document modal
-    private bool isLoadingDocument = false;
-    private string? documentUrl;
-    private DocumentMetadata? viewingDocument;
     
     // Delete document dialog
     private bool showDeleteDialog = false;
@@ -666,28 +621,6 @@ else
         }
     }
 
-    private async Task HandleDocumentView(DocumentMetadata document)
-    {
-        viewingDocument = document;
-        isLoadingDocument = true;
-        modals.Open(ModalType.View);
-        StateHasChanged();
-        
-        try
-        {
-            documentUrl = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
-        }
-        catch (Exception)
-        {
-            documentUrl = null;
-        }
-        finally
-        {
-            isLoadingDocument = false;
-            StateHasChanged();
-        }
-    }
-
     private async Task HandleDocumentDownload(DocumentMetadata document)
     {
         try
@@ -695,22 +628,14 @@ else
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath, forceDownload: true);
             if (!string.IsNullOrEmpty(url))
             {
-                // Open the presigned URL with content-disposition=attachment header
-                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+                // Navigate in the same tab to avoid mobile popup blockers
+                await JSRuntime.InvokeVoidAsync("open", url, "_self");
             }
         }
         catch (Exception)
         {
             // Silently fail
         }
-    }
-
-    private void CloseViewModal()
-    {
-        modals.Close(ModalType.View);
-        isLoadingDocument = false;
-        documentUrl = null;
-        viewingDocument = null;
     }
     
     private void HandleDocumentDeleteRequest(DocumentMetadata document)
@@ -870,4 +795,5 @@ else
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         AuditContext.SetUser(userName, userId);
     }
+
 }
