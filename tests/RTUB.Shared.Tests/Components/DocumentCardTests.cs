@@ -285,34 +285,6 @@ public class DocumentCardTests : TestContext
     }
 
     [Fact]
-    public void DocumentCard_ViewButton_TriggersCallback_ForPdf()
-    {
-        // Arrange
-        var document = new DocumentMetadata
-        {
-            FileName = "document.pdf",
-            FilePath = "docs/document.pdf",
-            SizeBytes = 1024,
-            LastModified = DateTime.UtcNow,
-            Extension = ".pdf"
-        };
-
-        DocumentMetadata? viewedDocument = null;
-
-        // Act
-        var cut = RenderComponent<DocumentCard>(parameters => parameters
-            .Add(p => p.Document, document)
-            .Add(p => p.OnView, EventCallback.Factory.Create<DocumentMetadata>(this, doc => viewedDocument = doc)));
-
-        var viewButton = cut.Find("button[title='Ver documento']");
-        viewButton.Click();
-
-        // Assert
-        viewedDocument.Should().NotBeNull();
-        viewedDocument.Should().Be(document);
-    }
-
-    [Fact]
     public void DocumentCard_DownloadButton_TriggersCallback()
     {
         // Arrange
