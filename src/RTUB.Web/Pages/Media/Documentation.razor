@@ -248,8 +248,9 @@ else
         else if (!string.IsNullOrEmpty(documentUrl))
         {
             <div class="pdf-viewer-container">
-                <iframe src="@(documentUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
+                <iframe src="@GetPdfViewerUrl(documentUrl)"
                         class="pdf-viewer-iframe"
+                        allow="fullscreen"
                         title="@viewingDocument?.FileName">
                 </iframe>
             </div>
@@ -695,8 +696,8 @@ else
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath, forceDownload: true);
             if (!string.IsNullOrEmpty(url))
             {
-                // Open the presigned URL with content-disposition=attachment header
-                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+                // Navigate in the same tab to avoid mobile popup blockers
+                await JSRuntime.InvokeVoidAsync("open", url, "_self");
             }
         }
         catch (Exception)
@@ -869,5 +870,15 @@ else
         var userName = authState.User.Identity?.Name;
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         AuditContext.SetUser(userName, userId);
+    }
+
+    private static string GetPdfViewerUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return string.Empty;
+        }
+
+        return $"{url}#view=FitH";
     }
 }
