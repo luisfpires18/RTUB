@@ -22,6 +22,7 @@ public class Program
 
         builder.Configuration
                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+               .AddJsonFile("scaling.config.json", optional: true, reloadOnChange: true)
                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
                .AddEnvironmentVariables();
 
@@ -103,6 +104,8 @@ public class Program
 
         services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
+        services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
 
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
