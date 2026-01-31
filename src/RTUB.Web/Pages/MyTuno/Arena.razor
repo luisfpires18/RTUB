@@ -297,15 +297,10 @@
         try
         {
             var allOpponents = await CharacterRepository.GetMemberCharactersAsync(character.Id);
-            
-            // Randomly select 4 opponents (or all if less than 4 available)
-            var random = new Random();
+
             opponentCharacters = allOpponents
-                .OrderBy(x => random.Next())
-                .Take(Math.Min(4, allOpponents.Count))
-                .ToList();
-            opponentCharacters = allOpponents
-                .OrderBy(x => random.Next())
+                .OrderBy(opponent => Math.Abs(opponent.Level - character.Level))
+                .ThenBy(opponent => opponent.Id)
                 .Take(4)
                 .ToList();
         }
@@ -345,6 +340,7 @@
             errorMessage = string.Empty;
             currentBattle = null;
             StateHasChanged();
+            await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
 
             // Create battle vs specific opponent
             currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);

@@ -61,7 +61,7 @@
   align-items: center;
   gap: 0.4rem;
   font-weight: 700;
-  color: #f5c542;
+  color: #ffffff;
 }
 
 .upgrade-card__price i {
@@ -77,4 +77,9 @@
 
 .upgrade-card__button:disabled {
   box-shadow: none;
+}
+.mytuno-balance-badge {
+  font-size: 1.05rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
 }
