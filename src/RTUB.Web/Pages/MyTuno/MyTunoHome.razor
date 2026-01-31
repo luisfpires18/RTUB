@@ -208,28 +208,28 @@
                     <div class="row g-4">
                         <!-- HP Upgrade Card -->
                         <div class="col-md-4">
-                            <div class="card h-100 upgrade-card">
-                                <div class="card-header bg-danger text-white">
+                            <div class="card h-100 upgrade-card upgrade-card--hp">
+                                <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP (Vida)</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="card-body upgrade-card__body">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">HP Atual:</span>
                                             <strong class="fs-5">@character.TotalHP</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Upgrades:</span>
                                             <strong>@character.HpUpgrades</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
                                             <strong class="text-success">+10 HP</strong>
                                         </div>
                                     </div>
                                     <hr />
                                     <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
                                             <span class="text-muted">Custo:</span>
                                             @if (hpCostLoading)
                                             {
@@ -237,13 +237,14 @@
                                             }
                                             else
                                             {
-                                                <strong class="fs-5 text-warning">
-                                                    <i class="bi bi-coin me-1"></i>@hpCost.ToString("F2") Fidelis
-                                                </strong>
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@hpCost.ToString("F2") Fidelis</strong>
+                                                </span>
                                             }
                                         </div>
                                     </div>
-                                    <button class="btn btn-danger w-100" 
+                                    <button class="btn btn-danger w-100 upgrade-card__button" 
                                             @onclick="() => PurchaseUpgrade(StatType.HP)"
                                             disabled="@(purchasing || hpCostLoading || (currentUser?.FidelisBalance ?? 0) < hpCost)">
                                         @if (purchasing && purchasingStat == StatType.HP)
@@ -270,28 +271,28 @@
 
                         <!-- Power Upgrade Card -->
                         <div class="col-md-4">
-                            <div class="card h-100 upgrade-card">
-                                <div class="card-header bg-warning text-dark">
+                            <div class="card h-100 upgrade-card upgrade-card--power">
+                                <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power (Poder)</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="card-body upgrade-card__body">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Power Atual:</span>
                                             <strong class="fs-5">@character.TotalPower</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Upgrades:</span>
                                             <strong>@character.PowerUpgrades</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
                                             <strong class="text-success">+2 Power</strong>
                                         </div>
                                     </div>
                                     <hr />
                                     <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
                                             <span class="text-muted">Custo:</span>
                                             @if (powerCostLoading)
                                             {
@@ -299,13 +300,14 @@
                                             }
                                             else
                                             {
-                                                <strong class="fs-5 text-warning">
-                                                    <i class="bi bi-coin me-1"></i>@powerCost.ToString("F2") Fidelis
-                                                </strong>
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@powerCost.ToString("F2") Fidelis</strong>
+                                                </span>
                                             }
                                         </div>
                                     </div>
-                                    <button class="btn btn-warning w-100" 
+                                    <button class="btn btn-warning w-100 upgrade-card__button" 
                                             @onclick="() => PurchaseUpgrade(StatType.Power)"
                                             disabled="@(purchasing || powerCostLoading || (currentUser?.FidelisBalance ?? 0) < powerCost)">
                                         @if (purchasing && purchasingStat == StatType.Power)
@@ -332,28 +334,28 @@
 
                         <!-- Speed Upgrade Card -->
                         <div class="col-md-4">
-                            <div class="card h-100 upgrade-card">
-                                <div class="card-header bg-info text-white">
+                            <div class="card h-100 upgrade-card upgrade-card--speed">
+                                <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed (Velocidade)</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="card-body upgrade-card__body">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Speed Atual:</span>
                                             <strong class="fs-5">@character.TotalSpeed</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Upgrades:</span>
                                             <strong>@character.SpeedUpgrades</strong>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
                                             <strong class="text-success">+1 Speed</strong>
                                         </div>
                                     </div>
                                     <hr />
                                     <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
                                             <span class="text-muted">Custo:</span>
                                             @if (speedCostLoading)
                                             {
@@ -361,13 +363,14 @@
                                             }
                                             else
                                             {
-                                                <strong class="fs-5 text-warning">
-                                                    <i class="bi bi-coin me-1"></i>@speedCost.ToString("F2") Fidelis
-                                                </strong>
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@speedCost.ToString("F2") Fidelis</strong>
+                                                </span>
                                             }
                                         </div>
                                     </div>
-                                    <button class="btn btn-info w-100" 
+                                    <button class="btn btn-info w-100 upgrade-card__button" 
                                             @onclick="() => PurchaseUpgrade(StatType.Speed)"
                                             disabled="@(purchasing || speedCostLoading || (currentUser?.FidelisBalance ?? 0) < speedCost)">
                                         @if (purchasing && purchasingStat == StatType.Speed)
@@ -419,7 +422,7 @@
             <BodyContent>
                 <p>Tens a certeza que queres comprar um upgrade de <strong>@purchasingStat</strong>?</p>
                 <p class="mb-0">
-                    <strong>Custo:</strong> @(purchasingStat == StatType.HP ? hpCost : purchasingStat == StatType.Power ? powerCost : speedCost).ToString("F2") Fidelis
+                    <strong>Custo:</strong> @SelectedUpgradeCost.ToString("F2") Fidelis
                 </p>
             </BodyContent>
             <FooterContent>
@@ -454,6 +457,13 @@
     private bool speedCostLoading = true;
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
+    private decimal SelectedUpgradeCost => purchasingStat switch
+    {
+        StatType.HP => hpCost,
+        StatType.Power => powerCost,
+        StatType.Speed => speedCost,
+        _ => 0
+    };
 
     protected override async Task OnInitializedAsync()
     {

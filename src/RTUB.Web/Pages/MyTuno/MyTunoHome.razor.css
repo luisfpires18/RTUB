@@ -1,0 +1,80 @@
+.upgrade-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.upgrade-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.upgrade-card__header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.25rem;
+}
+
+.upgrade-card--hp .upgrade-card__header {
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  color: #fff;
+}
+
+.upgrade-card--power .upgrade-card__header {
+  background: linear-gradient(135deg, #f9a825, #f57f17);
+  color: #1f1f1f;
+}
+
+.upgrade-card--speed .upgrade-card__header {
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+  color: #fff;
+}
+
+.upgrade-card__body {
+  padding: 1.25rem;
+}
+
+.upgrade-card__stats {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.upgrade-card__stat {
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.upgrade-card__cost {
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+.upgrade-card__price {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: #f5c542;
+}
+
+.upgrade-card__price i {
+  font-size: 1rem;
+}
+
+.upgrade-card__button {
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+}
+
+.upgrade-card__button:disabled {
+  box-shadow: none;
+}
