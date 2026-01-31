@@ -306,13 +306,16 @@
             if (!attacker || !defender) return;
 
             const direction = attackerKey === 'Defender' ? -1 : 1;
-            const targetX = defender.sprite.x - direction * 80;
+            const distance = Math.abs(defender.sprite.x - attacker.sprite.x);
+            const lungeOffset = Math.min(140, distance * 0.35);
+            const targetX = attacker.sprite.x + direction * lungeOffset;
+            const targetY = attacker.sprite.y - 10;
 
             this.tweens.timeline({
                 targets: attacker.sprite,
                 tweens: [
-                    { x: targetX, duration: 200, ease: 'Power2' },
-                    { x: attacker.originX, duration: 220, ease: 'Power2' }
+                    { x: targetX, y: targetY, angle: direction * 8, duration: 220, ease: 'Power2' },
+                    { x: attacker.originX, y: attacker.sprite.y, angle: 0, duration: 240, ease: 'Power2' }
                 ]
             });
 
