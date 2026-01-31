@@ -120,14 +120,17 @@ public class Program
                 myTunoScaling.BaseStats.HP,
                 myTunoScaling.BaseStats.Power,
                 myTunoScaling.BaseStats.Speed,
+                myTunoScaling.BaseStats.CriticalChance,
                 myTunoScaling.LevelScaling.StatMultiplierPerLevel,
                 myTunoScaling.LevelScaling.XpPerLevelBase,
                 myTunoScaling.Upgrades.HP.InitialBought,
                 myTunoScaling.Upgrades.Power.InitialBought,
                 myTunoScaling.Upgrades.Speed.InitialBought,
+                myTunoScaling.Upgrades.CriticalChance.InitialBought,
                 myTunoScaling.Upgrades.HP.BonusPerUpgrade,
                 myTunoScaling.Upgrades.Power.BonusPerUpgrade,
-                myTunoScaling.Upgrades.Speed.BonusPerUpgrade);
+                myTunoScaling.Upgrades.Speed.BonusPerUpgrade,
+                myTunoScaling.Upgrades.CriticalChance.BonusPerUpgrade);
         }
 
         // ---------- DB: SQLite only ----------

@@ -74,25 +74,38 @@ public class BattleRepository : Repository<Battle>, IBattleRepository
                 Wins = group.Count()
             });
 
-        return await _context.Characters
+        var leaderboardData = await _context.Characters
+            .AsNoTracking()
             .Include(c => c.User)
             .GroupJoin(winsQuery, character => character.Id, win => win.CharacterId,
                 (character, wins) => new { character, wins })
             .SelectMany(entry => entry.wins.DefaultIfEmpty(),
-                (entry, win) => new MyTunoLeaderboardEntry
+                (entry, win) => new
                 {
-                    CharacterId = entry.character.Id,
-                    UserId = entry.character.UserId,
+                    entry.character.Id,
+                    entry.character.UserId,
                     DisplayName = entry.character.User.Nickname ?? entry.character.User.UserName ?? "Jogador",
-                    AvatarUrl = entry.character.User.ProfilePictureSrc,
+                    entry.character.User.ImageUrl,
                     Wins = win != null ? win.Wins : 0,
-                    Level = entry.character.Level
+                    entry.character.Level
                 })
             .OrderByDescending(entry => entry.Wins)
             .ThenByDescending(entry => entry.Level)
             .ThenBy(entry => entry.DisplayName)
             .Take(count)
             .ToListAsync();
+
+        return leaderboardData
+            .Select(entry => new MyTunoLeaderboardEntry
+            {
+                CharacterId = entry.Id,
+                UserId = entry.UserId,
+                DisplayName = entry.DisplayName,
+                AvatarUrl = entry.ImageUrl,
+                Wins = entry.Wins,
+                Level = entry.Level
+            })
+            .ToList();
     }
 
     public async Task<List<Battle>> GetBattlesBetweenCharactersAsync(int attackerId, int defenderId, TimeSpan? withinTimeSpan = null)

@@ -16,6 +16,7 @@ public class MyTunoBaseStats
     public int HP { get; set; } = 100;
     public int Power { get; set; } = 10;
     public int Speed { get; set; } = 10;
+    public double CriticalChance { get; set; } = 0.01;
 }
 
 public class MyTunoLevelScaling
@@ -30,6 +31,7 @@ public class MyTunoUpgrades
     public MyTunoUpgradeStat HP { get; set; } = new();
     public MyTunoUpgradeStat Power { get; set; } = new();
     public MyTunoUpgradeStat Speed { get; set; } = new();
+    public MyTunoUpgradeStat CriticalChance { get; set; } = new();
 }
 
 public class MyTunoUpgradeStat

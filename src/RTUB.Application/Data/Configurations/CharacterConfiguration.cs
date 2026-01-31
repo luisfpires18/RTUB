@@ -33,6 +33,9 @@ public class CharacterConfiguration : IEntityTypeConfiguration<Character>
         builder.Property(c => c.Speed)
             .IsRequired();
 
+        builder.Property(c => c.CriticalChance)
+            .IsRequired();
+
         builder.Property(c => c.HpUpgrades)
             .IsRequired();
 
@@ -40,6 +43,9 @@ public class CharacterConfiguration : IEntityTypeConfiguration<Character>
             .IsRequired();
 
         builder.Property(c => c.SpeedUpgrades)
+            .IsRequired();
+
+        builder.Property(c => c.CriticalUpgrades)
             .IsRequired();
 
         builder.Property(c => c.CreatedAt)

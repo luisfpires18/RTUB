@@ -109,27 +109,24 @@
         
         for (let i = 0; i < events.length; i++) {
             const evt = events[i];
-            if (evt.Type === "HPUpdate") {
-                if (evt.Character === "Attacker" && !attackerInitialized) {
-                    attacker.maxHp = evt.HP || 100;
-                    attacker.hp = evt.HP || 100;
-                    hpBars.attacker = evt.HP || 100;
-                    attackerInitialized = true;
-                } else if (evt.Character === "Defender" && !defenderInitialized) {
-                    defender.maxHp = evt.HP || 100;
-                    defender.hp = evt.HP || 100;
-                    hpBars.defender = evt.HP || 100;
-                    defenderInitialized = true;
-                }
-                
-                // Update current HP for subsequent HPUpdate events
-                if (evt.Character === "Attacker" && attackerInitialized) {
-                    attacker.hp = evt.HP || 0;
-                    hpBars.attacker = evt.HP || 0;
-                } else if (evt.Character === "Defender" && defenderInitialized) {
-                    defender.hp = evt.HP || 0;
-                    hpBars.defender = evt.HP || 0;
-                }
+            if (evt.Type !== "HPUpdate") {
+                continue;
+            }
+
+            if (evt.Character === "Attacker" && !attackerInitialized) {
+                attacker.maxHp = evt.HP || 100;
+                attacker.hp = evt.HP || 100;
+                hpBars.attacker = evt.HP || 100;
+                attackerInitialized = true;
+            } else if (evt.Character === "Defender" && !defenderInitialized) {
+                defender.maxHp = evt.HP || 100;
+                defender.hp = evt.HP || 100;
+                hpBars.defender = evt.HP || 100;
+                defenderInitialized = true;
+            }
+
+            if (attackerInitialized && defenderInitialized) {
+                break;
             }
         }
     }

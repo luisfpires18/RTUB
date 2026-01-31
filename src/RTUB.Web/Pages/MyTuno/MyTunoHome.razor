@@ -63,12 +63,14 @@
         <div class="row g-4">
             <!-- Inventory -->
             <div class="col-lg-4">
-                <div class="card h-100 w-100">
-                    <div class="card-header bg-secondary text-white">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted mb-0">Ainda não tens itens no inventário.</p>
+                        <EmptyState Title="Inventory vazio"
+                                    Message="Ainda não tens itens no inventário."
+                                    Icon="bi-archive" />
                     </div>
                 </div>
             </div>
@@ -123,6 +125,12 @@
                                 <strong>@character.TotalSpeed</strong>
                             </div>
                         </div>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <span><i class="bi bi-bullseye text-warning me-2"></i>Crítico:</span>
+                                <strong>@($"{character.TotalCriticalChance * 100:F1}%")</strong>
+                            </div>
+                        </div>
                         @if (currentUser != null)
                         {
                             <hr />
@@ -141,8 +149,8 @@
 
             <!-- Leaderboard -->
             <div class="col-lg-4">
-                <div class="card h-100 w-100">
-                    <div class="card-header bg-dark text-white">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Leaderboard</h5>
                     </div>
                     <div class="card-body">
@@ -152,7 +160,9 @@
                         }
                         else if (leaderboardEntries == null || !leaderboardEntries.Any())
                         {
-                            <p class="text-muted mb-0">Ainda não há jogadores com vitórias.</p>
+                            <EmptyState Title="Leaderboard vazio"
+                                        Message="Ainda não há jogadores com vitórias."
+                                        Icon="bi-trophy" />
                         }
                         else
                         {
@@ -221,7 +231,7 @@
 
                     <div class="row g-4">
                         <!-- HP Upgrade Card -->
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--hp">
                                 <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP</h5>
@@ -284,7 +294,7 @@
                         </div>
 
                         <!-- Power Upgrade Card -->
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--power">
                                 <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power</h5>
@@ -347,7 +357,7 @@
                         </div>
 
                         <!-- Speed Upgrade Card -->
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--speed">
                                 <div class="card-header upgrade-card__header">
                                     <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed</h5>
@@ -399,6 +409,68 @@
                                         }
                                     </button>
                                     @if (currentUser != null && currentUser.FidelisBalance < speedCost)
+                                    {
+                                        <small class="text-danger d-block mt-2 text-center">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Saldo insuficiente
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Critical Chance Upgrade Card -->
+                        <div class="col-md-6 col-xl-3">
+                            <div class="card h-100 upgrade-card upgrade-card--critical">
+                                <div class="card-header upgrade-card__header">
+                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Crítico</h5>
+                                </div>
+                                <div class="card-body upgrade-card__body">
+                                    <div class="upgrade-card__stats mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Chance Atual:</span>
+                                            <strong class="fs-5">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Upgrades:</span>
+                                            <strong>@character.CriticalUpgrades</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
+                                            <span class="text-muted">Próximo Upgrade:</span>
+                                            <strong class="text-warning">+0.5% Crit</strong>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
+                                            <span class="text-muted">Custo:</span>
+                                            @if (criticalCostLoading)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="upgrade-card__price">
+                                                    <i class="bi bi-coin"></i>
+                                                    <strong>@criticalCost.ToString("F2") Fidelis</strong>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-warning w-100 upgrade-card__button"
+                                            @onclick="() => PurchaseUpgrade(StatType.CriticalChance)"
+                                            disabled="@(purchasing || criticalCostLoading || (currentUser?.FidelisBalance ?? 0) < criticalCost)">
+                                        @if (purchasing && purchasingStat == StatType.CriticalChance)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <text>A comprar...</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-bullseye me-2"></i>
+                                            <text>Comprar Upgrade</text>
+                                        }
+                                    </button>
+                                    @if (currentUser != null && currentUser.FidelisBalance < criticalCost)
                                     {
                                         <small class="text-danger d-block mt-2 text-center">
                                             <i class="bi bi-exclamation-triangle me-1"></i>
@@ -467,9 +539,11 @@
     private decimal hpCost = 0;
     private decimal powerCost = 0;
     private decimal speedCost = 0;
+    private decimal criticalCost = 0;
     private bool hpCostLoading = true;
     private bool powerCostLoading = true;
     private bool speedCostLoading = true;
+    private bool criticalCostLoading = true;
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
     private decimal SelectedUpgradeCost => purchasingStat switch
@@ -477,6 +551,7 @@
         StatType.HP => hpCost,
         StatType.Power => powerCost,
         StatType.Speed => speedCost,
+        StatType.CriticalChance => criticalCost,
         _ => 0
     };
 
@@ -551,11 +626,13 @@
             hpCostLoading = true;
             powerCostLoading = true;
             speedCostLoading = true;
+            criticalCostLoading = true;
             StateHasChanged();
 
             hpCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.HP);
             powerCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Power);
             speedCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Speed);
+            criticalCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.CriticalChance);
         }
         catch (Exception ex)
         {
@@ -568,6 +645,7 @@
             hpCostLoading = false;
             powerCostLoading = false;
             speedCostLoading = false;
+            criticalCostLoading = false;
             StateHasChanged();
         }
     }

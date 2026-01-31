@@ -20,11 +20,13 @@ public class Character : BaseEntity
     public int HP { get; set; } = MyTunoScaling.BaseHp;        // Base HP
     public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
     public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
+    public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
 
     // Upgrade Counts (for cost calculation)
     public int HpUpgrades { get; set; } = MyTunoScaling.InitialHpUpgrades;
     public int PowerUpgrades { get; set; } = MyTunoScaling.InitialPowerUpgrades;
     public int SpeedUpgrades { get; set; } = MyTunoScaling.InitialSpeedUpgrades;
+    public int CriticalUpgrades { get; set; } = MyTunoScaling.InitialCriticalUpgrades;
 
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
@@ -42,6 +44,10 @@ public class Character : BaseEntity
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
         + (SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double TotalCriticalChance =>
+        Math.Min(1, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
 
     // Private constructor for EF Core
     private Character() { }
@@ -62,9 +68,11 @@ public class Character : BaseEntity
             HP = MyTunoScaling.BaseHp,
             Power = MyTunoScaling.BasePower,
             Speed = MyTunoScaling.BaseSpeed,
+            CriticalChance = MyTunoScaling.BaseCriticalChance,
             HpUpgrades = MyTunoScaling.InitialHpUpgrades,
             PowerUpgrades = MyTunoScaling.InitialPowerUpgrades,
-            SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades
+            SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades,
+            CriticalUpgrades = MyTunoScaling.InitialCriticalUpgrades
         };
     }
 
@@ -113,5 +121,13 @@ public class Character : BaseEntity
     public void UpgradeSpeed()
     {
         SpeedUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades Critical chance stat (increments CriticalUpgrades count)
+    /// </summary>
+    public void UpgradeCriticalChance()
+    {
+        CriticalUpgrades++;
     }
 }
