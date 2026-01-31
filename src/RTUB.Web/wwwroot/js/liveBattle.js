@@ -2,8 +2,7 @@
  * Live Battle Animation - MyBrute-style battle visualization
  * Animates battles in real-time as events are generated
  */
-(function() {
-    'use strict';
+'use strict';
     
     let canvas = null;
     let ctx = null;
@@ -12,6 +11,7 @@
     let currentEventIndex = 0;
     let events = [];
     let animationFrameId = null;
+    let eventTimerId = null;
 
     // Character positions and states
     const attacker = {
@@ -45,7 +45,8 @@
     let damageTexts = [];
     let hpBars = { attacker: 100, defender: 100 };
 
-    function init(canvasId, dotNetReference) {
+    export function init(canvasId, dotNetReference) {
+        console.log('[liveBattle] init', { canvasId });
         canvas = document.getElementById(canvasId);
         if (!canvas) return;
 
@@ -61,19 +62,19 @@
         defenderSprite = new Image();
         
         attackerSprite.onload = function() {
-            console.log('Attacker sprite loaded:', attackerSpritePath);
+            console.log('[liveBattle] Attacker sprite loaded:', attackerSpritePath);
             if (isAnimating) render();
         };
         attackerSprite.onerror = function() {
-            console.error('Failed to load attacker sprite:', attackerSpritePath);
+            console.error('[liveBattle] Failed to load attacker sprite:', attackerSpritePath);
         };
         
         defenderSprite.onload = function() {
-            console.log('Defender sprite loaded:', defenderSpritePath);
+            console.log('[liveBattle] Defender sprite loaded:', defenderSpritePath);
             if (isAnimating) render();
         };
         defenderSprite.onerror = function() {
-            console.error('Failed to load defender sprite:', defenderSpritePath);
+            console.error('[liveBattle] Failed to load defender sprite:', defenderSpritePath);
         };
         
         attackerSprite.src = attackerSpritePath;
@@ -83,8 +84,9 @@
         render();
     }
 
-    function startBattle(eventsJson) {
+    export function startBattle(eventsJson) {
         events = JSON.parse(eventsJson);
+        console.log('[liveBattle] startBattle', { eventCount: events.length });
         currentEventIndex = 0;
         isAnimating = true;
         
@@ -141,7 +143,7 @@
         currentEventIndex++;
 
         // Animate this event, then move to next
-        setTimeout(() => {
+        eventTimerId = window.setTimeout(() => {
             animateNextEvent();
         }, 800); // 800ms per event for live feel
     }
@@ -338,20 +340,29 @@
         });
     }
 
-    function stop() {
+    export function stop() {
         isAnimating = false;
         currentEventIndex = 0;
         events = [];
         attackAnimation = null;
         damageTexts = [];
+        if (eventTimerId) {
+            clearTimeout(eventTimerId);
+            eventTimerId = null;
+        }
         // Reset HP bars
         hpBars.attacker = attacker.maxHp;
         hpBars.defender = defender.maxHp;
     }
 
-    function dispose() {
+    export function dispose() {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        if (eventTimerId) {
+            clearTimeout(eventTimerId);
+            eventTimerId = null;
         }
         stop();
         canvas = null;
@@ -359,11 +370,10 @@
         dotNetRef = null;
     }
 
-    // Expose to global scope
-    window.liveBattle = {
-        init: init,
-        startBattle: startBattle,
-        stop: stop,
-        dispose: dispose
-    };
-})();
+// Expose to global scope for fallback usage
+window.liveBattle = {
+    init,
+    startBattle,
+    stop,
+    dispose
+};

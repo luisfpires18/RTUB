@@ -12,7 +12,6 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
-@using RTUB.Application.DTOs
 @using System.Text.Json
 @attribute [Authorize]
 @inject ICharacterService CharacterService
@@ -65,7 +64,7 @@
                     <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
                 </div>
                 <div class="card-body p-0">
-                    <div id="battleCanvas" class="w-100" style="background: #1a1a1a; height: 500px; display: block;"></div>
+                    <canvas id="liveBattleCanvas" class="w-100" style="background: #1a1a1a; display: block;"></canvas>
                 </div>
             </div>
         }
@@ -229,6 +228,7 @@
     private int? fightingOpponentId = null;
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
+    private IJSObjectReference? liveBattleModule;
 
     // Pagination
     private int currentPage = 1;
@@ -249,8 +249,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // No initialization needed here - it's done when battle starts
-        // This method is kept for potential future use
+        if (firstRender)
+        {
+            liveBattleModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/liveBattle.js");
+        }
     }
 
     private async Task LoadDataAsync()
@@ -352,60 +354,44 @@
             {
                 try
                 {
-                    // Check if myTunoGame module is available
-                    var isBattleAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.myTunoGame !== 'undefined'");
-                    if (!isBattleAvailable)
+                    if (liveBattleModule == null)
                     {
-                        Logger.LogWarning("myTunoGame module not available - skipping animation");
-                        showBattleAnimation = false;
-                        StateHasChanged();
+                        liveBattleModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/liveBattle.js");
                     }
-                    else
-                    {
-                        var battleEvents = JsonSerializer.Deserialize<List<CombatEvent>>(currentBattle.ReplayJson);
-                        if (battleEvents == null || battleEvents.Count == 0)
-                        {
-                            Logger.LogWarning("Battle replay data is empty - skipping animation");
-                            showBattleAnimation = false;
-                            StateHasChanged();
-                            return;
-                        }
 
-                        // Initialize if not already done
-                        if (objRef == null)
-                        {
-                            objRef = DotNetObjectReference.Create(this);
-                        }
-                        
-                        // Wait for canvas to be rendered, then initialize
-                        StateHasChanged(); // Trigger render to show canvas
-                        await Task.Delay(100); // Give time for canvas to render
-                        
-                        // Initialize the battle animation
-                        var battleData = new
-                        {
-                            Events = battleEvents,
-                            DotNetRef = objRef
-                        };
-                        await JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", "battleCanvas", battleData);
-                        
-                        // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
-                        // This is a safety net in case the JS callback fails
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(30000); // 30 seconds max (battles should finish faster)
-                            if (showBattleAnimation)
-                            {
-                                Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
-                                showBattleAnimation = false;
-                                await InvokeAsync(StateHasChanged);
-                            }
-                        });
+                    // Initialize if not already done
+                    if (objRef == null)
+                    {
+                        objRef = DotNetObjectReference.Create(this);
                     }
+
+                    // Wait for canvas to be rendered, then initialize
+                    StateHasChanged(); // Trigger render to show canvas
+                    await Task.Delay(100); // Give time for canvas to render
+
+                    await JSRuntime.InvokeVoidAsync("console.log", "liveBattle init called");
+                    await liveBattleModule.InvokeVoidAsync("init", "liveBattleCanvas", objRef);
+
+                    await JSRuntime.InvokeVoidAsync("console.log", "liveBattle startBattle called");
+                    await liveBattleModule.InvokeVoidAsync("startBattle", currentBattle.ReplayJson);
+
+                    // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
+                    // This is a safety net in case the JS callback fails
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(120000); // 120 seconds max (battles should finish faster)
+                        if (showBattleAnimation)
+                        {
+                            Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
+                            showBattleAnimation = false;
+                            await InvokeAsync(StateHasChanged);
+                        }
+                    });
                 }
                 catch (JSException ex)
                 {
                     Logger.LogError(ex, "Error starting battle animation: {Message}", ex.Message);
+                    errorMessage = "Erro ao iniciar a animação da batalha.";
                     // Continue without animation
                     showBattleAnimation = false;
                     StateHasChanged();
@@ -413,6 +399,7 @@
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Unexpected error starting battle animation");
+                    errorMessage = "Erro inesperado ao iniciar a animação da batalha.";
                     showBattleAnimation = false;
                     StateHasChanged();
                 }
@@ -473,17 +460,18 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (objRef != null)
+        try
         {
-            try
+            if (liveBattleModule != null)
             {
-                await JSRuntime.InvokeVoidAsync("myTunoGame.destroyBattle");
+                await liveBattleModule.InvokeVoidAsync("dispose");
+                await liveBattleModule.DisposeAsync();
             }
-            catch (JSDisconnectedException)
-            {
-                // Ignore if JS context is disconnected
-            }
-            objRef?.Dispose();
         }
+        catch (JSDisconnectedException)
+        {
+            // Ignore if JS context is disconnected
+        }
+        objRef?.Dispose();
     }
 }
