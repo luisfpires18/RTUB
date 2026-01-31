@@ -72,28 +72,33 @@
         <!-- Battle Result -->
         @if (currentBattle != null && !showBattleAnimation)
         {
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="mb-3"><i class="bi bi-trophy me-2"></i>Batalha Concluída!</h5>
-                    <div class="mb-3">
-                        <strong>Resultado:</strong>
+            <div class="card mb-4 battle-result-card">
+                <div class="card-body battle-result-body">
+                    <div class="battle-result-title">
+                        <i class="bi bi-trophy"></i>
+                        <h5 class="mb-0">Batalha Concluída!</h5>
+                    </div>
+                    <div class="battle-result-row">
+                        <span class="battle-result-label">Resultado:</span>
                         @if (currentBattle.Outcome == BattleOutcome.AttackerWon)
                         {
-                            <span class="badge bg-success ms-2">Vitória</span>
+                            <span class="badge bg-success">Vitória</span>
                         }
                         else if (currentBattle.Outcome == BattleOutcome.DefenderWon)
                         {
-                            <span class="badge bg-danger ms-2">Derrota</span>
+                            <span class="badge bg-danger">Derrota</span>
                         }
                         else
                         {
-                            <span class="badge bg-warning text-dark ms-2">Empate</span>
+                            <span class="badge bg-warning text-dark">Empate</span>
                         }
                     </div>
-                    <div>
-                        <strong>Recompensas:</strong>
-                        <span class="badge bg-info me-2">+@currentBattle.AttackerXP XP</span>
-                        <span class="badge bg-success">+@currentBattle.AttackerFidelis.ToString("F2") Fidelis</span>
+                    <div class="battle-result-row">
+                        <span class="battle-result-label">Recompensas:</span>
+                        <div class="battle-result-rewards">
+                            <span class="badge bg-info">+@currentBattle.AttackerXP XP</span>
+                            <span class="badge bg-success">+@currentBattle.AttackerFidelis.ToString("F2") Fidelis</span>
+                        </div>
                     </div>
                 </div>
             </div>
