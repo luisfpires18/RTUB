@@ -43,6 +43,9 @@
             this.hpGraphics = null;
             this.hpTexts = {};
             this.nameTexts = {};
+            this.logEntries = [];
+            this.logText = null;
+            this.logBackground = null;
             this.replayIndex = 0;
             this.isPlaying = false;
             this.playbackSpeed = 1;
@@ -75,6 +78,7 @@
             this.createCharacters(width, height);
             this.initializeHpFromEvents();
             this.drawHpBars();
+            this.createLogPanel(width, height);
 
             if (this.mode === 'live') {
                 this.scheduleNextEvent();
@@ -104,30 +108,63 @@
 
             const attackerSprite = this.add.sprite(attackerX, characterY, 'attackerSprite');
             attackerSprite.setOrigin(0.5, 1);
-            attackerSprite.setScale(0.6);
+            const attackerScale = this.getSpriteScale(attackerSprite, height);
+            attackerSprite.setScale(attackerScale);
 
             const defenderSprite = this.add.sprite(defenderX, characterY, 'defenderSprite');
             defenderSprite.setOrigin(0.5, 1);
-            defenderSprite.setScale(0.6);
+            const defenderScale = this.getSpriteScale(defenderSprite, height);
+            defenderSprite.setScale(defenderScale);
 
             this.characterSprites = {
                 attacker: { sprite: attackerSprite, originX: attackerX },
                 defender: { sprite: defenderSprite, originX: defenderX }
             };
 
-            this.nameTexts.attacker = this.add.text(attackerX, characterY - 170, 'Attacker', {
+            this.nameTexts.attacker = this.add.text(attackerX, characterY - attackerSprite.displayHeight - 20, 'Attacker', {
                 fontFamily: 'Arial',
                 fontSize: '16px',
                 fontStyle: 'bold',
                 color: '#ffffff'
             }).setOrigin(0.5, 0);
 
-            this.nameTexts.defender = this.add.text(defenderX, characterY - 170, 'Defender', {
+            this.nameTexts.defender = this.add.text(defenderX, characterY - defenderSprite.displayHeight - 20, 'Defender', {
                 fontFamily: 'Arial',
                 fontSize: '16px',
                 fontStyle: 'bold',
                 color: '#ffffff'
             }).setOrigin(0.5, 0);
+        }
+
+        getSpriteScale(sprite, height) {
+            const maxSpriteHeight = height * 0.45;
+            const sourceImage = sprite.texture.getSourceImage();
+            if (!sourceImage || !sourceImage.height) {
+                return 0.6;
+            }
+            return Math.min(1, maxSpriteHeight / sourceImage.height);
+        }
+
+        createLogPanel(width, height) {
+            const panelHeight = 90;
+            const panelY = height - 50 - panelHeight / 2;
+            this.logBackground = this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.7);
+            this.logBackground.setStrokeStyle(1, 0x333333, 1);
+
+            this.logText = this.add.text(30, panelY - panelHeight / 2 + 10, '', {
+                fontFamily: 'Arial',
+                fontSize: '14px',
+                color: '#f1f1f1'
+            });
+        }
+
+        addLogEntry(message) {
+            if (!message) return;
+            this.logEntries.unshift(message);
+            this.logEntries = this.logEntries.slice(0, 4);
+            if (this.logText) {
+                this.logText.setText(this.logEntries.join('\n'));
+            }
         }
 
         initializeHpFromEvents() {
@@ -237,18 +274,28 @@
                 const defender = getEventField(evt, 'Defender');
                 const damage = getEventField(evt, 'Damage');
                 this.playAttack(attacker, defender, damage);
+                if (attacker && defender) {
+                    const damageText = damage ? `-${damage}` : '0';
+                    this.addLogEntry(`${attacker} atacou ${defender} (${damageText})`);
+                }
                 return;
             }
 
             if (type === 'KO') {
                 const character = getEventField(evt, 'Character');
                 this.playKo(character);
+                if (character) {
+                    this.addLogEntry(`${character} foi nocauteado`);
+                }
                 return;
             }
 
             if (type === 'Victory') {
                 const winner = getEventField(evt, 'Winner');
                 this.showVictory(winner);
+                if (winner) {
+                    this.addLogEntry(`${winner} venceu a batalha`);
+                }
             }
         }
 
