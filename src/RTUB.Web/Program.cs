@@ -9,6 +9,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
+using RTUB.Core.Configuration;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
@@ -106,6 +107,28 @@ public class Program
             builder.Configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
         services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
+
+        var myTunoScaling = builder.Configuration
+            .GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName)
+            .Get<RTUB.Application.Configuration.MyTunoScalingConfiguration>();
+
+        if (myTunoScaling != null)
+        {
+            MyTunoScaling.Configure(
+                myTunoScaling.BaseStats.Level,
+                myTunoScaling.BaseStats.XP,
+                myTunoScaling.BaseStats.HP,
+                myTunoScaling.BaseStats.Power,
+                myTunoScaling.BaseStats.Speed,
+                myTunoScaling.LevelScaling.StatMultiplierPerLevel,
+                myTunoScaling.LevelScaling.XpPerLevelBase,
+                myTunoScaling.Upgrades.HP.InitialBought,
+                myTunoScaling.Upgrades.Power.InitialBought,
+                myTunoScaling.Upgrades.Speed.InitialBought,
+                myTunoScaling.Upgrades.HP.BonusPerUpgrade,
+                myTunoScaling.Upgrades.Power.BonusPerUpgrade,
+                myTunoScaling.Upgrades.Speed.BonusPerUpgrade);
+        }
 
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")

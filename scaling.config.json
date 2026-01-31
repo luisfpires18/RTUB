@@ -9,6 +9,7 @@
     },
     "levelScaling": {
       "statMultiplierPerLevel": 0.1,
+      "xpPerLevelBase": 100,
       "xpToNextLevelFormula": "level * 100"
     },
     "upgrades": {

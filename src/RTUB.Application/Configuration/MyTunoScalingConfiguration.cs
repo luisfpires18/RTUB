@@ -21,6 +21,7 @@ public class MyTunoBaseStats
 public class MyTunoLevelScaling
 {
     public double StatMultiplierPerLevel { get; set; } = 0.1;
+    public int XpPerLevelBase { get; set; } = 100;
     public string XpToNextLevelFormula { get; set; } = "level * 100";
 }
 

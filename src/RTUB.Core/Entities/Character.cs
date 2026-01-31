@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using RTUB.Core.Configuration;
 
 namespace RTUB.Core.Entities;
 
@@ -12,18 +13,18 @@ public class Character : BaseEntity
     public string UserId { get; set; } = string.Empty;
 
     // Progression
-    public int Level { get; set; } = 1;
-    public int XP { get; set; } = 0;
+    public int Level { get; set; } = MyTunoScaling.BaseLevel;
+    public int XP { get; set; } = MyTunoScaling.BaseXp;
 
     // Base Stats (ONLY these three)
-    public int HP { get; set; } = 100;        // Base HP
-    public int Power { get; set; } = 10;      // Base Power
-    public int Speed { get; set; } = 10;      // Base Speed
+    public int HP { get; set; } = MyTunoScaling.BaseHp;        // Base HP
+    public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
+    public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
 
     // Upgrade Counts (for cost calculation)
-    public int HpUpgrades { get; set; } = 0;
-    public int PowerUpgrades { get; set; } = 0;
-    public int SpeedUpgrades { get; set; } = 0;
+    public int HpUpgrades { get; set; } = MyTunoScaling.InitialHpUpgrades;
+    public int PowerUpgrades { get; set; } = MyTunoScaling.InitialPowerUpgrades;
+    public int SpeedUpgrades { get; set; } = MyTunoScaling.InitialSpeedUpgrades;
 
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
@@ -31,13 +32,16 @@ public class Character : BaseEntity
     // Computed properties (not stored in database)
     // Stats scale with level: base stats increase by 10% per level
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalHP => (int)(HP * (1 + (Level - 1) * 0.1)) + (HpUpgrades * 10);      // Base HP scales with level, +10 HP per upgrade
+    public int TotalHP => (int)(HP * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+        + (HpUpgrades * MyTunoScaling.HpUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalPower => (int)(Power * (1 + (Level - 1) * 0.1)) + (PowerUpgrades * 2);  // Base Power scales with level, +2 Power per upgrade
+    public int TotalPower => (int)(Power * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+        + (PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * 0.1)) + (SpeedUpgrades * 1);  // Base Speed scales with level, +1 Speed per upgrade
+    public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+        + (SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
     // Private constructor for EF Core
     private Character() { }
@@ -53,14 +57,14 @@ public class Character : BaseEntity
         return new Character
         {
             UserId = userId,
-            Level = 1,
-            XP = 0,
-            HP = 100,
-            Power = 10,
-            Speed = 10,
-            HpUpgrades = 0,
-            PowerUpgrades = 0,
-            SpeedUpgrades = 0
+            Level = MyTunoScaling.BaseLevel,
+            XP = MyTunoScaling.BaseXp,
+            HP = MyTunoScaling.BaseHp,
+            Power = MyTunoScaling.BasePower,
+            Speed = MyTunoScaling.BaseSpeed,
+            HpUpgrades = MyTunoScaling.InitialHpUpgrades,
+            PowerUpgrades = MyTunoScaling.InitialPowerUpgrades,
+            SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades
         };
     }
 
@@ -80,9 +84,9 @@ public class Character : BaseEntity
         // Level 1 needs 100 XP to become Level 2
         // Level 2 needs 200 XP to become Level 3
         // Level 3 needs 300 XP to become Level 4, etc.
-        while (XP >= Level * 100)
+        while (XP >= Level * MyTunoScaling.XpPerLevelBase)
         {
-            XP -= Level * 100;
+            XP -= Level * MyTunoScaling.XpPerLevelBase;
             Level++;
         }
     }
