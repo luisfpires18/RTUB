@@ -306,35 +306,66 @@
             if (!attacker || !defender) return;
 
             const direction = attackerKey === 'Defender' ? -1 : 1;
-            const targetX = defender.sprite.x - direction * 60;
+            const targetX = defender.sprite.x - direction * 80;
 
             this.tweens.timeline({
                 targets: attacker.sprite,
                 tweens: [
-                    { x: targetX, duration: 180, ease: 'Power2' },
-                    { x: attacker.originX, duration: 180, ease: 'Power2' }
+                    { x: targetX, duration: 200, ease: 'Power2' },
+                    { x: attacker.originX, duration: 220, ease: 'Power2' }
                 ]
             });
 
             defender.sprite.setTintFill(0xff5555);
             this.time.delayedCall(200, () => defender.sprite.clearTint());
 
-            if (damage) {
-                const damageText = this.add.text(defender.sprite.x, defender.sprite.y - 120, `-${damage}`, {
-                    fontFamily: 'Arial',
-                    fontSize: '24px',
-                    fontStyle: 'bold',
-                    color: '#ff4444'
-                }).setOrigin(0.5, 0.5);
+            this.tweens.add({
+                targets: defender.sprite,
+                x: defender.sprite.x + direction * 8,
+                yoyo: true,
+                duration: 80,
+                ease: 'Power1'
+            });
 
-                this.tweens.add({
-                    targets: damageText,
-                    y: damageText.y - 30,
-                    alpha: 0,
-                    duration: 800,
-                    onComplete: () => damageText.destroy()
-                });
-            }
+            const impact = this.add.circle(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.4, 18, 0xffd54f, 0.9);
+            this.tweens.add({
+                targets: impact,
+                alpha: 0,
+                scale: 1.6,
+                duration: 300,
+                onComplete: () => impact.destroy()
+            });
+
+            const damageValue = damage ?? 0;
+            const damageText = this.add.text(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.6, `-${damageValue}`, {
+                fontFamily: 'Arial',
+                fontSize: '24px',
+                fontStyle: 'bold',
+                color: '#ff4444'
+            }).setOrigin(0.5, 0.5);
+
+            this.tweens.add({
+                targets: damageText,
+                y: damageText.y - 30,
+                alpha: 0,
+                duration: 900,
+                onComplete: () => damageText.destroy()
+            });
+
+            const attackerText = this.add.text(attacker.sprite.x, attacker.sprite.y - attacker.sprite.displayHeight * 0.6, `+${damageValue}`, {
+                fontFamily: 'Arial',
+                fontSize: '18px',
+                fontStyle: 'bold',
+                color: '#4caf50'
+            }).setOrigin(0.5, 0.5);
+
+            this.tweens.add({
+                targets: attackerText,
+                y: attackerText.y - 20,
+                alpha: 0,
+                duration: 700,
+                onComplete: () => attackerText.destroy()
+            });
         }
 
         playKo(character) {
