@@ -307,27 +307,30 @@
 
             const direction = attackerKey === 'Defender' ? -1 : 1;
             const distance = Math.abs(defender.sprite.x - attacker.sprite.x);
-            const lungeOffset = Math.min(140, distance * 0.35);
-            const targetX = attacker.sprite.x + direction * lungeOffset;
-            const targetY = attacker.sprite.y - 10;
+            const lungeOffset = Math.min(220, distance * 0.6);
+            const startX = attacker.originX;
+            const startY = attacker.sprite.y;
+            const targetX = startX + direction * lungeOffset;
+            const targetY = startY - 15;
 
             this.tweens.timeline({
                 targets: attacker.sprite,
                 tweens: [
-                    { x: targetX, y: targetY, angle: direction * 8, duration: 220, ease: 'Power2' },
-                    { x: attacker.originX, y: attacker.sprite.y, angle: 0, duration: 240, ease: 'Power2' }
+                    { x: targetX, y: targetY, angle: direction * 12, duration: 200, ease: 'Power2' },
+                    { x: startX, y: startY, angle: 0, duration: 240, ease: 'Power2' }
                 ]
             });
 
             defender.sprite.setTintFill(0xff5555);
             this.time.delayedCall(200, () => defender.sprite.clearTint());
 
+            const defenderStartX = defender.sprite.x;
             this.tweens.add({
                 targets: defender.sprite,
-                x: defender.sprite.x + direction * 8,
+                x: defenderStartX + direction * 20,
                 yoyo: true,
-                duration: 80,
-                ease: 'Power1'
+                duration: 120,
+                ease: 'Back.Out'
             });
 
             const impact = this.add.circle(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.4, 18, 0xffd54f, 0.9);
@@ -337,6 +340,19 @@
                 scale: 1.6,
                 duration: 300,
                 onComplete: () => impact.destroy()
+            });
+
+            const slash = this.add.graphics();
+            slash.lineStyle(4, 0xffffff, 0.8);
+            slash.beginPath();
+            slash.moveTo(attacker.sprite.x, attacker.sprite.y - attacker.sprite.displayHeight * 0.5);
+            slash.lineTo(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.5);
+            slash.strokePath();
+            this.tweens.add({
+                targets: slash,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => slash.destroy()
             });
 
             const damageValue = damage ?? 0;
