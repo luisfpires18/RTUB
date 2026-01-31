@@ -1,0 +1,29 @@
+{
+  "myTuno": {
+    "baseStats": {
+      "level": 1,
+      "xp": 0,
+      "hp": 100,
+      "power": 10,
+      "speed": 10
+    },
+    "levelScaling": {
+      "statMultiplierPerLevel": 0.1,
+      "xpToNextLevelFormula": "level * 100"
+    },
+    "upgrades": {
+      "hp": {
+        "initialBought": 0,
+        "bonusPerUpgrade": 10
+      },
+      "power": {
+        "initialBought": 0,
+        "bonusPerUpgrade": 2
+      },
+      "speed": {
+        "initialBought": 0,
+        "bonusPerUpgrade": 1
+      }
+    }
+  }
+}
