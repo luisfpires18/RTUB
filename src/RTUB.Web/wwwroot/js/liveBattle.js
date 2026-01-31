@@ -21,7 +21,8 @@
         height: 150,
         hp: 100,
         maxHp: 100,
-        name: "Attacker"
+        name: "Attacker",
+        offsetX: 0
     };
 
     const defender = {
@@ -31,7 +32,8 @@
         height: 150,
         hp: 100,
         maxHp: 100,
-        name: "Defender"
+        name: "Defender",
+        offsetX: 0
     };
 
     // Sprite images
@@ -163,14 +165,14 @@
         } else if (evt.Type === "Attack") {
             const attackerChar = evt.Attacker === "Attacker" ? attacker : defender;
             const defenderChar = evt.Defender === "Defender" ? defender : attacker;
-            const startX = attackerChar.x;
-            const targetX = startX + (defenderChar.x - startX) * ATTACK_LUNGE_DISTANCE;
+            const startX = getCharacterX(attackerChar);
+            const targetX = startX + (getCharacterX(defenderChar) - startX) * ATTACK_LUNGE_DISTANCE;
 
             attackAnimation = {
                 attackerChar,
                 defenderChar,
                 attackerStartX: startX,
-                defenderStartX: defenderChar.x,
+                defenderStartX: getCharacterX(defenderChar),
                 attackerTargetX: targetX,
                 progress: 0,
                 duration: ATTACK_LUNGE_FRAMES,
@@ -179,7 +181,7 @@
 
             if (evt.Damage) {
                 damageTexts.push({
-                    x: defenderChar.x + defenderChar.width / 2,
+                    x: getCharacterX(defenderChar) + defenderChar.width / 2,
                     y: defenderChar.y,
                     damage: evt.Damage,
                     alpha: 1.0,
@@ -238,7 +240,7 @@
     }
 
     function drawCharacter(char, isLeft) {
-        const x = char.x;
+        const x = getCharacterX(char);
         const y = char.y;
         const sprite = isLeft ? attackerSprite : defenderSprite;
 
@@ -311,11 +313,11 @@
         const { attackerChar, defenderChar, progress, duration } = attackAnimation;
         const t = Math.min(progress / duration, 1);
         const from = {
-            x: attackerChar.x + attackerChar.width / 2,
+            x: getCharacterX(attackerChar) + attackerChar.width / 2,
             y: attackerChar.y + attackerChar.height / 2
         };
         const to = {
-            x: defenderChar.x + defenderChar.width / 2,
+            x: getCharacterX(defenderChar) + defenderChar.width / 2,
             y: defenderChar.y + defenderChar.height / 2
         };
 
@@ -347,7 +349,7 @@
             ? t * 2
             : (1 - t) * 2;
 
-        attackerChar.x = attackerStartX + (attackerTargetX - attackerStartX) * eased;
+        attackerChar.offsetX = attackerStartX + (attackerTargetX - attackerStartX) * eased - attackerChar.x;
 
         const impactWindow = t > 0.45 && t < 0.7;
         if (impactWindow) {
@@ -359,14 +361,18 @@
             attackAnimation.defenderOffsetX = 0;
         }
 
-        defenderChar.x = defenderStartX + attackAnimation.defenderOffsetX;
+        defenderChar.offsetX = defenderStartX + attackAnimation.defenderOffsetX - defenderChar.x;
 
         attackAnimation.progress += 1;
         if (attackAnimation.progress >= duration) {
-            attackerChar.x = attackerStartX;
-            defenderChar.x = defenderStartX;
+            attackerChar.offsetX = 0;
+            defenderChar.offsetX = 0;
             attackAnimation = null;
         }
+    }
+
+    function getCharacterX(char) {
+        return char.x + (char.offsetX || 0);
     }
 
     function drawDamageTexts() {
@@ -394,6 +400,8 @@
         events = [];
         attackAnimation = null;
         damageTexts = [];
+        attacker.offsetX = 0;
+        defender.offsetX = 0;
         if (eventTimerId) {
             clearTimeout(eventTimerId);
             eventTimerId = null;
