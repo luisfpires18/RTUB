@@ -44,6 +44,9 @@
     let attackAnimation = null;
     let damageTexts = [];
     let hpBars = { attacker: 100, defender: 100 };
+    const ATTACK_LUNGE_FRAMES = 24;
+    const ATTACK_LUNGE_DISTANCE = 0.45;
+    const ATTACK_RECOIL_DISTANCE = 12;
 
     export function init(canvasId, dotNetReference) {
         console.log('[liveBattle] init', { canvasId });
@@ -160,11 +163,18 @@
         } else if (evt.Type === "Attack") {
             const attackerChar = evt.Attacker === "Attacker" ? attacker : defender;
             const defenderChar = evt.Defender === "Defender" ? defender : attacker;
+            const startX = attackerChar.x;
+            const targetX = startX + (defenderChar.x - startX) * ATTACK_LUNGE_DISTANCE;
 
             attackAnimation = {
-                from: { x: attackerChar.x + attackerChar.width / 2, y: attackerChar.y + attackerChar.height / 2 },
-                to: { x: defenderChar.x + defenderChar.width / 2, y: defenderChar.y + defenderChar.height / 2 },
-                progress: 0
+                attackerChar,
+                defenderChar,
+                attackerStartX: startX,
+                defenderStartX: defenderChar.x,
+                attackerTargetX: targetX,
+                progress: 0,
+                duration: ATTACK_LUNGE_FRAMES,
+                defenderOffsetX: 0
             };
 
             if (evt.Damage) {
@@ -186,6 +196,10 @@
 
         // Draw arena
         drawArena();
+
+        if (attackAnimation) {
+            updateAttackAnimation();
+        }
 
         // Draw characters
         drawCharacter(attacker, true);
@@ -294,8 +308,16 @@
     function drawAttackAnimation() {
         if (!attackAnimation) return;
 
-        const { from, to, progress } = attackAnimation;
-        const t = Math.min(progress, 1);
+        const { attackerChar, defenderChar, progress, duration } = attackAnimation;
+        const t = Math.min(progress / duration, 1);
+        const from = {
+            x: attackerChar.x + attackerChar.width / 2,
+            y: attackerChar.y + attackerChar.height / 2
+        };
+        const to = {
+            x: defenderChar.x + defenderChar.width / 2,
+            y: defenderChar.y + defenderChar.height / 2
+        };
 
         // Attack line
         ctx.strokeStyle = '#ffeb3b';
@@ -313,10 +335,36 @@
         ctx.beginPath();
         ctx.arc(currentX, currentY, 15 * (1 - t), 0, Math.PI * 2);
         ctx.fill();
+    }
 
-        // Update progress
-        attackAnimation.progress += 0.15;
-        if (attackAnimation.progress >= 1) {
+    function updateAttackAnimation() {
+        if (!attackAnimation) return;
+
+        const { attackerChar, defenderChar, attackerStartX, attackerTargetX, defenderStartX, progress, duration } = attackAnimation;
+        const t = Math.min(progress / duration, 1);
+
+        const eased = t < 0.5
+            ? t * 2
+            : (1 - t) * 2;
+
+        attackerChar.x = attackerStartX + (attackerTargetX - attackerStartX) * eased;
+
+        const impactWindow = t > 0.45 && t < 0.7;
+        if (impactWindow) {
+            const recoilT = (t - 0.45) / 0.25;
+            const recoilStrength = Math.sin(Math.min(recoilT, 1) * Math.PI);
+            const direction = defenderChar === defender ? 1 : -1;
+            attackAnimation.defenderOffsetX = recoilStrength * ATTACK_RECOIL_DISTANCE * direction;
+        } else {
+            attackAnimation.defenderOffsetX = 0;
+        }
+
+        defenderChar.x = defenderStartX + attackAnimation.defenderOffsetX;
+
+        attackAnimation.progress += 1;
+        if (attackAnimation.progress >= duration) {
+            attackerChar.x = attackerStartX;
+            defenderChar.x = defenderStartX;
             attackAnimation = null;
         }
     }
