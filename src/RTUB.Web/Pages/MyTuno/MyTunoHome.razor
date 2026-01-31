@@ -61,8 +61,20 @@
     else
     {
         <div class="row g-4 justify-content-center">
+            <!-- Inventory -->
+            <div class="col-12 col-lg-3 d-flex" style="max-width: 320px;">
+                <div class="card h-100 w-100">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-0">Ainda não tens itens no inventário.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Character Summary Card -->
-            <div class="col-12 mx-auto" style="max-width: 520px;">
+            <div class="col-12 col-lg-6 d-flex" style="max-width: 520px;">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
@@ -123,6 +135,67 @@
                         <button class="btn btn-primary btn-lg w-100" @onclick="NavigateToArena">
                             <i class="bi bi-sword me-2"></i>Ir para Arena
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="col-12 col-lg-3 d-flex" style="max-width: 340px;">
+                <div class="card h-100 w-100">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Leaderboard</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (leaderboardLoading)
+                        {
+                            <LoadingSpinner Message="A carregar leaderboard..." />
+                        }
+                        else if (leaderboardEntries == null || !leaderboardEntries.Any())
+                        {
+                            <p class="text-muted mb-0">Ainda não há jogadores com vitórias.</p>
+                        }
+                        else
+                        {
+                            <div class="stats-card-grid">
+                                @for (int i = 0; i < leaderboardEntries.Count; i++)
+                                {
+                                    var entry = leaderboardEntries[i];
+                                    var position = i + 1;
+                                    <div class="stats-card">
+                                        <div class="stats-card-position">
+                                            @if (position == 1)
+                                            {
+                                                <span class="stats-medal gold">🥇</span>
+                                            }
+                                            else if (position == 2)
+                                            {
+                                                <span class="stats-medal silver">🥈</span>
+                                            }
+                                            else if (position == 3)
+                                            {
+                                                <span class="stats-medal bronze">🥉</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="stats-position">@position</span>
+                                            }
+                                        </div>
+                                        <img src="@(entry.AvatarUrl ?? "/images/default-avatar.webp")"
+                                             alt="@entry.DisplayName"
+                                             class="stats-avatar"
+                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                        <div class="stats-card-content">
+                                            <div class="stats-card-title">@entry.DisplayName</div>
+                                            <div class="stats-card-subtitle">Vitórias @entry.Wins • Nível @entry.Level</div>
+                                        </div>
+                                        <div class="stats-card-count">
+                                            <i class="bi bi-trophy"></i>
+                                            <span>@entry.Wins</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -381,10 +454,11 @@
 @code {
     private Character? character;
     private ApplicationUser? currentUser;
-    private List<Battle>? recentBattles;
+    private List<MyTunoLeaderboardEntry>? leaderboardEntries;
     private bool loading = true;
     private bool isOwner = false;
     private bool creatingCharacters = false;
+    private bool leaderboardLoading = false;
     
     // Upgrade shop state
     private bool purchasing = false;
@@ -431,13 +505,12 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
-                        recentBattles = (await BattleRepository.GetRecentBattlesByCharacterIdAsync(character.Id, 5))
-                            .OrderByDescending(b => b.CreatedAt)
-                            .ToList();
                         await LoadUpgradeCosts();
                     }
                 }
             }
+
+            await LoadLeaderboardAsync();
         }
         catch (Exception ex)
         {
@@ -448,6 +521,24 @@
         finally
         {
             loading = false;
+        }
+    }
+
+    private async Task LoadLeaderboardAsync()
+    {
+        try
+        {
+            leaderboardLoading = true;
+            leaderboardEntries = await BattleRepository.GetTopLeaderboardAsync(10);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading leaderboard data");
+            leaderboardEntries = new List<MyTunoLeaderboardEntry>();
+        }
+        finally
+        {
+            leaderboardLoading = false;
         }
     }
 
