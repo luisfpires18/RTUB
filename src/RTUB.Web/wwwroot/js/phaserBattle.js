@@ -90,7 +90,6 @@
 
             const line = this.add.graphics();
             line.lineStyle(2, 0x444444, 1);
-            line.setLineDash([10, 10]);
             line.beginPath();
             line.moveTo(width / 2, 0);
             line.lineTo(width / 2, height - groundHeight);
