@@ -212,18 +212,17 @@
                         </div>
 
                         <!-- Tester Cards Grid -->
-                        <div class="member-card-lite-grid">
+                        <div class="avatar-card-grid">
                             @foreach (var tester in paginatedTesters)
                             {
-                                <MemberCardLite AvatarUrl="@tester.AvatarUrl"
-                                                AltText="@tester.DisplayNickname"
-                                                Nickname="@tester.DisplayNickname"
-                                                FullName="@tester.DisplayFullName"
-                                                LastLoginText="@GetLoginText(tester)">
-                                    <CategoryContent>
-                                        <span class="badge bg-primary">Tester</span>
-                                    </CategoryContent>
-                                </MemberCardLite>
+                                <AndroidTesterCard AvatarUrl="@tester.AvatarUrl"
+                                                   AltText="@tester.DisplayNickname"
+                                                   TunaName="@tester.DisplayNickname"
+                                                   FullName="@tester.DisplayFullName"
+                                                   LoginCount="@tester.LoginDays.Count"
+                                                   TotalDays="@LoginDaysWindow"
+                                                   LastLoginDate="@tester.LastLoginDate"
+                                                   LoginDays="@tester.LoginDays" />
                             }
                         </div>
 

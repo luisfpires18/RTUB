@@ -1,0 +1,42 @@
+/* AndroidTesterCard specific styles */
+/* Extends avatar-card base styles */
+
+.android-tester-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.android-tester-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.android-tester-info-row i {
+    font-size: 0.9rem;
+    min-width: 16px;
+}
+
+.android-tester-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    min-width: 90px;
+}
+
+.android-tester-value {
+    color: #fff;
+    font-weight: 600;
+}
+
+.android-tester-value-yes {
+    color: var(--bs-success);
+}
+
+.android-tester-value-no {
+    color: var(--bs-danger);
+}

@@ -1,0 +1,101 @@
+@namespace RTUB.Shared
+
+@*
+    AndroidTesterCard Component
+    Displays Android tester information with login activity
+    Based on AvatarCard design
+*@
+
+<div class="avatar-card" tabindex="0">
+    <!-- Avatar -->
+    <div class="avatar-card-image-wrapper">
+        <img src="@AvatarUrl" 
+             alt="@AltText" 
+             class="avatar-card-image"
+             loading="lazy" />
+    </div>
+
+    <!-- Tester Info -->
+    <div class="avatar-card-content">
+        <!-- Tuna Name (primary) -->
+        @if (!string.IsNullOrEmpty(TunaName))
+        {
+            <div class="avatar-card-tuna-name">@TunaName</div>
+        }
+        
+        <!-- Full Name (secondary) -->
+        @if (!string.IsNullOrEmpty(FullName))
+        {
+            <div class="avatar-card-full-name">@FullName</div>
+        }
+
+        <!-- Login Information -->
+        <div class="android-tester-info">
+            <!-- Login Count -->
+            <div class="android-tester-info-row">
+                <i class="bi bi-calendar-check"></i>
+                <span class="android-tester-label">Login Count:</span>
+                <span class="android-tester-value">@LoginCount/@TotalDays</span>
+            </div>
+
+            <!-- Login Today -->
+            <div class="android-tester-info-row">
+                <i class="bi bi-@(LoggedInToday ? "check-circle-fill text-success" : "x-circle-fill text-danger")"></i>
+                <span class="android-tester-label">Login Today:</span>
+                <span class="android-tester-value android-tester-value-@(LoggedInToday ? "yes" : "no")">@(LoggedInToday ? "Yes" : "No")</span>
+            </div>
+
+            <!-- Last Login Date -->
+            <div class="android-tester-info-row">
+                <i class="bi bi-clock-history"></i>
+                <span class="android-tester-label">Last Login:</span>
+                <span class="android-tester-value">@GetLastLoginText()</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string TunaName { get; set; } = "";
+
+    [Parameter]
+    public string FullName { get; set; } = "";
+
+    [Parameter]
+    public string AltText { get; set; } = "";
+
+    [Parameter]
+    public int LoginCount { get; set; } = 0;
+
+    [Parameter]
+    public int TotalDays { get; set; } = 14;
+
+    [Parameter]
+    public DateTime? LastLoginDate { get; set; }
+
+    [Parameter]
+    public List<DateTime> LoginDays { get; set; } = new();
+
+    private bool LoggedInToday => LoginDays.Any(d => d.Date == DateTime.UtcNow.Date);
+
+    private string GetLastLoginText()
+    {
+        if (!LastLoginDate.HasValue)
+            return "Never";
+
+        var daysAgo = (DateTime.UtcNow.Date - LastLoginDate.Value.Date).Days;
+        
+        if (daysAgo == 0)
+            return $"Today at {LastLoginDate.Value:HH:mm}";
+        else if (daysAgo == 1)
+            return $"Yesterday at {LastLoginDate.Value:HH:mm}";
+        else if (daysAgo < 7)
+            return $"{daysAgo} days ago";
+        else
+            return LastLoginDate.Value.ToString("dd/MM/yyyy");
+    }
+}
