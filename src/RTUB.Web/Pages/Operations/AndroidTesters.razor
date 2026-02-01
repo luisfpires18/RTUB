@@ -3,11 +3,13 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
 @using RTUB.Shared
 @inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
 @inject IPushNotificationService PushNotificationService
 @inject NavigationManager Navigation
 @attribute [Authorize(Roles = "Owner")]
@@ -87,18 +89,10 @@
         <!-- Login Activity Card -->
         <div class="card">
             <div class="card-header d-flex flex-column flex-lg-row gap-2 align-items-lg-center justify-content-between">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Login Activity - Last 14 Days</h5>
-                <div class="d-flex gap-2 align-items-center">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="showTestersOnly" @bind="showTestersOnly" @bind:after="FilterAndPaginate">
-                        <label class="form-check-label" for="showTestersOnly">
-                            Android Testers Only
-                        </label>
-                    </div>
-                </div>
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Android Testers - Last 14 Days Login Activity</h5>
             </div>
             <div class="card-body">
-                @if (allUsers.Any())
+                @if (androidTesters.Any())
                 {
                     <div class="mb-3">
                         <SearchBar @bind-Value="searchTerm"
@@ -106,10 +100,10 @@
                                    OnSearch="@HandleSearchChanged" />
                     </div>
 
-                    @if (!filteredUsers.Any())
+                    @if (!filteredTesters.Any())
                     {
                         <EmptyState
-                            Title="No users found."
+                            Title="No testers found."
                             Icon="bi-search" />
                     }
                     else
@@ -119,7 +113,7 @@
                             <div class="col-md-4">
                                 <div class="card bg-primary text-white">
                                     <div class="card-body">
-                                        <h6 class="card-title">Total Testers</h6>
+                                        <h6 class="card-title">Total Android Testers</h6>
                                         <h3 class="mb-0">@androidTesters.Count</h3>
                                     </div>
                                 </div>
@@ -128,34 +122,31 @@
                                 <div class="card bg-success text-white">
                                     <div class="card-body">
                                         <h6 class="card-title">Active (Last 14 Days)</h6>
-                                        <h3 class="mb-0">@usersWithLogins.Count</h3>
+                                        <h3 class="mb-0">@androidTesters.Count(t => t.LoginDays.Any())</h3>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="card bg-info text-white">
                                     <div class="card-body">
-                                        <h6 class="card-title">Total Users Shown</h6>
-                                        <h3 class="mb-0">@filteredUsers.Count</h3>
+                                        <h6 class="card-title">Total Logins</h6>
+                                        <h3 class="mb-0">@totalLoginsLast14Days</h3>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- User Cards Grid -->
+                        <!-- Tester Cards Grid -->
                         <div class="member-card-lite-grid">
-                            @foreach (var user in paginatedUsers)
+                            @foreach (var tester in paginatedTesters)
                             {
-                                <MemberCardLite AvatarUrl="@user.AvatarUrl"
-                                                AltText="@user.DisplayNickname"
-                                                Nickname="@user.DisplayNickname"
-                                                FullName="@user.DisplayFullName"
-                                                LastLoginText="@GetLoginText(user)">
+                                <MemberCardLite AvatarUrl="@tester.AvatarUrl"
+                                                AltText="@tester.DisplayNickname"
+                                                Nickname="@tester.DisplayNickname"
+                                                FullName="@tester.DisplayFullName"
+                                                LastLoginText="@GetLoginText(tester)">
                                     <CategoryContent>
-                                        @if (user.IsAndroidTester)
-                                        {
-                                            <span class="badge bg-primary">Tester</span>
-                                        }
+                                        <span class="badge bg-primary">Tester</span>
                                     </CategoryContent>
                                 </MemberCardLite>
                             }
@@ -164,8 +155,8 @@
                         <!-- Pagination -->
                         <TablePagination CurrentPage="@paginationHelper.CurrentPage"
                                          PageSize="@paginationHelper.PageSize"
-                                         TotalItems="@filteredUsers.Count"
-                                         ItemLabel="users"
+                                         TotalItems="@filteredTesters.Count"
+                                         ItemLabel="testers"
                                          PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
                                          OnPageChanged="@HandlePageChange"
                                          OnPageSizeChanged="@HandlePageSizeChange" />
@@ -174,7 +165,7 @@
                 else
                 {
                     <EmptyState
-                        Title="No login activity in the last 14 days."
+                        Title="No Android testers found."
                         Icon="bi-info-circle" />
                 }
             </div>
@@ -190,14 +181,13 @@
     private const int LoginDaysWindow = 14;
     
     private bool isLoading = true;
-    private bool showTestersOnly = false;
-    private List<UserLoginInfo> allUsers = new();
-    private List<UserLoginInfo> androidTesters = new();
-    private List<UserLoginInfo> usersWithLogins = new();
-    private List<UserLoginInfo> filteredUsers = new();
-    private List<UserLoginInfo> paginatedUsers = new();
+    private List<TesterLoginInfo> androidTesters = new();
+    private List<TesterLoginInfo> filteredTesters = new();
+    private List<TesterLoginInfo> paginatedTesters = new();
+    private Dictionary<string, List<DateTime>> loginsByUser = new();
+    private int totalLoginsLast14Days = 0;
     private string searchTerm = string.Empty;
-    private PaginationHelper<UserLoginInfo> paginationHelper = new() { PageSize = 24 };
+    private PaginationHelper<TesterLoginInfo> paginationHelper = new() { PageSize = 24 };
     
     // Notification fields
     private string customMessage = string.Empty;
@@ -215,15 +205,30 @@
         isLoading = true;
         try
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-LoginDaysWindow);
+            var cutoffDate = DateTime.UtcNow.Date.AddDays(-LoginDaysWindow);
             
-            var users = await UserManager.Users
+            // Load Android testers
+            var testers = await UserManager.Users
                 .AsNoTracking()
-                .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= cutoffDate)
+                .Where(u => u.IsAndroidTester)
                 .ToListAsync();
 
-            allUsers = users
-                .Select(u => new UserLoginInfo
+            // Load login records for the last 14 days
+            var logins = await DbContext.AndroidTesterLogins
+                .AsNoTracking()
+                .Where(l => l.LoginDate >= cutoffDate)
+                .OrderByDescending(l => l.LoginDate)
+                .ToListAsync();
+
+            // Group logins by user
+            loginsByUser = logins
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate).ToList());
+
+            totalLoginsLast14Days = logins.Count;
+
+            androidTesters = testers
+                .Select(u => new TesterLoginInfo
                 {
                     UserId = u.Id,
                     UserName = u.UserName ?? string.Empty,
@@ -231,14 +236,12 @@
                     FirstName = u.FirstName ?? string.Empty,
                     LastName = u.LastName ?? string.Empty,
                     AvatarUrl = u.ProfilePictureSrc,
-                    LastLoginDate = u.LastLoginDate,
-                    IsAndroidTester = u.IsAndroidTester
+                    LoginDays = loginsByUser.ContainsKey(u.Id) ? loginsByUser[u.Id] : new List<DateTime>(),
+                    LastLoginDate = u.LastLoginDate
                 })
-                .OrderByDescending(u => u.LastLoginDate)
+                .OrderByDescending(t => t.LoginDays.Count)
+                .ThenBy(t => t.DisplayNickname)
                 .ToList();
-
-            androidTesters = allUsers.Where(u => u.IsAndroidTester).ToList();
-            usersWithLogins = allUsers.Where(u => u.LastLoginDate.HasValue).ToList();
 
             FilterAndPaginate();
         }
@@ -260,29 +263,21 @@
 
     private void FilterAndPaginate()
     {
-        // Start with appropriate base list
-        var baseList = showTestersOnly ? androidTesters : allUsers;
-
         // Apply search filter
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            filteredUsers = baseList.ToList();
+            filteredTesters = androidTesters.ToList();
         }
         else
         {
             var search = searchTerm.ToLower();
-            filteredUsers = baseList
-                .Where(u => u.SearchText.Contains(search))
+            filteredTesters = androidTesters
+                .Where(t => t.SearchText.Contains(search))
                 .ToList();
         }
-
-        // Sort by last login date descending
-        filteredUsers = filteredUsers
-            .OrderByDescending(u => u.LastLoginDate)
-            .ToList();
         
         paginationHelper.Reset();
-        paginatedUsers = paginationHelper.GetPageData(filteredUsers);
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
     }
 
     private Task HandleSearchChanged(string value)
@@ -295,7 +290,7 @@
     private Task HandlePageChange(int newPage)
     {
         paginationHelper.GoToPage(newPage);
-        paginatedUsers = paginationHelper.GetPageData(filteredUsers);
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
         return Task.CompletedTask;
     }
 
@@ -303,7 +298,7 @@
     {
         paginationHelper.PageSize = newPageSize;
         paginationHelper.Reset();
-        paginatedUsers = paginationHelper.GetPageData(filteredUsers);
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
         return Task.CompletedTask;
     }
 
@@ -361,21 +356,27 @@
         }
     }
 
-    private string GetLoginText(UserLoginInfo user)
+    private string GetLoginText(TesterLoginInfo tester)
     {
-        if (!user.LastLoginDate.HasValue)
-            return "Never";
+        if (!tester.LoginDays.Any())
+            return "No logins recorded";
         
-        var daysAgo = (DateTime.UtcNow - user.LastLoginDate.Value).Days;
+        var loginCount = tester.LoginDays.Count;
+        var lastLogin = tester.LoginDays.First(); // Already ordered by date descending
+        var daysAgo = (DateTime.UtcNow.Date - lastLogin).Days;
+        
+        string daysText;
         if (daysAgo == 0)
-            return $"Today at {user.LastLoginDate.Value.ToString("HH:mm")}";
+            daysText = "Today";
         else if (daysAgo == 1)
-            return $"Yesterday at {user.LastLoginDate.Value.ToString("HH:mm")}";
+            daysText = "Yesterday";
         else
-            return $"{daysAgo} days ago - {user.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm")}";
+            daysText = $"{daysAgo} days ago";
+        
+        return $"{loginCount} login(s) in 14 days - Last: {daysText}";
     }
 
-    private class UserLoginInfo
+    private class TesterLoginInfo
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
@@ -383,8 +384,8 @@
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
+        public List<DateTime> LoginDays { get; set; } = new();
         public DateTime? LastLoginDate { get; set; }
-        public bool IsAndroidTester { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 

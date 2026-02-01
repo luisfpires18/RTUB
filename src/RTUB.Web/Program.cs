@@ -11,6 +11,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
+using RTUB.Core.Entities;
 
 namespace RTUB;
 
@@ -287,6 +288,32 @@ public class Program
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
+
+                        // Track Android Tester login (first login of the day)
+                        // Only for users with IsAndroidTester = true
+                        var today = now.Date;
+                        var isAndroidTester = await db.Users
+                            .Where(u => u.Id == userId && u.IsAndroidTester)
+                            .AnyAsync();
+                        
+                        if (isAndroidTester)
+                        {
+                            var existingLogin = await db.AndroidTesterLogins
+                                .AnyAsync(l => l.UserId == userId && l.LoginDate == today);
+                            
+                            if (!existingLogin)
+                            {
+                                db.AndroidTesterLogins.Add(new AndroidTesterLogin
+                                {
+                                    UserId = userId,
+                                    LoginDate = today,
+                                    CreatedAt = now
+                                });
+                                await db.SaveChangesAsync();
+                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}", 
+                                    userId, today);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -665,6 +692,7 @@ public class Program
         app.MapPost("/auth/login", async (HttpContext http,
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
+                                          ApplicationDbContext db,
                                           ILogger<Program> logger,
                                           AuditContext auditContext,
                                           IMemoryCache cache) =>
@@ -729,6 +757,27 @@ public class Program
                 {
                     logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                }
+
+                // Track Android Tester login (first login of the day)
+                if (user.IsAndroidTester)
+                {
+                    var today = DateTime.UtcNow.Date;
+                    var existingLogin = await db.AndroidTesterLogins
+                        .AnyAsync(l => l.UserId == user.Id && l.LoginDate == today);
+                    
+                    if (!existingLogin)
+                    {
+                        db.AndroidTesterLogins.Add(new AndroidTesterLogin
+                        {
+                            UserId = user.Id,
+                            LoginDate = today,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        await db.SaveChangesAsync();
+                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}", 
+                            user.Id, today);
+                    }
                 }
             }
             catch (Exception ex)

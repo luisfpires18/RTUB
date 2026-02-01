@@ -131,6 +131,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Bet> Bets { get; set; }
     public DbSet<BetOption> BetOptions { get; set; }
     public DbSet<UserBet> UserBets { get; set; }
+    public DbSet<BetComment> BetComments { get; set; }
+
+    // Android Tester Login Tracking DbSet
+    public DbSet<AndroidTesterLogin> AndroidTesterLogins { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
