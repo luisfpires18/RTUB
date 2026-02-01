@@ -97,6 +97,9 @@ public class Program
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
 
+        services.Configure<RTUB.Application.Configuration.AndroidTesterNotificationOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.AndroidTesterNotificationOptions.SectionName));
+
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -418,6 +421,9 @@ public class Program
 
         // Background worker for sending activity (event/rehearsal/meeting) reminders
         services.AddHostedService<ActivityReminderBackgroundService>();
+
+        // Background worker for sending Android tester reminder notifications
+        services.AddHostedService<AndroidTesterNotificationBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
