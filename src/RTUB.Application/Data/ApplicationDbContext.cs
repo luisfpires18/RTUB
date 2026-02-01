@@ -136,6 +136,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Character> Characters { get; set; }
     public DbSet<Battle> Battles { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<Stage> Stages { get; set; }
+    public DbSet<CharacterStageProgress> CharacterStageProgress { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

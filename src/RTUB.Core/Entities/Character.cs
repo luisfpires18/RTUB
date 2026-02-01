@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using RTUB.Core.Configuration;
+using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
 
@@ -33,6 +34,11 @@ public class Character : BaseEntity
     public int PowerUpgrades { get; set; } = MyTunoScaling.InitialPowerUpgrades;
     public int SpeedUpgrades { get; set; } = MyTunoScaling.InitialSpeedUpgrades;
     public int CriticalUpgrades { get; set; } = MyTunoScaling.InitialCriticalUpgrades;
+
+    /// <summary>
+    /// Currently equipped instrument (nullable, one at a time)
+    /// </summary>
+    public InventoryItemType? EquippedInstrument { get; set; }
 
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
@@ -172,5 +178,15 @@ public class Character : BaseEntity
     {
         var currentHp = CurrentHP ?? TotalHP;
         return currentHp > MinHP;
+    }
+
+    /// <summary>
+    /// Equips or unequips an instrument
+    /// </summary>
+    /// <param name="instrumentType">The instrument type to equip, or null to unequip</param>
+    public void EquipInstrument(InventoryItemType? instrumentType)
+    {
+        EquippedInstrument = instrumentType;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
