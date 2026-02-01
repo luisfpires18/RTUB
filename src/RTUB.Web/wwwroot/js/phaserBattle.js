@@ -336,7 +336,7 @@
             const targetX = startX + direction * lungeOffset;
             const targetY = startY - 15;
 
-            // Attacker lunge animation - use chain instead of timeline
+            // Attacker lunge animation - use chained tweens instead of timeline
             this.tweens.add({
                 targets: attacker.sprite,
                 x: targetX,
