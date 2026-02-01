@@ -219,7 +219,7 @@ Currently, there are TWO battle visualization systems in the codebase:
 - [x] Deploy initial Phaser integration
 - [x] Fix UI issues (centering, usernames, XP bar)
 
-### Phase 2: Polish (Weeks 2-3) - IN PROGRESS 🚧
+### Phase 2: Polish (Weeks 2-3) - COMPLETED ✅
 - [x] **Enhanced Attack Animations**
   - Variable speed based on attack strength
   - Critical hit detection (damage > 25)
@@ -244,8 +244,19 @@ Currently, there are TWO battle visualization systems in the codebase:
   - Winner celebration bounce
   - Gold victory text with shadows
   - Confetti particle system for winners
-- [ ] Improve sprites and animations (idle, breathing)
-- [ ] Add audio system
+- [x] **Idle Character Animations**
+  - Breathing effect (gentle up/down movement)
+  - Subtle scale breathing
+  - Pauses during attacks, resumes after
+- [x] **Audio System**
+  - Web Audio API implementation
+  - Attack sound effects (procedural)
+  - Hit impact sounds
+  - Critical hit special sound (two-tone)
+  - K.O. descending tone
+  - Victory fanfare (ascending notes)
+  - Volume controls (music and SFX)
+  - Mute toggle functionality
 
 ### Phase 3: Engagement (Week 4+)
 - [ ] Add battle variety mechanics
@@ -318,13 +329,23 @@ Currently, there are TWO battle visualization systems in the codebase:
 5. ✅ Fix UI issues (centering, usernames, XP bar styling)
 6. ✅ Enhance visual effects (particles, screen shake, critical hits)
 7. ✅ Improve victory/defeat animations
-8. ⏳ Gather user feedback on enhanced battle visuals
-9. ⏳ Add idle character animations (breathing effect)
-10. ⏳ Implement audio system (sound effects and music)
+8. ✅ Add idle character animations (breathing effect)
+9. ✅ Implement audio system (sound effects with Web Audio API)
+10. ⏳ Gather user feedback on enhanced battle system
+11. ⏳ Phase 3: Add battle variety mechanics (speed controls, skip option)
+12. ⏳ Phase 3: Implement replay features (save favorites, share)
 
 ## Recent Improvements (2026-02-01)
 
-### Visual Enhancements Added
+### Phase 1: Foundation ✅
+- Migrated to Phaser 3 from Canvas 2D
+- Fixed UI issues (centering, usernames, XP bar styling)
+- Fixed battle animation errors (timeline API, JSON parsing)
+
+### Phase 2: Polish ✅ 
+All Phase 2 tasks completed:
+
+**Visual Enhancements:**
 - **Critical Hit System**: Battles now detect high-damage attacks (>25 damage) as critical hits
   - Yellow "CRIT!" text instead of standard red damage
   - Larger, more dynamic animations
@@ -355,5 +376,22 @@ Currently, there are TWO battle visualization systems in the codebase:
 - **HP Bar Improvements**:
   - Glow effect when health drops below 25%
   - Better visual feedback for low health
+
+- **Idle Animations** (NEW):
+  - Gentle breathing animation (8px up/down movement, 1.8s cycle)
+  - Subtle scale breathing effect (2% scale, 2s cycle)
+  - Automatically pauses during attacks
+  - Resumes after attack animations complete
+
+- **Audio System** (NEW):
+  - Web Audio API implementation with procedural sounds
+  - Attack sound: 200Hz square wave (0.1s duration)
+  - Hit sound: 150Hz sawtooth wave (0.15s duration)
+  - Critical hit: Dual-tone effect (400Hz + 600Hz sine waves)
+  - K.O. sound: Descending pitch (300Hz → 50Hz over 0.5s)
+  - Victory fanfare: Ascending notes (C-E-G-C melody)
+  - Configurable volume controls (music and SFX separate)
+  - Toggle mute functionality
+  - Auto-resume on user interaction (browser policy compliance)
 
 All changes maintain performance targets (60 FPS desktop, 30 FPS mobile) and work with existing battle replay system.

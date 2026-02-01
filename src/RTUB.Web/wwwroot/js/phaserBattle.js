@@ -98,6 +98,126 @@
             this.isPlaying = this.mode === 'live';
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
+            
+            // Audio system initialization
+            this.audioEnabled = true;
+            this.musicVolume = 0.3;
+            this.sfxVolume = 0.5;
+            this.setupAudio();
+        }
+
+        setupAudio() {
+            // Audio system with simple procedural sounds using Web Audio API
+            this.audioContext = null;
+            
+            // Try to create audio context (will be lazy-loaded on first interaction)
+            try {
+                if (typeof AudioContext !== 'undefined') {
+                    this.audioContext = new AudioContext();
+                } else if (typeof webkitAudioContext !== 'undefined') {
+                    this.audioContext = new webkitAudioContext();
+                }
+            } catch (e) {
+                console.warn('Audio not supported:', e);
+                this.audioEnabled = false;
+            }
+        }
+
+        playSound(type) {
+            if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
+            
+            // Resume audio context if suspended (required by browsers)
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+
+            const ctx = this.audioContext;
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            // Configure sound based on type
+            switch (type) {
+                case 'attack':
+                    oscillator.frequency.value = 200;
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.3, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.1);
+                    break;
+                    
+                case 'hit':
+                    oscillator.frequency.value = 150;
+                    oscillator.type = 'sawtooth';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.4, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.15);
+                    break;
+                    
+                case 'critical':
+                    // Two-tone effect for critical hits
+                    oscillator.frequency.value = 400;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.5, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                    
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.frequency.value = 600;
+                    osc2.type = 'sine';
+                    gain2.gain.setValueAtTime(this.sfxVolume * 0.3, ctx.currentTime + 0.05);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                    
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.2);
+                    osc2.start(ctx.currentTime + 0.05);
+                    osc2.stop(ctx.currentTime + 0.25);
+                    break;
+                    
+                case 'ko':
+                    oscillator.frequency.setValueAtTime(300, ctx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.5);
+                    oscillator.type = 'triangle';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.6, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.5);
+                    break;
+                    
+                case 'victory':
+                    // Victory fanfare - ascending notes
+                    const notes = [262, 330, 392, 523]; // C, E, G, C (octave higher)
+                    notes.forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        const startTime = ctx.currentTime + i * 0.15;
+                        gain.gain.setValueAtTime(this.sfxVolume * 0.4, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.3);
+                    });
+                    break;
+            }
+        }
+
+        toggleAudio() {
+            this.audioEnabled = !this.audioEnabled;
+            return this.audioEnabled;
+        }
+
+        setVolume(musicVol, sfxVol) {
+            this.musicVolume = Math.max(0, Math.min(1, musicVol));
+            this.sfxVolume = Math.max(0, Math.min(1, sfxVol));
         }
 
         preload() {
@@ -153,9 +273,13 @@
             defenderSprite.setScale(defenderScale);
 
             this.characterSprites = {
-                attacker: { sprite: attackerSprite, originX: attackerX },
-                defender: { sprite: defenderSprite, originX: defenderX }
+                attacker: { sprite: attackerSprite, originX: attackerX, originY: characterY },
+                defender: { sprite: defenderSprite, originX: defenderX, originY: characterY }
             };
+
+            // Add idle breathing animations
+            this.startIdleAnimation(attackerSprite);
+            this.startIdleAnimation(defenderSprite);
 
             this.nameTexts.attacker = this.add.text(attackerX, characterY - attackerSprite.displayHeight - 20, this.attackerName, {
                 fontFamily: 'Arial',
@@ -170,6 +294,39 @@
                 fontStyle: 'bold',
                 color: '#ffffff'
             }).setOrigin(0.5, 0);
+        }
+
+        startIdleAnimation(sprite) {
+            // Gentle breathing animation - subtle up and down movement
+            this.tweens.add({
+                targets: sprite,
+                y: sprite.y - 8,
+                duration: 1800,
+                ease: 'Sine.InOut',
+                yoyo: true,
+                repeat: -1 // Infinite loop
+            });
+
+            // Very subtle scale breathing effect
+            this.tweens.add({
+                targets: sprite,
+                scaleX: sprite.scaleX * 1.02,
+                scaleY: sprite.scaleY * 1.02,
+                duration: 2000,
+                ease: 'Sine.InOut',
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        stopIdleAnimation(characterKey) {
+            const character = this.characterSprites[characterKey];
+            if (character && character.sprite) {
+                // Stop all tweens on this sprite
+                this.tweens.killTweensOf(character.sprite);
+                // Reset to origin
+                character.sprite.y = character.originY;
+            }
         }
 
         getSpriteScale(sprite, height) {
@@ -345,16 +502,25 @@
 
             if (!attacker || !defender) return;
 
+            // Stop idle animations during attack
+            const attackerCharKey = attackerKey === 'Defender' ? 'defender' : 'attacker';
+            const defenderCharKey = defenderKey === 'Attacker' ? 'attacker' : 'defender';
+            this.stopIdleAnimation(attackerCharKey);
+            this.stopIdleAnimation(defenderCharKey);
+
             const direction = attackerKey === 'Defender' ? -1 : 1;
             const distance = Math.abs(defender.sprite.x - attacker.sprite.x);
             const lungeOffset = Math.min(220, distance * 0.6);
             const startX = attacker.originX;
-            const startY = attacker.sprite.y;
+            const startY = attacker.originY;
             const targetX = startX + direction * lungeOffset;
             const targetY = startY - 15;
 
             const damageValue = damage ?? 0;
             const isCritical = damageValue > 25; // Detect critical hits (higher damage)
+
+            // Play attack sound
+            this.playSound(isCritical ? 'critical' : 'attack');
 
             // Enhanced attacker lunge animation with variable speed based on attack strength
             const lungeDuration = isCritical ? 150 : 200;
@@ -378,7 +544,12 @@
                         angle: 0,
                         scale: originalScale, // Restore original scale directly
                         duration: 240,
-                        ease: 'Back.Out'
+                        ease: 'Back.Out',
+                        onComplete: () => {
+                            // Restart idle animation after attack
+                            this.startIdleAnimation(attacker.sprite);
+                            this.startIdleAnimation(defender.sprite);
+                        }
                     });
                 }
             });
@@ -387,6 +558,9 @@
             const defenderTintColor = isCritical ? 0xff0000 : 0xff5555;
             defender.sprite.setTintFill(defenderTintColor);
             this.time.delayedCall(200, () => defender.sprite.clearTint());
+
+            // Play hit sound
+            this.playSound('hit');
 
             const defenderStartX = defender.sprite.x;
             const recoilDistance = isCritical ? 30 : 20;
@@ -501,6 +675,9 @@
             const target = character === 'Defender' ? this.characterSprites.defender : this.characterSprites.attacker;
             if (!target) return;
             
+            // Play K.O. sound
+            this.playSound('ko');
+            
             // Enhanced KO animation with fall effect
             this.tweens.add({
                 targets: target.sprite,
@@ -546,6 +723,9 @@
         showVictory(winner) {
             const isAttackerWinner = winner === 'Attacker' || winner === this.attackerName;
             const winnerSprite = isAttackerWinner ? this.characterSprites.attacker : this.characterSprites.defender;
+            
+            // Play victory sound
+            this.playSound('victory');
             
             // Winner celebration animation
             if (winnerSprite) {
