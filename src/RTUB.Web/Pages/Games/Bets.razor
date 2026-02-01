@@ -47,13 +47,9 @@
             </div>
 
             <div class="page-header-actions justify-content-lg-end">
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
-                            <i class="bi bi-plus-lg"></i> Adicionar Aposta
-                        </button>
-                    </Authorized>
-                </AuthorizeView>
+               <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Aposta">
+                   <i class="bi bi-plus-lg"></i> Adicionar Aposta
+               </button>
             </div>
         </div>
         
