@@ -199,11 +199,14 @@
                         
                         @if (currentHP <= 0)
                         {
+                            var reviveCost = GetReviveCost();
+                            var canAffordRevive = currentUser?.FidelisBalance >= reviveCost;
+                            
                             <div class="alert alert-danger mt-3 mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
                                 <strong>Personagem derrotado!</strong> Precisa de reviver para lutar.
                             </div>
-                            <button class="btn btn-success w-100 mb-2" @onclick="ReviveCharacter" disabled="@reviving">
+                            <button class="btn btn-success w-100 mb-2" @onclick="ReviveCharacter" disabled="@(reviving || !canAffordRevive)">
                                 @if (reviving)
                                 {
                                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
@@ -212,9 +215,16 @@
                                 else
                                 {
                                     <i class="bi bi-heart-fill me-2"></i>
-                                    <text>Reviver (@GetReviveCost().ToString("F2") Fidelis)</text>
+                                    <text>Reviver (@reviveCost.ToString("F2") Fidelis)</text>
                                 }
                             </button>
+                            @if (currentUser != null && !canAffordRevive)
+                            {
+                                <small class="text-danger d-block mt-2 text-center">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Saldo insuficiente
+                                </small>
+                            }
                         }
                         
                         <hr />
@@ -922,8 +932,7 @@
 
             if (currentUser.FidelisBalance < cost)
             {
-                toastMessage = "Saldo insuficiente para reviver.";
-                toastIsError = true;
+                // Error message now shown inline under button
                 return;
             }
 
