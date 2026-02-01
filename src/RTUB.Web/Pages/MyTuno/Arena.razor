@@ -368,7 +368,28 @@
                     await Task.Delay(100); // Give time for container to render
 
                     // Parse the ReplayJson string into an array of events
-                    var events = JsonSerializer.Deserialize<object[]>(currentBattle.ReplayJson);
+                    object[]? events = null;
+                    try
+                    {
+                        events = JsonSerializer.Deserialize<object[]>(currentBattle.ReplayJson);
+                    }
+                    catch (JsonException ex)
+                    {
+                        Logger.LogError(ex, "Error parsing battle replay JSON: {Message}", ex.Message);
+                        errorMessage = "Erro ao processar dados da batalha.";
+                        showBattleAnimation = false;
+                        StateHasChanged();
+                        return;
+                    }
+
+                    if (events == null || events.Length == 0)
+                    {
+                        Logger.LogWarning("Battle replay contains no events");
+                        errorMessage = "Batalha não contém eventos para reproduzir.";
+                        showBattleAnimation = false;
+                        StateHasChanged();
+                        return;
+                    }
 
                     // Create battle data object with parsed events and dotNetRef
                     var battleData = new
