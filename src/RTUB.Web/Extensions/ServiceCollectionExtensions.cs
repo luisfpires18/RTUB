@@ -73,6 +73,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBetRepository, BetRepository>();
         services.AddScoped<IBetOptionRepository, BetOptionRepository>();
         services.AddScoped<IUserBetRepository, UserBetRepository>();
+        services.AddScoped<IFolderRepository, FolderRepository>();
+        services.AddScoped<IDocumentRepository, DocumentRepository>();
 
         return services;
     }
@@ -120,6 +122,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
         services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
         services.AddScoped<INaipeConfigService, NaipeConfigService>();
+        services.AddScoped<IDocumentationService, DocumentationService>();
 
         return services;
     }
