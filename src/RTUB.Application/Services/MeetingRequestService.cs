@@ -130,7 +130,7 @@ public class MeetingRequestService : IMeetingRequestService
         catch (Exception ex)
         {
             // Log error; notification failure must not break request creation
-            _logger.LogError(ex, "Failed to send push notifications for meeting request {RequestId} (Title: {Title})", 
+            _logger.LogError(ex, "Failed to send push notifications for meeting request {RequestId} (Title: {Title})",
                 createdRequest.Id, createdRequest.Title);
         }
 

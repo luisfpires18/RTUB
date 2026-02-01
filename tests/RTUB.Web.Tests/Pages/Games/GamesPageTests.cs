@@ -111,7 +111,7 @@ public class GamesPageTests : PageTestBase
         SetupAuthentication("leitao-user", "Leitao User");
         var leitaoUser = new ApplicationUser { UserName = "leitao-user" };
         leitaoUser.Categories.Add(MemberCategory.Leitao);
-        
+
         _mockUserManager
             .Setup(x => x.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
             .ReturnsAsync(leitaoUser);
@@ -138,7 +138,7 @@ public class GamesPageTests : PageTestBase
         SetupAuthentication("admin-user", "Admin User", "Admin");
         var adminUser = new ApplicationUser { UserName = "admin-user" };
         adminUser.Categories.Add(MemberCategory.Leitao); // Even if Leitao, admin sees all
-        
+
         _mockUserManager
             .Setup(x => x.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
             .ReturnsAsync(adminUser);

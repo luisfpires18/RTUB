@@ -357,10 +357,10 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
             Nickname = "TestUser",
             ImageUrl = "old-image-url.jpg"
         };
@@ -407,7 +407,7 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("ApplicationUser with ID invalid-user not found");
         _mockImageStorageService.Verify(x => x.UploadImageAsync(
-            It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -416,10 +416,10 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
             Nickname = "TestUser"
         };
         var newImageUrl = "new-image-url.jpg";
@@ -450,10 +450,10 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
             Nickname = "TestUser",
             ImageUrl = null // No existing image
         };

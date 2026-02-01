@@ -126,9 +126,9 @@ public class GameScoreService : IGameScoreService
     {
         if (scores == null) return new List<GameScoreDto>();
         if (string.IsNullOrWhiteSpace(searchTerm)) return scores.ToList();
-        
+
         var search = searchTerm.ToLower();
-        return scores.Where(s => 
+        return scores.Where(s =>
             (s.UserName?.ToLower().Contains(search) ?? false) ||
             (s.UserNickname?.ToLower().Contains(search) ?? false)
         ).ToList();

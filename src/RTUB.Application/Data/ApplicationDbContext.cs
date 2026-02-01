@@ -132,6 +132,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BetOption> BetOptions { get; set; }
     public DbSet<UserBet> UserBets { get; set; }
 
+    // Documentation DbSets
+    public DbSet<Folder> Folders { get; set; } = null!;
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<FolderViewer> FolderViewers { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -162,7 +167,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
-        
+
         // Track Created entities to update EntityId after SaveChanges
         // (EntityId is 0/null before save, gets assigned after)
         var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();

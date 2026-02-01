@@ -33,7 +33,7 @@ public class MemberMentorService : IMemberMentorService
         {
             availableMentors = eligibleMentors.Where(u => u.Id != excludeUserId).ToList();
         }
-        
+
         var searchHelper = new SearchHelper<ApplicationUser> { SearchTerm = searchTerm };
         return searchHelper.FilterMultiple(availableMentors.ToList(), new List<Func<ApplicationUser, string>>
         {

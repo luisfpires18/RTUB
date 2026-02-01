@@ -15,7 +15,7 @@ public class MemberHierarchyService : IMemberHierarchyService
     /// </summary>
     /// <param name="members">Collection of all members</param>
     /// <returns>Tuple containing (rootMembers, mentorToAfilhados mapping)</returns>
-    public (List<ApplicationUser> rootMembers, Dictionary<string, List<ApplicationUser>> mentorToAfilhados) 
+    public (List<ApplicationUser> rootMembers, Dictionary<string, List<ApplicationUser>> mentorToAfilhados)
         BuildHierarchy(IEnumerable<ApplicationUser> members)
     {
         // Load all members excluding Leitões (only show Caloiro, Tuno, Veterano, Tunossauro)
@@ -38,7 +38,7 @@ public class MemberHierarchyService : IMemberHierarchyService
             {
                 // Get the mentor using dictionary lookup (O(1) instead of O(n))
                 membersById.TryGetValue(member.MentorId, out var mentor);
-                
+
                 // Only add if mentor is Tuno, Veterano, or Tunossauro (not Caloiro)
                 if (mentor != null && mentor.IsTunoOrHigher())
                 {
@@ -53,14 +53,14 @@ public class MemberHierarchyService : IMemberHierarchyService
 
         // Find root members (those without mentors or whose mentor is not in the displayed list or not a valid Tuno mentor)
         var rootMembers = effectiveMembers
-            .Where(m => 
+            .Where(m =>
             {
                 if (string.IsNullOrEmpty(m.MentorId))
                     return true;
-                    
+
                 // Use dictionary lookup (O(1) instead of O(n))
                 membersById.TryGetValue(m.MentorId, out var mentor);
-                
+
                 // Include as root if mentor doesn't exist OR mentor is not a Tuno/Veterano/Tunossauro
                 return mentor == null || !mentor.IsTunoOrHigher();
             })

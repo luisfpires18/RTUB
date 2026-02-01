@@ -69,7 +69,7 @@ public class NotificationsPageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar destinatários", "page should show loading state initially");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult((IEnumerable<string>)new List<string>());
         cut.WaitForState(() => !cut.Markup.Contains("A carregar destinatários"), TimeSpan.FromSeconds(2));

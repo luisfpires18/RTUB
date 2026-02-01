@@ -44,7 +44,7 @@ public class AtaPdfService : IAtaPdfService
                    ata.Meeting?.Type == MeetingType.AssembleiaGeralExtraordinaria;
         var isCV = ata.Meeting?.Type == MeetingType.ConselhoVeteranos;
 
-        var document = Document.Create(container =>
+        var document = QuestPDF.Fluent.Document.Create(container =>
         {
             container.Page(page =>
             {

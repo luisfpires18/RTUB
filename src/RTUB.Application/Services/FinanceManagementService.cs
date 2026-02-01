@@ -26,7 +26,7 @@ public class FinanceManagementService : IFinanceManagementService
         ITransactionService transactionService)
     {
         var activityName = isBank ? "DINHEIRO NO BANCO" : "DINHEIRO EM CAIXA";
-        
+
         // Get or create the activity
         var activities = await activityService.GetActivitiesByReportIdAsync(reportId);
         var currentActivity = activities.FirstOrDefault(a => a.Name == activityName);
@@ -45,12 +45,12 @@ public class FinanceManagementService : IFinanceManagementService
 
         // Get existing transactions for this activity
         var existingTransactions = (await transactionService.GetTransactionsByActivityIdAsync(currentActivity.Id)).ToList();
-        
+
         // Best practice: Update existing transaction instead of delete+create to produce a single "Modified" audit log
         if (existingTransactions.Count == 1)
         {
             var existingTransaction = existingTransactions[0];
-            
+
             if (value == 0)
             {
                 // Delete the transaction if new value is zero
@@ -75,13 +75,13 @@ public class FinanceManagementService : IFinanceManagementService
         {
             // Multiple transactions exist - keep the first one and delete the rest, then update the first
             var transactionToKeep = existingTransactions[0];
-            
+
             // Delete extra transactions
             foreach (var t in existingTransactions.Skip(1))
             {
                 await transactionService.DeleteTransactionAsync(t.Id);
             }
-            
+
             if (value == 0)
             {
                 // Delete the remaining transaction if new value is zero

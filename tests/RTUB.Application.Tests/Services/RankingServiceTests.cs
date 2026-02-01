@@ -645,7 +645,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var startDate = DateTime.UtcNow.AddDays(-10);
         var endDate = DateTime.UtcNow.AddDays(-5);
-        
+
         // Create rehearsals within and outside the date range
         var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-8) }; // Within range
         var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(-3) }; // Outside range (too recent)
@@ -801,7 +801,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Arrange
         var userId = "new-leader";
         var previousLeaderId = "previous-leader";
-        
+
         var previousLeader = new ApplicationUser
         {
             Id = previousLeaderId,
@@ -830,7 +830,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Create enough attendances to surpass previous leader (need 11 rehearsals = 110 XP > 100)
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
         await _context.Rehearsals.AddAsync(rehearsal);
-        
+
         // Add 11 rehearsals to get 110 XP (surpassing previous leader's 100)
         for (int i = 1; i <= 11; i++)
         {
@@ -867,7 +867,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         newLeader.ExperiencePoints.Should().Be(110); // 11 rehearsals * 10 XP
         newLeader.Level.Should().Be(2); // 110 XP qualifies for level 2 (threshold 100)
         mockUserManager.Verify(x => x.UpdateAsync(newLeader), Times.Once);
-        
+
         // Verify notification was sent
         mockPushNotificationFactory.Verify(
             x => x.CreateLeaderboardFirstPlaceNotification("New Leader", 2, It.IsAny<string>()),
