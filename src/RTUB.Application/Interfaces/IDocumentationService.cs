@@ -31,6 +31,8 @@ public interface IDocumentationService
     /// Creates a new folder with automatic normalized key generation and collision handling
     /// </summary>
     /// <param name="displayName">The display name for the folder</param>
+    /// <param name="fiscalYear">The fiscal year for the folder (e.g., "2024-2025")</param>
+    /// <param name="environment">The environment name (e.g., "Production", "Development")</param>
     /// <param name="isSpecial">Whether this is a special folder with visibility restrictions</param>
     /// <param name="specialVisibility">The visibility level for special folders</param>
     /// <param name="createdByUserId">The ID of the user creating the folder</param>
@@ -38,6 +40,8 @@ public interface IDocumentationService
     /// <returns>The created folder</returns>
     Task<Folder> CreateFolderAsync(
         string displayName,
+        string fiscalYear,
+        string environment,
         bool isSpecial = false,
         SpecialVisibility? specialVisibility = null,
         string? createdByUserId = null,

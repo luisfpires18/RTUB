@@ -14,6 +14,7 @@
 @using Microsoft.Extensions.Hosting
 @using RTUB.Shared.Base
 @attribute [Authorize]
+@inject IDocumentationService DocumentationService
 @inject IDocumentStorageService DocumentStorageService
 @inject IFiscalYearService FiscalYearService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -75,23 +76,21 @@ else
     
     @foreach (var folder in paginatedFolders)
     {
-        var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folder}";
-        var allDocuments = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
+        var folderPath = folderIdToDetails.ContainsKey(folder.Id) ? folderIdToDetails[folder.Id].FolderPath : "";
+        var allDocuments = folderDocuments.ContainsKey(folder.Id) ? folderDocuments[folder.Id] : new List<DocumentMetadata>();
         var isFirstFolder = paginatedFolders.IndexOf(folder) == 0;
         
         // Get pagination state for this folder
-        var paginationState = GetOrCreatePaginationState(folder);
+        var paginationState = GetOrCreatePaginationState(folder.Id);
         
         // Calculate paginated documents
         var docSkip = (paginationState.CurrentPage - 1) * paginationState.PageSize;
         var documents = allDocuments.Skip(docSkip).Take(paginationState.PageSize).ToList();
         
-        // Extract display name for the folder (for Logistics, show just the board name)
-        var displayFolderName = folder.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase) 
-            ? folder.Substring("Logistics/".Length) 
-            : folder;
+        // Use the folder's DisplayName for rendering
+        var displayFolderName = folder.DisplayName;
         
-        <FolderCard @key="folder"
+        <FolderCard @key="folder.Id"
                    FolderName="@displayFolderName"
                    FolderPath="@folderPath"
                    Documents="@documents"
@@ -111,8 +110,8 @@ else
                                 TotalItems="@allDocuments.Count"
                                 ItemLabel="documentos"
                                 PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
-                                OnPageChanged="@(page => HandlePageChanged(folder, page))"
-                                OnPageSizeChanged="@(size => HandlePageSizeChanged(folder, size))" />
+                                OnPageChanged="@(page => HandlePageChanged(folder.Id, page))"
+                                OnPageSizeChanged="@(size => HandlePageSizeChanged(folder.Id, size))" />
             </div>
         }
     }
@@ -153,7 +152,7 @@ else
                    @bind="newFolderName"
                    @bind:event="oninput"
                    maxlength="50" />
-            <div class="form-text">Apenas letras, números, espaços e hífens são permitidos.</div>
+            <div class="form-text">Pode usar qualquer nome. Será automaticamente normalizado para armazenamento.</div>
         </div>
     </BodyContent>
     <FooterContent>
@@ -259,9 +258,9 @@ else
     private string errorMessage = "";
     private ApplicationUser? currentUser;
     
-    private List<string> folders = new();
-    private List<string> allFolders = new(); // Store all folders before filtering
-    private Dictionary<string, List<DocumentMetadata>> folderDocuments = new();
+    private List<Folder> folders = new();
+    private List<Folder> allFolders = new(); // Store all folders before filtering
+    private Dictionary<int, List<DocumentMetadata>> folderDocuments = new();
     
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -271,7 +270,7 @@ else
         .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
     
     // Per-folder pagination state (for documents within folders)
-    private Dictionary<string, FolderPaginationState> folderPaginationStates = new();
+    private Dictionary<int, FolderPaginationState> folderPaginationStates = new();
     
     // Folder list pagination state
     private int currentFolderPage = 1;
@@ -307,48 +306,12 @@ else
     private bool showDeleteFolderDialog = false;
     private string? folderToDelete;
     
-    // Mapping from display name to actual folder path (for Logistics subfolders)
-    private Dictionary<string, string> displayNameToFolderPath = new();
+    // Mapping from folder ID to folder details for efficient lookup
+    private Dictionary<int, (string DisplayName, string FolderPath)> folderIdToDetails = new();
     
     // Allowed file extensions
     private readonly string[] allowedExtensions = { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
     private const long maxFileSize = 50 * 1024 * 1024; // 50 MB
-
-    /// <summary>
-    /// Filters folders based on visibility rules (same logic as meetings page)
-    /// - Atas CV folders: Visible to Veterano, Tunossauro, and Magister
-    /// - Atas AG folders: Visible to all except Leitão
-    /// - Other folders: Visible to all (no filtering)
-    /// </summary>
-    private IEnumerable<string> FilterFoldersByVisibility(List<string> folderList)
-    {
-        if (currentUser == null || isAdmin || isMod)
-        {
-            // Admins and mods see everything
-            return folderList;
-        }
-
-        return folderList.Where(folder =>
-        {
-            // Check if folder is an ATA folder
-            if (folder.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase))
-            {
-                // CV folders: Veterano + Tunossauro + Magister (same logic as meetings page)
-                var role = currentUser.CurrentRole;
-                return role == "VETERANO" || 
-                       role == "TUNOSSAURO" || 
-                       (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
-            }
-            else if (folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
-            {
-                // AG folders: All except Leitão (same logic as meetings page)
-                return !currentUser.IsLeitao();
-            }
-            
-            // Other folders: visible to all
-            return true;
-        });
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -398,58 +361,56 @@ else
     {
         try
         {
-            // Load folders for the selected fiscal year
+            // Get visible folders from the database using DocumentationService
+            var visibleFolders = await DocumentationService.GetVisibleFoldersAsync(currentUser!, isAdmin, isMod);
+            
+            // Store all folders (for reference)
+            allFolders = visibleFolders.ToList();
+            
+            // Filter folders by fiscal year using NormalizedKey
+            // NormalizedKey should contain the fiscal year path: docs/{env}/{fiscalYear}/{folderName}
             var fiscalYearPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/";
-            var baseFolders = await DocumentStorageService.ListSubfoldersAsync(fiscalYearPath);
+            folders = allFolders
+                .Where(f => f.NormalizedKey.StartsWith(fiscalYearPath, StringComparison.OrdinalIgnoreCase))
+                .ToList();
             
-            // Expand Logistics folder into individual board name folders
-            var expandedFolders = new List<string>();
-            var logisticsSubfolders = new List<string>();
-            
-            foreach (var folder in baseFolders)
-            {
-                if (folder.Equals("Logistics", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Get board name subfolders within Logistics
-                    var logisticsPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/Logistics/";
-                    logisticsSubfolders = await DocumentStorageService.ListSubfoldersAsync(logisticsPath);
-                    
-                    // Add each board name as its own folder entry
-                    foreach (var subfolder in logisticsSubfolders)
-                    {
-                        expandedFolders.Add($"Logistics/{subfolder}");
-                    }
-                }
-                else
-                {
-                    expandedFolders.Add(folder);
-                }
-            }
-            
-            allFolders = expandedFolders;
-            
-            // Filter folders based on visibility rules (same as meetings page)
-            folders = FilterFoldersByVisibility(expandedFolders).ToList();
-            
-            // Load documents for all visible folders in parallel (eliminates N+1 Cloudflare API calls)
+            // Clear previous documents
             folderDocuments.Clear();
+            folderIdToDetails.Clear();
             
+            // Load documents for all visible folders in parallel
             var documentTasks = folders.Select(async folder =>
             {
-                var documents = new List<DocumentMetadata>();
-                var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folder}";
-                var folderDocs = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
-                documents.AddRange(folderDocs);
+                var documents = await DocumentationService.GetDocumentsByFolderIdAsync(folder.Id, currentUser!, isAdmin);
                 
-                return new { Folder = folder, Documents = documents };
+                // Convert Document entities to DocumentMetadata DTOs
+                var documentMetadataList = documents.Select(doc => new DocumentMetadata
+                {
+                    FileName = doc.DisplayName,
+                    FilePath = doc.ObjectKey, // Use ObjectKey as FilePath for storage operations
+                    SizeBytes = doc.SizeBytes,
+                    LastModified = doc.CreatedAt,
+                    Extension = Path.GetExtension(doc.DisplayName)
+                }).ToList();
+                
+                // Build folder path for UI (reconstruct from NormalizedKey)
+                var folderPath = folder.NormalizedKey;
+                
+                // Extract display name (remove the path prefix for Logistics folders)
+                var displayName = folder.DisplayName;
+                
+                // Store folder details
+                folderIdToDetails[folder.Id] = (displayName, folderPath);
+                
+                return new { Folder = folder, Documents = documentMetadataList };
             });
             
             var results = await Task.WhenAll(documentTasks);
             
-            // Documents are now stored in fiscal year folders, so no date filtering needed
+            // Store documents by folder ID
             foreach (var result in results)
             {
-                folderDocuments[result.Folder] = result.Documents.ToList();
+                folderDocuments[result.Folder.Id] = result.Documents;
             }
         }
         catch (Exception ex)
@@ -492,26 +453,36 @@ else
             return;
         }
         
-        // Validate folder name (only alphanumeric, spaces, and hyphens)
-        if (!System.Text.RegularExpressions.Regex.IsMatch(newFolderName, @"^[a-zA-Z0-9\s\-]+$"))
-        {
-            createFolderError = "O nome da pasta só pode conter letras, números, espaços e hífens.";
-            return;
-        }
-        
-        // Check if folder already exists
-        if (folders.Contains(newFolderName))
-        {
-            createFolderError = "Uma pasta com este nome já existe.";
-            return;
-        }
-        
         try
         {
             await SetAuditContextToCurrentUser();
-            var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
-            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{fiscalYear}/{newFolderName}";
-            await DocumentStorageService.CreateFolderAsync(folderPath);
+            
+            // Get current user info for audit
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userName = authState.User.Identity?.Name;
+            
+            // Create folder in database with full path in NormalizedKey
+            var folder = await DocumentationService.CreateFolderAsync(
+                displayName: newFolderName,
+                fiscalYear: selectedFiscalYear,
+                environment: HostEnvironment.EnvironmentName,
+                isSpecial: false,
+                specialVisibility: null,
+                createdByUserId: userId,
+                createdByUserName: userName);
+            
+            // Create the folder in Cloudflare using the NormalizedKey (which now contains full path)
+            try
+            {
+                await DocumentStorageService.CreateFolderAsync(folder.NormalizedKey);
+            }
+            catch (Exception ex)
+            {
+                // If Cloudflare fails, rollback the DB entry
+                await DocumentationService.DeleteFolderAsync(folder.Id);
+                throw new Exception($"Falha ao criar pasta no armazenamento: {ex.Message}");
+            }
             
             // Reload folders
             await LoadDocumentation();
@@ -594,12 +565,38 @@ else
         {
             await SetAuditContextToCurrentUser();
             
+            // Get current user info for audit
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userName = authState.User.Identity?.Name;
+            
             // Get content type
             var contentType = selectedFile.ContentType;
             
-            // Upload the file
+            // Upload the file to Cloudflare first
             using var stream = selectedFile.OpenReadStream(maxFileSize);
             await DocumentStorageService.UploadDocumentAsync(selectedFolderPath, selectedFile.Name, stream, contentType);
+            
+            // Construct the Cloudflare URL (following the existing pattern)
+            var objectKey = $"{selectedFolderPath.TrimEnd('/')}/{selectedFile.Name}";
+            var cloudflareUrl = await DocumentStorageService.GetDocumentUrlAsync(objectKey);
+            
+            // Find the folder in DB by matching the NormalizedKey to selectedFolderPath
+            var folder = folders.FirstOrDefault(f => f.NormalizedKey.Equals(selectedFolderPath, StringComparison.OrdinalIgnoreCase));
+            
+            if (folder != null)
+            {
+                // Create document entry in database
+                await DocumentationService.CreateDocumentAsync(
+                    folder.Id,
+                    selectedFile.Name,
+                    cloudflareUrl ?? objectKey, // Use URL if available, otherwise use objectKey
+                    objectKey,
+                    selectedFile.Size,
+                    contentType,
+                    userId,
+                    userName);
+            }
             
             uploadSuccess = $"Ficheiro '{selectedFile.Name}' carregado com sucesso!";
             
@@ -652,6 +649,32 @@ else
         try
         {
             await SetAuditContextToCurrentUser();
+            
+            // Find the document in the database by ObjectKey (which is stored as FilePath in DocumentMetadata)
+            Document? documentEntity = null;
+            foreach (var folderKvp in folderDocuments)
+            {
+                var matchingDoc = folderKvp.Value.FirstOrDefault(d => d.FilePath == documentToDelete.FilePath);
+                if (matchingDoc != null)
+                {
+                    // Get the actual document entity from the database
+                    var folder = folders.FirstOrDefault(f => f.Id == folderKvp.Key);
+                    if (folder != null)
+                    {
+                        var docs = await DocumentationService.GetDocumentsByFolderIdAsync(folder.Id, currentUser!, isAdmin);
+                        documentEntity = docs.FirstOrDefault(d => d.ObjectKey == documentToDelete.FilePath);
+                        break;
+                    }
+                }
+            }
+            
+            if (documentEntity != null)
+            {
+                // Delete from database first
+                await DocumentationService.DeleteDocumentAsync(documentEntity.Id);
+            }
+            
+            // Delete from Cloudflare storage
             await DocumentStorageService.DeleteDocumentAsync(documentToDelete.FilePath);
             
             // Reload all documentation to apply fiscal year filters consistently
@@ -687,26 +710,26 @@ else
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
     }
     
-    private FolderPaginationState GetOrCreatePaginationState(string folder)
+    private FolderPaginationState GetOrCreatePaginationState(int folderId)
     {
-        if (!folderPaginationStates.ContainsKey(folder))
+        if (!folderPaginationStates.ContainsKey(folderId))
         {
-            folderPaginationStates[folder] = new FolderPaginationState();
+            folderPaginationStates[folderId] = new FolderPaginationState();
         }
-        return folderPaginationStates[folder];
+        return folderPaginationStates[folderId];
     }
     
-    private Task HandlePageChanged(string folder, int page)
+    private Task HandlePageChanged(int folderId, int page)
     {
-        var state = GetOrCreatePaginationState(folder);
+        var state = GetOrCreatePaginationState(folderId);
         state.CurrentPage = page;
         StateHasChanged();
         return Task.CompletedTask;
     }
     
-    private Task HandlePageSizeChanged(string folder, int size)
+    private Task HandlePageSizeChanged(int folderId, int size)
     {
-        var state = GetOrCreatePaginationState(folder);
+        var state = GetOrCreatePaginationState(folderId);
         state.PageSize = size;
         state.CurrentPage = 1; // Reset to first page when changing page size
         StateHasChanged();
@@ -730,14 +753,18 @@ else
     
     private void HandleFolderDeleteRequest(string displayFolderName)
     {
-        // Look up the actual folder path from the display name
-        // Display names for Logistics folders strip "Logistics/" prefix
-        var actualFolder = folders.FirstOrDefault(f => 
-            f == displayFolderName || 
-            (f.StartsWith("Logistics/", StringComparison.OrdinalIgnoreCase) && 
-             f.Substring("Logistics/".Length).Equals(displayFolderName, StringComparison.OrdinalIgnoreCase)));
+        // Find the actual folder by display name
+        var folder = folders.FirstOrDefault(f => f.DisplayName.Equals(displayFolderName, StringComparison.OrdinalIgnoreCase));
         
-        folderToDelete = actualFolder ?? displayFolderName;
+        if (folder != null)
+        {
+            folderToDelete = folder.DisplayName;
+        }
+        else
+        {
+            folderToDelete = displayFolderName;
+        }
+        
         showDeleteFolderDialog = true;
     }
     
@@ -749,8 +776,18 @@ else
         try
         {
             await SetAuditContextToCurrentUser();
-            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{selectedFiscalYear}/{folderToDelete}";
-            await DocumentStorageService.DeleteFolderAsync(folderPath);
+            
+            // Find the folder by display name
+            var folder = folders.FirstOrDefault(f => f.DisplayName.Equals(folderToDelete, StringComparison.OrdinalIgnoreCase));
+            
+            if (folder != null)
+            {
+                // Delete from database first
+                await DocumentationService.DeleteFolderAsync(folder.Id);
+                
+                // Delete from Cloudflare storage
+                await DocumentStorageService.DeleteFolderAsync(folder.NormalizedKey);
+            }
             
             // Reload folders
             await LoadDocumentation();

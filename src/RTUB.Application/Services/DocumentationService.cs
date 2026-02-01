@@ -64,26 +64,31 @@ public class DocumentationService : IDocumentationService
 
     public async Task<Folder> CreateFolderAsync(
         string displayName,
+        string fiscalYear,
+        string environment,
         bool isSpecial = false,
         SpecialVisibility? specialVisibility = null,
         string? createdByUserId = null,
         string? createdByUserName = null)
     {
-        // Generate normalized key
-        var normalizedKey = S3KeyNormalizer.NormalizeForS3Key(displayName);
-
-        // Handle collision detection
-        normalizedKey = await EnsureUniqueNormalizedKeyAsync(normalizedKey);
+        // Normalize only the folder name part
+        var normalizedFolderName = S3KeyNormalizer.NormalizeForS3Key(displayName);
+        
+        // Construct full path for NormalizedKey
+        var fullPath = $"docs/{environment}/{fiscalYear}/{normalizedFolderName}";
+        
+        // Handle collision detection with full path
+        fullPath = await EnsureUniqueNormalizedKeyAsync(fullPath);
 
         // Create folder using factory method
         Folder folder;
         if (isSpecial && specialVisibility.HasValue)
         {
-            folder = Folder.CreateSpecial(displayName, normalizedKey, specialVisibility.Value, createdByUserId, createdByUserName);
+            folder = Folder.CreateSpecial(displayName, fullPath, specialVisibility.Value, createdByUserId, createdByUserName);
         }
         else
         {
-            folder = Folder.Create(displayName, normalizedKey, createdByUserId, createdByUserName);
+            folder = Folder.Create(displayName, fullPath, createdByUserId, createdByUserName);
         }
 
         return await _folderRepository.AddAsync(folder);
