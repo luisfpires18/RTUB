@@ -353,14 +353,19 @@
             const targetX = startX + direction * lungeOffset;
             const targetY = startY - 15;
 
-            // Attacker lunge animation - use chained tweens instead of timeline
+            const damageValue = damage ?? 0;
+            const isCritical = damageValue > 25; // Detect critical hits (higher damage)
+
+            // Enhanced attacker lunge animation with variable speed based on attack strength
+            const lungeDuration = isCritical ? 150 : 200;
             this.tweens.add({
                 targets: attacker.sprite,
                 x: targetX,
                 y: targetY,
-                angle: direction * 12,
-                duration: 200,
-                ease: 'Power2',
+                angle: direction * (isCritical ? 18 : 12),
+                scale: attacker.sprite.scaleX * (isCritical ? 1.1 : 1),
+                duration: lungeDuration,
+                ease: 'Power3',
                 onComplete: () => {
                     // Return to original position
                     this.tweens.add({
@@ -368,35 +373,68 @@
                         x: startX,
                         y: startY,
                         angle: 0,
+                        scale: attacker.sprite.scaleX / (isCritical ? 1.1 : 1),
                         duration: 240,
-                        ease: 'Power2'
+                        ease: 'Back.Out'
                     });
                 }
             });
 
-            defender.sprite.setTintFill(0xff5555);
+            // Enhanced defender hit reaction
+            const defenderTintColor = isCritical ? 0xff0000 : 0xff5555;
+            defender.sprite.setTintFill(defenderTintColor);
             this.time.delayedCall(200, () => defender.sprite.clearTint());
 
             const defenderStartX = defender.sprite.x;
+            const recoilDistance = isCritical ? 30 : 20;
             this.tweens.add({
                 targets: defender.sprite,
-                x: defenderStartX + direction * 20,
+                x: defenderStartX + direction * recoilDistance,
                 yoyo: true,
-                duration: 120,
+                duration: isCritical ? 100 : 120,
                 ease: 'Back.Out'
             });
 
-            const impact = this.add.circle(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.4, 18, 0xffd54f, 0.9);
+            // Screen shake for critical hits
+            if (isCritical && this.cameras && this.cameras.main) {
+                this.cameras.main.shake(150, 0.006);
+            }
+
+            // Enhanced impact visual with particles for critical hits
+            const impactX = defender.sprite.x;
+            const impactY = defender.sprite.y - defender.sprite.displayHeight * 0.4;
+            
+            if (isCritical) {
+                // Create particle burst for critical hits
+                const particles = this.add.particles(impactX, impactY, 'attackerSprite', {
+                    speed: { min: 50, max: 150 },
+                    angle: { min: 0, max: 360 },
+                    scale: { start: 0.3, end: 0 },
+                    alpha: { start: 1, end: 0 },
+                    tint: [0xffff00, 0xff9900, 0xff0000],
+                    lifespan: 400,
+                    quantity: 12,
+                    blendMode: 'ADD'
+                });
+                this.time.delayedCall(400, () => particles.destroy());
+            }
+
+            // Impact flash
+            const impactColor = isCritical ? 0xffff00 : 0xffd54f;
+            const impactSize = isCritical ? 25 : 18;
+            const impact = this.add.circle(impactX, impactY, impactSize, impactColor, 0.9);
             this.tweens.add({
                 targets: impact,
                 alpha: 0,
-                scale: 1.6,
-                duration: 300,
+                scale: isCritical ? 2.2 : 1.6,
+                duration: isCritical ? 400 : 300,
                 onComplete: () => impact.destroy()
             });
 
+            // Enhanced slash effect
             const slash = this.add.graphics();
-            slash.lineStyle(4, 0xffffff, 0.8);
+            const slashColor = isCritical ? 0xffff00 : 0xffffff;
+            slash.lineStyle(isCritical ? 6 : 4, slashColor, 0.9);
             slash.beginPath();
             slash.moveTo(attacker.sprite.x, attacker.sprite.y - attacker.sprite.displayHeight * 0.5);
             slash.lineTo(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.5);
@@ -404,32 +442,47 @@
             this.tweens.add({
                 targets: slash,
                 alpha: 0,
-                duration: 200,
+                duration: isCritical ? 250 : 200,
                 onComplete: () => slash.destroy()
             });
 
-            const damageValue = damage ?? 0;
-            const damageText = this.add.text(defender.sprite.x, defender.sprite.y - defender.sprite.displayHeight * 0.6, `-${damageValue}`, {
-                fontFamily: 'Arial',
-                fontSize: '24px',
-                fontStyle: 'bold',
-                color: '#ff4444'
-            }).setOrigin(0.5, 0.5);
+            // Enhanced damage text with critical styling
+            const damageText = this.add.text(
+                defender.sprite.x, 
+                defender.sprite.y - defender.sprite.displayHeight * 0.6, 
+                isCritical ? `CRIT! -${damageValue}` : `-${damageValue}`, 
+                {
+                    fontFamily: 'Arial',
+                    fontSize: isCritical ? '28px' : '24px',
+                    fontStyle: 'bold',
+                    color: isCritical ? '#ffff00' : '#ff4444',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5, 0.5);
 
             this.tweens.add({
                 targets: damageText,
-                y: damageText.y - 30,
+                y: damageText.y - (isCritical ? 80 : 60),
                 alpha: 0,
-                duration: 900,
+                scale: isCritical ? 1.3 : 1.1,
+                duration: isCritical ? 1000 : 800,
+                ease: 'Power2',
                 onComplete: () => damageText.destroy()
             });
 
-            const attackerText = this.add.text(attacker.sprite.x, attacker.sprite.y - attacker.sprite.displayHeight * 0.6, `+${damageValue}`, {
-                fontFamily: 'Arial',
-                fontSize: '18px',
-                fontStyle: 'bold',
-                color: '#4caf50'
-            }).setOrigin(0.5, 0.5);
+            // Show attacker gains (small "+X" for attacker)
+            const attackerText = this.add.text(
+                attacker.sprite.x, 
+                attacker.sprite.y - attacker.sprite.displayHeight * 0.6, 
+                `+${damageValue}`, 
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '18px',
+                    fontStyle: 'bold',
+                    color: '#4caf50'
+                }
+            ).setOrigin(0.5, 0.5);
 
             this.tweens.add({
                 targets: attackerText,
@@ -443,30 +496,126 @@
         playKo(character) {
             const target = character === 'Defender' ? this.characterSprites.defender : this.characterSprites.attacker;
             if (!target) return;
+            
+            // Enhanced KO animation with fall effect
             this.tweens.add({
                 targets: target.sprite,
                 alpha: 0.4,
-                duration: 400,
-                ease: 'Power2'
+                angle: character === 'Defender' ? 90 : -90,
+                y: target.sprite.y + 30,
+                duration: 600,
+                ease: 'Bounce.Out'
             });
+            
+            // Add "K.O." text above defeated character
+            const koText = this.add.text(
+                target.sprite.x,
+                target.sprite.y - target.sprite.displayHeight - 30,
+                'K.O.!',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '36px',
+                    fontStyle: 'bold',
+                    color: '#ff0000',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5, 0.5).setAlpha(0);
+            
+            this.tweens.add({
+                targets: koText,
+                alpha: 1,
+                scale: { from: 0.5, to: 1.5 },
+                duration: 400,
+                ease: 'Back.Out',
+                yoyo: true,
+                hold: 400,
+                onComplete: () => koText.destroy()
+            });
+            
+            // Screen flash on KO
+            if (this.cameras && this.cameras.main) {
+                this.cameras.main.flash(300, 255, 0, 0);
+            }
         }
 
         showVictory(winner) {
-            const text = this.add.text(this.scale.width / 2, this.scale.height / 2, `${winner} vence!`, {
-                fontFamily: 'Arial',
-                fontSize: '32px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                padding: { x: 16, y: 8 }
-            }).setOrigin(0.5, 0.5);
+            const isAttackerWinner = winner === 'Attacker' || winner === this.attackerName;
+            const winnerSprite = isAttackerWinner ? this.characterSprites.attacker : this.characterSprites.defender;
+            
+            // Winner celebration animation
+            if (winnerSprite) {
+                this.tweens.add({
+                    targets: winnerSprite.sprite,
+                    y: winnerSprite.sprite.y - 20,
+                    yoyo: true,
+                    repeat: 3,
+                    duration: 200,
+                    ease: 'Sine.InOut'
+                });
+            }
+            
+            // Victory text with enhanced animation
+            const victoryText = this.add.text(
+                this.scale.width / 2, 
+                this.scale.height / 2 - 50, 
+                `${winner} vence!`, 
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '48px',
+                    fontStyle: 'bold',
+                    color: '#ffd700',
+                    stroke: '#000000',
+                    strokeThickness: 6,
+                    shadow: {
+                        offsetX: 3,
+                        offsetY: 3,
+                        color: '#000000',
+                        blur: 5,
+                        fill: true
+                    }
+                }
+            ).setOrigin(0.5, 0.5).setAlpha(0).setScale(0.5);
 
             this.tweens.add({
-                targets: text,
+                targets: victoryText,
+                alpha: 1,
+                scale: 1.2,
+                duration: 400,
+                ease: 'Back.Out'
+            });
+            
+            // Confetti/celebration particles
+            if (winnerSprite) {
+                const particles = this.add.particles(
+                    this.scale.width / 2, 
+                    this.scale.height / 2 - 100, 
+                    'attackerSprite', 
+                    {
+                        speed: { min: 100, max: 250 },
+                        angle: { min: 0, max: 360 },
+                        scale: { start: 0.4, end: 0 },
+                        alpha: { start: 1, end: 0 },
+                        tint: [0xffd700, 0xffa500, 0xffff00, 0xff69b4],
+                        lifespan: 1500,
+                        quantity: 3,
+                        frequency: 100,
+                        blendMode: 'ADD'
+                    }
+                );
+                
+                this.time.delayedCall(2000, () => particles.destroy());
+            }
+
+            // Fade out victory text
+            this.tweens.add({
+                targets: victoryText,
                 alpha: 0,
-                duration: 1600,
-                delay: 800,
-                onComplete: () => text.destroy()
+                y: victoryText.y - 30,
+                duration: 800,
+                delay: 1200,
+                ease: 'Power2',
+                onComplete: () => victoryText.destroy()
             });
         }
 
