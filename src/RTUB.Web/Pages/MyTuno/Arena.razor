@@ -153,7 +153,7 @@
 
         <!-- Battle History -->
         <div class="card">
-            <div class="card-header bg-dark text-white">
+            <div class="card-header bg-dark text-white text-center">
                 <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Histórico de Batalhas</h5>
             </div>
             <div class="card-body">
@@ -327,6 +327,12 @@
         {
             // Use the new random opponent selection method
             opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 4);
+            
+            // Ensure all enemies have full HP (AI always starts fresh)
+            foreach (var opponent in opponentCharacters)
+            {
+                opponent.CurrentHP = opponent.TotalHP;
+            }
         }
         catch (Exception ex)
         {
