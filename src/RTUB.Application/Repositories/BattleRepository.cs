@@ -61,51 +61,49 @@ public class BattleRepository : Repository<Battle>, IBattleRepository
 
     public async Task<List<MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count)
     {
-        var winsQuery = _context.Battles
-            .Where(b => b.Outcome == BattleOutcome.AttackerWon || b.Outcome == BattleOutcome.DefenderWon)
-            .Select(b => new
-            {
-                WinnerId = b.Outcome == BattleOutcome.AttackerWon ? b.AttackerCharacterId : b.DefenderCharacterId
-            })
-            .GroupBy(b => b.WinnerId)
-            .Select(group => new
-            {
-                CharacterId = group.Key,
-                Wins = group.Count()
-            });
-
-        var leaderboardData = await _context.Characters
+        // First, get all characters with their user information
+        var characters = await _context.Characters
             .AsNoTracking()
             .Include(c => c.User)
-            .GroupJoin(winsQuery, character => character.Id, win => win.CharacterId,
-                (character, wins) => new { character, wins })
-            .SelectMany(entry => entry.wins.DefaultIfEmpty(),
-                (entry, win) => new
-                {
-                    entry.character.Id,
-                    entry.character.UserId,
-                    DisplayName = entry.character.User.Nickname ?? entry.character.User.UserName ?? "Jogador",
-                    entry.character.User.ImageUrl,
-                    Wins = win != null ? win.Wins : 0,
-                    entry.character.Level
-                })
+            .Select(c => new
+            {
+                c.Id,
+                c.UserId,
+                DisplayName = c.User.Nickname ?? c.User.UserName ?? "Jogador",
+                c.User.ImageUrl,
+                c.Level
+            })
+            .ToListAsync();
+
+        // Second, calculate wins for each character from battles
+        var winsData = await _context.Battles
+            .Where(b => b.Outcome == BattleOutcome.AttackerWon || b.Outcome == BattleOutcome.DefenderWon)
+            .Select(b => b.Outcome == BattleOutcome.AttackerWon ? b.AttackerCharacterId : b.DefenderCharacterId)
+            .ToListAsync();
+
+        // Group and count wins in memory
+        var winsByCharacter = winsData
+            .GroupBy(characterId => characterId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // Combine characters with their wins and sort
+        var leaderboard = characters
+            .Select(c => new MyTunoLeaderboardEntry
+            {
+                CharacterId = c.Id,
+                UserId = c.UserId,
+                DisplayName = c.DisplayName,
+                AvatarUrl = c.ImageUrl,
+                Wins = winsByCharacter.ContainsKey(c.Id) ? winsByCharacter[c.Id] : 0,
+                Level = c.Level
+            })
             .OrderByDescending(entry => entry.Wins)
             .ThenByDescending(entry => entry.Level)
             .ThenBy(entry => entry.DisplayName)
             .Take(count)
-            .ToListAsync();
-
-        return leaderboardData
-            .Select(entry => new MyTunoLeaderboardEntry
-            {
-                CharacterId = entry.Id,
-                UserId = entry.UserId,
-                DisplayName = entry.DisplayName,
-                AvatarUrl = entry.ImageUrl,
-                Wins = entry.Wins,
-                Level = entry.Level
-            })
             .ToList();
+
+        return leaderboard;
     }
 
     public async Task<List<Battle>> GetBattlesBetweenCharactersAsync(int attackerId, int defenderId, TimeSpan? withinTimeSpan = null)
