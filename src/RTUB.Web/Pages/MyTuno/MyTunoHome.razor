@@ -673,7 +673,7 @@
     
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
-    private int leaderboardPageSize = 5;
+    private int leaderboardPageSize = 6;
     private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
         .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
         .Take(leaderboardPageSize)
