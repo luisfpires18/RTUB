@@ -26,11 +26,14 @@
             return [];
         }
         
+        // Check for EventsJson with different casings (JSInterop might change casing)
+        const eventsJson = battleData.EventsJson ?? battleData.eventsJson ?? battleData.eventsjson;
+        
         // If EventsJson is provided as a JSON string, parse it
-        if (battleData.EventsJson && typeof battleData.EventsJson === 'string') {
-            console.log('Parsing EventsJson string, length:', battleData.EventsJson.length);
+        if (eventsJson && typeof eventsJson === 'string') {
+            console.log('Parsing EventsJson string, length:', eventsJson.length);
             try {
-                const parsed = JSON.parse(battleData.EventsJson);
+                const parsed = JSON.parse(eventsJson);
                 console.log('Parsed events count:', parsed.length);
                 return parsed;
             } catch (e) {
