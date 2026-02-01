@@ -412,12 +412,13 @@ else
     {
         try
         {
-            // Check if user is admin, mod, or owner
+            // Check user roles
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             isMod = authState.User.IsInRole("Mod");
             isAdmin = authState.User.IsInRole("Admin");
             isOwner = authState.User.IsInRole("Owner");
-            canDoAction = isOwner || isMod || isAdmin;
+            // Only Owner can perform administrative actions (create/upload/delete folders and documents)
+            canDoAction = isOwner;
             
             // Get current user for visibility checks
             currentUser = await UserManager.GetUserAsync(authState.User);
