@@ -233,6 +233,7 @@
     private int? fightingOpponentId = null;
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
+    private bool hasRendered = false; // Track if component has rendered interactively
 
     // Pagination
     private int currentPage = 1;
@@ -254,7 +255,11 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Phaser is loaded globally via script tag in MainLayout
-        // No need to import module here
+        // Mark that the component has been rendered interactively
+        if (firstRender)
+        {
+            hasRendered = true;
+        }
     }
 
     private async Task LoadDataAsync()
@@ -457,14 +462,23 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
+        // Only attempt JS calls if the component has been rendered interactively
+        if (hasRendered)
         {
-            await JSRuntime.InvokeVoidAsync("myTunoGame.destroyBattle");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("myTunoGame.destroyBattle");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore if JS context is disconnected
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore if JS interop is not available (e.g., during static rendering)
+            }
         }
-        catch (JSDisconnectedException)
-        {
-            // Ignore if JS context is disconnected
-        }
+        
         objRef?.Dispose();
     }
 }
