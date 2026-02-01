@@ -21,6 +21,12 @@ public class Character : BaseEntity
     public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
     public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
     public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
+    
+    // Current HP (null means full HP, for backwards compatibility)
+    public int? CurrentHP { get; set; } = null;
+
+    // HP constants
+    private const int MinHP = 0;
 
     // Upgrade Counts (for cost calculation)
     public int HpUpgrades { get; set; } = MyTunoScaling.InitialHpUpgrades;
@@ -35,15 +41,15 @@ public class Character : BaseEntity
     // Stats scale with level: base stats increase by 10% per level
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalHP => (int)(HP * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (HpUpgrades * MyTunoScaling.HpUpgradeBonus);
+        + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalPower => (int)(Power * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
+        + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
+        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance =>
@@ -129,5 +135,42 @@ public class Character : BaseEntity
     public void UpgradeCriticalChance()
     {
         CriticalUpgrades++;
+    }
+
+    /// <summary>
+    /// Takes damage and updates CurrentHP
+    /// </summary>
+    public void TakeDamage(int damage)
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        currentHp -= damage;
+        CurrentHP = Math.Max(MinHP, currentHp);
+    }
+
+    /// <summary>
+    /// Heals the character and updates CurrentHP
+    /// </summary>
+    public void Heal(int amount)
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        currentHp += amount;
+        CurrentHP = Math.Min(TotalHP, currentHp);
+    }
+
+    /// <summary>
+    /// Sets HP to maximum
+    /// </summary>
+    public void RestoreHP()
+    {
+        CurrentHP = TotalHP;
+    }
+
+    /// <summary>
+    /// Checks if character is alive
+    /// </summary>
+    public bool IsAlive()
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        return currentHp > MinHP;
     }
 }

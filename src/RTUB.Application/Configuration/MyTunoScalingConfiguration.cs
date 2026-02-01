@@ -37,5 +37,5 @@ public class MyTunoUpgrades
 public class MyTunoUpgradeStat
 {
     public int InitialBought { get; set; }
-    public int BonusPerUpgrade { get; set; }
+    public double BonusPerUpgrade { get; set; }
 }

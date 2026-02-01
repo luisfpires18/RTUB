@@ -24,8 +24,8 @@
 }
 
 .upgrade-card--power .upgrade-card__header {
-  background: linear-gradient(135deg, #f9a825, #f57f17);
-  color: #1f1f1f;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #ffffff;
 }
 
 .upgrade-card--speed .upgrade-card__header {

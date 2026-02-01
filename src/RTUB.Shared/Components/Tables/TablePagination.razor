@@ -72,26 +72,29 @@
     }
 
     <!-- Item Count and Page Size -->
-    <div class="pagination-info">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <div class="text-center text-md-start mb-2 mb-md-0">
-                <span class="pagination-info-text">
-                    Mostrando @StartItemNumber-@EndItemNumber de @TotalItems @ItemLabel
-                </span>
-            </div>
-            <div class="text-center text-md-end">
-                <label class="me-2 pagination-info-label">Itens por página:</label>
-                <select class="form-select form-select-sm d-inline-block w-auto" 
-                        value="@PageSize" 
-                        @onchange="HandlePageSizeChange">
-                    @foreach (var size in PageSizeOptions)
-                    {
-                        <option value="@size" @key="size">@size</option>
-                    }
-                </select>
+    @if (ShowInfo)
+    {
+        <div class="pagination-info">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="text-center text-md-start mb-2 mb-md-0">
+                    <span class="pagination-info-text">
+                        Mostrando @StartItemNumber-@EndItemNumber de @TotalItems @ItemLabel
+                    </span>
+                </div>
+                <div class="text-center text-md-end">
+                    <label class="me-2 pagination-info-label">Itens por página:</label>
+                    <select class="form-select form-select-sm d-inline-block w-auto" 
+                            value="@PageSize" 
+                            @onchange="HandlePageSizeChange">
+                        @foreach (var size in PageSizeOptions)
+                        {
+                            <option value="@size" @key="size">@size</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 @code {
@@ -136,6 +139,12 @@
     /// </summary>
     [Parameter]
     public int[] PageSizeOptions { get; set; } = new[] { 10, 20, 30, 40, 50 };
+
+    /// <summary>
+    /// Whether to show the pagination info (item count and page size selector). Defaults to true.
+    /// </summary>
+    [Parameter]
+    public bool ShowInfo { get; set; } = true;
     
     // Track previous state for ShouldRender optimization
     private int _previousCurrentPage;
