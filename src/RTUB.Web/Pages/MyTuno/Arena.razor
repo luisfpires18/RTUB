@@ -64,7 +64,7 @@
                     <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
                 </div>
                 <div class="card-body p-0">
-                    <canvas id="liveBattleCanvas" class="w-100" style="background: #1a1a1a; display: block;"></canvas>
+                    <div id="phaserBattleContainer" class="w-100" style="background: #1a1a1a; display: block;"></div>
                 </div>
             </div>
         }
@@ -233,7 +233,6 @@
     private int? fightingOpponentId = null;
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
-    private IJSObjectReference? liveBattleModule;
 
     // Pagination
     private int currentPage = 1;
@@ -254,10 +253,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            liveBattleModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/liveBattle.js");
-        }
+        // Phaser is loaded globally via script tag in MainLayout
+        // No need to import module here
     }
 
     private async Task LoadDataAsync()
@@ -355,26 +352,25 @@
             {
                 try
                 {
-                    if (liveBattleModule == null)
-                    {
-                        liveBattleModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/js/liveBattle.js");
-                    }
-
-                    // Initialize if not already done
+                    // Initialize DotNetObjectReference if not already done
                     if (objRef == null)
                     {
                         objRef = DotNetObjectReference.Create(this);
                     }
 
-                    // Wait for canvas to be rendered, then initialize
-                    StateHasChanged(); // Trigger render to show canvas
-                    await Task.Delay(100); // Give time for canvas to render
+                    // Wait for container to be rendered
+                    StateHasChanged(); // Trigger render to show container
+                    await Task.Delay(100); // Give time for container to render
 
-                    await JSRuntime.InvokeVoidAsync("console.log", "liveBattle init called");
-                    await liveBattleModule.InvokeVoidAsync("init", "liveBattleCanvas", objRef);
+                    // Create battle data object with events and dotNetRef
+                    var battleData = new
+                    {
+                        Events = currentBattle.ReplayJson,
+                        DotNetRef = objRef
+                    };
 
-                    await JSRuntime.InvokeVoidAsync("console.log", "liveBattle startBattle called");
-                    await liveBattleModule.InvokeVoidAsync("startBattle", currentBattle.ReplayJson);
+                    await JSRuntime.InvokeVoidAsync("console.log", "Starting Phaser battle");
+                    await JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", "phaserBattleContainer", battleData);
 
                     // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
                     // This is a safety net in case the JS callback fails
@@ -463,11 +459,7 @@
     {
         try
         {
-            if (liveBattleModule != null)
-            {
-                await liveBattleModule.InvokeVoidAsync("dispose");
-                await liveBattleModule.DisposeAsync();
-            }
+            await JSRuntime.InvokeVoidAsync("myTunoGame.destroyBattle");
         }
         catch (JSDisconnectedException)
         {
