@@ -26,6 +26,7 @@
             {
                 <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
                 <SyncMemberStatusButton OnSyncCompleted="HandleSyncCompleted" />
+                <AndroidTestersButton />
             }
         </div>
     </div>
@@ -110,6 +111,21 @@ else
                     <option value="Admin">Admin</option>
                     <option value="Owner">Owner</option>
                 </select>
+                
+                @* Android Tester checkbox *@
+                <div class="mt-3">
+                    <div class="rtub-checkbox-wrapper">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input rtub-checkbox-large" id="androidTesterCheckbox" @bind-Value="selectedUser.IsAndroidTester" />
+                            <label class="form-check-label" for="androidTesterCheckbox">
+                                Testador Android
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                Marque esta opção para dar acesso à aplicação Android em desenvolvimento.
+                            </small>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="mt-3">
                     <small class="text-muted">

@@ -49,12 +49,6 @@
 
         <!-- Page Header Actions -->
         <div class="page-header-actions justify-content-lg-end">
-            <AuthorizeView Roles="Owner">
-                <Authorized>
-                    <AndroidTestersButton />
-                </Authorized>
-            </AuthorizeView>
-
             <AuthorizeView Roles="Admin">
                 <Authorized>
                     <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
@@ -395,20 +389,6 @@ else
                     </div>
                 </div>
             }
-            @* Android Tester checkbox - show for all categories *@
-            <div class="mb-3">
-                <div class="rtub-checkbox-wrapper">
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input rtub-checkbox-large" id="androidTesterCheckbox" @bind-Value="editingUser.IsAndroidTester" />
-                        <label class="form-check-label" for="androidTesterCheckbox">
-                            Testador Android
-                        </label>
-                        <small class="form-text text-muted d-block">
-                            Marque esta opção para dar acesso à aplicação Android em desenvolvimento.
-                        </small>
-                    </div>
-                </div>
-            </div>
             <div class="row">
                 @if (showYearLeitao && !isFundador && !isTunoHonorario)
                 {
