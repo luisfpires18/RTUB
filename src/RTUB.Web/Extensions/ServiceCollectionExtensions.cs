@@ -130,6 +130,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
         services.AddScoped<IMatchmakingService, MatchmakingService>();
         services.AddScoped<IBattleService, BattleService>();
+        services.AddScoped<IStageService, StageService>();
 
         return services;
     }

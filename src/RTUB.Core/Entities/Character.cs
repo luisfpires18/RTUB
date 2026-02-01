@@ -89,6 +89,58 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Factory method to create a character with custom stats (for AI opponents)
+    /// </summary>
+    /// <param name="userId">User ID (can be system ID for AI)</param>
+    /// <param name="nickname">Character nickname/name</param>
+    /// <param name="level">Character level</param>
+    /// <param name="hp">Base HP</param>
+    /// <param name="power">Base Power</param>
+    /// <param name="speed">Base Speed</param>
+    /// <param name="criticalChance">Critical chance (0.0 to 1.0)</param>
+    /// <returns>New character with custom stats</returns>
+    public static Character Create(
+        string userId,
+        string nickname,
+        int level,
+        int hp,
+        int power,
+        int speed,
+        double criticalChance)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+        if (level < 1)
+            throw new ArgumentException("Level must be at least 1", nameof(level));
+        if (hp < 1)
+            throw new ArgumentException("HP must be at least 1", nameof(hp));
+        if (power < 0)
+            throw new ArgumentException("Power cannot be negative", nameof(power));
+        if (speed < 0)
+            throw new ArgumentException("Speed cannot be negative", nameof(speed));
+        if (criticalChance < 0 || criticalChance > 1)
+            throw new ArgumentException("Critical chance must be between 0 and 1", nameof(criticalChance));
+
+        // For custom characters, we set base stats directly without upgrades
+        // This gives full control over the character's stats
+        return new Character
+        {
+            UserId = userId,
+            Level = level,
+            XP = 0, // AI opponents don't gain XP
+            HP = hp,
+            Power = power,
+            Speed = speed,
+            CriticalChance = criticalChance,
+            HpUpgrades = 0,
+            PowerUpgrades = 0,
+            SpeedUpgrades = 0,
+            CriticalUpgrades = 0,
+            CurrentHP = null // Start at full HP
+        };
+    }
+
+    /// <summary>
     /// Adds XP to the character and handles level-ups
     /// Level up formula: Each level requires 100 * level XP to reach the next level
     /// Level 1->2: 100 XP, Level 2->3: 200 XP, Level 3->4: 300 XP, etc.

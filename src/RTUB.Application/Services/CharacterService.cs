@@ -3,7 +3,10 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -17,15 +20,21 @@ public class CharacterService : ICharacterService
     private readonly ICharacterRepository _characterRepository;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CharacterService>? _logger;
+    private readonly IInventoryRepository _inventoryRepository;
+    private readonly IStageService? _stageService;
 
     public CharacterService(
         ICharacterRepository characterRepository,
         ApplicationDbContext context,
-        ILogger<CharacterService>? logger = null)
+        IInventoryRepository inventoryRepository,
+        ILogger<CharacterService>? logger = null,
+        IStageService? stageService = null)
     {
         _characterRepository = characterRepository;
         _context = context;
+        _inventoryRepository = inventoryRepository;
         _logger = logger;
+        _stageService = stageService;
     }
 
     /// <summary>
@@ -116,5 +125,78 @@ public class CharacterService : ICharacterService
 
         _logger?.LogInformation("Created {Count} characters for members", charactersCreated);
         return charactersCreated;
+    }
+
+    /// <summary>
+    /// Equip an instrument to a character
+    /// </summary>
+    public async Task<bool> EquipInstrumentAsync(int characterId, InventoryItemType instrumentType, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId);
+        if (character == null)
+            throw new EntityNotFoundException(nameof(Character), characterId);
+        
+        // Verify user owns the instrument
+        var instrument = await _inventoryRepository.GetItemAsync(character.UserId, instrumentType, cancellationToken);
+        if (instrument == null || instrument.Quantity <= 0)
+        {
+            _logger?.LogWarning("User {UserId} does not own instrument {Instrument}", character.UserId, instrumentType);
+            return false;
+        }
+        
+        // Equip the instrument
+        character.EquipInstrument(instrumentType);
+        await _characterRepository.UpdateAsync(character);
+        
+        _logger?.LogInformation("Character {CharacterId} equipped {Instrument}", characterId, instrumentType);
+        return true;
+    }
+
+    /// <summary>
+    /// Unequip currently equipped instrument
+    /// </summary>
+    public async Task UnequipInstrumentAsync(int characterId, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId);
+        if (character == null)
+            throw new EntityNotFoundException(nameof(Character), characterId);
+        
+        character.EquipInstrument(null);
+        await _characterRepository.UpdateAsync(character);
+        
+        _logger?.LogInformation("Character {CharacterId} unequipped instrument", characterId);
+    }
+
+    /// <summary>
+    /// Get character's current stats including equipped instrument bonuses
+    /// </summary>
+    public async Task<CharacterStats> GetCharacterStatsWithEquipmentAsync(int characterId, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId);
+        if (character == null)
+            throw new EntityNotFoundException(nameof(Character), characterId);
+        
+        var stats = new CharacterStats
+        {
+            HP = character.TotalHP,
+            Power = character.TotalPower,
+            Speed = character.TotalSpeed,
+            CriticalChance = character.TotalCriticalChance
+        };
+        
+        // Add instrument bonuses if equipped
+        if (character.EquippedInstrument.HasValue && _stageService != null)
+        {
+            var instrumentStats = _stageService.GetInstrumentStats(character.EquippedInstrument.Value);
+            if (instrumentStats != null)
+            {
+                stats.HP += instrumentStats.HpBonus;
+                stats.Power += instrumentStats.PowerBonus;
+                stats.Speed += instrumentStats.SpeedBonus;
+                stats.CriticalChance += instrumentStats.CriticalChanceBonus;
+            }
+        }
+        
+        return stats;
     }
 }

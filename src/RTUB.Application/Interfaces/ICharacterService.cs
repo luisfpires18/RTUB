@@ -1,4 +1,6 @@
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
 
@@ -35,4 +37,28 @@ public interface ICharacterService
     /// </summary>
     /// <returns>Number of characters created</returns>
     Task<int> CreateCharactersForAllMembersAsync();
+    
+    /// <summary>
+    /// Equip an instrument to a character
+    /// </summary>
+    /// <param name="characterId">The character ID</param>
+    /// <param name="instrumentType">The instrument type to equip</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if equipped successfully, false if user doesn't own the instrument</returns>
+    Task<bool> EquipInstrumentAsync(int characterId, InventoryItemType instrumentType, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Unequip currently equipped instrument
+    /// </summary>
+    /// <param name="characterId">The character ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task UnequipInstrumentAsync(int characterId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get character's current stats including equipped instrument bonuses
+    /// </summary>
+    /// <param name="characterId">The character ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Character stats with equipment bonuses applied</returns>
+    Task<CharacterStats> GetCharacterStatsWithEquipmentAsync(int characterId, CancellationToken cancellationToken = default);
 }
