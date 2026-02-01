@@ -455,7 +455,7 @@ else
     {
         if (selectedUser != null && !string.IsNullOrEmpty(selectedRoleInModal))
         {
-            // Only change if different from current
+            // Only change role if different from current
             if (selectedRoleInModal != currentRoleBeforeEdit)
             {
                 await ChangeUserRole(selectedUser.Id, selectedRoleInModal);

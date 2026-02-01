@@ -61,6 +61,11 @@ public class ApplicationUser : IdentityUser
     // Expulsion status - tracks if member has been expelled and cannot login
     public bool IsExpelled { get; set; } = false;
 
+    /// <summary>
+    /// Indicates whether the user is an Android tester with access to beta features
+    /// </summary>
+    public bool IsAndroidTester { get; set; } = false;
+
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }

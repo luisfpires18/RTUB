@@ -1,0 +1,610 @@
+@page "/owner/testers"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
+@using RTUB.Application.Helpers
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
+@inject IPushNotificationService PushNotificationService
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Owner")]
+
+<PageTitle>Android Testers</PageTitle>
+
+<div class="container-fluid android-testers-page">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-title">
+                <h1 class="page-title"><i class="bi bi-phone"></i> Android Testers</h1>
+                <p class="lead page-header-subtitle text-light-theme">Manage Android app testers and track login activity</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i> <span class="btn-text">Refresh</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <Alert Type="Alert.AlertType.Error" 
+               Message="@errorMessage" 
+               Dismissible="true"
+               OnDismiss="@(() => errorMessage = string.Empty)" />
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <Alert Type="Alert.AlertType.Success" 
+               Message="@successMessage" 
+               Dismissible="true"
+               OnDismiss="@(() => successMessage = string.Empty)" />
+    }
+
+    @if (isLoading)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        <!-- Android Testers Management Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Manage Android Testers</h5>
+            </div>
+            <div class="card-body">
+                <!-- Selected testers as chips -->
+                @if (selectedAndroidTesters.Any())
+                {
+                    <div class="selected-members-chips mb-3">
+                        @foreach (var user in selectedAndroidTesters.OrderBy(u => u.GetDisplayName()))
+                        {
+                            <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
+                                <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
+                                <span class="member-chip-name">@user.GetDisplayName()</span>
+                                <button type="button" class="member-chip-remove" @onclick="() => RemoveAndroidTester(user)" title="Remove tester access" aria-label="Remove @user.GetDisplayName()">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-3">No Android testers configured. Search and click to add users.</p>
+                }
+
+                <!-- Search for users to add -->
+                <SearchBar @bind-Value="testerSearchTerm"
+                           Placeholder="Search by name or username to add as tester..."
+                           OnSearch="@HandleTesterSearchChanged"
+                           Compact="true" />
+
+                @if (!string.IsNullOrWhiteSpace(testerSearchTerm) && filteredAvailableUsers.Any())
+                {
+                    <div class="member-list member-list-scrollable mt-2">
+                        @foreach (var user in filteredAvailableUsers)
+                        {
+                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                 @onclick="() => AddAndroidTester(user)"
+                                 tabindex="0"
+                                 @onkeydown="@((e) => HandleMemberItemKeyDown(e, user))">
+                                <div class="d-flex align-items-center">
+                                    <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
+                                         class="member-avatar-small me-2" />
+                                    <div>
+                                        <strong>@user.GetDisplayName()</strong>
+                                        <div class="text-muted small">@user.UserName</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(testerSearchTerm))
+                {
+                    <p class="text-muted mt-2 small">No users found.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Custom Notification Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bell"></i> Send Custom Notification</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Custom Message</label>
+                    <textarea class="form-control" 
+                              rows="3" 
+                              @bind="customMessage" 
+                              placeholder="Enter the message to send to Android testers..."
+                              maxlength="@MaxMessageLength"></textarea>
+                    <div class="form-text">Maximum @MaxMessageLength characters</div>
+                </div>
+                <button class="btn btn-primary" 
+                        @onclick="SendNotification" 
+                        disabled="@(isSending || string.IsNullOrWhiteSpace(customMessage) || !androidTesters.Any())"
+                        aria-label="Send push notification">
+                    @if (isSending)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Sending...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-bell"></i>
+                        <span>Send Notification</span>
+                    }
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Activity Card -->
+        <div class="card">
+            <div class="card-header d-flex flex-column flex-lg-row gap-2 align-items-lg-center justify-content-between">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Android Testers - Last 14 Days Login Activity</h5>
+            </div>
+            <div class="card-body">
+                @if (androidTesters.Any())
+                {
+                    <!-- Filter controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <SearchBar @bind-Value="searchTerm"
+                                       Placeholder="Search by name or username..."
+                                       OnSearch="@HandleSearchChanged" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Filter by Login Day</label>
+                            <select class="form-select" @bind="selectedDayFilter" @bind:after="FilterAndPaginate">
+                                <option value="">All Days</option>
+                                @foreach (var day in availableLoginDays)
+                                {
+                                    <option value="@day.ToString("yyyy-MM-dd")">@day.ToString("dddd, MMM dd, yyyy")</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @if (!filteredTesters.Any())
+                    {
+                        <EmptyState
+                            Title="No testers found."
+                            Icon="bi-search" />
+                    }
+                    else
+                    {
+                        <!-- Stats Row -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Total Android Testers</h6>
+                                        <h3 class="mb-0">@androidTesters.Count</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Active (Last 14 Days)</h6>
+                                        <h3 class="mb-0">@androidTesters.Count(t => t.LoginDays.Any())</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Total Logins</h6>
+                                        <h3 class="mb-0">@totalLoginsLast14Days</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tester Cards Grid -->
+                        <div class="avatar-card-grid">
+                            @foreach (var tester in paginatedTesters)
+                            {
+                                <AndroidTesterCard AvatarUrl="@tester.AvatarUrl"
+                                                   AltText="@tester.DisplayNickname"
+                                                   TunaName="@tester.DisplayNickname"
+                                                   FullName="@tester.DisplayFullName"
+                                                   LoginCount="@tester.LoginDays.Count"
+                                                   TotalDays="@LoginDaysWindow"
+                                                   LastLoginDate="@tester.LastLoginDate"
+                                                   LoginDays="@tester.LoginDays" />
+                            }
+                        </div>
+
+                        <!-- Pagination -->
+                        <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                                         PageSize="@paginationHelper.PageSize"
+                                         TotalItems="@filteredTesters.Count"
+                                         ItemLabel="testers"
+                                         PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
+                                         OnPageChanged="@HandlePageChange"
+                                         OnPageSizeChanged="@HandlePageSizeChange" />
+                    }
+                }
+                else
+                {
+                    <EmptyState
+                        Title="No Android testers found."
+                        Icon="bi-info-circle" />
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Constants
+    private const string NotificationTitle = "RTUB - Android Testers";
+    private const string NotificationTag = "android-testers-notification";
+    private const int MaxMessageLength = 500;
+    private const int LoginDaysWindow = 14;
+    
+    private bool isLoading = true;
+    private List<TesterLoginInfo> androidTesters = new();
+    private List<TesterLoginInfo> filteredTesters = new();
+    private List<TesterLoginInfo> paginatedTesters = new();
+    private Dictionary<string, List<DateTime>> loginsByUser = new();
+    private List<DateTime> availableLoginDays = new();
+    private int totalLoginsLast14Days = 0;
+    private string searchTerm = string.Empty;
+    private string selectedDayFilter = string.Empty;
+    private PaginationHelper<TesterLoginInfo> paginationHelper = new() { PageSize = 24 };
+    
+    // Tester management fields
+    private List<ApplicationUser> selectedAndroidTesters = new();
+    private List<ApplicationUser> allUsers = new();
+    private List<ApplicationUser> filteredAvailableUsers = new();
+    private string testerSearchTerm = string.Empty;
+    
+    // Notification fields
+    private string customMessage = string.Empty;
+    private bool isSending = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var cutoffDate = DateTime.UtcNow.Date.AddDays(-LoginDaysWindow);
+            
+            // Load all users for management section
+            allUsers = await UserManager.Users
+                .AsNoTracking()
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToListAsync();
+            
+            // Load Android testers
+            var testers = await UserManager.Users
+                .AsNoTracking()
+                .Where(u => u.IsAndroidTester)
+                .ToListAsync();
+            
+            selectedAndroidTesters = testers.ToList();
+
+            // Load login records for the last 14 days
+            var logins = await DbContext.AndroidTesterLogins
+                .AsNoTracking()
+                .Where(l => l.LoginDate >= cutoffDate)
+                .OrderByDescending(l => l.LoginDate)
+                .ToListAsync();
+
+            // Group logins by user
+            loginsByUser = logins
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate).ToList());
+
+            totalLoginsLast14Days = logins.Count;
+
+            // Get unique login days for filter dropdown (sorted descending)
+            availableLoginDays = logins
+                .Select(l => l.LoginDate)
+                .Distinct()
+                .OrderByDescending(d => d)
+                .ToList();
+
+            androidTesters = testers
+                .Select(u => new TesterLoginInfo
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName ?? string.Empty,
+                    Nickname = u.Nickname ?? string.Empty,
+                    FirstName = u.FirstName ?? string.Empty,
+                    LastName = u.LastName ?? string.Empty,
+                    AvatarUrl = u.ProfilePictureSrc,
+                    LoginDays = loginsByUser.ContainsKey(u.Id) ? loginsByUser[u.Id] : new List<DateTime>(),
+                    LastLoginDate = u.LastLoginDate
+                })
+                .OrderByDescending(t => t.LoginDays.Count)
+                .ThenBy(t => t.DisplayNickname)
+                .ToList();
+
+            FilterAndPaginate();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+        successMessage = "Data refreshed successfully.";
+    }
+
+    private void FilterAndPaginate()
+    {
+        var baseList = androidTesters.ToList();
+        
+        // Apply day filter first
+        if (!string.IsNullOrWhiteSpace(selectedDayFilter))
+        {
+            var filterDate = DateTime.Parse(selectedDayFilter);
+            baseList = baseList
+                .Where(t => t.LoginDays.Any(d => d.Date == filterDate.Date))
+                .ToList();
+        }
+        
+        // Apply search filter
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredTesters = baseList;
+        }
+        else
+        {
+            var search = searchTerm.ToLower();
+            filteredTesters = baseList
+                .Where(t => t.SearchText.Contains(search))
+                .ToList();
+        }
+        
+        paginationHelper.Reset();
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
+    }
+
+    private Task HandleSearchChanged(string value)
+    {
+        searchTerm = value;
+        FilterAndPaginate();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageChange(int newPage)
+    {
+        paginationHelper.GoToPage(newPage);
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        paginatedTesters = paginationHelper.GetPageData(filteredTesters);
+        return Task.CompletedTask;
+    }
+
+    private async Task SendNotification()
+    {
+        if (string.IsNullOrWhiteSpace(customMessage))
+        {
+            errorMessage = "Please enter a message.";
+            return;
+        }
+
+        if (!androidTesters.Any())
+        {
+            errorMessage = "No Android testers to notify.";
+            return;
+        }
+
+        isSending = true;
+        errorMessage = null;
+        successMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Get base URL for notification
+            var baseUri = Navigation.BaseUri.TrimEnd('/');
+
+            // Create notification DTO
+            var notification = new SendPushNotificationDto
+            {
+                Title = NotificationTitle,
+                Body = customMessage.Trim(),
+                Icon = "/images/logo-512x512.png",
+                Url = $"{baseUri}/",
+                Tag = NotificationTag
+            };
+
+            // Get all Android tester user IDs
+            var testerIds = androidTesters.Select(t => t.UserId).ToList();
+
+            // Send notification to all Android testers
+            await PushNotificationService.SendToSelectedUsersAsync(testerIds, notification);
+
+            successMessage = $"Notification sent successfully to {testerIds.Count} Android tester(s)!";
+            customMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error sending notification: {ex.Message}";
+        }
+        finally
+        {
+            isSending = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetLoginText(TesterLoginInfo tester)
+    {
+        var loginCount = tester.LoginDays.Count;
+        
+        if (loginCount == 0)
+            return $"0/{LoginDaysWindow} logins";
+        
+        var lastLogin = tester.LoginDays.First(); // Already ordered by date descending
+        var daysAgo = (DateTime.UtcNow.Date - lastLogin).Days;
+        
+        string daysText;
+        if (daysAgo == 0)
+            daysText = "Today";
+        else if (daysAgo == 1)
+            daysText = "Yesterday";
+        else
+            daysText = $"{daysAgo} days ago";
+        
+        return $"{loginCount}/{LoginDaysWindow} logins - Last: {daysText}";
+    }
+
+    // Tester management methods
+    private Task HandleTesterSearchChanged(string value)
+    {
+        testerSearchTerm = value;
+        FilterAvailableUsers();
+        return Task.CompletedTask;
+    }
+
+    private void FilterAvailableUsers()
+    {
+        if (string.IsNullOrWhiteSpace(testerSearchTerm))
+        {
+            filteredAvailableUsers = new List<ApplicationUser>();
+            return;
+        }
+
+        var search = testerSearchTerm.ToLower();
+        var selectedIds = selectedAndroidTesters.Select(u => u.Id).ToHashSet();
+
+        filteredAvailableUsers = allUsers
+            .Where(u => !selectedIds.Contains(u.Id))
+            .Where(u =>
+                (u.FirstName != null && u.FirstName.ToLower().Contains(search)) ||
+                (u.LastName != null && u.LastName.ToLower().Contains(search)) ||
+                (u.Nickname != null && u.Nickname.ToLower().Contains(search)) ||
+                (u.UserName != null && u.UserName.ToLower().Contains(search)))
+            .Take(10)
+            .ToList();
+    }
+
+    private async Task AddAndroidTester(ApplicationUser user)
+    {
+        try
+        {
+            var userToUpdate = await UserManager.FindByIdAsync(user.Id);
+            if (userToUpdate != null)
+            {
+                userToUpdate.IsAndroidTester = true;
+                var result = await UserManager.UpdateAsync(userToUpdate);
+                
+                if (result.Succeeded)
+                {
+                    selectedAndroidTesters.Add(user);
+                    selectedAndroidTesters = selectedAndroidTesters.OrderBy(u => u.GetDisplayName()).ToList();
+                    testerSearchTerm = string.Empty;
+                    filteredAvailableUsers.Clear();
+                    successMessage = $"{user.GetDisplayName()} added as Android tester.";
+                    await LoadData(); // Reload to update stats
+                }
+                else
+                {
+                    errorMessage = $"Failed to add {user.GetDisplayName()}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error adding tester: {ex.Message}";
+        }
+    }
+
+    private async Task RemoveAndroidTester(ApplicationUser user)
+    {
+        try
+        {
+            var userToUpdate = await UserManager.FindByIdAsync(user.Id);
+            if (userToUpdate != null)
+            {
+                userToUpdate.IsAndroidTester = false;
+                var result = await UserManager.UpdateAsync(userToUpdate);
+                
+                if (result.Succeeded)
+                {
+                    selectedAndroidTesters.Remove(user);
+                    successMessage = $"{user.GetDisplayName()} removed from Android testers.";
+                    await LoadData(); // Reload to update stats
+                }
+                else
+                {
+                    errorMessage = $"Failed to remove {user.GetDisplayName()}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error removing tester: {ex.Message}";
+        }
+    }
+
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser user)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddAndroidTester(user);
+        }
+    }
+
+    private class TesterLoginInfo
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string Nickname { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
+        public List<DateTime> LoginDays { get; set; } = new();
+        public DateTime? LastLoginDate { get; set; }
+
+        public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
+
+        public string DisplayFullName
+        {
+            get
+            {
+                var fullName = $"{FirstName} {LastName}".Trim();
+                return string.IsNullOrWhiteSpace(fullName) ? DisplayNickname : fullName;
+            }
+        }
+
+        public string SearchText => $"{DisplayNickname} {DisplayFullName} {UserName}".ToLower();
+    }
+}
