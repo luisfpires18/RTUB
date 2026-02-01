@@ -5,7 +5,8 @@
       "xp": 0,
       "hp": 100,
       "power": 10,
-      "speed": 10
+      "speed": 10,
+      "criticalChance": 0.01
     },
     "levelScaling": {
       "statMultiplierPerLevel": 0.1,
@@ -24,6 +25,10 @@
       "speed": {
         "initialBought": 0,
         "bonusPerUpgrade": 1
+      },
+      "criticalChance": {
+        "initialBought": 0,
+        "bonusPerUpgrade": 0.005
       }
     }
   }

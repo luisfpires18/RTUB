@@ -33,6 +33,11 @@
   color: #fff;
 }
 
+.upgrade-card--critical .upgrade-card__header {
+  background: linear-gradient(135deg, #ffb300, #ff6f00);
+  color: #1f1f1f;
+}
+
 .upgrade-card__body {
   padding: 1.25rem;
 }

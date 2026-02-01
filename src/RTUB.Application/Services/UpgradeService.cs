@@ -24,6 +24,7 @@ public class UpgradeService : IUpgradeService
     private const decimal BaseCostHP = 50m;
     private const decimal BaseCostPower = 75m;
     private const decimal BaseCostSpeed = 100m;
+    private const decimal BaseCostCriticalChance = 150m;
 
     // Maximum retry attempts for concurrency conflicts
     private const int MaxRetryAttempts = 3;
@@ -56,6 +57,7 @@ public class UpgradeService : IUpgradeService
             StatType.HP => character.HpUpgrades,
             StatType.Power => character.PowerUpgrades,
             StatType.Speed => character.SpeedUpgrades,
+            StatType.CriticalChance => character.CriticalUpgrades,
             _ => 0
         } : 0;
 
@@ -64,6 +66,7 @@ public class UpgradeService : IUpgradeService
             StatType.HP => BaseCostHP,
             StatType.Power => BaseCostPower,
             StatType.Speed => BaseCostSpeed,
+            StatType.CriticalChance => BaseCostCriticalChance,
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
 
@@ -126,6 +129,7 @@ public class UpgradeService : IUpgradeService
                         StatType.HP => BaseCostHP,
                         StatType.Power => BaseCostPower,
                         StatType.Speed => BaseCostSpeed,
+                        StatType.CriticalChance => BaseCostCriticalChance,
                         _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
                     };
 
@@ -134,6 +138,7 @@ public class UpgradeService : IUpgradeService
                         StatType.HP => character.HpUpgrades,
                         StatType.Power => character.PowerUpgrades,
                         StatType.Speed => character.SpeedUpgrades,
+                        StatType.CriticalChance => character.CriticalUpgrades,
                         _ => 0
                     };
 
@@ -162,6 +167,9 @@ public class UpgradeService : IUpgradeService
                         case StatType.Speed:
                             character.UpgradeSpeed();
                             break;
+                        case StatType.CriticalChance:
+                            character.UpgradeCriticalChance();
+                            break;
                     }
 
                     // Save changes atomically
@@ -179,6 +187,7 @@ public class UpgradeService : IUpgradeService
                             StatType.HP => character.HpUpgrades,
                             StatType.Power => character.PowerUpgrades,
                             StatType.Speed => character.SpeedUpgrades,
+                            StatType.CriticalChance => character.CriticalUpgrades,
                             _ => 0
                         });
 
@@ -187,6 +196,7 @@ public class UpgradeService : IUpgradeService
                         StatType.HP => character.HpUpgrades,
                         StatType.Power => character.PowerUpgrades,
                         StatType.Speed => character.SpeedUpgrades,
+                        StatType.CriticalChance => character.CriticalUpgrades,
                         _ => 0
                     };
 
@@ -250,6 +260,7 @@ public class UpgradeService : IUpgradeService
                 StatType.HP => BaseCostHP,
                 StatType.Power => BaseCostPower,
                 StatType.Speed => BaseCostSpeed,
+                StatType.CriticalChance => BaseCostCriticalChance,
                 _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
             };
 
@@ -258,6 +269,7 @@ public class UpgradeService : IUpgradeService
                 StatType.HP => character.HpUpgrades,
                 StatType.Power => character.PowerUpgrades,
                 StatType.Speed => character.SpeedUpgrades,
+                StatType.CriticalChance => character.CriticalUpgrades,
                 _ => 0
             };
 
@@ -282,6 +294,9 @@ public class UpgradeService : IUpgradeService
                 case StatType.Speed:
                     character.UpgradeSpeed();
                     break;
+                case StatType.CriticalChance:
+                    character.UpgradeCriticalChance();
+                    break;
             }
 
             await _userManager.UpdateAsync(user);
@@ -293,6 +308,7 @@ public class UpgradeService : IUpgradeService
                 StatType.HP => character.HpUpgrades,
                 StatType.Power => character.PowerUpgrades,
                 StatType.Speed => character.SpeedUpgrades,
+                StatType.CriticalChance => character.CriticalUpgrades,
                 _ => 0
             };
 

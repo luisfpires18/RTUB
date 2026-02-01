@@ -18,5 +18,10 @@ public enum StatType
     /// <summary>
     /// Speed stat (turn order/frequency)
     /// </summary>
-    Speed = 2
+    Speed = 2,
+
+    /// <summary>
+    /// Critical chance stat (chance to deal double damage)
+    /// </summary>
+    CriticalChance = 3
 }
