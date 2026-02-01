@@ -30,9 +30,9 @@ public class DeterministicCombatEngine : ICombatEngine
         var events = new List<CombatEvent>();
         var timestamp = 0;
 
-        // Initialize HP
-        var attackerHP = attacker.TotalHP;
-        var defenderHP = defender.TotalHP;
+        // Initialize HP - use CurrentHP if available (persistent HP system), otherwise use TotalHP
+        var attackerHP = attacker.CurrentHP ?? attacker.TotalHP;
+        var defenderHP = defender.CurrentHP ?? defender.TotalHP;
 
         // Determine initial turn order (higher Speed attacks first)
         var attackerSpeed = attacker.TotalSpeed;
@@ -80,7 +80,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Attacker's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(attacker.TotalPower, rng);
+                    var damage = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
                     defenderHP = Math.Max(0, defenderHP - damage);
 
                     events.Add(new CombatEvent
@@ -123,7 +123,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Defender's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(defender.TotalPower, rng);
+                    var damage = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
                     attackerHP = Math.Max(0, attackerHP - damage);
 
                     events.Add(new CombatEvent
@@ -168,7 +168,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Defender goes first
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(defender.TotalPower, rng);
+                    var damage = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
                     attackerHP = Math.Max(0, attackerHP - damage);
 
                     events.Add(new CombatEvent
@@ -211,7 +211,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Attacker's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(attacker.TotalPower, rng);
+                    var damage = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
                     defenderHP = Math.Max(0, defenderHP - damage);
 
                     events.Add(new CombatEvent
@@ -310,10 +310,14 @@ public class DeterministicCombatEngine : ICombatEngine
     /// Calculates damage with variance
     /// Formula: BaseDamage = Power, FinalDamage = Power * Random(0.8, 1.2)
     /// </summary>
-    private static int CalculateDamage(int power, SeededRandom rng)
+    private static int CalculateDamage(int power, double criticalChance, SeededRandom rng)
     {
         var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
         var damage = power * variance;
+        if (rng.NextDouble() < criticalChance)
+        {
+            damage *= 2;
+        }
         return (int)Math.Round(damage, MidpointRounding.AwayFromZero);
     }
 

@@ -35,6 +35,11 @@ public interface IBattleRepository : IRepository<Battle>
     Task<List<Battle>> GetRecentBattlesByCharacterIdAsync(int characterId, int count);
 
     /// <summary>
+    /// Gets top leaderboard entries ranked by wins, then level
+    /// </summary>
+    Task<List<RTUB.Application.DTOs.MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count);
+
+    /// <summary>
     /// Gets battles between two specific characters
     /// Used for cooldown checking (prevent fighting same opponent too frequently)
     /// </summary>

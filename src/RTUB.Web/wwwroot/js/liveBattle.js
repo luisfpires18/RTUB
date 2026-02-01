@@ -2,8 +2,7 @@
  * Live Battle Animation - MyBrute-style battle visualization
  * Animates battles in real-time as events are generated
  */
-(function() {
-    'use strict';
+'use strict';
     
     let canvas = null;
     let ctx = null;
@@ -12,6 +11,7 @@
     let currentEventIndex = 0;
     let events = [];
     let animationFrameId = null;
+    let eventTimerId = null;
 
     // Character positions and states
     const attacker = {
@@ -21,7 +21,8 @@
         height: 150,
         hp: 100,
         maxHp: 100,
-        name: "Attacker"
+        name: "Attacker",
+        offsetX: 0
     };
 
     const defender = {
@@ -31,7 +32,8 @@
         height: 150,
         hp: 100,
         maxHp: 100,
-        name: "Defender"
+        name: "Defender",
+        offsetX: 0
     };
 
     // Sprite images
@@ -44,8 +46,12 @@
     let attackAnimation = null;
     let damageTexts = [];
     let hpBars = { attacker: 100, defender: 100 };
+    const ATTACK_LUNGE_FRAMES = 24;
+    const ATTACK_LUNGE_DISTANCE = 0.45;
+    const ATTACK_RECOIL_DISTANCE = 12;
 
-    function init(canvasId, dotNetReference) {
+    export function init(canvasId, dotNetReference) {
+        console.log('[liveBattle] init', { canvasId });
         canvas = document.getElementById(canvasId);
         if (!canvas) return;
 
@@ -61,19 +67,19 @@
         defenderSprite = new Image();
         
         attackerSprite.onload = function() {
-            console.log('Attacker sprite loaded:', attackerSpritePath);
+            console.log('[liveBattle] Attacker sprite loaded:', attackerSpritePath);
             if (isAnimating) render();
         };
         attackerSprite.onerror = function() {
-            console.error('Failed to load attacker sprite:', attackerSpritePath);
+            console.error('[liveBattle] Failed to load attacker sprite:', attackerSpritePath);
         };
         
         defenderSprite.onload = function() {
-            console.log('Defender sprite loaded:', defenderSpritePath);
+            console.log('[liveBattle] Defender sprite loaded:', defenderSpritePath);
             if (isAnimating) render();
         };
         defenderSprite.onerror = function() {
-            console.error('Failed to load defender sprite:', defenderSpritePath);
+            console.error('[liveBattle] Failed to load defender sprite:', defenderSpritePath);
         };
         
         attackerSprite.src = attackerSpritePath;
@@ -83,8 +89,9 @@
         render();
     }
 
-    function startBattle(eventsJson) {
+    export function startBattle(eventsJson) {
         events = JSON.parse(eventsJson);
+        console.log('[liveBattle] startBattle', { eventCount: events.length });
         currentEventIndex = 0;
         isAnimating = true;
         
@@ -102,27 +109,24 @@
         
         for (let i = 0; i < events.length; i++) {
             const evt = events[i];
-            if (evt.Type === "HPUpdate") {
-                if (evt.Character === "Attacker" && !attackerInitialized) {
-                    attacker.maxHp = evt.HP || 100;
-                    attacker.hp = evt.HP || 100;
-                    hpBars.attacker = evt.HP || 100;
-                    attackerInitialized = true;
-                } else if (evt.Character === "Defender" && !defenderInitialized) {
-                    defender.maxHp = evt.HP || 100;
-                    defender.hp = evt.HP || 100;
-                    hpBars.defender = evt.HP || 100;
-                    defenderInitialized = true;
-                }
-                
-                // Update current HP for subsequent HPUpdate events
-                if (evt.Character === "Attacker" && attackerInitialized) {
-                    attacker.hp = evt.HP || 0;
-                    hpBars.attacker = evt.HP || 0;
-                } else if (evt.Character === "Defender" && defenderInitialized) {
-                    defender.hp = evt.HP || 0;
-                    hpBars.defender = evt.HP || 0;
-                }
+            if (evt.Type !== "HPUpdate") {
+                continue;
+            }
+
+            if (evt.Character === "Attacker" && !attackerInitialized) {
+                attacker.maxHp = evt.HP || 100;
+                attacker.hp = evt.HP || 100;
+                hpBars.attacker = evt.HP || 100;
+                attackerInitialized = true;
+            } else if (evt.Character === "Defender" && !defenderInitialized) {
+                defender.maxHp = evt.HP || 100;
+                defender.hp = evt.HP || 100;
+                hpBars.defender = evt.HP || 100;
+                defenderInitialized = true;
+            }
+
+            if (attackerInitialized && defenderInitialized) {
+                break;
             }
         }
     }
@@ -141,7 +145,7 @@
         currentEventIndex++;
 
         // Animate this event, then move to next
-        setTimeout(() => {
+        eventTimerId = window.setTimeout(() => {
             animateNextEvent();
         }, 800); // 800ms per event for live feel
     }
@@ -158,16 +162,23 @@
         } else if (evt.Type === "Attack") {
             const attackerChar = evt.Attacker === "Attacker" ? attacker : defender;
             const defenderChar = evt.Defender === "Defender" ? defender : attacker;
+            const startX = getCharacterX(attackerChar);
+            const targetX = startX + (getCharacterX(defenderChar) - startX) * ATTACK_LUNGE_DISTANCE;
 
             attackAnimation = {
-                from: { x: attackerChar.x + attackerChar.width / 2, y: attackerChar.y + attackerChar.height / 2 },
-                to: { x: defenderChar.x + defenderChar.width / 2, y: defenderChar.y + defenderChar.height / 2 },
-                progress: 0
+                attackerChar,
+                defenderChar,
+                attackerStartX: startX,
+                defenderStartX: getCharacterX(defenderChar),
+                attackerTargetX: targetX,
+                progress: 0,
+                duration: ATTACK_LUNGE_FRAMES,
+                defenderOffsetX: 0
             };
 
             if (evt.Damage) {
                 damageTexts.push({
-                    x: defenderChar.x + defenderChar.width / 2,
+                    x: getCharacterX(defenderChar) + defenderChar.width / 2,
                     y: defenderChar.y,
                     damage: evt.Damage,
                     alpha: 1.0,
@@ -184,6 +195,10 @@
 
         // Draw arena
         drawArena();
+
+        if (attackAnimation) {
+            updateAttackAnimation();
+        }
 
         // Draw characters
         drawCharacter(attacker, true);
@@ -222,7 +237,7 @@
     }
 
     function drawCharacter(char, isLeft) {
-        const x = char.x;
+        const x = getCharacterX(char);
         const y = char.y;
         const sprite = isLeft ? attackerSprite : defenderSprite;
 
@@ -292,8 +307,16 @@
     function drawAttackAnimation() {
         if (!attackAnimation) return;
 
-        const { from, to, progress } = attackAnimation;
-        const t = Math.min(progress, 1);
+        const { attackerChar, defenderChar, progress, duration } = attackAnimation;
+        const t = Math.min(progress / duration, 1);
+        const from = {
+            x: getCharacterX(attackerChar) + attackerChar.width / 2,
+            y: attackerChar.y + attackerChar.height / 2
+        };
+        const to = {
+            x: getCharacterX(defenderChar) + defenderChar.width / 2,
+            y: defenderChar.y + defenderChar.height / 2
+        };
 
         // Attack line
         ctx.strokeStyle = '#ffeb3b';
@@ -311,12 +334,42 @@
         ctx.beginPath();
         ctx.arc(currentX, currentY, 15 * (1 - t), 0, Math.PI * 2);
         ctx.fill();
+    }
 
-        // Update progress
-        attackAnimation.progress += 0.15;
-        if (attackAnimation.progress >= 1) {
+    function updateAttackAnimation() {
+        if (!attackAnimation) return;
+
+        const { attackerChar, defenderChar, attackerStartX, attackerTargetX, defenderStartX, progress, duration } = attackAnimation;
+        const t = Math.min(progress / duration, 1);
+
+        const eased = t < 0.5
+            ? t * 2
+            : (1 - t) * 2;
+
+        attackerChar.offsetX = attackerStartX + (attackerTargetX - attackerStartX) * eased - attackerChar.x;
+
+        const impactWindow = t > 0.45 && t < 0.7;
+        if (impactWindow) {
+            const recoilT = (t - 0.45) / 0.25;
+            const recoilStrength = Math.sin(Math.min(recoilT, 1) * Math.PI);
+            const direction = defenderChar === defender ? 1 : -1;
+            attackAnimation.defenderOffsetX = recoilStrength * ATTACK_RECOIL_DISTANCE * direction;
+        } else {
+            attackAnimation.defenderOffsetX = 0;
+        }
+
+        defenderChar.offsetX = defenderStartX + attackAnimation.defenderOffsetX - defenderChar.x;
+
+        attackAnimation.progress += 1;
+        if (attackAnimation.progress >= duration) {
+            attackerChar.offsetX = 0;
+            defenderChar.offsetX = 0;
             attackAnimation = null;
         }
+    }
+
+    function getCharacterX(char) {
+        return char.x + (char.offsetX || 0);
     }
 
     function drawDamageTexts() {
@@ -338,20 +391,31 @@
         });
     }
 
-    function stop() {
+    export function stop() {
         isAnimating = false;
         currentEventIndex = 0;
         events = [];
         attackAnimation = null;
         damageTexts = [];
+        attacker.offsetX = 0;
+        defender.offsetX = 0;
+        if (eventTimerId) {
+            clearTimeout(eventTimerId);
+            eventTimerId = null;
+        }
         // Reset HP bars
         hpBars.attacker = attacker.maxHp;
         hpBars.defender = defender.maxHp;
     }
 
-    function dispose() {
+    export function dispose() {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        if (eventTimerId) {
+            clearTimeout(eventTimerId);
+            eventTimerId = null;
         }
         stop();
         canvas = null;
@@ -359,11 +423,10 @@
         dotNetRef = null;
     }
 
-    // Expose to global scope
-    window.liveBattle = {
-        init: init,
-        startBattle: startBattle,
-        stop: stop,
-        dispose: dispose
-    };
-})();
+// Expose to global scope for fallback usage
+window.liveBattle = {
+    init,
+    startBattle,
+    stop,
+    dispose
+};

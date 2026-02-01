@@ -13,7 +13,7 @@ public interface IUpgradeService
     /// Calculates the cost for upgrading a specific stat
     /// </summary>
     /// <param name="userId">The user ID</param>
-    /// <param name="statType">The stat type to upgrade (HP, Power, or Speed)</param>
+    /// <param name="statType">The stat type to upgrade (HP, Power, Speed, or Critical Chance)</param>
     /// <returns>The cost in Fidelis for the next upgrade</returns>
     Task<decimal> GetUpgradeCostAsync(string userId, StatType statType);
 
@@ -23,7 +23,7 @@ public interface IUpgradeService
     /// Handles concurrency conflicts with retry logic
     /// </summary>
     /// <param name="userId">The user ID</param>
-    /// <param name="statType">The stat type to upgrade (HP, Power, or Speed)</param>
+    /// <param name="statType">The stat type to upgrade (HP, Power, Speed, or Critical Chance)</param>
     /// <returns>Result indicating success or failure with updated values</returns>
     Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType);
 }

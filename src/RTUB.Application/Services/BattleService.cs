@@ -107,6 +107,10 @@ public class BattleService : IBattleService
         if (playerCharacter == null)
             throw new EntityNotFoundException(nameof(Character), playerCharacterId);
 
+        // Check if player character is alive
+        if (!playerCharacter.IsAlive())
+            throw new InvalidOperationException("Personagem derrotado. Precisa de reviver antes de lutar.");
+
         // Load opponent character
         var opponentCharacter = await _characterRepository.GetByIdAsync(opponentCharacterId);
         if (opponentCharacter == null)
@@ -140,6 +144,9 @@ public class BattleService : IBattleService
 
         // Apply rewards to player character and user
         await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        // Update HP based on battle outcome
+        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult);
 
         _logger.LogInformation(
             "Battle created: Player {PlayerCharacterId} vs Opponent {OpponentCharacterId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
@@ -181,6 +188,23 @@ public class BattleService : IBattleService
             user.FidelisBalance += fidelis;
             await _userManager.UpdateAsync(user);
         }
+    }
+
+    /// <summary>
+    /// Updates attacker HP based on battle outcome
+    /// Winners keep their remaining HP, losers go to 0 HP
+    /// Note: Currently only updates attacker HP as defenders are AI opponents.
+    /// For PvP implementation, defender HP should also be updated.
+    /// </summary>
+    private async Task ApplyAttackerHPChangesAsync(Character attacker, CombatResult combatResult)
+    {
+        // Update attacker HP based on combat result
+        attacker.CurrentHP = combatResult.AttackerFinalHP;
+        await _characterRepository.UpdateAsync(attacker);
+
+        _logger.LogInformation(
+            "HP updated after battle: Attacker HP = {AttackerHP}, Outcome = {Outcome}",
+            attacker.CurrentHP, combatResult.Outcome);
     }
 
     /// <summary>
