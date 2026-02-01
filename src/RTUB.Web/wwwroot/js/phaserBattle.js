@@ -74,11 +74,6 @@
             this.isPlaying = this.mode === 'live';
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
-            
-            // Debug logging
-            console.log('Battle init - mode:', this.mode);
-            console.log('Battle init - events count:', this.eventsList.length);
-            console.log('Battle init - first 3 events:', this.eventsList.slice(0, 3));
         }
 
         preload() {
@@ -257,16 +252,12 @@
         }
 
         scheduleNextEvent() {
-            console.log('scheduleNextEvent - currentEventIndex:', this.currentEventIndex, 'total events:', this.eventsList.length);
-            
             if (this.currentEventIndex >= this.eventsList.length) {
-                console.log('Battle finished - all events processed');
                 this.finishBattle();
                 return;
             }
 
             const evt = this.eventsList[this.currentEventIndex];
-            console.log('Processing event', this.currentEventIndex, ':', evt);
             this.processEvent(evt);
             this.currentEventIndex += 1;
 
@@ -277,12 +268,10 @@
 
         processEvent(evt) {
             const type = getEventField(evt, 'Type');
-            console.log('processEvent - type:', type, 'event:', evt);
             
             if (type === 'HPUpdate') {
                 const character = getEventField(evt, 'Character');
                 const hp = getEventField(evt, 'HP') ?? 0;
-                console.log('HPUpdate:', character, 'HP:', hp);
 
                 if (character === 'Attacker') {
                     this.currentHp.attacker = hp;
