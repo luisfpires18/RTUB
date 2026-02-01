@@ -19,12 +19,20 @@
     };
 
     const resolveEvents = (battleData) => {
-        if (!battleData) return [];
+        console.log('resolveEvents called with:', battleData);
+        
+        if (!battleData) {
+            console.log('No battleData provided');
+            return [];
+        }
         
         // If EventsJson is provided as a JSON string, parse it
         if (battleData.EventsJson && typeof battleData.EventsJson === 'string') {
+            console.log('Parsing EventsJson string, length:', battleData.EventsJson.length);
             try {
-                return JSON.parse(battleData.EventsJson);
+                const parsed = JSON.parse(battleData.EventsJson);
+                console.log('Parsed events count:', parsed.length);
+                return parsed;
             } catch (e) {
                 console.error('Failed to parse EventsJson:', e);
                 return [];
@@ -32,8 +40,14 @@
         }
         
         // Legacy support: if Events is an array
-        if (Array.isArray(battleData)) return battleData;
-        return battleData.events ?? battleData.Events ?? [];
+        if (Array.isArray(battleData)) {
+            console.log('battleData is array, length:', battleData.length);
+            return battleData;
+        }
+        
+        const events = battleData.events ?? battleData.Events ?? [];
+        console.log('Using events/Events property, length:', events.length);
+        return events;
     };
 
     const resolveDotNetRef = (battleData) => {
@@ -74,6 +88,15 @@
             this.isPlaying = this.mode === 'live';
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
+            
+            // Debug: Log what we received
+            console.log('BattleScene.init called');
+            console.log('Events count:', this.eventsList.length);
+            console.log('Mode:', this.mode);
+            console.log('Event interval:', this.eventInterval);
+            if (this.eventsList.length > 0) {
+                console.log('First 3 events:', this.eventsList.slice(0, 3));
+            }
         }
 
         preload() {
@@ -252,12 +275,16 @@
         }
 
         scheduleNextEvent() {
+            console.log('scheduleNextEvent - index:', this.currentEventIndex, 'total:', this.eventsList.length);
+            
             if (this.currentEventIndex >= this.eventsList.length) {
+                console.log('Battle finished - calling finishBattle()');
                 this.finishBattle();
                 return;
             }
 
             const evt = this.eventsList[this.currentEventIndex];
+            console.log('Processing event', this.currentEventIndex, ':', evt);
             this.processEvent(evt);
             this.currentEventIndex += 1;
 
