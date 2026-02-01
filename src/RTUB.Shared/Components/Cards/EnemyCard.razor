@@ -18,6 +18,37 @@
         </h6>
     </div>
     <div class="card-body d-flex flex-column">
+        <!-- Avatar and User Info -->
+        @if (Character?.User != null)
+        {
+            <div class="text-center mb-3">
+                @if (!string.IsNullOrEmpty(Character.User.ImageUrl))
+                {
+                    <img src="@Character.User.ImageUrl" 
+                         alt="Avatar" 
+                         class="rounded-circle mb-2" 
+                         style="width: 60px; height: 60px; object-fit: cover; border: 2px solid var(--bs-primary);" />
+                }
+                else
+                {
+                    <div class="rounded-circle mb-2 d-inline-flex align-items-center justify-content-center text-white bg-secondary" 
+                         style="width: 60px; height: 60px; font-size: 24px; border: 2px solid var(--bs-primary);">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                }
+                <div>
+                    @if (!string.IsNullOrEmpty(Character.User.Nickname))
+                    {
+                        <div class="fw-bold">@Character.User.Nickname</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Character.User.FirstName) || !string.IsNullOrEmpty(Character.User.LastName))
+                    {
+                        <small class="text-muted">@Character.User.FirstName @Character.User.LastName</small>
+                    }
+                </div>
+            </div>
+        }
+        
         <!-- HP Bar -->
         @{
             var currentHP = Character?.CurrentHP ?? Character?.TotalHP ?? 100;

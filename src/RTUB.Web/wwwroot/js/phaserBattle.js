@@ -473,7 +473,10 @@
                 this.playAttack(attacker, defender, damage);
                 if (attacker && defender) {
                     const damageText = damage ? `-${damage}` : '0';
-                    this.addLogEntry(`${attacker} atacou ${defender} (${damageText})`);
+                    // Replace "Attacker"/"Defender" with actual usernames
+                    const attackerName = attacker === 'Attacker' ? this.attackerName : this.defenderName;
+                    const defenderName = defender === 'Defender' ? this.defenderName : this.attackerName;
+                    this.addLogEntry(`${attackerName} atacou ${defenderName} (${damageText})`);
                 }
                 return;
             }
@@ -482,7 +485,9 @@
                 const character = getEventField(evt, 'Character');
                 this.playKo(character);
                 if (character) {
-                    this.addLogEntry(`${character} foi nocauteado`);
+                    // Replace "Attacker"/"Defender" with actual usernames
+                    const characterName = character === 'Attacker' ? this.attackerName : this.defenderName;
+                    this.addLogEntry(`${characterName} foi nocauteado`);
                 }
                 return;
             }
@@ -491,7 +496,9 @@
                 const winner = getEventField(evt, 'Winner');
                 this.showVictory(winner);
                 if (winner) {
-                    this.addLogEntry(`${winner} venceu a batalha`);
+                    // Replace "Attacker"/"Defender" with actual usernames
+                    const winnerName = winner === 'Attacker' ? this.attackerName : this.defenderName;
+                    this.addLogEntry(`${winnerName} venceu a batalha`);
                 }
             }
         }

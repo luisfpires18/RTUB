@@ -423,7 +423,7 @@
                                             }
                                         </div>
                                     </div>
-                                    <button class="btn btn-warning w-100 upgrade-card__button" 
+                                    <button class="btn btn-success w-100 upgrade-card__button" 
                                             @onclick="() => PurchaseUpgrade(StatType.Power)"
                                             disabled="@(purchasing || powerCostLoading || (currentUser?.FidelisBalance ?? 0) < powerCost)">
                                         @if (purchasing && purchasingStat == StatType.Power)
