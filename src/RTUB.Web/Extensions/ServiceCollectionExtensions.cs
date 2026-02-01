@@ -76,6 +76,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICharacterRepository, CharacterRepository>();
         services.AddScoped<IBattleRepository, BattleRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IStageRepository, StageRepository>();
+        services.AddScoped<ICharacterStageProgressRepository, CharacterStageProgressRepository>();
 
         return services;
     }
