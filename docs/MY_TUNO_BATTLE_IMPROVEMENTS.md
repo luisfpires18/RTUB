@@ -258,9 +258,19 @@ Currently, there are TWO battle visualization systems in the codebase:
   - Volume controls (music and SFX)
   - Mute toggle functionality
 
-### Phase 3: Engagement (Week 4+)
-- [ ] Add battle variety mechanics
-- [ ] Implement replay features
+### Phase 3: Engagement (Week 4+) - IN PROGRESS 🚧
+- [x] **Battle Speed Controls**
+  - 1x, 1.5x, 2x speed options
+  - UI controls in battle header
+  - Dynamically adjusts event interval
+  - Smooth speed transitions
+- [x] **Audio Controls**
+  - Mute/unmute toggle button
+  - Volume control API (music and SFX separate)
+  - Icon feedback (volume-up/volume-mute)
+- [ ] Different attack animations based on damage type
+- [ ] Skip to end option
+- [ ] Battle replay save feature
 - [ ] Test with user feedback
 - [ ] Iterate based on feedback
 
@@ -331,9 +341,12 @@ Currently, there are TWO battle visualization systems in the codebase:
 7. ✅ Improve victory/defeat animations
 8. ✅ Add idle character animations (breathing effect)
 9. ✅ Implement audio system (sound effects with Web Audio API)
-10. ⏳ Gather user feedback on enhanced battle system
-11. ⏳ Phase 3: Add battle variety mechanics (speed controls, skip option)
-12. ⏳ Phase 3: Implement replay features (save favorites, share)
+10. ✅ Add battle speed controls (1x, 1.5x, 2x)
+11. ✅ Add audio toggle button
+12. ⏳ Gather user feedback on enhanced battle system
+13. ⏳ Implement skip to end option
+14. ⏳ Phase 3: Continue with battle variety mechanics
+15. ⏳ Phase 4: MyBrute-style features (character customization, social features)
 
 ## Recent Improvements (2026-02-01)
 
@@ -343,55 +356,68 @@ Currently, there are TWO battle visualization systems in the codebase:
 - Fixed battle animation errors (timeline API, JSON parsing)
 
 ### Phase 2: Polish ✅ 
-All Phase 2 tasks completed:
+All Phase 2 tasks completed.
 
-**Visual Enhancements:**
-- **Critical Hit System**: Battles now detect high-damage attacks (>25 damage) as critical hits
-  - Yellow "CRIT!" text instead of standard red damage
-  - Larger, more dynamic animations
-  - Particle burst effects (12 particles with multiple colors)
-  - Stronger camera shake
-  - Golden slash effects
+### Phase 3: Engagement 🚧
+**NEW: Battle Controls Implemented**
 
-- **Enhanced Attack Animations**:
-  - Variable lunge speed (150ms for criticals vs 200ms for normal)
-  - Dynamic rotation (18° for critical vs 12° for normal)
-  - Scale effects on critical hits (1.1x)
-  - Back.Out easing for smoother return animations
-  - Stronger recoil on defender (30px for critical vs 20px)
+**Speed Controls:**
+- Three speed options: 1x, 1.5x, 2x
+- Button group in battle card header
+- Active state highlighting
+- Dynamic event interval adjustment (800ms base)
+- At 2x speed: 400ms per event (battles finish twice as fast)
+- At 1.5x speed: ~533ms per event
+- Maintains smooth animations at all speeds
 
-- **Screen Effects**:
-  - Camera shake (0.006 intensity, 150ms) on critical hits
-  - Screen flash (red, 300ms) on K.O.
-  - Enhanced color coding (critical = yellow, normal = white/orange)
+**Audio Toggle:**
+- Mute/unmute button with icon feedback
+- Persists audio state during battle
+- Visual feedback (volume-up icon when enabled, volume-mute when disabled)
+- Calls Phaser audio system toggleAudio() method
 
-- **Victory/Defeat Polish**:
-  - K.O. animation with fall effect (rotation + drop)
-  - Large "K.O.!" text with bounce animation
-  - Winner celebration with bounce animation (3 repeats)
-  - Golden victory text with shadows and glow
-  - Confetti particle system (continuous emission for 2 seconds)
-  - Smooth fade-out transitions
+**Implementation Details:**
+```csharp
+// C# - Arena.razor
+private async Task SetBattleSpeed(double speed)
+{
+    battleSpeed = speed;
+    var newInterval = (int)(800 / speed);
+    await JSRuntime.InvokeVoidAsync("myTunoGame.setSpeed", newInterval);
+}
 
-- **HP Bar Improvements**:
-  - Glow effect when health drops below 25%
-  - Better visual feedback for low health
+private async Task ToggleAudio()
+{
+    audioEnabled = !audioEnabled;
+    await JSRuntime.InvokeVoidAsync("myTunoGame.toggleAudio");
+}
+```
 
-- **Idle Animations** (NEW):
-  - Gentle breathing animation (8px up/down movement, 1.8s cycle)
-  - Subtle scale breathing effect (2% scale, 2s cycle)
-  - Automatically pauses during attacks
-  - Resumes after attack animations complete
+```javascript
+// JavaScript - phaserBattle.js
+window.myTunoGame = {
+    setSpeed: (newInterval) => {
+        if (activeScene) {
+            activeScene.eventInterval = newInterval;
+        }
+    },
+    toggleAudio: () => {
+        if (activeScene) {
+            return activeScene.toggleAudio();
+        }
+        return false;
+    },
+    setVolume: (musicVol, sfxVol) => {
+        activeScene?.setVolume(musicVol, sfxVol);
+    }
+};
+```
 
-- **Audio System** (NEW):
-  - Web Audio API implementation with procedural sounds
-  - Attack sound: 200Hz square wave (0.1s duration)
-  - Hit sound: 150Hz sawtooth wave (0.15s duration)
-  - Critical hit: Dual-tone effect (400Hz + 600Hz sine waves)
-  - K.O. sound: Descending pitch (300Hz → 50Hz over 0.5s)
-  - Victory fanfare: Ascending notes (C-E-G-C melody)
-  - Configurable volume controls (music and SFX separate)
-  - Toggle mute functionality
-  - Auto-resume on user interaction (browser policy compliance)
+**User Experience:**
+- Control buttons appear in battle header (right side)
+- Speed buttons show active state
+- Audio toggle shows current state with icon
+- All controls work during live battles
+- Responsive to user interaction
 
-All changes maintain performance targets (60 FPS desktop, 30 FPS mobile) and work with existing battle replay system.
+All Phase 2 improvements from previous updates still active (idle animations, audio system, particles, critical hits, etc.).

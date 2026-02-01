@@ -60,8 +60,25 @@
         @if (showBattleAnimation && currentBattle != null)
         {
             <div class="card mb-4">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(1.0)">
+                            1x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.5 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(1.5)">
+                            1.5x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(2.0)">
+                            2x
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-0 d-flex justify-content-center">
                     <div id="phaserBattleContainer" style="background: #1a1a1a; display: block; width: 800px; height: 500px;"></div>
@@ -234,6 +251,10 @@
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
     private bool hasRendered = false; // Track if component has rendered interactively
+
+    // Battle controls
+    private double battleSpeed = 1.0;
+    private bool audioEnabled = true;
 
     // Pagination
     private int currentPage = 1;
@@ -455,6 +476,35 @@
     {
         showBattleAnimation = false;
         StateHasChanged();
+    }
+
+    private async Task SetBattleSpeed(double speed)
+    {
+        battleSpeed = speed;
+        try
+        {
+            // Calculate new event interval based on speed
+            // Default is 800ms, so at 2x speed it should be 400ms
+            var newInterval = (int)(800 / speed);
+            await JSRuntime.InvokeVoidAsync("myTunoGame.setSpeed", newInterval);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error setting battle speed");
+        }
+    }
+
+    private async Task ToggleAudio()
+    {
+        audioEnabled = !audioEnabled;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("myTunoGame.toggleAudio");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error toggling audio");
+        }
     }
 
     private void GoBack()

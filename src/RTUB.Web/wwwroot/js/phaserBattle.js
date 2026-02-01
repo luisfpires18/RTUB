@@ -934,6 +934,20 @@
         jumpToReplayEvent: (index) => {
             activeScene?.jumpToEvent(index);
         },
+        setSpeed: (newInterval) => {
+            if (activeScene) {
+                activeScene.eventInterval = newInterval;
+            }
+        },
+        toggleAudio: () => {
+            if (activeScene) {
+                return activeScene.toggleAudio();
+            }
+            return false;
+        },
+        setVolume: (musicVol, sfxVol) => {
+            activeScene?.setVolume(musicVol, sfxVol);
+        },
         destroyBattle
     };
 })();
