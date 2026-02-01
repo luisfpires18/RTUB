@@ -38,7 +38,7 @@ public class RehearsalAttendanceFilterService : IRehearsalAttendanceFilterServic
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.ToLower();
-            filtered = filtered.Where(a => 
+            filtered = filtered.Where(a =>
                 (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
                 (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
                 (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
@@ -56,7 +56,7 @@ public class RehearsalAttendanceFilterService : IRehearsalAttendanceFilterServic
     /// <param name="attendances">Collection of attendance records</param>
     /// <param name="searchTerm">Optional search term to filter not attending members</param>
     /// <returns>Tuple containing (mainParticipants, leitoes, notAttending)</returns>
-    public (List<RehearsalAttendance> mainParticipants, List<RehearsalAttendance> leitoes, List<RehearsalAttendance> notAttending) 
+    public (List<RehearsalAttendance> mainParticipants, List<RehearsalAttendance> leitoes, List<RehearsalAttendance> notAttending)
         SplitAttendancesByCategory(IEnumerable<RehearsalAttendance> attendances, string searchTerm = "")
     {
         // Split into main participants and leitões
@@ -64,27 +64,27 @@ public class RehearsalAttendanceFilterService : IRehearsalAttendanceFilterServic
             .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
             .OrderByDescending(a => a.CheckedInAt)
             .ToList();
-        
+
         var leitoes = attendances
             .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
             .OrderByDescending(a => a.CheckedInAt)
             .ToList();
-        
+
         // Filter not attending members with search
         var notAttending = attendances
             .Where(a => a.User != null && !a.WillAttend)
             .AsEnumerable();
-        
+
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.ToLower();
-            notAttending = notAttending.Where(a => 
+            notAttending = notAttending.Where(a =>
                 (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
                 (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
                 (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
                 (a.User?.Email?.ToLower().Contains(search) ?? false));
         }
-        
+
         return (mainParticipants, leitoes, notAttending.OrderByDescending(a => a.CheckedInAt).ToList());
     }
 }

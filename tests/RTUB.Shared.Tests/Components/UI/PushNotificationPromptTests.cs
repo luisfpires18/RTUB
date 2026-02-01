@@ -22,7 +22,7 @@ public class PushNotificationPromptTests : TestContext
         _mockLogger = new Mock<ILogger<PushNotificationPrompt>>();
         Services.AddSingleton(_mockLogger.Object);
         this.AddTestAuthorization();
-        
+
         // Setup JSInterop for component
         JSInterop.SetupVoid("pwaHelper.markAsPrompted", _ => true);
     }

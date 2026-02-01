@@ -48,7 +48,7 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
         // Verify user participated (WillAttend = true)
         var participation = await _participationRepository.Query()
             .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend);
-        
+
         if (participation == null)
         {
             throw new InvalidOperationException("Só é possível confirmar atas de reuniões em que participou.");
@@ -84,7 +84,7 @@ public class MeetingAtaConfirmationService : IMeetingAtaConfirmationService
         // Verify user participated (WillAttend = true)
         var participation = await _participationRepository.Query()
             .FirstOrDefaultAsync(p => p.MeetingId == ata.MeetingId && p.UserId == userId && p.WillAttend);
-        
+
         if (participation == null)
         {
             throw new InvalidOperationException("Só é possível recusar atas de reuniões em que participou.");

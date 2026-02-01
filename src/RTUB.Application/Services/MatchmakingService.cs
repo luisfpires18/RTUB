@@ -64,7 +64,7 @@ public class MatchmakingService : IMatchmakingService
             var allCharactersFallback = await _context.Characters
                 .Where(c => c.Id != playerCharacter.Id)
                 .ToListAsync();
-            
+
             if (allCharactersFallback.Any())
             {
                 var fallbackRandom = new Random();

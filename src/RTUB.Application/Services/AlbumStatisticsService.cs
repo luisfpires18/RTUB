@@ -21,22 +21,22 @@ public class AlbumStatisticsService : IAlbumStatisticsService
         // Load all statistics data (not just top N)
         var allSongsTask = _songService.GetAllSongsWithPlayCountAsync();
         var allAlbumsTask = _songService.GetAllAlbumsWithPlayCountAsync();
-        
+
         Task<IEnumerable<(UserPlayInfo User, Song Song, Album Album, int PlayCount)>>? detailedStatsTask = null;
         if (isAdmin)
         {
             detailedStatsTask = _songService.GetDetailedPlayStatsAsync();
         }
-        
+
         // Wait for tasks to complete
         var songsStats = (await allSongsTask).ToList();
         var albumsStats = (await allAlbumsTask).ToList();
-        
+
         List<UserStatsGroupDto>? userStats = null;
         if (detailedStatsTask != null)
         {
             var detailedStats = (await detailedStatsTask).ToList();
-            
+
             // Group by user
             userStats = detailedStats
                 .GroupBy(s => s.User.UserId)
@@ -59,7 +59,7 @@ public class AlbumStatisticsService : IAlbumStatisticsService
                 .OrderByDescending(u => u.TotalPlays)
                 .ToList();
         }
-        
+
         return new AlbumStatisticsDto
         {
             SongsStats = songsStats,

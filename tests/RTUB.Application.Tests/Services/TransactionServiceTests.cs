@@ -40,7 +40,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockActivityService = new Mock<IActivityService>();
         _service = new TransactionService(
-            new TransactionRepository(_context), 
+            new TransactionRepository(_context),
             _mockReceiptStorageService.Object,
             _mockAuditLogService.Object,
             _mockActivityService.Object);
@@ -409,7 +409,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog });
 
@@ -495,7 +495,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity1, activity2 });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog1, auditLog2, auditLog3 });
 
@@ -560,7 +560,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { dinheiroActivity });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { createdLog, modifiedLog });
 
@@ -611,7 +611,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog });
 
@@ -662,7 +662,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity1, activity2 });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog });
 
@@ -707,7 +707,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog });
 
@@ -757,7 +757,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockActivityService.Setup(s => s.GetActivitiesByReportIdAsync(report.Id))
             .ReturnsAsync(new[] { activity });
         _mockAuditLogService.Setup(s => s.GetAllForExportAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"), 
+            It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(et => et == "Transaction"),
             It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<bool?>()))
             .ReturnsAsync(new[] { auditLog });
 

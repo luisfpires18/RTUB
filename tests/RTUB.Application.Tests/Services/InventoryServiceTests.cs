@@ -37,11 +37,11 @@ public class InventoryServiceTests
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
-        
+
         // Set character HP to 60 out of 100 (TotalHP is based on base HP)
         // Default base HP is 100, so TotalHP should be 100 at level 1
         character.TakeDamage(40); // CurrentHP = 60
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -72,22 +72,22 @@ public class InventoryServiceTests
         result.HealedAmount.Should().Be(expectedHealAmount);
         result.Message.Should().Contain("Personagem curado!");
         result.Message.Should().Contain($"+{expectedHealAmount} HP");
-        
+
         character.CurrentHP.Should().Be(expectedNewHP);
 
         // Verify repository methods were called correctly
         _inventoryRepositoryMock.Verify(
             r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
             Times.Once);
-        
+
         _characterRepositoryMock.Verify(
             r => r.GetByUserIdAsync(userId),
             Times.Once);
-        
+
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.Is<Character>(c => c.CurrentHP == expectedNewHP)),
             Times.Once);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -100,7 +100,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 0);
 
         _inventoryRepositoryMock
@@ -116,18 +116,18 @@ public class InventoryServiceTests
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
         result.Message.Should().Be("Não tens cervejas no inventário");
-        
+
         character.CurrentHP.Should().Be(initialHP); // HP should not change
 
         // Verify character repository was never called
         _characterRepositoryMock.Verify(
             r => r.GetByUserIdAsync(It.IsAny<string>()),
             Times.Never);
-        
+
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -155,11 +155,11 @@ public class InventoryServiceTests
         _characterRepositoryMock.Verify(
             r => r.GetByUserIdAsync(It.IsAny<string>()),
             Times.Never);
-        
+
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -172,7 +172,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         // Character at full HP (CurrentHP is null, meaning full HP)
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -192,14 +192,14 @@ public class InventoryServiceTests
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
         result.Message.Should().Be("O personagem já está com HP máximo");
-        
+
         beerItem.Quantity.Should().Be(initialQuantity); // Beer should not be consumed
 
         // Verify character was not updated and beer was not consumed
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -212,7 +212,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         character.RestoreHP(); // Explicitly set CurrentHP to TotalHP
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -235,7 +235,7 @@ public class InventoryServiceTests
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -246,7 +246,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var userId = "user1";
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -269,7 +269,7 @@ public class InventoryServiceTests
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -282,7 +282,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -321,11 +321,11 @@ public class InventoryServiceTests
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
-        
+
         // Set character HP to 95 out of 100
         // When healed by 25 HP, should cap at 100 (not 120)
         character.TakeDamage(5); // CurrentHP = 95
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 1);
 
         _inventoryRepositoryMock
@@ -363,14 +363,14 @@ public class InventoryServiceTests
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
-        
+
         // Level up character to increase TotalHP
         character.AddXP(500); // This should level up the character
-        
+
         var totalHP = character.TotalHP;
         var damageAmount = totalHP / 2; // Half HP
         character.TakeDamage(damageAmount);
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 1);
 
         _inventoryRepositoryMock
@@ -407,7 +407,7 @@ public class InventoryServiceTests
         // Arrange
         var userId = "user1";
         var expectedQuantity = 7;
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, expectedQuantity);
 
         _inventoryRepositoryMock
@@ -419,7 +419,7 @@ public class InventoryServiceTests
 
         // Assert
         quantity.Should().Be(expectedQuantity);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -440,7 +440,7 @@ public class InventoryServiceTests
 
         // Assert
         quantity.Should().Be(0);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -451,7 +451,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var userId = "user1";
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 0);
 
         _inventoryRepositoryMock
@@ -463,7 +463,7 @@ public class InventoryServiceTests
 
         // Assert
         quantity.Should().Be(0);
-        
+
         _inventoryRepositoryMock.Verify(
             r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -498,7 +498,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var userId = "user1";
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -529,7 +529,7 @@ public class InventoryServiceTests
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -561,7 +561,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40);
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock
@@ -601,7 +601,7 @@ public class InventoryServiceTests
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
-        
+
         var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
 
         _inventoryRepositoryMock

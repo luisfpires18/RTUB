@@ -13,6 +13,6 @@ public interface IMemberHierarchyService
     /// </summary>
     /// <param name="members">Collection of all members</param>
     /// <returns>Tuple containing (rootMembers, mentorToAfilhados mapping)</returns>
-    (List<ApplicationUser> rootMembers, Dictionary<string, List<ApplicationUser>> mentorToAfilhados) 
+    (List<ApplicationUser> rootMembers, Dictionary<string, List<ApplicationUser>> mentorToAfilhados)
         BuildHierarchy(IEnumerable<ApplicationUser> members);
 }

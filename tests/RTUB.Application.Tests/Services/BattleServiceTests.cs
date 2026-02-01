@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
@@ -27,6 +29,7 @@ public class BattleServiceTests : IDisposable
     private readonly Mock<ICombatEngine> _combatEngineMock;
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<BattleService>> _loggerMock;
+    private readonly Mock<IOptions<MyTunoScalingConfiguration>> _myTunoScalingConfigMock;
     private readonly IBattleService _battleService;
 
     public BattleServiceTests()
@@ -52,6 +55,19 @@ public class BattleServiceTests : IDisposable
         _inventoryRepositoryMock = new Mock<IInventoryRepository>();
         _loggerMock = new Mock<ILogger<BattleService>>();
 
+        // Setup MyTunoScalingConfiguration mock with default values
+        var myTunoScalingConfig = new MyTunoScalingConfiguration
+        {
+            BattleRewards = new BattleRewards
+            {
+                WinReward = 10m,
+                LossReward = 5m,
+                DrawReward = 7.5m
+            }
+        };
+        _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
+        _myTunoScalingConfigMock.Setup(x => x.Value).Returns(myTunoScalingConfig);
+
         _battleService = new BattleService(
             _characterRepository,
             _battleRepository,
@@ -59,7 +75,8 @@ public class BattleServiceTests : IDisposable
             _combatEngineMock.Object,
             _inventoryRepositoryMock.Object,
             _userManagerMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _myTunoScalingConfigMock.Object);
     }
 
     [Fact]
@@ -193,7 +210,7 @@ public class BattleServiceTests : IDisposable
         updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
 
         // Verify user Fidelis was updated
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => 
+        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.FidelisBalance == initialFidelis + 10m)), Times.Once);
     }
 
@@ -245,7 +262,7 @@ public class BattleServiceTests : IDisposable
         updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
 
         // Verify user Fidelis was updated
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => 
+        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.FidelisBalance == initialFidelis + 5m)), Times.Once);
     }
 
@@ -297,7 +314,7 @@ public class BattleServiceTests : IDisposable
         updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
 
         // Verify user Fidelis was updated
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => 
+        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.FidelisBalance == initialFidelis + 7.5m)), Times.Once);
     }
 

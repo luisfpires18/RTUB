@@ -42,21 +42,21 @@ public class AuditLogPageTests : PageTestBase
     {
         // Arrange
         SetupAuthentication("owner-user", "Owner User", "Owner");
-        
+
         // Setup delayed service responses to ensure loading state is visible
         var tcs = new TaskCompletionSource<IEnumerable<string>>();
         _mockAuditLogService
             .Setup(x => x.GetUserNamesAsync())
             .Returns(tcs.Task);
-        
+
         _mockAuditLogService
             .Setup(x => x.GetEntityTypesAsync())
             .ReturnsAsync(Enumerable.Empty<string>());
-        
+
         _mockAuditLogService
             .Setup(x => x.GetActionTypesAsync())
             .ReturnsAsync(Enumerable.Empty<string>());
-        
+
         _mockAuditLogService
             .Setup(x => x.GetPagedWithCountAsync(
                 It.IsAny<string>(),
@@ -75,7 +75,7 @@ public class AuditLogPageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         component.Markup.Should().Contain("A carregar");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult(Enumerable.Empty<string>());
         component.WaitForState(() => !component.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));

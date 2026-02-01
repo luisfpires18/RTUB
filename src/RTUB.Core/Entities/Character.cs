@@ -21,7 +21,7 @@ public class Character : BaseEntity
     public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
     public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
     public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
-    
+
     // Current HP (null means full HP, for backwards compatibility)
     public int? CurrentHP { get; set; } = null;
 

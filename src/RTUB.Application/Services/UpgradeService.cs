@@ -112,11 +112,11 @@ public class UpgradeService : IUpgradeService
 
                     // Get or create character (reload within transaction to ensure latest data)
                     var character = await _characterService.GetOrCreateCharacterAsync(userId);
-                    
+
                     // Reload character from database within transaction to ensure we have latest upgrade counts
                     character = await _context.Characters
                         .FirstOrDefaultAsync(c => c.UserId == userId);
-                    
+
                     if (character == null)
                     {
                         await transaction.RollbackAsync();

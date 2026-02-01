@@ -59,9 +59,9 @@ public class AuditLogDisplayService : IAuditLogDisplayService
     /// <returns>JSON string</returns>
     public string ExportToJson(IEnumerable<object> logs)
     {
-        return JsonSerializer.Serialize(logs, new JsonSerializerOptions 
-        { 
-            WriteIndented = true 
+        return JsonSerializer.Serialize(logs, new JsonSerializerOptions
+        {
+            WriteIndented = true
         });
     }
 }

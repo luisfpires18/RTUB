@@ -28,6 +28,12 @@ public static class MyTunoScaling
     /// </summary>
     public static double BeerDropChance { get; private set; } = 0.2;
 
+    /// <summary>
+    /// Costs (in Fidelis) to level up character from one level to the next
+    /// Index represents the level number (0-based, so index 0 is level 1)
+    /// </summary>
+    public static List<decimal> LevelCosts { get; private set; } = new();
+
     public static void Configure(
         int baseLevel,
         int baseXp,
@@ -45,7 +51,8 @@ public static class MyTunoScaling
         double powerUpgradeBonus,
         double speedUpgradeBonus,
         double criticalChanceUpgradeBonus,
-        double beerDropChance = 0.2)
+        double beerDropChance = 0.2,
+        List<decimal>? levelCosts = null)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -64,5 +71,6 @@ public static class MyTunoScaling
         SpeedUpgradeBonus = speedUpgradeBonus;
         CriticalChanceUpgradeBonus = criticalChanceUpgradeBonus;
         BeerDropChance = beerDropChance;
+        LevelCosts = levelCosts ?? new List<decimal>();
     }
 }

@@ -24,7 +24,7 @@ public class MemberFilterService : IMemberFilterService
     /// <param name="selectedSubCategoryFilter">Selected subcategory filter for Tuno category (empty string if none)</param>
     /// <param name="userAllInstruments">Dictionary mapping userId to their list of instruments</param>
     /// <returns>Tuple containing (filteredRegularMembers, filteredLeitoes, allFilteredUsers)</returns>
-    public (List<ApplicationUser> filteredRegularMembers, List<ApplicationUser> filteredLeitoes, List<ApplicationUser> allFilteredUsers) 
+    public (List<ApplicationUser> filteredRegularMembers, List<ApplicationUser> filteredLeitoes, List<ApplicationUser> allFilteredUsers)
         FilterMembers(
             IEnumerable<ApplicationUser> users,
             string searchTerm,
@@ -34,7 +34,7 @@ public class MemberFilterService : IMemberFilterService
             string selectedSubCategoryFilter,
             Dictionary<string, List<MemberInstrument>> userAllInstruments)
     {
-        if (users == null) 
+        if (users == null)
         {
             return (new List<ApplicationUser>(), new List<ApplicationUser>(), new List<ApplicationUser>());
         }
@@ -67,18 +67,18 @@ public class MemberFilterService : IMemberFilterService
         {
             var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
             allFilteredUsers = allFilteredUsers
-                .Where(u => userAllInstruments.ContainsKey(u.Id) && 
+                .Where(u => userAllInstruments.ContainsKey(u.Id) &&
                            userAllInstruments[u.Id].Any(i => i.InstrumentType == instrumentEnum))
                 .ToList();
         }
-        
+
         // Apply category filter to all users before separating (affects which grids are shown)
         // Now supports VETERANO, TUNOSSAURO, and TUNO HONORARIO subcategories
         // TunoHonorario members ONLY appear in TunoHonorario filter (special case)
         if (!string.IsNullOrEmpty(selectedCategoryFilter))
         {
             var categoryEnum = Enum.Parse<MemberCategory>(selectedCategoryFilter);
-            
+
             // Special handling for TunoHonorario: they are exclusive and don't appear in other filters
             if (categoryEnum == MemberCategory.TunoHonorario)
             {
@@ -94,7 +94,7 @@ public class MemberFilterService : IMemberFilterService
                 if (!string.IsNullOrEmpty(selectedSubCategoryFilter))
                 {
                     var subCategoryEnum = Enum.Parse<MemberCategory>(selectedSubCategoryFilter);
-                    
+
                     if (subCategoryEnum == MemberCategory.Tuno)
                     {
                         // Show only base Tuno (not Veterano, not Tunossauro, not Fundador)
@@ -159,11 +159,11 @@ public class MemberFilterService : IMemberFilterService
                 .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario))
                 .ToList();
         }
-        
+
         // Separate Leitões from regular members
         var filteredLeitoes = allFilteredUsers.Where(u => u.IsLeitao()).ToList();
         var filteredRegularMembers = allFilteredUsers.Where(u => !u.IsLeitao()).ToList();
-        
+
         return (filteredRegularMembers, filteredLeitoes, allFilteredUsers);
     }
 }

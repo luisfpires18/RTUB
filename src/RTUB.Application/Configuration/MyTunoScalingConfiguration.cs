@@ -7,6 +7,15 @@ public class MyTunoScalingConfiguration
     public MyTunoBaseStats BaseStats { get; set; } = new();
     public MyTunoLevelScaling LevelScaling { get; set; } = new();
     public MyTunoUpgrades Upgrades { get; set; } = new();
+    public List<decimal> LevelCosts { get; set; } = new();
+    public BattleRewards BattleRewards { get; set; } = new();
+}
+
+public class BattleRewards
+{
+    public decimal WinReward { get; set; } = 10m;
+    public decimal LossReward { get; set; } = 5m;
+    public decimal DrawReward { get; set; } = 7.5m;
 }
 
 public class MyTunoBaseStats

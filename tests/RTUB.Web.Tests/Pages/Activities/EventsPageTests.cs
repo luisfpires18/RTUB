@@ -189,7 +189,7 @@ public class EventsPageTests : PageTestBase
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar atuações", "page should show loading message initially");
-        
+
         // Wait for async to complete
         cut.WaitForState(() => !cut.Markup.Contains("A carregar atuações"), TimeSpan.FromSeconds(2));
     }

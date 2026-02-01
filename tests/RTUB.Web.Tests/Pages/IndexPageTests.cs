@@ -214,13 +214,13 @@ public class IndexPageTests : PageTestBase
     {
         // Create slideshow using the factory method to match entity shape
         var slideshow = Slideshow.Create(title, id, description, 5000);
-        
+
         // Set properties that match the entity shape
         slideshow.Id = id;
         slideshow.SetImage("/test-image.jpg");
         slideshow.IsActive = isActive; // Explicitly set IsActive to match parameter
         slideshow.IsExclusive = false; // Explicitly set IsExclusive to match entity default
-        
+
         return slideshow;
     }
 

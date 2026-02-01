@@ -193,6 +193,33 @@
                                 <strong class="text-danger">@currentHP / @character.TotalHP</strong>
                             </div>
                             
+                            <!-- Restore HP Button (appears when HP < Max and character is alive) -->
+                            @if (currentHP > 0 && currentHP < character.TotalHP)
+                            {
+                                <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" 
+                                     style="background-color: #1e1e1e;">
+                                    <span class="d-flex align-items-center">
+                                        <i class="bi bi-heart-pulse text-success me-2"></i>
+                                        <span>Restaurar HP</span>
+                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong class="text-success">@GetRestoreCost() <i class="bi bi-coin text-warning"></i></strong>
+                                        <button class="btn btn-sm btn-success" 
+                                                @onclick="RestoreHP"
+                                                disabled="@(restoringHP || currentUser == null || currentUser.FidelisBalance < GetRestoreCost())">
+                                            @if (restoringHP)
+                                            {
+                                                <span class="spinner-border spinner-border-sm"></span>
+                                            }
+                                            else
+                                            {
+                                                <text>Restaurar</text>
+                                            }
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            
                             <!-- Power Stat Box -->
                             <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
@@ -688,6 +715,7 @@
     private bool creatingCharacters = false;
     private bool leaderboardLoading = false;
     private bool reviving = false;
+    private bool restoringHP = false;
     private int beerQuantity = 0;
     private bool usingBeer = false;
     
@@ -944,8 +972,13 @@
     private decimal GetReviveCost()
     {
         if (character == null) return 0;
-        // Cost scales with level: 10 Fidelis * level
-        return 10m * character.Level;
+        // Cost scales with level: 2.5 Fidelis * level
+        return 2.5m * character.Level;
+    }
+
+    private decimal GetRestoreCost()
+    {
+        return 50m;  // Fixed cost of 50 Fidelis
     }
 
     private async Task ReviveCharacter()
@@ -991,6 +1024,73 @@
         finally
         {
             reviving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestoreHP()
+    {
+        if (character == null || currentUser == null) return;
+        
+        try
+        {
+            restoringHP = true;
+            var restoreCost = GetRestoreCost();
+            
+            // Check if user has enough Fidelis
+            if (currentUser.FidelisBalance < restoreCost)
+            {
+                toastMessage = $"Precisas de {restoreCost} Fidelis para restaurar HP completo!";
+                toastIsError = true;
+                return;
+            }
+            
+            // Check if character is alive
+            if (character.CurrentHP <= 0)
+            {
+                toastMessage = "Usa Reviver em vez de Restaurar!";
+                toastIsError = true;
+                return;
+            }
+            
+            // Check if already at full HP
+            if (character.CurrentHP >= character.TotalHP)
+            {
+                toastMessage = "HP já está cheio!";
+                toastIsError = false;
+                return;
+            }
+            
+            // Restore HP to full
+            character.RestoreHP();
+            
+            // Deduct Fidelis
+            currentUser.FidelisBalance -= restoreCost;
+            await UserManager.UpdateAsync(currentUser);
+            
+            // Save character
+            await CharacterService.UpdateCharacterAsync(character);
+            
+            // Reload data
+            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
+            if (updatedUser != null)
+            {
+                currentUser = updatedUser;
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            }
+            
+            toastMessage = $"HP restaurado! (-{restoreCost} Fidelis)";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error restoring HP for character {CharacterId}", character?.Id);
+            toastMessage = "Erro ao restaurar HP";
+            toastIsError = true;
+        }
+        finally
+        {
+            restoringHP = false;
             StateHasChanged();
         }
     }

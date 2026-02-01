@@ -30,6 +30,33 @@
         "initialBought": 0,
         "bonusPerUpgrade": 0.005
       }
+    },
+    "levelCosts": [
+      0,
+      10,
+      25,
+      50,
+      100,
+      175,
+      275,
+      400,
+      550,
+      725,
+      925,
+      1150,
+      1400,
+      1675,
+      1975,
+      2300,
+      2650,
+      3025,
+      3425,
+      3850
+    ],
+    "battleRewards": {
+      "winReward": 10,
+      "lossReward": 5,
+      "drawReward": 7.5
     }
   }
 }

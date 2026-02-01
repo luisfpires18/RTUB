@@ -22,18 +22,18 @@ public class CharacterServiceTests : IDisposable
     public CharacterServiceTests()
     {
         _mockCharacterRepository = new Mock<ICharacterRepository>();
-        
+
         // Create a minimal in-memory DbContext for the service
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .Options;
-        
+
         _mockDbContext = new ApplicationDbContext(
             options,
             Mock.Of<IHttpContextAccessor>(),
             new RTUB.Application.Services.AuditContext(),
             new RTUB.Application.Services.AuditLogAppender());
-        
+
         _service = new CharacterService(_mockCharacterRepository.Object, _mockDbContext);
     }
 

@@ -22,7 +22,7 @@ public class MemberAnniversaryService : IMemberAnniversaryService
         {
             return members.ToList();
         }
-        
+
         var searchHelper = new SearchHelper<ApplicationUser> { SearchTerm = searchTerm };
         return searchHelper.FilterMultiple(members.ToList(), new List<Func<ApplicationUser, string>>
         {

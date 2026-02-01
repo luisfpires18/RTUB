@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Configuration;
@@ -23,14 +25,12 @@ public class BattleService : IBattleService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<BattleService> _logger;
+    private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
 
     // Reward constants
     private const int BaseWinXP = 50;
     private const int BaseLossXP = 20;
     private const int BaseDrawXP = 30;
-    private const decimal BaseWinFidelis = 10m;
-    private const decimal BaseLossFidelis = 5m;
-    private const decimal BaseDrawFidelis = 7.5m;
 
     public BattleService(
         ICharacterRepository characterRepository,
@@ -39,7 +39,8 @@ public class BattleService : IBattleService
         ICombatEngine combatEngine,
         IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
-        ILogger<BattleService> logger)
+        ILogger<BattleService> logger,
+        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig)
     {
         _characterRepository = characterRepository;
         _battleRepository = battleRepository;
@@ -48,6 +49,7 @@ public class BattleService : IBattleService
         _inventoryRepository = inventoryRepository;
         _userManager = userManager;
         _logger = logger;
+        _myTunoScalingConfig = myTunoScalingConfig.Value;
     }
 
     /// <summary>
@@ -178,9 +180,9 @@ public class BattleService : IBattleService
     {
         return outcome switch
         {
-            BattleOutcome.AttackerWon => (BaseWinXP, BaseWinFidelis),
-            BattleOutcome.DefenderWon => (BaseLossXP, BaseLossFidelis),
-            BattleOutcome.Draw => (BaseDrawXP, BaseDrawFidelis),
+            BattleOutcome.AttackerWon => (BaseWinXP, _myTunoScalingConfig.BattleRewards.WinReward),
+            BattleOutcome.DefenderWon => (BaseLossXP, _myTunoScalingConfig.BattleRewards.LossReward),
+            BattleOutcome.Draw => (BaseDrawXP, _myTunoScalingConfig.BattleRewards.DrawReward),
             _ => (0, 0m)
         };
     }
@@ -243,7 +245,7 @@ public class BattleService : IBattleService
         {
             // Beer dropped!
             await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
-            
+
             _logger.LogInformation(
                 "Beer dropped for user {UserId}! Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
                 userId, roll, MyTunoScaling.BeerDropChance);

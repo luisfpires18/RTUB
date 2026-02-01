@@ -133,7 +133,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _context.SaveChangesAsync();
 
         var users = new[] { "user1", "user2", "user3", "user4", "user5" };
-        
+
         // Create test users to avoid issues with Include navigation property
         var testUsers = users.Select(userId => new ApplicationUser
         {
@@ -201,7 +201,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         {
             userIds.Add($"regular-user-{i}");
         }
-        
+
         var testUsers = userIds.Select(userId => new ApplicationUser
         {
             Id = userId,
@@ -350,7 +350,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 
         // Add members with slight delays to ensure different timestamps
         var userIds = new[] { "user-a", "user-b", "user-c" };
-        
+
         // Create test users to avoid issues with Include navigation property
         var testUsers = userIds.Select(userId => new ApplicationUser
         {
@@ -363,7 +363,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         }).ToList();
         _context.Users.AddRange(testUsers);
         await _context.SaveChangesAsync();
-        
+
         foreach (var userId in userIds)
         {
             var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);

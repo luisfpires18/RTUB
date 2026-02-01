@@ -18,10 +18,10 @@ public class RequestToEventService : IRequestToEventService
     {
         // Build event name: "EventType em Location"
         var eventName = $"{request.EventType} em {request.Location}";
-        
+
         // Build description: "Pedido de Name"
         var description = $"Pedido de {request.Name}";
-        
+
         // Return query parameters for navigation
         return new Dictionary<string, object?>
         {
