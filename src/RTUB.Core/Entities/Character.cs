@@ -21,6 +21,12 @@ public class Character : BaseEntity
     public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
     public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
     public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
+    
+    // Current HP (null means full HP, for backwards compatibility)
+    public int? CurrentHP { get; set; } = null;
+
+    // HP constants
+    private const int MinHP = 0;
 
     // Upgrade Counts (for cost calculation)
     public int HpUpgrades { get; set; } = MyTunoScaling.InitialHpUpgrades;
@@ -129,5 +135,42 @@ public class Character : BaseEntity
     public void UpgradeCriticalChance()
     {
         CriticalUpgrades++;
+    }
+
+    /// <summary>
+    /// Takes damage and updates CurrentHP
+    /// </summary>
+    public void TakeDamage(int damage)
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        currentHp -= damage;
+        CurrentHP = Math.Max(MinHP, currentHp);
+    }
+
+    /// <summary>
+    /// Heals the character and updates CurrentHP
+    /// </summary>
+    public void Heal(int amount)
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        currentHp += amount;
+        CurrentHP = Math.Min(TotalHP, currentHp);
+    }
+
+    /// <summary>
+    /// Sets HP to maximum
+    /// </summary>
+    public void RestoreHP()
+    {
+        CurrentHP = TotalHP;
+    }
+
+    /// <summary>
+    /// Checks if character is alive
+    /// </summary>
+    public bool IsAlive()
+    {
+        var currentHp = CurrentHP ?? TotalHP;
+        return currentHp > MinHP;
     }
 }

@@ -724,6 +724,9 @@
             const isAttackerWinner = winner === 'Attacker' || winner === this.attackerName;
             const winnerSprite = isAttackerWinner ? this.characterSprites.attacker : this.characterSprites.defender;
             
+            // Map "Attacker" or "Defender" to actual username
+            const winnerName = isAttackerWinner ? this.attackerName : this.defenderName;
+            
             // Play victory sound
             this.playSound('victory');
             
@@ -743,7 +746,7 @@
             const victoryText = this.add.text(
                 this.scale.width / 2, 
                 this.scale.height / 2 - 50, 
-                `${winner} vence!`, 
+                `${winnerName} vence!`, 
                 {
                     fontFamily: 'Arial',
                     fontSize: '48px',

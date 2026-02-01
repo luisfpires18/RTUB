@@ -324,13 +324,8 @@
 
         try
         {
-            var allOpponents = await CharacterRepository.GetMemberCharactersAsync(character.Id);
-
-            opponentCharacters = allOpponents
-                .OrderBy(opponent => Math.Abs(opponent.Level - character.Level))
-                .ThenBy(opponent => opponent.Id)
-                .Take(4)
-                .ToList();
+            // Use the new random opponent selection method
+            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 4);
         }
         catch (Exception ex)
         {
@@ -359,6 +354,13 @@
     private async Task FightOpponent(Character opponent)
     {
         if (character == null || currentUser == null || opponent == null) return;
+
+        // Check if character is alive
+        if (!character.IsAlive())
+        {
+            errorMessage = "O teu personagem está derrotado. Precisa de reviver antes de lutar.";
+            return;
+        }
 
         try
         {

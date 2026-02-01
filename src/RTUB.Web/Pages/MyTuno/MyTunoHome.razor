@@ -18,6 +18,8 @@
 @inject ILogger<MyTunoHome> Logger
 @using RTUB.Application.DTOs
 @using RTUB.Shared.Components.UI
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
 
 <PageTitle>My Tuno - RTUB</PageTitle>
 
@@ -32,17 +34,28 @@
             </div>
             @if (isOwner)
             {
-                <button class="btn btn-primary" @onclick="CreateCharactersForAllMembers" disabled="@creatingCharacters">
-                    @if (creatingCharacters)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        <text>A criar...</text>
-                    }
-                    else
-                    {
-                        <i class="bi bi-person-plus me-2"></i>
-                        <text>Criar Tuno para Todos os Membros</text>
-                    }
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                        <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
+                    </button>
+                    <button class="btn btn-primary" @onclick="CreateCharactersForAllMembers" disabled="@creatingCharacters">
+                        @if (creatingCharacters)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <text>A criar...</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-plus me-2"></i>
+                            <text>Criar Tuno para Todos os Membros</text>
+                        }
+                    </button>
+                </div>
+            }
+            else
+            {
+                <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                    <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
                 </button>
             }
         </div>
@@ -68,9 +81,16 @@
                         <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
                     </div>
                     <div class="card-body">
-                        <EmptyState Title="Inventory vazio"
-                                    Message="Ainda não tens itens no inventário."
-                                    Icon="bi-archive" />
+                        @if (currentUser != null)
+                        {
+                            <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-coin text-success me-2 fs-4"></i>
+                                    <span class="fw-semibold">Fidelis</span>
+                                </span>
+                                <strong class="text-success fs-4">@currentUser.FidelisBalance.ToString("F2")</strong>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -82,6 +102,28 @@
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
                     </div>
                     <div class="card-body">
+                        <!-- HP Bar (above character sprite) -->
+                        @{
+                            var currentHP = character.CurrentHP ?? character.TotalHP;
+                            var hpProgress = character.TotalHP > 0 ? Math.Min(100, (currentHP * 100.0 / character.TotalHP)) : 0;
+                        }
+                        <div class="xp-bar-container mb-3">
+                            <div class="xp-bar-bg">
+                                <div class="xp-bar-fill hp-bar-fill" 
+                                     style="width: @(hpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                                     role="progressbar" 
+                                     aria-valuenow="@currentHP" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="@character.TotalHP">
+                                </div>
+                            </div>
+                            <div class="xp-bar-text">
+                                <span class="xp-current">HP: @currentHP</span>
+                                <span class="xp-separator">/</span>
+                                <span class="xp-max">@character.TotalHP</span>
+                            </div>
+                        </div>
+                        
                         <!-- Character Sprite -->
                         <div class="text-center mb-3">
                             <img src="/sprites/games/my-tuno/default_tuno.png" 
@@ -115,40 +157,68 @@
                             </div>
                         </div>
                         <hr />
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span><i class="bi bi-heart-fill text-danger me-2"></i>HP:</span>
-                                <strong>@character.TotalHP</strong>
+                        
+                        <!-- Colored Stat Boxes -->
+                        <div class="d-flex flex-column gap-2">
+                            <!-- HP Stat Box -->
+                            <div class="p-2 border border-danger rounded d-flex justify-content-between align-items-center bg-light">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-heart-fill text-danger me-2"></i>
+                                    <span>HP</span>
+                                </span>
+                                <strong class="text-danger">@currentHP / @character.TotalHP</strong>
+                            </div>
+                            
+                            <!-- Power Stat Box -->
+                            <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center bg-light">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-lightning-fill text-success me-2"></i>
+                                    <span>Power</span>
+                                </span>
+                                <strong class="text-success">@character.TotalPower</strong>
+                            </div>
+                            
+                            <!-- Speed Stat Box -->
+                            <div class="p-2 border border-primary rounded d-flex justify-content-between align-items-center bg-light">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-speedometer2 text-primary me-2"></i>
+                                    <span>Speed</span>
+                                </span>
+                                <strong class="text-primary">@character.TotalSpeed</strong>
+                            </div>
+                            
+                            <!-- Critical Stat Box -->
+                            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center bg-light">
+                                <span class="d-flex align-items-center">
+                                    <i class="bi bi-bullseye text-warning me-2"></i>
+                                    <span>Crítico</span>
+                                </span>
+                                <strong class="text-warning">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
                             </div>
                         </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span><i class="bi bi-lightning-fill text-warning me-2"></i>Power:</span>
-                                <strong>@character.TotalPower</strong>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span><i class="bi bi-speedometer2 text-info me-2"></i>Speed:</span>
-                                <strong>@character.TotalSpeed</strong>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span><i class="bi bi-bullseye text-warning me-2"></i>Crítico:</span>
-                                <strong>@($"{character.TotalCriticalChance * 100:F1}%")</strong>
-                            </div>
-                        </div>
-                        @if (currentUser != null)
+                        
+                        @if (currentHP <= 0)
                         {
-                            <hr />
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-coin text-success me-2"></i>Fidelis:</span>
-                                <strong class="text-success">@currentUser.FidelisBalance.ToString("F2")</strong>
+                            <div class="alert alert-danger mt-3 mb-3" role="alert">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>Personagem derrotado!</strong> Precisa de reviver para lutar.
                             </div>
+                            <button class="btn btn-success w-100 mb-2" @onclick="ReviveCharacter" disabled="@reviving">
+                                @if (reviving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <text>A reviver...</text>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-heart-fill me-2"></i>
+                                    <text>Reviver (@GetReviveCost().ToString("F2") Fidelis)</text>
+                                }
+                            </button>
                         }
+                        
                         <hr />
-                        <button class="btn btn-primary btn-lg w-100" @onclick="NavigateToArena">
+                        <button class="btn btn-primary btn-lg w-100" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
                             <i class="bi bi-sword me-2"></i>Ir para Arena
                         </button>
                     </div>
@@ -223,7 +293,8 @@
                                                     ItemLabel="jogadores"
                                                     OnPageChanged="ChangeLeaderboardPage"
                                                     PageSizeOptions="@(new[] { 5, 10, 20 })"
-                                                    OnPageSizeChanged="ChangeLeaderboardPageSize" />
+                                                    OnPageSizeChanged="ChangeLeaderboardPageSize"
+                                                    ShowInfo="false" />
                                 </div>
                             }
                         }
@@ -542,9 +613,38 @@
             </FooterContent>
         </Modal>
     }
+
+    <!-- Info Modal -->
+    @if (showInfoModal)
+    {
+        <DetailsModal Show="@showInfoModal"
+                      ShowChanged="@((bool show) => showInfoModal = show)"
+                      Title="Sobre My Tuno"
+                      HeaderTitle="My Tuno"
+                      IconClass="bi-sword"
+                      OnClose="CloseInfoModal">
+            <BadgesContent>
+                <span class="badge bg-primary">Versão @myTunoVersion</span>
+            </BadgesContent>
+            <Sections>
+                <InfoSection SectionTitle="Descrição" IconClass="bi-info-circle">
+                    <p class="text-white-full mb-0">@myTunoDescription</p>
+                </InfoSection>
+                <InfoSection SectionTitle="Próximas Funcionalidades" IconClass="bi-star">
+                    <p class="text-white-full mb-0">@myTunoNextFeatures</p>
+                </InfoSection>
+            </Sections>
+        </DetailsModal>
+    }
 </div>
 
 @code {
+    // Configuration defaults - MUST match values in appsettings.json MyTuno section
+    // These are fallbacks in case configuration fails to load
+    private const string DefaultVersion = "1.0.0";
+    private const string DefaultDescription = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
+    private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
+    
     private Character? character;
     private ApplicationUser? currentUser;
     private List<MyTunoLeaderboardEntry>? leaderboardEntries;
@@ -552,6 +652,13 @@
     private bool isOwner = false;
     private bool creatingCharacters = false;
     private bool leaderboardLoading = false;
+    private bool reviving = false;
+    
+    // Info modal state
+    private bool showInfoModal = false;
+    private string myTunoVersion = DefaultVersion;
+    private string myTunoDescription = DefaultDescription;
+    private string myTunoNextFeatures = DefaultNextFeatures;
     
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
@@ -586,6 +693,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Load configuration values with fallback to constants
+        myTunoVersion = Configuration["MyTuno:Version"] ?? DefaultVersion;
+        myTunoDescription = Configuration["MyTuno:Description"] ?? DefaultDescription;
+        myTunoNextFeatures = Configuration["MyTuno:NextFeatures"] ?? DefaultNextFeatures;
+        
         await LoadDataAsync();
     }
 
@@ -779,5 +891,70 @@
     {
         leaderboardPageSize = newPageSize;
         leaderboardCurrentPage = 1; // Reset to first page when changing page size
+    }
+
+    private void OpenInfoModal()
+    {
+        showInfoModal = true;
+    }
+
+    private void CloseInfoModal()
+    {
+        showInfoModal = false;
+    }
+
+    private decimal GetReviveCost()
+    {
+        if (character == null) return 0;
+        // Cost scales with level: 10 Fidelis * level
+        return 10m * character.Level;
+    }
+
+    private async Task ReviveCharacter()
+    {
+        if (character == null || currentUser == null) return;
+
+        try
+        {
+            reviving = true;
+            var cost = GetReviveCost();
+
+            if (currentUser.FidelisBalance < cost)
+            {
+                toastMessage = "Saldo insuficiente para reviver.";
+                toastIsError = true;
+                return;
+            }
+
+            // Deduct Fidelis
+            currentUser.FidelisBalance -= cost;
+            await UserManager.UpdateAsync(currentUser);
+
+            // Restore HP to max
+            character.CurrentHP = character.TotalHP;
+            await CharacterService.UpdateCharacterAsync(character);
+
+            // Reload data
+            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
+            if (updatedUser != null)
+            {
+                currentUser = updatedUser;
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            }
+
+            toastMessage = "Personagem revivido com sucesso!";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reviving character");
+            toastMessage = "Erro ao reviver personagem.";
+            toastIsError = true;
+        }
+        finally
+        {
+            reviving = false;
+            StateHasChanged();
+        }
     }
 }

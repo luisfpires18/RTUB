@@ -496,3 +496,8 @@
     padding-bottom: 0;
     border-bottom: none;
 }
+
+/* HP Bar variant - Red gradient */
+.xp-bar-fill.hp-bar-fill {
+    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
+}
