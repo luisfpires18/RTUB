@@ -49,6 +49,12 @@
 
         <!-- Page Header Actions -->
         <div class="page-header-actions justify-content-lg-end">
+            <AuthorizeView Roles="Owner">
+                <Authorized>
+                    <AndroidTestersButton />
+                </Authorized>
+            </AuthorizeView>
+
             <AuthorizeView Roles="Admin">
                 <Authorized>
                     <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
