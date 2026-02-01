@@ -96,4 +96,24 @@ public interface IDocumentationService
     /// <param name="isAdmin">Whether the user is an admin</param>
     /// <returns>True if user can access the folder, false otherwise</returns>
     Task<bool> CanUserAccessFolderAsync(int folderId, ApplicationUser user, bool isAdmin);
+
+    /// <summary>
+    /// Gets an existing folder or creates a new one if it doesn't exist
+    /// </summary>
+    /// <param name="displayName">The display name for the folder</param>
+    /// <param name="fiscalYear">The fiscal year for the folder (e.g., "2024-2025")</param>
+    /// <param name="environment">The environment name (e.g., "Production", "Development")</param>
+    /// <param name="isSpecial">Whether this is a special folder with visibility restrictions</param>
+    /// <param name="specialVisibility">The visibility level for special folders</param>
+    /// <param name="createdByUserId">The ID of the user creating the folder (if created)</param>
+    /// <param name="createdByUserName">The name of the user creating the folder (if created)</param>
+    /// <returns>The existing or newly created folder</returns>
+    Task<Folder> GetOrCreateFolderAsync(
+        string displayName,
+        string fiscalYear,
+        string environment,
+        bool isSpecial = false,
+        SpecialVisibility? specialVisibility = null,
+        string? createdByUserId = null,
+        string? createdByUserName = null);
 }

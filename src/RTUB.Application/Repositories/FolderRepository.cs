@@ -80,4 +80,24 @@ public class FolderRepository : Repository<Folder>, IFolderRepository
         return await _dbSet
             .AnyAsync(f => f.NormalizedKey == normalizedKey);
     }
+
+    public async Task<Folder?> FindByDisplayNameAndFiscalYearAsync(string displayName, string fiscalYear)
+    {
+        if (string.IsNullOrWhiteSpace(displayName) || string.IsNullOrWhiteSpace(fiscalYear))
+            return null;
+
+        // NormalizedKey pattern: docs/{environment}/{fiscalYear}/{normalizedFolderName}
+        // We need to match folders where the fiscal year appears in the correct position
+        // Using StartsWith to match the pattern more precisely
+        return await _dbSet
+            .AsNoTracking()
+            .Include(f => f.Documents)
+            .Include(f => f.FolderViewers)
+            .Where(f => 
+                f.DisplayName == displayName && 
+                (f.NormalizedKey.StartsWith($"docs/Production/{fiscalYear}/") ||
+                 f.NormalizedKey.StartsWith($"docs/Development/{fiscalYear}/") ||
+                 f.NormalizedKey.StartsWith($"docs/Staging/{fiscalYear}/")))
+            .FirstOrDefaultAsync();
+    }
 }

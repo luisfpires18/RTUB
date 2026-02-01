@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
@@ -22,6 +23,8 @@ public class LogisticsCardService : ILogisticsCardService
     private readonly IDocumentStorageService _documentStorageService;
     private readonly IRepository<LogisticsCardAssignment> _assignmentRepository;
     private readonly IRepository<LogisticsCardReminder> _reminderRepository;
+    private readonly IDocumentationService _documentationService;
+    private readonly IHostEnvironment _hostEnvironment;
 
     /// <summary>
     /// Initializes a new instance of the LogisticsCardService
@@ -31,18 +34,24 @@ public class LogisticsCardService : ILogisticsCardService
     /// <param name="documentStorageService">Service for document storage operations</param>
     /// <param name="assignmentRepository">Repository for card assignment operations</param>
     /// <param name="reminderRepository">Repository for card reminder operations</param>
+    /// <param name="documentationService">Service for documentation folder and document management</param>
+    /// <param name="hostEnvironment">Host environment for determining environment name</param>
     public LogisticsCardService(
         ILogisticsCardRepository cardRepository,
         IEventRepository eventRepository,
         IDocumentStorageService documentStorageService,
         IRepository<LogisticsCardAssignment> assignmentRepository,
-        IRepository<LogisticsCardReminder> reminderRepository)
+        IRepository<LogisticsCardReminder> reminderRepository,
+        IDocumentationService documentationService,
+        IHostEnvironment hostEnvironment)
     {
         _cardRepository = cardRepository;
         _eventRepository = eventRepository;
         _documentStorageService = documentStorageService;
         _assignmentRepository = assignmentRepository;
         _reminderRepository = reminderRepository;
+        _documentationService = documentationService;
+        _hostEnvironment = hostEnvironment;
     }
 
     /// <summary>
@@ -327,7 +336,60 @@ public class LogisticsCardService : ILogisticsCardService
         var folderPath = $"docs/{environmentName}/{fiscalYear}/Logistics/{sanitizedBoardName}/";
 
         // Upload the document (folder will be created automatically if it doesn't exist)
-        return await _documentStorageService.UploadDocumentAsync(folderPath, fileName, fileStream, contentType);
+        var documentPath = await _documentStorageService.UploadDocumentAsync(folderPath, fileName, fileStream, contentType);
+
+        // Index in Documentation system
+        try
+        {
+            // Find or create "Logistics" folder for this board
+            var folder = await _documentationService.GetOrCreateFolderAsync(
+                displayName: sanitizedBoardName,
+                fiscalYear: fiscalYear,
+                environment: _hostEnvironment.EnvironmentName,
+                isSpecial: false);
+
+            // Get the Cloudflare URL for the document
+            var cloudflareUrl = await _documentStorageService.GetDocumentUrlAsync(documentPath);
+            
+            // Only proceed if we have a valid URL
+            if (!string.IsNullOrEmpty(cloudflareUrl))
+            {
+                // Check for duplicate documents by ObjectKey before creating
+                // Note: Using a minimal ApplicationUser with isAdmin=true to bypass permission checks
+                // GetDocumentsByFolderIdAsync with isAdmin=true short-circuits and doesn't access user properties
+                var existingDocuments = await _documentationService.GetDocumentsByFolderIdAsync(
+                    folder.Id,
+                    new ApplicationUser { Id = "system" },
+                    isAdmin: true);
+
+                var documentExists = existingDocuments.Any(d => d.ObjectKey == documentPath);
+
+                if (!documentExists)
+                {
+                    // Get file size (note: stream position might have changed after upload)
+                    long sizeBytes = 0;
+                    if (fileStream.CanSeek)
+                    {
+                        sizeBytes = fileStream.Length;
+                    }
+
+                    await _documentationService.CreateDocumentAsync(
+                        folderId: folder.Id,
+                        displayName: fileName,
+                        cloudflareUrl: cloudflareUrl,
+                        objectKey: documentPath,
+                        sizeBytes: sizeBytes,
+                        contentType: contentType);
+                }
+            }
+        }
+        catch
+        {
+            // Silently fail - don't break logistics if documentation indexing fails
+            // The file is already uploaded successfully to storage
+        }
+
+        return documentPath;
     }
 
     /// <summary>

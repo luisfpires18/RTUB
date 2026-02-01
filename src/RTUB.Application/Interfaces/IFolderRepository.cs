@@ -28,4 +28,12 @@ public interface IFolderRepository : IRepository<Folder>
     /// <param name="normalizedKey">The normalized key to check</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> ExistsAsync(string normalizedKey);
+
+    /// <summary>
+    /// Finds a folder by display name and fiscal year
+    /// </summary>
+    /// <param name="displayName">The display name of the folder</param>
+    /// <param name="fiscalYear">The fiscal year (e.g., "2024-2025")</param>
+    /// <returns>The folder if found, otherwise null</returns>
+    Task<Folder?> FindByDisplayNameAndFiscalYearAsync(string displayName, string fiscalYear);
 }

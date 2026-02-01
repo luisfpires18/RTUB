@@ -335,4 +335,32 @@ public class DocumentationService : IDocumentationService
 
         return normalizedKey;
     }
+
+    public async Task<Folder> GetOrCreateFolderAsync(
+        string displayName,
+        string fiscalYear,
+        string environment,
+        bool isSpecial = false,
+        SpecialVisibility? specialVisibility = null,
+        string? createdByUserId = null,
+        string? createdByUserName = null)
+    {
+        // Try to find existing folder by DisplayName and fiscal year using repository method
+        var existingFolder = await _folderRepository.FindByDisplayNameAndFiscalYearAsync(displayName, fiscalYear);
+
+        if (existingFolder != null)
+        {
+            return existingFolder;
+        }
+
+        // If not found, create it
+        return await CreateFolderAsync(
+            displayName,
+            fiscalYear,
+            environment,
+            isSpecial,
+            specialVisibility,
+            createdByUserId,
+            createdByUserName);
+    }
 }

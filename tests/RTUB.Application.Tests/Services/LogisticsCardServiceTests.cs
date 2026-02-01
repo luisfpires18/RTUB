@@ -35,7 +35,9 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         var documentStorageService = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>().Object;
         var assignmentRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardAssignment>>().Object;
         var reminderRepo = new Mock<RTUB.Application.Interfaces.IRepository<LogisticsCardReminder>>().Object;
-        _service = new LogisticsCardService(cardRepo, eventRepo, documentStorageService, assignmentRepo, reminderRepo);
+        var documentationService = new Mock<RTUB.Application.Interfaces.IDocumentationService>().Object;
+        var hostEnvironment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>().Object;
+        _service = new LogisticsCardService(cardRepo, eventRepo, documentStorageService, assignmentRepo, reminderRepo, documentationService, hostEnvironment);
     }
 
     [Fact]
@@ -522,12 +524,17 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
             "application/pdf"))
             .ReturnsAsync(expectedPath);
 
+        var mockDocumentationService = new Mock<RTUB.Application.Interfaces.IDocumentationService>();
+        var mockHostEnvironment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        
         var service = new LogisticsCardService(
             new LogisticsCardRepository(_context),
             new EventRepository(_context),
             mockDocumentStorage.Object,
             new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardReminder>(_context),
+            mockDocumentationService.Object,
+            mockHostEnvironment.Object);
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
         var boardName = "Test Board";
@@ -553,12 +560,17 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Arrange
         var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
+        var mockDocumentationService = new Mock<RTUB.Application.Interfaces.IDocumentationService>();
+        var mockHostEnvironment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        
         var service = new LogisticsCardService(
             new LogisticsCardRepository(_context),
             new EventRepository(_context),
             mockDocumentStorage.Object,
             new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardReminder>(_context),
+            mockDocumentationService.Object,
+            mockHostEnvironment.Object);
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
         var boardName = "Test Board";
@@ -602,12 +614,17 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
             It.IsAny<string>()))
             .ReturnsAsync(expectedPath);
 
+        var mockDocumentationService = new Mock<RTUB.Application.Interfaces.IDocumentationService>();
+        var mockHostEnvironment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        
         var service = new LogisticsCardService(
             new LogisticsCardRepository(_context),
             new EventRepository(_context),
             mockDocumentStorage.Object,
             new Repository<LogisticsCardAssignment>(_context),
-            new Repository<LogisticsCardReminder>(_context));
+            new Repository<LogisticsCardReminder>(_context),
+            mockDocumentationService.Object,
+            mockHostEnvironment.Object);
 
         var fileStream = new MemoryStream(new byte[] { 1, 2, 3 });
         var boardName = "Test/Board..Name"; // Contains path traversal attempts

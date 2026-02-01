@@ -39,11 +39,15 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         _mockReceiptStorageService = new Mock<IReceiptStorageService>();
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockActivityService = new Mock<IActivityService>();
+        var mockDocumentationService = new Mock<IDocumentationService>();
+        var mockHostEnvironment = new Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
         _service = new TransactionService(
             new TransactionRepository(_context),
             _mockReceiptStorageService.Object,
             _mockAuditLogService.Object,
-            _mockActivityService.Object);
+            _mockActivityService.Object,
+            mockDocumentationService.Object,
+            mockHostEnvironment.Object);
     }
 
     #region Create Tests

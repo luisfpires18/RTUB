@@ -1,8 +1,11 @@
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 
 
@@ -19,17 +22,23 @@ public class TransactionService : ITransactionService
     private readonly IReceiptStorageService _receiptStorageService;
     private readonly IAuditLogService _auditLogService;
     private readonly IActivityService _activityService;
+    private readonly IDocumentationService _documentationService;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         IReceiptStorageService receiptStorageService,
         IAuditLogService auditLogService,
-        IActivityService activityService)
+        IActivityService activityService,
+        IDocumentationService documentationService,
+        IHostEnvironment hostEnvironment)
     {
         _transactionRepository = transactionRepository;
         _receiptStorageService = receiptStorageService;
         _auditLogService = auditLogService;
         _activityService = activityService;
+        _documentationService = documentationService;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<Transaction?> GetTransactionByIdAsync(int id)
@@ -73,6 +82,9 @@ public class TransactionService : ITransactionService
             var receiptUrl = await _receiptStorageService.UploadReceiptAsync(receiptStream, receiptFileName, receiptContentType, createdTransaction.Id);
             createdTransaction.SetReceiptUrl(receiptUrl);
             await _transactionRepository.UpdateAsync(createdTransaction);
+
+            // Index in Documentation system for Tesouraria
+            await IndexReceiptInDocumentationAsync(createdTransaction.Id, receiptUrl, receiptStream, receiptFileName, receiptContentType);
         }
 
         return createdTransaction;
@@ -102,6 +114,9 @@ public class TransactionService : ITransactionService
             // Upload new receipt
             var receiptUrl = await _receiptStorageService.UploadReceiptAsync(receiptStream, receiptFileName, receiptContentType, id);
             transaction.SetReceiptUrl(receiptUrl);
+
+            // Index in Documentation system for Tesouraria
+            await IndexReceiptInDocumentationAsync(id, receiptUrl, receiptStream, receiptFileName, receiptContentType);
         }
 
         await _transactionRepository.UpdateAsync(transaction);
@@ -135,7 +150,90 @@ public class TransactionService : ITransactionService
         transaction.SetReceiptUrl(receiptUrl);
         await _transactionRepository.UpdateAsync(transaction);
 
+        // Index in Documentation system for Tesouraria
+        await IndexReceiptInDocumentationAsync(transactionId, receiptUrl, fileStream, fileName, contentType);
+
         return receiptUrl;
+    }
+
+    /// <summary>
+    /// Indexes a receipt in the Documentation system under the Tesouraria special folder
+    /// </summary>
+    private async Task IndexReceiptInDocumentationAsync(int transactionId, string receiptUrl, Stream fileStream, string fileName, string contentType)
+    {
+        try
+        {
+            // Get current fiscal year
+            var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+
+            // Find or create "Tesouraria" special folder
+            var folder = await _documentationService.GetOrCreateFolderAsync(
+                displayName: "Tesouraria",
+                fiscalYear: fiscalYear,
+                environment: _hostEnvironment.EnvironmentName,
+                isSpecial: true,
+                specialVisibility: SpecialVisibility.Tesouraria);
+
+            // Extract object key from receipt URL for duplicate check
+            var objectKey = ExtractObjectKeyFromReceiptUrl(receiptUrl);
+
+            if (!string.IsNullOrEmpty(objectKey))
+            {
+                // Check for duplicate documents by ObjectKey before creating
+                // Note: Using a minimal ApplicationUser with isAdmin=true to bypass permission checks
+                // GetDocumentsByFolderIdAsync with isAdmin=true short-circuits and doesn't access user properties
+                var existingDocuments = await _documentationService.GetDocumentsByFolderIdAsync(
+                    folder.Id,
+                    new ApplicationUser { Id = "system" },
+                    isAdmin: true);
+
+                var documentExists = existingDocuments.Any(d => d.ObjectKey == objectKey);
+
+                if (!documentExists)
+                {
+                    // Get file size (note: stream position might have changed after upload)
+                    long sizeBytes = 0;
+                    if (fileStream.CanSeek)
+                    {
+                        sizeBytes = fileStream.Length;
+                    }
+
+                    await _documentationService.CreateDocumentAsync(
+                        folderId: folder.Id,
+                        displayName: $"Transaction_{transactionId}_{fileName}",
+                        cloudflareUrl: receiptUrl,
+                        objectKey: objectKey,
+                        sizeBytes: sizeBytes,
+                        contentType: contentType);
+                }
+            }
+        }
+        catch
+        {
+            // Silently fail - don't break transaction operations if documentation indexing fails
+            // The receipt is already uploaded successfully to storage
+        }
+    }
+
+    /// <summary>
+    /// Extracts the object key from a receipt URL
+    /// Example: https://pub-xxx.r2.dev/receipts/Production/123_20250101120000.pdf -> receipts/Production/123_20250101120000.pdf
+    /// </summary>
+    private static string ExtractObjectKeyFromReceiptUrl(string receiptUrl)
+    {
+        if (string.IsNullOrEmpty(receiptUrl))
+            return string.Empty;
+
+        try
+        {
+            var uri = new Uri(receiptUrl);
+            // Remove leading slash if present
+            return uri.AbsolutePath.TrimStart('/');
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     public async Task DeleteReceiptAsync(int transactionId)
