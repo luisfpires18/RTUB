@@ -12,6 +12,7 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
+@using RTUB.Shared.Components.UI
 @using System.Text.Json
 @attribute [Authorize]
 @inject ICharacterService CharacterService
@@ -139,10 +140,10 @@
                         @foreach (var opponent in opponentCharacters)
                         {
                             <div class="col-md-6 col-lg-4 col-xl-3">
-                                <CharacterCard Character="@opponent"
-                                             OnFight="() => FightOpponent(opponent)"
-                                             IsDisabled="@(fighting || showBattleAnimation)"
-                                             IsFighting="@(fightingOpponentId == opponent.Id)" />
+                                <EnemyCard Character="@opponent"
+                                          OnFight="() => FightOpponent(opponent)"
+                                          IsDisabled="@(fighting || showBattleAnimation)"
+                                          IsFighting="@(fightingOpponentId == opponent.Id)" />
                             </div>
                         }
                     </div>

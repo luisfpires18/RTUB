@@ -1,0 +1,153 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+@* EnemyCard Component - Displays an enemy character card for My Tuno battles with HP/XP bars *@
+
+<div class="enemy-card card h-100">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0">
+            <i class="bi bi-person me-2"></i>
+            @if (Character?.User != null)
+            {
+                @Character.User.UserName
+            }
+            else
+            {
+                <text>Personagem</text>
+            }
+        </h6>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <!-- HP Bar -->
+        @{
+            var currentHP = Character?.CurrentHP ?? Character?.TotalHP ?? 100;
+            var maxHP = Character?.TotalHP ?? 100;
+            var hpProgress = maxHP > 0 ? Math.Min(100, (currentHP * 100.0 / maxHP)) : 0;
+        }
+        <div class="xp-bar-container mb-3">
+            <div class="xp-bar-bg">
+                <div class="xp-bar-fill hp-bar-fill" 
+                     style="width: @(hpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                     role="progressbar" 
+                     aria-valuenow="@currentHP" 
+                     aria-valuemin="0" 
+                     aria-valuemax="@maxHP">
+                </div>
+            </div>
+            <div class="xp-bar-text">
+                <span class="xp-current">HP: @currentHP</span>
+                <span class="xp-separator">/</span>
+                <span class="xp-max">@maxHP</span>
+            </div>
+        </div>
+        
+        <!-- Character Sprite -->
+        <div class="text-center mb-3">
+            <img src="/sprites/games/my-tuno/default_tuno.png" 
+                 alt="Enemy Character" 
+                 class="character-sprite img-fluid"
+                 style="max-height: 150px; max-width: 100%; object-fit: contain;" />
+        </div>
+
+        <!-- Level and XP -->
+        <div class="mb-3">
+            <h5 class="text-center mb-3">Nível @(Character?.Level ?? 1)</h5>
+            @{
+                var xp = Character?.XP ?? 0;
+                var level = Character?.Level ?? 1;
+                var xpForNextLevel = level * 100;
+                var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (xp * 100.0 / xpForNextLevel)) : 0;
+            }
+            <!-- XP Bar -->
+            <div class="xp-bar-container">
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" 
+                         style="width: @(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                         role="progressbar" 
+                         aria-valuenow="@xp" 
+                         aria-valuemin="0" 
+                         aria-valuemax="@xpForNextLevel">
+                    </div>
+                </div>
+                <div class="xp-bar-text">
+                    <span class="xp-current">@xp XP</span>
+                    <span class="xp-separator">/</span>
+                    <span class="xp-max">@xpForNextLevel XP</span>
+                </div>
+            </div>
+        </div>
+        
+        <hr />
+        
+        <!-- Colored Stat Boxes -->
+        <div class="d-flex flex-column gap-2 mb-3">
+            <!-- HP Stat Box -->
+            <div class="p-2 border border-danger rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                <span class="d-flex align-items-center">
+                    <i class="bi bi-heart-fill text-danger me-2"></i>
+                    <span>HP</span>
+                </span>
+                <strong class="text-danger">@currentHP / @maxHP</strong>
+            </div>
+            
+            <!-- Power Stat Box -->
+            <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                <span class="d-flex align-items-center">
+                    <i class="bi bi-lightning-fill text-success me-2"></i>
+                    <span>Power</span>
+                </span>
+                <strong class="text-success">@(Character?.TotalPower ?? 0)</strong>
+            </div>
+            
+            <!-- Speed Stat Box -->
+            <div class="p-2 border border-primary rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                <span class="d-flex align-items-center">
+                    <i class="bi bi-speedometer2 text-primary me-2"></i>
+                    <span>Speed</span>
+                </span>
+                <strong class="text-primary">@(Character?.TotalSpeed ?? 0)</strong>
+            </div>
+            
+            <!-- Critical Stat Box -->
+            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                <span class="d-flex align-items-center">
+                    <i class="bi bi-bullseye text-warning me-2"></i>
+                    <span>Crítico</span>
+                </span>
+                <strong class="text-warning">@($"{(Character?.TotalCriticalChance ?? 0) * 100:F1}%")</strong>
+            </div>
+        </div>
+
+        <!-- Fight Button -->
+        <div class="mt-auto">
+            <button class="btn btn-primary w-100" 
+                    @onclick="() => OnFight.InvokeAsync(Character)"
+                    disabled="@(IsDisabled || Character == null)">
+                @if (IsFighting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <text>A lutar...</text>
+                }
+                else
+                {
+                    <i class="bi bi-sword me-2"></i>
+                    <text>Lutar</text>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Character? Character { get; set; }
+
+    [Parameter]
+    public EventCallback<Character> OnFight { get; set; }
+
+    [Parameter]
+    public bool IsDisabled { get; set; } = false;
+
+    [Parameter]
+    public bool IsFighting { get; set; } = false;
+}
