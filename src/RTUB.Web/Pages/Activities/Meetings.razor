@@ -27,6 +27,7 @@
 @inject IMeetingAtaConfirmationService MeetingAtaConfirmationService
 @inject IAtaPdfService AtaPdfService
 @inject IDocumentStorageService DocumentStorageService
+@inject IDocumentationService DocumentationService
 @inject IHostEnvironment HostEnvironment
 @inject IJSRuntime JSRuntime
 @inject UserManager<ApplicationUser> UserManager
@@ -3699,7 +3700,7 @@ else
             // Generate PDF
             var pdfBytes = AtaPdfService.GenerateAtaPdf(ataWithDetails);
             
-            // Create folder in Documentation for the current fiscal year
+            // Create folder and upload PDF to Cloudflare storage
             var fiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
             string folderName;
             
@@ -3718,6 +3719,8 @@ else
             }
             
             var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{fiscalYear}/{folderName}/";
+            var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
+            var objectKey = $"{folderPath}{fileName}";
             
             try
             {
@@ -3725,13 +3728,71 @@ else
                 await DocumentStorageService.CreateFolderAsync(folderPath);
                 Logger.LogInformation("Created ATA folder: {FolderPath}", folderPath);
                 
-                // Generate PDF filename
-                var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
-                
-                // Upload PDF to documentation
+                // Upload PDF to Cloudflare storage
                 using var pdfStream = new MemoryStream(pdfBytes);
                 await DocumentStorageService.UploadDocumentAsync(folderPath, fileName, pdfStream, "application/pdf");
                 Logger.LogInformation("Uploaded ATA PDF to: {FolderPath}{FileName}", folderPath, fileName);
+                
+                // Index ATA in Documentation system
+                try
+                {
+                    // For Conselho de Veteranos meetings, create special folder
+                    if (ataMeeting.Type == MeetingType.ConselhoVeteranos)
+                    {
+                        var folder = await DocumentationService.GetOrCreateFolderAsync(
+                            displayName: "Atas CV",
+                            fiscalYear: fiscalYear,
+                            environment: HostEnvironment.EnvironmentName,
+                            isSpecial: true,
+                            specialVisibility: SpecialVisibility.Veteranos
+                        );
+                        
+                        var cloudflareUrl = await DocumentStorageService.GetDocumentUrlAsync(objectKey);
+                        if (!string.IsNullOrEmpty(cloudflareUrl))
+                        {
+                            await DocumentationService.CreateDocumentAsync(
+                                folderId: folder.Id,
+                                displayName: $"Ata CV - {ataMeeting.Date:yyyy-MM-dd}",
+                                cloudflareUrl: cloudflareUrl,
+                                objectKey: objectKey,
+                                sizeBytes: pdfBytes.Length,
+                                contentType: "application/pdf"
+                            );
+                            Logger.LogInformation("Indexed CV ATA in Documentation system");
+                        }
+                    }
+                    // For Assembleia Geral meetings
+                    else if (ataMeeting.Type == MeetingType.AssembleiaGeralOrdinaria || 
+                             ataMeeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+                    {
+                        var folder = await DocumentationService.GetOrCreateFolderAsync(
+                            displayName: "Atas AG",
+                            fiscalYear: fiscalYear,
+                            environment: HostEnvironment.EnvironmentName,
+                            isSpecial: true,
+                            specialVisibility: SpecialVisibility.AssembleiaGeral
+                        );
+                        
+                        var cloudflareUrl = await DocumentStorageService.GetDocumentUrlAsync(objectKey);
+                        if (!string.IsNullOrEmpty(cloudflareUrl))
+                        {
+                            await DocumentationService.CreateDocumentAsync(
+                                folderId: folder.Id,
+                                displayName: $"Ata AG - {ataMeeting.Date:yyyy-MM-dd}",
+                                cloudflareUrl: cloudflareUrl,
+                                objectKey: objectKey,
+                                sizeBytes: pdfBytes.Length,
+                                contentType: "application/pdf"
+                            );
+                            Logger.LogInformation("Indexed AG ATA in Documentation system");
+                        }
+                    }
+                }
+                catch (Exception docEx)
+                {
+                    // Silently fail - don't break ATA publishing if documentation indexing fails
+                    Logger.LogWarning(docEx, "Failed to index ATA in Documentation system, but ATA was published successfully");
+                }
             }
             catch (Exception ex)
             {

@@ -34,6 +34,7 @@ public class MeetingsPageTests : PageTestBase
     private readonly Mock<IMeetingAtaConfirmationService> _mockMeetingAtaConfirmationService;
     private readonly Mock<IAtaPdfService> _mockAtaPdfService;
     private readonly Mock<IDocumentStorageService> _mockDocumentStorageService;
+    private readonly Mock<IDocumentationService> _mockDocumentationService;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<Microsoft.Extensions.Hosting.IHostEnvironment> _mockHostEnvironment;
 
@@ -52,6 +53,7 @@ public class MeetingsPageTests : PageTestBase
         _mockMeetingAtaConfirmationService = SetupService<IMeetingAtaConfirmationService>();
         _mockAtaPdfService = SetupService<IAtaPdfService>();
         _mockDocumentStorageService = SetupService<IDocumentStorageService>();
+        _mockDocumentationService = SetupService<IDocumentationService>();
         _mockUserManager = SetupUserManager();
         _mockHostEnvironment = SetupService<Microsoft.Extensions.Hosting.IHostEnvironment>();
 
