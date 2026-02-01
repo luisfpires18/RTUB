@@ -253,8 +253,7 @@ else
 
 @code {
     private bool isLoading = true;
-    private bool isMod = false;
-    private bool isAdmin = false;
+    private bool isOwner = false;
     private bool canDoAction = false;
     private string errorMessage = "";
     private ApplicationUser? currentUser;
@@ -322,10 +321,18 @@ else
     /// </summary>
     private IEnumerable<string> FilterFoldersByVisibility(List<string> folderList)
     {
-        if (currentUser == null || isAdmin || isMod)
+        // Only Owners see everything
+        if (isOwner)
         {
-            // Admins and mods see everything
             return folderList;
+        }
+        
+        // If currentUser is null, show no restricted folders
+        if (currentUser == null)
+        {
+            return folderList.Where(folder => 
+                !folder.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase) &&
+                !folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase));
         }
 
         return folderList.Where(folder =>
@@ -337,7 +344,7 @@ else
                 var role = currentUser.CurrentRole;
                 return role == "VETERANO" || 
                        role == "TUNOSSAURO" || 
-                       (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
+                       (currentUser.Positions?.Contains(Position.Magister) ?? false);
             }
             else if (folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
             {
@@ -350,21 +357,70 @@ else
         });
     }
 
+    /// <summary>
+    /// Checks if the current user can access a specific document based on its file path
+    /// </summary>
+    private bool CanAccessDocument(string filePath)
+    {
+        if (currentUser == null)
+        {
+            return false;
+        }
+        
+        // Only Owners can access everything
+        if (isOwner)
+        {
+            return true;
+        }
+        
+        // Extract folder name from file path
+        // Path structure: docs/{environment}/{fiscalYear}/{folderName}/{fileName}
+        // Example: "docs/Production/2024-2025/Atas CV 2024-2025/file.pdf"
+        // We extract the folder name (4th segment): "Atas CV 2024-2025"
+        var pathParts = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (pathParts.Length < 4)
+        {
+            // Invalid path structure, deny access
+            return false;
+        }
+        
+        // Get the folder name (4th part in the path)
+        var folderName = pathParts[3];
+        
+        // Check if this is an ATA CV folder
+        if (folderName.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase))
+        {
+            // CV folders: Veterano + Tunossauro + Magister
+            var role = currentUser.CurrentRole;
+            return role == "VETERANO" || 
+                   role == "TUNOSSAURO" || 
+                   (currentUser.Positions?.Contains(Position.Magister) ?? false);
+        }
+        else if (folderName.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
+        {
+            // AG folders: All except Leitão
+            return !currentUser.IsLeitao();
+        }
+        
+        // Other documents: accessible by all
+        return true;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Check if user is admin or mod
+            // Check user roles
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            isMod = authState.User.IsInRole("Mod");
-            isAdmin = authState.User.IsInRole("Admin");
-            canDoAction = isMod || isAdmin;
+            isOwner = authState.User.IsInRole("Owner");
+            // Only Owner can perform administrative actions (create/upload/delete folders and documents)
+            canDoAction = isOwner;
             
             // Get current user for visibility checks
             currentUser = await UserManager.GetUserAsync(authState.User);
-            if (currentUser != null && !isAdmin && !isMod)
+            if (currentUser != null && !isOwner)
             {
-                // Block Leitão members
+                // Block Leitão members (unless they are Owner)
                 if (currentUser.IsLeitao())
                 {
                     NavigationManager.NavigateTo("/");
@@ -625,6 +681,13 @@ else
     {
         try
         {
+            // Check if user has permission to access this document
+            if (!CanAccessDocument(document.FilePath))
+            {
+                // User doesn't have permission to access this document
+                return;
+            }
+            
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath, forceDownload: true);
             if (!string.IsNullOrEmpty(url))
             {

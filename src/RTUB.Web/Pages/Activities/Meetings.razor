@@ -3257,6 +3257,13 @@ else
     
     private async Task OpenViewAtaModal(Meeting meeting)
     {
+        // Check if user has permission to view this meeting's ata
+        if (!CanViewMeetingAta(meeting))
+        {
+            // User doesn't have permission to view this ata
+            return;
+        }
+        
         isViewingAtaLoading = true;
         modals.Open(ModalType.ViewAta);
         viewingAta = null;
@@ -3954,6 +3961,30 @@ else
         
         var role = currentUser.CurrentRole;
         return role == "VETERANO" || role == "TUNOSSAURO" || currentUser.Positions.Contains(Position.Magister);
+    }
+    
+    private bool CanViewMeetingAta(Meeting meeting)
+    {
+        if (currentUser == null) return false;
+        
+        // Owners can view all atas
+        if (isOwner) return true;
+        
+        // For CV meetings, only Veteranos, Tunossauros, and Magisters can view
+        if (meeting.Type == MeetingType.ConselhoVeteranos)
+        {
+            var role = currentUser.CurrentRole;
+            return role == "VETERANO" || role == "TUNOSSAURO" || (currentUser.Positions?.Contains(Position.Magister) ?? false);
+        }
+        
+        // For AG meetings, all except Leitão can view
+        if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+        {
+            return !currentUser.IsLeitao();
+        }
+        
+        // For other meeting types, all authenticated users can view
+        return true;
     }
     
     private bool IsPresidenteConselhoVeteranos()
