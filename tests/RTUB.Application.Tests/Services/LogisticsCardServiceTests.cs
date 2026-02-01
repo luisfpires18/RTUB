@@ -516,9 +516,9 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
         var expectedPath = "docs/TestEnvironment/2024-2025/Logistics/Test Board/test-file.pdf";
         mockDocumentStorage.Setup(s => s.UploadDocumentAsync(
-            It.IsAny<string>(), 
-            "test-file.pdf", 
-            It.IsAny<Stream>(), 
+            It.IsAny<string>(),
+            "test-file.pdf",
+            It.IsAny<Stream>(),
             "application/pdf"))
             .ReturnsAsync(expectedPath);
 
@@ -573,7 +573,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         // Assert
         await act.Should().ThrowAsync<RTUB.Core.Exceptions.EntityNotFoundException>();
         mockDocumentStorage.Verify(s => s.UploadDocumentAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<string>()),
             Times.Never);
     }
 
@@ -596,9 +596,9 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         var mockDocumentStorage = new Mock<RTUB.Application.Interfaces.IDocumentStorageService>();
         var expectedPath = "docs/TestEnvironment/2024-2025/Logistics/TestBoard/test-file.pdf";
         mockDocumentStorage.Setup(s => s.UploadDocumentAsync(
-            It.IsAny<string>(), 
-            It.IsAny<string>(), 
-            It.IsAny<Stream>(), 
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Stream>(),
             It.IsAny<string>()))
             .ReturnsAsync(expectedPath);
 

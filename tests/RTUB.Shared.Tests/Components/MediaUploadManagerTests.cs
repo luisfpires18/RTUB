@@ -181,7 +181,7 @@ public class MediaUploadManagerTests : TestContext
         // Arrange
         var cut = RenderComponent<MediaUploadManager>(parameters => parameters
             .Add(p => p.MaxImageSize, 5 * 1024 * 1024)); // 5MB limit
-        
+
         // Create a file larger than 5MB
         var largeFileMock = new Mock<IBrowserFile>();
         largeFileMock.Setup(f => f.Name).Returns("large.jpg");
@@ -203,7 +203,7 @@ public class MediaUploadManagerTests : TestContext
         // Arrange
         var cut = RenderComponent<MediaUploadManager>(parameters => parameters
             .Add(p => p.MaxVideoSize, 50 * 1024 * 1024)); // 50MB limit
-        
+
         // Create a video file larger than 50MB
         var largeFileMock = new Mock<IBrowserFile>();
         largeFileMock.Setup(f => f.Name).Returns("large.mp4");
@@ -228,7 +228,7 @@ public class MediaUploadManagerTests : TestContext
         fileMock.Setup(f => f.Name).Returns("test.jpg");
         fileMock.Setup(f => f.ContentType).Returns("image/jpeg");
         fileMock.Setup(f => f.Size).Returns(1024);
-        
+
         IBrowserFile? selectedFile = null;
         cut.SetParametersAndRender(parameters => parameters
             .Add(p => p.OnFileSelected, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<IBrowserFile>(this, (file) => selectedFile = file)));
@@ -251,7 +251,7 @@ public class MediaUploadManagerTests : TestContext
         fileMock.Setup(f => f.Name).Returns("test.mp4");
         fileMock.Setup(f => f.ContentType).Returns("video/mp4");
         fileMock.Setup(f => f.Size).Returns(1024);
-        
+
         IBrowserFile? selectedFile = null;
         cut.SetParametersAndRender(parameters => parameters
             .Add(p => p.OnFileSelected, Microsoft.AspNetCore.Components.EventCallback.Factory.Create<IBrowserFile>(this, (file) => selectedFile = file)));
@@ -315,7 +315,7 @@ public class MediaUploadManagerTests : TestContext
     {
         // Arrange
         var cut = RenderComponent<MediaUploadManager>();
-        
+
         // Create a file that might cause an exception (null file scenario is handled by component)
         // We'll test with a valid file but simulate an error scenario
         var fileMock = new Mock<IBrowserFile>();
@@ -332,7 +332,7 @@ public class MediaUploadManagerTests : TestContext
         // If no error, the file should be accepted
         var hasError = cut.Markup.Contains("alert-danger");
         var hasSuccess = cut.Markup.Contains("Novo ficheiro carregado");
-        
+
         (hasError || hasSuccess).Should().BeTrue("should either show error or success message");
     }
 
@@ -358,15 +358,15 @@ public class MediaUploadManagerTests : TestContext
 
         // Assert
         cut.WaitForState(() => cut.Markup.Length > 0, TimeSpan.FromSeconds(2));
-        
+
         if (shouldAccept)
         {
-            cut.Markup.Should().NotContain("Formato de ficheiro não suportado", 
+            cut.Markup.Should().NotContain("Formato de ficheiro não suportado",
                 $"should accept {contentType}");
         }
         else
         {
-            cut.Markup.Should().Contain("Formato de ficheiro não suportado", 
+            cut.Markup.Should().Contain("Formato de ficheiro não suportado",
                 $"should reject {contentType}");
         }
     }

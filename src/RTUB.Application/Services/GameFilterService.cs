@@ -23,7 +23,7 @@ public class GameFilterService : IGameFilterService
         {
             return games.Where(g => !g.MembersOnly).ToList();
         }
-        
+
         // All other users (including admins) see all games
         return games;
     }

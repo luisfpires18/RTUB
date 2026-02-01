@@ -3,8 +3,8 @@ using MockQueryable.Moq;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 

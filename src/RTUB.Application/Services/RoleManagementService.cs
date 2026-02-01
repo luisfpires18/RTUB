@@ -59,7 +59,7 @@ public class RoleManagementService : IRoleManagementService
         var currentRoles = await _userManager.GetRolesAsync(user);
         var isCaloiro = user.Categories.Contains(MemberCategory.Caloiro);
         var targetRole = isCaloiro ? "Mod" : "Admin";
-        
+
         if (!currentRoles.Contains("Admin") && !currentRoles.Contains("Mod"))
         {
             // Remove Member role if present
@@ -118,10 +118,10 @@ public class RoleManagementService : IRoleManagementService
             {
                 await _userManager.RemoveFromRoleAsync(user, "Mod");
             }
-            
+
             // Add Member role
             await _userManager.AddToRoleAsync(user, "Member");
-            
+
             // Invalidate security stamp to force fresh cookies and token refresh
             await _userManager.UpdateSecurityStampAsync(user);
             return true;

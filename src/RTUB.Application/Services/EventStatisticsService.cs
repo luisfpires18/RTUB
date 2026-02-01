@@ -36,20 +36,21 @@ public class EventStatisticsService : IEventStatisticsService
     {
         // Get all past events
         var pastEvents = (await _eventService.GetPastEventsAsync(maxEvents)).ToList();
-        
+
         // Get all trophies
         var allTrophies = (await _trophyService.GetAllAsync()).ToList();
-        
+
         // Group trophies by event
         var trophiesByEvent = allTrophies
             .Where(t => t.EventId > 0)
             .GroupBy(t => t.EventId)
             .ToDictionary(g => g.Key, g => g.ToList());
-        
+
         // Create stats for all past events (only festivals can have trophies)
         var groupedByEvent = pastEvents
             .Where(evt => evt.Type == EventType.Festival)
-            .Select(evt => {
+            .Select(evt =>
+            {
                 var eventTrophies = trophiesByEvent.TryGetValue(evt.Id, out var trophyList) ? trophyList : new List<Trophy>();
                 return new TrophyStatsByEvent
                 {
@@ -63,7 +64,7 @@ public class EventStatisticsService : IEventStatisticsService
             .OrderByDescending(s => s.TrophyCount)
             .ThenByDescending(s => s.EventDate)
             .ToList();
-        
+
         return groupedByEvent;
     }
 }

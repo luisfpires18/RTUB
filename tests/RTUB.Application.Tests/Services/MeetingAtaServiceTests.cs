@@ -36,7 +36,7 @@ public class MeetingAtaServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        
+
         // Setup IDbContextFactory mock for repository - return new context each time
         // This simulates the real behavior where repository creates fresh contexts
         var mockRepositoryContextFactory = new Mock<IDbContextFactory<ApplicationDbContext>>();

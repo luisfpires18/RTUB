@@ -14,6 +14,7 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Base
+@using System.Text.Json
 @attribute [Authorize]
 @inject IMeetingService MeetingService
 @inject IMeetingRequestService MeetingRequestService
@@ -32,6 +33,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject IAuditLogService AuditLogService
 @inject ILogger<Meetings> Logger
 
 @if (currentUser != null && currentUser.IsLeitao())
@@ -3068,6 +3070,44 @@ else
 
             Logger.LogInformation("Sent push notification for meeting {MeetingId} to {SentCount}/{TotalCount} recipients",
                 selectedMeetingForPush.Id, sentCount, finalRecipients.Count);
+
+            // Audit logging for push notification
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var userId = user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userName = user?.Identity?.Name;
+
+                if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(userName))
+                {
+                    var changes = JsonSerializer.Serialize(new
+                    {
+                        RecipientCount = sentCount,
+                        NotificationBody = customNotificationBody
+                    });
+
+                    var auditLog = new AuditLog
+                    {
+                        EntityType = "Meeting",
+                        EntityId = selectedMeetingForPush.Id,
+                        Action = "PushNotificationSent",
+                        UserId = userId,
+                        UserName = userName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changes,
+                        EntityDisplayName = selectedMeetingForPush.Title,
+                        IsCriticalAction = false
+                    };
+
+                    await AuditLogService.AddAsync(auditLog);
+                }
+            }
+            catch (Exception auditEx)
+            {
+                // Log error but don't fail the operation
+                Logger.LogError(auditEx, "Failed to create audit log for push notification sent to meeting {MeetingId}", selectedMeetingForPush.Id);
+            }
 
             // Success - close modal and reload
             pushErrorMessage = null;

@@ -23,22 +23,22 @@ public class ActiveMemberFilterService : IActiveMemberFilterService
         string searchTerm)
     {
         var membersToFilter = activeMembers.ToList();
-        
+
         // Apply status filter first
         if (!string.IsNullOrEmpty(statusFilter))
         {
             if (statusFilter == "active")
             {
                 // Show members who are not retired (either by statusData or by member.IsRetired)
-                membersToFilter = membersToFilter.Where(m => 
-                    m.StatusData?.IsRetired == false || 
+                membersToFilter = membersToFilter.Where(m =>
+                    m.StatusData?.IsRetired == false ||
                     (m.StatusData == null && !m.Member.IsRetired)).ToList();
             }
             else if (statusFilter == "retired")
             {
                 // Show members who are retired (either by statusData or by member.IsRetired)
-                membersToFilter = membersToFilter.Where(m => 
-                    m.StatusData?.IsRetired == true || 
+                membersToFilter = membersToFilter.Where(m =>
+                    m.StatusData?.IsRetired == true ||
                     (m.StatusData == null && m.Member.IsRetired)).ToList();
             }
         }
@@ -48,7 +48,7 @@ public class ActiveMemberFilterService : IActiveMemberFilterService
         {
             return membersToFilter;
         }
-        
+
         var searchHelper = new SearchHelper<ActiveMemberData> { SearchTerm = searchTerm };
         return searchHelper.FilterMultiple(membersToFilter, new List<Func<ActiveMemberData, string>>
         {

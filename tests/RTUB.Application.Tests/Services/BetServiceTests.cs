@@ -5,12 +5,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
-using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -80,18 +80,18 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Create test users (only if they don't exist for shared database)
         var userId1 = "bet-test-user-1";
         var userId2 = "bet-test-user-2";
-        
+
         if (!_context.Users.Any(u => u.Id == userId1))
         {
-            _testUser1 = new ApplicationUser 
-            { 
+            _testUser1 = new ApplicationUser
+            {
                 Id = userId1,
-                UserName = "bet_testuser1", 
-                Email = "bet_test1@test.com", 
+                UserName = "bet_testuser1",
+                Email = "bet_test1@test.com",
                 FirstName = "Bet",
                 LastName = "User1",
                 Nickname = "BetTestUser1",
-                FidelisBalance = 1000 
+                FidelisBalance = 1000
             };
             _context.Users.Add(_testUser1);
         }
@@ -99,18 +99,18 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         {
             _testUser1 = _context.Users.Find(userId1)!;
         }
-        
+
         if (!_context.Users.Any(u => u.Id == userId2))
         {
-            _testUser2 = new ApplicationUser 
-            { 
+            _testUser2 = new ApplicationUser
+            {
                 Id = userId2,
-                UserName = "bet_testuser2", 
-                Email = "bet_test2@test.com", 
+                UserName = "bet_testuser2",
+                Email = "bet_test2@test.com",
                 FirstName = "Bet",
                 LastName = "User2",
                 Nickname = "BetTestUser2",
-                FidelisBalance = 500 
+                FidelisBalance = 500
             };
             _context.Users.Add(_testUser2);
         }
@@ -118,7 +118,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         {
             _testUser2 = _context.Users.Find(userId2)!;
         }
-        
+
         _context.SaveChanges();
     }
 
@@ -160,7 +160,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.BetId.Should().Be(bet.Id);
         result.BetOptionId.Should().Be(option.Id);
         result.FidelisAmount.Should().Be(betAmount);
-        
+
         // Verify balance was deducted
         _testUser1.FidelisBalance.Should().Be(initialBalance - betAmount);
         _mockUserManager.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u => u.FidelisBalance == initialBalance - betAmount)), Times.Once);
@@ -417,18 +417,18 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         {
             var userId = $"bet-test-user-{i + 3}";
             ApplicationUser user;
-            
+
             if (!_context.Users.Any(u => u.Id == userId))
             {
-                user = new ApplicationUser 
-                { 
+                user = new ApplicationUser
+                {
                     Id = userId,
-                    UserName = $"bet_testuser{i + 3}", 
+                    UserName = $"bet_testuser{i + 3}",
                     Email = $"bet_test{i + 3}@test.com",
                     FirstName = "Bet",
                     LastName = $"User{i + 3}",
                     Nickname = $"BetTestUser{i + 3}",
-                    FidelisBalance = 1000 
+                    FidelisBalance = 1000
                 };
                 _context.Users.Add(user);
             }
@@ -436,7 +436,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             {
                 user = _context.Users.Find(userId)!;
             }
-            
+
             users.Add(user);
             var userBet = UserBet.Create(user.Id, bet.Id, i % 2 == 0 ? option1.Id : option2.Id, 100m);
             userBets.Add(userBet);
@@ -460,7 +460,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Assert - Verify all users were updated (batch update)
         _mockUserManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Exactly(users.Count));
-        
+
         // Verify balances were updated correctly
         foreach (var user in users)
         {
@@ -601,7 +601,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         };
         _context.Bets.Add(bet);
         await _context.SaveChangesAsync(); // Save to get bet.Id
-        
+
         var option = new BetOption { BetId = bet.Id, Title = "Option 1", Odds = 2.0m };
         _context.BetOptions.Add(option);
         var userBet = UserBet.Create(_testUser1.Id, bet.Id, option.Id, 100m);
@@ -677,7 +677,7 @@ public class BetServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         var updatedUser1 = await _context.Users.FindAsync(_testUser1.Id);
         var updatedUser2 = await _context.Users.FindAsync(_testUser2.Id);
-        
+
         // Balances should be refunded
         updatedUser1!.FidelisBalance.Should().Be(initialBalance1);
         updatedUser2!.FidelisBalance.Should().Be(initialBalance2);
