@@ -16,8 +16,15 @@
 <PageTitle>Enviar Notificação Push</PageTitle>
 
 <div class="mb-4">
-    <h1 class="page-title"><i class="bi bi-bell"></i> Enviar Notificação Push</h1>
-    <p class="lead page-header-subtitle mb-4 text-light-theme">Enviar notificações push para todos os utilizadores subscritos</p>
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-3">
+        <div>
+            <h1 class="page-title mb-2"><i class="bi bi-bell"></i> Enviar Notificação Push</h1>
+            <p class="lead page-header-subtitle mb-0 text-light-theme">Enviar notificações push para todos os utilizadores subscritos</p>
+        </div>
+        <div class="page-header-actions justify-content-lg-end">
+            <AndroidTestersButton />
+        </div>
+    </div>
 </div>
 
     @if (!string.IsNullOrEmpty(message))
