@@ -133,7 +133,7 @@ public class MemberStatusService : IMemberStatusService
         var existing = await context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
-        
+
         var activity = await ComputeActivityDataAsync(context, userId, now);
 
         var beforeIsRetired = existing?.IsRetired ?? user.IsRetired;
@@ -287,7 +287,7 @@ public class MemberStatusService : IMemberStatusService
         var status = await context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
-        
+
         if (status is null)
         {
             status = new MemberStatus

@@ -14,6 +14,8 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Core.Enums
+@using RTUB.Core.Entities
+@using System.Text.Json
 @attribute [Authorize]
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
@@ -25,10 +27,12 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IPushNotificationService PushNotificationService
 @inject IPushNotificationFactory PushNotificationFactory
+@inject IAuditLogService AuditLogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject ILogger<Rehearsals> Logger
 
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
@@ -2848,6 +2852,51 @@ else
             // Send to filtered subscribed users only
             var userIds = pushFilteredSubscribedUsers.Select(u => u.Id).ToList();
             await PushNotificationService.SendToSelectedUsersAsync(userIds, notification);
+
+            // Audit logging for push notification
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                var userId = user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userName = user?.Identity?.Name;
+
+                if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(userName))
+                {
+                    var changes = JsonSerializer.Serialize(new
+                    {
+                        RecipientCount = userIds.Count,
+                        NotificationBody = customNotificationBody
+                    });
+
+                    // Format display name as "Ensaio - {Date} {Theme or Location}"
+                    var dateStr = selectedRehearsalForPush.Date.ToString("dd/MM/yyyy");
+                    var themeOrLocation = !string.IsNullOrEmpty(selectedRehearsalForPush.Theme) 
+                        ? selectedRehearsalForPush.Theme 
+                        : selectedRehearsalForPush.Location;
+                    var displayName = $"Ensaio - {dateStr} {themeOrLocation}";
+
+                    var auditLog = new AuditLog
+                    {
+                        EntityType = "Rehearsal",
+                        EntityId = selectedRehearsalForPush.Id,
+                        Action = "PushNotificationSent",
+                        UserId = userId,
+                        UserName = userName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changes,
+                        EntityDisplayName = displayName,
+                        IsCriticalAction = false
+                    };
+
+                    await AuditLogService.AddAsync(auditLog);
+                }
+            }
+            catch (Exception auditEx)
+            {
+                // Log error but don't fail the operation
+                Logger.LogError(auditEx, "Failed to create audit log for push notification sent to rehearsal {RehearsalId}", selectedRehearsalForPush.Id);
+            }
 
             // Success - close modal
             ClosePushNotificationModal();

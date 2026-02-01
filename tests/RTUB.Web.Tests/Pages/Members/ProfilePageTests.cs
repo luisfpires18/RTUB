@@ -125,7 +125,7 @@ public class ProfilePageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult(CreateTestUser("test-user", "Test", "User"));
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
@@ -225,7 +225,7 @@ public class ProfilePageTests : PageTestBase
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var userManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         var httpContextAccessor = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
         var userPrincipalFactory = new Mock<Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<ApplicationUser>>();
         var options = Microsoft.Extensions.Options.Options.Create(new Microsoft.AspNetCore.Identity.IdentityOptions());

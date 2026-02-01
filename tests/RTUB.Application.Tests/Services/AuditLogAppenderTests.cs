@@ -106,7 +106,7 @@ public class AuditLogAppenderTests : IDisposable
         auditLog!.Action.Should().Be("Modified");
         auditLog.EntityType.Should().Be("Album");
         auditLog.Changes.Should().NotBeNull();
-        
+
         // Verify changes are logged
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().NotBeNull();
@@ -124,7 +124,7 @@ public class AuditLogAppenderTests : IDisposable
         // Modify but don't actually change anything (just touch the entity)
         _context.Albums.Update(album);
         var entry = _context.Entry((BaseEntity)album);
-        
+
         // Manually mark as unchanged to simulate no actual changes
         entry.State = EntityState.Unchanged;
         entry.State = EntityState.Modified; // This won't have actual property changes
@@ -274,7 +274,7 @@ public class AuditLogAppenderTests : IDisposable
         auditLog!.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
         auditLog.Changes.Should().NotBeNull();
-        
+
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().ContainKey("_TargetUser");
         changes.Should().ContainKey("Nickname");
@@ -342,7 +342,7 @@ public class AuditLogAppenderTests : IDisposable
         auditLog.Should().NotBeNull();
         auditLog!.IsCriticalAction.Should().BeTrue(); // Password changes are critical
         auditLog.Changes.Should().NotBeNull();
-        
+
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().ContainKey("_CriticalFieldsModified");
     }
@@ -366,7 +366,7 @@ public class AuditLogAppenderTests : IDisposable
         auditLog.Action.Should().Be("Role Added");
         auditLog.IsCriticalAction.Should().BeTrue(); // Role changes are always critical
         auditLog.Changes.Should().NotBeNull();
-        
+
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().ContainKey("Username");
         changes.Should().ContainKey("Role");
@@ -447,10 +447,10 @@ public class AuditLogAppenderTests : IDisposable
         // Assert
         auditLog.Should().NotBeNull();
         auditLog!.Changes.Should().NotBeNull();
-        
+
         var changes = JsonSerializer.Deserialize<Dictionary<string, object>>(auditLog.Changes!);
         changes.Should().ContainKey("PdfData");
-        
+
         // Verify binary data is described, not serialized
         var pdfDataChange = changes["PdfData"];
         pdfDataChange.Should().NotBeNull();

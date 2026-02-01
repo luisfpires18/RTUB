@@ -109,7 +109,7 @@ public class FinancePageTests : PageTestBase
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar relatórios", "page should show loading message initially");
-        
+
         // Wait for async to complete
         cut.WaitForState(() => !cut.Markup.Contains("A carregar relatórios"), TimeSpan.FromSeconds(2));
     }

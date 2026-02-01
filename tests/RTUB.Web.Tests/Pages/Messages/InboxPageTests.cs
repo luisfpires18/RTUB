@@ -31,7 +31,7 @@ public class InboxPageTests : PageTestBase
         // Setup service mocks
         _mockMessagingService = SetupService<IMessagingService>();
         _mockUserManager = SetupUserManager();
-        
+
         var mockHubClients = new Mock<IHubClients<RTUB.Web.Hubs.IMessagesHubClient>>();
         var mockClientProxy = new Mock<RTUB.Web.Hubs.IMessagesHubClient>();
         mockHubClients.Setup(x => x.All).Returns(mockClientProxy.Object);

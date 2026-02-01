@@ -20,7 +20,7 @@ public interface ITransactionService
     Task DeleteTransactionAsync(int id);
     Task<string?> UploadReceiptAsync(int transactionId, Stream fileStream, string fileName, string contentType);
     Task DeleteReceiptAsync(int transactionId);
-    
+
     /// <summary>
     /// Gets transaction history for a report based on audit logs
     /// Returns all Created, Modified, and Deleted actions for transactions belonging to activities in the report

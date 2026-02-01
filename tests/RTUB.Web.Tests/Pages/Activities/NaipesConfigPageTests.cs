@@ -59,7 +59,7 @@ public class NaipesConfigPageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult(new List<RTUB.Application.DTOs.NaipeTypeConfigDto>());
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));

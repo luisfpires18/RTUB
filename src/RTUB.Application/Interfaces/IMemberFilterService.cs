@@ -21,7 +21,7 @@ public interface IMemberFilterService
     /// <param name="selectedSubCategoryFilter">Selected subcategory filter for Tuno category (empty string if none)</param>
     /// <param name="userAllInstruments">Dictionary mapping userId to their list of instruments</param>
     /// <returns>Tuple containing (filteredRegularMembers, filteredLeitoes, allFilteredUsers)</returns>
-    (List<ApplicationUser> filteredRegularMembers, List<ApplicationUser> filteredLeitoes, List<ApplicationUser> allFilteredUsers) 
+    (List<ApplicationUser> filteredRegularMembers, List<ApplicationUser> filteredLeitoes, List<ApplicationUser> allFilteredUsers)
         FilterMembers(
             IEnumerable<ApplicationUser> users,
             string searchTerm,

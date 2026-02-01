@@ -42,17 +42,17 @@ public class EmailNotificationServiceTests
         mockConfig.Setup(x => x["EmailSettings:SmtpUsername"]).Returns(config.SmtpUsername);
         mockConfig.Setup(x => x["EmailSettings:SmtpPassword"]).Returns(config.SmtpPassword);
         mockConfig.Setup(x => x["EmailSettings:EnableSsl"]).Returns("true");
-        
+
         var configLogger = new Mock<ILogger<EmailConfigurationProvider>>();
         var configProvider = new EmailConfigurationProvider(mockConfig.Object, configLogger.Object);
-        
+
         // Create real factory (can't mock non-virtual methods)
         var smtpFactory = new SmtpClientFactory();
-        
+
         // Create rate limiter with memory cache
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
         var rateLimiter = new EmailRateLimiter(memoryCache);
-        
+
         return new EmailNotificationService(
             _mockLogger.Object,
             configProvider,
@@ -109,11 +109,11 @@ public class EmailNotificationServiceTests
         // We verify that the service processed the request correctly
         // In a real scenario with proper SMTP setup, result.success would be true
         result.count.Should().BeGreaterThanOrEqualTo(0);
-        
+
         // Verify template was rendered for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.AtLeastOnce);
     }
 
@@ -176,7 +176,7 @@ public class EmailNotificationServiceTests
         // The concurrency limit (MaxConcurrentSends = 10) is enforced internally
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(25));
     }
 
@@ -227,11 +227,11 @@ public class EmailNotificationServiceTests
 
         // Assert
         progressReports.Should().NotBeEmpty("progress should be reported");
-        
+
         // Should report initial progress (0 sent)
         progressReports.First().Sent.Should().Be(0);
         progressReports.First().Total.Should().Be(3);
-        
+
         // Should report progress after each email (if SMTP succeeds)
         // Note: In unit tests, SMTP will fail, but progress reporting logic is still tested
         progressReports.Should().Contain(p => p.Total == 3);
@@ -281,11 +281,11 @@ public class EmailNotificationServiceTests
         // Service should handle SMTP failures gracefully and return appropriate result
         // In unit tests without real SMTP, we verify the service doesn't throw exceptions
         result.Should().NotBeNull();
-        
+
         // Verify template rendering was attempted for all recipients
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(3));
     }
 
@@ -304,7 +304,7 @@ public class EmailNotificationServiceTests
         };
 
         var service = CreateService(config);
-        
+
         // First call - should succeed (or attempt to)
         var recipientEmails = new List<string> { "user1@test.com" };
         var recipientData = new Dictionary<string, (string nickname, string fullName)>
@@ -340,11 +340,11 @@ public class EmailNotificationServiceTests
         // Assert
         result.success.Should().BeFalse("should be rate limited");
         result.errorMessage.Should().Contain("já enviado recentemente");
-        
+
         // Template should not be rendered again due to rate limiting
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Once, "template should only be rendered once due to rate limiting");
     }
 }

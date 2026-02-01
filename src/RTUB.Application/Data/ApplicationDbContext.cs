@@ -162,7 +162,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
-        
+
         // Track Created entities to update EntityId after SaveChanges
         // (EntityId is 0/null before save, gets assigned after)
         var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();

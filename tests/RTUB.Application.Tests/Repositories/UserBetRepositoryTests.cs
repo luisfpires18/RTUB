@@ -347,7 +347,7 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
             // Expected in InMemoryDatabase - ExecuteDeleteAsync limitations
             // This test documents the method exists and has the correct signature
         }
-        
+
         // The actual deletion behavior is tested in integration tests with a real database
         Assert.True(true, "DeleteByBetIdAsync method exists and is callable (deletion behavior tested in integration tests)");
     }
@@ -374,7 +374,7 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
             // Expected in InMemoryDatabase - ExecuteDeleteAsync limitations
             // This test documents the method exists and has the correct signature
         }
-        
+
         // The actual deletion behavior is tested in integration tests with a real database
         Assert.True(true, "DeleteByBetIdAsync method exists and is callable (deletion behavior tested in integration tests)");
     }
@@ -407,12 +407,12 @@ public class UserBetRepositoryTests : IClassFixture<DatabaseFixture>, IDisposabl
             // Expected in InMemoryDatabase - ExecuteDeleteAsync limitations
             // This test documents the method exists and has the correct signature
         }
-        
+
         // Verify userBet2 still exists (not affected by deleting bet1's user bets)
         // Note: In InMemoryDatabase, ExecuteDeleteAsync may not work, but we verify the entities exist
         var remainingUserBet2 = await _context.UserBets.FindAsync(userBet2.Id);
         remainingUserBet2.Should().NotBeNull("userBet2 should remain (not affected by deleting bet1's user bets)");
-        
+
         // The actual deletion behavior is tested in integration tests with a real database
         Assert.True(true, "DeleteByBetIdAsync method exists and is callable (deletion behavior tested in integration tests)");
     }

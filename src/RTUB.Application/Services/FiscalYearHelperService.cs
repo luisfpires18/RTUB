@@ -16,7 +16,7 @@ public class FiscalYearHelperService : IFiscalYearHelper
     public (DateTime startDate, DateTime endDate)? GetFiscalYearDateRange(string fiscalYear)
     {
         if (string.IsNullOrEmpty(fiscalYear)) return null;
-        
+
         var parts = fiscalYear.Split('-');
         if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
         {
@@ -24,7 +24,7 @@ public class FiscalYearHelperService : IFiscalYearHelper
             var endDate = new DateTime(startYear + 1, 8, 31, 23, 59, 59); // August 31st next year (end of day)
             return (startDate, endDate);
         }
-        
+
         return null;
     }
 }

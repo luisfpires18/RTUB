@@ -6,9 +6,9 @@ using RTUB.Application.Data;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 

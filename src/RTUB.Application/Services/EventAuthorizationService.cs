@@ -23,7 +23,7 @@ public class EventAuthorizationService : IEventAuthorizationService
         var isAdmin = authState.User.IsInRole("Admin");
         var isOwner = authState.User.IsInRole("Owner");
         var canCreatePost = currentUser != null;
-        
+
         return (isAdmin, isOwner, canCreatePost);
     }
 }

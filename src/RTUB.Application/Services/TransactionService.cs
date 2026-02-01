@@ -205,7 +205,7 @@ public class TransactionService : ITransactionService
                         {
                             belongsToReport = true;
                             activityName = activityNameMap.GetValueOrDefault(extractedActivityId.Value, "N/A");
-                            
+
                             // Extract Description from Changes
                             if (changes.ContainsKey("Description"))
                             {
@@ -228,7 +228,7 @@ public class TransactionService : ITransactionService
             }
 
             // Filter: DINHEIRO EM CAIXA and DINHEIRO NO BANCO should only appear as Modified
-            if (activityName.Contains("CAIXA", StringComparison.OrdinalIgnoreCase) || 
+            if (activityName.Contains("CAIXA", StringComparison.OrdinalIgnoreCase) ||
                 activityName.Contains("BANCO", StringComparison.OrdinalIgnoreCase))
             {
                 if (log.Action != "Modified")

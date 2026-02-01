@@ -28,13 +28,13 @@ public class EventDiscussionService : IEventDiscussionService
     public async Task<Dictionary<int, int>> GetCommentCountsByPostIdsAsync(IEnumerable<int> postIds)
     {
         var counts = await _commentService.GetCountsByPostIdsAsync(postIds);
-        
+
         // Handle null return (should not happen, but defensive programming)
         if (counts == null)
         {
             return postIds.ToDictionary(id => id, _ => 0);
         }
-        
+
         return counts;
     }
 }

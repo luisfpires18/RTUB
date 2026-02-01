@@ -16,7 +16,7 @@ public class RehearsalStatisticsService : IRehearsalStatisticsService
     /// <param name="rehearsal">The rehearsal (must have attendances populated)</param>
     /// <param name="memberInstruments">Dictionary mapping userId to their list of instruments</param>
     /// <returns>Tuple of (primaryInstrumentCounts, otherInstrumentCounts)</returns>
-    public (Dictionary<InstrumentType, int> primaryInstrumentCounts, Dictionary<InstrumentType, int> otherInstrumentCounts) 
+    public (Dictionary<InstrumentType, int> primaryInstrumentCounts, Dictionary<InstrumentType, int> otherInstrumentCounts)
         CalculateInstrumentCounts(Rehearsal rehearsal, Dictionary<string, List<MemberInstrument>> memberInstruments)
     {
         // Use the Rehearsal entity methods for calculation
