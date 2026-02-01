@@ -367,10 +367,13 @@
                     StateHasChanged(); // Trigger render to show container
                     await Task.Delay(100); // Give time for container to render
 
-                    // Create battle data object with events and dotNetRef
+                    // Parse the ReplayJson string into an array of events
+                    var events = JsonSerializer.Deserialize<object[]>(currentBattle.ReplayJson);
+
+                    // Create battle data object with parsed events and dotNetRef
                     var battleData = new
                     {
-                        Events = currentBattle.ReplayJson,
+                        Events = events,
                         DotNetRef = objRef
                     };
 
