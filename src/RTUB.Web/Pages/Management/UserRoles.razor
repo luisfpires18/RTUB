@@ -471,10 +471,32 @@ else
     {
         if (selectedUser != null && !string.IsNullOrEmpty(selectedRoleInModal))
         {
-            // Only change if different from current
+            // Save IsAndroidTester property changes
+            var userToUpdate = await UserManager.FindByIdAsync(selectedUser.Id);
+            if (userToUpdate != null)
+            {
+                userToUpdate.IsAndroidTester = selectedUser.IsAndroidTester;
+                var updateResult = await UserManager.UpdateAsync(userToUpdate);
+                if (!updateResult.Succeeded)
+                {
+                    message = $"Erro ao atualizar testador Android: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}";
+                    isError = true;
+                    CloseEditRoleModal();
+                    return;
+                }
+            }
+            
+            // Only change role if different from current
             if (selectedRoleInModal != currentRoleBeforeEdit)
             {
                 await ChangeUserRole(selectedUser.Id, selectedRoleInModal);
+            }
+            else
+            {
+                // If role didn't change but IsAndroidTester did, still show success message
+                message = $"Informações de {selectedUser.FirstName} {selectedUser.LastName} atualizadas com sucesso.";
+                isError = false;
+                await RefreshDataAsync();
             }
         }
         CloseEditRoleModal();
