@@ -367,34 +367,21 @@
                     StateHasChanged(); // Trigger render to show container
                     await Task.Delay(100); // Give time for container to render
 
-                    // Parse the ReplayJson string into an array of events
-                    object[]? events = null;
-                    try
+                    // Validate that ReplayJson is not empty
+                    if (string.IsNullOrWhiteSpace(currentBattle.ReplayJson))
                     {
-                        events = JsonSerializer.Deserialize<object[]>(currentBattle.ReplayJson);
-                    }
-                    catch (JsonException ex)
-                    {
-                        Logger.LogError(ex, "Error parsing battle replay JSON: {Message}", ex.Message);
-                        errorMessage = "Erro ao processar dados da batalha.";
+                        Logger.LogWarning("Battle replay JSON is empty");
+                        errorMessage = "Batalha não contém dados para reproduzir.";
                         showBattleAnimation = false;
                         StateHasChanged();
                         return;
                     }
 
-                    if (events == null || events.Length == 0)
-                    {
-                        Logger.LogWarning("Battle replay contains no events");
-                        errorMessage = "Batalha não contém eventos para reproduzir.";
-                        showBattleAnimation = false;
-                        StateHasChanged();
-                        return;
-                    }
-
-                    // Create battle data object with parsed events and dotNetRef
+                    // Create battle data object with JSON string
+                    // JavaScript will parse it directly to maintain proper object structure
                     var battleData = new
                     {
-                        Events = events,
+                        EventsJson = currentBattle.ReplayJson,  // Pass as JSON string
                         DotNetRef = objRef
                     };
 
