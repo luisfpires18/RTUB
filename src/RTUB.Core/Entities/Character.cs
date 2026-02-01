@@ -35,15 +35,15 @@ public class Character : BaseEntity
     // Stats scale with level: base stats increase by 10% per level
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalHP => (int)(HP * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (HpUpgrades * MyTunoScaling.HpUpgradeBonus);
+        + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalPower => (int)(Power * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
+        + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
-        + (SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
+        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance =>

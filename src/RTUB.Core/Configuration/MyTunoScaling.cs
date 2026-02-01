@@ -17,9 +17,9 @@ public static class MyTunoScaling
     public static int InitialSpeedUpgrades { get; private set; } = 0;
     public static int InitialCriticalUpgrades { get; private set; } = 0;
 
-    public static int HpUpgradeBonus { get; private set; } = 10;
-    public static int PowerUpgradeBonus { get; private set; } = 2;
-    public static int SpeedUpgradeBonus { get; private set; } = 1;
+    public static double HpUpgradeBonus { get; private set; } = 10;
+    public static double PowerUpgradeBonus { get; private set; } = 2;
+    public static double SpeedUpgradeBonus { get; private set; } = 1;
     public static double CriticalChanceUpgradeBonus { get; private set; } = 0.005;
 
     public static void Configure(
@@ -35,9 +35,9 @@ public static class MyTunoScaling
         int initialPowerUpgrades,
         int initialSpeedUpgrades,
         int initialCriticalUpgrades,
-        int hpUpgradeBonus,
-        int powerUpgradeBonus,
-        int speedUpgradeBonus,
+        double hpUpgradeBonus,
+        double powerUpgradeBonus,
+        double speedUpgradeBonus,
         double criticalChanceUpgradeBonus)
     {
         BaseLevel = baseLevel;
