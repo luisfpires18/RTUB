@@ -19,10 +19,7 @@
     };
 
     const resolveEvents = (battleData) => {
-        console.log('resolveEvents called with:', battleData);
-        
         if (!battleData) {
-            console.log('No battleData provided');
             return [];
         }
         
@@ -31,10 +28,8 @@
         
         // If EventsJson is provided as a JSON string, parse it
         if (eventsJson && typeof eventsJson === 'string') {
-            console.log('Parsing EventsJson string, length:', eventsJson.length);
             try {
                 const parsed = JSON.parse(eventsJson);
-                console.log('Parsed events count:', parsed.length);
                 return parsed;
             } catch (e) {
                 console.error('Failed to parse EventsJson:', e);
@@ -44,12 +39,10 @@
         
         // Legacy support: if Events is an array
         if (Array.isArray(battleData)) {
-            console.log('battleData is array, length:', battleData.length);
             return battleData;
         }
         
         const events = battleData.events ?? battleData.Events ?? [];
-        console.log('Using events/Events property, length:', events.length);
         return events;
     };
 
@@ -91,15 +84,6 @@
             this.isPlaying = this.mode === 'live';
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
-            
-            // Debug: Log what we received
-            console.log('BattleScene.init called');
-            console.log('Events count:', this.eventsList.length);
-            console.log('Mode:', this.mode);
-            console.log('Event interval:', this.eventInterval);
-            if (this.eventsList.length > 0) {
-                console.log('First 3 events:', this.eventsList.slice(0, 3));
-            }
         }
 
         preload() {
@@ -278,16 +262,12 @@
         }
 
         scheduleNextEvent() {
-            console.log('scheduleNextEvent - index:', this.currentEventIndex, 'total:', this.eventsList.length);
-            
             if (this.currentEventIndex >= this.eventsList.length) {
-                console.log('Battle finished - calling finishBattle()');
                 this.finishBattle();
                 return;
             }
 
             const evt = this.eventsList[this.currentEventIndex];
-            console.log('Processing event', this.currentEventIndex, ':', evt);
             this.processEvent(evt);
             this.currentEventIndex += 1;
 
@@ -356,12 +336,25 @@
             const targetX = startX + direction * lungeOffset;
             const targetY = startY - 15;
 
-            this.tweens.timeline({
+            // Attacker lunge animation - use chain instead of timeline
+            this.tweens.add({
                 targets: attacker.sprite,
-                tweens: [
-                    { x: targetX, y: targetY, angle: direction * 12, duration: 200, ease: 'Power2' },
-                    { x: startX, y: startY, angle: 0, duration: 240, ease: 'Power2' }
-                ]
+                x: targetX,
+                y: targetY,
+                angle: direction * 12,
+                duration: 200,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Return to original position
+                    this.tweens.add({
+                        targets: attacker.sprite,
+                        x: startX,
+                        y: startY,
+                        angle: 0,
+                        duration: 240,
+                        ease: 'Power2'
+                    });
+                }
             });
 
             defender.sprite.setTintFill(0xff5555);
