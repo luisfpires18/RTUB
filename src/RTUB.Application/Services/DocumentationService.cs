@@ -163,12 +163,86 @@ public class DocumentationService : IDocumentationService
             return Enumerable.Empty<ApplicationUser>();
         }
 
-        var viewerUserIds = folder.FolderViewers.Select(fv => fv.UserId).ToList();
+        var viewers = new List<ApplicationUser>();
 
-        return await _context.Users
-            .AsNoTracking()
-            .Where(u => viewerUserIds.Contains(u.Id))
-            .ToListAsync();
+        // Get users based on special visibility rules
+        if (folder.IsSpecial && folder.SpecialVisibility.HasValue)
+        {
+            IQueryable<ApplicationUser> query = _context.Users.AsNoTracking();
+
+            switch (folder.SpecialVisibility.Value)
+            {
+                case SpecialVisibility.Veteranos:
+                    // Get users with CurrentRole = "VETERANO" or "TUNOSSAURO" or Position = Magister
+                    query = query.Where(u => 
+                        u.CurrentRole == "VETERANO" || 
+                        u.CurrentRole == "TUNOSSAURO" || 
+                        (u.Positions != null && u.Positions.Contains(Position.Magister)));
+                    break;
+
+                case SpecialVisibility.Direcao:
+                    // Get users with Direção positions
+                    query = query.Where(u => 
+                        u.Positions != null && (
+                            u.Positions.Contains(Position.Magister) ||
+                            u.Positions.Contains(Position.ViceMagister) ||
+                            u.Positions.Contains(Position.Secretario) ||
+                            u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                            u.Positions.Contains(Position.SegundoTesoureiro)));
+                    break;
+
+                case SpecialVisibility.AssembleiaGeral:
+                    // Get all users except those where IsLeitao() = true
+                    // IsLeitao checks if Categories contains MemberCategory.Leitao
+                    query = query.Where(u => !u.Categories.Contains(MemberCategory.Leitao));
+                    break;
+
+                case SpecialVisibility.ConselhoFiscal:
+                    // Get users with CF positions
+                    query = query.Where(u => 
+                        u.Positions != null && (
+                            u.Positions.Contains(Position.PresidenteConselhoFiscal) ||
+                            u.Positions.Contains(Position.PrimeiroRelatorConselhoFiscal) ||
+                            u.Positions.Contains(Position.SegundoRelatorConselhoFiscal)));
+                    break;
+
+                case SpecialVisibility.Tesouraria:
+                    // Get users with Tesoureiro positions
+                    query = query.Where(u => 
+                        u.Positions != null && (
+                            u.Positions.Contains(Position.PrimeiroTesoureiro) ||
+                            u.Positions.Contains(Position.SegundoTesoureiro)));
+                    break;
+
+                case SpecialVisibility.None:
+                default:
+                    // Return all users for None/null
+                    query = _context.Users.AsNoTracking();
+                    break;
+            }
+
+            viewers = await query.ToListAsync();
+        }
+        else
+        {
+            // Non-special folders: Return all users
+            viewers = await _context.Users.AsNoTracking().ToListAsync();
+        }
+
+        // Also include explicit FolderViewers from the FolderViewer table
+        var explicitViewerIds = folder.FolderViewers.Select(fv => fv.UserId).ToList();
+        if (explicitViewerIds.Any())
+        {
+            var explicitViewers = await _context.Users
+                .AsNoTracking()
+                .Where(u => explicitViewerIds.Contains(u.Id))
+                .ToListAsync();
+
+            // Merge and deduplicate (use union to avoid duplicates)
+            viewers = viewers.Union(explicitViewers).ToList();
+        }
+
+        return viewers;
     }
 
     public async Task<bool> CanUserAccessFolderAsync(int folderId, ApplicationUser user, bool isAdmin)

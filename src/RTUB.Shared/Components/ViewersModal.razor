@@ -1,0 +1,87 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@*
+    ViewersModal Component
+    Displays a list of users who can see a specific folder
+*@
+
+<Modal Show="@Show"
+       ShowChanged="@ShowChanged"
+       Title="@($"Quem pode ver: {FolderName}")"
+       Size="Modal.ModalSize.Large"
+       ShowCloseButton="true"
+       Centered="true">
+    <BodyContent>
+        @if (IsLoading)
+        {
+            <LoadingSpinner Message="A carregar utilizadores..." />
+        }
+        else if (Viewers == null || !Viewers.Any())
+        {
+            <EmptyState Title="Nenhum utilizador"
+                       Message="Nenhum utilizador tem acesso a esta pasta."
+                       Icon="bi-people" />
+        }
+        else
+        {
+            <div class="viewers-list">
+                @foreach (var viewer in Viewers)
+                {
+                    <div class="viewer-item">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="@viewer.ProfilePictureSrc" 
+                                 alt="@viewer.Nickname" 
+                                 class="viewer-avatar" />
+                            <div class="viewer-info">
+                                <div class="viewer-nickname">@viewer.Nickname</div>
+                                <div class="viewer-role">
+                                    <span class="badge bg-primary">@viewer.CurrentRole</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    /// <summary>
+    /// Controls whether the modal is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Name of the folder
+    /// </summary>
+    [Parameter]
+    public string FolderName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// List of users who can view this folder
+    /// </summary>
+    [Parameter]
+    public List<ApplicationUser>? Viewers { get; set; }
+
+    /// <summary>
+    /// Whether the modal is loading data
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    private async Task CloseModal()
+    {
+        await ShowChanged.InvokeAsync(false);
+    }
+}

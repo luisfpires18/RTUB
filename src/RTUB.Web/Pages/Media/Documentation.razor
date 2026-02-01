@@ -89,6 +89,7 @@ else
         
         // Use the folder's DisplayName for rendering
         var displayFolderName = folder.DisplayName;
+        var currentFolderId = folder.Id; // Capture for use in lambda
         
         <FolderCard @key="folder.Id"
                    FolderName="@displayFolderName"
@@ -99,7 +100,20 @@ else
                    OnUpload="@HandleUploadRequest"
                    OnDocumentDownload="@HandleDocumentDownload"
                    OnDocumentDelete="@HandleDocumentDeleteRequest"
-                   OnFolderDelete="@HandleFolderDeleteRequest" />
+                   OnFolderDelete="@HandleFolderDeleteRequest">
+            <HeaderActions>
+                @if (folder.IsSpecial)
+                {
+                    <button class="btn btn-sm btn-info" 
+                            @onclick="@(() => OpenViewersModal(currentFolderId))" 
+                            @onclick:stopPropagation="true"
+                            title="Ver quem tem acesso">
+                        <i class="bi bi-eye"></i>
+                        <span class="d-none d-md-inline ms-1">Ver quem tem acesso</span>
+                    </button>
+                }
+            </HeaderActions>
+        </FolderCard>
         
         @* Pagination for this folder *@
         @if (allDocuments.Count > 0)
@@ -250,6 +264,13 @@ else
                OnConfirm="@ConfirmDeleteFolder"
                OnCancel="@CancelDeleteFolder" />
 
+@* Viewers Modal - Who can see this folder *@
+<ViewersModal Show="@modals.IsOpen(ModalType.Viewers)"
+              ShowChanged="@((bool show) => modals.Toggle(ModalType.Viewers, show))"
+              FolderName="@viewersFolderName"
+              Viewers="@viewersList"
+              IsLoading="@isLoadingViewers" />
+
 @code {
     private bool isLoading = true;
     private bool isMod = false;
@@ -283,7 +304,7 @@ else
     }
     
     // Create folder modal
-    private enum ModalType { CreateFolder, Upload }
+    private enum ModalType { CreateFolder, Upload, Viewers }
     private readonly MultiModalState<ModalType> modals = new();
     private string newFolderName = "";
     private string createFolderError = "";
@@ -297,6 +318,11 @@ else
     private bool isUploading = false;
     private string uploadError = "";
     private string uploadSuccess = "";
+    
+    // Viewers modal
+    private string viewersFolderName = "";
+    private List<ApplicationUser>? viewersList = null;
+    private bool isLoadingViewers = false;
     
     // Delete document dialog
     private bool showDeleteDialog = false;
@@ -515,6 +541,37 @@ else
         documentationFileName = null;
         uploadError = "";
         uploadSuccess = "";
+    }
+
+    private async Task OpenViewersModal(int folderId)
+    {
+        isLoadingViewers = true;
+        viewersList = null;
+        
+        // Get folder name from the dictionary
+        var folder = folders.FirstOrDefault(f => f.Id == folderId);
+        viewersFolderName = folder?.DisplayName ?? "Pasta";
+        
+        modals.Open(ModalType.Viewers);
+        StateHasChanged(); // Force UI update to show loading state
+        
+        try
+        {
+            // Fetch viewers from the service
+            var viewers = await DocumentationService.GetFolderViewersAsync(folderId);
+            viewersList = viewers.OrderBy(v => v.Nickname).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error but keep modal open with empty list
+            viewersList = new List<ApplicationUser>();
+            Console.WriteLine($"Error loading folder viewers: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingViewers = false;
+            StateHasChanged();
+        }
     }
 
     private void HandleFileSelected(InputFileChangeEventArgs e)

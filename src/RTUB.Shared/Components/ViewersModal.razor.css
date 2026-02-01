@@ -1,0 +1,43 @@
+.viewers-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.viewer-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.viewer-item:last-child {
+    border-bottom: none;
+}
+
+.viewer-item:hover {
+    background-color: var(--bs-light);
+}
+
+.viewer-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-primary);
+}
+
+.viewer-info {
+    flex: 1;
+}
+
+.viewer-nickname {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--bs-body-color);
+}
+
+.viewer-role {
+    margin-top: 0.25rem;
+}
+
+.viewer-role .badge {
+    font-size: 0.85rem;
+}
