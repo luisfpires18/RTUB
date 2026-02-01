@@ -3967,8 +3967,8 @@ else
     {
         if (currentUser == null) return false;
         
-        // Admins and mods can view all atas
-        if (isAdmin || isMod) return true;
+        // Owners can view all atas
+        if (isOwner) return true;
         
         // For CV meetings, only Veteranos, Tunossauros, and Magisters can view
         if (meeting.Type == MeetingType.ConselhoVeteranos)
