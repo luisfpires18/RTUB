@@ -322,10 +322,18 @@ else
     /// </summary>
     private IEnumerable<string> FilterFoldersByVisibility(List<string> folderList)
     {
-        if (currentUser == null || isAdmin || isMod)
+        // Admins and mods see everything
+        if (isAdmin || isMod)
         {
-            // Admins and mods see everything
             return folderList;
+        }
+        
+        // If currentUser is null, show no restricted folders
+        if (currentUser == null)
+        {
+            return folderList.Where(folder => 
+                !folder.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase) &&
+                !folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase));
         }
 
         return folderList.Where(folder =>
@@ -348,6 +356,53 @@ else
             // Other folders: visible to all
             return true;
         });
+    }
+
+    /// <summary>
+    /// Checks if the current user can access a specific document based on its file path
+    /// </summary>
+    private bool CanAccessDocument(string filePath)
+    {
+        if (currentUser == null)
+        {
+            return false;
+        }
+        
+        // Admins and mods can access everything
+        if (isAdmin || isMod)
+        {
+            return true;
+        }
+        
+        // Extract folder name from file path (e.g., "docs/Production/2024-2025/Atas CV 2024-2025/file.pdf" -> "Atas CV 2024-2025")
+        // The path structure is: docs/{environment}/{fiscalYear}/{folderName}/{fileName}
+        var pathParts = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (pathParts.Length < 4)
+        {
+            // Invalid path structure, deny access
+            return false;
+        }
+        
+        // Get the folder name (4th part in the path)
+        var folderName = pathParts[3];
+        
+        // Check if this is an ATA CV folder
+        if (folderName.StartsWith("Atas CV", StringComparison.OrdinalIgnoreCase))
+        {
+            // CV folders: Veterano + Tunossauro + Magister
+            var role = currentUser.CurrentRole;
+            return role == "VETERANO" || 
+                   role == "TUNOSSAURO" || 
+                   (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
+        }
+        else if (folderName.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
+        {
+            // AG folders: All except Leitão
+            return !currentUser.IsLeitao();
+        }
+        
+        // Other documents: accessible by all
+        return true;
     }
 
     protected override async Task OnInitializedAsync()
@@ -625,6 +680,13 @@ else
     {
         try
         {
+            // Check if user has permission to access this document
+            if (!CanAccessDocument(document.FilePath))
+            {
+                // User doesn't have permission to access this document
+                return;
+            }
+            
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath, forceDownload: true);
             if (!string.IsNullOrEmpty(url))
             {
