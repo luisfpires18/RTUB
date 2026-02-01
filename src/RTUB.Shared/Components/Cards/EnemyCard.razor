@@ -18,32 +18,36 @@
         </h6>
     </div>
     <div class="card-body d-flex flex-column">
-        <!-- Avatar and User Info -->
+        <!-- Avatar and User Info - Reusing AvatarCard pattern -->
         @if (Character?.User != null)
         {
             <div class="text-center mb-3">
-                @if (!string.IsNullOrEmpty(Character.User.ImageUrl))
-                {
-                    <img src="@Character.User.ImageUrl" 
-                         alt="Avatar" 
-                         class="rounded-circle mb-2" 
-                         style="width: 60px; height: 60px; object-fit: cover; border: 2px solid var(--bs-primary);" />
-                }
-                else
-                {
-                    <div class="rounded-circle mb-2 d-inline-flex align-items-center justify-content-center text-white bg-secondary" 
-                         style="width: 60px; height: 60px; font-size: 24px; border: 2px solid var(--bs-primary);">
-                        <i class="bi bi-person-fill"></i>
-                    </div>
-                }
-                <div>
+                <!-- Avatar Image Wrapper (reusing AvatarCard pattern) -->
+                <div class="avatar-card-image-wrapper d-inline-block mb-2" style="width: 80px; height: 80px;">
+                    @if (!string.IsNullOrEmpty(Character.User.ImageUrl))
+                    {
+                        <img src="@Character.User.ImageUrl" 
+                             alt="Avatar" 
+                             class="avatar-card-image rounded-circle" 
+                             style="width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--bs-primary);" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white bg-secondary" 
+                             style="width: 100%; height: 100%; font-size: 32px; border: 2px solid var(--bs-primary);">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    }
+                </div>
+                <!-- User Info Content (reusing AvatarCard pattern) -->
+                <div class="avatar-card-content">
                     @if (!string.IsNullOrEmpty(Character.User.Nickname))
                     {
-                        <div class="fw-bold">@Character.User.Nickname</div>
+                        <div class="avatar-card-tuna-name fw-bold">@Character.User.Nickname</div>
                     }
                     @if (!string.IsNullOrEmpty(Character.User.FirstName) || !string.IsNullOrEmpty(Character.User.LastName))
                     {
-                        <small class="text-muted">@Character.User.FirstName @Character.User.LastName</small>
+                        <div class="avatar-card-full-name text-muted small">@Character.User.FirstName @Character.User.LastName</div>
                     }
                 </div>
             </div>

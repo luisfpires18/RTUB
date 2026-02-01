@@ -30,9 +30,9 @@ public class DeterministicCombatEngine : ICombatEngine
         var events = new List<CombatEvent>();
         var timestamp = 0;
 
-        // Initialize HP
-        var attackerHP = attacker.TotalHP;
-        var defenderHP = defender.TotalHP;
+        // Initialize HP - use CurrentHP if available (persistent HP system), otherwise use TotalHP
+        var attackerHP = attacker.CurrentHP ?? attacker.TotalHP;
+        var defenderHP = defender.CurrentHP ?? defender.TotalHP;
 
         // Determine initial turn order (higher Speed attacks first)
         var attackerSpeed = attacker.TotalSpeed;
