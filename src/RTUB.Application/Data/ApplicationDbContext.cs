@@ -135,6 +135,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // My Tuno DbSets
     public DbSet<Character> Characters { get; set; }
     public DbSet<Battle> Battles { get; set; }
+    public DbSet<InventoryItem> InventoryItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

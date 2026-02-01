@@ -22,6 +22,12 @@ public static class MyTunoScaling
     public static double SpeedUpgradeBonus { get; private set; } = 1;
     public static double CriticalChanceUpgradeBonus { get; private set; } = 0.005;
 
+    /// <summary>
+    /// Chance of beer drop after winning a battle (0.0 to 1.0)
+    /// Default is 0.2 (20% chance)
+    /// </summary>
+    public static double BeerDropChance { get; private set; } = 0.2;
+
     public static void Configure(
         int baseLevel,
         int baseXp,
@@ -38,7 +44,8 @@ public static class MyTunoScaling
         double hpUpgradeBonus,
         double powerUpgradeBonus,
         double speedUpgradeBonus,
-        double criticalChanceUpgradeBonus)
+        double criticalChanceUpgradeBonus,
+        double beerDropChance = 0.2)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -56,5 +63,6 @@ public static class MyTunoScaling
         PowerUpgradeBonus = powerUpgradeBonus;
         SpeedUpgradeBonus = speedUpgradeBonus;
         CriticalChanceUpgradeBonus = criticalChanceUpgradeBonus;
+        BeerDropChance = beerDropChance;
     }
 }

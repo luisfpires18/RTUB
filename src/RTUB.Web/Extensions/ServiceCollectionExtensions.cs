@@ -75,6 +75,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserBetRepository, UserBetRepository>();
         services.AddScoped<ICharacterRepository, CharacterRepository>();
         services.AddScoped<IBattleRepository, BattleRepository>();
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
 
         return services;
     }
@@ -182,6 +183,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductReservationService, ProductReservationService>();
         services.AddScoped<ITrophyService, TrophyService>();
+        services.AddScoped<IInventoryService, InventoryService>();
 
         return services;
     }

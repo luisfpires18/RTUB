@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -19,6 +20,7 @@ public class BattleService : IBattleService
     private readonly IBattleRepository _battleRepository;
     private readonly IMatchmakingService _matchmakingService;
     private readonly ICombatEngine _combatEngine;
+    private readonly IInventoryRepository _inventoryRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<BattleService> _logger;
 
@@ -35,6 +37,7 @@ public class BattleService : IBattleService
         IBattleRepository battleRepository,
         IMatchmakingService matchmakingService,
         ICombatEngine combatEngine,
+        IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<BattleService> logger)
     {
@@ -42,6 +45,7 @@ public class BattleService : IBattleService
         _battleRepository = battleRepository;
         _matchmakingService = matchmakingService;
         _combatEngine = combatEngine;
+        _inventoryRepository = inventoryRepository;
         _userManager = userManager;
         _logger = logger;
     }
@@ -89,6 +93,12 @@ public class BattleService : IBattleService
 
         // Apply rewards to player character and user
         await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        // Roll for beer drop if player won
+        if (combatResult.Outcome == BattleOutcome.AttackerWon)
+        {
+            await TryDropBeerAsync(playerCharacter.UserId);
+        }
 
         _logger.LogInformation(
             "Battle created: Player {PlayerCharacterId} vs AI {AIOpponentId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
@@ -147,6 +157,12 @@ public class BattleService : IBattleService
 
         // Update HP based on battle outcome
         await ApplyAttackerHPChangesAsync(playerCharacter, combatResult);
+
+        // Roll for beer drop if player won
+        if (combatResult.Outcome == BattleOutcome.AttackerWon)
+        {
+            await TryDropBeerAsync(playerCharacter.UserId);
+        }
 
         _logger.LogInformation(
             "Battle created: Player {PlayerCharacterId} vs Opponent {OpponentCharacterId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
@@ -213,5 +229,30 @@ public class BattleService : IBattleService
     private static int GenerateSeed()
     {
         return new Random().Next(int.MinValue, int.MaxValue);
+    }
+
+    /// <summary>
+    /// Rolls for beer drop and adds to player's inventory if successful
+    /// </summary>
+    private async Task TryDropBeerAsync(string userId)
+    {
+        var random = new Random();
+        var roll = random.NextDouble();
+
+        if (roll < MyTunoScaling.BeerDropChance)
+        {
+            // Beer dropped!
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
+            
+            _logger.LogInformation(
+                "Beer dropped for user {UserId}! Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
+                userId, roll, MyTunoScaling.BeerDropChance);
+        }
+        else
+        {
+            _logger.LogDebug(
+                "No beer drop for user {UserId}. Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
+                userId, roll, MyTunoScaling.BeerDropChance);
+        }
     }
 }
