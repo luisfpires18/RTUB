@@ -16,6 +16,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
     public async Task<Character?> GetByUserIdAsync(string userId)
     {
         return await _context.Characters
+            .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.UserId == userId);
     }
 

@@ -63,8 +63,8 @@
                 <div class="card-header bg-dark text-white">
                     <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
                 </div>
-                <div class="card-body p-0">
-                    <div id="phaserBattleContainer" class="w-100" style="background: #1a1a1a; display: block;"></div>
+                <div class="card-body p-0 d-flex justify-content-center">
+                    <div id="phaserBattleContainer" style="background: #1a1a1a; display: block; width: 800px; height: 500px;"></div>
                 </div>
             </div>
         }
@@ -377,12 +377,14 @@
                         return;
                     }
 
-                    // Create battle data object with JSON string
+                    // Create battle data object with JSON string and character names
                     // JavaScript will parse it directly to maintain proper object structure
                     var battleData = new
                     {
                         EventsJson = currentBattle.ReplayJson,  // Pass as JSON string
-                        DotNetRef = objRef
+                        DotNetRef = objRef,
+                        AttackerName = character.User?.Nickname ?? character.User?.UserName ?? "Jogador",
+                        DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente"
                     };
 
                     await JSRuntime.InvokeVoidAsync("console.log", "Starting Phaser battle");

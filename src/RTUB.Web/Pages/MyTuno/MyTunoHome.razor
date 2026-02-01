@@ -91,22 +91,26 @@
                         </div>
                         
                         <div class="mb-3">
-                            <h4 class="text-center">Nível @character.Level</h4>
-                            <div class="mb-2">
-                                @{
-                                    var xpForNextLevel = character.Level * 100;
-                                    var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
-                                }
-                                <!-- Simple progress bar without gradients -->
-                                <div class="progress" style="height: 25px; background-color: rgba(255, 255, 255, 0.1);">
-                                    <div class="progress-bar" 
+                            <h4 class="text-center mb-3">Nível @character.Level</h4>
+                            @{
+                                var xpForNextLevel = character.Level * 100;
+                                var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
+                            }
+                            <!-- XP Bar matching Profile.razor style -->
+                            <div class="xp-bar-container">
+                                <div class="xp-bar-bg">
+                                    <div class="xp-bar-fill" 
+                                         style="width: @(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
                                          role="progressbar" 
-                                         style="width: @(xpProgress)%; background-color: #6f42c1;"
                                          aria-valuenow="@character.XP" 
                                          aria-valuemin="0" 
                                          aria-valuemax="@xpForNextLevel">
-                                        <span class="fw-bold">@character.XP / @xpForNextLevel XP</span>
                                     </div>
+                                </div>
+                                <div class="xp-bar-text">
+                                    <span class="xp-current">@character.XP XP</span>
+                                    <span class="xp-separator">/</span>
+                                    <span class="xp-max">@xpForNextLevel XP</span>
                                 </div>
                             </div>
                         </div>

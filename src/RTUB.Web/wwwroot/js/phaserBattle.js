@@ -51,6 +51,16 @@
         return battleData.dotNetRef ?? battleData.DotNetRef ?? null;
     };
 
+    const resolveAttackerName = (battleData) => {
+        if (!battleData || Array.isArray(battleData)) return 'Attacker';
+        return battleData.attackerName ?? battleData.AttackerName ?? 'Attacker';
+    };
+
+    const resolveDefenderName = (battleData) => {
+        if (!battleData || Array.isArray(battleData)) return 'Defender';
+        return battleData.defenderName ?? battleData.DefenderName ?? 'Defender';
+    };
+
     class BattleScene extends Phaser.Scene {
         constructor() {
             super({ key: 'BattleScene' });
@@ -72,6 +82,8 @@
             this.isPlaying = false;
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
+            this.attackerName = 'Attacker';
+            this.defenderName = 'Defender';
         }
 
         init(data) {
@@ -79,6 +91,8 @@
             this.dotNetRef = data?.dotNetRef ?? null;
             this.mode = data?.mode ?? 'live';
             this.eventInterval = data?.eventInterval ?? DEFAULT_EVENT_INTERVAL;
+            this.attackerName = data?.attackerName ?? 'Attacker';
+            this.defenderName = data?.defenderName ?? 'Defender';
             this.currentEventIndex = 0;
             this.replayIndex = 0;
             this.isPlaying = this.mode === 'live';
@@ -143,14 +157,14 @@
                 defender: { sprite: defenderSprite, originX: defenderX }
             };
 
-            this.nameTexts.attacker = this.add.text(attackerX, characterY - attackerSprite.displayHeight - 20, 'Attacker', {
+            this.nameTexts.attacker = this.add.text(attackerX, characterY - attackerSprite.displayHeight - 20, this.attackerName, {
                 fontFamily: 'Arial',
                 fontSize: '16px',
                 fontStyle: 'bold',
                 color: '#ffffff'
             }).setOrigin(0.5, 0);
 
-            this.nameTexts.defender = this.add.text(defenderX, characterY - defenderSprite.displayHeight - 20, 'Defender', {
+            this.nameTexts.defender = this.add.text(defenderX, characterY - defenderSprite.displayHeight - 20, this.defenderName, {
                 fontFamily: 'Arial',
                 fontSize: '16px',
                 fontStyle: 'bold',
@@ -544,6 +558,8 @@
 
         const events = resolveEvents(battleData);
         const dotNetRef = resolveDotNetRef(battleData);
+        const attackerName = resolveAttackerName(battleData);
+        const defenderName = resolveDefenderName(battleData);
 
         game = new Phaser.Game({
             ...config,
@@ -553,7 +569,9 @@
         game.scene.start('BattleScene', {
             events,
             dotNetRef,
-            mode
+            mode,
+            attackerName,
+            defenderName
         });
     };
 
