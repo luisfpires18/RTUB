@@ -111,21 +111,6 @@ else
                     <option value="Owner">Owner</option>
                 </select>
                 
-                @* Android Tester checkbox *@
-                <div class="mt-3">
-                    <div class="rtub-checkbox-wrapper">
-                        <div class="form-check">
-                            <InputCheckbox class="form-check-input rtub-checkbox-large" id="androidTesterCheckbox" @bind-Value="selectedUser.IsAndroidTester" />
-                            <label class="form-check-label" for="androidTesterCheckbox">
-                                Android Tester
-                            </label>
-                            <small class="form-text text-muted d-block">
-                                Check this option to give access to the Android app in development.
-                            </small>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="mt-3">
                     <small class="text-muted">
                         <strong>Member:</strong> Acesso básico aos recursos da aplicação.<br/>
@@ -470,32 +455,10 @@ else
     {
         if (selectedUser != null && !string.IsNullOrEmpty(selectedRoleInModal))
         {
-            // Save IsAndroidTester property changes
-            var userToUpdate = await UserManager.FindByIdAsync(selectedUser.Id);
-            if (userToUpdate != null)
-            {
-                userToUpdate.IsAndroidTester = selectedUser.IsAndroidTester;
-                var updateResult = await UserManager.UpdateAsync(userToUpdate);
-                if (!updateResult.Succeeded)
-                {
-                    message = $"Erro ao atualizar testador Android: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}";
-                    isError = true;
-                    CloseEditRoleModal();
-                    return;
-                }
-            }
-            
             // Only change role if different from current
             if (selectedRoleInModal != currentRoleBeforeEdit)
             {
                 await ChangeUserRole(selectedUser.Id, selectedRoleInModal);
-            }
-            else
-            {
-                // If role didn't change but IsAndroidTester did, still show success message
-                message = $"Informações de {selectedUser.FirstName} {selectedUser.LastName} atualizadas com sucesso.";
-                isError = false;
-                await RefreshDataAsync();
             }
         }
         CloseEditRoleModal();

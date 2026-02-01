@@ -7,6 +7,7 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
+@using RTUB.Application.Extensions
 @using RTUB.Shared
 @inject UserManager<ApplicationUser> UserManager
 @inject ApplicationDbContext DbContext
@@ -53,6 +54,67 @@
     }
     else
     {
+        <!-- Android Testers Management Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Manage Android Testers</h5>
+            </div>
+            <div class="card-body">
+                <!-- Selected testers as chips -->
+                @if (selectedAndroidTesters.Any())
+                {
+                    <div class="selected-members-chips mb-3">
+                        @foreach (var user in selectedAndroidTesters.OrderBy(u => u.GetDisplayName()))
+                        {
+                            <span class="member-chip" title="@($"{user.FirstName} {user.LastName}")">
+                                <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()" class="member-chip-avatar" />
+                                <span class="member-chip-name">@user.GetDisplayName()</span>
+                                <button type="button" class="member-chip-remove" @onclick="() => RemoveAndroidTester(user)" title="Remove tester access" aria-label="Remove @user.GetDisplayName()">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-3">No Android testers configured. Search and click to add users.</p>
+                }
+
+                <!-- Search for users to add -->
+                <SearchBar @bind-Value="testerSearchTerm"
+                           Placeholder="Search by name or username to add as tester..."
+                           OnSearch="@HandleTesterSearchChanged"
+                           Compact="true" />
+
+                @if (!string.IsNullOrWhiteSpace(testerSearchTerm) && filteredAvailableUsers.Any())
+                {
+                    <div class="member-list member-list-scrollable mt-2">
+                        @foreach (var user in filteredAvailableUsers)
+                        {
+                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                 @onclick="() => AddAndroidTester(user)"
+                                 tabindex="0"
+                                 @onkeydown="@((e) => HandleMemberItemKeyDown(e, user))">
+                                <div class="d-flex align-items-center">
+                                    <img src="@user.ProfilePictureSrc" alt="@user.GetDisplayName()"
+                                         class="member-avatar-small me-2" />
+                                    <div>
+                                        <strong>@user.GetDisplayName()</strong>
+                                        <div class="text-muted small">@user.UserName</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(testerSearchTerm))
+                {
+                    <p class="text-muted mt-2 small">No users found.</p>
+                }
+            </div>
+        </div>
+
         <!-- Custom Notification Section -->
         <div class="card mb-4">
             <div class="card-header">
@@ -204,6 +266,12 @@
     private string selectedDayFilter = string.Empty;
     private PaginationHelper<TesterLoginInfo> paginationHelper = new() { PageSize = 24 };
     
+    // Tester management fields
+    private List<ApplicationUser> selectedAndroidTesters = new();
+    private List<ApplicationUser> allUsers = new();
+    private List<ApplicationUser> filteredAvailableUsers = new();
+    private string testerSearchTerm = string.Empty;
+    
     // Notification fields
     private string customMessage = string.Empty;
     private bool isSending = false;
@@ -222,11 +290,20 @@
         {
             var cutoffDate = DateTime.UtcNow.Date.AddDays(-LoginDaysWindow);
             
+            // Load all users for management section
+            allUsers = await UserManager.Users
+                .AsNoTracking()
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToListAsync();
+            
             // Load Android testers
             var testers = await UserManager.Users
                 .AsNoTracking()
                 .Where(u => u.IsAndroidTester)
                 .ToListAsync();
+            
+            selectedAndroidTesters = testers.ToList();
 
             // Load login records for the last 14 days
             var logins = await DbContext.AndroidTesterLogins
@@ -408,6 +485,103 @@
             daysText = $"{daysAgo} days ago";
         
         return $"{loginCount}/{LoginDaysWindow} logins - Last: {daysText}";
+    }
+
+    // Tester management methods
+    private Task HandleTesterSearchChanged(string value)
+    {
+        testerSearchTerm = value;
+        FilterAvailableUsers();
+        return Task.CompletedTask;
+    }
+
+    private void FilterAvailableUsers()
+    {
+        if (string.IsNullOrWhiteSpace(testerSearchTerm))
+        {
+            filteredAvailableUsers = new List<ApplicationUser>();
+            return;
+        }
+
+        var search = testerSearchTerm.ToLower();
+        var selectedIds = selectedAndroidTesters.Select(u => u.Id).ToHashSet();
+
+        filteredAvailableUsers = allUsers
+            .Where(u => !selectedIds.Contains(u.Id))
+            .Where(u =>
+                (u.FirstName != null && u.FirstName.ToLower().Contains(search)) ||
+                (u.LastName != null && u.LastName.ToLower().Contains(search)) ||
+                (u.Nickname != null && u.Nickname.ToLower().Contains(search)) ||
+                (u.UserName != null && u.UserName.ToLower().Contains(search)))
+            .Take(10)
+            .ToList();
+    }
+
+    private async Task AddAndroidTester(ApplicationUser user)
+    {
+        try
+        {
+            var userToUpdate = await UserManager.FindByIdAsync(user.Id);
+            if (userToUpdate != null)
+            {
+                userToUpdate.IsAndroidTester = true;
+                var result = await UserManager.UpdateAsync(userToUpdate);
+                
+                if (result.Succeeded)
+                {
+                    selectedAndroidTesters.Add(user);
+                    selectedAndroidTesters = selectedAndroidTesters.OrderBy(u => u.GetDisplayName()).ToList();
+                    testerSearchTerm = string.Empty;
+                    filteredAvailableUsers.Clear();
+                    successMessage = $"{user.GetDisplayName()} added as Android tester.";
+                    await LoadData(); // Reload to update stats
+                }
+                else
+                {
+                    errorMessage = $"Failed to add {user.GetDisplayName()}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error adding tester: {ex.Message}";
+        }
+    }
+
+    private async Task RemoveAndroidTester(ApplicationUser user)
+    {
+        try
+        {
+            var userToUpdate = await UserManager.FindByIdAsync(user.Id);
+            if (userToUpdate != null)
+            {
+                userToUpdate.IsAndroidTester = false;
+                var result = await UserManager.UpdateAsync(userToUpdate);
+                
+                if (result.Succeeded)
+                {
+                    selectedAndroidTesters.Remove(user);
+                    successMessage = $"{user.GetDisplayName()} removed from Android testers.";
+                    await LoadData(); // Reload to update stats
+                }
+                else
+                {
+                    errorMessage = $"Failed to remove {user.GetDisplayName()}: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error removing tester: {ex.Message}";
+        }
+    }
+
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser user)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddAndroidTester(user);
+        }
     }
 
     private class TesterLoginInfo
