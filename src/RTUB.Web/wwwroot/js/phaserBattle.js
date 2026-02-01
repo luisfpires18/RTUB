@@ -358,22 +358,25 @@
 
             // Enhanced attacker lunge animation with variable speed based on attack strength
             const lungeDuration = isCritical ? 150 : 200;
+            const originalScale = attacker.sprite.scaleX; // Store original scale
+            const targetScale = originalScale * (isCritical ? 1.1 : 1);
+            
             this.tweens.add({
                 targets: attacker.sprite,
                 x: targetX,
                 y: targetY,
                 angle: direction * (isCritical ? 18 : 12),
-                scale: attacker.sprite.scaleX * (isCritical ? 1.1 : 1),
+                scale: targetScale,
                 duration: lungeDuration,
                 ease: 'Power3',
                 onComplete: () => {
-                    // Return to original position
+                    // Return to original position and scale
                     this.tweens.add({
                         targets: attacker.sprite,
                         x: startX,
                         y: startY,
                         angle: 0,
-                        scale: attacker.sprite.scaleX / (isCritical ? 1.1 : 1),
+                        scale: originalScale, // Restore original scale directly
                         duration: 240,
                         ease: 'Back.Out'
                     });
@@ -489,6 +492,7 @@
                 y: attackerText.y - 20,
                 alpha: 0,
                 duration: 700,
+                ease: 'Power2', // Match damage text easing for consistency
                 onComplete: () => attackerText.destroy()
             });
         }
