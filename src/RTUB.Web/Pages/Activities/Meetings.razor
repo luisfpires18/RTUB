@@ -3974,7 +3974,7 @@ else
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
             var role = currentUser.CurrentRole;
-            return role == "VETERANO" || role == "TUNOSSAURO" || currentUser.Positions.Contains(Position.Magister);
+            return role == "VETERANO" || role == "TUNOSSAURO" || (currentUser.Positions?.Contains(Position.Magister) ?? false);
         }
         
         // For AG meetings, all except Leitão can view

@@ -345,7 +345,7 @@ else
                 var role = currentUser.CurrentRole;
                 return role == "VETERANO" || 
                        role == "TUNOSSAURO" || 
-                       (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
+                       (currentUser.Positions?.Contains(Position.Magister) ?? false);
             }
             else if (folder.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
             {
@@ -374,8 +374,10 @@ else
             return true;
         }
         
-        // Extract folder name from file path (e.g., "docs/Production/2024-2025/Atas CV 2024-2025/file.pdf" -> "Atas CV 2024-2025")
-        // The path structure is: docs/{environment}/{fiscalYear}/{folderName}/{fileName}
+        // Extract folder name from file path
+        // Path structure: docs/{environment}/{fiscalYear}/{folderName}/{fileName}
+        // Example: "docs/Production/2024-2025/Atas CV 2024-2025/file.pdf"
+        // We extract the folder name (4th segment): "Atas CV 2024-2025"
         var pathParts = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (pathParts.Length < 4)
         {
@@ -393,7 +395,7 @@ else
             var role = currentUser.CurrentRole;
             return role == "VETERANO" || 
                    role == "TUNOSSAURO" || 
-                   (currentUser.Positions != null && currentUser.Positions.Contains(Position.Magister));
+                   (currentUser.Positions?.Contains(Position.Magister) ?? false);
         }
         else if (folderName.StartsWith("Atas AG", StringComparison.OrdinalIgnoreCase))
         {
