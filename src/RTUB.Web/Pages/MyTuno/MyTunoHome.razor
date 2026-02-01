@@ -92,17 +92,21 @@
                         
                         <div class="mb-3">
                             <h4 class="text-center">Nível @character.Level</h4>
-                            <div class="progress mb-2" style="height: 25px;">
+                            <div class="mb-2">
                                 @{
                                     var xpForNextLevel = character.Level * 100;
                                     var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
                                 }
-                                <div class="progress-bar bg-primary" role="progressbar" 
-                                     style="width: @(xpProgress)%"
-                                     aria-valuenow="@character.XP" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="@xpForNextLevel">
-                                    @character.XP / @xpForNextLevel XP
+                                <!-- Simple progress bar without gradients -->
+                                <div class="progress" style="height: 25px; background-color: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar" 
+                                         role="progressbar" 
+                                         style="width: @(xpProgress)%; background-color: #6f42c1;"
+                                         aria-valuenow="@character.XP" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="@xpForNextLevel">
+                                        <span class="fw-bold">@character.XP / @xpForNextLevel XP</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

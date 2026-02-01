@@ -168,15 +168,18 @@
         }
 
         createLogPanel(width, height) {
-            const panelHeight = 90;
-            const panelY = height - 50 - panelHeight / 2;
-            this.logBackground = this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.7);
+            const panelHeight = 80;
+            const groundHeight = 50;
+            // Position log panel at very bottom of canvas, below ground
+            const panelY = height - panelHeight / 2 - 5;
+            this.logBackground = this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.9);
             this.logBackground.setStrokeStyle(1, 0x333333, 1);
 
             this.logText = this.add.text(30, panelY - panelHeight / 2 + 10, '', {
                 fontFamily: 'Arial',
-                fontSize: '14px',
-                color: '#f1f1f1'
+                fontSize: '13px',
+                color: '#f1f1f1',
+                wordWrap: { width: width - 60 }
             });
         }
 
@@ -532,8 +535,7 @@
             height: DEFAULT_HEIGHT,
             backgroundColor: '#1a1a1a',
             scale: {
-                mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
+                mode: Phaser.Scale.NONE,  // Fixed size, no zoom/scale
                 width: DEFAULT_WIDTH,
                 height: DEFAULT_HEIGHT
             },
