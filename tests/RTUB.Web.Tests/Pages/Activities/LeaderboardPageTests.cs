@@ -113,7 +113,7 @@ public class LeaderboardPageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult(new Dictionary<string, RTUB.Application.DTOs.RankProgressInfo>());
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));

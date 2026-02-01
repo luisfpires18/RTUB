@@ -36,7 +36,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         _context = _fixture.CreateContext();
         var characterRepository = new CharacterRepository(_context);
-        _characterService = new CharacterService(characterRepository, _context);
+        var inventoryRepository = new Mock<IInventoryRepository>().Object;
+        _characterService = new CharacterService(characterRepository, _context, inventoryRepository);
 
         // Setup UserManager mock
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();

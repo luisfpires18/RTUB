@@ -43,7 +43,7 @@ public class AlbumsPageTests : PageTestBase
         _mockImageStorageService = SetupService<IImageStorageService>();
         _mockUserManager = SetupUserManager();
         _mockWebHostEnvironment = SetupWebHostEnvironment();
-        
+
         // NavigationManager is provided automatically by bUnit's TestContext
 
         // Setup default service responses
@@ -117,7 +117,7 @@ public class AlbumsPageTests : PageTestBase
 
         // Assert - Should show loading initially (before async completes)
         cut.Markup.Should().Contain("A carregar álbuns", "page should show loading message initially");
-        
+
         // Wait for async to complete
         cut.WaitForState(() => !cut.Markup.Contains("A carregar álbuns"), TimeSpan.FromSeconds(2));
     }
@@ -132,7 +132,7 @@ public class AlbumsPageTests : PageTestBase
 
         // Act
         var cut = RenderComponent<Albums>();
-        
+
         // Wait for async initialization to complete
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
@@ -257,7 +257,7 @@ public class AlbumsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
-        var openCreateModalMethod = typeof(Albums).GetMethod("OpenCreateModal", 
+        var openCreateModalMethod = typeof(Albums).GetMethod("OpenCreateModal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await cut.InvokeAsync(() => openCreateModalMethod!.Invoke(cut.Instance, null));
 
@@ -289,7 +289,7 @@ public class AlbumsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open edit modal via reflection (method is private)
-        var openEditModalMethod = typeof(Albums).GetMethod("OpenEditModal", 
+        var openEditModalMethod = typeof(Albums).GetMethod("OpenEditModal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await cut.InvokeAsync(() => openEditModalMethod!.Invoke(cut.Instance, new object[] { album }));
 
@@ -313,7 +313,7 @@ public class AlbumsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open delete modal via reflection (method is private)
-        var openDeleteModalMethod = typeof(Albums).GetMethod("OpenDeleteModal", 
+        var openDeleteModalMethod = typeof(Albums).GetMethod("OpenDeleteModal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await cut.InvokeAsync(() => openDeleteModalMethod!.Invoke(cut.Instance, new object[] { album }));
 
@@ -350,7 +350,7 @@ public class AlbumsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Open create modal via reflection (method is private)
-        var openCreateModalMethod = typeof(Albums).GetMethod("OpenCreateModal", 
+        var openCreateModalMethod = typeof(Albums).GetMethod("OpenCreateModal",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await cut.InvokeAsync(() => openCreateModalMethod!.Invoke(cut.Instance, null));
 
@@ -415,7 +415,7 @@ public class AlbumsPageTests : PageTestBase
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));
 
         // Act - Navigate via reflection (method is private)
-        var navigateMethod = typeof(Albums).GetMethod("NavigateToAlbum", 
+        var navigateMethod = typeof(Albums).GetMethod("NavigateToAlbum",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await cut.InvokeAsync(() => navigateMethod!.Invoke(cut.Instance, new object[] { album.Id }));
 

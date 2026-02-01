@@ -39,7 +39,7 @@ public class HallOfFamePageTests : PageTestBase
         var mockDbSet = emptyUsers.BuildMockDbSet();
         SetupAsyncQueryable(mockDbSet);
         _mockUserManager.Setup(x => x.Users).Returns(mockDbSet.Object);
-        
+
         // Setup RehearsalAttendanceRepository for complex queries
         var emptyAttendances = new List<RehearsalAttendance>();
         var mockAttendanceDbSet = emptyAttendances.BuildMockDbSet();
@@ -84,7 +84,7 @@ public class HallOfFamePageTests : PageTestBase
 
         // Assert - Check loading state before async operations complete
         cut.Markup.Should().Contain("A carregar", "page should show loading state initially");
-        
+
         // Complete the delayed task to allow test cleanup
         tcs.SetResult(new List<RoleAssignment>());
         cut.WaitForState(() => !cut.Markup.Contains("A carregar"), TimeSpan.FromSeconds(2));

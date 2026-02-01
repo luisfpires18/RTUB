@@ -62,7 +62,7 @@ public class GroupConversationSyncServiceTests
         // Arrange
         var mockUserManager = CreateMockUserManager();
         SetupEmptyUserManager(mockUserManager);
-        
+
         // Mock GetUsersInRoleAsync to return empty list (not null)
         mockUserManager
             .Setup(m => m.GetUsersInRoleAsync("Owner"))

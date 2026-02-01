@@ -747,6 +747,9 @@ namespace RTUB.Migrations
                     b.Property<int?>("CurrentHP")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("EquippedInstrument")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("HP")
                         .HasColumnType("INTEGER");
 
@@ -792,6 +795,56 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_Characters_UserId");
 
                     b.ToTable("Characters");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.CharacterStageProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CharacterId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CompletionCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FirstCompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("InstrumentClaimed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastCompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("StageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterId")
+                        .HasDatabaseName("IX_CharacterStageProgress_CharacterId");
+
+                    b.HasIndex("StageId");
+
+                    b.HasIndex("CharacterId", "StageId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CharacterStageProgress_CharacterId_StageId");
+
+                    b.ToTable("CharacterStageProgress", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
@@ -1615,6 +1668,47 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Instruments");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_InventoryItems_UserId");
+
+                    b.HasIndex("UserId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("IX_InventoryItems_UserId_Type");
+
+                    b.ToTable("InventoryItems");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Label", b =>
@@ -3732,6 +3826,69 @@ namespace RTUB.Migrations
                     b.ToTable("SongYouTubeUrls", (string)null);
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.Stage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("BeerDropChance")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EnemyConfigKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("FidelisReward")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RequiredLevel")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RewardInstrument")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("ShotDropChance")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("StageNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StageNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Stages_StageNumber");
+
+                    b.ToTable("Stages", (string)null);
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>
                 {
                     b.Property<int>("Id")
@@ -4048,6 +4205,25 @@ namespace RTUB.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.CharacterStageProgress", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Character", "Character")
+                        .WithMany()
+                        .HasForeignKey("CharacterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.Stage", "Stage")
+                        .WithMany()
+                        .HasForeignKey("StageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Character");
+
+                    b.Navigation("Stage");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
@@ -4196,6 +4372,17 @@ namespace RTUB.Migrations
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GameScore", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.InventoryItem", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
                         .WithMany()

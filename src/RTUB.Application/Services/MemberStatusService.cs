@@ -137,7 +137,7 @@ public class MemberStatusService : IMemberStatusService
         var existing = await _context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
-        
+
         var activity = await ComputeActivityDataAsync(userId, now);
 
         var beforeIsRetired = existing?.IsRetired ?? user.IsRetired;
@@ -296,7 +296,7 @@ public class MemberStatusService : IMemberStatusService
         var status = await _context.MemberStatuses
             .AsNoTracking()
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
-        
+
         // Detach the user to prevent tracking conflicts when SaveChangesAsync is called
         var userEntry = _context.Entry(user);
         if (userEntry.State != EntityState.Detached)

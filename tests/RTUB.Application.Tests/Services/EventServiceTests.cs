@@ -635,7 +635,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _context.SaveChangesAsync();
 
         var eventEntity = await _eventService.CreateEventAsync("Event to Cancel", DateTime.Now.AddDays(7), "Location", EventType.Festival);
-        
+
         var enrollment1 = Enrollment.Create(user1.Id, eventEntity.Id);
         enrollment1.WillAttend = true;
         var enrollment2 = Enrollment.Create(user2.Id, eventEntity.Id);
@@ -649,7 +649,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         var enrollments = await _context.Enrollments.Where(e => e.EventId == eventEntity.Id).ToListAsync();
         enrollments.Should().BeEmpty();
-        
+
         var cancelledEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
         cancelledEvent!.IsCancelled.Should().BeTrue();
     }

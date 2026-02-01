@@ -132,7 +132,7 @@ public class PublicPagesTests : IntegrationTestBase
 
         // Assert
         response.IsSuccessStatusCode.Should().BeTrue();
-        
+
         // Page might show "A carregar..." if data is loading, or empty state if no fiscal years exist
         if (!content.Contains("A carregar") && !content.Contains("Nenhum ano letivo"))
         {

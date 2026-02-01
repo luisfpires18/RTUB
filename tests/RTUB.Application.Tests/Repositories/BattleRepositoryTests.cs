@@ -50,14 +50,14 @@ public class BattleRepositoryTests : IClassFixture<DatabaseFixture>, IDisposable
         var user1 = CreateTestUser("test-user1", "Player1");
         var user2 = CreateTestUser("test-user2", "Player2");
         var user3 = CreateTestUser("test-user3", "Player3");
-        
+
         _context.Users.AddRange(user1, user2, user3);
         await _context.SaveChangesAsync();
 
         var char1 = Character.Create(user1.Id);
         var char2 = Character.Create(user2.Id);
         var char3 = Character.Create(user3.Id);
-        
+
         _context.Characters.AddRange(char1, char2, char3);
         await _context.SaveChangesAsync();
 
@@ -66,15 +66,15 @@ public class BattleRepositoryTests : IClassFixture<DatabaseFixture>, IDisposable
         _context.Battles.Add(CreateBattle(char1.Id, char2.Id, BattleOutcome.AttackerWon));
         _context.Battles.Add(CreateBattle(char1.Id, char3.Id, BattleOutcome.AttackerWon));
         _context.Battles.Add(CreateBattle(char2.Id, char1.Id, BattleOutcome.DefenderWon)); // char1 wins as defender
-        
+
         // char2 wins 1 time
         _context.Battles.Add(CreateBattle(char2.Id, char3.Id, BattleOutcome.AttackerWon));
-        
+
         // char3 has no wins (loses all battles)
-        
+
         // Add a draw (shouldn't count for wins)
         _context.Battles.Add(CreateBattle(char1.Id, char2.Id, BattleOutcome.Draw));
-        
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -83,7 +83,7 @@ public class BattleRepositoryTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         result.Should().NotBeNull();
         result.Should().HaveCount(3);
-        
+
         // Verify ordering by wins
         result[0].Wins.Should().Be(3); // char1
         result[0].DisplayName.Should().Be("Player1");
@@ -102,7 +102,7 @@ public class BattleRepositoryTests : IClassFixture<DatabaseFixture>, IDisposable
             var user = CreateTestUser($"test-user-limit-{i}", $"Player{i}");
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            
+
             var character = Character.Create(user.Id);
             _context.Characters.Add(character);
             await _context.SaveChangesAsync();

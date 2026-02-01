@@ -22,6 +22,18 @@ public static class MyTunoScaling
     public static double SpeedUpgradeBonus { get; private set; } = 1;
     public static double CriticalChanceUpgradeBonus { get; private set; } = 0.005;
 
+    /// <summary>
+    /// Chance of beer drop after winning a battle (0.0 to 1.0)
+    /// Default is 0.2 (20% chance)
+    /// </summary>
+    public static double BeerDropChance { get; private set; } = 0.2;
+
+    /// <summary>
+    /// Costs (in Fidelis) to level up character from one level to the next
+    /// Index represents the level number (0-based, so index 0 is level 1)
+    /// </summary>
+    public static List<decimal> LevelCosts { get; private set; } = new();
+
     public static void Configure(
         int baseLevel,
         int baseXp,
@@ -38,7 +50,9 @@ public static class MyTunoScaling
         double hpUpgradeBonus,
         double powerUpgradeBonus,
         double speedUpgradeBonus,
-        double criticalChanceUpgradeBonus)
+        double criticalChanceUpgradeBonus,
+        double beerDropChance = 0.2,
+        List<decimal>? levelCosts = null)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -56,5 +70,7 @@ public static class MyTunoScaling
         PowerUpgradeBonus = powerUpgradeBonus;
         SpeedUpgradeBonus = speedUpgradeBonus;
         CriticalChanceUpgradeBonus = criticalChanceUpgradeBonus;
+        BeerDropChance = beerDropChance;
+        LevelCosts = levelCosts ?? new List<decimal>();
     }
 }

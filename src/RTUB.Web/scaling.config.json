@@ -30,6 +30,299 @@
         "initialBought": 0,
         "bonusPerUpgrade": 0.005
       }
+    },
+    "levelCosts": [
+      0,
+      10,
+      25,
+      50,
+      100,
+      175,
+      275,
+      400,
+      550,
+      725,
+      925,
+      1150,
+      1400,
+      1675,
+      1975,
+      2300,
+      2650,
+      3025,
+      3425,
+      3850
+    ],
+    "battleRewards": {
+      "winReward": 10,
+      "lossReward": 5,
+      "drawReward": 7.5
+    },
+    "stages": {
+      "beerDropChance": 0.2,
+      "shotDropChance": 0.1,
+      "stageList": [
+        {
+          "stageNumber": 1,
+          "name": "Guitarra Challenge",
+          "description": "Master the six strings in this beginner-friendly challenge",
+          "requiredLevel": 1,
+          "enemyConfigKey": "stage_1_guitarra",
+          "rewardInstrument": "Guitarra",
+          "fidelisReward": 15,
+          "enemyStats": {
+            "hp": 80,
+            "power": 8,
+            "speed": 8,
+            "criticalChance": 0.05
+          }
+        },
+        {
+          "stageNumber": 2,
+          "name": "Bandolim Battle",
+          "description": "Face the fast-picking bandolim master",
+          "requiredLevel": 3,
+          "enemyConfigKey": "stage_2_bandolim",
+          "rewardInstrument": "Bandolim",
+          "fidelisReward": 20,
+          "enemyStats": {
+            "hp": 100,
+            "power": 10,
+            "speed": 12,
+            "criticalChance": 0.08
+          }
+        },
+        {
+          "stageNumber": 3,
+          "name": "Cavaquinho Contest",
+          "description": "Test your rhythm against the cavaquinho virtuoso",
+          "requiredLevel": 5,
+          "enemyConfigKey": "stage_3_cavaquinho",
+          "rewardInstrument": "Cavaquinho",
+          "fidelisReward": 25,
+          "enemyStats": {
+            "hp": 120,
+            "power": 12,
+            "speed": 14,
+            "criticalChance": 0.1
+          }
+        },
+        {
+          "stageNumber": 4,
+          "name": "Viola Victory",
+          "description": "Prove your worth against the powerful viola player",
+          "requiredLevel": 7,
+          "enemyConfigKey": "stage_4_viola",
+          "rewardInstrument": "Viola",
+          "fidelisReward": 30,
+          "enemyStats": {
+            "hp": 140,
+            "power": 14,
+            "speed": 13,
+            "criticalChance": 0.12
+          }
+        },
+        {
+          "stageNumber": 5,
+          "name": "Violino Virtuoso",
+          "description": "Face the elegant and deadly violino master",
+          "requiredLevel": 9,
+          "enemyConfigKey": "stage_5_violino",
+          "rewardInstrument": "Violino",
+          "fidelisReward": 35,
+          "enemyStats": {
+            "hp": 160,
+            "power": 15,
+            "speed": 16,
+            "criticalChance": 0.15
+          }
+        },
+        {
+          "stageNumber": 6,
+          "name": "Flauta Fury",
+          "description": "Battle the swift and precise flauta expert",
+          "requiredLevel": 11,
+          "enemyConfigKey": "stage_6_flauta",
+          "rewardInstrument": "Flauta",
+          "fidelisReward": 40,
+          "enemyStats": {
+            "hp": 180,
+            "power": 16,
+            "speed": 18,
+            "criticalChance": 0.18
+          }
+        },
+        {
+          "stageNumber": 7,
+          "name": "Clarinete Clash",
+          "description": "Overcome the harmonious clarinete champion",
+          "requiredLevel": 13,
+          "enemyConfigKey": "stage_7_clarinete",
+          "rewardInstrument": "Clarinete",
+          "fidelisReward": 45,
+          "enemyStats": {
+            "hp": 200,
+            "power": 18,
+            "speed": 17,
+            "criticalChance": 0.2
+          }
+        },
+        {
+          "stageNumber": 8,
+          "name": "Saxofone Showdown",
+          "description": "Face the smooth and powerful saxofone maestro",
+          "requiredLevel": 15,
+          "enemyConfigKey": "stage_8_saxofone",
+          "rewardInstrument": "Saxofone",
+          "fidelisReward": 50,
+          "enemyStats": {
+            "hp": 220,
+            "power": 20,
+            "speed": 19,
+            "criticalChance": 0.22
+          }
+        },
+        {
+          "stageNumber": 9,
+          "name": "Trompete Triumph",
+          "description": "Challenge the bold and brash trompete player",
+          "requiredLevel": 17,
+          "enemyConfigKey": "stage_9_trompete",
+          "rewardInstrument": "Trompete",
+          "fidelisReward": 55,
+          "enemyStats": {
+            "hp": 240,
+            "power": 22,
+            "speed": 20,
+            "criticalChance": 0.25
+          }
+        },
+        {
+          "stageNumber": 10,
+          "name": "Trombone Terror",
+          "description": "Battle the heavy-hitting trombone titan",
+          "requiredLevel": 19,
+          "enemyConfigKey": "stage_10_trombone",
+          "rewardInstrument": "Trombone",
+          "fidelisReward": 60,
+          "enemyStats": {
+            "hp": 260,
+            "power": 24,
+            "speed": 18,
+            "criticalChance": 0.28
+          }
+        },
+        {
+          "stageNumber": 11,
+          "name": "Bateria Beatdown",
+          "description": "Survive the relentless assault of the bateria master",
+          "requiredLevel": 21,
+          "enemyConfigKey": "stage_11_bateria",
+          "rewardInstrument": "Bateria",
+          "fidelisReward": 65,
+          "enemyStats": {
+            "hp": 280,
+            "power": 26,
+            "speed": 22,
+            "criticalChance": 0.3
+          }
+        },
+        {
+          "stageNumber": 12,
+          "name": "Acordeao Apex",
+          "description": "The ultimate test: defeat the legendary acordeao grandmaster",
+          "requiredLevel": 23,
+          "enemyConfigKey": "stage_12_acordeao",
+          "rewardInstrument": "Acordeao",
+          "fidelisReward": 75,
+          "enemyStats": {
+            "hp": 300,
+            "power": 28,
+            "speed": 24,
+            "criticalChance": 0.35
+          }
+        }
+      ],
+      "instrumentStats": {
+        "Guitarra": {
+          "hpBonus": 10,
+          "powerBonus": 2,
+          "speedBonus": 1,
+          "criticalChanceBonus": 0.02
+        },
+        "Bandolim": {
+          "hpBonus": 5,
+          "powerBonus": 1,
+          "speedBonus": 3,
+          "criticalChanceBonus": 0.03
+        },
+        "Cavaquinho": {
+          "hpBonus": 8,
+          "powerBonus": 2,
+          "speedBonus": 2,
+          "criticalChanceBonus": 0.025
+        },
+        "Viola": {
+          "hpBonus": 12,
+          "powerBonus": 3,
+          "speedBonus": 1,
+          "criticalChanceBonus": 0.02
+        },
+        "Violino": {
+          "hpBonus": 6,
+          "powerBonus": 1,
+          "speedBonus": 4,
+          "criticalChanceBonus": 0.04
+        },
+        "Flauta": {
+          "hpBonus": 7,
+          "powerBonus": 2,
+          "speedBonus": 3,
+          "criticalChanceBonus": 0.035
+        },
+        "Clarinete": {
+          "hpBonus": 10,
+          "powerBonus": 3,
+          "speedBonus": 2,
+          "criticalChanceBonus": 0.03
+        },
+        "Saxofone": {
+          "hpBonus": 15,
+          "powerBonus": 4,
+          "speedBonus": 2,
+          "criticalChanceBonus": 0.025
+        },
+        "Trompete": {
+          "hpBonus": 8,
+          "powerBonus": 5,
+          "speedBonus": 1,
+          "criticalChanceBonus": 0.03
+        },
+        "Trombone": {
+          "hpBonus": 18,
+          "powerBonus": 4,
+          "speedBonus": 0,
+          "criticalChanceBonus": 0.02
+        },
+        "Bateria": {
+          "hpBonus": 12,
+          "powerBonus": 3,
+          "speedBonus": 3,
+          "criticalChanceBonus": 0.04
+        },
+        "Acordeao": {
+          "hpBonus": 20,
+          "powerBonus": 5,
+          "speedBonus": 2,
+          "criticalChanceBonus": 0.05
+        }
+      },
+      "itemEffects": {
+        "Shot": {
+          "hpRestore": 1.0,
+          "description": "Restores 100% HP"
+        }
+      }
     }
   }
 }

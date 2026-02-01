@@ -135,6 +135,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // My Tuno DbSets
     public DbSet<Character> Characters { get; set; }
     public DbSet<Battle> Battles { get; set; }
+    public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<Stage> Stages { get; set; }
+    public DbSet<CharacterStageProgress> CharacterStageProgress { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -166,7 +169,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
-        
+
         // Track Created entities to update EntityId after SaveChanges
         // (EntityId is 0/null before save, gets assigned after)
         var pendingCreatedAuditLogs = new List<(AuditLog auditLog, BaseEntity entity)>();

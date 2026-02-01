@@ -11,8 +11,8 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Pages.Members;
-using MembersPage = RTUB.Pages.Members.Members;
 using RTUB.Web.Tests.Pages.Base;
+using MembersPage = RTUB.Pages.Members.Members;
 
 namespace RTUB.Web.Tests.Pages.Members;
 

@@ -26,6 +26,6 @@ public interface IRehearsalAttendanceFilterService
     /// <param name="attendances">Collection of attendance records</param>
     /// <param name="searchTerm">Optional search term to filter not attending members</param>
     /// <returns>Tuple containing (mainParticipants, leitoes, notAttending)</returns>
-    (List<RehearsalAttendance> mainParticipants, List<RehearsalAttendance> leitoes, List<RehearsalAttendance> notAttending) 
+    (List<RehearsalAttendance> mainParticipants, List<RehearsalAttendance> leitoes, List<RehearsalAttendance> notAttending)
         SplitAttendancesByCategory(IEnumerable<RehearsalAttendance> attendances, string searchTerm = "");
 }

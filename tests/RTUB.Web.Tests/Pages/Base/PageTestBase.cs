@@ -1,3 +1,4 @@
+using System.Reflection;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -8,7 +9,6 @@ using Microsoft.JSInterop;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using System.Reflection;
 
 namespace RTUB.Web.Tests.Pages.Base;
 

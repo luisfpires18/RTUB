@@ -47,7 +47,7 @@ public class DeterministicCombatEngine : ICombatEngine
             HP = attackerHP,
             Timestamp = timestamp++
         });
-        
+
         events.Add(new CombatEvent
         {
             Type = "HPUpdate",
@@ -332,7 +332,7 @@ public class DeterministicCombatEngine : ICombatEngine
             return BattleOutcome.DefenderWon;
         if (attackerHP == defenderHP)
             return BattleOutcome.Draw;
-        
+
         // If both are alive (shouldn't happen, but handle it)
         return attackerHP > defenderHP ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon;
     }

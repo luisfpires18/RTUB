@@ -17,6 +17,11 @@ public class FidelisRewardsConfiguration
     /// Fidelis rewards configuration for AvoidQuestions game
     /// </summary>
     public GameRewardSettings AvoidQuestions { get; set; } = new();
+
+    /// <summary>
+    /// Fidelis rewards configuration for PassaroMaluco game
+    /// </summary>
+    public GameRewardSettings PassaroMaluco { get; set; } = new();
 }
 
 /// <summary>

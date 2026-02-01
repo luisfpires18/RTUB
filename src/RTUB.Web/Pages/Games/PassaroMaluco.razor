@@ -6,12 +6,15 @@
 @using Microsoft.JSInterop
 @using RTUB.Application.Data
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
 @inject IJSRuntime JSRuntime
 @inject IGameScoreService GameScoreService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
 @inject ILogger<PassaroMaluco> Logger
+@inject IOptions<FidelisRewardsConfiguration> FidelisRewardsConfig
 @implements IAsyncDisposable
 @attribute [Authorize]
 
@@ -353,14 +356,15 @@
                 await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalScore, 1, TimeSpan.Zero);
                 scoreSaved = true;
                 
-                // Award 1 Fidelis for playing
+                // Award Fidelis for playing (configured in appsettings)
                 if (currentUser != null)
                 {
                     // Reload user to avoid concurrency issues
                     currentUser = await UserManager.GetUserAsync((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
                     if (currentUser != null)
                     {
-                        currentUser.FidelisBalance += 1.0m;
+                        var playReward = FidelisRewardsConfig.Value.PassaroMaluco?.PlayReward ?? 1.0m;
+                        currentUser.FidelisBalance += playReward;
                         await UserManager.UpdateAsync(currentUser);
                     }
                 }

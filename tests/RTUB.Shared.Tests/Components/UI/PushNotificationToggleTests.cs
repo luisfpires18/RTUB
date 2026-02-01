@@ -55,7 +55,7 @@ public class PushNotificationToggleTests : TestContext
 
         // Act
         var cut = RenderComponent<PushNotificationToggle>();
-        
+
         // Wait for OnAfterRenderAsync to complete
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
@@ -69,22 +69,22 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop to return valid status and initialization
         var statusJson = """{"IsEnabled":true,"IsConfigured":true,"VapidPublicKey":"test-key"}""";
-        
+
         // Setup for status check (first eval call)
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         // Setup for initialize (second eval call)
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         // Setup for isSubscribed (third eval call)
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(false);
 
         // Act
         var cut = RenderComponent<PushNotificationToggle>();
-        
+
         // Wait for OnAfterRenderAsync to complete
         cut.WaitForState(() => !cut.Markup.Contains("Checking permissions"), TimeSpan.FromSeconds(2));
 
@@ -98,13 +98,13 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop
         var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-        
+
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(false);
 
@@ -124,13 +124,13 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop
         var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-        
+
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(true);
 
@@ -149,16 +149,16 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop
         var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-        
+
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(false);
-        
+
         // Subscribe will be called when toggling
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
             .SetResult(true);
@@ -183,16 +183,16 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop
         var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-        
+
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(false);
-        
+
         // Subscribe will throw exception
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
             .SetException(new Exception("Subscription failed"));
@@ -217,16 +217,16 @@ public class PushNotificationToggleTests : TestContext
     {
         // Arrange - Mock JSInterop
         var statusJson = """{"IsEnabled":true,"IsConfigured":true}""";
-        
+
         JSInterop.Setup<string>("eval", args => EvalScriptContains(args, "fetch"))
             .SetResult(statusJson);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "initialize"))
             .SetResult(true);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "isSubscribed"))
             .SetResult(false);
-        
+
         JSInterop.Setup<bool>("eval", args => EvalScriptContains(args, "subscribe"))
             .SetResult(true);
 

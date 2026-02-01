@@ -1,8 +1,11 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -19,31 +22,34 @@ public class BattleService : IBattleService
     private readonly IBattleRepository _battleRepository;
     private readonly IMatchmakingService _matchmakingService;
     private readonly ICombatEngine _combatEngine;
+    private readonly IInventoryRepository _inventoryRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<BattleService> _logger;
+    private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
 
     // Reward constants
     private const int BaseWinXP = 50;
     private const int BaseLossXP = 20;
     private const int BaseDrawXP = 30;
-    private const decimal BaseWinFidelis = 10m;
-    private const decimal BaseLossFidelis = 5m;
-    private const decimal BaseDrawFidelis = 7.5m;
 
     public BattleService(
         ICharacterRepository characterRepository,
         IBattleRepository battleRepository,
         IMatchmakingService matchmakingService,
         ICombatEngine combatEngine,
+        IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
-        ILogger<BattleService> logger)
+        ILogger<BattleService> logger,
+        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig)
     {
         _characterRepository = characterRepository;
         _battleRepository = battleRepository;
         _matchmakingService = matchmakingService;
         _combatEngine = combatEngine;
+        _inventoryRepository = inventoryRepository;
         _userManager = userManager;
         _logger = logger;
+        _myTunoScalingConfig = myTunoScalingConfig.Value;
     }
 
     /// <summary>
@@ -89,6 +95,12 @@ public class BattleService : IBattleService
 
         // Apply rewards to player character and user
         await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        // Roll for beer drop if player won
+        if (combatResult.Outcome == BattleOutcome.AttackerWon)
+        {
+            await TryDropBeerAsync(playerCharacter.UserId);
+        }
 
         _logger.LogInformation(
             "Battle created: Player {PlayerCharacterId} vs AI {AIOpponentId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
@@ -148,6 +160,12 @@ public class BattleService : IBattleService
         // Update HP based on battle outcome
         await ApplyAttackerHPChangesAsync(playerCharacter, combatResult);
 
+        // Roll for beer drop if player won
+        if (combatResult.Outcome == BattleOutcome.AttackerWon)
+        {
+            await TryDropBeerAsync(playerCharacter.UserId);
+        }
+
         _logger.LogInformation(
             "Battle created: Player {PlayerCharacterId} vs Opponent {OpponentCharacterId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
             playerCharacterId, opponentCharacterId, combatResult.Outcome, xpReward, fidelisReward);
@@ -162,9 +180,9 @@ public class BattleService : IBattleService
     {
         return outcome switch
         {
-            BattleOutcome.AttackerWon => (BaseWinXP, BaseWinFidelis),
-            BattleOutcome.DefenderWon => (BaseLossXP, BaseLossFidelis),
-            BattleOutcome.Draw => (BaseDrawXP, BaseDrawFidelis),
+            BattleOutcome.AttackerWon => (BaseWinXP, _myTunoScalingConfig.BattleRewards.WinReward),
+            BattleOutcome.DefenderWon => (BaseLossXP, _myTunoScalingConfig.BattleRewards.LossReward),
+            BattleOutcome.Draw => (BaseDrawXP, _myTunoScalingConfig.BattleRewards.DrawReward),
             _ => (0, 0m)
         };
     }
@@ -213,5 +231,30 @@ public class BattleService : IBattleService
     private static int GenerateSeed()
     {
         return new Random().Next(int.MinValue, int.MaxValue);
+    }
+
+    /// <summary>
+    /// Rolls for beer drop and adds to player's inventory if successful
+    /// </summary>
+    private async Task TryDropBeerAsync(string userId)
+    {
+        var random = new Random();
+        var roll = random.NextDouble();
+
+        if (roll < MyTunoScaling.BeerDropChance)
+        {
+            // Beer dropped!
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
+
+            _logger.LogInformation(
+                "Beer dropped for user {UserId}! Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
+                userId, roll, MyTunoScaling.BeerDropChance);
+        }
+        else
+        {
+            _logger.LogDebug(
+                "No beer drop for user {UserId}. Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
+                userId, roll, MyTunoScaling.BeerDropChance);
+        }
     }
 }

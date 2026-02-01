@@ -33,17 +33,17 @@ public class MessagingDisplayService : IMessagingDisplayService
         {
             return MessageGroupPosition.Single;
         }
-        
+
         if (!hasSamePreviousSender && hasSameNextSender)
         {
             return MessageGroupPosition.First;
         }
-        
+
         if (hasSamePreviousSender && hasSameNextSender)
         {
             return MessageGroupPosition.Middle;
         }
-        
+
         // hasSamePreviousSender && !hasSameNextSender
         return MessageGroupPosition.Last;
     }
@@ -57,7 +57,7 @@ public class MessagingDisplayService : IMessagingDisplayService
     public string TruncateMessagePreview(string body, int maxLength = 50)
     {
         if (string.IsNullOrEmpty(body)) return string.Empty;
-        
+
         return body.Length > maxLength
             ? body[..maxLength] + "..."
             : body;

@@ -16,25 +16,30 @@ namespace RTUB.Application.Tests.Services;
 public class CharacterServiceTests : IDisposable
 {
     private readonly Mock<ICharacterRepository> _mockCharacterRepository;
+    private readonly Mock<IInventoryRepository> _mockInventoryRepository;
     private readonly CharacterService _service;
     private readonly ApplicationDbContext _mockDbContext;
 
     public CharacterServiceTests()
     {
         _mockCharacterRepository = new Mock<ICharacterRepository>();
-        
+        _mockInventoryRepository = new Mock<IInventoryRepository>();
+
         // Create a minimal in-memory DbContext for the service
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .Options;
-        
+
         _mockDbContext = new ApplicationDbContext(
             options,
             Mock.Of<IHttpContextAccessor>(),
             new RTUB.Application.Services.AuditContext(),
             new RTUB.Application.Services.AuditLogAppender());
-        
-        _service = new CharacterService(_mockCharacterRepository.Object, _mockDbContext);
+
+        _service = new CharacterService(
+            _mockCharacterRepository.Object, 
+            _mockDbContext,
+            _mockInventoryRepository.Object);
     }
 
     #region GetOrCreateCharacterAsync Tests

@@ -130,7 +130,8 @@ public class Program
                 myTunoScaling.Upgrades.HP.BonusPerUpgrade,
                 myTunoScaling.Upgrades.Power.BonusPerUpgrade,
                 myTunoScaling.Upgrades.Speed.BonusPerUpgrade,
-                myTunoScaling.Upgrades.CriticalChance.BonusPerUpgrade);
+                myTunoScaling.Upgrades.CriticalChance.BonusPerUpgrade,
+                levelCosts: myTunoScaling.LevelCosts);
         }
 
         // ---------- DB: SQLite only ----------
