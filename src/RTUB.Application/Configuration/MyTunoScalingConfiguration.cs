@@ -9,6 +9,7 @@ public class MyTunoScalingConfiguration
     public MyTunoUpgrades Upgrades { get; set; } = new();
     public List<decimal> LevelCosts { get; set; } = new();
     public BattleRewards BattleRewards { get; set; } = new();
+    public StageConfiguration Stages { get; set; } = new();
 }
 
 public class BattleRewards
