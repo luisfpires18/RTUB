@@ -94,10 +94,23 @@
             <div class="card-body">
                 @if (androidTesters.Any())
                 {
-                    <div class="mb-3">
-                        <SearchBar @bind-Value="searchTerm"
-                                   Placeholder="Search by name or username..."
-                                   OnSearch="@HandleSearchChanged" />
+                    <!-- Filter controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <SearchBar @bind-Value="searchTerm"
+                                       Placeholder="Search by name or username..."
+                                       OnSearch="@HandleSearchChanged" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Filter by Login Day</label>
+                            <select class="form-select" @bind="selectedDayFilter" @bind:after="FilterAndPaginate">
+                                <option value="">All Days</option>
+                                @foreach (var day in availableLoginDays)
+                                {
+                                    <option value="@day.ToString("yyyy-MM-dd")">@day.ToString("dddd, MMM dd, yyyy")</option>
+                                }
+                            </select>
+                        </div>
                     </div>
 
                     @if (!filteredTesters.Any())
@@ -185,8 +198,10 @@
     private List<TesterLoginInfo> filteredTesters = new();
     private List<TesterLoginInfo> paginatedTesters = new();
     private Dictionary<string, List<DateTime>> loginsByUser = new();
+    private List<DateTime> availableLoginDays = new();
     private int totalLoginsLast14Days = 0;
     private string searchTerm = string.Empty;
+    private string selectedDayFilter = string.Empty;
     private PaginationHelper<TesterLoginInfo> paginationHelper = new() { PageSize = 24 };
     
     // Notification fields
@@ -227,6 +242,13 @@
 
             totalLoginsLast14Days = logins.Count;
 
+            // Get unique login days for filter dropdown (sorted descending)
+            availableLoginDays = logins
+                .Select(l => l.LoginDate)
+                .Distinct()
+                .OrderByDescending(d => d)
+                .ToList();
+
             androidTesters = testers
                 .Select(u => new TesterLoginInfo
                 {
@@ -263,15 +285,26 @@
 
     private void FilterAndPaginate()
     {
+        var baseList = androidTesters.ToList();
+        
+        // Apply day filter first
+        if (!string.IsNullOrWhiteSpace(selectedDayFilter))
+        {
+            var filterDate = DateTime.Parse(selectedDayFilter);
+            baseList = baseList
+                .Where(t => t.LoginDays.Any(d => d.Date == filterDate.Date))
+                .ToList();
+        }
+        
         // Apply search filter
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            filteredTesters = androidTesters.ToList();
+            filteredTesters = baseList;
         }
         else
         {
             var search = searchTerm.ToLower();
-            filteredTesters = androidTesters
+            filteredTesters = baseList
                 .Where(t => t.SearchText.Contains(search))
                 .ToList();
         }
@@ -358,10 +391,11 @@
 
     private string GetLoginText(TesterLoginInfo tester)
     {
-        if (!tester.LoginDays.Any())
-            return "No logins recorded";
-        
         var loginCount = tester.LoginDays.Count;
+        
+        if (loginCount == 0)
+            return $"0/{LoginDaysWindow} logins";
+        
         var lastLogin = tester.LoginDays.First(); // Already ordered by date descending
         var daysAgo = (DateTime.UtcNow.Date - lastLogin).Days;
         
@@ -373,7 +407,7 @@
         else
             daysText = $"{daysAgo} days ago";
         
-        return $"{loginCount} login(s) in 14 days - Last: {daysText}";
+        return $"{loginCount}/{LoginDaysWindow} logins - Last: {daysText}";
     }
 
     private class TesterLoginInfo
