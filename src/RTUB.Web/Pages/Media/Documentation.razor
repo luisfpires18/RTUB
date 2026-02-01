@@ -253,8 +253,6 @@ else
 
 @code {
     private bool isLoading = true;
-    private bool isMod = false;
-    private bool isAdmin = false;
     private bool isOwner = false;
     private bool canDoAction = false;
     private string errorMessage = "";
@@ -414,8 +412,6 @@ else
         {
             // Check user roles
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            isMod = authState.User.IsInRole("Mod");
-            isAdmin = authState.User.IsInRole("Admin");
             isOwner = authState.User.IsInRole("Owner");
             // Only Owner can perform administrative actions (create/upload/delete folders and documents)
             canDoAction = isOwner;
