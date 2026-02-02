@@ -263,6 +263,9 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
+    
+    // UI timing constant - ensures UI update completes before scrolling on mobile devices
+    private const int UiUpdateDelayMs = 50;
 
     // Pagination
     private int currentPage = 1;
@@ -384,7 +387,10 @@
             errorMessage = string.Empty;
             currentBattle = null;
             StateHasChanged();
-            await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+
+            // Scroll to top with smooth behavior for better mobile UX
+            await Task.Delay(UiUpdateDelayMs);
+            await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
 
             // Create battle vs specific opponent
             currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);
