@@ -51,6 +51,7 @@ public class GameService : IGameService
 
     public async Task SeedDefaultGamesAsync()
     {
+        // Avoid Questions game
         var existingGame = await _repository.GetByKeyAsync("avoid-questions");
         if (existingGame == null)
         {
@@ -64,7 +65,14 @@ public class GameService : IGameService
                 false
             );
         }
+        else if (existingGame.ImageUrl != "/sprites/games/avoid-questions-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            existingGame.UpdateImageUrl("/sprites/games/avoid-questions-thumb.svg");
+            await _repository.SaveChangesAsync();
+        }
 
+        // BMR - Bebe mais Rui game
         var bmrGame = await _repository.GetByKeyAsync("bmr-bebe-mais-rui");
         if (bmrGame == null)
         {
@@ -78,7 +86,14 @@ public class GameService : IGameService
                 false
             );
         }
+        else if (bmrGame.ImageUrl != "/sprites/games/bmr/thumbnail.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path like /sprites/bmr/thumbnail.svg)
+            bmrGame.UpdateImageUrl("/sprites/games/bmr/thumbnail.svg");
+            await _repository.SaveChangesAsync();
+        }
 
+        // Tomato Thrower game
         var tomatoGame = await _repository.GetByKeyAsync("tomato-thrower");
         if (tomatoGame == null)
         {
@@ -92,7 +107,14 @@ public class GameService : IGameService
                 true // Members only
             );
         }
+        else if (tomatoGame.ImageUrl != "/sprites/games/tomato-thrower-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            tomatoGame.UpdateImageUrl("/sprites/games/tomato-thrower-thumb.svg");
+            await _repository.SaveChangesAsync();
+        }
 
+        // Passaro Maluco game
         var passaroMalucoGame = await _repository.GetByKeyAsync("passaro-maluco");
         if (passaroMalucoGame == null)
         {
@@ -105,6 +127,12 @@ public class GameService : IGameService
                 false,
                 false
             );
+        }
+        else if (passaroMalucoGame.ImageUrl != "/sprites/games/passaro-maluco-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            passaroMalucoGame.UpdateImageUrl("/sprites/games/passaro-maluco-thumb.svg");
+            await _repository.SaveChangesAsync();
         }
     }
 

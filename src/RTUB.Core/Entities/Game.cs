@@ -64,4 +64,10 @@ public class Game : BaseEntity
         MembersOnly = membersOnly;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateImageUrl(string imageUrl)
+    {
+        ImageUrl = imageUrl;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
