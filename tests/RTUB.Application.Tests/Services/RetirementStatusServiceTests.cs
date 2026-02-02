@@ -345,19 +345,46 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
 
         var now = DateTime.UtcNow;
 
-        // Create activities in current month
-        var rehearsal1 = await CreateTestRehearsal(now.AddDays(-5));
-        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddDays(-5));
+        // Create activities in PAST months to ensure they count
+        // We need 3 consecutive months including potentially the current month if we're past day 1
+        
+        // Most recent activity - as recent as possible but still in the past
+        var mostRecentDate = now.AddDays(-1); // Yesterday
+        var rehearsal1 = await CreateTestRehearsal(mostRecentDate);
+        await CreateAttendedRehearsal(user.Id, rehearsal1.Id, mostRecentDate);
 
-        // Create activities in previous month
-        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
-        var rehearsal2 = await CreateTestRehearsal(lastMonth);
-        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, lastMonth);
+        // If yesterday was in the previous month, we need to adjust our strategy
+        // We need activities in 3 consecutive months
+        DateTime month1, month2, month3;
+        
+        if (mostRecentDate.Month == now.Month)
+        {
+            // Yesterday was in the current month, so we have:
+            // - Current month (most recent)
+            // - Last month
+            // - 2 months ago
+            month1 = mostRecentDate;
+            month2 = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+            month3 = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        }
+        else
+        {
+            // Yesterday was in the previous month (e.g., Feb 1st and yesterday was Jan 31st)
+            // So we have:
+            // - Last month (yesterday)
+            // - 2 months ago
+            // - 3 months ago
+            month1 = mostRecentDate;
+            month2 = new DateTime(mostRecentDate.AddMonths(-1).Year, mostRecentDate.AddMonths(-1).Month, 15);
+            month3 = new DateTime(mostRecentDate.AddMonths(-2).Year, mostRecentDate.AddMonths(-2).Month, 15);
+        }
 
-        // Create activities in 2 months ago - completes 3 consecutive months
-        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
-        var rehearsal3 = await CreateTestRehearsal(twoMonthsAgo);
-        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, twoMonthsAgo);
+        // We already created rehearsal1 for month1, now create for month2 and month3
+        var rehearsal2 = await CreateTestRehearsal(month2);
+        await CreateAttendedRehearsal(user.Id, rehearsal2.Id, month2);
+
+        var rehearsal3 = await CreateTestRehearsal(month3);
+        await CreateAttendedRehearsal(user.Id, rehearsal3.Id, month3);
 
         // Act
         var result = await _retirementStatusService.EvaluateRetirementStatusAsync(user.Id);

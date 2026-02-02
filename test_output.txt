@@ -1,0 +1,297 @@
+Test run for /home/runner/work/RTUB/RTUB/tests/RTUB.Core.Tests/bin/Debug/net10.0/RTUB.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Test run for /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/bin/Debug/net10.0/RTUB.Application.Tests.dll (.NETCoreApp,Version=v10.0)
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   758, Skipped:     0, Total:   758, Duration: 812 ms - RTUB.Core.Tests.dll (net10.0)
+Test run for /home/runner/work/RTUB/RTUB/tests/RTUB.Web.Tests/bin/Debug/net10.0/RTUB.Web.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.59]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsLoadingState_Initially [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsEmptyState_WhenNoFiscalYears [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsRgiButton_ForMemberUsers [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsLoadingState_Initially [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsEmptyState_WhenNoFiscalYears [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsRgiButton_ForMemberUsers [1 ms]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_OpensCreateFiscalYearModal_ForAdminUser [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_OpensRgiModal_WhenRgiButtonClicked [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_HidesCreateFiscalYearButton_ForRegularUsers [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_DisplaysFiscalYearDropdown_WhenFiscalYearsExist [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsCreateFiscalYearButton_ForAdminUsers [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_RendersPageTitle [SKIP]
+[xUnit.net 00:00:03.60]     RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_DisplaysDirecaoSection [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_OpensCreateFiscalYearModal_ForAdminUser [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_OpensRgiModal_WhenRgiButtonClicked [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_HidesCreateFiscalYearButton_ForRegularUsers [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_DisplaysFiscalYearDropdown_WhenFiscalYearsExist [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_ShowsCreateFiscalYearButton_ForAdminUsers [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_RendersPageTitle [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Public.RolesPageTests.RolesPage_DisplaysDirecaoSection [1 ms]
+[xUnit.net 00:00:03.92]     RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_CreateMeeting_OpensModal [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_CreateMeeting_OpensModal [1 ms]
+[xUnit.net 00:00:04.18]     RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenCreateModal_ShowsCreateModal [SKIP]
+[xUnit.net 00:00:04.18]     RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_ShowsCreateButton_ForAdminUser [SKIP]
+[xUnit.net 00:00:04.18]     RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenDeleteModal_ShowsDeleteModal [SKIP]
+[xUnit.net 00:00:04.19]     RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenEditModal_ShowsEditModal [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenCreateModal_ShowsCreateModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_ShowsCreateButton_ForAdminUser [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenDeleteModal_ShowsDeleteModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.MeetingsPageTests.MeetingsPage_OpenEditModal_ShowsEditModal [1 ms]
+[xUnit.net 00:00:04.63]     RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_ShowsCreateButton_ForAdminUser [SKIP]
+[xUnit.net 00:00:04.63]     RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_CreateRehearsal_OpensModal [SKIP]
+[xUnit.net 00:00:04.63]     RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenCreateModal_ShowsCreateModal [SKIP]
+[xUnit.net 00:00:04.63]     RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenDeleteModal_ShowsDeleteModal [SKIP]
+[xUnit.net 00:00:07.58]     RTUB.Application, Tests, Services, UpgradeServiceTests, GetUpgradeCostAsync WithUpgrades ShouldScaleCorrectly [FAIL]
+  Skipped RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_ShowsCreateButton_ForAdminUser [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_CreateRehearsal_OpensModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenCreateModal_ShowsCreateModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenDeleteModal_ShowsDeleteModal [1 ms]
+[xUnit.net 00:00:04.73]     RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenEditModal_ShowsEditModal [SKIP]
+  Failed RTUB.Application, Tests, Services, UpgradeServiceTests, GetUpgradeCostAsync WithUpgrades ShouldScaleCorrectly [147 ms]
+  Error Message:
+   Expected cost to approximate 259.8M +/- 0.1M, but 167.42M differed by 92.38M.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.NumericAssertionsExtensions.FailIfDifferenceOutsidePrecision[T](Boolean differenceWithinPrecision, NumericAssertions`1 parent, T expectedValue, T precision, T actualDifference, String because, Object[] becauseArgs)
+   at FluentAssertions.NumericAssertionsExtensions.BeApproximately(NumericAssertions`1 parent, Decimal expectedValue, Decimal precision, String because, Object[] becauseArgs)
+   at RTUB.Application.Tests.Services.UpgradeServiceTests.GetUpgradeCostAsync_WithUpgrades_ShouldScaleCorrectly() in /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/Services/UpgradeServiceTests.cs:line 163
+--- End of stack trace from previous location ---
+  Skipped RTUB.Web.Tests.Pages.Activities.RehearsalsPageTests.RehearsalsPage_OpenEditModal_ShowsEditModal [1 ms]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_Refreshes_WhenStaticRequestRefreshCalled [SKIP]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_AppliesCustomCssClass [SKIP]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_RegistersWithServiceWorker_OnFirstRender [SKIP]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotUpdate_WhenMessageNotForCurrentUser [SKIP]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_RendersBadge_WhenCountIsGreaterThanZero [SKIP]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_Refreshes_WhenStaticRequestRefreshCalled [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_AppliesCustomCssClass [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_RegistersWithServiceWorker_OnFirstRender [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotUpdate_WhenMessageNotForCurrentUser [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_RendersBadge_WhenCountIsGreaterThanZero [1 ms]
+[xUnit.net 00:00:05.59]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotRender_WhenCountIsZero [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_UpdatesCount_WhenMessageSeen [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_HandlesErrors_Gracefully [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_OnlyRenders_WhenCountChanges [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotUpdate_WhenUserIsSender [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_Refreshes_WhenRefreshUnreadMessagesCalled [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_UpdatesCount_WhenMessageReceived [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_InvokesOnCountChanged_WhenCountChanges [SKIP]
+[xUnit.net 00:00:05.60]     RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotRender_WhenUserNotAuthenticated [SKIP]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotRender_WhenCountIsZero [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_UpdatesCount_WhenMessageSeen [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_HandlesErrors_Gracefully [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_OnlyRenders_WhenCountChanges [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotUpdate_WhenUserIsSender [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_Refreshes_WhenRefreshUnreadMessagesCalled [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_UpdatesCount_WhenMessageReceived [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_InvokesOnCountChanged_WhenCountChanges [1 ms]
+  Skipped RTUB.Web.Tests.Components.UnreadMessagesBadgeTests.UnreadMessagesBadge_DoesNotRender_WhenUserNotAuthenticated [1 ms]
+[xUnit.net 00:00:05.94]     RTUB.Web.Tests.Pages.Media.SlideshowsPageTests.SlideshowsPage_DeleteSlide_CallsService [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Media.SlideshowsPageTests.SlideshowsPage_DeleteSlide_CallsService [1 ms]
+[xUnit.net 00:00:06.02]     RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenEditModal_ShowsEditModal [SKIP]
+[xUnit.net 00:00:06.02]     RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenCreateModal_ShowsCreateModal [SKIP]
+[xUnit.net 00:00:06.02]     RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenDeleteModal_ShowsDeleteModal [SKIP]
+[xUnit.net 00:00:06.10]     RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_ShowsCreateButton_ForAdminUser [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenEditModal_ShowsEditModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenCreateModal_ShowsCreateModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_OpenDeleteModal_ShowsDeleteModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Media.AlbumsPageTests.AlbumsPage_ShowsCreateButton_ForAdminUser [1 ms]
+[xUnit.net 00:00:10.14]     RTUB.Application, Tests, Services, MemberStatusServiceTests, GetMemberStatusAsync RetiredMemberWithDecJanActivity AndFutureFebMarEnrollments ShowsOnly2Of3 [FAIL]
+  Failed RTUB.Application, Tests, Services, MemberStatusServiceTests, GetMemberStatusAsync RetiredMemberWithDecJanActivity AndFutureFebMarEnrollments ShowsOnly2Of3 [59 ms]
+  Error Message:
+   Expected result.ProgressMonths to be 2, but found 1.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Numeric.NumericAssertionsBase`3.Be(T expected, String because, Object[] becauseArgs)
+   at RTUB.Application.Tests.Services.MemberStatusServiceTests.GetMemberStatusAsync_RetiredMemberWithDecJanActivity_AndFutureFebMarEnrollments_ShowsOnly2Of3() in /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/Services/MemberStatusServiceTests.cs:line 1058
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:10.22]     RTUB.Application, Tests, Services, MemberStatusServiceTests, GetMemberStatusAsync RecalculatesStatus WhenStale [FAIL]
+  Failed RTUB.Application, Tests, Services, MemberStatusServiceTests, GetMemberStatusAsync RecalculatesStatus WhenStale [77 ms]
+  Error Message:
+   Expected updatedCache!.LastUpdatedAt to be within 5s from <2026-02-02 10:54:17.1017032>, but <2026-02-02 08:54:17.086484> was off by 2h, 15ms and 219.2µs.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.DateTimeAssertions`1.<>c__DisplayClass9_0.<BeCloseTo>b__0(AssertionChain chain)
+   at FluentAssertions.Execution.AssertionChain.WithExpectation(String message, Action`1 chain, Object[] args)
+   at FluentAssertions.Execution.AssertionChain.WithExpectation(String message, Object arg1, Object arg2, Action`1 chain)
+   at FluentAssertions.Primitives.DateTimeAssertions`1.BeCloseTo(DateTime nearbyTime, TimeSpan precision, String because, Object[] becauseArgs)
+   at RTUB.Application.Tests.Services.MemberStatusServiceTests.GetMemberStatusAsync_RecalculatesStatus_WhenStale() in /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/Services/MemberStatusServiceTests.cs:line 539
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:07.50]     RTUB.Web.Tests.Pages.Activities.EventDiscussionPageTests.EventDiscussionPage_OpensCreatePostModal_WhenCreateButtonClicked [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Activities.EventDiscussionPageTests.EventDiscussionPage_OpensCreatePostModal_WhenCreateButtonClicked [1 ms]
+[xUnit.net 00:00:10.89]     RTUB.Application, Tests, Services, MemberStatusServiceTests, ActivateMemberWithOverrideAsync WithRetiredMember SetsIsRetiredFalseAndOverrideRetiredTrue [FAIL]
+  Failed RTUB.Application, Tests, Services, MemberStatusServiceTests, ActivateMemberWithOverrideAsync WithRetiredMember SetsIsRetiredFalseAndOverrideRetiredTrue [32 ms]
+  Error Message:
+   Expected updatedStatus!.IsRetired to be False because MemberStatus IsRetired should be false, but found True.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeFalse(String because, Object[] becauseArgs)
+   at RTUB.Application.Tests.Services.MemberStatusServiceTests.ActivateMemberWithOverrideAsync_WithRetiredMember_SetsIsRetiredFalseAndOverrideRetiredTrue() in /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/Services/MemberStatusServiceTests.cs:line 1482
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:08.04]     RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_ShowsCreateButton_ForAdminUser [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_ShowsCreateButton_ForAdminUser [1 ms]
+[xUnit.net 00:00:08.19]     RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenEditModal_ShowsEditModal [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenEditModal_ShowsEditModal [1 ms]
+[xUnit.net 00:00:08.28]     RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_CreateSong_OpensModal [SKIP]
+[xUnit.net 00:00:08.28]     RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenCreateModal_ShowsCreateModal [SKIP]
+[xUnit.net 00:00:08.28]     RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenDeleteModal_ShowsDeleteModal [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_CreateSong_OpensModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenCreateModal_ShowsCreateModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Media.SongsPageTests.SongsPage_OpenDeleteModal_ShowsDeleteModal [1 ms]
+[xUnit.net 00:00:08.57]     RTUB.Web.Tests.Pages.Games.GamesPageTests.GamesPage_ShowsEditButton_ForAdminUser [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Games.GamesPageTests.GamesPage_ShowsEditButton_ForAdminUser [1 ms]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_DeleteMember_CallsService [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenDeleteModal_ShowsDeleteModal [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenEditModal_ShowsEditModal [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_HidesCreateButton_ForRegularUser [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenCreateModal_ShowsCreateModal [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_ShowsMembersSection [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_DisplaysMembers_WhenMembersExist [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_RendersPageTitle [SKIP]
+[xUnit.net 00:00:08.58]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_CreateMember_OpensModal [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_DeleteMember_CallsService [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenDeleteModal_ShowsDeleteModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenEditModal_ShowsEditModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_HidesCreateButton_ForRegularUser [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_OpenCreateModal_ShowsCreateModal [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_ShowsMembersSection [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_DisplaysMembers_WhenMembersExist [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_RendersPageTitle [1 ms]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_CreateMember_OpensModal [1 ms]
+[xUnit.net 00:00:08.59]     RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_ShowsCreateButton_ForAdminUser [SKIP]
+  Skipped RTUB.Web.Tests.Pages.Members.MembersPageTests.MembersPage_ShowsCreateButton_ForAdminUser [1 ms]
+[xUnit.net 00:00:09.02]     RTUB.Web.Tests.Pages.Games.BetsPageTests.BetsPage_HidesCreateButton_ForRegularUser [FAIL]
+  Failed RTUB.Web.Tests.Pages.Games.BetsPageTests.BetsPage_HidesCreateButton_ForRegularUser [140 ms]
+  Error Message:
+   Did not expect cut.Markup "
+
+<div class="bets-page container-fluid" b-giwzf70r38><div class="d-flex flex-column gap-3 mb-4" b-giwzf70r38><div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3" b-giwzf70r38><div b-giwzf70r38><h1 class="mb-2" b-giwzf70r38><i class="bi bi-cash-coin" b-giwzf70r38></i> Apostas</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme" b-giwzf70r38>
+                    Próximas apostas e resultados anteriores.
+</p></div>
+
+            <div class="page-header-actions justify-content-lg-end" b-giwzf70r38><button class="btn btn-success" blazor:onclick="1" title="Adicionar Nova Aposta" b-giwzf70r38><i class="bi bi-plus-lg" b-giwzf70r38></i> Adicionar Aposta
+               </button></div></div>
+
+
+        <div class="alert alert-purple  " role="alert"><i class="bi bi-coin"></i> Ganhe Fidelis jogando jogos! O seu saldo atual pode ser usado para apostar em duelos, decisões, entre outros!</div></div><div class="empty-state-container"><div class="empty-state-card " tabindex="-1" role="" blazor:onclick="2" blazor:onkeydown="3"><div class="empty-state-content"><i class="bi bi-cash-coin empty-state-icon"></i><h5 class="empty-state-title">Nenhuma aposta encontrada</h5><p class="empty-state-message">Ainda não há apostas disponíveis. Aguarde novidades!</p></div></div></div></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+" to contain "Adicionar Aposta" because regular user should not see create button.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.StringAssertions`1.NotContain(String unexpected, String because, Object[] becauseArgs)
+   at RTUB.Web.Tests.Pages.Games.BetsPageTests.BetsPage_HidesCreateButton_ForRegularUser() in /home/runner/work/RTUB/RTUB/tests/RTUB.Web.Tests/Pages/Games/BetsPageTests.cs:line 178
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     1, Passed:   736, Skipped:    56, Total:   793, Duration: 8 s - RTUB.Web.Tests.dll (net10.0)
+Test run for /home/runner/work/RTUB/RTUB/tests/RTUB.Shared.Tests/bin/Debug/net10.0/RTUB.Shared.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:16.20]     RTUB.Application, Tests, Services, RetirementStatusServiceTests, EvaluateRetirementStatusAsync RetiredMemberWith3ConsecutiveMonths BecomesActive [FAIL]
+  Failed RTUB.Application, Tests, Services, RetirementStatusServiceTests, EvaluateRetirementStatusAsync RetiredMemberWith3ConsecutiveMonths BecomesActive [56 ms]
+  Error Message:
+   Expected result.IsRetired to be False because member should become active with 3 consecutive months of activity, but found True.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.BooleanAssertions`1.BeFalse(String because, Object[] becauseArgs)
+   at RTUB.Application.Tests.Services.RetirementStatusServiceTests.EvaluateRetirementStatusAsync_RetiredMemberWith3ConsecutiveMonths_BecomesActive() in /home/runner/work/RTUB/RTUB/tests/RTUB.Application.Tests/Services/RetirementStatusServiceTests.cs:line 368
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:06.87]     RTUB.Shared.Tests.Components.DocumentCardTests.DocumentCard_ShowsViewButton_ForPdfFiles [FAIL]
+  Failed RTUB.Shared.Tests.Components.DocumentCardTests.DocumentCard_ShowsViewButton_ForPdfFiles [50 ms]
+  Error Message:
+   Expected cut.Markup "<div class="card document-card h-100"><div class="document-icon-header"><div class="document-icon-circle"><i class="bi bi-file-pdf"></i></div></div>
+    <div class="card-body d-flex flex-column"><div class="document-info"><div class="document-name" title="document.pdf">document.pdf</div>
+            <div class="document-details"><span class="document-extension">PDF</span>
+                <span class="document-size">1.0 KB</span></div></div>
+
+        <div class="document-actions mt-auto"><button class="btn document-icon-btn" blazor:onclick="1" title="Download documento"><i class="bi bi-download"></i></button></div></div></div>" to contain "bi-eye-fill" because PDF files should have a view button with eye icon.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.StringAssertions`1.Contain(String expected, String because, Object[] becauseArgs)
+   at RTUB.Shared.Tests.Components.DocumentCardTests.DocumentCard_ShowsViewButton_ForPdfFiles() in /home/runner/work/RTUB/RTUB/tests/RTUB.Shared.Tests/Components/DocumentCardTests.cs:line 188
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:07.08]     RTUB.Shared.Tests.Components.UI.PushNotificationPromptTests.PushNotificationPrompt_Hides_WhenAllowSucceeds [SKIP]
+  Skipped RTUB.Shared.Tests.Components.UI.PushNotificationPromptTests.PushNotificationPrompt_Hides_WhenAllowSucceeds [1 ms]
+[xUnit.net 00:00:07.43]     RTUB.Shared.Tests.Components.UI.PushNotificationPromptTests.PushNotificationPrompt_Hides_WhenDismissClicked [SKIP]
+  Skipped RTUB.Shared.Tests.Components.UI.PushNotificationPromptTests.PushNotificationPrompt_Hides_WhenDismissClicked [1 ms]
+
+Failed!  - Failed:     1, Passed:   800, Skipped:     2, Total:   803, Duration: 9 s - RTUB.Shared.Tests.dll (net10.0)
+Test run for /home/runner/work/RTUB/RTUB/tests/RTUB.Integration.Tests/bin/Debug/net10.0/RTUB.Integration.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Failed!  - Failed:     5, Passed:  1698, Skipped:     0, Total:  1703, Duration: 33 s - RTUB.Application.Tests.dll (net10.0)
+[xUnit.net 00:00:12.71]     RTUB.Integration.Tests.Workflows.DataWorkflowTests.RapidPageRequests_AreHandledCorrectly [SKIP]
+  Skipped RTUB.Integration.Tests.Workflows.DataWorkflowTests.RapidPageRequests_AreHandledCorrectly [1 ms]
+[xUnit.net 00:00:15.60]     RTUB.Integration.Tests.Workflows.NavigationWorkflowTests.ConcurrentPageLoads_HandleMultipleRequests [SKIP]
+  Skipped RTUB.Integration.Tests.Workflows.NavigationWorkflowTests.ConcurrentPageLoads_HandleMultipleRequests [1 ms]
+
+Passed!  - Failed:     0, Passed:   225, Skipped:     2, Total:   227, Duration: 18 s - RTUB.Integration.Tests.dll (net10.0)

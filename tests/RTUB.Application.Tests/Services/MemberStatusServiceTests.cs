@@ -534,7 +534,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.HasAnyActivity.Should().BeTrue();
 
         // Verify the cached status was updated in database
-        var updatedCache = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        // Create a fresh context to avoid caching issues
+        await using var freshContext = _fixture.CreateContext();
+        var updatedCache = await freshContext.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
         updatedCache.Should().NotBeNull();
         updatedCache!.LastUpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
@@ -983,12 +985,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task GetMemberStatusAsync_RetiredMemberWithDecJanActivity_AndFutureFebMarEnrollments_ShowsOnly2Of3()
+    public async Task GetMemberStatusAsync_RetiredMemberWithPastActivity_AndFutureEnrollments_ShowsOnly2Of3()
     {
         // Arrange - CRITICAL BUG FIX TEST
-        // Scenario: Member is retired, has activity in December and January (current month),
-        // but is enrolled in future events in February and March.
-        // Expected: Should show 2/3 progress (only Dec + Jan count), NOT 4/4 or active status
+        // Scenario: Member is retired, has activity in 2 consecutive past months,
+        // but is enrolled in future events.
+        // Expected: Should show 2/3 progress (only past activities count), NOT 4/4 or active status
         // Future enrollments should NOT count toward reactivation
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
@@ -1001,25 +1003,25 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var now = DateTime.UtcNow;
 
-        // Current month (January) - activity 5 days ago (PAST - should count)
-        var currentMonthActivity = now.AddDays(-5);
-        var rehearsal1 = Rehearsal.Create(currentMonthActivity, "January Rehearsal");
-        _context.Rehearsals.Add(rehearsal1);
-        await _context.SaveChangesAsync();
-
-        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
-        attendance1.MarkAttendance(true);
-        _context.RehearsalAttendances.Add(attendance1);
-
-        // Last month (December) - mid-month (PAST - should count)
-        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
-        var event1 = Event.Create("December Event", lastMonth, "Location Dec", EventType.Atuacao);
+        // Last month - activity in previous month (PAST - should count)
+        var lastMonthDate = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var event1 = Event.Create("Last Month Event", lastMonthDate, "Location Last", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
 
         var enrollment1 = Enrollment.Create(userId, event1.Id);
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
+
+        // 2 months ago - activity in month before last (PAST - should count)
+        var twoMonthsAgoDate = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal1 = Rehearsal.Create(twoMonthsAgoDate, "Two Months Ago Rehearsal");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
 
         // NO activity in November (breaks consecutive chain at 2 months)
 
@@ -1050,12 +1052,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
 
-        // Assert - Should show 2/3 progress (only Dec + Jan count)
+        // Assert - Should show 2/3 progress (last month + 2 months ago)
         // Future February and March enrollments should NOT count
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
         result.IsRetired.Should().BeTrue(); // Should stay retired (only 2 consecutive months)
-        result.ProgressMonths.Should().Be(2); // Only current month (Jan) + last month (Dec)
+        result.ProgressMonths.Should().Be(2); // Last month + 2 months ago
         result.ProgressTotalMonths.Should().Be(3);
         result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
     }
@@ -1476,7 +1478,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         result.IsRetired.Should().BeFalse("member should be activated");
 
         // Verify MemberStatus was updated with override
-        var updatedStatus = await _context.MemberStatuses
+        // Create a fresh context to avoid caching issues
+        await using var freshContext = _fixture.CreateContext();
+        var updatedStatus = await freshContext.MemberStatuses
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
         updatedStatus.Should().NotBeNull();
         updatedStatus!.IsRetired.Should().BeFalse("MemberStatus IsRetired should be false");

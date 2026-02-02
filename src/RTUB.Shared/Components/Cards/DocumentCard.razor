@@ -35,6 +35,14 @@
         </div>
 
         <div class="document-actions mt-auto">
+            @if (IsPdf())
+            {
+                <button class="btn document-icon-btn" 
+                        @onclick="HandleView" 
+                        title="Ver documento">
+                    <i class="bi bi-eye-fill"></i>
+                </button>
+            }
             <button class="btn document-icon-btn" 
                     @onclick="HandleDownload" 
                     title="Download documento">
@@ -56,6 +64,12 @@
     /// </summary>
     [Parameter]
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Callback when the view button is clicked (for PDFs)
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnView { get; set; }
 
     /// <summary>
     /// Callback when the download button is clicked
@@ -83,6 +97,11 @@
         };
     }
 
+    private bool IsPdf()
+    {
+        return Document.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
     private string FormatFileSize(long bytes)
     {
         if (bytes < 1024)
@@ -93,6 +112,14 @@
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         else
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
+
+    private async Task HandleView()
+    {
+        if (OnView.HasDelegate)
+        {
+            await OnView.InvokeAsync(Document);
+        }
     }
 
     private async Task HandleDownload()

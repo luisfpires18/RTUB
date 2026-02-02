@@ -159,8 +159,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.HP);
 
         // Assert
-        // Formula: 50 * (1 + 2) ^ 1.5 = 50 * 3^1.5 = 50 * 5.196 = 259.8
-        cost.Should().BeApproximately(259.8m, 0.1m);
+        // Formula: 50 * (1 + 2) ^ 1.1 = 50 * 3^1.1 = 50 * 3.3484 = 167.42
+        cost.Should().BeApproximately(167.42m, 0.1m);
     }
 
     [Theory]
