@@ -86,6 +86,11 @@ public class BattleRepository : Repository<Battle>, IBattleRepository
             .GroupBy(characterId => characterId)
             .ToDictionary(g => g.Key, g => g.Count());
 
+        // Third, get highest stage for each user from StageProgress
+        var stageProgressData = await _context.StageProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(sp => sp.UserId, sp => sp.HighestStage);
+
         // Combine characters with their wins and sort
         var leaderboard = characters
             .Select(c => new MyTunoLeaderboardEntry
@@ -95,7 +100,8 @@ public class BattleRepository : Repository<Battle>, IBattleRepository
                 DisplayName = c.DisplayName,
                 AvatarUrl = c.ImageUrl,
                 Wins = winsByCharacter.ContainsKey(c.Id) ? winsByCharacter[c.Id] : 0,
-                Level = c.Level
+                Level = c.Level,
+                HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0
             })
             .OrderByDescending(entry => entry.Wins)
             .ThenByDescending(entry => entry.Level)

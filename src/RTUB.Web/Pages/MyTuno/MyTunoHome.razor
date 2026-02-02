@@ -314,10 +314,30 @@
                         }
                         else
                         {
+                            <!-- Leaderboard Type Tabs -->
+                            <ul class="nav nav-pills nav-fill mb-3">
+                                <li class="nav-item">
+                                    <button class="nav-link @(leaderboardTab == "arena" ? "active" : "")" @onclick='() => leaderboardTab = "arena"'>
+                                        <i class="bi bi-shield-fill me-1"></i>Arena
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link @(leaderboardTab == "stage" ? "active" : "")" @onclick='() => leaderboardTab = "stage"'>
+                                        <i class="bi bi-flag-fill me-1"></i>Stage
+                                    </button>
+                                </li>
+                            </ul>
+                            
                             <div class="stats-card-grid">
-                                @for (int i = 0; i < paginatedLeaderboard.Count; i++)
+                                @{
+                                    var sortedLeaderboard = leaderboardTab == "arena"
+                                        ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
+                                        : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
+                                    var paginatedItems = sortedLeaderboard.Skip((leaderboardCurrentPage - 1) * leaderboardPageSize).Take(leaderboardPageSize).ToList();
+                                }
+                                @for (int i = 0; i < paginatedItems.Count; i++)
                                 {
-                                    var entry = paginatedLeaderboard[i];
+                                    var entry = paginatedItems[i];
                                     var position = ((leaderboardCurrentPage - 1) * leaderboardPageSize) + i + 1;
                                     <div class="stats-card">
                                         <div class="stats-card-position">
@@ -344,11 +364,26 @@
                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                         <div class="stats-card-content">
                                             <div class="stats-card-title">@entry.DisplayName</div>
-                                            <div class="stats-card-subtitle">Vitórias @entry.Wins • Nível @entry.Level</div>
+                                            @if (leaderboardTab == "arena")
+                                            {
+                                                <div class="stats-card-subtitle">Nível @entry.Level</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="stats-card-subtitle">Nível @entry.Level</div>
+                                            }
                                         </div>
                                         <div class="stats-card-count">
-                                            <i class="bi bi-trophy"></i>
-                                            <span>@entry.Wins</span>
+                                            @if (leaderboardTab == "arena")
+                                            {
+                                                <i class="bi bi-trophy"></i>
+                                                <span>@entry.Wins</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-flag-fill"></i>
+                                                <span>@entry.HighestStage</span>
+                                            }
                                         </div>
                                     </div>
                                 }
@@ -786,6 +821,7 @@
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
     private int leaderboardPageSize = 6;
+    private string leaderboardTab = "arena"; // "arena" or "stage"
     private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
         .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
         .Take(leaderboardPageSize)

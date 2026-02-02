@@ -135,6 +135,8 @@ public class Character : BaseEntity
         {
             XP -= Level * MyTunoScaling.XpPerLevelBase;
             Level++;
+            // Heal to full HP on level-up
+            CurrentHP = TotalHP;
         }
     }
 
