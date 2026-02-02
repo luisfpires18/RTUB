@@ -1132,7 +1132,7 @@
 
     private decimal GetRestoreCost()
     {
-        return 50m;  // Fixed cost of 50 Fidelis
+        return MyTunoConfig.Value.BattleRewards.RestoreHPCost;
     }
 
     private async Task ReviveCharacter()
