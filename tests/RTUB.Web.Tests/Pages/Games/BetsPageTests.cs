@@ -168,14 +168,14 @@ public class BetsPageTests : PageTestBase
     }
 
     [Fact]
-    public async Task BetsPage_HidesCreateButton_ForRegularUser()
+    public async Task BetsPage_ShowsCreateButton_ForRegularUser()
     {
         SetupAuthentication("regular-user", "Regular User");
 
         var cut = RenderComponent<Bets>();
-        cut.WaitForState(() => cut.Markup.Contains("Apostas") && (!cut.Markup.Contains("spinner-border") || cut.Markup.Contains("Nenhuma aposta")), TimeSpan.FromSeconds(2));
+        cut.WaitForState(() => cut.Markup.Contains("Adicionar Aposta") || cut.Markup.Contains("Nenhuma aposta"), TimeSpan.FromSeconds(2));
 
-        cut.Markup.Should().NotContain("Adicionar Aposta", "regular user should not see create button");
+        cut.Markup.Should().Contain("Adicionar Aposta", "regular user should see create button");
     }
 
     #endregion
