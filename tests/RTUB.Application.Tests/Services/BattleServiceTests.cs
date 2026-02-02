@@ -363,6 +363,76 @@ public class BattleServiceTests : IDisposable
         aiCharacter!.XP.Should().Be(0); // Should remain unchanged
     }
 
+    [Fact]
+    public async Task CreateBattleVsOpponentAsync_WithReducedHP_ShouldIncludeMaxHPInEvents()
+    {
+        // Arrange - Test case: attacker with 73/130 HP should see MaxHP correctly in battle events
+        var user1 = new ApplicationUser { Id = "user1", UserName = "player1", FidelisBalance = 100m };
+        var user2 = new ApplicationUser { Id = "user2", UserName = "player2", FidelisBalance = 100m };
+        
+        var playerCharacter = Character.Create("user1");
+        playerCharacter.Level = 5; // Level 5 gives TotalHP = 130
+        playerCharacter.CurrentHP = 73; // Player starts battle with reduced HP
+        
+        var opponentCharacter = Character.Create("user2");
+        opponentCharacter.Level = 5; // Same level
+        opponentCharacter.CurrentHP = 100; // Opponent has some HP
+
+        await _context.Characters.AddRangeAsync(playerCharacter, opponentCharacter);
+        await _context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync("user1")).ReturnsAsync(user1);
+        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
+
+        // Setup combat result with proper HP initialization events
+        var combatResult = new Application.DTOs.CombatResult
+        {
+            Outcome = BattleOutcome.AttackerWon,
+            Events = new List<Application.DTOs.CombatEvent>
+            {
+                // Initial HP events should include MaxHP
+                new() { Type = "HPUpdate", Character = "Attacker", HP = 73, MaxHP = 130, Timestamp = 0 },
+                new() { Type = "HPUpdate", Character = "Defender", HP = 100, MaxHP = 130, Timestamp = 1 },
+                new() { Type = "RoundStart", Round = 1, Timestamp = 2 },
+                new() { Type = "Attack", Attacker = "Attacker", Defender = "Defender", Damage = 50, Timestamp = 3 },
+                new() { Type = "HPUpdate", Character = "Defender", HP = 50, Timestamp = 4 },
+                new() { Type = "Attack", Attacker = "Defender", Defender = "Attacker", Damage = 10, Timestamp = 5 },
+                new() { Type = "HPUpdate", Character = "Attacker", HP = 63, Timestamp = 6 },
+                new() { Type = "Victory", Winner = "Attacker", Timestamp = 7 }
+            },
+            AttackerFinalHP = 63,
+            DefenderFinalHP = 0
+        };
+
+        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
+            .Returns(combatResult);
+
+        // Act
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponentCharacter.Id);
+
+        // Assert
+        battle.Should().NotBeNull();
+        battle.ReplayJson.Should().NotBeNullOrEmpty();
+        
+        // Parse the replay JSON to verify MaxHP is included
+        var events = System.Text.Json.JsonSerializer.Deserialize<List<Application.DTOs.CombatEvent>>(battle.ReplayJson!);
+        events.Should().NotBeNull();
+        
+        // First event should be attacker HPUpdate with MaxHP
+        var attackerInitialHP = events![0];
+        attackerInitialHP.Type.Should().Be("HPUpdate");
+        attackerInitialHP.Character.Should().Be("Attacker");
+        attackerInitialHP.HP.Should().Be(73, "because attacker starts with reduced HP");
+        attackerInitialHP.MaxHP.Should().Be(130, "because MaxHP should reflect the attacker's total HP, not current HP");
+        
+        // Second event should be defender HPUpdate with MaxHP
+        var defenderInitialHP = events[1];
+        defenderInitialHP.Type.Should().Be("HPUpdate");
+        defenderInitialHP.Character.Should().Be("Defender");
+        defenderInitialHP.HP.Should().Be(100);
+        defenderInitialHP.MaxHP.Should().Be(130);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

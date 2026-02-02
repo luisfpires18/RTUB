@@ -318,8 +318,21 @@ public class CombatEngineTests
 
         // Assert
         result.Events.Should().NotBeEmpty();
-        result.Events[0].Type.Should().Be("RoundStart");
-        result.Events[0].Round.Should().Be(1);
+        
+        // First two events should be HPUpdate for attacker and defender (initial HP)
+        result.Events[0].Type.Should().Be("HPUpdate");
+        result.Events[0].Character.Should().Be("Attacker");
+        result.Events[0].HP.Should().Be(100);
+        result.Events[0].MaxHP.Should().Be(100);
+        
+        result.Events[1].Type.Should().Be("HPUpdate");
+        result.Events[1].Character.Should().Be("Defender");
+        result.Events[1].HP.Should().Be(100);
+        result.Events[1].MaxHP.Should().Be(100);
+        
+        // Third event should be RoundStart
+        result.Events[2].Type.Should().Be("RoundStart");
+        result.Events[2].Round.Should().Be(1);
 
         // Should have at least one Attack event
         result.Events.Should().Contain(e => e.Type == "Attack");
@@ -396,11 +409,14 @@ public class CombatEngineTests
             uniqueDamages.Should().BeGreaterThan(1);
         }
 
-        // All damage should be within expected range (Power * 0.8 to Power * 1.2)
+        // All damage should be within expected range
+        // Base damage: Power * 0.8 to Power * 1.2
+        // Critical hits: Base damage * 2 (so Power * 0.8 * 2 to Power * 1.2 * 2)
         foreach (var damage in attacks)
         {
             damage.Should().BeGreaterThanOrEqualTo((int)(attacker.Power * 0.8));
-            damage.Should().BeLessThanOrEqualTo((int)(attacker.Power * 1.2));
+            // Account for critical hits which can double damage
+            damage.Should().BeLessThanOrEqualTo((int)(attacker.Power * 1.2 * 2));
         }
     }
 

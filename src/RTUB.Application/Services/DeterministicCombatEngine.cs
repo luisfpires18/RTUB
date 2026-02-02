@@ -45,6 +45,7 @@ public class DeterministicCombatEngine : ICombatEngine
             Type = "HPUpdate",
             Character = "Attacker",
             HP = attackerHP,
+            MaxHP = attacker.TotalHP,
             Timestamp = timestamp++
         });
 
@@ -53,6 +54,7 @@ public class DeterministicCombatEngine : ICombatEngine
             Type = "HPUpdate",
             Character = "Defender",
             HP = defenderHP,
+            MaxHP = defender.TotalHP,
             Timestamp = timestamp++
         });
 

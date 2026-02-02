@@ -376,13 +376,14 @@
 
                 const character = getEventField(evt, 'Character');
                 const hp = getEventField(evt, 'HP');
+                const maxHP = getEventField(evt, 'MaxHP');
                 if (character === 'Attacker' && !attackerInitialized) {
-                    this.maxHp.attacker = hp ?? 100;
+                    this.maxHp.attacker = maxHP ?? hp ?? 100;
                     this.currentHp.attacker = hp ?? 100;
                     attackerInitialized = true;
                 }
                 if (character === 'Defender' && !defenderInitialized) {
-                    this.maxHp.defender = hp ?? 100;
+                    this.maxHp.defender = maxHP ?? hp ?? 100;
                     this.currentHp.defender = hp ?? 100;
                     defenderInitialized = true;
                 }
