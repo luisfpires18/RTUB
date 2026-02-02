@@ -67,6 +67,43 @@
             </div>
         </div>
         
+        <!-- Level and XP Display (conditionally shown) -->
+        @if (ShowLevelAndXP)
+        {
+            var xpToNextLevel = (Character?.Level ?? 1) * RTUB.Core.Configuration.MyTunoScaling.XpPerLevelBase;
+            var currentXP = Character?.XP ?? 0;
+            var xpProgress = xpToNextLevel > 0 ? Math.Min(100, (currentXP * 100.0 / xpToNextLevel)) : 0;
+            
+            <div class="level-xp-container mb-3">
+                <!-- Level Display -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-star-fill text-warning me-2"></i>
+                        <span>Nível</span>
+                    </span>
+                    <strong class="text-warning">@(Character?.Level ?? 1)</strong>
+                </div>
+                
+                <!-- XP Bar -->
+                <div class="xp-bar-container">
+                    <div class="xp-bar-bg">
+                        <div class="xp-bar-fill" 
+                             style="width: @(xpProgress.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                             role="progressbar" 
+                             aria-valuenow="@currentXP" 
+                             aria-valuemin="0" 
+                             aria-valuemax="@xpToNextLevel">
+                        </div>
+                    </div>
+                    <div class="xp-bar-text">
+                        <span class="xp-current">XP: @currentXP</span>
+                        <span class="xp-separator">/</span>
+                        <span class="xp-max">@xpToNextLevel</span>
+                    </div>
+                </div>
+            </div>
+        }
+        
         <!-- Character Sprite -->
         <div class="text-center mb-3">
             <img src="/sprites/games/my-tuno/default_tuno.png" 
@@ -148,4 +185,7 @@
 
     [Parameter]
     public bool IsFighting { get; set; } = false;
+
+    [Parameter]
+    public bool ShowLevelAndXP { get; set; } = false;
 }
