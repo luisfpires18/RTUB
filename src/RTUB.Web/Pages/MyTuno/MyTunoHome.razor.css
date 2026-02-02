@@ -92,8 +92,10 @@
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .my-tuno-home-page {
-    /* Fix screen height to prevent horizontal scrolling on mobile */
+    padding: 0 0.5rem;
+    /* Fix screen to prevent horizontal scrolling on mobile */
     height: 100vh;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }

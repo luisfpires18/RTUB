@@ -70,8 +70,9 @@
 @media (max-width: 768px) {
   .arena-page {
     padding: 0 0.5rem;
-    /* Fix screen height to prevent scrolling on mobile */
+    /* Fix screen to prevent horizontal scrolling on mobile */
     height: 100vh;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
