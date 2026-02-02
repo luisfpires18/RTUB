@@ -143,6 +143,100 @@ Future documentation enhancements could include:
 
 ---
 
+## [2026-02-02] Battle Animation Timeout Investigation Documentation
+
+**Author:** @rtub-docs-agent  
+**Type:** Architecture Documentation  
+**Status:** Complete  
+**Related Issue:** Issue #5 - Battle Animation Timeout Investigation
+
+### Work Completed
+
+Created comprehensive architecture documentation for the battle animation timeout mechanism in response to Issue #5 investigation request.
+
+### Document Created
+
+**File:** `/docs/architecture/battle-animation-timeout.md` (7,186 bytes)
+
+**Sections Include:**
+1. **Overview** - Purpose and high-level description
+2. **Purpose** - Four key objectives of the timeout mechanism
+3. **Implementation Details** - Code location and implementation
+4. **When the Timeout Triggers** - Conditions and normal operation
+5. **Timing Analysis** - Animation duration expectations and timeout appropriateness
+6. **State Management** - Before/after timeout behavior
+7. **Monitoring Recommendations** - Production monitoring and debugging guidance
+8. **Related Documentation** - Cross-references to related files
+9. **Decision Record** - ADR for the 120-second timeout duration
+10. **Conclusion** - Summary and recommendations
+11. **Revision History** - Document version tracking
+
+### Key Findings Documented
+
+**Implementation:**
+- Located in both `Arena.razor` (line 440) and `Stage.razor` (line 404)
+- 120-second timeout using `Task.Run` for async execution
+- Logs warning message when timeout triggers
+- Uses `InvokeAsync` for thread-safe UI updates
+
+**Analysis:**
+- Normal battles complete in 10-20 seconds
+- 120-second timeout provides 6-12x safety margin
+- Event intervals: 800ms (1x), 533ms (1.5x), 400ms (2x speed)
+- Timeout only triggers if JavaScript fails to call `OnBattleFinished()`
+
+**Conclusion:**
+- ✅ Working as designed - no code changes required
+- ✅ Defensive programming practice to prevent UI deadlock
+- ✅ Appropriate timeout duration with adequate safety margin
+- 📊 Recommended: Add production monitoring for timeout events
+
+### Documentation Standards Applied
+
+✅ **ISO 8601 Date Format:** Document dated 2026-02-02  
+✅ **Professional Structure:** Clear sections with markdown formatting  
+✅ **Technical Accuracy:** Based on actual code investigation  
+✅ **Comprehensive Tables:** Timing analysis and revision history  
+✅ **Decision Record:** Included ADR for timeout duration  
+✅ **Actionable Recommendations:** Monitoring and tracking guidance  
+✅ **Cross-References:** Links to related components and documentation  
+
+### Impact
+
+- **Developers:** Clear understanding of timeout mechanism and rationale
+- **Operations:** Monitoring recommendations for production
+- **Support:** Reference for explaining timeout behavior to users
+- **Future Maintainers:** Complete context for any timeout-related modifications
+- **Issue Resolution:** Answers "why" question from Issue #5
+
+### Related Files
+
+- `RTUB.Client/Pages/Arena.razor` (line 440) - Arena timeout implementation
+- `RTUB.Client/Pages/Stage.razor` (line 404) - Stage timeout implementation
+- `RTUB.Client/wwwroot/js/phaserBattle.js` - Phaser animation callbacks
+- `docs/stage-mode.md` - Overall Stage battle system documentation
+
+### Repository Structure Enhancement
+
+Created new directory structure:
+```
+docs/
+├── architecture/
+│   └── battle-animation-timeout.md  (NEW)
+├── android-tester-feature.md
+├── android-tester-configuration.md
+├── android-tester-usage.md
+├── backend-practices.md
+├── frontend-practices.md
+├── pwa-practices.md
+├── stage-mode.md
+└── work-log.md
+```
+
+The `docs/architecture/` subdirectory now houses architectural decision records and technical deep-dives, improving documentation organization.
+
+---
+
 **Log Maintained By:** @rtub-docs-agent  
-**Last Entry:** 2026-02-01  
-**Next Review:** When feature is updated or after first production campaign
+**Last Entry:** 2026-02-02  
+**Next Review:** After monitoring data is collected or if timeout behavior changes

@@ -370,7 +370,11 @@
 
                     // Get enemy type config for this stage (use the battle's stage number, not the local variable)
                     var battleStageNumber = currentBattle.StageNumber;
-                    var (enemyTypeName, enemySpritePath) = GetEnemyTypeConfig(battleStageNumber);
+                    var enemyTypeName = GetEnemyTypeName(currentBattle.EnemyType);
+                    
+                    // Use the enemy's sprite path from the database, with fallback to default
+                    var enemySpritePath = currentBattle.StageEnemy?.SpritePath 
+                        ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType);
 
                     // Create stage battle data object for new stage battle scene
                     var battleData = new
@@ -571,16 +575,28 @@
     }
 
     /// <summary>
-    /// Gets enemy type name and sprite path based on stage number
+    /// Gets the enemy type name for JavaScript
     /// </summary>
-    private static (string TypeName, string SpritePath) GetEnemyTypeConfig(int stageNumber)
+    private static string GetEnemyTypeName(EnemyType enemyType)
     {
-        var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         return enemyType switch
         {
-            EnemyType.Boss => ("boss", "/sprites/games/my-tuno/enemies/boss_bear.png"),
-            EnemyType.MiniBoss => ("miniBoss", "/sprites/games/my-tuno/enemies/wolf.png"),
-            _ => ("normal", "/sprites/games/my-tuno/enemies/wolf.png")
+            EnemyType.Boss => "boss",
+            EnemyType.MiniBoss => "miniBoss",
+            _ => "normal"
+        };
+    }
+
+    /// <summary>
+    /// Gets default enemy sprite path as fallback when database sprite is not available
+    /// </summary>
+    private static string GetDefaultEnemySpriteForType(EnemyType enemyType)
+    {
+        return enemyType switch
+        {
+            EnemyType.Boss => "/sprites/games/my-tuno/enemies/boss_bear.png",
+            EnemyType.MiniBoss => "/sprites/games/my-tuno/enemies/wolf.png",
+            _ => "/sprites/games/my-tuno/enemies/wolf.png"
         };
     }
 

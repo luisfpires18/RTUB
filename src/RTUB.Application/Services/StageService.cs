@@ -150,6 +150,12 @@ public class StageService : IStageService
         // Persist stage battle
         await _stageBattleRepository.AddAsync(stageBattle);
 
+        // Load the StageEnemy navigation property so it's available for sprite rendering
+        if (enemyTemplate != null)
+        {
+            stageBattle.StageEnemy = enemyTemplate;
+        }
+
         // Update character HP and stage progress
         await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType);
 
