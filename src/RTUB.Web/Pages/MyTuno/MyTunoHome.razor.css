@@ -88,3 +88,13 @@
   padding: 0.4rem 0.7rem;
   border-radius: 999px;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .my-tuno-home-page {
+    /* Fix screen height to prevent horizontal scrolling on mobile */
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
