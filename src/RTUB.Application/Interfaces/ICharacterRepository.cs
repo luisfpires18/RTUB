@@ -32,7 +32,7 @@ public interface ICharacterRepository : IRepository<Character>
     /// Gets random opponents for a character, prioritizing characters within similar levels
     /// </summary>
     /// <param name="excludeCharacterId">Character ID to exclude from results (player character)</param>
-    /// <param name="count">Number of opponents to return (default: 4)</param>
+    /// <param name="count">Number of opponents to return (default: 8)</param>
     /// <returns>List of random opponents</returns>
-    Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 4);
+    Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8);
 }

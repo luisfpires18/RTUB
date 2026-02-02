@@ -333,7 +333,7 @@
         try
         {
             // Use the new random opponent selection method
-            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 4);
+            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 8);
             
             // Ensure all enemies have full HP (AI always starts fresh)
             foreach (var opponent in opponentCharacters)

@@ -48,7 +48,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .ToListAsync();
     }
 
-    public async Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 4)
+    public async Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8)
     {
         // Get the excluded character to know its level
         var playerCharacter = await _context.Characters
@@ -75,36 +75,30 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
         if (!allOpponents.Any())
             return new List<Character>();
 
-        // Prioritize opponents within ±3 levels
-        var closeOpponents = allOpponents
-            .Where(o => Math.Abs(o.Level - playerCharacter.Level) <= 3)
+        var playerLevel = playerCharacter.Level;
+
+        // Categorize opponents by level relationship
+        var higherLevel = allOpponents
+            .Where(o => o.Level > playerLevel)
+            .OrderBy(o => o.Level - playerLevel) // Closest to player level first
             .ToList();
 
-        // If not enough close opponents, expand to ±5 levels
-        List<Character> candidateOpponents;
-        if (closeOpponents.Count >= count)
-        {
-            candidateOpponents = closeOpponents;
-        }
-        else
-        {
-            var mediumOpponents = allOpponents
-                .Where(o => Math.Abs(o.Level - playerCharacter.Level) <= 5)
-                .ToList();
-            candidateOpponents = mediumOpponents.Count >= count ? mediumOpponents : allOpponents;
-        }
+        var sameLevel = allOpponents
+            .Where(o => o.Level == playerLevel)
+            .ToList();
 
-        // Fisher-Yates shuffle for efficient O(n) randomization
-        // This is significantly faster than LINQ OrderBy with Guid.NewGuid() which is O(n log n)
-        // and creates unnecessary GUID objects for each comparison
-        var random = Random.Shared;
-        var shuffled = candidateOpponents.ToList();
-        for (int i = shuffled.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
-        }
+        var lowerLevel = allOpponents
+            .Where(o => o.Level < playerLevel)
+            .OrderBy(o => playerLevel - o.Level) // Closest to player level first
+            .ToList();
 
-        return shuffled.Take(count).ToList();
+        // Build priority list: higher level first, then same level, then lower level
+        var prioritizedOpponents = new List<Character>();
+        prioritizedOpponents.AddRange(higherLevel);
+        prioritizedOpponents.AddRange(sameLevel);
+        prioritizedOpponents.AddRange(lowerLevel);
+
+        // Return up to 'count' opponents
+        return prioritizedOpponents.Take(count).ToList();
     }
 }
