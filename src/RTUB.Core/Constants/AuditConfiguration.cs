@@ -38,6 +38,8 @@ public static class AuditConfiguration
         "NaipePlayCount",
         "MemberStatus",
         "BetOption",
-        "MeetingAtaAgendaPoint"
+        "MeetingAtaAgendaPoint",
+        "InventoryItem",
+        "Characyter",
     };
 }

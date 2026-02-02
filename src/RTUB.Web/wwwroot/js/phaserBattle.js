@@ -478,7 +478,7 @@
                 const attacker = getEventField(evt, 'Attacker');
                 const defender = getEventField(evt, 'Defender');
                 const damage = getEventField(evt, 'Damage');
-                this.playAttack(attacker, defender, damage);
+                this.playAttack(attacker, defender, damage, evt);
                 if (attacker && defender) {
                     const damageText = damage ? `-${damage}` : '0';
                     // Replace "Attacker"/"Defender" with actual usernames
@@ -511,7 +511,7 @@
             }
         }
 
-        playAttack(attackerKey, defenderKey, damage) {
+        playAttack(attackerKey, defenderKey, damage, evt) {
             const attacker = attackerKey === 'Defender' ? this.characterSprites.defender : this.characterSprites.attacker;
             const defender = defenderKey === 'Attacker' ? this.characterSprites.attacker : this.characterSprites.defender;
 
@@ -532,7 +532,8 @@
             const targetY = startY - 15;
 
             const damageValue = damage ?? 0;
-            const isCritical = damageValue > 25; // Detect critical hits (higher damage)
+            // Use the isCritical flag from the backend event, fallback to false
+            const isCritical = evt?.isCritical === true || evt?.IsCritical === true;
 
             // Play attack sound
             this.playSound(isCritical ? 'critical' : 'attack');

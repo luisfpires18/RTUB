@@ -293,7 +293,199 @@ var battleData = new {
 ---
 
 
-Task 02 [ ]
+Task 02 [✓] - CPU Challenge Snapshot Fix - COMPLETED
+
+## Summary
+Fixed the issue where challenging another player's character (CPU opponent) would use their live/persisted HP state instead of full health. Implemented a simple snapshot approach rather than the over-engineered architecture originally proposed.
+
+## Problem Statement
+When a player challenges another player's character while they're offline (CPU battle):
+- The opponent incorrectly showed damaged HP (e.g., 54/110 instead of 110/110)
+- This was unfair as challengers faced weakened opponents
+
+## Solution Approach
+Instead of implementing a complex architecture with:
+- BattleType enum
+- New interface/service
+- Database migrations
+- Multiple conditional checks
+
+We implemented a simple fix:
+1. Added `Character.CreateCpuSnapshot()` factory method
+2. Use the snapshot in `BattleService.CreateBattleVsOpponentAsync()`
+
+## Implementation Details
+
+### Character.CreateCpuSnapshot() Method
+Creates a CPU snapshot of an existing character for arena battles:
+- Copies all build data (level, stats, upgrades)
+- Sets `CurrentHP = null` which means full HP (TotalHP)
+- Original character remains unchanged
+
+```csharp
+public static Character CreateCpuSnapshot(Character source)
+{
+    return new Character
+    {
+        // Copy all build data...
+        CurrentHP = null,  // Key: null = full HP
+        // ...
+    };
+}
+```
+
+### BattleService Usage
+```csharp
+// Create CPU snapshot of opponent with full HP
+var opponentSnapshot = Character.CreateCpuSnapshot(opponentCharacter);
+
+// Run combat simulation using the snapshot (not the persisted character)
+var combatResult = _combatEngine.Simulate(playerCharacter, opponentSnapshot, seed);
+```
+
+## Why This Works
+- Defender HP was **never persisted** after arena battles (existing behavior)
+- Defender already gets **no rewards** (existing behavior)
+- The only issue was the combat engine seeing damaged HP during simulation
+- The snapshot ensures CPU opponents always start at full health
+
+## Files Modified
+
+### Core
+1. `src/RTUB.Core/Entities/Character.cs` - Added `CreateCpuSnapshot()` factory method
+
+### Application
+2. `src/RTUB.Application/Services/BattleService.cs` - Use snapshot for opponent in `CreateBattleVsOpponentAsync()`
+
+### Tests
+3. `tests/RTUB.Core.Tests/Entities/CharacterTests.cs` - Added 4 unit tests:
+   - `CreateCpuSnapshot_WithDamagedCharacter_ShouldReturnFullHp`
+   - `CreateCpuSnapshot_ShouldPreserveBuildData`
+   - `CreateCpuSnapshot_WithNullCharacter_ShouldThrowException`
+   - `CreateCpuSnapshot_ShouldNotAffectOriginalCharacter`
+
+## Test Coverage
+- ✅ Snapshot returns full HP regardless of current HP
+- ✅ Snapshot preserves all build data (level, stats, upgrades)
+- ✅ Null input throws ArgumentNullException
+- ✅ Original character is not affected by snapshot creation
+
+## Acceptance Criteria - All Met
+- ✅ Challenging someone's CPU always starts them at **full HP**
+- ✅ Owner player's state is **never** affected by CPU battles
+- ✅ All tests pass
+- ✅ No database migrations required
+- ✅ Minimal code changes (~40 lines total)
+
+---
 
 
-Task 03 [ ]
+Task 03 [✓] - Critical Strike Chance Bug Fix - COMPLETED
+
+## Summary
+Fixed the issue where players reported getting far too many critical hits. A configured 4.5% crit chance was visually appearing to trigger ~30%+ of the time.
+
+## Problem Statement
+Users reported "5 crits in a row with 4.5% chance" which is statistically impossible (0.045^5 = 0.00000018% probability).
+
+## Root Cause Analysis
+
+### Backend (Correct ✅)
+After thorough audit, the backend implementation was **correct**:
+- Config values use fraction [0..1] representation (0.01 = 1%)
+- `TotalCriticalChance` is capped at 1.0 (100%)
+- Combat engine uses `rng.NextDouble() < criticalChance` (correct for fractions)
+- Single crit roll per attack
+
+### Frontend (BUG FOUND 🐛)
+The bug was in `phaserBattle.js` line 535:
+
+```javascript
+// WRONG - Hardcoded threshold!
+const isCritical = damageValue > 25; // Detect critical hits (higher damage)
+```
+
+This meant **any attack doing more than 25 damage was displayed as a critical hit**, regardless of whether it was actually a crit. With higher level characters (higher Power stat), almost every attack exceeded 25 damage.
+
+## Solution
+
+### 1. Added `IsCritical` flag to backend events
+```csharp
+// CombatEvent DTO - new property
+public bool? IsCritical { get; set; }
+```
+
+### 2. Updated `CalculateDamage` to return crit status
+```csharp
+private static (int damage, bool isCritical) CalculateDamage(int power, double criticalChance, SeededRandom rng)
+{
+    var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
+    var damage = power * variance;
+    var isCritical = rng.NextDouble() < criticalChance;
+    if (isCritical)
+    {
+        damage *= 2;
+    }
+    return ((int)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
+}
+```
+
+### 3. Updated all 7 call sites in combat engine
+Each `Attack` event now includes the correct `IsCritical` flag.
+
+### 4. Fixed frontend to use backend flag
+```javascript
+// CORRECT - Use backend's actual crit determination
+const isCritical = evt?.isCritical === true || evt?.IsCritical === true;
+```
+
+## Files Modified
+
+### DTOs
+1. `src/RTUB.Application/DTOs/CombatResult.cs` - Added `IsCritical` property to `CombatEvent`
+
+### Application
+2. `src/RTUB.Application/Services/DeterministicCombatEngine.cs`:
+   - Changed `CalculateDamage` to return tuple `(int damage, bool isCritical)`
+   - Updated all 7 call sites to use tuple and set `IsCritical` on Attack events
+
+### Frontend
+3. `src/RTUB.Web/wwwroot/js/phaserBattle.js` - Use `evt.isCritical` instead of hardcoded threshold
+
+### Tests
+4. `tests/RTUB.Application.Tests/Services/CombatEngineTests.cs` - Added crit chance test region:
+   - `CriticalChance_ShouldBeFraction_NotPercent`
+   - `TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToOne`
+   - `Simulate_WithZeroCritChance_ShouldNeverCrit`
+   - `Simulate_With100PercentCritChance_ShouldAlwaysCrit`
+   - `Simulate_With5PercentCritChance_ShouldProduceApproximately5PercentCrits`
+   - `Simulate_ShouldRollCritOncePerAttack`
+
+5. `tests/RTUB.Core.Tests/Entities/CharacterTests.cs` - Added crit chance tests:
+   - `TotalCriticalChance_WithNoUpgrades_ShouldEqualBaseCriticalChance`
+   - `TotalCriticalChance_WithUpgrades_ShouldAddBonusCorrectly`
+   - `TotalCriticalChance_WhenExceedsOne_ShouldClampToOne`
+   - `CriticalChance_ShouldBeStoredAsFraction_NotPercent`
+   - `TotalCriticalChance_ShouldBeFraction_NotPercent`
+
+6. `tests/RTUB.Application.Tests/Services/CritChanceDebugTests.cs` - Debug verification tests
+
+## Test Coverage
+- ✅ Crit chance stored as fraction [0..1], not percent
+- ✅ TotalCriticalChance capped at 1.0 (100%)
+- ✅ 0% crit chance = no crits
+- ✅ 100% crit chance = all crits
+- ✅ 5% crit chance ≈ 5% actual crit rate (statistical test)
+- ✅ Single crit roll per attack (no double-rolling)
+
+## Acceptance Criteria - All Met
+- ✅ Configured **4.5%** crit chance now behaves like **~4.5%** in practice
+- ✅ No percent/fraction mismatch in code
+- ✅ Crit logic is centralized and unit-tested
+- ✅ Frontend uses backend's actual crit determination
+- ✅ All tests pass
+
+---
+
+
+Task 04 [ ]

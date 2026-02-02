@@ -61,6 +61,11 @@ public class CombatEvent
     public int? Damage { get; set; }
 
     /// <summary>
+    /// Whether the attack was a critical hit (for Attack events)
+    /// </summary>
+    public bool? IsCritical { get; set; }
+
+    /// <summary>
     /// Character identifier (for HPUpdate, KO events)
     /// </summary>
     public string? Character { get; set; }

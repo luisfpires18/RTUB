@@ -131,11 +131,15 @@ public class BattleService : IBattleService
         if (playerCharacterId == opponentCharacterId)
             throw new InvalidOperationException("Não podes lutar contra ti mesmo");
 
+        // Create CPU snapshot of opponent with full HP
+        // This ensures the opponent always starts at full health regardless of their persisted state
+        var opponentSnapshot = Character.CreateCpuSnapshot(opponentCharacter);
+
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
 
-        // Run combat simulation
-        var combatResult = _combatEngine.Simulate(playerCharacter, opponentCharacter, seed);
+        // Run combat simulation using the snapshot (not the persisted character)
+        var combatResult = _combatEngine.Simulate(playerCharacter, opponentSnapshot, seed);
 
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);

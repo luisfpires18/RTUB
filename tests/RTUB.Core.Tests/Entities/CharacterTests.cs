@@ -269,4 +269,153 @@ public class CharacterTests
     }
 
     #endregion
+
+    #region CreateCpuSnapshot Tests
+
+    [Fact]
+    public void CreateCpuSnapshot_WithDamagedCharacter_ShouldReturnFullHp()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CurrentHP = 54; // Damaged state
+
+        // Act
+        var snapshot = Character.CreateCpuSnapshot(character);
+
+        // Assert
+        snapshot.CurrentHP.Should().BeNull(); // null = full HP
+        snapshot.TotalHP.Should().Be(character.TotalHP);
+    }
+
+    [Fact]
+    public void CreateCpuSnapshot_ShouldPreserveBuildData()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CurrentHP = 30;
+        
+        // Simulate some upgrades
+        for (int i = 0; i < 5; i++) character.UpgradeHP();
+        for (int i = 0; i < 3; i++) character.UpgradePower();
+        character.AddXP(300); // Level up
+
+        // Act
+        var snapshot = Character.CreateCpuSnapshot(character);
+
+        // Assert - Build data preserved
+        snapshot.Id.Should().Be(character.Id);
+        snapshot.UserId.Should().Be(character.UserId);
+        snapshot.Level.Should().Be(character.Level);
+        snapshot.HP.Should().Be(character.HP);
+        snapshot.Power.Should().Be(character.Power);
+        snapshot.Speed.Should().Be(character.Speed);
+        snapshot.HpUpgrades.Should().Be(character.HpUpgrades);
+        snapshot.PowerUpgrades.Should().Be(character.PowerUpgrades);
+        snapshot.SpeedUpgrades.Should().Be(character.SpeedUpgrades);
+        snapshot.TotalHP.Should().Be(character.TotalHP);
+        snapshot.TotalPower.Should().Be(character.TotalPower);
+        snapshot.TotalSpeed.Should().Be(character.TotalSpeed);
+        
+        // Assert - Combat state reset
+        snapshot.CurrentHP.Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateCpuSnapshot_WithNullCharacter_ShouldThrowException()
+    {
+        // Act
+        var act = () => Character.CreateCpuSnapshot(null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void CreateCpuSnapshot_ShouldNotAffectOriginalCharacter()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CurrentHP = 54;
+
+        // Act
+        var snapshot = Character.CreateCpuSnapshot(character);
+
+        // Assert - Original unchanged
+        character.CurrentHP.Should().Be(54);
+        snapshot.CurrentHP.Should().BeNull();
+    }
+
+    #endregion
+
+    #region Critical Chance Tests
+
+    [Fact]
+    public void TotalCriticalChance_WithNoUpgrades_ShouldEqualBaseCriticalChance()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CriticalChance = 0.03; // 3% base crit
+
+        // Act & Assert
+        character.TotalCriticalChance.Should().Be(0.03);
+    }
+
+    [Fact]
+    public void TotalCriticalChance_WithUpgrades_ShouldAddBonusCorrectly()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CriticalChance = 0.01; // 1% base
+        character.CriticalUpgrades = 10; // Each gives 0.5% bonus
+
+        // Act & Assert
+        // Total = 0.01 + (10 * 0.005) = 0.01 + 0.05 = 0.06 (6%)
+        character.TotalCriticalChance.Should().BeApproximately(0.06, 0.001);
+    }
+
+    [Fact]
+    public void TotalCriticalChance_WhenExceedsOne_ShouldClampToOne()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CriticalChance = 0.50; // 50% base
+        character.CriticalUpgrades = 200; // Would add 100%
+
+        // Act & Assert - Should be capped at 1.0 (100%)
+        character.TotalCriticalChance.Should().Be(1.0);
+    }
+
+    [Fact]
+    public void CriticalChance_ShouldBeStoredAsFraction_NotPercent()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        
+        // Act - Set 3% crit chance as fraction
+        character.CriticalChance = 0.03;
+
+        // Assert - Should be stored as 0.03, not 3
+        character.CriticalChance.Should().Be(0.03);
+        character.CriticalChance.Should().BeLessThan(1.0, 
+            "CriticalChance should be a fraction [0..1], not a percent [0..100]");
+    }
+
+    [Fact]
+    public void TotalCriticalChance_ShouldBeFraction_NotPercent()
+    {
+        // Arrange
+        var character = Character.Create("user-123");
+        character.CriticalChance = 0.05; // 5%
+        character.CriticalUpgrades = 20; // +10%
+
+        // Act
+        var totalCrit = character.TotalCriticalChance;
+
+        // Assert - Should be 0.15 (15%), not 15
+        totalCrit.Should().BeApproximately(0.15, 0.001);
+        totalCrit.Should().BeLessThanOrEqualTo(1.0,
+            "TotalCriticalChance should be a fraction [0..1], not a percent [0..100]");
+    }
+
+    #endregion
 }

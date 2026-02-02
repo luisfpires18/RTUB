@@ -116,6 +116,40 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Creates a CPU snapshot of an existing character for arena battles
+    /// The snapshot has the same build (stats/gear) but starts at full HP
+    /// Used when another player's character acts as CPU opponent
+    /// </summary>
+    /// <param name="source">The character to create a snapshot from</param>
+    /// <returns>A new Character instance with full HP</returns>
+    public static Character CreateCpuSnapshot(Character source)
+    {
+        if (source == null)
+            throw new ArgumentNullException(nameof(source));
+
+        return new Character
+        {
+            Id = source.Id,
+            UserId = source.UserId,
+            Level = source.Level,
+            XP = source.XP,
+            HP = source.HP,
+            Power = source.Power,
+            Speed = source.Speed,
+            CriticalChance = source.CriticalChance,
+            HpUpgrades = source.HpUpgrades,
+            PowerUpgrades = source.PowerUpgrades,
+            SpeedUpgrades = source.SpeedUpgrades,
+            CriticalUpgrades = source.CriticalUpgrades,
+            // Key: Set CurrentHP to null = full HP (TotalHP)
+            CurrentHP = null,
+            User = source.User,
+            CreatedAt = source.CreatedAt,
+            UpdatedAt = source.UpdatedAt
+        };
+    }
+
+    /// <summary>
     /// Adds XP to the character and handles level-ups
     /// Level up formula: Each level requires 100 * level XP to reach the next level
     /// Level 1->2: 100 XP, Level 2->3: 200 XP, Level 3->4: 300 XP, etc.

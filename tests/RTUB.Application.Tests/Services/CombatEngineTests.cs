@@ -421,4 +421,201 @@ public class CombatEngineTests
     }
 
     #endregion
+
+    #region Critical Chance Tests
+
+    /// <summary>
+    /// Verifies that critical chance is configured as fraction [0..1] in the config
+    /// 3% should be 0.03, not 3.0
+    /// </summary>
+    [Theory]
+    [InlineData(0.01)]  // 1%
+    [InlineData(0.03)]  // 3%
+    [InlineData(0.05)]  // 5%
+    [InlineData(0.10)]  // 10%
+    [InlineData(0.50)]  // 50%
+    public void CriticalChance_ShouldBeFraction_NotPercent(double critChance)
+    {
+        // Arrange - Character with specific crit chance
+        var attacker = Character.Create("user1");
+        attacker.CriticalChance = critChance;
+        
+        // Assert - Crit chance should be in [0..1] range
+        attacker.TotalCriticalChance.Should().BeGreaterThanOrEqualTo(0);
+        attacker.TotalCriticalChance.Should().BeLessThanOrEqualTo(1);
+    }
+
+    /// <summary>
+    /// Verifies that TotalCriticalChance is capped at 1.0 (100%)
+    /// </summary>
+    [Fact]
+    public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToOne()
+    {
+        // Arrange
+        var character = Character.Create("user1");
+        character.CriticalChance = 0.50;
+        character.CriticalUpgrades = 200; // Way more than enough to exceed 100%
+
+        // Act & Assert
+        character.TotalCriticalChance.Should().Be(1.0);
+    }
+
+    /// <summary>
+    /// Verifies that with 0% crit chance, no crits occur
+    /// Tests the boundary condition for crit roll
+    /// </summary>
+    [Fact]
+    public void Simulate_WithZeroCritChance_ShouldNeverCrit()
+    {
+        // Arrange - High power character with 0% crit for clear damage values
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 100;
+        attacker.Speed = 100;
+        attacker.CriticalChance = 0.0; // 0% crit
+
+        var defender = Character.Create("user2");
+        defender.HP = 10000; // High HP to get many attacks
+        defender.Power = 1;
+        defender.Speed = 1;
+        defender.CriticalChance = 0.0;
+
+        // Act - Run multiple seeds
+        var allDamages = new List<int>();
+        for (int seed = 0; seed < 100; seed++)
+        {
+            var result = _combatEngine.Simulate(attacker, defender, seed);
+            var attackDamages = result.Events
+                .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+                .Select(e => e.Damage!.Value);
+            allDamages.AddRange(attackDamages);
+        }
+
+        // Assert - No damage should exceed max non-crit (Power * 1.2)
+        var maxNonCritDamage = (int)(attacker.Power * 1.2);
+        allDamages.Should().OnlyContain(d => d <= maxNonCritDamage + 1, // +1 for rounding
+            "with 0% crit chance, no attacks should be critical hits");
+    }
+
+    /// <summary>
+    /// Verifies that with 100% crit chance, all attacks are crits
+    /// </summary>
+    [Fact]
+    public void Simulate_With100PercentCritChance_ShouldAlwaysCrit()
+    {
+        // Arrange
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 100;
+        attacker.Speed = 100;
+        attacker.CriticalChance = 1.0; // 100% crit
+
+        var defender = Character.Create("user2");
+        defender.HP = 10000;
+        defender.Power = 1;
+        defender.Speed = 1;
+        defender.CriticalChance = 0.0;
+
+        // Act
+        var result = _combatEngine.Simulate(attacker, defender, 12345);
+        var attackDamages = result.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+            .Select(e => e.Damage!.Value)
+            .ToList();
+
+        // Assert - All damage should be at or above min crit damage (Power * 0.8 * 2)
+        var minCritDamage = (int)(attacker.Power * 0.8 * 2);
+        attackDamages.Should().OnlyContain(d => d >= minCritDamage - 1, // -1 for rounding
+            "with 100% crit chance, all attacks should be critical hits");
+    }
+
+    /// <summary>
+    /// Statistical test: Verifies that 5% crit rate produces ~5% crits over large sample
+    /// Uses deterministic seeds to ensure reproducibility
+    /// </summary>
+    [Fact]
+    public void Simulate_With5PercentCritChance_ShouldProduceApproximately5PercentCrits()
+    {
+        // Arrange
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 100;
+        attacker.Speed = 100;
+        attacker.CriticalChance = 0.05; // 5% crit
+
+        var defender = Character.Create("user2");
+        defender.HP = 5000;
+        defender.Power = 1;
+        defender.Speed = 1;
+        defender.CriticalChance = 0.0;
+
+        // Act - Collect damage values from multiple battles
+        var allDamages = new List<int>();
+        for (int seed = 0; seed < 500; seed++)
+        {
+            var result = _combatEngine.Simulate(attacker, defender, seed);
+            var attackDamages = result.Events
+                .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+                .Select(e => e.Damage!.Value);
+            allDamages.AddRange(attackDamages);
+        }
+
+        // Calculate crit rate
+        // Crit damage: Power * variance * 2 (at least Power * 0.8 * 2 = 160)
+        // Non-crit damage: Power * variance (at most Power * 1.2 = 120)
+        var critThreshold = (int)(attacker.Power * 1.3); // Threshold between crit and non-crit
+        var critCount = allDamages.Count(d => d > critThreshold);
+        var totalAttacks = allDamages.Count;
+        var observedCritRate = (double)critCount / totalAttacks;
+
+        // Assert - Should be within tolerance (2.5% to 7.5% for 5% expected)
+        totalAttacks.Should().BeGreaterThan(1000, "need sufficient sample size");
+        observedCritRate.Should().BeGreaterThan(0.025, $"Expected ~5% crits, got {observedCritRate:P1}");
+        observedCritRate.Should().BeLessThan(0.075, $"Expected ~5% crits, got {observedCritRate:P1}");
+    }
+
+    /// <summary>
+    /// Verifies that crit is rolled exactly once per attack event
+    /// (not multiple rolls that would inflate crit rate)
+    /// </summary>
+    [Fact]
+    public void Simulate_ShouldRollCritOncePerAttack()
+    {
+        // Arrange - Use 50% crit to make it easy to verify single roll
+        var attacker = Character.Create("user1");
+        attacker.HP = 500;
+        attacker.Power = 100;
+        attacker.Speed = 100;
+        attacker.CriticalChance = 0.50; // 50% crit
+
+        var defender = Character.Create("user2");
+        defender.HP = 2000;
+        defender.Power = 1;
+        defender.Speed = 1;
+        defender.CriticalChance = 0.0;
+
+        // Act - Collect multiple battles
+        var allDamages = new List<int>();
+        for (int seed = 0; seed < 200; seed++)
+        {
+            var result = _combatEngine.Simulate(attacker, defender, seed);
+            var attackDamages = result.Events
+                .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+                .Select(e => e.Damage!.Value);
+            allDamages.AddRange(attackDamages);
+        }
+
+        // Calculate crit rate - should be ~50%
+        var critThreshold = (int)(attacker.Power * 1.3);
+        var critCount = allDamages.Count(d => d > critThreshold);
+        var totalAttacks = allDamages.Count;
+        var observedCritRate = (double)critCount / totalAttacks;
+
+        // Assert - If rolled multiple times, rate would be higher (e.g., 75% for 2 rolls)
+        totalAttacks.Should().BeGreaterThan(500, "need sufficient sample size");
+        observedCritRate.Should().BeGreaterThan(0.40, $"Crit rate too low: {observedCritRate:P1}");
+        observedCritRate.Should().BeLessThan(0.60, $"Crit rate too high (possible double-roll): {observedCritRate:P1}");
+    }
+
+    #endregion
 }

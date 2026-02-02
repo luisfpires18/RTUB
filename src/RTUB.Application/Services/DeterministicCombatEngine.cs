@@ -82,7 +82,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Attacker's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
+                    var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
                     defenderHP = Math.Max(0, defenderHP - damage);
 
                     events.Add(new CombatEvent
@@ -91,6 +91,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Attacker = "Attacker",
                         Defender = "Defender",
                         Damage = damage,
+                        IsCritical = isCritical,
                         Timestamp = timestamp++
                     });
 
@@ -125,7 +126,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Defender's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
+                    var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
                     attackerHP = Math.Max(0, attackerHP - damage);
 
                     events.Add(new CombatEvent
@@ -134,6 +135,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Attacker = "Defender",
                         Defender = "Attacker",
                         Damage = damage,
+                        IsCritical = isCritical,
                         Timestamp = timestamp++
                     });
 
@@ -170,7 +172,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Defender goes first
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
+                    var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
                     attackerHP = Math.Max(0, attackerHP - damage);
 
                     events.Add(new CombatEvent
@@ -179,6 +181,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Attacker = "Defender",
                         Defender = "Attacker",
                         Damage = damage,
+                        IsCritical = isCritical,
                         Timestamp = timestamp++
                     });
 
@@ -213,7 +216,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Attacker's turn
                 if (attackerHP > 0 && defenderHP > 0)
                 {
-                    var damage = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
+                    var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
                     defenderHP = Math.Max(0, defenderHP - damage);
 
                     events.Add(new CombatEvent
@@ -222,6 +225,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Attacker = "Attacker",
                         Defender = "Defender",
                         Damage = damage,
+                        IsCritical = isCritical,
                         Timestamp = timestamp++
                     });
 
@@ -428,7 +432,7 @@ public class DeterministicCombatEngine : ICombatEngine
             if (playerGoesFirst)
             {
                 // Player attacks current target
-                var damage = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
                 var targetCurrentHP = currentTarget.HP;
                 targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
 
@@ -438,6 +442,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Attacker = "Player",
                     Defender = $"Enemy{currentTarget.Index}",
                     Damage = damage,
+                    IsCritical = isCritical,
                     Timestamp = timestamp++
                 });
 
@@ -475,7 +480,7 @@ public class DeterministicCombatEngine : ICombatEngine
             {
                 if (playerHP <= 0) break;
 
-                var damage = CalculateDamage(enemyState.Enemy.TotalPower, enemyState.Enemy.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(enemyState.Enemy.TotalPower, enemyState.Enemy.TotalCriticalChance, rng);
                 playerHP = Math.Max(0, playerHP - damage);
 
                 events.Add(new CombatEvent
@@ -484,6 +489,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Attacker = $"Enemy{enemyState.Index}",
                     Defender = "Player",
                     Damage = damage,
+                    IsCritical = isCritical,
                     Timestamp = timestamp++
                 });
 
@@ -510,7 +516,7 @@ public class DeterministicCombatEngine : ICombatEngine
             if (!playerGoesFirst && playerHP > 0 && currentTarget.HP > 0)
             {
                 // Player attacks after enemies (slower speed)
-                var damage = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
                 var targetCurrentHP = enemyStates[currentTarget.Index].HP;
                 targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
 
@@ -520,6 +526,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Attacker = "Player",
                     Defender = $"Enemy{currentTarget.Index}",
                     Damage = damage,
+                    IsCritical = isCritical,
                     Timestamp = timestamp++
                 });
 
@@ -618,15 +625,16 @@ public class DeterministicCombatEngine : ICombatEngine
     /// Calculates damage with variance
     /// Formula: BaseDamage = Power, FinalDamage = Power * Random(0.8, 1.2)
     /// </summary>
-    private static int CalculateDamage(int power, double criticalChance, SeededRandom rng)
+    private static (int damage, bool isCritical) CalculateDamage(int power, double criticalChance, SeededRandom rng)
     {
         var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
         var damage = power * variance;
-        if (rng.NextDouble() < criticalChance)
+        var isCritical = rng.NextDouble() < criticalChance;
+        if (isCritical)
         {
             damage *= 2;
         }
-        return (int)Math.Round(damage, MidpointRounding.AwayFromZero);
+        return ((int)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
     }
 
     /// <summary>
