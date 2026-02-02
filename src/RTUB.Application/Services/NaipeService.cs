@@ -309,6 +309,36 @@ public class NaipeService : INaipeService
         };
     }
 
+    /// <summary>
+    /// Ensures the URL is complete by reconstructing it if necessary.
+    /// Handles cases where:
+    /// 1. URL is just an object key (e.g., "naipes/Production/videos/...")
+    /// 2. URL is already a complete valid URL (returned as-is)
+    /// </summary>
+    private string EnsureCompleteUrl(string storedUrl)
+    {
+        if (string.IsNullOrEmpty(storedUrl))
+            return storedUrl;
+
+        // If URL already starts with http:// or https://, it's a valid complete URL
+        // Return as-is - DO NOT modify valid URLs
+        if (storedUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            storedUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return storedUrl;
+        }
+
+        // URL doesn't start with http/https, assume it's just an object key
+        // Reconstruct the full URL if we have a PublicUrl
+        if (!string.IsNullOrEmpty(_publicBaseUrl))
+        {
+            return $"{_publicBaseUrl}/{storedUrl}";
+        }
+
+        // No PublicUrl configured, return as-is (will trigger error handling in UI)
+        return storedUrl;
+    }
+
     private async Task CreateAuditLogAsync(string action, int entityId, string entityDisplayName, string changes, string? userId = null, string? userName = null, bool isCritical = false)
     {
         try
