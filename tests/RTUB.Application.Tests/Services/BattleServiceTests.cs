@@ -61,8 +61,8 @@ public class BattleServiceTests : IDisposable
             BattleRewards = new BattleRewards
             {
                 WinReward = 10m,
-                LossReward = 5m,
-                DrawReward = 7.5m
+                DrawReward = 7.5m,
+                ReviveCost = 100m
             }
         };
         _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
@@ -215,7 +215,7 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithLoss_ShouldApplyLossRewards()
+    public async Task CreateBattleVsAIAsync_WithLoss_ShouldNotAwardRewards()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
@@ -253,17 +253,17 @@ public class BattleServiceTests : IDisposable
         // Act
         var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
 
-        // Assert
-        battle.AttackerXP.Should().Be(20); // BaseLossXP
-        battle.AttackerFidelis.Should().Be(5m); // BaseLossFidelis
+        // Assert - Losses should not award any XP or Fidelis
+        battle.AttackerXP.Should().Be(0, "losses should not award XP");
+        battle.AttackerFidelis.Should().Be(0m, "losses should not award Fidelis");
 
-        // Verify character XP was updated
+        // Verify character XP was not increased
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
-        updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
+        updatedCharacter!.XP.Should().Be(initialXP, "character should not gain XP from losing");
 
-        // Verify user Fidelis was updated
+        // Verify user Fidelis was not updated (stayed the same)
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 5m)), Times.Once);
+            u.FidelisBalance == initialFidelis)), Times.Once);
     }
 
     [Fact]
@@ -431,6 +431,145 @@ public class BattleServiceTests : IDisposable
         defenderInitialHP.Character.Should().Be("Defender");
         defenderInitialHP.HP.Should().Be(100);
         defenderInitialHP.MaxHP.Should().Be(130);
+    }
+    
+    [Fact]
+    public async Task CreateBattleVsOpponentAsync_WithHigherLevelOpponent_ShouldGiveMoreXP()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var playerCharacter = Character.Create("user1");
+        playerCharacter.AddXP(0); // Level 1
+        
+        var opponent = Character.Create("user2");
+        // Level up opponent to level 10
+        for (int i = 0; i < 9; i++)
+        {
+            opponent.AddXP(opponent.Level * 100);
+        }
+        
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
+        await _context.SaveChangesAsync();
+        
+        var initialPlayerXP = playerCharacter.XP;
+        
+        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        var combatResult = new Application.DTOs.CombatResult
+        {
+            Outcome = BattleOutcome.AttackerWon,
+            Events = new List<Application.DTOs.CombatEvent>
+            {
+                new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
+            },
+            AttackerFinalHP = 50,
+            DefenderFinalHP = 0
+        };
+        
+        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
+            .Returns(combatResult);
+        
+        // Act
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        
+        // Assert
+        // With level difference of 9 (defender level 10 - attacker level 1)
+        // and scaling factor of 0.05, multiplier = 1.0 + (9 * 0.05) = 1.45
+        // Expected XP = 50 * 1.45 = 72.5, rounded to 72
+        battle.AttackerXP.Should().BeInRange(70, 75, "because level 10 vs level 1 with 5% scaling should give ~72 XP");
+        
+        // Verify XP was applied to character
+        var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
+        updatedCharacter!.XP.Should().Be(initialPlayerXP + battle.AttackerXP);
+    }
+    
+    [Fact]
+    public async Task CreateBattleVsOpponentAsync_WithLowerLevelOpponent_ShouldGiveLessXP()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var playerCharacter = Character.Create("user1");
+        // Level up player to level 10
+        for (int i = 0; i < 9; i++)
+        {
+            playerCharacter.AddXP(playerCharacter.Level * 100);
+        }
+        
+        var opponent = Character.Create("user2");
+        opponent.AddXP(0); // Level 1
+        
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
+        await _context.SaveChangesAsync();
+        
+        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        var combatResult = new Application.DTOs.CombatResult
+        {
+            Outcome = BattleOutcome.AttackerWon,
+            Events = new List<Application.DTOs.CombatEvent>
+            {
+                new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
+            },
+            AttackerFinalHP = 90,
+            DefenderFinalHP = 0
+        };
+        
+        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
+            .Returns(combatResult);
+        
+        // Act
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        
+        // Assert
+        // With level difference of -9 (defender level 1 - attacker level 10)
+        // and scaling factor of 0.05, multiplier = 1.0 + (-9 * 0.05) = 0.55
+        // Expected XP = 50 * 0.55 = 27.5, rounded to 28
+        battle.AttackerXP.Should().BeInRange(25, 30, "because level 10 vs level 1 with 5% scaling should give ~28 XP");
+        battle.AttackerXP.Should().BeLessThan(50, "and it should be less than base XP");
+        battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP");
+    }
+    
+    [Fact]
+    public async Task CreateBattleVsOpponentAsync_WithSameLevelOpponent_ShouldGiveBaseXP()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var playerCharacter = Character.Create("user1");
+        var opponent = Character.Create("user2");
+        
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
+        await _context.SaveChangesAsync();
+        
+        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+        
+        var combatResult = new Application.DTOs.CombatResult
+        {
+            Outcome = BattleOutcome.AttackerWon,
+            Events = new List<Application.DTOs.CombatEvent>
+            {
+                new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
+            },
+            AttackerFinalHP = 70,
+            DefenderFinalHP = 0
+        };
+        
+        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
+            .Returns(combatResult);
+        
+        // Act
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        
+        // Assert
+        battle.AttackerXP.Should().Be(50, "because fighting an equal level opponent should give base XP (50 for win)");
     }
 
     public void Dispose()

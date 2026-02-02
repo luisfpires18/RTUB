@@ -51,6 +51,9 @@ public class GameService : IGameService
 
     public async Task SeedDefaultGamesAsync()
     {
+        bool hasUpdates = false;
+
+        // Avoid Questions game
         var existingGame = await _repository.GetByKeyAsync("avoid-questions");
         if (existingGame == null)
         {
@@ -64,7 +67,14 @@ public class GameService : IGameService
                 false
             );
         }
+        else if (existingGame.ImageUrl != "/sprites/games/avoid-questions-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            existingGame.UpdateImageUrl("/sprites/games/avoid-questions-thumb.svg");
+            hasUpdates = true;
+        }
 
+        // BMR - Bebe mais Rui game
         var bmrGame = await _repository.GetByKeyAsync("bmr-bebe-mais-rui");
         if (bmrGame == null)
         {
@@ -72,13 +82,20 @@ public class GameService : IGameService
                 "bmr-bebe-mais-rui",
                 "BMR — Bebe mais Rui",
                 "Run, jump, collect beers, dodge heavy hitters.",
-                "/sprites/bmr/thumbnail.svg",
+                "/sprites/games/bmr/thumbnail.svg",
                 "/games/bmr-bebe-mais-rui",
                 false,
                 false
             );
         }
+        else if (bmrGame.ImageUrl != "/sprites/games/bmr/thumbnail.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path like /sprites/bmr/thumbnail.svg)
+            bmrGame.UpdateImageUrl("/sprites/games/bmr/thumbnail.svg");
+            hasUpdates = true;
+        }
 
+        // Tomato Thrower game
         var tomatoGame = await _repository.GetByKeyAsync("tomato-thrower");
         if (tomatoGame == null)
         {
@@ -92,7 +109,14 @@ public class GameService : IGameService
                 true // Members only
             );
         }
+        else if (tomatoGame.ImageUrl != "/sprites/games/tomato-thrower-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            tomatoGame.UpdateImageUrl("/sprites/games/tomato-thrower-thumb.svg");
+            hasUpdates = true;
+        }
 
+        // Passaro Maluco game
         var passaroMalucoGame = await _repository.GetByKeyAsync("passaro-maluco");
         if (passaroMalucoGame == null)
         {
@@ -105,6 +129,18 @@ public class GameService : IGameService
                 false,
                 false
             );
+        }
+        else if (passaroMalucoGame.ImageUrl != "/sprites/games/passaro-maluco-thumb.svg")
+        {
+            // Update image URL if it's incorrect (e.g., old path)
+            passaroMalucoGame.UpdateImageUrl("/sprites/games/passaro-maluco-thumb.svg");
+            hasUpdates = true;
+        }
+
+        // Batch save all updates
+        if (hasUpdates)
+        {
+            await _repository.SaveChangesAsync();
         }
     }
 

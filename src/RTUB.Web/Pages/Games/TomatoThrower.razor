@@ -8,11 +8,14 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
 @inject IJSRuntime JSRuntime
 @inject IGameScoreService GameScoreService
 @inject IMemberDebtService MemberDebtService
 @inject IFiscalYearService FiscalYearService
 @inject ITimeFormatter TimeFormatter
+@inject IOptions<FidelisRewardsConfiguration> FidelisRewardsConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
@@ -107,7 +110,7 @@
                                 <span class="final-stat-label">Pontos</span>
                             </div>
                             <div class="final-stat">
-                                <span class="final-stat-value text-success">+1.00</span>
+                                <span class="final-stat-value text-success">+@fidelisReward.00</span>
                                 <span class="final-stat-label">Fidelis Ganhos</span>
                             </div>
                         </div>
@@ -150,6 +153,7 @@
     private int finalTomatoesThrown = 0;
     private int finalHits = 0;
     private int finalAccuracy = 0;
+    private int fidelisReward = 0;
     
     private bool savingScore = false;
     private bool scoreSaved = false;
@@ -293,6 +297,7 @@
         finalTomatoesThrown = finalTomatoes;
         finalHits = finalHitsCount;
         finalAccuracy = finalTomatoes > 0 ? (int)Math.Round((double)finalHits / finalTomatoes * 100) : 0;
+        fidelisReward = FidelisRewardsConfig.Value.TomatoThrower.CalculateReward(finalPoints);
         StateHasChanged();
 
         if (!string.IsNullOrEmpty(currentUserId))
@@ -306,10 +311,11 @@
                 await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, finalAccuracy, TimeSpan.FromSeconds(survivedTime));
                 scoreSaved = true;
                 
-                // Award 1 Fidelis for playing
+                // Award Fidelis for playing (configured in appsettings)
                 if (currentUser != null)
                 {
-                    currentUser.FidelisBalance += 1.0m;
+                    var reward = FidelisRewardsConfig.Value.TomatoThrower.CalculateReward(finalPoints);
+                    currentUser.FidelisBalance += reward;
                     await UserManager.UpdateAsync(currentUser);
                 }
             }

@@ -109,6 +109,10 @@ public class Program
 
         services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
+        
+        services.Configure<RTUB.Application.Configuration.FidelisRewardsConfiguration>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
+        
         services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
 
@@ -135,6 +139,7 @@ public class Program
                 myTunoScaling.Upgrades.Power.BonusPerUpgrade,
                 myTunoScaling.Upgrades.Speed.BonusPerUpgrade,
                 myTunoScaling.Upgrades.CriticalChance.BonusPerUpgrade,
+                beerDropChance: myTunoScaling.BeerDropChance,
                 levelCosts: myTunoScaling.LevelCosts);
         }
 

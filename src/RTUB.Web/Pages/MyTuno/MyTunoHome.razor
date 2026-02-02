@@ -8,6 +8,11 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Base
+@using RTUB.Application.DTOs
+@using RTUB.Shared.Components.UI
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
+@using Microsoft.Extensions.Configuration
 @attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
@@ -17,10 +22,8 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject ILogger<MyTunoHome> Logger
-@using RTUB.Application.DTOs
-@using RTUB.Shared.Components.UI
-@using Microsoft.Extensions.Configuration
 @inject IConfiguration Configuration
+@inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
 
 <PageTitle>My Tuno - RTUB</PageTitle>
 
@@ -971,9 +974,8 @@
 
     private decimal GetReviveCost()
     {
-        if (character == null) return 0;
-        // Cost scales with level: 2.5 Fidelis * level
-        return 2.5m * character.Level;
+        // Use configurable revive cost from settings (default 100 Fidelis)
+        return MyTunoConfig.Value.BattleRewards.ReviveCost;
     }
 
     private decimal GetRestoreCost()

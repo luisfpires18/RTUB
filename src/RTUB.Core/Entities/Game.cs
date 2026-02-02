@@ -64,4 +64,13 @@ public class Game : BaseEntity
         MembersOnly = membersOnly;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateImageUrl(string? imageUrl)
+    {
+        if (imageUrl != null && imageUrl.Length > 200)
+            throw new ArgumentException("Image URL cannot exceed 200 characters", nameof(imageUrl));
+        
+        ImageUrl = imageUrl;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -133,59 +133,69 @@ const bmrGame = (function () {
     }
 
     function loadSprites() {
-        // Cache busting timestamp to force reload of sprites
-        const cacheBuster = '?v=' + Date.now();
+        console.log('[BMR] Starting sprite loading...');
+        console.log('[BMR] Config enemyTiers:', config.enemyTiers);
         
         // Track loaded sprites
         let loaded = 0;
         let total = 3;
         
-        const onLoad = (name) => () => {
-            console.log('[BMR] Sprite loaded:', name);
+        const onLoad = (name) => (e) => {
+            console.log('[BMR] Sprite loaded:', name, 'src:', e.target.src, 'loaded:', loaded + 1, '/', total);
             loaded++;
             if (loaded >= total) {
                 spritesLoaded = true;
-                console.log('[BMR] All sprites loaded successfully');
+                console.log('[BMR] All sprites loaded successfully! spritesLoaded =', spritesLoaded);
             }
         };
         
-        const onError = (name, img) => () => {
-            console.warn('[BMR] Failed to load sprite:', name, '- using fallback');
+        const onError = (name, img) => (e) => {
+            console.error('[BMR] Failed to load sprite:', name, 'src:', e.target.src, 'loaded:', loaded + 1, '/', total);
             img.failed = true;
             loaded++;
             if (loaded >= total) {
                 spritesLoaded = true;
+                console.log('[BMR] All sprites processed (some failed). spritesLoaded =', spritesLoaded);
             }
         };
         
         // Load player sprite
+        console.log('[BMR] Loading player sprite...');
         sprites.player = new Image();
         sprites.player.onload = onLoad('player');
         sprites.player.onerror = onError('player', sprites.player);
-        sprites.player.src = '/sprites/bmr/player.svg' + cacheBuster;
+        sprites.player.src = '/sprites/games/bmr/player.svg';
         
         // Load background
+        console.log('[BMR] Loading background sprite...');
         sprites.background = new Image();
         sprites.background.onload = onLoad('background');
         sprites.background.onerror = onError('background', sprites.background);
-        sprites.background.src = '/sprites/bmr/background.svg' + cacheBuster;
+        sprites.background.src = '/sprites/games/bmr/background.svg';
         
         // Load beer
+        console.log('[BMR] Loading beer sprite...');
         sprites.beer = new Image();
         sprites.beer.onload = onLoad('beer');
         sprites.beer.onerror = onError('beer', sprites.beer);
-        sprites.beer.src = '/sprites/bmr/beer.svg' + cacheBuster;
+        sprites.beer.src = '/sprites/games/bmr/beer.svg';
         
         // Load enemy sprites
         if (config.enemyTiers && config.enemyTiers.length > 0) {
             total += config.enemyTiers.length;
+            console.log('[BMR] Loading', config.enemyTiers.length, 'enemy sprites. Total sprites to load:', total);
             config.enemyTiers.forEach(tier => {
+                console.log('[BMR] Loading enemy sprite:', tier.name, 'from', tier.spritePath);
                 sprites.enemies[tier.name] = new Image();
                 sprites.enemies[tier.name].onload = onLoad('enemy_' + tier.name);
                 sprites.enemies[tier.name].onerror = onError('enemy_' + tier.name, sprites.enemies[tier.name]);
-                sprites.enemies[tier.name].src = tier.spritePath + cacheBuster;
+                sprites.enemies[tier.name].src = tier.spritePath;
             });
+        } else {
+            console.log('[BMR] No enemy tiers configured');
         }
+        
+        console.log('[BMR] All sprite loading initiated. Total expected:', total);
     }
 
     function setupInputHandlers() {
@@ -1015,6 +1025,15 @@ const bmrGame = (function () {
         // Skip drawing during invulnerability flash
         if (player.invulnerable) {
             if (Math.floor(performance.now() / 100) % 2 === 0) return;
+        }
+        
+        // Debug logging (only once)
+        if (!window.bmrPlayerDrawDebugLogged) {
+            console.log('[BMR] drawPlayer check - spritesLoaded:', spritesLoaded, 
+                       'player.complete:', sprites.player?.complete, 
+                       'player.failed:', sprites.player?.failed,
+                       'player.src:', sprites.player?.src);
+            window.bmrPlayerDrawDebugLogged = true;
         }
         
         if (spritesLoaded && sprites.player.complete && !sprites.player.failed) {

@@ -10,6 +10,7 @@
 @using RTUB.Application.Interfaces
 @inject IJSRuntime JSRuntime
 @inject IOptions<AvoidQuestionsConfiguration> GameConfig
+@inject IOptions<FidelisRewardsConfiguration> FidelisRewardsConfig
 @inject IGameScoreService GameScoreService
 @inject ITimeFormatter TimeFormatter
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -97,7 +98,7 @@
                             <span class="final-stat-label">Tempo Sobrevivido</span>
                         </div>
                         <div class="final-stat">
-                            <span class="final-stat-value text-success">+1.00</span>
+                            <span class="final-stat-value text-success">+@fidelisReward.00</span>
                             <span class="final-stat-label">Fidelis Ganhos</span>
                         </div>
                     </div>
@@ -145,6 +146,7 @@
     private int finalPoints = 0;
     private int finalLevel = 0;
     private double finalTime = 0;
+    private int fidelisReward = 0;
     
     private bool savingScore = false;
     private bool scoreSaved = false;
@@ -228,6 +230,7 @@
         finalPoints = finalPts;
         finalLevel = maxLvl;
         finalTime = survivedTime;
+        fidelisReward = FidelisRewardsConfig.Value.AvoidQuestions.CalculateReward(finalPoints);
         StateHasChanged();
 
         if (!string.IsNullOrEmpty(currentUserId))
@@ -240,10 +243,11 @@
                 await GameScoreService.SubmitScoreAsync(currentUserId, GameKey, finalPoints, finalLevel, TimeSpan.FromSeconds(finalTime));
                 scoreSaved = true;
                 
-                // Award 1 Fidelis for playing
+                // Award Fidelis for playing (configured in appsettings)
                 if (currentUser != null)
                 {
-                    currentUser.FidelisBalance += 1.0m;
+                    var reward = FidelisRewardsConfig.Value.AvoidQuestions.CalculateReward(finalPoints);
+                    currentUser.FidelisBalance += reward;
                     await UserManager.UpdateAsync(currentUser);
                 }
             }

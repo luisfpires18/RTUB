@@ -48,10 +48,11 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .ToListAsync();
     }
 
-    public async Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 4)
+    public async Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8)
     {
         // Get the excluded character to know its level
         var playerCharacter = await _context.Characters
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == excludeCharacterId);
 
         if (playerCharacter == null)
@@ -66,8 +67,9 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .Select(u => u.Id)
             .ToListAsync();
 
-        // Get all eligible opponents
+        // Get all eligible opponents (AsNoTracking since these are for display only)
         var allOpponents = await _context.Characters
+            .AsNoTracking()
             .Include(c => c.User)
             .Where(c => memberUserIds.Contains(c.UserId) && c.Id != excludeCharacterId)
             .ToListAsync();
@@ -75,36 +77,47 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
         if (!allOpponents.Any())
             return new List<Character>();
 
-        // Prioritize opponents within ±3 levels
-        var closeOpponents = allOpponents
-            .Where(o => Math.Abs(o.Level - playerCharacter.Level) <= 3)
-            .ToList();
+        var playerLevel = playerCharacter.Level;
 
-        // If not enough close opponents, expand to ±5 levels
-        List<Character> candidateOpponents;
-        if (closeOpponents.Count >= count)
-        {
-            candidateOpponents = closeOpponents;
-        }
-        else
-        {
-            var mediumOpponents = allOpponents
-                .Where(o => Math.Abs(o.Level - playerCharacter.Level) <= 5)
-                .ToList();
-            candidateOpponents = mediumOpponents.Count >= count ? mediumOpponents : allOpponents;
-        }
+        // Categorize opponents in a single pass for efficiency
+        var higherLevel = new List<(Character character, int levelDiff)>();
+        var sameLevel = new List<Character>();
+        var lowerLevel = new List<(Character character, int levelDiff)>();
 
-        // Fisher-Yates shuffle for efficient O(n) randomization
-        // This is significantly faster than LINQ OrderBy with Guid.NewGuid() which is O(n log n)
-        // and creates unnecessary GUID objects for each comparison
-        var random = Random.Shared;
-        var shuffled = candidateOpponents.ToList();
-        for (int i = shuffled.Count - 1; i > 0; i--)
+        foreach (var opponent in allOpponents)
         {
-            int j = random.Next(i + 1);
-            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
+            if (opponent.Level > playerLevel)
+            {
+                higherLevel.Add((opponent, opponent.Level - playerLevel));
+            }
+            else if (opponent.Level == playerLevel)
+            {
+                sameLevel.Add(opponent);
+            }
+            else
+            {
+                lowerLevel.Add((opponent, playerLevel - opponent.Level));
+            }
         }
 
-        return shuffled.Take(count).ToList();
+        // Build priority list: higher level first (sorted by proximity), 
+        // then same level, then lower level (sorted by proximity)
+        var prioritizedOpponents = new List<Character>();
+        
+        // Add higher level opponents sorted by proximity (smallest diff first)
+        prioritizedOpponents.AddRange(
+            higherLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
+        );
+        
+        // Add same level opponents
+        prioritizedOpponents.AddRange(sameLevel);
+        
+        // Add lower level opponents sorted by proximity (smallest diff first)
+        prioritizedOpponents.AddRange(
+            lowerLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
+        );
+
+        // Return up to 'count' opponents
+        return prioritizedOpponents.Take(count).ToList();
     }
 }

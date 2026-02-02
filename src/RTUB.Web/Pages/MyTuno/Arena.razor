@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer" style="background: #1a1a1a; display: block; width: 800px; height: 500px;"></div>
+                    <div id="phaserBattleContainer"></div>
                 </div>
             </div>
         }
@@ -126,34 +126,37 @@
             </div>
         }
 
-        <!-- Opponent Selection -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
+        <!-- Opponent Selection - Only show when battle is not active -->
+        @if (!showBattleAnimation)
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
+                </div>
+                <div class="card-body">
+                    @if (opponentCharacters == null || !opponentCharacters.Any())
+                    {
+                        <EmptyState Title="Nenhum oponente disponível"
+                                    Message="Ainda não há outros personagens para lutar."
+                                    Icon="bi-person-x" />
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            @foreach (var opponent in opponentCharacters)
+                            {
+                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                    <EnemyCard Character="@opponent"
+                                              OnFight="() => FightOpponent(opponent)"
+                                              IsDisabled="@(fighting || showBattleAnimation)"
+                                              IsFighting="@(fightingOpponentId == opponent.Id)" />
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
-            <div class="card-body">
-                @if (opponentCharacters == null || !opponentCharacters.Any())
-                {
-                    <EmptyState Title="Nenhum oponente disponível"
-                                Message="Ainda não há outros personagens para lutar."
-                                Icon="bi-person-x" />
-                }
-                else
-                {
-                    <div class="row g-3">
-                        @foreach (var opponent in opponentCharacters)
-                        {
-                            <div class="col-md-6 col-lg-4 col-xl-3">
-                                <EnemyCard Character="@opponent"
-                                          OnFight="() => FightOpponent(opponent)"
-                                          IsDisabled="@(fighting || showBattleAnimation)"
-                                          IsFighting="@(fightingOpponentId == opponent.Id)" />
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-        </div>
+        }
 
         <!-- Battle History -->
         <div class="card">
@@ -330,7 +333,7 @@
         try
         {
             // Use the new random opponent selection method
-            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 4);
+            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 8);
             
             // Ensure all enemies have full HP (AI always starts fresh)
             foreach (var opponent in opponentCharacters)
