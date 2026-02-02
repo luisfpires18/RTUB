@@ -71,6 +71,11 @@ public class CombatEvent
     public int? HP { get; set; }
 
     /// <summary>
+    /// Maximum HP value (for initial HPUpdate events)
+    /// </summary>
+    public int? MaxHP { get; set; }
+
+    /// <summary>
     /// Winner character identifier (for Victory events)
     /// </summary>
     public string? Winner { get; set; }
