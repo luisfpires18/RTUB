@@ -384,7 +384,10 @@
             errorMessage = string.Empty;
             currentBattle = null;
             StateHasChanged();
-            await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+
+            // Scroll to top with smooth behavior for better mobile UX
+            await Task.Delay(50); // Small delay to ensure UI has updated
+            await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
 
             // Create battle vs specific opponent
             currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);
