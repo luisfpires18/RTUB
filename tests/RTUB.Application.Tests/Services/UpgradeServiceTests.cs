@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -43,10 +45,25 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
+        // Setup MyTunoScalingConfiguration with base costs
+        var config = new MyTunoScalingConfiguration
+        {
+            Upgrades = new MyTunoUpgrades
+            {
+                HP = new MyTunoUpgradeStat { BaseCost = 50m },
+                Power = new MyTunoUpgradeStat { BaseCost = 75m },
+                Speed = new MyTunoUpgradeStat { BaseCost = 100m },
+                CriticalChance = new MyTunoUpgradeStat { BaseCost = 150m }
+            }
+        };
+        var mockConfig = new Mock<IOptions<MyTunoScalingConfiguration>>();
+        mockConfig.Setup(m => m.Value).Returns(config);
+
         _upgradeService = new UpgradeService(
             _characterService,
             _mockUserManager.Object,
-            _context);
+            _context,
+            mockConfig.Object);
 
         // Create test user
         var userId = "upgrade-test-user";

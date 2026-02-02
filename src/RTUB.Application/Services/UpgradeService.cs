@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -19,12 +21,7 @@ public class UpgradeService : IUpgradeService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<UpgradeService>? _logger;
-
-    // Base costs for each stat type
-    private const decimal BaseCostHP = 50m;
-    private const decimal BaseCostPower = 75m;
-    private const decimal BaseCostSpeed = 100m;
-    private const decimal BaseCostCriticalChance = 150m;
+    private readonly MyTunoScalingConfiguration _config;
 
     // Maximum retry attempts for concurrency conflicts
     private const int MaxRetryAttempts = 3;
@@ -33,12 +30,14 @@ public class UpgradeService : IUpgradeService
         ICharacterService characterService,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
+        IOptions<MyTunoScalingConfiguration> config,
         ILogger<UpgradeService>? logger = null)
     {
         _characterService = characterService;
         _userManager = userManager;
         _context = context;
         _logger = logger;
+        _config = config.Value;
     }
 
     /// <summary>
@@ -63,10 +62,10 @@ public class UpgradeService : IUpgradeService
 
         var baseCost = statType switch
         {
-            StatType.HP => BaseCostHP,
-            StatType.Power => BaseCostPower,
-            StatType.Speed => BaseCostSpeed,
-            StatType.CriticalChance => BaseCostCriticalChance,
+            StatType.HP => _config.Upgrades.HP.BaseCost,
+            StatType.Power => _config.Upgrades.Power.BaseCost,
+            StatType.Speed => _config.Upgrades.Speed.BaseCost,
+            StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
 
@@ -126,10 +125,10 @@ public class UpgradeService : IUpgradeService
                     // Calculate cost based on current upgrade count
                     var baseCost = statType switch
                     {
-                        StatType.HP => BaseCostHP,
-                        StatType.Power => BaseCostPower,
-                        StatType.Speed => BaseCostSpeed,
-                        StatType.CriticalChance => BaseCostCriticalChance,
+                        StatType.HP => _config.Upgrades.HP.BaseCost,
+                        StatType.Power => _config.Upgrades.Power.BaseCost,
+                        StatType.Speed => _config.Upgrades.Speed.BaseCost,
+                        StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
                         _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
                     };
 
@@ -257,10 +256,10 @@ public class UpgradeService : IUpgradeService
 
             var baseCost = statType switch
             {
-                StatType.HP => BaseCostHP,
-                StatType.Power => BaseCostPower,
-                StatType.Speed => BaseCostSpeed,
-                StatType.CriticalChance => BaseCostCriticalChance,
+                StatType.HP => _config.Upgrades.HP.BaseCost,
+                StatType.Power => _config.Upgrades.Power.BaseCost,
+                StatType.Speed => _config.Upgrades.Speed.BaseCost,
+                StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
                 _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
             };
 
