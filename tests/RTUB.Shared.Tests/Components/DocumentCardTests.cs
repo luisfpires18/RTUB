@@ -168,7 +168,7 @@ public class DocumentCardTests : TestContext
     }
 
     [Fact]
-    public void DocumentCard_ShowsViewButton_ForPdfFiles()
+    public void DocumentCard_DoesNotShowViewButton_ForPdfFiles()
     {
         // Arrange
         var document = new DocumentMetadata
@@ -185,8 +185,8 @@ public class DocumentCardTests : TestContext
             .Add(p => p.Document, document));
 
         // Assert
-        cut.Markup.Should().Contain("bi-eye-fill", "PDF files should have a view button with eye icon");
-        cut.Markup.Should().Contain("Ver documento", "PDF view button should have tooltip");
+        cut.Markup.Should().NotContain("bi-eye-fill", "PDF files should not have a view button - only download");
+        cut.Markup.Should().NotContain("Ver documento", "view button should not exist");
     }
 
     [Fact]
