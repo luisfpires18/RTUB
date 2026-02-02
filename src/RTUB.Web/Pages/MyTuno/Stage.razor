@@ -372,23 +372,41 @@
                     var battleStageNumber = currentBattle.StageNumber;
                     var enemyTypeName = GetEnemyTypeName(currentBattle.EnemyType);
                     
-                    // Use the enemy's sprite path from the database, with fallback to default
-                    var enemySpritePath = currentBattle.StageEnemy?.SpritePath 
-                        ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType);
+                    // Parse the replay JSON to get enemy sprites and count
+                    var replayData = JsonSerializer.Deserialize<JsonElement>(currentBattle.ReplayJson);
+                    var enemyCount = replayData.TryGetProperty("EnemyCount", out var countProp) ? countProp.GetInt32() : 1;
+                    var eventsJson = replayData.TryGetProperty("Events", out var eventsProp) ? eventsProp.GetRawText() : currentBattle.ReplayJson;
+                    
+                    // Get enemy sprite paths from replay data (array of paths for each enemy)
+                    List<string> enemySpritePaths = new();
+                    if (replayData.TryGetProperty("EnemySprites", out var spritesProp) && spritesProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var sprite in spritesProp.EnumerateArray())
+                        {
+                            enemySpritePaths.Add(sprite.GetString() ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType));
+                        }
+                    }
+                    
+                    // Fallback: use old single sprite path if available
+                    if (enemySpritePaths.Count == 0)
+                    {
+                        var fallbackSprite = currentBattle.StageEnemy?.SpritePath ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType);
+                        enemySpritePaths = Enumerable.Repeat(fallbackSprite, enemyCount).ToList();
+                    }
 
                     // Create stage battle data object for new stage battle scene
                     var battleData = new
                     {
-                        EventsJson = currentBattle.ReplayJson,
+                        EventsJson = eventsJson,
                         DotNetRef = objRef,
                         StageNumber = battleStageNumber,
                         EnemyType = enemyTypeName,
-                        EnemyCount = 1, // Can be increased in future for multi-enemy battles
+                        EnemyCount = enemyCount,
                         PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
                         EnemyName = currentBattle.EnemyName,
                         BackgroundPath = "/sprites/games/my-tuno/backgrounds/forest.png",
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
-                        EnemySpritePath = enemySpritePath
+                        EnemySprites = enemySpritePaths // Array of sprite paths
                     };
 
                     // Use nextBattle for seamless transition, or start for first battle

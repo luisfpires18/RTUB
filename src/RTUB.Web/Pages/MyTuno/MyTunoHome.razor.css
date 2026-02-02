@@ -127,6 +127,11 @@
   padding: 0.5rem;
 }
 
+/* Leaderboard tabs - purple active state */
+.nav-pills .nav-link.active {
+  background-color: #6f42c1 !important;
+}
+
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .my-tuno-home-page {

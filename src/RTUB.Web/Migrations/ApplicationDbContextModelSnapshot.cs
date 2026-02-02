@@ -3972,6 +3972,9 @@ namespace RTUB.Migrations
                     b.Property<int>("CurrentStage")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("EnemiesDefeatedInCurrentStage")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("EndlessModeUnlocked")
                         .HasColumnType("INTEGER");
 

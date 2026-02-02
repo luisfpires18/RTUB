@@ -35,6 +35,12 @@ public class StageProgress : BaseEntity
     public RegionType CurrentRegion { get; set; } = RegionType.Forest;
 
     /// <summary>
+    /// Number of enemies defeated in the current stage (for multi-enemy stages)
+    /// Resets to 0 when advancing to next stage
+    /// </summary>
+    public int EnemiesDefeatedInCurrentStage { get; set; } = 0;
+
+    /// <summary>
     /// Whether the player has unlocked Endless mode (beat stage 10000 boss)
     /// </summary>
     public bool EndlessModeUnlocked { get; set; } = false;
@@ -90,6 +96,7 @@ public class StageProgress : BaseEntity
     {
         TotalStagesCleared++;
         CurrentStage++;
+        EnemiesDefeatedInCurrentStage = 0; // Reset for new stage
 
         if (CurrentStage > HighestStage)
         {
@@ -101,6 +108,14 @@ public class StageProgress : BaseEntity
 
         // Update region
         CurrentRegion = GetRegionForStage(CurrentStage);
+    }
+
+    /// <summary>
+    /// Records defeating one enemy in the current stage
+    /// </summary>
+    public void RecordEnemyDefeat()
+    {
+        EnemiesDefeatedInCurrentStage++;
     }
 
     /// <summary>
@@ -132,6 +147,7 @@ public class StageProgress : BaseEntity
     {
         CurrentStage = LastCheckpoint;
         CurrentRegion = GetRegionForStage(CurrentStage);
+        EnemiesDefeatedInCurrentStage = 0; // Reset enemy counter
     }
 
     /// <summary>

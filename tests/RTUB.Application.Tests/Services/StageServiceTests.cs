@@ -31,6 +31,7 @@ public class StageServiceTests : IDisposable
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<StageService>> _loggerMock;
     private readonly Mock<IOptions<MyTunoScalingConfiguration>> _myTunoScalingConfigMock;
+    private readonly Mock<IStageBiomeService> _biomeServiceMock;
     private readonly IStageService _stageService;
 
     public StageServiceTests()
@@ -69,6 +70,13 @@ public class StageServiceTests : IDisposable
         _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
         _myTunoScalingConfigMock.Setup(x => x.Value).Returns(myTunoScalingConfig);
 
+        // Setup BiomeService mock
+        _biomeServiceMock = new Mock<IStageBiomeService>();
+        _biomeServiceMock.Setup(x => x.IsBossStage(It.IsAny<int>())).Returns((int stage) => stage % 10 == 0);
+        _biomeServiceMock.Setup(x => x.GetBiomeForStage(It.IsAny<int>())).Returns("Forest");
+        _biomeServiceMock.Setup(x => x.CalculateScaledStats(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()))
+            .Returns((int stage, int hp, int damage, bool isBoss) => (hp, damage));
+
         _stageService = new StageService(
             _stageProgressRepository,
             _stageBattleRepository,
@@ -78,7 +86,8 @@ public class StageServiceTests : IDisposable
             _inventoryRepositoryMock.Object,
             _userManagerMock.Object,
             _loggerMock.Object,
-            _myTunoScalingConfigMock.Object);
+            _myTunoScalingConfigMock.Object,
+            _biomeServiceMock.Object);
     }
 
     /// <summary>

@@ -134,6 +134,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMatchmakingService, MatchmakingService>();
         services.AddScoped<IBattleService, BattleService>();
         services.AddScoped<IStageService, StageService>();
+        services.AddScoped<IStageBiomeService, StageBiomeService>();
 
         return services;
     }

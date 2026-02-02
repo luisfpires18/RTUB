@@ -165,6 +165,21 @@ public class StageModeConfig
         var count = 1 + (stageNumber / EnemyCountStageInterval);
         return Math.Min(count, MaxEnemiesPerStage);
     }
+
+    /// <summary>
+    /// Biome configurations for infinite stage progression
+    /// </summary>
+    public List<BiomeConfig> Biomes { get; set; } = new();
+
+    /// <summary>
+    /// Encounter rules for stage progression
+    /// </summary>
+    public EncounterRulesConfig EncounterRules { get; set; } = new();
+
+    /// <summary>
+    /// Stat scaling configuration
+    /// </summary>
+    public StageScalingConfig Scaling { get; set; } = new();
 }
 
 /// <summary>
@@ -269,4 +284,99 @@ public class RegionConfig
     /// Mini-boss sprite for this region
     /// </summary>
     public string MiniBossSprite { get; set; } = "/sprites/games/my-tuno/enemies/miniboss_default.png";
+}
+
+/// <summary>
+/// Biome configuration for infinite stage progression
+/// </summary>
+public class BiomeConfig
+{
+    /// <summary>
+    /// Biome name (e.g., "Forest", "Desert")
+    /// </summary>
+    public string Name { get; set; } = "Forest";
+
+    /// <summary>
+    /// Minimum stage number for this biome (inclusive)
+    /// </summary>
+    public int StageMin { get; set; } = 1;
+
+    /// <summary>
+    /// Maximum stage number for this biome (inclusive)
+    /// </summary>
+    public int StageMax { get; set; } = 100;
+
+    /// <summary>
+    /// Path to enemy sprite folder (relative to wwwroot)
+    /// </summary>
+    public string EnemySpritePath { get; set; } = "sprites/games/my-tuno/enemies/forest";
+
+    /// <summary>
+    /// Prefix for boss sprite filenames (e.g., "boss_")
+    /// </summary>
+    public string BossSpritePrefix { get; set; } = "boss_";
+}
+
+/// <summary>
+/// Encounter rules configuration for stage progression
+/// </summary>
+public class EncounterRulesConfig
+{
+    /// <summary>
+    /// Boss appears every N stages (e.g., 10 = boss on stage 10, 20, 30, etc.)
+    /// </summary>
+    public int BossEveryNStages { get; set; } = 10;
+
+    /// <summary>
+    /// Enemy count rules based on stage offset within each "decade"
+    /// Offset = (stage - 1) % BossEveryNStages + 1
+    /// </summary>
+    public List<EnemyCountRule> EnemyCountByStageOffset { get; set; } = new();
+}
+
+/// <summary>
+/// Enemy count rule for a range of stage offsets
+/// </summary>
+public class EnemyCountRule
+{
+    /// <summary>
+    /// Starting stage offset (inclusive)
+    /// </summary>
+    public int From { get; set; }
+
+    /// <summary>
+    /// Ending stage offset (inclusive)
+    /// </summary>
+    public int To { get; set; }
+
+    /// <summary>
+    /// Number of enemies to spawn
+    /// </summary>
+    public int Count { get; set; }
+}
+
+/// <summary>
+/// Stat scaling configuration for infinite stage progression
+/// </summary>
+public class StageScalingConfig
+{
+    /// <summary>
+    /// HP growth rate per stage (0.06 = 6% per stage)
+    /// </summary>
+    public double HpGrowthPerStage { get; set; } = 0.06;
+
+    /// <summary>
+    /// Damage growth rate per stage (0.05 = 5% per stage)
+    /// </summary>
+    public double DamageGrowthPerStage { get; set; } = 0.05;
+
+    /// <summary>
+    /// Armor growth rate per stage (0.03 = 3% per stage)
+    /// </summary>
+    public double ArmorGrowthPerStage { get; set; } = 0.03;
+
+    /// <summary>
+    /// Boss stat multiplier (2.5 = boss has 2.5x stats of normal enemy)
+    /// </summary>
+    public double BossMultiplier { get; set; } = 2.5;
 }

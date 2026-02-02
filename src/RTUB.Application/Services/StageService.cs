@@ -25,6 +25,7 @@ public class StageService : IStageService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<StageService> _logger;
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
+    private readonly IStageBiomeService _biomeService;
 
     public StageService(
         IStageProgressRepository stageProgressRepository,
@@ -35,7 +36,8 @@ public class StageService : IStageService
         IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<StageService> logger,
-        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig)
+        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
+        IStageBiomeService biomeService)
     {
         _stageProgressRepository = stageProgressRepository;
         _stageBattleRepository = stageBattleRepository;
@@ -46,6 +48,7 @@ public class StageService : IStageService
         _userManager = userManager;
         _logger = logger;
         _myTunoScalingConfig = myTunoScalingConfig.Value;
+        _biomeService = biomeService;
     }
 
     /// <summary>
@@ -111,39 +114,89 @@ public class StageService : IStageService
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var region = stageProgress.CurrentRegion;
 
-        // Get enemy template
-        var enemyTemplate = await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
-
-        // Create a temporary enemy character for combat simulation
-        var stageEnemy = CreateTemporaryEnemyCharacter(enemyTemplate, stageNumber, enemyType);
+        // Get enemy count for this stage (e.g., stage 1 = 1 enemy, stage 9 = 5 enemies)
+        var enemyCount = _biomeService.GetEnemyCountForStage(stageNumber);
+        
+        // Get biome name for sprite selection
+        var biomeName = _biomeService.GetBiomeForStage(stageNumber);
+        
+        // Create multiple enemy characters based on stage rules
+        var enemies = new List<Character>();
+        var enemyTemplateIds = new List<int?>();
+        var enemySpritePaths = new List<string>();
+        
+        // Get all enemy sprites at once
+        List<string> spritePaths;
+        if (enemyType == EnemyType.Boss)
+        {
+            var bossSprite = await _biomeService.GetBossSpriteAsync(stageNumber);
+            spritePaths = Enumerable.Repeat(bossSprite, enemyCount).ToList();
+        }
+        else
+        {
+            spritePaths = await _biomeService.GetRandomEnemySpritesAsync(stageNumber, enemyCount);
+        }
+        
+        for (int i = 0; i < enemyCount; i++)
+        {
+            // Get random enemy template for variety
+            var enemyTemplate = await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
+            enemyTemplateIds.Add(enemyTemplate?.Id);
+            
+            // Use the sprite path from the biome service
+            enemySpritePaths.Add(spritePaths[i]);
+            
+            // Create temporary enemy character with scaled stats
+            var enemy = CreateTemporaryEnemyCharacter(enemyTemplate, stageNumber, enemyType);
+            enemy.User = new ApplicationUser { UserName = $"{biomeName} #{i + 1}" };
+            enemies.Add(enemy);
+        }
 
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
 
-        // Run combat simulation
-        var combatResult = _combatEngine.Simulate(character, stageEnemy, seed);
+        // Run multi-enemy combat simulation
+        CombatResult combatResult;
+        if (enemies.Count == 1)
+        {
+            // Single enemy - use standard combat
+            combatResult = _combatEngine.Simulate(character, enemies[0], seed);
+        }
+        else
+        {
+            // Multiple enemies - use multi-enemy combat
+            combatResult = _combatEngine.SimulateMultiEnemy(character, enemies, seed);
+        }
 
-        // Create stage battle record
+        // Create stage battle record (store first enemy template for backward compatibility)
         var stageBattle = StageBattle.Create(
             characterId,
             stageNumber,
-            enemyTemplate?.Id,
+            enemyTemplateIds.FirstOrDefault(),
             enemyType,
             region,
-            stageEnemy.User?.UserName ?? $"Stage {stageNumber} Enemy",
+            enemies.Count == 1 ? enemies[0].User?.UserName ?? $"Stage {stageNumber} Enemy" : $"{enemies.Count} Enemies",
             seed,
             combatResult.Outcome);
 
-        // Serialize replay events
-        var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
+        // Serialize replay events with enemy sprite paths
+        var battleData = new
+        {
+            Events = combatResult.Events,
+            EnemyCount = enemies.Count,
+            EnemySprites = enemySpritePaths,
+            BiomeName = biomeName
+        };
+        
+        var replayJson = JsonSerializer.Serialize(battleData, new JsonSerializerOptions
         {
             WriteIndented = false
         });
         stageBattle.SetReplay(replayJson);
 
-        // Calculate and apply rewards
+        // Calculate and apply rewards (multiply by enemy count)
         var (xpReward, fidelisReward, beersDropped, shotsDropped) =
-            await CalculateAndApplyRewardsAsync(character, stageProgress, combatResult, enemyTemplate, stageNumber);
+            await CalculateAndApplyRewardsAsync(character, stageProgress, combatResult, enemies.FirstOrDefault(), stageNumber, enemyCount);
 
         stageBattle.SetRewards(xpReward, fidelisReward, beersDropped, shotsDropped);
 
@@ -151,19 +204,40 @@ public class StageService : IStageService
         await _stageBattleRepository.AddAsync(stageBattle);
 
         // Load the StageEnemy navigation property so it's available for sprite rendering
-        if (enemyTemplate != null)
+        var firstTemplate = await _stageEnemyRepository.GetByIdAsync(enemyTemplateIds.FirstOrDefault() ?? 0);
+        if (firstTemplate != null)
         {
-            stageBattle.StageEnemy = enemyTemplate;
+            stageBattle.StageEnemy = firstTemplate;
         }
 
-        // Update character HP and stage progress
-        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType);
+        // Update character HP and stage progress (entire stage complete after beating all enemies)
+        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
 
         _logger.LogInformation(
-            "Stage battle completed: Character {CharacterId} on Stage {Stage}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
-            characterId, stageNumber, combatResult.Outcome, xpReward, fidelisReward);
+            "Stage battle completed: Character {CharacterId} on Stage {Stage}, Enemies: {EnemyCount}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
+            characterId, stageNumber, enemyCount, combatResult.Outcome, xpReward, fidelisReward);
 
         return stageBattle;
+    }
+
+    /// <summary>
+    /// Gets the number of enemies remaining in the current stage
+    /// </summary>
+    public async Task<int> GetRemainingEnemiesInStageAsync(string userId)
+    {
+        var stageProgress = await GetOrCreateStageProgressAsync(userId);
+        var totalEnemies = _biomeService.GetEnemyCountForStage(stageProgress.CurrentStage);
+        var defeated = stageProgress.EnemiesDefeatedInCurrentStage;
+        return Math.Max(0, totalEnemies - defeated);
+    }
+
+    /// <summary>
+    /// Checks if the current stage is complete
+    /// </summary>
+    public async Task<bool> IsStageCompleteAsync(string userId)
+    {
+        var remaining = await GetRemainingEnemiesInStageAsync(userId);
+        return remaining == 0;
     }
 
     /// <summary>
@@ -195,13 +269,13 @@ public class StageService : IStageService
 
     /// <summary>
     /// Creates a temporary enemy character for combat simulation
-    /// Uses scaling from config file
+    /// Uses biome service for stat scaling
     /// </summary>
     private Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
     {
         var stageConfig = _myTunoScalingConfig.StageMode;
-        var scaling = stageConfig.EnemyScaling;
         var baseStats = stageConfig.BaseEnemyStats;
+        var isBoss = _biomeService.IsBossStage(stageNumber);
 
         // Default stats if no template found
         int baseHP, basePower, baseSpeed;
@@ -226,22 +300,30 @@ public class StageService : IStageService
                 _ => baseStats.Normal
             };
 
-            // Scale stats based on stage number using config values
-            var hpScaleFactor = 1.0 + (stageNumber - 1) * scaling.HpPerStage;
-            var powerScaleFactor = 1.0 + (stageNumber - 1) * scaling.PowerPerStage;
-            var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
-            var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
+            // Use biome service for stat scaling
+            var (scaledHP, scaledPower) = _biomeService.CalculateScaledStats(
+                stageNumber, 
+                typeStats.Hp, 
+                typeStats.Power, 
+                isBoss);
 
-            baseHP = (int)(typeStats.Hp * hpScaleFactor);
-            basePower = (int)(typeStats.Power * powerScaleFactor);
+            baseHP = scaledHP;
+            basePower = scaledPower;
+            
+            // Speed scaling (using simple formula for now)
+            var scaling = stageConfig.EnemyScaling;
+            var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
             baseSpeed = (int)(typeStats.Speed * speedScaleFactor);
+            
+            var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
             baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, 0.5); // Cap at 50%
 
+            var biomeName = _biomeService.GetBiomeForStage(stageNumber);
             enemyName = type switch
             {
-                EnemyType.Boss => $"Boss (Stage {stageNumber})",
-                EnemyType.MiniBoss => $"Mini-Boss (Stage {stageNumber})",
-                _ => $"Enemy (Stage {stageNumber})"
+                EnemyType.Boss => $"{biomeName} Boss (Stage {stageNumber})",
+                EnemyType.MiniBoss => $"{biomeName} Mini-Boss (Stage {stageNumber})",
+                _ => $"{biomeName} Enemy (Stage {stageNumber})"
             };
         }
 
@@ -256,8 +338,9 @@ public class StageService : IStageService
         Character character,
         StageProgress stageProgress,
         CombatResult combatResult,
-        StageEnemy? enemyTemplate,
-        int stageNumber)
+        Character? enemyTemplate,
+        int stageNumber,
+        int enemyCount = 1)
     {
         var random = Random.Shared;
         var beersDropped = 0;
@@ -272,7 +355,7 @@ public class StageService : IStageService
             return (0, 0m, 0, 0);
         }
 
-        // Player won - full rewards using config values
+        // Player won - full rewards using config values (multiplied by enemy count)
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var xpMultiplier = enemyType switch
         {
@@ -281,15 +364,15 @@ public class StageService : IStageService
             _ => 1
         };
 
-        var xpReward = stageConfig.BaseStageXP * xpMultiplier;
+        var xpReward = stageConfig.BaseStageXP * xpMultiplier * enemyCount;
 
-        // Fidelis reward from config based on enemy type
-        var fidelisReward = enemyTemplate?.GetScaledFidelisDrop(stageNumber) ?? enemyType switch
+        // Fidelis reward from config based on enemy type (multiplied by enemy count)
+        var fidelisReward = (enemyType switch
         {
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
             EnemyType.MiniBoss => fidelisRewardsConfig.MiniBossWin,
             _ => fidelisRewardsConfig.NormalWin
-        };
+        }) * enemyCount;
 
         // Apply XP to character
         character.AddXP(xpReward);
@@ -303,9 +386,9 @@ public class StageService : IStageService
             await _userManager.UpdateAsync(playerUser);
         }
 
-        // Roll for drops using config drop rates
-        var beerChance = enemyTemplate?.BeerDropChance ?? dropRates.BeerDropChance;
-        var shotChance = enemyTemplate?.ShotDropChance ?? dropRates.ShotDropChance;
+        // Roll for drops using config drop rates (each enemy can drop)
+        var beerChance = dropRates.BeerDropChance;
+        var shotChance = dropRates.ShotDropChance;
 
         // Bosses have higher drop rates from config multipliers
         if (enemyType == EnemyType.Boss)
@@ -319,18 +402,31 @@ public class StageService : IStageService
             shotChance *= dropRates.MiniBossDropMultiplier;
         }
 
-        if (random.NextDouble() < beerChance)
+        // Each enemy has a chance to drop items
+        for (int i = 0; i < enemyCount; i++)
         {
-            beersDropped = 1;
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, 1);
-            _logger.LogInformation("Beer dropped for user {UserId} on stage {Stage}", character.UserId, stageNumber);
+            if (random.NextDouble() < beerChance)
+            {
+                beersDropped++;
+            }
+
+            if (random.NextDouble() < shotChance)
+            {
+                shotsDropped++;
+            }
         }
 
-        if (random.NextDouble() < shotChance)
+        // Add all dropped items to inventory
+        if (beersDropped > 0)
         {
-            shotsDropped = 1;
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, 1);
-            _logger.LogInformation("Shot dropped for user {UserId} on stage {Stage}", character.UserId, stageNumber);
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beersDropped);
+            _logger.LogInformation("{BeerCount} Beer(s) dropped for user {UserId} on stage {Stage}", beersDropped, character.UserId, stageNumber);
+        }
+
+        if (shotsDropped > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shotsDropped);
+            _logger.LogInformation("{ShotCount} Shot(s) dropped for user {UserId} on stage {Stage}", shotsDropped, character.UserId, stageNumber);
         }
 
         return (xpReward, fidelisReward, beersDropped, shotsDropped);
@@ -343,7 +439,8 @@ public class StageService : IStageService
         Character character,
         StageProgress stageProgress,
         CombatResult combatResult,
-        EnemyType enemyType)
+        EnemyType enemyType,
+        int enemyCount = 1)
     {
         // Update character HP
         character.CurrentHP = combatResult.AttackerFinalHP;
@@ -351,6 +448,12 @@ public class StageService : IStageService
 
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
         {
+            // Record all enemies defeated (this is a full stage battle with all enemies at once)
+            for (int i = 0; i < enemyCount; i++)
+            {
+                stageProgress.RecordEnemyDefeat();
+            }
+
             // Record boss/mini-boss defeats
             if (enemyType == EnemyType.Boss)
             {
@@ -361,8 +464,13 @@ public class StageService : IStageService
                 stageProgress.RecordMiniBossDefeat();
             }
 
-            // Advance to next stage
-            stageProgress.AdvanceStage();
+            // Check if all enemies in this stage are defeated (they should all be defeated now)
+            var totalEnemies = _biomeService.GetEnemyCountForStage(stageProgress.CurrentStage);
+            if (stageProgress.EnemiesDefeatedInCurrentStage >= totalEnemies)
+            {
+                // All enemies defeated - advance to next stage
+                stageProgress.AdvanceStage();
+            }
         }
 
         await _stageProgressRepository.UpdateAsync(stageProgress);
@@ -374,5 +482,29 @@ public class StageService : IStageService
     private static int GenerateSeed()
     {
         return Random.Shared.Next(int.MinValue, int.MaxValue);
+    }
+
+    /// <summary>
+    /// Gets biome information for a stage (for UI display)
+    /// </summary>
+    public string GetBiomeNameForStage(int stageNumber)
+    {
+        return _biomeService.GetBiomeForStage(stageNumber);
+    }
+
+    /// <summary>
+    /// Gets the number of enemies for a stage (for UI display)
+    /// </summary>
+    public int GetEnemyCountForStage(int stageNumber)
+    {
+        return _biomeService.GetEnemyCountForStage(stageNumber);
+    }
+
+    /// <summary>
+    /// Checks if a stage is a boss stage (for UI display)
+    /// </summary>
+    public bool IsBossStage(int stageNumber)
+    {
+        return _biomeService.IsBossStage(stageNumber);
     }
 }

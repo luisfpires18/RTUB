@@ -57,6 +57,8 @@
             this.playerCurrentHp = 100;
             this.enemyMaxHp = 100;
             this.enemyCurrentHp = 100;
+            this.enemyHPs = []; // Individual enemy HP tracking for multi-enemy battles
+            this.isInitialSetup = true; // Flag to skip animations for initial HP setup
             
             // Sprites
             this.playerSprite = null;
@@ -99,13 +101,24 @@
             this.enemyName = data?.enemyName ?? 'Enemy';
             this.backgroundPath = data?.backgroundPath ?? defaultSprites.background;
             this.playerSpritePath = data?.playerSpritePath ?? defaultSprites.player;
-            this.enemySpritePath = data?.enemySpritePath ?? defaultSprites.enemies[this.enemyType] ?? defaultSprites.enemies.normal;
+            
+            // Support both array of sprites (new) and single sprite path (legacy)
+            if (data?.enemySprites && Array.isArray(data.enemySprites)) {
+                this.enemySpritePaths = data.enemySprites;
+            } else {
+                const singlePath = data?.enemySpritePath ?? defaultSprites.enemies[this.enemyType] ?? defaultSprites.enemies.normal;
+                this.enemySpritePaths = Array(this.enemyCount).fill(singlePath);
+            }
+            
+            // Initialize individual enemy HP tracking
+            this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
             this.currentEventIndex = 0;
             this.isPlaying = true;
             this.playbackSpeed = 1;
             this.battleFinished = false;
             this.logEntries = [];
+            this.isInitialSetup = true; // Will be set to false after preprocessing
             
             this.setupAudio();
         }
@@ -130,8 +143,12 @@
             // Load player sprite
             this.load.image('stagePlayer', this.playerSpritePath);
             
-            // Load enemy sprite
-            this.load.image('stageEnemy', this.enemySpritePath);
+            // Load individual enemy sprites for each enemy
+            if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
+                for (let i = 0; i < this.enemySpritePaths.length; i++) {
+                    this.load.image(`stageEnemy${i}`, this.enemySpritePaths[i]);
+                }
+            }
         }
 
         create() {
@@ -181,13 +198,91 @@
             // Create battle log
             this.createBattleLog(width, height);
 
-            // Start processing events
+            // PRE-PROCESS: Find first player attack and process initial events instantly
+            this.preprocessInitialEvents();
+
+            // Start processing events from where we left off
             this.time.addEvent({
                 delay: this.eventInterval / this.playbackSpeed,
                 callback: this.processNextEvent,
                 callbackScope: this,
                 loop: true
             });
+        }
+
+        preprocessInitialEvents() {
+            // Find the index of the first player attack
+            let firstPlayerAttackIndex = -1;
+            for (let i = 0; i < this.eventsList.length; i++) {
+                const evt = this.eventsList[i];
+                const evtType = getEventField(evt, 'Type');
+                const attacker = getEventField(evt, 'Attacker');
+                if (evtType === 'Attack' && (attacker === 'Attacker' || attacker === 'Player')) {
+                    firstPlayerAttackIndex = i;
+                    break;
+                }
+            }
+
+            // Process only initial HPUpdate events (those with MaxHP) up to the first player attack
+            for (let i = 0; i < this.eventsList.length && i < firstPlayerAttackIndex; i++) {
+                const evt = this.eventsList[i];
+                const evtType = getEventField(evt, 'Type');
+                const maxHP = getEventField(evt, 'MaxHP');
+                
+                // Only process initial HP setup events (those with MaxHP)
+                if (evtType === 'HPUpdate' && maxHP) {
+                    this.processInitialHPEvent(evt);
+                }
+            }
+
+            // Set current event index to the first player attack (or 0 if not found)
+            this.currentEventIndex = firstPlayerAttackIndex >= 0 ? firstPlayerAttackIndex : 0;
+            this.isInitialSetup = false; // Done with initial setup
+        }
+
+        processInitialHPEvent(evt) {
+            const character = getEventField(evt, 'Character');
+            const hp = getEventField(evt, 'HP');
+            const maxHP = getEventField(evt, 'MaxHP');
+
+            if (character === 'Attacker' || character === 'Player') {
+                this.playerMaxHp = maxHP;
+                this.playerCurrentHp = hp;
+                // Set bar directly without animation - use correct ratio
+                if (this.playerHpBar) {
+                    const ratio = Math.max(0, hp / maxHP);
+                    this.playerHpBar.scaleX = ratio;
+                }
+                if (this.playerHpText) {
+                    this.playerHpText.setText(`${hp}/${maxHP}`);
+                }
+            } else if (character.startsWith('Enemy')) {
+                // Multi-enemy format: "Enemy0", "Enemy1", etc.
+                const enemyIndex = parseInt(character.replace('Enemy', ''));
+                if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyHPs.length) {
+                    this.enemyHPs[enemyIndex].max = maxHP;
+                    this.enemyHPs[enemyIndex].current = hp;
+                    // Set bar directly without animation
+                    const hpBarData = this.enemyHpBars[enemyIndex];
+                    if (hpBarData && hpBarData.text) {
+                        hpBarData.bar.width = hpBarData.maxWidth;
+                        hpBarData.text.setText(`${hp}/${maxHP}`);
+                        hpBarData.text.setVisible(true);
+                    }
+                }
+            } else if (character === 'Defender' && this.enemyCount === 1) {
+                // Legacy single-enemy format: "Defender"
+                const enemyIndex = 0; // First (and only) enemy
+                this.enemyHPs[enemyIndex].max = maxHP;
+                this.enemyHPs[enemyIndex].current = hp;
+                // Set bar directly without animation
+                const hpBarData = this.enemyHpBars[enemyIndex];
+                if (hpBarData && hpBarData.text) {
+                    hpBarData.bar.width = hpBarData.maxWidth;
+                    hpBarData.text.setText(`${hp}/${maxHP}`);
+                    hpBarData.text.setVisible(true);
+                }
+            }
         }
 
         createEnemies(width, height) {
@@ -201,18 +296,14 @@
 
             for (let i = 0; i < this.enemyCount; i++) {
                 const enemyX = startX + i * enemySpacing;
-                const enemy = this.add.image(enemyX, enemyY, 'stageEnemy');
+                // Use individual sprite for each enemy
+                const enemy = this.add.image(enemyX, enemyY, `stageEnemy${i}`);
                 
                 // Scale enemy appropriately based on type
                 const enemySizes = { boss: 120, miniBoss: 100, normal: 80 };
                 const maxSize = enemySizes[this.enemyType] || enemySizes.normal;
                 const scale = maxSize / Math.max(enemy.width, enemy.height);
                 enemy.setScale(scale);
-                
-                // Add slight variation for multiple enemies
-                if (this.enemyCount > 1) {
-                    enemy.setTint(Phaser.Display.Color.HSLToColor(0.1 * i, 0.8, 0.6).color);
-                }
                 
                 this.enemySprites.push(enemy);
                 
@@ -239,7 +330,13 @@
                     strokeThickness: 2
                 }).setOrigin(0.5, 0.5);
                 
-                this.enemyHpBars.push({ bar, barBg, text: hpText, maxWidth: hpBarWidth });
+                this.enemyHpBars.push({
+                    bar: bar,
+                    barBg: barBg,
+                    text: hpText,
+                    maxWidth: hpBarWidth,
+                    enemyIndex: i // Track which enemy this bar belongs to
+                });
             }
         }
 
@@ -257,20 +354,23 @@
         createHPBars(width, height) {
             // Player HP bar at bottom
             const playerBarY = height - 40;
-            this.add.text(20, playerBarY - 20, this.playerName, {
+            const playerNameX = 20;
+            const playerBarX = playerNameX + 80; // Closer to the name
+            
+            this.add.text(playerNameX, playerBarY - 20, this.playerName, {
                 fontSize: '14px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#ffffff'
             });
             
             // Player HP bar background
-            this.add.rectangle(20 + 100, playerBarY, 200, 20, 0x333333).setOrigin(0, 0.5);
+            this.add.rectangle(playerBarX, playerBarY, 200, 20, 0x333333).setOrigin(0, 0.5);
             
             // Player HP bar fill
-            this.playerHpBar = this.add.rectangle(20 + 100, playerBarY, 200, 20, 0x44ff44).setOrigin(0, 0.5);
+            this.playerHpBar = this.add.rectangle(playerBarX, playerBarY, 200, 20, 0x44ff44).setOrigin(0, 0.5);
             
             // Player HP text
-            this.playerHpText = this.add.text(20 + 200, playerBarY, '100/100', {
+            this.playerHpText = this.add.text(playerBarX + 100, playerBarY, '100/100', {
                 fontSize: '12px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#ffffff'
@@ -340,16 +440,28 @@
         handleHPUpdate(evt) {
             const character = getEventField(evt, 'Character');
             const hp = getEventField(evt, 'HP');
+            const maxHP = getEventField(evt, 'MaxHP');
 
-            if (character === 'Attacker') {
+            if (character === 'Attacker' || character === 'Player') {
                 // Player HP
-                if (this.playerMaxHp === 100 && hp > 100) {
-                    this.playerMaxHp = hp;
+                if (maxHP && maxHP > this.playerMaxHp) {
+                    this.playerMaxHp = maxHP;
                 }
                 this.playerCurrentHp = hp;
                 this.updatePlayerHPBar();
+            } else if (character.startsWith('Enemy')) {
+                // Individual enemy HP (e.g., "Enemy0", "Enemy1")
+                const enemyIndex = parseInt(character.replace('Enemy', ''));
+                if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyHpBars.length) {
+                    // Update individual enemy HP
+                    if (maxHP && maxHP > this.enemyHPs[enemyIndex].max) {
+                        this.enemyHPs[enemyIndex].max = maxHP;
+                    }
+                    this.enemyHPs[enemyIndex].current = hp;
+                    this.updateIndividualEnemyHPBar(enemyIndex);
+                }
             } else {
-                // Enemy HP
+                // Legacy: single enemy HP (backward compatibility)
                 if (this.enemyMaxHp === 100 && hp > 100) {
                     this.enemyMaxHp = hp;
                 }
@@ -367,6 +479,29 @@
                 ease: 'Power2'
             });
             this.playerHpText.setText(`${Math.max(0, this.playerCurrentHp)}/${this.playerMaxHp}`);
+        }
+
+        updateIndividualEnemyHPBar(enemyIndex) {
+            if (!this.enemyHPs || !this.enemyHPs[enemyIndex]) return;
+            
+            const enemyHP = this.enemyHPs[enemyIndex];
+            const ratio = Math.max(0, enemyHP.current / enemyHP.max);
+            const hpBarData = this.enemyHpBars[enemyIndex];
+            
+            if (!hpBarData) return;
+            
+            // Calculate new width based on ratio
+            const newWidth = hpBarData.maxWidth * ratio;
+            
+            this.tweens.add({
+                targets: hpBarData.bar,
+                width: Math.max(0, newWidth),
+                duration: 200,
+                ease: 'Power2'
+            });
+            
+            // Update HP text
+            hpBarData.text.setText(`${Math.max(0, Math.round(enemyHP.current))}/${Math.round(enemyHP.max)}`);
         }
 
         updateEnemyHPBar() {
@@ -391,15 +526,28 @@
 
         handleAttack(evt) {
             const attacker = getEventField(evt, 'Attacker');
+            const defender = getEventField(evt, 'Defender');
             const damage = getEventField(evt, 'Damage') ?? 0;
             const isCritical = getEventField(evt, 'IsCritical') ?? false;
 
-            if (attacker === 'Attacker') {
-                // Player attacking enemy
+            if (attacker === 'Attacker' || attacker === 'Player') {
+                // Player attacking a specific enemy
                 this.animatePlayerAttack();
-                this.flashEnemies();
+                // Flash only the targeted enemy
+                if (defender && defender.startsWith('Enemy')) {
+                    const enemyIndex = parseInt(defender.replace('Enemy', ''));
+                    this.flashEnemy(enemyIndex);
+                } else {
+                    // Fallback: flash all enemies (legacy)
+                    this.flashEnemies();
+                }
+            } else if (attacker.startsWith('Enemy')) {
+                // Specific enemy attacking player
+                const enemyIndex = parseInt(attacker.replace('Enemy', ''));
+                this.animateSingleEnemyAttack(enemyIndex);
+                this.flashPlayer();
             } else {
-                // Enemy attacking player
+                // Legacy: enemy attacking player
                 this.animateEnemyAttack();
                 this.flashPlayer();
             }
@@ -408,7 +556,7 @@
             this.playSound(isCritical ? 'critical' : 'attack');
 
             // Add to log
-            const attackerName = attacker === 'Attacker' ? this.playerName : this.enemyName;
+            const attackerName = attacker === 'Attacker' || attacker === 'Player' ? this.playerName : this.enemyName;
             const critText = isCritical ? ' (CRIT!)' : '';
             this.addLogEntry(`${attackerName}: ${damage} dmg${critText}`);
         }
@@ -427,7 +575,7 @@
         }
 
         animateEnemyAttack() {
-            // Enemies move down towards player
+            // Enemies move down towards player (all of them - legacy)
             this.enemySprites.forEach((enemy, index) => {
                 this.tweens.add({
                     targets: enemy,
@@ -440,12 +588,41 @@
             });
         }
 
+        animateSingleEnemyAttack(enemyIndex) {
+            // Only the attacking enemy moves down towards player
+            if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
+                const enemy = this.enemySprites[enemyIndex];
+                if (enemy) {
+                    this.tweens.add({
+                        targets: enemy,
+                        y: enemy.y + 30,
+                        duration: 100,
+                        yoyo: true,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        }
+
         flashPlayer() {
             if (!this.playerSprite) return;
             this.playerSprite.setTint(0xff0000);
             this.time.delayedCall(100, () => {
                 this.playerSprite.clearTint();
             });
+        }
+
+        flashEnemy(enemyIndex) {
+            // Flash only the specific enemy that was hit
+            if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
+                const enemy = this.enemySprites[enemyIndex];
+                if (enemy) {
+                    enemy.setTint(0xff0000);
+                    this.time.delayedCall(100, () => {
+                        enemy.clearTint();
+                    });
+                }
+            }
         }
 
         flashEnemies() {
@@ -461,7 +638,7 @@
             const character = getEventField(evt, 'Character');
             this.playSound('ko');
 
-            if (character === 'Attacker') {
+            if (character === 'Attacker' || character === 'Player') {
                 // Player KO'd
                 this.tweens.add({
                     targets: this.playerSprite,
@@ -470,8 +647,31 @@
                     duration: 500
                 });
                 this.addLogEntry(`${this.playerName} defeated!`);
+            } else if (character.startsWith('Enemy')) {
+                // Individual enemy KO'd
+                const enemyIndex = parseInt(character.replace('Enemy', ''));
+                if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
+                    const enemy = this.enemySprites[enemyIndex];
+                    this.tweens.add({
+                        targets: enemy,
+                        alpha: 0,
+                        y: enemy.y - 50,
+                        duration: 500
+                    });
+                    this.addLogEntry(`Enemy ${enemyIndex + 1} defeated!`);
+                    
+                    // Hide the HP bar for this enemy
+                    const hpBarData = this.enemyHpBars[enemyIndex];
+                    if (hpBarData) {
+                        this.tweens.add({
+                            targets: [hpBarData.bar, hpBarData.barBg, hpBarData.text],
+                            alpha: 0,
+                            duration: 300
+                        });
+                    }
+                }
             } else {
-                // Enemy KO'd
+                // Legacy: all enemies KO'd at once
                 this.enemySprites.forEach(enemy => {
                     this.tweens.add({
                         targets: enemy,
@@ -686,7 +886,9 @@
             const enemyName = battleData?.enemyName ?? battleData?.EnemyName ?? 'Enemy';
             const backgroundPath = battleData?.backgroundPath ?? battleData?.BackgroundPath ?? defaultSprites.background;
             const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
-            const enemySpritePath = battleData?.enemySpritePath ?? battleData?.EnemySpritePath ?? defaultSprites.enemies[enemyType] ?? defaultSprites.enemies.normal;
+            
+            // Support both array of sprites (new) and single sprite path (legacy)
+            const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
 
             const config = {
                 type: Phaser.AUTO,
@@ -712,7 +914,7 @@
                         enemyName: enemyName,
                         backgroundPath: backgroundPath,
                         playerSpritePath: playerSpritePath,
-                        enemySpritePath: enemySpritePath
+                        enemySprites: enemySprites // Pass array of sprite paths
                     });
                 }
             });
@@ -757,7 +959,9 @@
             const enemyName = battleData?.enemyName ?? battleData?.EnemyName ?? 'Enemy';
             const backgroundPath = battleData?.backgroundPath ?? battleData?.BackgroundPath ?? defaultSprites.background;
             const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
-            const enemySpritePath = battleData?.enemySpritePath ?? battleData?.EnemySpritePath ?? defaultSprites.enemies[enemyType] ?? defaultSprites.enemies.normal;
+            
+            // Support both array of sprites (new) and single sprite path (legacy)
+            const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
 
             // Restart the scene with new data (no need to reload assets if they're the same)
             stageScene.scene.restart({
@@ -770,7 +974,7 @@
                 enemyName: enemyName,
                 backgroundPath: backgroundPath,
                 playerSpritePath: playerSpritePath,
-                enemySpritePath: enemySpritePath
+                enemySprites: enemySprites
             });
         }
     };

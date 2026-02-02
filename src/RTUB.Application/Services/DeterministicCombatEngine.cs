@@ -309,6 +309,312 @@ public class DeterministicCombatEngine : ICombatEngine
     }
 
     /// <summary>
+    /// Simulates a battle between one player and multiple enemies
+    /// Player focuses one enemy at a time until defeated (task requirement #4)
+    /// </summary>
+    public CombatResult SimulateMultiEnemy(Character player, List<Character> enemies, int seed)
+    {
+        if (player == null)
+            throw new ArgumentNullException(nameof(player));
+        if (enemies == null || !enemies.Any())
+            throw new ArgumentException("Must have at least one enemy", nameof(enemies));
+
+        var rng = new SeededRandom(seed);
+        var events = new List<CombatEvent>();
+        var timestamp = 0;
+
+        // Initialize player HP
+        var playerHP = player.CurrentHP ?? player.TotalHP;
+        var playerMaxHP = player.TotalHP;
+        
+        // Initialize all enemy HPs
+        var enemyStates = enemies.Select((enemy, index) => new
+        {
+            Enemy = enemy,
+            Index = index,
+            HP = enemy.CurrentHP ?? enemy.TotalHP,
+            MaxHP = enemy.TotalHP,
+            Name = enemy.User?.UserName ?? $"Enemy {index + 1}"
+        }).ToList();
+
+        // Emit initial HP for player
+        events.Add(new CombatEvent
+        {
+            Type = "HPUpdate",
+            Character = "Player",
+            HP = playerHP,
+            MaxHP = playerMaxHP,
+            Timestamp = timestamp++
+        });
+
+        // Emit initial HP for all enemies
+        foreach (var enemyState in enemyStates)
+        {
+            events.Add(new CombatEvent
+            {
+                Type = "HPUpdate",
+                Character = $"Enemy{enemyState.Index}",
+                HP = enemyState.HP,
+                MaxHP = enemyState.MaxHP,
+                Timestamp = timestamp++
+            });
+        }
+
+        // Track current target (player focuses one enemy at a time)
+        int currentTargetIndex = 0;
+
+        events.Add(new CombatEvent
+        {
+            Type = "RoundStart",
+            Round = 1,
+            Timestamp = timestamp++
+        });
+
+        // Battle loop
+        for (int round = 1; round <= MaxRounds; round++)
+        {
+            // Check if any enemies are alive
+            var aliveEnemies = enemyStates.Where(e => e.HP > 0).ToList();
+            
+            if (!aliveEnemies.Any())
+            {
+                // Player won - all enemies defeated
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Player",
+                    Timestamp = timestamp++
+                });
+                break;
+            }
+
+            if (playerHP <= 0)
+            {
+                // Player lost
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Enemies",
+                    Timestamp = timestamp++
+                });
+                break;
+            }
+
+            // Update current target if it's defeated
+            while (currentTargetIndex < enemyStates.Count && enemyStates[currentTargetIndex].HP <= 0)
+            {
+                currentTargetIndex++;
+            }
+
+            if (currentTargetIndex >= enemyStates.Count)
+            {
+                // All enemies defeated
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Player",
+                    Timestamp = timestamp++
+                });
+                break;
+            }
+
+            var currentTarget = enemyStates[currentTargetIndex];
+
+            // Determine turn order based on speed
+            var playerSpeed = player.TotalSpeed;
+            var targetSpeed = currentTarget.Enemy.TotalSpeed;
+            var playerGoesFirst = playerSpeed >= targetSpeed;
+
+            if (playerGoesFirst)
+            {
+                // Player attacks current target
+                var damage = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                var targetCurrentHP = currentTarget.HP;
+                targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
+
+                events.Add(new CombatEvent
+                {
+                    Type = "Attack",
+                    Attacker = "Player",
+                    Defender = $"Enemy{currentTarget.Index}",
+                    Damage = damage,
+                    Timestamp = timestamp++
+                });
+
+                // Update target HP in our tracking
+                enemyStates[currentTarget.Index] = new
+                {
+                    currentTarget.Enemy,
+                    currentTarget.Index,
+                    HP = targetCurrentHP,
+                    currentTarget.MaxHP,
+                    currentTarget.Name
+                };
+
+                events.Add(new CombatEvent
+                {
+                    Type = "HPUpdate",
+                    Character = $"Enemy{currentTarget.Index}",
+                    HP = targetCurrentHP,
+                    Timestamp = timestamp++
+                });
+
+                if (targetCurrentHP <= 0)
+                {
+                    events.Add(new CombatEvent
+                    {
+                        Type = "KO",
+                        Character = $"Enemy{currentTarget.Index}",
+                        Timestamp = timestamp++
+                    });
+                }
+            }
+
+            // All alive enemies attack the player
+            foreach (var enemyState in enemyStates.Where(e => e.HP > 0))
+            {
+                if (playerHP <= 0) break;
+
+                var damage = CalculateDamage(enemyState.Enemy.TotalPower, enemyState.Enemy.TotalCriticalChance, rng);
+                playerHP = Math.Max(0, playerHP - damage);
+
+                events.Add(new CombatEvent
+                {
+                    Type = "Attack",
+                    Attacker = $"Enemy{enemyState.Index}",
+                    Defender = "Player",
+                    Damage = damage,
+                    Timestamp = timestamp++
+                });
+
+                events.Add(new CombatEvent
+                {
+                    Type = "HPUpdate",
+                    Character = "Player",
+                    HP = playerHP,
+                    Timestamp = timestamp++
+                });
+
+                if (playerHP <= 0)
+                {
+                    events.Add(new CombatEvent
+                    {
+                        Type = "KO",
+                        Character = "Player",
+                        Timestamp = timestamp++
+                    });
+                    break;
+                }
+            }
+
+            if (!playerGoesFirst && playerHP > 0 && currentTarget.HP > 0)
+            {
+                // Player attacks after enemies (slower speed)
+                var damage = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                var targetCurrentHP = enemyStates[currentTarget.Index].HP;
+                targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
+
+                events.Add(new CombatEvent
+                {
+                    Type = "Attack",
+                    Attacker = "Player",
+                    Defender = $"Enemy{currentTarget.Index}",
+                    Damage = damage,
+                    Timestamp = timestamp++
+                });
+
+                enemyStates[currentTarget.Index] = new
+                {
+                    currentTarget.Enemy,
+                    currentTarget.Index,
+                    HP = targetCurrentHP,
+                    currentTarget.MaxHP,
+                    currentTarget.Name
+                };
+
+                events.Add(new CombatEvent
+                {
+                    Type = "HPUpdate",
+                    Character = $"Enemy{currentTarget.Index}",
+                    HP = targetCurrentHP,
+                    Timestamp = timestamp++
+                });
+
+                if (targetCurrentHP <= 0)
+                {
+                    events.Add(new CombatEvent
+                    {
+                        Type = "KO",
+                        Character = $"Enemy{currentTarget.Index}",
+                        Timestamp = timestamp++
+                    });
+                }
+            }
+
+            events.Add(new CombatEvent
+            {
+                Type = "RoundEnd",
+                Round = round,
+                Timestamp = timestamp++
+            });
+
+            // Check for battle end
+            if (playerHP <= 0 || !enemyStates.Any(e => e.HP > 0))
+            {
+                break;
+            }
+
+            // Start next round
+            if (round < MaxRounds)
+            {
+                events.Add(new CombatEvent
+                {
+                    Type = "RoundStart",
+                    Round = round + 1,
+                    Timestamp = timestamp++
+                });
+            }
+        }
+
+        // Handle max rounds timeout
+        if (playerHP > 0 && enemyStates.Any(e => e.HP > 0))
+        {
+            // Determine winner by total HP remaining
+            var totalEnemyHP = enemyStates.Sum(e => e.HP);
+            
+            if (playerHP > totalEnemyHP)
+            {
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Player",
+                    Timestamp = timestamp++
+                });
+            }
+            else
+            {
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Enemies",
+                    Timestamp = timestamp++
+                });
+            }
+        }
+
+        // Determine outcome
+        var outcome = playerHP > 0 ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon;
+
+        return new CombatResult
+        {
+            Outcome = outcome,
+            Events = events,
+            AttackerFinalHP = playerHP,
+            DefenderFinalHP = enemyStates.Sum(e => e.HP) // Total remaining enemy HP
+        };
+    }
+
+    /// <summary>
     /// Calculates damage with variance
     /// Formula: BaseDamage = Power, FinalDamage = Power * Random(0.8, 1.2)
     /// </summary>

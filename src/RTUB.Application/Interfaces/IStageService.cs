@@ -37,6 +37,21 @@ public interface IStageService
     Task<StageBattle> ExecuteStageBattleAsync(int characterId);
 
     /// <summary>
+    /// Gets the number of enemies remaining in the current stage
+    /// Used for multi-enemy stages where player fights enemies sequentially
+    /// </summary>
+    /// <param name="userId">The user's ID</param>
+    /// <returns>Number of enemies remaining to fight in current stage</returns>
+    Task<int> GetRemainingEnemiesInStageAsync(string userId);
+
+    /// <summary>
+    /// Checks if the current stage is complete (all enemies defeated)
+    /// </summary>
+    /// <param name="userId">The user's ID</param>
+    /// <returns>True if stage is complete, false if more enemies remain</returns>
+    Task<bool> IsStageCompleteAsync(string userId);
+
+    /// <summary>
     /// Gets recent stage battle history
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
@@ -50,4 +65,25 @@ public interface IStageService
     /// <param name="userId">The user's ID</param>
     /// <returns>Updated stage progress</returns>
     Task<StageProgress> ReturnToCheckpointAsync(string userId);
+
+    /// <summary>
+    /// Gets the biome name for a given stage number
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>Biome name (e.g., "Forest", "Desert")</returns>
+    string GetBiomeNameForStage(int stageNumber);
+
+    /// <summary>
+    /// Gets the number of enemies for a given stage
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>Number of enemies</returns>
+    int GetEnemyCountForStage(int stageNumber);
+
+    /// <summary>
+    /// Checks if a stage is a boss stage
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>True if boss stage, false otherwise</returns>
+    bool IsBossStage(int stageNumber);
 }
