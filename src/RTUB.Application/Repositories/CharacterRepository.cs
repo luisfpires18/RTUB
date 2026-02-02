@@ -77,26 +77,43 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
         var playerLevel = playerCharacter.Level;
 
-        // Categorize opponents by level relationship
-        var higherLevel = allOpponents
-            .Where(o => o.Level > playerLevel)
-            .OrderBy(o => o.Level - playerLevel) // Closest to player level first
-            .ToList();
+        // Categorize opponents in a single pass for efficiency
+        var higherLevel = new List<(Character character, int levelDiff)>();
+        var sameLevel = new List<Character>();
+        var lowerLevel = new List<(Character character, int levelDiff)>();
 
-        var sameLevel = allOpponents
-            .Where(o => o.Level == playerLevel)
-            .ToList();
+        foreach (var opponent in allOpponents)
+        {
+            if (opponent.Level > playerLevel)
+            {
+                higherLevel.Add((opponent, opponent.Level - playerLevel));
+            }
+            else if (opponent.Level == playerLevel)
+            {
+                sameLevel.Add(opponent);
+            }
+            else
+            {
+                lowerLevel.Add((opponent, playerLevel - opponent.Level));
+            }
+        }
 
-        var lowerLevel = allOpponents
-            .Where(o => o.Level < playerLevel)
-            .OrderBy(o => playerLevel - o.Level) // Closest to player level first
-            .ToList();
-
-        // Build priority list: higher level first, then same level, then lower level
+        // Build priority list: higher level first (sorted by proximity), 
+        // then same level, then lower level (sorted by proximity)
         var prioritizedOpponents = new List<Character>();
-        prioritizedOpponents.AddRange(higherLevel);
+        
+        // Add higher level opponents sorted by proximity (smallest diff first)
+        prioritizedOpponents.AddRange(
+            higherLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
+        );
+        
+        // Add same level opponents
         prioritizedOpponents.AddRange(sameLevel);
-        prioritizedOpponents.AddRange(lowerLevel);
+        
+        // Add lower level opponents sorted by proximity (smallest diff first)
+        prioritizedOpponents.AddRange(
+            lowerLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
+        );
 
         // Return up to 'count' opponents
         return prioritizedOpponents.Take(count).ToList();
