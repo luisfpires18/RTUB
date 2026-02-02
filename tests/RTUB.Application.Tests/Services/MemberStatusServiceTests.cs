@@ -985,7 +985,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task GetMemberStatusAsync_RetiredMemberWithPastActivity_AndFutureEnrollments_ShowsOnly2Of3()
+    public async Task GetMemberStatusAsync_RetiredMemberWithTwoConsecutivePastMonths_AndFutureEnrollments_ShowsOnly2Of3Progress()
     {
         // Arrange - CRITICAL BUG FIX TEST
         // Scenario: Member is retired, has activity in 2 consecutive past months,

@@ -349,7 +349,8 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         // We need 3 consecutive months including potentially the current month if we're past day 1
         
         // Most recent activity - as recent as possible but still in the past
-        var mostRecentDate = now.AddDays(-1); // Yesterday
+        // Use midday to avoid any midnight boundary issues
+        var mostRecentDate = now.Date.AddDays(-1).AddHours(12); // Yesterday at noon
         var rehearsal1 = await CreateTestRehearsal(mostRecentDate);
         await CreateAttendedRehearsal(user.Id, rehearsal1.Id, mostRecentDate);
 
