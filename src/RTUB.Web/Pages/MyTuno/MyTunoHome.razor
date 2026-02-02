@@ -18,6 +18,7 @@
 @inject IUpgradeService UpgradeService
 @inject IBattleRepository BattleRepository
 @inject IInventoryService InventoryService
+@inject IStageService StageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -282,9 +283,14 @@
                         }
                         
                         <hr />
-                        <button class="btn btn-primary btn-lg w-100" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
-                            <i class="bi bi-sword me-2"></i>Ir para Arena
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-lg flex-grow-1" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
+                                <i class="bi bi-sword me-2"></i>Arena
+                            </button>
+                            <button class="btn btn-success btn-lg flex-grow-1" @onclick="OpenStageModal" disabled="@(currentHP <= 0)">
+                                <i class="bi bi-layers me-2"></i>Stages
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -678,6 +684,51 @@
         </Modal>
     }
 
+    <!-- Stage Modal -->
+    @if (showStageModal)
+    {
+        <Modal Show="@showStageModal"
+               ShowChanged="@((bool show) => { if (!show) showStageModal = false; })"
+               Title="Stage Mode"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                @if (stageProgress != null)
+                {
+                    <div class="text-center mb-4">
+                        <h5 class="mb-2">
+                            <i class="bi bi-trophy text-warning me-2"></i>
+                            Highest Reached: <span class="text-success">Stage @stageProgress.HighestStage</span>
+                        </h5>
+                    </div>
+                    
+                    <p class="text-muted text-center mb-3">Select a checkpoint to start from:</p>
+                    
+                    <div class="stage-boxes-container d-flex flex-wrap justify-content-center gap-2">
+                        @foreach (var checkpoint in GetAvailableCheckpoints(stageProgress.HighestStage))
+                        {
+                            <button class="stage-box btn @(checkpoint == 1 ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => StartFromStage(checkpoint)">
+                                @checkpoint
+                            </button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center">
+                        <LoadingSpinner Message="Loading stage progress..." />
+                    </div>
+                }
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="CloseStageModal">
+                    <i class="bi bi-x-lg me-2"></i>Close
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
     <!-- Info Modal -->
     @if (showInfoModal)
     {
@@ -713,6 +764,7 @@
     private Character? character;
     private ApplicationUser? currentUser;
     private List<MyTunoLeaderboardEntry>? leaderboardEntries;
+    private StageProgress? stageProgress;
     private bool loading = true;
     private bool isOwner = false;
     private bool creatingCharacters = false;
@@ -727,6 +779,9 @@
     private string myTunoVersion = DefaultVersion;
     private string myTunoDescription = DefaultDescription;
     private string myTunoNextFeatures = DefaultNextFeatures;
+    
+    // Stage modal state
+    private bool showStageModal = false;
     
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
@@ -916,10 +971,71 @@
         Navigation.NavigateTo("/my-tuno/arena");
     }
 
+    private async Task OpenStageModal()
+    {
+        if (currentUser != null)
+        {
+            // Load stage progress
+            stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+        }
+        showStageModal = true;
+    }
+
+    private void CloseStageModal()
+    {
+        showStageModal = false;
+    }
+
+    private void StartFromStage(int stage)
+    {
+        // Validate stage number
+        if (stage < 1)
+        {
+            Logger.LogWarning("Invalid stage number: {Stage}. Must be at least 1.", stage);
+            stage = 1;
+        }
+        
+        if (stageProgress != null && stage > stageProgress.HighestStage)
+        {
+            Logger.LogWarning("Stage {Stage} exceeds highest reached {Highest}. Using highest.", stage, stageProgress.HighestStage);
+            stage = stageProgress.HighestStage;
+        }
+        
+        showStageModal = false;
+        Navigation.NavigateTo($"/my-tuno/stages?start={stage}");
+    }
+
     private void NavigateToUpgrade()
     {
         // Scroll to upgrade section instead of navigating
         // This is handled by removing the button or keeping it for now
+    }
+
+    /// <summary>
+    /// Gets all available checkpoint stages up to the highest reached stage
+    /// </summary>
+    private static List<int> GetAvailableCheckpoints(int highestStage)
+    {
+        var checkpoints = new List<int> { 1 }; // Always start with stage 1
+        
+        if (highestStage <= 1) return checkpoints;
+        
+        // Add checkpoints every 10 stages until 100
+        for (int stage = 10; stage <= Math.Min(highestStage, 100); stage += 10)
+        {
+            checkpoints.Add(stage);
+        }
+        
+        // Add checkpoints every 20 stages after 100
+        if (highestStage > 100)
+        {
+            for (int stage = 120; stage <= highestStage; stage += 20)
+            {
+                checkpoints.Add(stage);
+            }
+        }
+        
+        return checkpoints;
     }
 
     private async Task CreateCharactersForAllMembers()

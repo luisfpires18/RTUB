@@ -1,0 +1,352 @@
+/* Stage Mode Page Styling */
+
+.stage-page {
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+/* Battle Card */
+.battle-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Battle Result Card - Reusing Arena pattern */
+.battle-result-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4);
+}
+
+.battle-result-body {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.battle-result-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(249, 168, 37, 0.25), rgba(245, 127, 23, 0.35));
+  color: #ffe7b0;
+  font-weight: 600;
+}
+
+.battle-result-title i {
+  font-size: 1.2rem;
+}
+
+.battle-result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.battle-result-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.battle-result-rewards {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Loot Section */
+.loot-section {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.reward-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.2), rgba(25, 135, 84, 0.1));
+  border: 1px solid rgba(25, 135, 84, 0.3);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reward-item i {
+  font-size: 1.1rem;
+}
+
+/* Stage Statistics Boxes */
+.stage-stat-box {
+  background: linear-gradient(135deg, rgba(18, 18, 24, 0.9), rgba(12, 12, 16, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stage-stat-box:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.stage-stat-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stage-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Enemy Info Card */
+.enemy-info-card {
+  background: linear-gradient(135deg, rgba(18, 18, 24, 0.95), rgba(12, 12, 16, 0.95));
+  border: 2px solid rgba(220, 53, 69, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.15);
+  height: 100%;
+}
+
+.enemy-sprite {
+  filter: drop-shadow(0 4px 12px rgba(220, 53, 69, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.enemy-sprite:hover {
+  transform: scale(1.05);
+}
+
+.enemy-stat-box {
+  padding: 0.75rem;
+  border-radius: 8px;
+  background-color: rgba(30, 30, 30, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.enemy-stat-box:hover {
+  background-color: rgba(40, 40, 40, 0.95);
+  transform: translateX(4px);
+}
+
+/* Stage Battle Actions */
+.stage-battle-actions {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(13, 110, 253, 0.04));
+  border: 1px solid rgba(13, 110, 253, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.character-stats-preview {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.stat-preview-box {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-preview-box strong {
+  font-size: 1rem;
+}
+
+.potential-rewards {
+  background: rgba(25, 135, 84, 0.08);
+  border: 1px solid rgba(25, 135, 84, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Page Header Subtitle */
+.page-header-subtitle {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .stage-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stage-battle-actions {
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .stage-page {
+    padding-bottom: 1rem;
+  }
+
+  .battle-result-body {
+    padding: 1.5rem;
+  }
+
+  .stage-stat-box {
+    padding: 0.75rem;
+  }
+
+  .stage-stat-value {
+    font-size: 1.1rem;
+  }
+
+  .enemy-info-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .stage-battle-actions {
+    padding: 1rem;
+  }
+
+  .stat-preview-box {
+    font-size: 0.75rem;
+  }
+
+  /* Stack battle container on mobile */
+  #phaserBattleContainer {
+    width: 100% !important;
+    max-width: 800px;
+    height: auto !important;
+    aspect-ratio: 8/5;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-header-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .battle-result-title {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .stage-stat-label {
+    font-size: 0.75rem;
+  }
+
+  .stage-stat-value {
+    font-size: 1rem;
+  }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+  .enemy-info-card {
+    border-color: rgba(220, 53, 69, 0.4);
+  }
+
+  .stage-battle-actions {
+    border-color: rgba(13, 110, 253, 0.3);
+  }
+}
+
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  .stage-stat-box {
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.95), rgba(233, 236, 239, 0.95));
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .stage-stat-label {
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .stage-stat-value {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .enemy-info-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 250, 0.98));
+    border-color: rgba(220, 53, 69, 0.5);
+  }
+
+  .enemy-stat-box {
+    background-color: rgba(248, 249, 250, 0.95);
+  }
+
+  .enemy-stat-box:hover {
+    background-color: rgba(233, 236, 239, 0.98);
+  }
+
+  .stage-battle-actions {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(13, 110, 253, 0.06));
+    border-color: rgba(13, 110, 253, 0.3);
+  }
+
+  .character-stats-preview {
+    background: rgba(248, 249, 250, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+
+  .stat-preview-box {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .potential-rewards {
+    background: rgba(25, 135, 84, 0.12);
+    border-color: rgba(25, 135, 84, 0.3);
+  }
+
+  .battle-result-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 250, 0.98));
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+
+  .battle-result-label {
+    color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+/* Animation for battle start */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(13, 110, 253, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(13, 110, 253, 0.6);
+  }
+}
+
+.btn-primary:not(:disabled):hover {
+  animation: pulse-glow 2s infinite;
+}

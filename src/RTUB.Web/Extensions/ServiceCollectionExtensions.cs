@@ -77,6 +77,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBattleRepository, BattleRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
 
+        // Stage Mode repositories
+        services.AddScoped<IStageProgressRepository, StageProgressRepository>();
+        services.AddScoped<IStageEnemyRepository, StageEnemyRepository>();
+        services.AddScoped<IStageBattleRepository, StageBattleRepository>();
+
         return services;
     }
 
@@ -128,6 +133,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
         services.AddScoped<IMatchmakingService, MatchmakingService>();
         services.AddScoped<IBattleService, BattleService>();
+        services.AddScoped<IStageService, StageService>();
 
         return services;
     }
