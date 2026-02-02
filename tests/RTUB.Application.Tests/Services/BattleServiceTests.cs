@@ -476,7 +476,10 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
         
         // Assert
-        battle.AttackerXP.Should().BeGreaterThan(50, "because fighting a higher level opponent should give bonus XP");
+        // With level difference of 9 (defender level 10 - attacker level 1)
+        // and scaling factor of 0.05, multiplier = 1.0 + (9 * 0.05) = 1.45
+        // Expected XP = 50 * 1.45 = 72.5, rounded to 72
+        battle.AttackerXP.Should().BeInRange(70, 75, "because level 10 vs level 1 with 5% scaling should give ~72 XP");
         
         // Verify XP was applied to character
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
@@ -524,7 +527,11 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
         
         // Assert
-        battle.AttackerXP.Should().BeLessThan(50, "because fighting a lower level opponent should give reduced XP");
+        // With level difference of -9 (defender level 1 - attacker level 10)
+        // and scaling factor of 0.05, multiplier = 1.0 + (-9 * 0.05) = 0.55
+        // Expected XP = 50 * 0.55 = 27.5, rounded to 28
+        battle.AttackerXP.Should().BeInRange(25, 30, "because level 10 vs level 1 with 5% scaling should give ~28 XP");
+        battle.AttackerXP.Should().BeLessThan(50, "and it should be less than base XP");
         battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP");
     }
     
