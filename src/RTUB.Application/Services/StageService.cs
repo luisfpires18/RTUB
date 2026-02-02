@@ -113,7 +113,7 @@ public class StageService : IStageService
 
         // Get enemy template
         var enemyTemplate = await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
-        
+
         // Create a temporary enemy character for combat simulation
         var stageEnemy = CreateTemporaryEnemyCharacter(enemyTemplate, stageNumber, enemyType);
 
@@ -142,7 +142,7 @@ public class StageService : IStageService
         stageBattle.SetReplay(replayJson);
 
         // Calculate and apply rewards
-        var (xpReward, fidelisReward, beersDropped, shotsDropped) = 
+        var (xpReward, fidelisReward, beersDropped, shotsDropped) =
             await CalculateAndApplyRewardsAsync(character, stageProgress, combatResult, enemyTemplate, stageNumber);
 
         stageBattle.SetRewards(xpReward, fidelisReward, beersDropped, shotsDropped);
@@ -196,7 +196,7 @@ public class StageService : IStageService
         var stageConfig = _myTunoScalingConfig.StageMode;
         var scaling = stageConfig.EnemyScaling;
         var baseStats = stageConfig.BaseEnemyStats;
-        
+
         // Default stats if no template found
         int baseHP, basePower, baseSpeed;
         double baseCriticalChance;
@@ -225,12 +225,12 @@ public class StageService : IStageService
             var powerScaleFactor = 1.0 + (stageNumber - 1) * scaling.PowerPerStage;
             var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
             var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
-            
+
             baseHP = (int)(typeStats.Hp * hpScaleFactor);
             basePower = (int)(typeStats.Power * powerScaleFactor);
             baseSpeed = (int)(typeStats.Speed * speedScaleFactor);
             baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, 0.5); // Cap at 50%
-            
+
             enemyName = type switch
             {
                 EnemyType.Boss => $"Boss (Stage {stageNumber})",
@@ -259,7 +259,7 @@ public class StageService : IStageService
         var stageConfig = _myTunoScalingConfig.StageMode;
         var dropRates = stageConfig.DropRates;
         var fidelisRewardsConfig = stageConfig.FidelisRewards;
-        
+
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
             // Player lost - no rewards on defeat
@@ -276,7 +276,7 @@ public class StageService : IStageService
         };
 
         var xpReward = stageConfig.BaseStageXP * xpMultiplier;
-        
+
         // Fidelis reward from config based on enemy type
         var fidelisReward = enemyTemplate?.GetScaledFidelisDrop(stageNumber) ?? enemyType switch
         {

@@ -189,7 +189,7 @@ public class BattleService : IBattleService
             _ => (0, 0m)
         };
     }
-    
+
     /// <summary>
     /// Applies level-based scaling to XP rewards
     /// Formula: XP = BaseXP * (1.0 + (defenderLevel - attackerLevel) * ScalingFactor)
@@ -198,23 +198,23 @@ public class BattleService : IBattleService
     private int ApplyLevelScaling(int baseXp, int attackerLevel, int defenderLevel)
     {
         var config = _myTunoScalingConfig.BattleRewards;
-        
+
         // Calculate level difference
         var levelDiff = defenderLevel - attackerLevel;
-        
+
         // Calculate multiplier based on level difference
         var multiplier = 1.0 + (levelDiff * config.XpScalingFactor);
-        
+
         // Clamp multiplier to prevent extreme values
         multiplier = Math.Max(config.MinXpMultiplier, Math.Min(config.MaxXpMultiplier, multiplier));
-        
+
         // Apply multiplier and round to integer
         var scaledXp = (int)Math.Round(baseXp * multiplier);
-        
+
         // Ensure at least 1 XP is awarded (unless baseXp is 0)
         if (baseXp > 0 && scaledXp < 1)
             scaledXp = 1;
-        
+
         return scaledXp;
     }
 

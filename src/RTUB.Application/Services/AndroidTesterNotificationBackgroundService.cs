@@ -132,7 +132,7 @@ public class AndroidTesterNotificationBackgroundService : BackgroundService
                             "Android tester {UserId} has already logged in today ({LastLogin}), skipping remaining notifications",
                             u.Id,
                             u.LastLoginDate.Value.ToString("yyyy-MM-dd HH:mm:ss"));
-                        
+
                         // Mark as notified to avoid checking again today
                         _notificationsSentToday.Add(u.Id);
                         return false;

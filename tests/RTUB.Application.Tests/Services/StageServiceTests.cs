@@ -138,7 +138,7 @@ public class StageServiceTests : IDisposable
         var user = CreateTestUser(userId);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
-        
+
         var existingProgress = StageProgress.Create(userId);
         existingProgress.AdvanceStage(); // Move to stage 2
         await _stageProgressRepository.AddAsync(existingProgress);
@@ -187,7 +187,7 @@ public class StageServiceTests : IDisposable
         var user = CreateTestUser(userId);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
-        
+
         var existingProgress = StageProgress.Create(userId);
         await _stageProgressRepository.AddAsync(existingProgress);
 
@@ -234,7 +234,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -310,7 +310,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -351,7 +351,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         var initialXP = character.XP;
         await _context.Characters.AddAsync(character);
@@ -398,7 +398,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -438,7 +438,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         var initialXP = character.XP;
         await _context.Characters.AddAsync(character);
@@ -487,7 +487,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -537,7 +537,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -587,7 +587,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -637,7 +637,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -681,15 +681,15 @@ public class StageServiceTests : IDisposable
         var user = CreateTestUser(userId);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
-        
+
         var progress = StageProgress.Create(userId);
-        
+
         // Advance to stage 25 (checkpoint would be at 20)
         for (int i = 1; i < 25; i++)
         {
             progress.AdvanceStage();
         }
-        
+
         await _stageProgressRepository.AddAsync(progress);
 
         // Act
@@ -719,15 +719,15 @@ public class StageServiceTests : IDisposable
         var user = CreateTestUser(userId);
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
-        
+
         var progress = StageProgress.Create(userId);
-        
+
         // Advance to stage 115 (checkpoint would be at 100, which is in Forest region)
         for (int i = 1; i < 115; i++)
         {
             progress.AdvanceStage();
         }
-        
+
         await _stageProgressRepository.AddAsync(progress);
 
         // Act
@@ -748,7 +748,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -757,11 +757,11 @@ public class StageServiceTests : IDisposable
         var battle1 = StageBattle.Create(character.Id, 1, null, EnemyType.Normal, RegionType.Forest, "Enemy 1", 123, BattleOutcome.AttackerWon);
         battle1.SetReplay("{}");
         battle1.SetRewards(30, 10m);
-        
+
         var battle2 = StageBattle.Create(character.Id, 2, null, EnemyType.Normal, RegionType.Forest, "Enemy 2", 456, BattleOutcome.AttackerWon);
         battle2.SetReplay("{}");
         battle2.SetRewards(30, 10m);
-        
+
         await _context.StageBattles.AddRangeAsync(battle1, battle2);
         await _context.SaveChangesAsync();
 
@@ -781,7 +781,7 @@ public class StageServiceTests : IDisposable
         // Arrange
         var user = CreateTestUser();
         await _context.Users.AddAsync(user);
-        
+
         var character = Character.Create("user1");
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
@@ -924,7 +924,7 @@ public class StageServiceTests : IDisposable
     {
         // Arrange
         var progress = StageProgress.Create("user1");
-        
+
         // Advance to stage 9
         for (int i = 1; i < 9; i++)
         {
@@ -944,7 +944,7 @@ public class StageServiceTests : IDisposable
     {
         // Arrange
         var progress = StageProgress.Create("user1");
-        
+
         // Advance to stage 100 (end of Forest)
         for (int i = 1; i < 100; i++)
         {
@@ -977,7 +977,7 @@ public class StageServiceTests : IDisposable
     {
         // Arrange
         var progress = StageProgress.Create("user1");
-        
+
         // Advance to stage 10000
         for (int i = 1; i < 10000; i++)
         {

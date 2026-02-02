@@ -30,7 +30,7 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
     public async Task<StageEnemy?> GetRandomEnemyAsync(EnemyType type, RegionType region)
     {
         var enemies = await GetByTypeAndRegionAsync(type, region);
-        
+
         if (!enemies.Any())
         {
             // Fallback: try any enemy of that type
