@@ -347,7 +347,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
 
         // Create activities in PAST months to ensure they count
         // We need 3 consecutive months including potentially the current month if we're past day 1
-        
+
         // Most recent activity - as recent as possible but still in the past
         // Use midday to avoid any midnight boundary issues
         var mostRecentDate = now.Date.AddDays(-1).AddHours(12); // Yesterday at noon
@@ -357,7 +357,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         // If yesterday was in the previous month, we need to adjust our strategy
         // We need activities in 3 consecutive months
         DateTime month1, month2, month3;
-        
+
         if (mostRecentDate.Month == now.Month)
         {
             // Yesterday was in the current month, so we have:

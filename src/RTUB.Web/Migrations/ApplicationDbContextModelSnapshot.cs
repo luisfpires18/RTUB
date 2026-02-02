@@ -3808,6 +3808,211 @@ namespace RTUB.Migrations
                     b.ToTable("SongYouTubeUrls", (string)null);
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.StageBattle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BeersDropped")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CharacterId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EnemyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EnemyType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("FidelisReward")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Region")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReplayJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShotsDropped")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("StageEnemyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StageNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("XPReward")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CharacterId")
+                        .HasDatabaseName("IX_StageBattles_CharacterId");
+
+                    b.HasIndex("StageEnemyId");
+
+                    b.HasIndex("StageNumber")
+                        .HasDatabaseName("IX_StageBattles_StageNumber");
+
+                    b.HasIndex("CharacterId", "CreatedAt")
+                        .HasDatabaseName("IX_StageBattles_CharacterId_CreatedAt");
+
+                    b.ToTable("StageBattles");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.StageEnemy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("BaseCriticalChance")
+                        .HasColumnType("REAL");
+
+                    b.Property<decimal>("BaseFidelisDrop")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BaseHP")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BasePower")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BaseSpeed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("BeerDropChance")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Region")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("ShotDropChance")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("SpritePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Region")
+                        .HasDatabaseName("IX_StageEnemies_Region");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("IX_StageEnemies_Type");
+
+                    b.HasIndex("Type", "Region")
+                        .HasDatabaseName("IX_StageEnemies_Type_Region");
+
+                    b.ToTable("StageEnemies");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.StageProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrentRegion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CurrentStage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("EndlessModeUnlocked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HighestStage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LastCheckpoint")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalBossesDefeated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalMiniBossesDefeated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalStagesCleared")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HighestStage")
+                        .HasDatabaseName("IX_StageProgresses_HighestStage");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StageProgresses_UserId");
+
+                    b.ToTable("StageProgresses");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>
                 {
                     b.Property<int>("Id")
@@ -4835,6 +5040,35 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("Song");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.StageBattle", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Character", "Character")
+                        .WithMany()
+                        .HasForeignKey("CharacterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RTUB.Core.Entities.StageEnemy", "StageEnemy")
+                        .WithMany()
+                        .HasForeignKey("StageEnemyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Character");
+
+                    b.Navigation("StageEnemy");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.StageProgress", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Transaction", b =>

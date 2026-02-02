@@ -10,7 +10,8 @@
 
     const spritePaths = {
         attacker: '/sprites/games/my-tuno/tuno_attacking_right.png',
-        defender: '/sprites/games/my-tuno/tuno_attacking_left.png'
+        defender: '/sprites/games/my-tuno/tuno_attacking_left.png',
+        background: '/sprites/games/my-tuno/backgrounds/arena.png'
     };
 
     const getEventField = (evt, field) => {
@@ -223,13 +224,19 @@
         preload() {
             this.load.image('attackerSprite', spritePaths.attacker);
             this.load.image('defenderSprite', spritePaths.defender);
+            this.load.image('arenaBg', spritePaths.background);
         }
 
         create() {
             activeScene = this;
 
             const { width, height } = this.scale;
-            this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a1a).setDepth(-2);
+            
+            // Add background image
+            const bg = this.add.image(width / 2, height / 2, 'arenaBg');
+            bg.setDisplaySize(width, height);
+            bg.setDepth(-2);
+            
             this.createArena(width, height);
             this.createCharacters(width, height);
             this.initializeHpFromEvents();

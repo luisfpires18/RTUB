@@ -8,4 +8,5 @@ public class MyTunoLeaderboardEntry
     public string? AvatarUrl { get; set; }
     public int Wins { get; set; }
     public int Level { get; set; }
+    public int HighestStage { get; set; }
 }

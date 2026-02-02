@@ -141,6 +141,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Battle> Battles { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
 
+    // Stage Mode DbSets
+    public DbSet<StageProgress> StageProgresses { get; set; }
+    public DbSet<StageEnemy> StageEnemies { get; set; }
+    public DbSet<StageBattle> StageBattles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

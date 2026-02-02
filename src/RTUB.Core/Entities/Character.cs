@@ -83,6 +83,39 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Factory method to create a stage enemy character (for combat simulation only, not persisted)
+    /// </summary>
+    /// <param name="hp">Base HP of the enemy</param>
+    /// <param name="power">Base power of the enemy</param>
+    /// <param name="speed">Base speed of the enemy</param>
+    /// <param name="criticalChance">Critical hit chance</param>
+    /// <param name="enemyName">Display name for the enemy</param>
+    /// <returns>A Character instance for combat simulation</returns>
+    public static Character CreateStageEnemy(int hp, int power, int speed, double criticalChance, string enemyName)
+    {
+        var character = new Character
+        {
+            UserId = "stage-enemy",
+            Level = 1,
+            XP = 0,
+            HP = hp,
+            Power = power,
+            Speed = speed,
+            CriticalChance = criticalChance,
+            CurrentHP = hp,
+            HpUpgrades = 0,
+            PowerUpgrades = 0,
+            SpeedUpgrades = 0,
+            CriticalUpgrades = 0
+        };
+
+        // Create a temporary user with the enemy name
+        character.User = new ApplicationUser { UserName = enemyName, Nickname = enemyName };
+
+        return character;
+    }
+
+    /// <summary>
     /// Adds XP to the character and handles level-ups
     /// Level up formula: Each level requires 100 * level XP to reach the next level
     /// Level 1->2: 100 XP, Level 2->3: 200 XP, Level 3->4: 300 XP, etc.
@@ -102,6 +135,8 @@ public class Character : BaseEntity
         {
             XP -= Level * MyTunoScaling.XpPerLevelBase;
             Level++;
+            // Heal to full HP on level-up
+            CurrentHP = TotalHP;
         }
     }
 

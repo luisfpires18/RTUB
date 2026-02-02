@@ -318,18 +318,18 @@ public class CombatEngineTests
 
         // Assert
         result.Events.Should().NotBeEmpty();
-        
+
         // First two events should be HPUpdate for attacker and defender (initial HP)
         result.Events[0].Type.Should().Be("HPUpdate");
         result.Events[0].Character.Should().Be("Attacker");
         result.Events[0].HP.Should().Be(100);
         result.Events[0].MaxHP.Should().Be(100);
-        
+
         result.Events[1].Type.Should().Be("HPUpdate");
         result.Events[1].Character.Should().Be("Defender");
         result.Events[1].HP.Should().Be(100);
         result.Events[1].MaxHP.Should().Be(100);
-        
+
         // Third event should be RoundStart
         result.Events[2].Type.Should().Be("RoundStart");
         result.Events[2].Round.Should().Be(1);

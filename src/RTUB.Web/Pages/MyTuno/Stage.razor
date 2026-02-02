@@ -1,0 +1,624 @@
+@page "/my-tuno/stages"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.UI
+@using System.Text.Json
+@attribute [Authorize]
+@inject IStageService StageService
+@inject ICharacterService CharacterService
+@inject IStageProgressRepository StageProgressRepository
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Stage> Logger
+@implements IAsyncDisposable
+
+<PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
+
+<div class="stage-page container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button class="btn btn-outline-secondary" @onclick="GoBack" title="Back">
+            <i class="bi bi-arrow-left me-2"></i>Back to My Tuno
+        </button>
+        <h1 class="mb-0"><i class="bi bi-trophy"></i> Stage Mode</h1>
+        <div class="header-spacer"></div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (character == null)
+    {
+        <EmptyState Title="Personagem não encontrado"
+                    Message="Ocorreu um erro ao carregar o teu personagem."
+                    Icon="bi-person-x" />
+    }
+    else if (errorMessage != string.Empty)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        </div>
+    }
+    else
+    {
+        <!-- Battle Screen - Always show container when animating to preserve Phaser game -->
+        @if (showBattleAnimation)
+        {
+            <div class="card mb-4 battle-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-sword me-2"></i>
+                        @if (currentBattle != null)
+                        {
+                            <text>Stage @currentBattle.StageNumber Battle</text>
+                        }
+                        else
+                        {
+                            <text>Loading Battle...</text>
+                        }
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(1.0)">
+                            1x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.5 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(1.5)">
+                            1.5x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(2.0)">
+                            2x
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 d-flex justify-content-center">
+                    <div id="phaserBattleContainer"></div>
+                </div>
+                <!-- Accumulated Loot Tracker -->
+                @if (stagesCleared > 0)
+                {
+                    <div class="card-footer bg-dark text-white">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>@stagesCleared Stages
+                                </span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-star-fill me-1"></i>+@totalXPEarned XP
+                                </span>
+                                <span class="badge bg-info text-dark">
+                                    <i class="bi bi-coin me-1"></i>+@totalFidelisEarned.ToString("F0") Fidelis
+                                </span>
+                                @if (totalBeersDropped > 0)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-cup-straw me-1"></i>+@totalBeersDropped Beer
+                                    </span>
+                                }
+                                @if (totalShotsDropped > 0)
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-cup me-1"></i>+@totalShotsDropped Shot
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Defeat Screen - Only shown when player loses -->
+        @if (currentBattle != null && !showBattleAnimation && currentBattle.Outcome != BattleOutcome.AttackerWon)
+        {
+            <div class="card mb-4 battle-result-card">
+                <div class="card-body battle-result-body">
+                    <div class="battle-result-title">
+                        <i class="bi bi-x-circle text-danger"></i>
+                        <h5 class="mb-0">Defeat at Stage @currentBattle.StageNumber</h5>
+                    </div>
+
+                    <!-- Run Summary - Show total loot earned before defeat -->
+                    @if (stagesCleared > 0)
+                    {
+                        <div class="loot-section mt-3">
+                            <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Run Summary:</h6>
+                            <div class="battle-result-rewards">
+                                <div class="reward-item">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    <span>@stagesCleared Stages Cleared</span>
+                                </div>
+                                <div class="reward-item">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <span>+@totalXPEarned XP</span>
+                                </div>
+                                <div class="reward-item">
+                                    <i class="bi bi-coin text-success"></i>
+                                    <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
+                                </div>
+                                @if (totalBeersDropped > 0)
+                                {
+                                    <div class="reward-item">
+                                        <i class="bi bi-cup-straw text-warning"></i>
+                                        <span>+@totalBeersDropped Beer</span>
+                                    </div>
+                                }
+                                @if (totalShotsDropped > 0)
+                                {
+                                    <div class="reward-item">
+                                        <i class="bi bi-cup text-danger"></i>
+                                        <span>+@totalShotsDropped Shot</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Defeat Message -->
+                    <div class="mt-4">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            Your character was defeated at Stage @currentBattle.StageNumber!
+                        </div>
+                        
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <button class="btn btn-warning" @onclick="ReturnToCheckpoint" disabled="@returningToCheckpoint">
+                                @if (returningToCheckpoint)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Return to Checkpoint (Stage @checkpointStage)
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                                <i class="bi bi-house me-2"></i>Return to My Tuno
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private Character? character;
+    private ApplicationUser? currentUser;
+    private StageProgress? stageProgress;
+    private StageBattle? currentBattle;
+    private bool loading = true;
+    private bool fighting = false;
+    private bool showBattleAnimation = false;
+    private bool returningToCheckpoint = false;
+    private string errorMessage = string.Empty;
+    private DotNetObjectReference<Stage>? objRef;
+    private bool hasRendered = false;
+    private bool battleAutoStarted = false;
+    private int currentStageNumber = 1;
+    private int checkpointStage = 1;
+    private bool isFirstBattle = true; // Track if this is the first battle to use start vs nextBattle
+
+    // Battle controls
+    private double battleSpeed = 1.0;
+    private bool audioEnabled = true;
+
+    // Accumulated loot tracker for the current run
+    private int totalXPEarned = 0;
+    private decimal totalFidelisEarned = 0;
+    private int totalBeersDropped = 0;
+    private int totalShotsDropped = 0;
+    private int stagesCleared = 0;
+
+    // Query parameter for starting stage
+    [SupplyParameterFromQuery(Name = "start")]
+    public int? StartStage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Reset animation state on page load
+        showBattleAnimation = false;
+        fighting = false;
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            hasRendered = true;
+            
+            // Auto-start battle after first render (only once)
+            if (character != null && character.IsAlive() && currentBattle == null && !battleAutoStarted)
+            {
+                battleAutoStarted = true;
+                await Task.Delay(500); // Brief delay for UI to settle
+                try
+                {
+                    await FightStageEnemy();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Auto-start battle failed");
+                    errorMessage = "Failed to start battle automatically. Please try again.";
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            loading = true;
+            errorMessage = string.Empty;
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    if (character != null)
+                    {
+                        stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+                        if (stageProgress != null)
+                        {
+                            // Handle start query parameter - persist to DB if different
+                            if (StartStage.HasValue && StartStage.Value > 0)
+                            {
+                                // Validate start stage: must be 1 OR between checkpoint and highest
+                                var targetStage = StartStage.Value;
+                                if (targetStage < 1) targetStage = 1;
+                                if (targetStage > stageProgress.HighestStage) targetStage = stageProgress.HighestStage;
+                                
+                                // Only update if different and valid (stage 1 or >= checkpoint)
+                                if (targetStage != stageProgress.CurrentStage && 
+                                    (targetStage == 1 || targetStage >= stageProgress.LastCheckpoint))
+                                {
+                                    stageProgress.CurrentStage = targetStage;
+                                    stageProgress.CurrentRegion = StageProgress.GetRegionForStage(targetStage);
+                                    await StageProgressRepository.UpdateAsync(stageProgress);
+                                    Logger.LogInformation("Updated stage progress to stage {Stage} for user {UserId}", 
+                                        targetStage, currentUser.Id);
+                                }
+                                
+                                currentStageNumber = targetStage;
+                            }
+                            else
+                            {
+                                currentStageNumber = stageProgress.CurrentStage;
+                            }
+                            
+                            checkpointStage = stageProgress.LastCheckpoint;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stage data");
+            errorMessage = "Erro ao carregar dados do estágio.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task FightStageEnemy()
+    {
+        if (character == null || currentUser == null || stageProgress == null) return;
+        
+        // Prevent multiple concurrent battles
+        if (fighting) return;
+
+        // Check if character is alive
+        if (!character.IsAlive())
+        {
+            errorMessage = "Your character is defeated. You need to revive before fighting.";
+            return;
+        }
+
+        try
+        {
+            fighting = true;
+            var wasAlreadyAnimating = showBattleAnimation;
+            showBattleAnimation = true;
+            errorMessage = string.Empty;
+            
+            // Only update UI if we weren't already animating (first battle)
+            if (!wasAlreadyAnimating)
+            {
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+                // Wait for container to be rendered on first battle
+                await Task.Delay(100);
+            }
+
+            // Execute stage battle
+            currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+
+            // Start live battle animation
+            if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
+            {
+                try
+                {
+                    // Initialize DotNetObjectReference if not already done
+                    if (objRef == null)
+                    {
+                        objRef = DotNetObjectReference.Create(this);
+                    }
+
+                    // Get enemy type config for this stage (use the battle's stage number, not the local variable)
+                    var battleStageNumber = currentBattle.StageNumber;
+                    var enemyTypeName = GetEnemyTypeName(currentBattle.EnemyType);
+                    
+                    // Use the enemy's sprite path from the database, with fallback to default
+                    var enemySpritePath = currentBattle.StageEnemy?.SpritePath 
+                        ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType);
+
+                    // Create stage battle data object for new stage battle scene
+                    var battleData = new
+                    {
+                        EventsJson = currentBattle.ReplayJson,
+                        DotNetRef = objRef,
+                        StageNumber = battleStageNumber,
+                        EnemyType = enemyTypeName,
+                        EnemyCount = 1, // Can be increased in future for multi-enemy battles
+                        PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
+                        EnemyName = currentBattle.EnemyName,
+                        BackgroundPath = "/sprites/games/my-tuno/backgrounds/forest.png",
+                        PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        EnemySpritePath = enemySpritePath
+                    };
+
+                    // Use nextBattle for seamless transition, or start for first battle
+                    if (isFirstBattle)
+                    {
+                        await JSRuntime.InvokeVoidAsync("stageBattleGame.start", "phaserBattleContainer", battleData);
+                        isFirstBattle = false;
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
+                    }
+
+                    // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(120000); // 120 seconds max
+                        if (showBattleAnimation)
+                        {
+                            Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
+                            showBattleAnimation = false;
+                            await InvokeAsync(StateHasChanged);
+                        }
+                    });
+                }
+                catch (JSException ex)
+                {
+                    Logger.LogError(ex, "Error starting battle animation: {Message}", ex.Message);
+                    errorMessage = "Error starting battle animation.";
+                    showBattleAnimation = false;
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Unexpected error starting battle animation");
+                    errorMessage = "Unexpected error starting battle animation.";
+                    showBattleAnimation = false;
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                showBattleAnimation = false;
+            }
+
+            // Reload character and stage progress after battle
+            var userId = currentUser.Id;
+            character = await CharacterService.GetOrCreateCharacterAsync(userId);
+            stageProgress = await StageService.GetOrCreateStageProgressAsync(userId);
+            if (stageProgress != null)
+            {
+                currentStageNumber = stageProgress.CurrentStage;
+                checkpointStage = stageProgress.LastCheckpoint;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting stage battle");
+            errorMessage = $"Erro ao iniciar batalha: {ex.Message}";
+            showBattleAnimation = false;
+        }
+        finally
+        {
+            fighting = false;
+            if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
+            {
+                showBattleAnimation = false;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task ContinueToNextStage()
+    {
+        // Reset battle state and start next fight
+        currentBattle = null;
+        await FightStageEnemy();
+    }
+
+    private async Task ReturnToCheckpoint()
+    {
+        if (currentUser == null || stageProgress == null) return;
+
+        try
+        {
+            returningToCheckpoint = true;
+            errorMessage = string.Empty;
+
+            stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
+            currentStageNumber = stageProgress.CurrentStage;
+            checkpointStage = stageProgress.LastCheckpoint;
+            
+            // Reload character to get fresh HP
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            
+            // Reset battle state and loot tracker for new run
+            currentBattle = null;
+            showBattleAnimation = false;
+            ResetRunTotals();
+            StateHasChanged();
+            
+            // Brief delay then start the battle
+            await Task.Delay(300);
+            await FightStageEnemy();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error returning to checkpoint");
+            errorMessage = "Error returning to checkpoint. Please try again.";
+        }
+        finally
+        {
+            returningToCheckpoint = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnBattleFinished()
+    {
+        // Auto-continue to next stage if victory (don't hide battle animation)
+        if (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon)
+        {
+            // Accumulate rewards for the run
+            totalXPEarned += currentBattle.XPReward;
+            totalFidelisEarned += currentBattle.FidelisReward;
+            totalBeersDropped += currentBattle.BeersDropped;
+            totalShotsDropped += currentBattle.ShotsDropped;
+            stagesCleared++;
+            StateHasChanged();
+            
+            // Brief delay then start next stage automatically
+            // Keep showBattleAnimation = true to avoid hiding the container
+            await Task.Delay(500);
+            currentBattle = null;
+            await FightStageEnemy();
+        }
+        else
+        {
+            // Only hide battle animation on defeat
+            showBattleAnimation = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetBattleSpeed(double speed)
+    {
+        battleSpeed = speed;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("stageBattleGame.setSpeed", speed);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error setting battle speed");
+        }
+    }
+
+    private async Task ToggleAudio()
+    {
+        audioEnabled = !audioEnabled;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("stageBattleGame.setAudioEnabled", audioEnabled);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error toggling audio");
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void ResetRunTotals()
+    {
+        totalXPEarned = 0;
+        totalFidelisEarned = 0;
+        totalBeersDropped = 0;
+        totalShotsDropped = 0;
+        stagesCleared = 0;
+        isFirstBattle = true;
+    }
+
+    /// <summary>
+    /// Gets the enemy type name for JavaScript
+    /// </summary>
+    private static string GetEnemyTypeName(EnemyType enemyType)
+    {
+        return enemyType switch
+        {
+            EnemyType.Boss => "boss",
+            EnemyType.MiniBoss => "miniBoss",
+            _ => "normal"
+        };
+    }
+
+    /// <summary>
+    /// Gets default enemy sprite path as fallback when database sprite is not available
+    /// </summary>
+    private static string GetDefaultEnemySpriteForType(EnemyType enemyType)
+    {
+        return enemyType switch
+        {
+            EnemyType.Boss => "/sprites/games/my-tuno/enemies/boss_bear.png",
+            EnemyType.MiniBoss => "/sprites/games/my-tuno/enemies/wolf.png",
+            _ => "/sprites/games/my-tuno/enemies/wolf.png"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hasRendered)
+        {
+            try
+            {
+                // Destroy stage battle game
+                await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Ignore if JS context is disconnected
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore if JS interop is not available
+            }
+        }
+        
+        objRef?.Dispose();
+    }
+}

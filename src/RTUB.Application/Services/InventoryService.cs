@@ -48,8 +48,15 @@ public class InventoryService : IInventoryService
             return (false, 0, "Personagem não encontrado");
         }
 
-        // Check if character needs healing
+        // Check if character is dead
         var currentHp = character.CurrentHP ?? character.TotalHP;
+        if (currentHp <= 0)
+        {
+            _logger.LogInformation("User {UserId} attempted to use beer but character is dead", userId);
+            return (false, 0, "Não podes usar cerveja num personagem morto");
+        }
+
+        // Check if character needs healing
         if (currentHp >= character.TotalHP)
         {
             _logger.LogInformation("User {UserId} attempted to use beer but character is already at full HP", userId);

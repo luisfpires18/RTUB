@@ -59,8 +59,65 @@
     ],
     "battleRewards": {
       "winReward": 15,
-      "lossReward": 5,
       "drawReward": 10
+    },
+    "beerDropChance": 0.5,
+    "stageMode": {
+      "enemyCountStageInterval": 20,
+      "maxEnemiesPerStage": 5,
+      "baseStageXP": 30,
+      "miniBossXPMultiplier": 3,
+      "bossXPMultiplier": 10,
+      "enemyScaling": {
+        "hpPerStage": 0.08,
+        "powerPerStage": 0.05,
+        "speedPerStage": 0.03,
+        "criticalChancePerStage": 0.002
+      },
+      "baseEnemyStats": {
+        "normal": {
+          "hp": 50,
+          "power": 8,
+          "speed": 5,
+          "criticalChance": 0.05
+        },
+        "miniBoss": {
+          "hp": 200,
+          "power": 15,
+          "speed": 7,
+          "criticalChance": 0.10
+        },
+        "boss": {
+          "hp": 500,
+          "power": 20,
+          "speed": 8,
+          "criticalChance": 0.15
+        }
+      },
+      "dropRates": {
+        "beerDropChance": 0.10,
+        "shotDropChance": 0.05,
+        "bossDropMultiplier": 3.0,
+        "miniBossDropMultiplier": 2.0
+      },
+      "fidelisRewards": {
+        "normalWin": 10,
+        "miniBossWin": 25,
+        "bossWin": 50
+      },
+      "regions": [
+        {
+          "regionId": "Forest",
+          "displayName": "Forest",
+          "backgroundSprite": "/sprites/games/my-tuno/backgrounds/forest.png",
+          "enemySprites": ["/sprites/games/my-tuno/enemies/wolf.png"],
+          "bossSprite": "/sprites/games/my-tuno/enemies/boss_bear.png",
+          "miniBossSprite": "/sprites/games/my-tuno/enemies/wolf.png"
+        }
+      ],
+      "defaultEnemySprite": "/sprites/games/my-tuno/enemies/wolf.png",
+      "defaultBackground": "/sprites/games/my-tuno/backgrounds/forest.png",
+      "playerSprite": "/sprites/games/my-tuno/default_tuno.png"
     }
   }
 }

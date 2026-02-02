@@ -10,9 +10,9 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Core.Configuration;
+using RTUB.Core.Entities;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
-using RTUB.Core.Entities;
 
 namespace RTUB;
 
@@ -109,10 +109,10 @@ public class Program
 
         services.Configure<RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.BmrBebeMaisRuiConfiguration.SectionName));
-        
+
         services.Configure<RTUB.Application.Configuration.FidelisRewardsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.FidelisRewardsConfiguration.SectionName));
-        
+
         services.Configure<RTUB.Application.Configuration.MyTunoScalingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.MyTunoScalingConfiguration.SectionName));
 
@@ -330,12 +330,12 @@ public class Program
                         var isAndroidTester = await db.Users
                             .Where(u => u.Id == userId && u.IsAndroidTester)
                             .AnyAsync();
-                        
+
                         if (isAndroidTester)
                         {
                             var existingLogin = await db.AndroidTesterLogins
                                 .AnyAsync(l => l.UserId == userId && l.LoginDate == today);
-                            
+
                             if (!existingLogin)
                             {
                                 db.AndroidTesterLogins.Add(new AndroidTesterLogin
@@ -345,7 +345,7 @@ public class Program
                                     CreatedAt = now
                                 });
                                 await db.SaveChangesAsync();
-                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}", 
+                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",
                                     userId, today);
                             }
                         }
@@ -800,7 +800,7 @@ public class Program
                     var today = DateTime.UtcNow.Date;
                     var existingLogin = await db.AndroidTesterLogins
                         .AnyAsync(l => l.UserId == user.Id && l.LoginDate == today);
-                    
+
                     if (!existingLogin)
                     {
                         db.AndroidTesterLogins.Add(new AndroidTesterLogin
@@ -810,7 +810,7 @@ public class Program
                             CreatedAt = DateTime.UtcNow
                         });
                         await db.SaveChangesAsync();
-                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}", 
+                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",
                             user.Id, today);
                     }
                 }
