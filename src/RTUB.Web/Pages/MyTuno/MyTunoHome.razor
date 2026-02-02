@@ -8,20 +8,12 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Base
-@attribute [Authorize]
-@inject ICharacterService CharacterService
-@inject IUpgradeService UpgradeService
-@inject IBattleRepository BattleRepository
-@inject IInventoryService InventoryService
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject UserManager<ApplicationUser> UserManager
-@inject NavigationManager Navigation
-@inject ILogger<MyTunoHome> Logger
 @using RTUB.Application.DTOs
 @using RTUB.Shared.Components.UI
 @using RTUB.Application.Configuration
 @using Microsoft.Extensions.Options
 @using Microsoft.Extensions.Configuration
+@attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
 @inject IBattleRepository BattleRepository
