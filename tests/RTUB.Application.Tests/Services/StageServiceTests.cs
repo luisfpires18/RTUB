@@ -63,7 +63,6 @@ public class StageServiceTests : IDisposable
             BattleRewards = new BattleRewards
             {
                 WinReward = 10m,
-                LossReward = 5m,
                 DrawReward = 7.5m
             }
         };
