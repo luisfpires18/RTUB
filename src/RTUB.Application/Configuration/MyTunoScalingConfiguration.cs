@@ -22,6 +22,24 @@ public class BattleRewards
     public decimal WinReward { get; set; } = 10m;
     public decimal LossReward { get; set; } = 5m;
     public decimal DrawReward { get; set; } = 7.5m;
+    
+    /// <summary>
+    /// XP scaling based on level difference
+    /// Formula: XP = BaseXP * (1.0 + (defenderLevel - attackerLevel) * XpScalingFactor)
+    /// </summary>
+    public double XpScalingFactor { get; set; } = 0.05; // 5% per level difference
+    
+    /// <summary>
+    /// Minimum XP multiplier (prevents too little XP from weak opponents)
+    /// Default 0.2 means minimum 20% of base XP
+    /// </summary>
+    public double MinXpMultiplier { get; set; } = 0.2;
+    
+    /// <summary>
+    /// Maximum XP multiplier (prevents too much XP from strong opponents)
+    /// Default 3.0 means maximum 300% of base XP
+    /// </summary>
+    public double MaxXpMultiplier { get; set; } = 3.0;
 }
 
 public class MyTunoBaseStats

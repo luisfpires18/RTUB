@@ -77,7 +77,7 @@ public class BattleService : IBattleService
         var combatResult = _combatEngine.Simulate(playerCharacter, aiOpponent, seed);
 
         // Calculate rewards based on outcome
-        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome);
+        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, aiOpponent);
 
         // Create battle record
         var battle = Battle.Create(playerCharacterId, aiOpponent.Id, seed, combatResult.Outcome);
@@ -138,7 +138,7 @@ public class BattleService : IBattleService
         var combatResult = _combatEngine.Simulate(playerCharacter, opponentCharacter, seed);
 
         // Calculate rewards based on outcome
-        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome);
+        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);
 
         // Create battle record
         var battle = Battle.Create(playerCharacterId, opponentCharacterId, seed, combatResult.Outcome);
@@ -174,17 +174,52 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome
+    /// Calculates XP and Fidelis rewards based on battle outcome and level difference
+    /// XP scales based on opponent level - fighting stronger opponents gives more XP
     /// </summary>
-    private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome)
+    private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
-        return outcome switch
+        // Get base rewards
+        var (baseXp, fidelis) = outcome switch
         {
             BattleOutcome.AttackerWon => (BaseWinXP, _myTunoScalingConfig.BattleRewards.WinReward),
             BattleOutcome.DefenderWon => (BaseLossXP, _myTunoScalingConfig.BattleRewards.LossReward),
             BattleOutcome.Draw => (BaseDrawXP, _myTunoScalingConfig.BattleRewards.DrawReward),
             _ => (0, 0m)
         };
+        
+        // Apply level-based XP scaling
+        var scaledXp = ApplyLevelScaling(baseXp, attacker.Level, defender.Level);
+        
+        return (scaledXp, fidelis);
+    }
+    
+    /// <summary>
+    /// Applies level-based scaling to XP rewards
+    /// Formula: XP = BaseXP * (1.0 + (defenderLevel - attackerLevel) * ScalingFactor)
+    /// Clamped between MinXpMultiplier and MaxXpMultiplier
+    /// </summary>
+    private int ApplyLevelScaling(int baseXp, int attackerLevel, int defenderLevel)
+    {
+        var config = _myTunoScalingConfig.BattleRewards;
+        
+        // Calculate level difference
+        var levelDiff = defenderLevel - attackerLevel;
+        
+        // Calculate multiplier based on level difference
+        var multiplier = 1.0 + (levelDiff * config.XpScalingFactor);
+        
+        // Clamp multiplier to prevent extreme values
+        multiplier = Math.Max(config.MinXpMultiplier, Math.Min(config.MaxXpMultiplier, multiplier));
+        
+        // Apply multiplier and round to integer
+        var scaledXp = (int)Math.Round(baseXp * multiplier);
+        
+        // Ensure at least 1 XP is awarded (unless baseXp is 0)
+        if (baseXp > 0 && scaledXp < 1)
+            scaledXp = 1;
+        
+        return scaledXp;
     }
 
     /// <summary>
