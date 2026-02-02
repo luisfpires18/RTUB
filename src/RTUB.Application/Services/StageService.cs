@@ -26,11 +26,6 @@ public class StageService : IStageService
     private readonly ILogger<StageService> _logger;
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
 
-    // Reward constants
-    private const int BaseStageXP = 30;
-    private const int MiniBossXPMultiplier = 3;
-    private const int BossXPMultiplier = 10;
-
     public StageService(
         IStageProgressRepository stageProgressRepository,
         IStageBattleRepository stageBattleRepository,
@@ -194,9 +189,14 @@ public class StageService : IStageService
 
     /// <summary>
     /// Creates a temporary enemy character for combat simulation
+    /// Uses scaling from config file
     /// </summary>
-    private static Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
+    private Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
     {
+        var stageConfig = _myTunoScalingConfig.StageMode;
+        var scaling = stageConfig.EnemyScaling;
+        var baseStats = stageConfig.BaseEnemyStats;
+        
         // Default stats if no template found
         int baseHP, basePower, baseSpeed;
         double baseCriticalChance;
@@ -212,33 +212,31 @@ public class StageService : IStageService
         }
         else
         {
-            // Generate default enemy based on type and stage
-            var scaleFactor = 1.0 + (stageNumber - 1) * 0.05;
-            
-            switch (type)
+            // Get base stats from config based on enemy type
+            var typeStats = type switch
             {
-                case EnemyType.Boss:
-                    baseHP = (int)(500 * scaleFactor);
-                    basePower = (int)(20 * scaleFactor);
-                    baseSpeed = (int)(8 * scaleFactor);
-                    baseCriticalChance = 0.15;
-                    enemyName = $"Boss (Stage {stageNumber})";
-                    break;
-                case EnemyType.MiniBoss:
-                    baseHP = (int)(200 * scaleFactor);
-                    basePower = (int)(15 * scaleFactor);
-                    baseSpeed = (int)(7 * scaleFactor);
-                    baseCriticalChance = 0.10;
-                    enemyName = $"Mini-Boss (Stage {stageNumber})";
-                    break;
-                default:
-                    baseHP = (int)(50 * scaleFactor);
-                    basePower = (int)(8 * scaleFactor);
-                    baseSpeed = (int)(5 * scaleFactor);
-                    baseCriticalChance = 0.05;
-                    enemyName = $"Enemy (Stage {stageNumber})";
-                    break;
-            }
+                EnemyType.Boss => baseStats.Boss,
+                EnemyType.MiniBoss => baseStats.MiniBoss,
+                _ => baseStats.Normal
+            };
+
+            // Scale stats based on stage number using config values
+            var hpScaleFactor = 1.0 + (stageNumber - 1) * scaling.HpPerStage;
+            var powerScaleFactor = 1.0 + (stageNumber - 1) * scaling.PowerPerStage;
+            var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
+            var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
+            
+            baseHP = (int)(typeStats.Hp * hpScaleFactor);
+            basePower = (int)(typeStats.Power * powerScaleFactor);
+            baseSpeed = (int)(typeStats.Speed * speedScaleFactor);
+            baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, 0.5); // Cap at 50%
+            
+            enemyName = type switch
+            {
+                EnemyType.Boss => $"Boss (Stage {stageNumber})",
+                EnemyType.MiniBoss => $"Mini-Boss (Stage {stageNumber})",
+                _ => $"Enemy (Stage {stageNumber})"
+            };
         }
 
         return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseCriticalChance, enemyName);
@@ -246,7 +244,7 @@ public class StageService : IStageService
 
     /// <summary>
     /// Calculates and applies rewards for a stage battle
-    /// Rewards scale with stage number and are partial on defeat
+    /// Rewards scale based on config values
     /// </summary>
     private async Task<(int xp, decimal fidelis, int beers, int shots)> CalculateAndApplyRewardsAsync(
         Character character,
@@ -258,6 +256,9 @@ public class StageService : IStageService
         var random = Random.Shared;
         var beersDropped = 0;
         var shotsDropped = 0;
+        var stageConfig = _myTunoScalingConfig.StageMode;
+        var dropRates = stageConfig.DropRates;
+        var fidelisRewardsConfig = stageConfig.FidelisRewards;
         
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
@@ -265,18 +266,24 @@ public class StageService : IStageService
             return (0, 0m, 0, 0);
         }
 
-        // Player won - full rewards
+        // Player won - full rewards using config values
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var xpMultiplier = enemyType switch
         {
-            EnemyType.Boss => BossXPMultiplier,
-            EnemyType.MiniBoss => MiniBossXPMultiplier,
+            EnemyType.Boss => stageConfig.BossXPMultiplier,
+            EnemyType.MiniBoss => stageConfig.MiniBossXPMultiplier,
             _ => 1
         };
 
-        var xpReward = BaseStageXP * xpMultiplier;
-        var fidelisReward = enemyTemplate?.GetScaledFidelisDrop(stageNumber) 
-            ?? _myTunoScalingConfig.BattleRewards.WinReward;
+        var xpReward = stageConfig.BaseStageXP * xpMultiplier;
+        
+        // Fidelis reward from config based on enemy type
+        var fidelisReward = enemyTemplate?.GetScaledFidelisDrop(stageNumber) ?? enemyType switch
+        {
+            EnemyType.Boss => fidelisRewardsConfig.BossWin,
+            EnemyType.MiniBoss => fidelisRewardsConfig.MiniBossWin,
+            _ => fidelisRewardsConfig.NormalWin
+        };
 
         // Apply XP to character
         character.AddXP(xpReward);
@@ -290,20 +297,20 @@ public class StageService : IStageService
             await _userManager.UpdateAsync(playerUser);
         }
 
-        // Roll for drops (variables already declared at method start)
-        var beerChance = enemyTemplate?.BeerDropChance ?? 0.1;
-        var shotChance = enemyTemplate?.ShotDropChance ?? 0.05;
+        // Roll for drops using config drop rates
+        var beerChance = enemyTemplate?.BeerDropChance ?? dropRates.BeerDropChance;
+        var shotChance = enemyTemplate?.ShotDropChance ?? dropRates.ShotDropChance;
 
-        // Bosses have higher drop rates
+        // Bosses have higher drop rates from config multipliers
         if (enemyType == EnemyType.Boss)
         {
-            beerChance *= 3;
-            shotChance *= 3;
+            beerChance *= dropRates.BossDropMultiplier;
+            shotChance *= dropRates.BossDropMultiplier;
         }
         else if (enemyType == EnemyType.MiniBoss)
         {
-            beerChance *= 2;
-            shotChance *= 2;
+            beerChance *= dropRates.MiniBossDropMultiplier;
+            shotChance *= dropRates.MiniBossDropMultiplier;
         }
 
         if (random.NextDouble() < beerChance)

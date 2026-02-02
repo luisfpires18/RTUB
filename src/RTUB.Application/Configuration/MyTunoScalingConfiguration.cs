@@ -112,6 +112,21 @@ public class StageModeConfig
     public int BossXPMultiplier { get; set; } = 10;
 
     /// <summary>
+    /// Enemy stat scaling per stage
+    /// </summary>
+    public EnemyScaling EnemyScaling { get; set; } = new();
+
+    /// <summary>
+    /// Base enemy stats by type
+    /// </summary>
+    public BaseEnemyStats BaseEnemyStats { get; set; } = new();
+
+    /// <summary>
+    /// Fidelis rewards by enemy type
+    /// </summary>
+    public FidelisRewards FidelisRewards { get; set; } = new();
+
+    /// <summary>
     /// Drop rates for items
     /// </summary>
     public StageDropRates DropRates { get; set; } = new();
@@ -135,6 +150,72 @@ public class StageModeConfig
     /// Player sprite for stage mode
     /// </summary>
     public string PlayerSprite { get; set; } = "/sprites/games/my-tuno/default_tuno.png";
+
+    /// <summary>
+    /// Calculates the number of enemies for a given stage
+    /// </summary>
+    public int GetEnemyCount(int stageNumber)
+    {
+        var count = 1 + (stageNumber / EnemyCountStageInterval);
+        return Math.Min(count, MaxEnemiesPerStage);
+    }
+}
+
+/// <summary>
+/// Enemy stat scaling per stage
+/// </summary>
+public class EnemyScaling
+{
+    /// <summary>
+    /// HP increase per stage as a percentage (0.08 = 8%)
+    /// </summary>
+    public double HpPerStage { get; set; } = 0.08;
+
+    /// <summary>
+    /// Power increase per stage as a percentage
+    /// </summary>
+    public double PowerPerStage { get; set; } = 0.05;
+
+    /// <summary>
+    /// Speed increase per stage as a percentage
+    /// </summary>
+    public double SpeedPerStage { get; set; } = 0.03;
+
+    /// <summary>
+    /// Critical chance increase per stage
+    /// </summary>
+    public double CriticalChancePerStage { get; set; } = 0.002;
+}
+
+/// <summary>
+/// Base enemy stats by type
+/// </summary>
+public class BaseEnemyStats
+{
+    public EnemyTypeStat Normal { get; set; } = new() { Hp = 50, Power = 8, Speed = 5, CriticalChance = 0.05 };
+    public EnemyTypeStat MiniBoss { get; set; } = new() { Hp = 200, Power = 15, Speed = 7, CriticalChance = 0.10 };
+    public EnemyTypeStat Boss { get; set; } = new() { Hp = 500, Power = 20, Speed = 8, CriticalChance = 0.15 };
+}
+
+/// <summary>
+/// Stats for a single enemy type
+/// </summary>
+public class EnemyTypeStat
+{
+    public int Hp { get; set; }
+    public int Power { get; set; }
+    public int Speed { get; set; }
+    public double CriticalChance { get; set; }
+}
+
+/// <summary>
+/// Fidelis rewards by enemy type
+/// </summary>
+public class FidelisRewards
+{
+    public decimal NormalWin { get; set; } = 10m;
+    public decimal MiniBossWin { get; set; } = 25m;
+    public decimal BossWin { get; set; } = 50m;
 }
 
 /// <summary>
