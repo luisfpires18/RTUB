@@ -51,6 +51,8 @@ public class GameService : IGameService
 
     public async Task SeedDefaultGamesAsync()
     {
+        bool hasUpdates = false;
+
         // Avoid Questions game
         var existingGame = await _repository.GetByKeyAsync("avoid-questions");
         if (existingGame == null)
@@ -69,7 +71,7 @@ public class GameService : IGameService
         {
             // Update image URL if it's incorrect (e.g., old path)
             existingGame.UpdateImageUrl("/sprites/games/avoid-questions-thumb.svg");
-            await _repository.SaveChangesAsync();
+            hasUpdates = true;
         }
 
         // BMR - Bebe mais Rui game
@@ -90,7 +92,7 @@ public class GameService : IGameService
         {
             // Update image URL if it's incorrect (e.g., old path like /sprites/bmr/thumbnail.svg)
             bmrGame.UpdateImageUrl("/sprites/games/bmr/thumbnail.svg");
-            await _repository.SaveChangesAsync();
+            hasUpdates = true;
         }
 
         // Tomato Thrower game
@@ -111,7 +113,7 @@ public class GameService : IGameService
         {
             // Update image URL if it's incorrect (e.g., old path)
             tomatoGame.UpdateImageUrl("/sprites/games/tomato-thrower-thumb.svg");
-            await _repository.SaveChangesAsync();
+            hasUpdates = true;
         }
 
         // Passaro Maluco game
@@ -132,6 +134,12 @@ public class GameService : IGameService
         {
             // Update image URL if it's incorrect (e.g., old path)
             passaroMalucoGame.UpdateImageUrl("/sprites/games/passaro-maluco-thumb.svg");
+            hasUpdates = true;
+        }
+
+        // Batch save all updates
+        if (hasUpdates)
+        {
             await _repository.SaveChangesAsync();
         }
     }
