@@ -120,7 +120,7 @@
         <div class="mt-auto">
             <button class="btn btn-primary w-100" 
                     @onclick="() => OnFight.InvokeAsync(Character)"
-                    disabled="@(IsDisabled || Character == null)">
+                    disabled="@(IsDisabled || Character == null || !Character.IsAlive())">
                 @if (IsFighting)
                 {
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
