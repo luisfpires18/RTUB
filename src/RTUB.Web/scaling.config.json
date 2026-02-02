@@ -17,22 +17,22 @@
       "hp": {
         "initialBought": 0,
         "bonusPerUpgrade": 10,
-        "baseCost": 10
+        "baseCost": 5
       },
       "power": {
         "initialBought": 0,
         "bonusPerUpgrade": 2,
-        "baseCost": 15
+        "baseCost": 10
       },
       "speed": {
         "initialBought": 0,
         "bonusPerUpgrade": 1,
-        "baseCost": 25
+        "baseCost": 15
       },
       "criticalChance": {
         "initialBought": 0,
         "bonusPerUpgrade": 0.005,
-        "baseCost": 50
+        "baseCost": 20
       }
     },
     "levelCosts": [

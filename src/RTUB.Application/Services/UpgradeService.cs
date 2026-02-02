@@ -42,7 +42,7 @@ public class UpgradeService : IUpgradeService
 
     /// <summary>
     /// Calculates the cost for upgrading a specific stat
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.5
+    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.1
     /// </summary>
     public async Task<decimal> GetUpgradeCostAsync(string userId, StatType statType)
     {
@@ -69,8 +69,8 @@ public class UpgradeService : IUpgradeService
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
 
-        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.5
-        var cost = baseCost * (decimal)Math.Pow(1 + upgradeCount, 1.5);
+        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.1
+        var cost = baseCost * (decimal)Math.Pow(1 + upgradeCount, 1.1);
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
