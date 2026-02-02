@@ -147,7 +147,7 @@ const bmrGame = (function () {
         };
         
         const onError = (name, img) => (e) => {
-            console.error('[BMR] Failed to load sprite:', name, 'src:', e.target.src, 'error:', e);
+            console.error('[BMR] Failed to load sprite:', name, 'src:', e.target.src);
             img.failed = true;
             loaded++;
             if (loaded >= total) {
@@ -155,23 +155,20 @@ const bmrGame = (function () {
             }
         };
         
-        // Load player sprite (without cache buster for better mobile compatibility)
+        // Load player sprite
         sprites.player = new Image();
-        sprites.player.crossOrigin = 'anonymous'; // Allow CORS if needed
         sprites.player.onload = onLoad('player');
         sprites.player.onerror = onError('player', sprites.player);
         sprites.player.src = '/sprites/games/bmr/player.svg';
         
         // Load background
         sprites.background = new Image();
-        sprites.background.crossOrigin = 'anonymous';
         sprites.background.onload = onLoad('background');
         sprites.background.onerror = onError('background', sprites.background);
         sprites.background.src = '/sprites/games/bmr/background.svg';
         
         // Load beer
         sprites.beer = new Image();
-        sprites.beer.crossOrigin = 'anonymous';
         sprites.beer.onload = onLoad('beer');
         sprites.beer.onerror = onError('beer', sprites.beer);
         sprites.beer.src = '/sprites/games/bmr/beer.svg';
@@ -181,7 +178,6 @@ const bmrGame = (function () {
             total += config.enemyTiers.length;
             config.enemyTiers.forEach(tier => {
                 sprites.enemies[tier.name] = new Image();
-                sprites.enemies[tier.name].crossOrigin = 'anonymous';
                 sprites.enemies[tier.name].onload = onLoad('enemy_' + tier.name);
                 sprites.enemies[tier.name].onerror = onError('enemy_' + tier.name, sprites.enemies[tier.name]);
                 sprites.enemies[tier.name].src = tier.spritePath;
