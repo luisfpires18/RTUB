@@ -176,6 +176,7 @@ public class BattleService : IBattleService
     /// <summary>
     /// Calculates XP and Fidelis rewards based on battle outcome and level difference
     /// XP scales based on opponent level - fighting stronger opponents gives more XP
+    /// Losses award no rewards
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
@@ -183,13 +184,13 @@ public class BattleService : IBattleService
         var (baseXp, fidelis) = outcome switch
         {
             BattleOutcome.AttackerWon => (BaseWinXP, _myTunoScalingConfig.BattleRewards.WinReward),
-            BattleOutcome.DefenderWon => (BaseLossXP, _myTunoScalingConfig.BattleRewards.LossReward),
+            BattleOutcome.DefenderWon => (0, 0m), // No rewards for losing
             BattleOutcome.Draw => (BaseDrawXP, _myTunoScalingConfig.BattleRewards.DrawReward),
             _ => (0, 0m)
         };
         
-        // Apply level-based XP scaling
-        var scaledXp = ApplyLevelScaling(baseXp, attacker.Level, defender.Level);
+        // Apply level-based XP scaling (only if there's XP to scale)
+        var scaledXp = baseXp > 0 ? ApplyLevelScaling(baseXp, attacker.Level, defender.Level) : 0;
         
         return (scaledXp, fidelis);
     }

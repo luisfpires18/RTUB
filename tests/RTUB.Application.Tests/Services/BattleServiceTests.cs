@@ -61,8 +61,8 @@ public class BattleServiceTests : IDisposable
             BattleRewards = new BattleRewards
             {
                 WinReward = 10m,
-                LossReward = 5m,
-                DrawReward = 7.5m
+                DrawReward = 7.5m,
+                ReviveCost = 100m
             }
         };
         _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
@@ -215,7 +215,7 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithLoss_ShouldApplyLossRewards()
+    public async Task CreateBattleVsAIAsync_WithLoss_ShouldNotAwardRewards()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
@@ -253,17 +253,17 @@ public class BattleServiceTests : IDisposable
         // Act
         var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
 
-        // Assert
-        battle.AttackerXP.Should().Be(20); // BaseLossXP
-        battle.AttackerFidelis.Should().Be(5m); // BaseLossFidelis
+        // Assert - Losses should not award any XP or Fidelis
+        battle.AttackerXP.Should().Be(0, "losses should not award XP");
+        battle.AttackerFidelis.Should().Be(0m, "losses should not award Fidelis");
 
-        // Verify character XP was updated
+        // Verify character XP was not increased
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
-        updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
+        updatedCharacter!.XP.Should().Be(initialXP, "character should not gain XP from losing");
 
-        // Verify user Fidelis was updated
+        // Verify user Fidelis was not updated (stayed the same)
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 5m)), Times.Once);
+            u.FidelisBalance == initialFidelis)), Times.Once);
     }
 
     [Fact]

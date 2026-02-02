@@ -70,6 +70,10 @@
 @media (max-width: 768px) {
   .arena-page {
     padding: 0 0.5rem;
+    /* Fix screen height to prevent scrolling on mobile */
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   #phaserBattleContainer {

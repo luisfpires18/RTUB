@@ -20,7 +20,6 @@ public class MyTunoScalingConfiguration
 public class BattleRewards
 {
     public decimal WinReward { get; set; } = 10m;
-    public decimal LossReward { get; set; } = 5m;
     public decimal DrawReward { get; set; } = 7.5m;
     
     /// <summary>
@@ -40,6 +39,12 @@ public class BattleRewards
     /// Default 3.0 means maximum 300% of base XP
     /// </summary>
     public double MaxXpMultiplier { get; set; } = 3.0;
+    
+    /// <summary>
+    /// Cost in Fidelis to revive a defeated character
+    /// Default is 100 Fidelis
+    /// </summary>
+    public decimal ReviveCost { get; set; } = 100m;
 }
 
 public class MyTunoBaseStats
