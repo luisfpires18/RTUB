@@ -52,6 +52,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
     {
         // Get the excluded character to know its level
         var playerCharacter = await _context.Characters
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == excludeCharacterId);
 
         if (playerCharacter == null)
@@ -66,8 +67,9 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .Select(u => u.Id)
             .ToListAsync();
 
-        // Get all eligible opponents
+        // Get all eligible opponents (AsNoTracking since these are for display only)
         var allOpponents = await _context.Characters
+            .AsNoTracking()
             .Include(c => c.User)
             .Where(c => memberUserIds.Contains(c.UserId) && c.Id != excludeCharacterId)
             .ToListAsync();
