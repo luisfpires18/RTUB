@@ -102,40 +102,6 @@
                         <h5 class="mb-0">Defeat at Stage @currentBattle.StageNumber</h5>
                     </div>
 
-                    <!-- Rewards Section -->
-                    <div class="loot-section mt-4">
-                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Consolation Rewards:</h6>
-                        <div class="battle-result-rewards">
-                            <!-- XP Gained -->
-                            <div class="reward-item">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@currentBattle.XPReward XP</span>
-                            </div>
-                            
-                            <!-- Fidelis Earned -->
-                            <div class="reward-item">
-                                <i class="bi bi-coin text-success"></i>
-                                <span>+@currentBattle.FidelisReward.ToString("F2") Fidelis</span>
-                            </div>
-                            
-                            <!-- Items Dropped -->
-                            @if (currentBattle.BeersDropped > 0)
-                            {
-                                <div class="reward-item">
-                                    <i class="bi bi-cup-straw text-warning"></i>
-                                    <span>+@currentBattle.BeersDropped Cerveja</span>
-                                </div>
-                            }
-                            @if (currentBattle.ShotsDropped > 0)
-                            {
-                                <div class="reward-item">
-                                    <i class="bi bi-cup text-danger"></i>
-                                    <span>+@currentBattle.ShotsDropped Shot</span>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
                     <!-- Defeat Message -->
                     <div class="mt-4">
                         <div class="alert alert-danger">
@@ -143,7 +109,7 @@
                             Your character was defeated at Stage @currentBattle.StageNumber!
                         </div>
                         
-                        <div class="d-flex gap-3 justify-content-center">
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
                             <button class="btn btn-warning" @onclick="ReturnToCheckpoint" disabled="@returningToCheckpoint">
                                 @if (returningToCheckpoint)
                                 {

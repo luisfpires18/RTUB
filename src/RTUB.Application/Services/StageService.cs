@@ -261,47 +261,8 @@ public class StageService : IStageService
         
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            // Player lost - partial rewards based on stage reached
-            // XP scales with stage: base + (stage * 2), then /3 for loss
-            var lossXP = (BaseStageXP + (stageNumber * 2)) / 3;
-            
-            // Fidelis scales with stage: base loss reward + 5% per stage
-            var lossFidelis = _myTunoScalingConfig.BattleRewards.LossReward * (1 + stageNumber * 0.05m);
-            
-            character.AddXP(lossXP);
-            await _characterRepository.UpdateAsync(character);
-            
-            var user = await _userManager.FindByIdAsync(character.UserId);
-            if (user != null)
-            {
-                user.FidelisBalance += lossFidelis;
-                await _userManager.UpdateAsync(user);
-            }
-            
-            // Partial chance for drops on defeat (25% of normal rate)
-            var defeatBeerChance = (enemyTemplate?.BeerDropChance ?? 0.1) * 0.25;
-            var defeatShotChance = (enemyTemplate?.ShotDropChance ?? 0.05) * 0.25;
-            
-            // Higher stages = higher drop chances (bonus 1% per 10 stages)
-            var stageBonus = 1 + (stageNumber / 10) * 0.01;
-            defeatBeerChance *= stageBonus;
-            defeatShotChance *= stageBonus;
-            
-            if (random.NextDouble() < defeatBeerChance)
-            {
-                beersDropped = 1;
-                await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, 1);
-                _logger.LogInformation("Beer dropped on defeat for user {UserId} on stage {Stage}", character.UserId, stageNumber);
-            }
-            
-            if (random.NextDouble() < defeatShotChance)
-            {
-                shotsDropped = 1;
-                await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, 1);
-                _logger.LogInformation("Shot dropped on defeat for user {UserId} on stage {Stage}", character.UserId, stageNumber);
-            }
-            
-            return (lossXP, lossFidelis, beersDropped, shotsDropped);
+            // Player lost - no rewards on defeat
+            return (0, 0m, 0, 0);
         }
 
         // Player won - full rewards

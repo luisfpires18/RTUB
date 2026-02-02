@@ -3,6 +3,20 @@
 .stage-page {
   min-height: 100vh;
   padding-bottom: 2rem;
+  /* Mobile optimization like Arena */
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Battle animation container - responsive like Arena */
+#phaserBattleContainer {
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  aspect-ratio: 8 / 5; /* Maintain 800x500 aspect ratio */
+  margin: 0 auto;
+  background: #1a1a1a;
 }
 
 /* Battle Card */
@@ -212,11 +226,25 @@
 
 @media (max-width: 768px) {
   .stage-page {
+    padding: 0 0.5rem;
     padding-bottom: 1rem;
+    /* Fix screen to prevent horizontal scrolling on mobile - copied from Arena */
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .battle-result-body {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .battle-result-title {
+    font-size: 0.9rem;
+  }
+
+  .battle-result-row {
+    gap: 0.5rem;
   }
 
   .stage-stat-box {
@@ -242,10 +270,34 @@
 
   /* Stack battle container on mobile */
   #phaserBattleContainer {
-    width: 100% !important;
-    max-width: 800px;
-    height: auto !important;
-    aspect-ratio: 8/5;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .battle-result-body {
+    padding: 1rem 0.75rem;
+  }
+
+  .battle-result-title {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .battle-result-title i {
+    font-size: 1rem;
+  }
+
+  .battle-result-label {
+    font-size: 0.9rem;
+  }
+
+  .battle-result-rewards {
+    gap: 0.4rem;
+  }
+
+  .battle-result-rewards .badge {
+    font-size: 0.75rem;
   }
 }
 
