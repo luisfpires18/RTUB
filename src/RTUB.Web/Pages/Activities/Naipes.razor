@@ -446,7 +446,13 @@ else
 
     private void ApplyFilters()
     {
-        // Use service to filter content
+        // First, filter by selected instrument only (no search) to populate contentForInstrument
+        // This is used by the UI to determine if there's any content for the selected instrument
+        contentForInstrument = selectedInstrument.HasValue
+            ? NaipeContentFilterService.FilterContent(allContent ?? new List<NaipeContentDto>(), selectedInstrument, string.Empty) ?? new List<NaipeContentDto>()
+            : new List<NaipeContentDto>();
+
+        // Then apply both instrument and search filters for the displayed content
         filteredContent = NaipeContentFilterService.FilterContent(allContent ?? new List<NaipeContentDto>(), selectedInstrument, searchTerm)
             ?? new List<NaipeContentDto>();
 
