@@ -1,3 +1,21 @@
+/* Arena page container */
+.arena-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Battle animation container - responsive */
+#phaserBattleContainer {
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  aspect-ratio: 8 / 5; /* Maintain 800x500 aspect ratio */
+  margin: 0 auto;
+  background: #1a1a1a;
+}
+
+/* Battle result card */
 .battle-result-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
@@ -46,4 +64,54 @@
   gap: 0.6rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .arena-page {
+    padding: 0 0.5rem;
+  }
+
+  #phaserBattleContainer {
+    max-width: 100%;
+  }
+
+  .battle-result-body {
+    padding: 1.5rem 1rem;
+  }
+
+  .battle-result-title {
+    font-size: 0.9rem;
+  }
+
+  .battle-result-row {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .battle-result-body {
+    padding: 1rem 0.75rem;
+  }
+
+  .battle-result-title {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .battle-result-title i {
+    font-size: 1rem;
+  }
+
+  .battle-result-label {
+    font-size: 0.9rem;
+  }
+
+  .battle-result-rewards {
+    gap: 0.4rem;
+  }
+
+  .battle-result-rewards .badge {
+    font-size: 0.75rem;
+  }
 }
