@@ -8,6 +8,11 @@
   margin: 0 auto;
 }
 
+/* Header spacer for alignment */
+.header-spacer {
+  width: 140px;
+}
+
 /* Battle animation container - responsive like Arena */
 #phaserBattleContainer {
   display: block;
@@ -222,6 +227,11 @@
   .stage-battle-actions {
     margin-top: 1rem;
   }
+
+  /* Hide spacer on smaller screens */
+  .header-spacer {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -272,6 +282,11 @@
   #phaserBattleContainer {
     max-width: 100%;
   }
+
+  /* Stack battle speed controls on mobile */
+  .card-header .btn-group {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -296,6 +311,52 @@
     gap: 0.4rem;
   }
 
+  /* Mobile-specific adjustments for very small screens */
+  .stage-page {
+    padding: 0 0.25rem;
+  }
+
+  /* Make header flex column on very small screens */
+  .stage-page > div:first-child {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Stack battle controls vertically on very small screens */
+  .card-header {
+    flex-direction: column !important;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .card-header h5 {
+    text-align: center;
+  }
+
+  .card-header .btn-group {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .card-header .btn-group .btn {
+    flex: 1;
+    font-size: 0.85rem;
+  }
+
+  /* Ensure battle container fits on very small screens */
+  #phaserBattleContainer {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Adjust card footer for mobile */
+  .card-footer .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem;
+  }
+
+  .card-footer .badge,
   .battle-result-rewards .badge {
     font-size: 0.75rem;
   }

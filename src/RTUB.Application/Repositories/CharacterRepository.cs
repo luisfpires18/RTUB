@@ -103,15 +103,15 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
         // Build priority list: higher level first (sorted by proximity), 
         // then same level, then lower level (sorted by proximity)
         var prioritizedOpponents = new List<Character>();
-        
+
         // Add higher level opponents sorted by proximity (smallest diff first)
         prioritizedOpponents.AddRange(
             higherLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
         );
-        
+
         // Add same level opponents
         prioritizedOpponents.AddRange(sameLevel);
-        
+
         // Add lower level opponents sorted by proximity (smallest diff first)
         prioritizedOpponents.AddRange(
             lowerLevel.OrderBy(x => x.levelDiff).Select(x => x.character)

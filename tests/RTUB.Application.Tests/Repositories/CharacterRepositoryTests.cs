@@ -52,7 +52,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         for (int level = 1; level <= 10; level++)
         {
             if (level == 5) continue; // Skip player's level for this test
-            
+
             var user = CreateTestUser($"user-{level}", $"Opponent{level}", MemberCategory.Tuno);
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
@@ -74,12 +74,12 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Assert
         result.Should().NotBeNull();
         (result.Count <= 8).Should().BeTrue();
-        
+
         // First opponents should be higher level (6, 7, 8, 9, 10)
         // Then lower level (4, 3, 2, 1)
         var higherLevelCount = result.Count(c => c.Level > playerCharacter.Level);
         var lowerLevelCount = result.Count(c => c.Level < playerCharacter.Level);
-        
+
         // Should prioritize higher level first
         if (result.Count >= 5)
         {

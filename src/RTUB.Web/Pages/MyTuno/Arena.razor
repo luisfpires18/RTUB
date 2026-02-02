@@ -149,7 +149,8 @@
                                     <EnemyCard Character="@opponent"
                                               OnFight="() => FightOpponent(opponent)"
                                               IsDisabled="@(fighting || showBattleAnimation)"
-                                              IsFighting="@(fightingOpponentId == opponent.Id)" />
+                                              IsFighting="@(fightingOpponentId == opponent.Id)"
+                                              ShowLevelAndXP="true" />
                                 </div>
                             }
                         </div>

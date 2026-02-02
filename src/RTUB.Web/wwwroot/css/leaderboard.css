@@ -36,7 +36,7 @@
     padding: 0.75rem 1rem;
     background: #000000;
     border-radius: 0.5rem;
-    border: 2px solid #8a2be2;
+    border: 2px solid var(--bs-primary);
     transition: all 0.2s ease;
     position: relative;
     flex-shrink: 0;
@@ -221,7 +221,7 @@
 .level-pill {
     display: inline-block;
     padding: 8px 16px;
-    background-color: #8a2be2;
+    background-color: var(--bs-primary);
     color: #ffffff;
     border-radius: 20px;
     font-size: 0.875rem;

@@ -369,11 +369,11 @@ public class BattleServiceTests : IDisposable
         // Arrange - Test case: attacker with 73/130 HP should see MaxHP correctly in battle events
         var user1 = new ApplicationUser { Id = "user1", UserName = "player1", FidelisBalance = 100m };
         var user2 = new ApplicationUser { Id = "user2", UserName = "player2", FidelisBalance = 100m };
-        
+
         var playerCharacter = Character.Create("user1");
         playerCharacter.Level = 5; // Level 5 gives TotalHP = 130
         playerCharacter.CurrentHP = 73; // Player starts battle with reduced HP
-        
+
         var opponentCharacter = Character.Create("user2");
         opponentCharacter.Level = 5; // Same level
         opponentCharacter.CurrentHP = 100; // Opponent has some HP
@@ -413,18 +413,18 @@ public class BattleServiceTests : IDisposable
         // Assert
         battle.Should().NotBeNull();
         battle.ReplayJson.Should().NotBeNullOrEmpty();
-        
+
         // Parse the replay JSON to verify MaxHP is included
         var events = System.Text.Json.JsonSerializer.Deserialize<List<Application.DTOs.CombatEvent>>(battle.ReplayJson!);
         events.Should().NotBeNull();
-        
+
         // First event should be attacker HPUpdate with MaxHP
         var attackerInitialHP = events![0];
         attackerInitialHP.Type.Should().Be("HPUpdate");
         attackerInitialHP.Character.Should().Be("Attacker");
         attackerInitialHP.HP.Should().Be(73, "because attacker starts with reduced HP");
         attackerInitialHP.MaxHP.Should().Be(130, "because MaxHP should reflect the attacker's total HP, not current HP");
-        
+
         // Second event should be defender HPUpdate with MaxHP
         var defenderInitialHP = events[1];
         defenderInitialHP.Type.Should().Be("HPUpdate");
@@ -432,7 +432,7 @@ public class BattleServiceTests : IDisposable
         defenderInitialHP.HP.Should().Be(100);
         defenderInitialHP.MaxHP.Should().Be(130);
     }
-    
+
     [Fact]
     public async Task CreateBattleVsOpponentAsync_WithHigherLevelOpponent_ShouldGiveMoreXP()
     {
@@ -440,24 +440,24 @@ public class BattleServiceTests : IDisposable
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
         playerCharacter.AddXP(0); // Level 1
-        
+
         var opponent = Character.Create("user2");
         // Level up opponent to level 10
         for (int i = 0; i < 9; i++)
         {
             opponent.AddXP(opponent.Level * 100);
         }
-        
+
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-        
+
         var initialPlayerXP = playerCharacter.XP;
-        
+
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-        
+
         var combatResult = new Application.DTOs.CombatResult
         {
             Outcome = BattleOutcome.AttackerWon,
@@ -468,24 +468,24 @@ public class BattleServiceTests : IDisposable
             AttackerFinalHP = 50,
             DefenderFinalHP = 0
         };
-        
+
         _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
             .Returns(combatResult);
-        
+
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
-        
+
         // Assert
         // With level difference of 9 (defender level 10 - attacker level 1)
         // and scaling factor of 0.05, multiplier = 1.0 + (9 * 0.05) = 1.45
         // Expected XP = 50 * 1.45 = 72.5, rounded to 72
         battle.AttackerXP.Should().BeInRange(70, 75, "because level 10 vs level 1 with 5% scaling should give ~72 XP");
-        
+
         // Verify XP was applied to character
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
         updatedCharacter!.XP.Should().Be(initialPlayerXP + battle.AttackerXP);
     }
-    
+
     [Fact]
     public async Task CreateBattleVsOpponentAsync_WithLowerLevelOpponent_ShouldGiveLessXP()
     {
@@ -497,18 +497,18 @@ public class BattleServiceTests : IDisposable
         {
             playerCharacter.AddXP(playerCharacter.Level * 100);
         }
-        
+
         var opponent = Character.Create("user2");
         opponent.AddXP(0); // Level 1
-        
+
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-        
+
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-        
+
         var combatResult = new Application.DTOs.CombatResult
         {
             Outcome = BattleOutcome.AttackerWon,
@@ -519,13 +519,13 @@ public class BattleServiceTests : IDisposable
             AttackerFinalHP = 90,
             DefenderFinalHP = 0
         };
-        
+
         _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
             .Returns(combatResult);
-        
+
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
-        
+
         // Assert
         // With level difference of -9 (defender level 1 - attacker level 10)
         // and scaling factor of 0.05, multiplier = 1.0 + (-9 * 0.05) = 0.55
@@ -534,7 +534,7 @@ public class BattleServiceTests : IDisposable
         battle.AttackerXP.Should().BeLessThan(50, "and it should be less than base XP");
         battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP");
     }
-    
+
     [Fact]
     public async Task CreateBattleVsOpponentAsync_WithSameLevelOpponent_ShouldGiveBaseXP()
     {
@@ -542,15 +542,15 @@ public class BattleServiceTests : IDisposable
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
         var opponent = Character.Create("user2");
-        
+
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-        
+
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-        
+
         var combatResult = new Application.DTOs.CombatResult
         {
             Outcome = BattleOutcome.AttackerWon,
@@ -561,13 +561,13 @@ public class BattleServiceTests : IDisposable
             AttackerFinalHP = 70,
             DefenderFinalHP = 0
         };
-        
+
         _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
             .Returns(combatResult);
-        
+
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
-        
+
         // Assert
         battle.AttackerXP.Should().Be(50, "because fighting an equal level opponent should give base XP (50 for win)");
     }

@@ -34,7 +34,7 @@
     padding: 1rem 1.25rem;
     background: #000000;
     border-radius: 0.5rem;
-    border: 2px solid #8a2be2;
+    border: 2px solid var(--bs-primary);
     transition: all 0.2s ease;
     position: relative;
     min-width: 140px;
@@ -316,7 +316,7 @@
 
 /* Badge styles */
 .badge-purple {
-    background-color: #8a2be2;
+    background-color: var(--bs-primary);
 }/* Modal section header */
 .modal-section-header {
     cursor: pointer;
