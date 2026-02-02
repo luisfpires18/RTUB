@@ -162,19 +162,19 @@ const bmrGame = (function () {
         sprites.player = new Image();
         sprites.player.onload = onLoad('player');
         sprites.player.onerror = onError('player', sprites.player);
-        sprites.player.src = '/sprites/bmr/player.svg' + cacheBuster;
+        sprites.player.src = '/sprites/games/bmr/player.svg' + cacheBuster;
         
         // Load background
         sprites.background = new Image();
         sprites.background.onload = onLoad('background');
         sprites.background.onerror = onError('background', sprites.background);
-        sprites.background.src = '/sprites/bmr/background.svg' + cacheBuster;
+        sprites.background.src = '/sprites/games/bmr/background.svg' + cacheBuster;
         
         // Load beer
         sprites.beer = new Image();
         sprites.beer.onload = onLoad('beer');
         sprites.beer.onerror = onError('beer', sprites.beer);
-        sprites.beer.src = '/sprites/bmr/beer.svg' + cacheBuster;
+        sprites.beer.src = '/sprites/games/bmr/beer.svg' + cacheBuster;
         
         // Load enemy sprites
         if (config.enemyTiers && config.enemyTiers.length > 0) {

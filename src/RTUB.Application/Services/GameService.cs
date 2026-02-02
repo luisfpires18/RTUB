@@ -72,7 +72,7 @@ public class GameService : IGameService
                 "bmr-bebe-mais-rui",
                 "BMR — Bebe mais Rui",
                 "Run, jump, collect beers, dodge heavy hitters.",
-                "/sprites/bmr/thumbnail.svg",
+                "/sprites/games/bmr/thumbnail.svg",
                 "/games/bmr-bebe-mais-rui",
                 false,
                 false

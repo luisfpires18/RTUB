@@ -52,10 +52,10 @@ public class BmrBebeMaisRuiConfiguration
     /// </summary>
     public List<EnemyTierConfig> EnemyTiers { get; set; } = new()
     {
-        new EnemyTierConfig { Name = "Chubby", Damage = 10, Speed = 60, SpawnWeight = 40, SpritePath = "/sprites/bmr/enemy_chubby.svg" },
-        new EnemyTierConfig { Name = "Plus", Damage = 20, Speed = 50, SpawnWeight = 30, SpritePath = "/sprites/bmr/enemy_plus.svg" },
-        new EnemyTierConfig { Name = "Heavy", Damage = 35, Speed = 40, SpawnWeight = 20, SpritePath = "/sprites/bmr/enemy_heavy.svg" },
-        new EnemyTierConfig { Name = "Mega", Damage = 50, Speed = 30, SpawnWeight = 10, SpritePath = "/sprites/bmr/enemy_mega.svg" }
+        new EnemyTierConfig { Name = "Chubby", Damage = 10, Speed = 60, SpawnWeight = 40, SpritePath = "/sprites/games/bmr/enemy_chubby.svg" },
+        new EnemyTierConfig { Name = "Plus", Damage = 20, Speed = 50, SpawnWeight = 30, SpritePath = "/sprites/games/bmr/enemy_plus.svg" },
+        new EnemyTierConfig { Name = "Heavy", Damage = 35, Speed = 40, SpawnWeight = 20, SpritePath = "/sprites/games/bmr/enemy_heavy.svg" },
+        new EnemyTierConfig { Name = "Mega", Damage = 50, Speed = 30, SpawnWeight = 10, SpritePath = "/sprites/games/bmr/enemy_mega.svg" }
     };
 }
 
