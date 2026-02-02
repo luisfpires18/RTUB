@@ -22,6 +22,11 @@ public class FidelisRewardsConfiguration
     /// Fidelis rewards configuration for PassaroMaluco game
     /// </summary>
     public GameRewardSettings PassaroMaluco { get; set; } = new();
+
+    /// <summary>
+    /// Fidelis rewards configuration for TomatoThrower game
+    /// </summary>
+    public GameRewardSettings TomatoThrower { get; set; } = new();
 }
 
 /// <summary>
