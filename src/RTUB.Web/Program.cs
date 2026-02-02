@@ -139,6 +139,7 @@ public class Program
                 myTunoScaling.Upgrades.Power.BonusPerUpgrade,
                 myTunoScaling.Upgrades.Speed.BonusPerUpgrade,
                 myTunoScaling.Upgrades.CriticalChance.BonusPerUpgrade,
+                beerDropChance: myTunoScaling.BeerDropChance,
                 levelCosts: myTunoScaling.LevelCosts);
         }
 

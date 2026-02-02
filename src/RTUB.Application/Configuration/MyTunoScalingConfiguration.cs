@@ -9,6 +9,12 @@ public class MyTunoScalingConfiguration
     public MyTunoUpgrades Upgrades { get; set; } = new();
     public List<decimal> LevelCosts { get; set; } = new();
     public BattleRewards BattleRewards { get; set; } = new();
+    
+    /// <summary>
+    /// Chance of beer drop after winning a battle (0.0 to 1.0)
+    /// Default is 0.5 (50% chance)
+    /// </summary>
+    public double BeerDropChance { get; set; } = 0.5;
 }
 
 public class BattleRewards
