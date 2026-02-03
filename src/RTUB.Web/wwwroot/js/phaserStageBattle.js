@@ -186,16 +186,16 @@
                 }).setOrigin(0.5, 0);
             }
 
-            // Create enemies at top area (can have multiple)
-            this.createEnemies(width, height);
-
-            // Create player at bottom center
+            // Create player on LEFT side
             this.createPlayer(width, height);
+
+            // Create enemies on RIGHT side (can have multiple)
+            this.createEnemies(width, height);
 
             // Create HP bars
             this.createHPBars(width, height);
 
-            // Create battle log
+            // Create battle log (compact, bottom-left)
             this.createBattleLog(width, height);
 
             // PRE-PROCESS: Find first player attack and process initial events instantly
@@ -248,10 +248,10 @@
             if (character === 'Attacker' || character === 'Player') {
                 this.playerMaxHp = maxHP;
                 this.playerCurrentHp = hp;
-                // Set bar directly without animation - use correct ratio
+                // Set bar directly without animation - use correct width
                 if (this.playerHpBar) {
                     const ratio = Math.max(0, hp / maxHP);
-                    this.playerHpBar.scaleX = ratio;
+                    this.playerHpBar.width = this.playerHpBar.maxWidth * ratio;
                 }
                 if (this.playerHpText) {
                     this.playerHpText.setText(`${hp}/${maxHP}`);
@@ -289,13 +289,15 @@
             this.enemySprites = [];
             this.enemyHpBars = [];
             
-            // Position enemies in a row at the top
-            const enemyY = 160; // Moved down slightly to make room for HP bars
-            const enemySpacing = Math.min(150, (width - 100) / Math.max(this.enemyCount, 1));
-            const startX = width / 2 - ((this.enemyCount - 1) * enemySpacing) / 2;
+            // Position enemies on the RIGHT side, vertically centered
+            const enemyBaseY = height / 2;
+            const enemySpacing = Math.min(120, (height - 120) / Math.max(this.enemyCount, 1));
+            const startY = enemyBaseY - ((this.enemyCount - 1) * enemySpacing) / 2;
 
             for (let i = 0; i < this.enemyCount; i++) {
-                const enemyX = startX + i * enemySpacing;
+                const enemyX = width - 120; // RIGHT side
+                const enemyY = startY + i * enemySpacing;
+                
                 // Use individual sprite for each enemy
                 const enemy = this.add.image(enemyX, enemyY, `stageEnemy${i}`);
                 
@@ -309,7 +311,7 @@
                 
                 // Create HP bar above this enemy
                 const scaledHeight = enemy.height * scale;
-                const hpBarY = enemyY - scaledHeight / 2 - 25; // Above enemy sprite
+                const hpBarY = enemyY - scaledHeight / 2 - 20; // Above enemy sprite
                 const hpBarWidth = 60;
                 const hpBarHeight = 8;
                 
@@ -341,9 +343,10 @@
         }
 
         createPlayer(width, height) {
-            // Player at bottom center
-            const playerY = height - 120;
-            this.playerSprite = this.add.image(width / 2, playerY, 'stagePlayer');
+            // Player on LEFT side, vertically centered
+            const playerX = 120;
+            const playerY = height / 2;
+            this.playerSprite = this.add.image(playerX, playerY, 'stagePlayer');
             
             // Scale player
             const maxSize = 100;
@@ -352,27 +355,25 @@
         }
 
         createHPBars(width, height) {
-            // Player HP bar at bottom
-            const playerBarY = height - 40;
-            const playerNameX = 20;
-            const playerBarX = playerNameX + 80; // Closer to the name
-            
-            this.add.text(playerNameX, playerBarY - 20, this.playerName, {
-                fontSize: '14px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#ffffff'
-            });
+            // Player HP bar at TOP-LEFT (mirrors Arena's top positioning)
+            const paddingTop = 30;
+            const barWidth = 200;
+            const barHeight = 24;
+            const barX = 50;
             
             // Player HP bar background
-            this.add.rectangle(playerBarX, playerBarY, 200, 20, 0x333333).setOrigin(0, 0.5);
+            this.add.rectangle(barX + barWidth / 2, paddingTop + barHeight / 2, barWidth, barHeight, 0x333333);
             
-            // Player HP bar fill
-            this.playerHpBar = this.add.rectangle(playerBarX, playerBarY, 200, 20, 0x44ff44).setOrigin(0, 0.5);
+            // Player HP bar fill - use proper scaling with left origin
+            this.playerHpBar = this.add.rectangle(barX, paddingTop + barHeight / 2, barWidth, barHeight, 0x44ff44);
+            this.playerHpBar.setOrigin(0, 0.5);  // Left origin for proper scaling
+            this.playerHpBar.maxWidth = barWidth;
             
             // Player HP text
-            this.playerHpText = this.add.text(playerBarX + 100, playerBarY, '100/100', {
-                fontSize: '12px',
+            this.playerHpText = this.add.text(barX + barWidth / 2, paddingTop + barHeight / 2, '100/100', {
+                fontSize: '14px',
                 fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
                 color: '#ffffff'
             }).setOrigin(0.5, 0.5);
 
@@ -380,26 +381,19 @@
         }
 
         createBattleLog(width, height) {
-            // Battle log on the right side
-            const logX = width - 190;
-            const logY = height / 2 - 50;
+            // Battle log at BOTTOM CENTER (matches Arena style)
+            const panelHeight = 80;
+            const panelY = height - panelHeight / 2 - 5;
             
-            this.add.rectangle(logX, logY, 180, 150, 0x000000, 0.6)
-                .setOrigin(0, 0)
-                .setStrokeStyle(1, 0x444444);
+            this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.9)
+                .setOrigin(0.5, 0.5)
+                .setStrokeStyle(1, 0x333333);
             
-            this.add.text(logX + 10, logY + 5, 'Battle Log', {
-                fontSize: '12px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
-                color: '#ffffff'
-            });
-            
-            this.logText = this.add.text(logX + 10, logY + 25, '', {
-                fontSize: '10px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#cccccc',
-                wordWrap: { width: 160 }
+            this.logText = this.add.text(30, panelY - panelHeight / 2 + 10, '', {
+                fontFamily: 'Arial',
+                fontSize: '13px',
+                color: '#f1f1f1',
+                wordWrap: { width: width - 60 }
             });
         }
 
@@ -472,9 +466,10 @@
 
         updatePlayerHPBar() {
             const ratio = Math.max(0, this.playerCurrentHp / this.playerMaxHp);
+            const maxWidth = this.playerHpBar.maxWidth || 200;
             this.tweens.add({
                 targets: this.playerHpBar,
-                scaleX: ratio,
+                width: maxWidth * ratio,
                 duration: 200,
                 ease: 'Power2'
             });
@@ -564,41 +559,66 @@
         animatePlayerAttack() {
             if (!this.playerSprite) return;
             
-            // Player moves up towards enemies
+            // Player moves RIGHT towards enemies (mirrors Arena's horizontal lunge)
+            const originalX = this.playerSprite.x;
             this.tweens.add({
                 targets: this.playerSprite,
-                y: this.playerSprite.y - 50,
-                duration: 100,
-                yoyo: true,
-                ease: 'Power2'
+                x: originalX + 60,
+                duration: 150,
+                ease: 'Power3',
+                onComplete: () => {
+                    // Return to original position
+                    this.tweens.add({
+                        targets: this.playerSprite,
+                        x: originalX,
+                        duration: 240,
+                        ease: 'Back.Out'
+                    });
+                }
             });
         }
 
         animateEnemyAttack() {
-            // Enemies move down towards player (all of them - legacy)
+            // Enemies move LEFT towards player (all of them - legacy)
             this.enemySprites.forEach((enemy, index) => {
+                const originalX = enemy.x;
                 this.tweens.add({
                     targets: enemy,
-                    y: enemy.y + 30,
-                    duration: 100,
+                    x: originalX - 60,
+                    duration: 150,
                     delay: index * 50,
-                    yoyo: true,
-                    ease: 'Power2'
+                    ease: 'Power3',
+                    onComplete: () => {
+                        this.tweens.add({
+                            targets: enemy,
+                            x: originalX,
+                            duration: 240,
+                            ease: 'Back.Out'
+                        });
+                    }
                 });
             });
         }
 
         animateSingleEnemyAttack(enemyIndex) {
-            // Only the attacking enemy moves down towards player
+            // Only the attacking enemy moves LEFT towards player
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
+                    const originalX = enemy.x;
                     this.tweens.add({
                         targets: enemy,
-                        y: enemy.y + 30,
-                        duration: 100,
-                        yoyo: true,
-                        ease: 'Power2'
+                        x: originalX - 60,
+                        duration: 150,
+                        ease: 'Power3',
+                        onComplete: () => {
+                            this.tweens.add({
+                                targets: enemy,
+                                x: originalX,
+                                duration: 240,
+                                ease: 'Back.Out'
+                            });
+                        }
                     });
                 }
             }
@@ -758,11 +778,9 @@
         }
 
         addLogEntry(text) {
-            this.logEntries.push(text);
-            // Keep only last 8 entries
-            if (this.logEntries.length > 8) {
-                this.logEntries.shift();
-            }
+            if (!text) return;
+            this.logEntries.unshift(text);
+            this.logEntries = this.logEntries.slice(0, 4); // Keep only last 4 entries (matches Arena)
             if (this.logText) {
                 this.logText.setText(this.logEntries.join('\n'));
             }

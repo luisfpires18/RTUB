@@ -26,12 +26,21 @@
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
 
 <div class="stage-page container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button class="btn btn-outline-secondary" @onclick="GoBack" title="Back">
-            <i class="bi bi-arrow-left me-2"></i>Back to My Tuno
-        </button>
-        <h1 class="mb-0"><i class="bi bi-trophy"></i> Stage Mode</h1>
-        <div class="header-spacer"></div>
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <!-- Left: Back button -->
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Back">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            
+            <!-- Center: Title (takes remaining space + centers text) -->
+            <div class="flex-grow-1 text-center">
+                <h1 class="mb-2"><i class="bi bi-trophy"></i> Stage Mode</h1>
+            </div>
+            
+            <!-- Right: Invisible spacer (maintains symmetry) -->
+            <div style="width: 48px;"></div>
+        </div>
     </div>
 
     @if (loading)

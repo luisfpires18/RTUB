@@ -40,6 +40,6 @@ public static class AuditConfiguration
         "BetOption",
         "MeetingAtaAgendaPoint",
         "InventoryItem",
-        "Characyter",
+        "Character",
     };
 }

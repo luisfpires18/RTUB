@@ -24,6 +24,14 @@
   background: #1a1a1a;
 }
 
+/* Mobile overrides for battle container */
+@media (max-width: 768px) {
+  #phaserBattleContainer {
+    max-width: 100%;
+    aspect-ratio: 1 / 1; /* More square on mobile for better use of space */
+  }
+}
+
 /* Battle Card */
 .battle-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -278,6 +286,47 @@
     font-size: 0.75rem;
   }
 
+  /* Compact battle card for mobile - mirrors Arena */
+  .battle-card {
+    margin-bottom: 1rem;
+  }
+
+  .battle-card .card-header {
+    padding: 0.75rem !important;
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+
+  .battle-card .card-header h5 {
+    font-size: 0.95rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Compact accumulated loot badges */
+  .card-footer.bg-dark {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .card-footer .d-flex {
+    gap: 0.5rem !important;
+  }
+
+  .card-footer .badge {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.25rem !important;
+    white-space: nowrap;
+  }
+
+  .card-footer .badge i {
+    font-size: 0.65rem;
+  }
+
   /* Stack battle container on mobile */
   #phaserBattleContainer {
     max-width: 100%;
@@ -314,6 +363,56 @@
   /* Mobile-specific adjustments for very small screens */
   .stage-page {
     padding: 0 0.25rem;
+  }
+
+  /* Extra compact battle card header */
+  .battle-card .card-header {
+    padding: 0.5rem 0.5rem !important;
+    gap: 0.35rem !important;
+  }
+
+  .battle-card .card-header h5 {
+    font-size: 0.8rem !important;
+    flex: 0 0 100%;
+  }
+
+  .btn-group-sm {
+    width: 100%;
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .btn-group-sm > .btn {
+    flex: 1;
+    padding: 0.2rem 0.25rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  /* Extra compact badges for small phones */
+  .card-footer.bg-dark {
+    padding: 0.4rem 0.5rem !important;
+  }
+
+  .card-footer .d-flex {
+    flex-direction: column;
+    gap: 0.35rem !important;
+  }
+
+  .card-footer .d-flex > div {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 0.3rem !important;
+    width: 100%;
+  }
+
+  .card-footer .badge {
+    padding: 0.2rem 0.35rem !important;
+    font-size: 0.6rem !important;
+    gap: 0.15rem !important;
+  }
+
+  .card-footer .badge i {
+    font-size: 0.55rem;
   }
 
   /* Make header flex column on very small screens */
