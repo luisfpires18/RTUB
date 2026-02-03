@@ -6,7 +6,7 @@
 // Optimized for mobile PWA performance
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v24';
+const CACHE_VERSION = 'rtub-v25';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -18,6 +18,7 @@ const STATIC_ASSETS = [
     '/offline.html',
     '/icons/rtub-logo-192.png',
     '/icons/rtub-logo-512.png',
+    '/icons/rtub-badge-96.png',
     '/images/default-avatar.webp',
     '/manifest.webmanifest',
     '/_framework/blazor.web.js'
@@ -197,7 +198,7 @@ self.addEventListener('push', (event) => {
         title: 'RTUB Notification',
         body: 'You have a new notification',
         icon: '/icons/rtub-logo-192.png',
-        badge: '/icons/rtub-logo-192.png',
+        badge: '/icons/rtub-badge-96.png',
         url: '/',
         tag: 'rtub-notification'
     };
@@ -209,7 +210,7 @@ self.addEventListener('push', (event) => {
                 title: data.title || notificationData.title,
                 body: data.body || notificationData.body,
                 icon: data.icon || notificationData.icon,
-                badge: data.icon || notificationData.badge,
+                badge: data.badge || notificationData.badge,
                 url: data.url || notificationData.url,
                 tag: data.tag || notificationData.tag
             };
@@ -233,6 +234,8 @@ self.addEventListener('push', (event) => {
                     tag: notificationData.tag
                 },
                 requireInteraction: false,
+                renotify: true,
+                timestamp: Date.now(),
                 vibrate: [200, 100, 200]
             }
         );
