@@ -102,10 +102,6 @@ public class BattleService : IBattleService
             await TryDropBeerAsync(playerCharacter.UserId);
         }
 
-        _logger.LogInformation(
-            "Battle created: Player {PlayerCharacterId} vs AI {AIOpponentId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
-            playerCharacterId, aiOpponent.Id, combatResult.Outcome, xpReward, fidelisReward);
-
         return battle;
     }
 
@@ -130,6 +126,8 @@ public class BattleService : IBattleService
 
         if (playerCharacterId == opponentCharacterId)
             throw new InvalidOperationException("Não podes lutar contra ti mesmo");
+
+        _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", playerCharacter.Name, opponentCharacter.Name);
 
         // Create CPU snapshot of opponent with full HP
         // This ensures the opponent always starts at full health regardless of their persisted state
@@ -169,10 +167,6 @@ public class BattleService : IBattleService
         {
             await TryDropBeerAsync(playerCharacter.UserId);
         }
-
-        _logger.LogInformation(
-            "Battle created: Player {PlayerCharacterId} vs Opponent {OpponentCharacterId}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
-            playerCharacterId, opponentCharacterId, combatResult.Outcome, xpReward, fidelisReward);
 
         return battle;
     }
@@ -254,10 +248,6 @@ public class BattleService : IBattleService
         // Update attacker HP based on combat result
         attacker.CurrentHP = combatResult.AttackerFinalHP;
         await _characterRepository.UpdateAsync(attacker);
-
-        _logger.LogInformation(
-            "HP updated after battle: Attacker HP = {AttackerHP}, Outcome = {Outcome}",
-            attacker.CurrentHP, combatResult.Outcome);
     }
 
     /// <summary>
@@ -280,16 +270,6 @@ public class BattleService : IBattleService
         {
             // Beer dropped!
             await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
-
-            _logger.LogInformation(
-                "Beer dropped for user {UserId}! Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
-                userId, roll, MyTunoScaling.BeerDropChance);
-        }
-        else
-        {
-            _logger.LogDebug(
-                "No beer drop for user {UserId}. Roll: {Roll:F3}, Drop chance: {DropChance:F3}",
-                userId, roll, MyTunoScaling.BeerDropChance);
         }
     }
 }

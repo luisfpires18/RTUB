@@ -65,7 +65,6 @@ public class StageService : IStageService
             return progress;
         }
 
-        _logger.LogInformation("Creating new stage progress for user {UserId}", userId);
         progress = StageProgress.Create(userId);
         await _stageProgressRepository.AddAsync(progress);
 
@@ -110,6 +109,8 @@ public class StageService : IStageService
             throw new InvalidOperationException("Personagem derrotado. Precisa de reviver antes de lutar.");
 
         var stageProgress = await GetOrCreateStageProgressAsync(character.UserId);
+        
+        _logger.LogInformation("Stage mode started by {CharacterName}", character.Name);
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var region = stageProgress.CurrentRegion;
@@ -420,13 +421,11 @@ public class StageService : IStageService
         if (beersDropped > 0)
         {
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beersDropped);
-            _logger.LogInformation("{BeerCount} Beer(s) dropped for user {UserId} on stage {Stage}", beersDropped, character.UserId, stageNumber);
         }
 
         if (shotsDropped > 0)
         {
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shotsDropped);
-            _logger.LogInformation("{ShotCount} Shot(s) dropped for user {UserId} on stage {Stage}", shotsDropped, character.UserId, stageNumber);
         }
 
         return (xpReward, fidelisReward, beersDropped, shotsDropped);

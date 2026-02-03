@@ -182,9 +182,6 @@ public class StageBiomeService : IStageBiomeService
         // Clamp to available boss sprites
         bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
         
-        _logger.LogInformation("Selecting boss sprite {Index} for stage {Stage} from {Count} available bosses", 
-            bossIndex, stageNumber, bossSprites.Count);
-        
         return bossSprites[bossIndex];
     }
 
