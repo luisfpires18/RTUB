@@ -301,8 +301,8 @@
                 // Use individual sprite for each enemy
                 const enemy = this.add.image(enemyX, enemyY, `stageEnemy${i}`);
                 
-                // Scale enemy appropriately based on type
-                const enemySizes = { boss: 120, miniBoss: 100, normal: 80 };
+                // Scale enemy appropriately based on type - increased for better visibility
+                const enemySizes = { boss: 160, miniBoss: 140, normal: 120 };
                 const maxSize = enemySizes[this.enemyType] || enemySizes.normal;
                 const scale = maxSize / Math.max(enemy.width, enemy.height);
                 enemy.setScale(scale);
@@ -348,8 +348,8 @@
             const playerY = height / 2;
             this.playerSprite = this.add.image(playerX, playerY, 'stagePlayer');
             
-            // Scale player
-            const maxSize = 100;
+            // Scale player - increased for better visibility
+            const maxSize = 140;
             const scale = maxSize / Math.max(this.playerSprite.width, this.playerSprite.height);
             this.playerSprite.setScale(scale);
         }

@@ -28,7 +28,7 @@
 @media (max-width: 768px) {
   #phaserBattleContainer {
     max-width: 100%;
-    aspect-ratio: 1 / 1; /* More square on mobile for better use of space */
+    aspect-ratio: 4 / 3; /* Better aspect ratio on mobile for visibility */
   }
 }
 
@@ -38,6 +38,30 @@
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
   box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Rewards Card - Separate card for better mobile visibility */
+.rewards-card {
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.15), rgba(25, 135, 84, 0.05));
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.rewards-card .card-body {
+  padding: 1.25rem;
+}
+
+.rewards-card h6 {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.rewards-card .badge {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 /* Battle Result Card - Reusing Arena pattern */
@@ -307,24 +331,23 @@
     font-size: 0.75rem !important;
   }
 
-  /* Compact accumulated loot badges */
-  .card-footer.bg-dark {
-    padding: 0.5rem 0.75rem !important;
+  /* Rewards card mobile optimization */
+  .rewards-card {
+    margin-bottom: 1.5rem;
   }
 
-  .card-footer .d-flex {
-    gap: 0.5rem !important;
+  .rewards-card .card-body {
+    padding: 1rem;
   }
 
-  .card-footer .badge {
-    padding: 0.25rem 0.4rem !important;
-    font-size: 0.7rem !important;
-    gap: 0.25rem !important;
-    white-space: nowrap;
+  .rewards-card h6 {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
   }
 
-  .card-footer .badge i {
-    font-size: 0.65rem;
+  .rewards-card .badge {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
   }
 
   /* Stack battle container on mobile */
@@ -388,31 +411,19 @@
     font-size: 0.65rem !important;
   }
 
-  /* Extra compact badges for small phones */
-  .card-footer.bg-dark {
-    padding: 0.4rem 0.5rem !important;
+  /* Rewards card for very small screens */
+  .rewards-card .card-body {
+    padding: 0.75rem;
   }
 
-  .card-footer .d-flex {
-    flex-direction: column;
-    gap: 0.35rem !important;
+  .rewards-card h6 {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
   }
 
-  .card-footer .d-flex > div {
-    display: flex !important;
-    flex-wrap: wrap;
-    gap: 0.3rem !important;
-    width: 100%;
-  }
-
-  .card-footer .badge {
-    padding: 0.2rem 0.35rem !important;
-    font-size: 0.6rem !important;
-    gap: 0.15rem !important;
-  }
-
-  .card-footer .badge i {
-    font-size: 0.55rem;
+  .rewards-card .badge {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
   }
 
   /* Make header flex column on very small screens */
@@ -446,18 +457,6 @@
   #phaserBattleContainer {
     width: 100%;
     max-width: 100%;
-  }
-
-  /* Adjust card footer for mobile */
-  .card-footer .d-flex {
-    flex-direction: column;
-    align-items: flex-start !important;
-    gap: 0.5rem;
-  }
-
-  .card-footer .badge,
-  .battle-result-rewards .badge {
-    font-size: 0.75rem;
   }
 }
 
