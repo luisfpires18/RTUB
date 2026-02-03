@@ -110,7 +110,8 @@ public class StageService : IStageService
 
         var stageProgress = await GetOrCreateStageProgressAsync(character.UserId);
         
-        _logger.LogInformation("Stage mode started by {CharacterName}", character.Name);
+        var user = await _userManager.FindByIdAsync(character.UserId);
+        _logger.LogInformation("Stage mode started by {UserName}", user?.UserName ?? character.UserId);
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var region = stageProgress.CurrentRegion;

@@ -127,7 +127,11 @@ public class BattleService : IBattleService
         if (playerCharacterId == opponentCharacterId)
             throw new InvalidOperationException("Não podes lutar contra ti mesmo");
 
-        _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", playerCharacter.Name, opponentCharacter.Name);
+        var playerUser = await _userManager.FindByIdAsync(playerCharacter.UserId);
+        var opponentUser = await _userManager.FindByIdAsync(opponentCharacter.UserId);
+        _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", 
+            playerUser?.UserName ?? playerCharacter.UserId, 
+            opponentUser?.UserName ?? opponentCharacter.UserId);
 
         // Create CPU snapshot of opponent with full HP
         // This ensures the opponent always starts at full health regardless of their persisted state
