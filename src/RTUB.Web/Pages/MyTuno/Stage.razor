@@ -61,7 +61,7 @@
     }
     else
     {
-        <!-- Battle Screen - Always show container when animating to preserve Phaser game -->
+        <!-- Battle Screen - Always show container when animating to preserve PixiJS game -->
         @if (showBattleAnimation)
         {
             <div class="card mb-4 battle-card">
@@ -623,9 +623,9 @@
     {
         return enemyType switch
         {
-            EnemyType.Boss => "/sprites/games/my-tuno/enemies/boss_bear.png",
-            EnemyType.MiniBoss => "/sprites/games/my-tuno/enemies/wolf.png",
-            _ => "/sprites/games/my-tuno/enemies/wolf.png"
+            EnemyType.Boss => "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png",
+            EnemyType.MiniBoss => "/sprites/games/my-tuno/enemies/forest/wolf.png",
+            _ => "/sprites/games/my-tuno/enemies/forest/wolf.png"
         };
     }
 

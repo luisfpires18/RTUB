@@ -470,30 +470,6 @@ public class InventoryServiceTests
     }
 
     [Fact]
-    public async Task UseBeerAsync_ShouldLogInformation_WhenNoBeerInInventory()
-    {
-        // Arrange
-        var userId = "user1";
-
-        _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((InventoryItem?)null);
-
-        // Act
-        await _inventoryService.UseBeerAsync(userId);
-
-        // Assert
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"User {userId} attempted to use beer but has none in inventory")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task UseBeerAsync_ShouldLogWarning_WhenNoCharacter()
     {
         // Arrange
@@ -518,37 +494,6 @@ public class InventoryServiceTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"User {userId} attempted to use beer but has no character")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task UseBeerAsync_ShouldLogInformation_WhenAlreadyAtFullHP()
-    {
-        // Arrange
-        var userId = "user1";
-        var character = Character.Create(userId);
-
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
-
-        _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
-
-        _characterRepositoryMock
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(character);
-
-        // Act
-        await _inventoryService.UseBeerAsync(userId);
-
-        // Assert
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"User {userId} attempted to use beer but character is already at full HP")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -589,46 +534,6 @@ public class InventoryServiceTests
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume beer for user {userId} even though quantity was checked")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task UseBeerAsync_ShouldLogInformation_WhenSuccessful()
-    {
-        // Arrange
-        var userId = "user1";
-        var character = Character.Create(userId);
-        character.TakeDamage(40); // CurrentHP = 60
-
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
-
-        _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
-
-        _characterRepositoryMock
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(character);
-
-        _characterRepositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Character>()))
-            .Returns(Task.FromResult(character));
-
-        _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        // Act
-        await _inventoryService.UseBeerAsync(userId);
-
-        // Assert
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("used beer to heal character")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

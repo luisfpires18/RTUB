@@ -47,7 +47,17 @@
         <!-- HP Bar -->
         @{
             var currentHP = Character?.CurrentHP ?? Character?.TotalHP ?? 100;
-            var maxHP = Character?.TotalHP ?? 100;
+            // Account for shot buff - use CreateShotBuffedCopy to get exact same max HP as arena
+            int maxHP;
+            if (Character != null && Character.ShotBuffBattlesRemaining > 0)
+            {
+                var buffedCopy = Character.CreateShotBuffedCopy(Character);
+                maxHP = buffedCopy.TotalHP;
+            }
+            else
+            {
+                maxHP = Character?.TotalHP ?? 100;
+            }
             var hpProgress = maxHP > 0 ? Math.Min(100, (currentHP * 100.0 / maxHP)) : 0;
         }
         <div class="xp-bar-container mb-3">

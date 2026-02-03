@@ -21,4 +21,20 @@ public interface IInventoryService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The quantity of beer, or 0 if none</returns>
     Task<int> GetBeerQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of shots in the user's inventory
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The quantity of shots, or 0 if none</returns>
+    Task<int> GetShotQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uses a shot to empower the character's next 5 arena battles
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Tuple containing success status, battles empowered, and message</returns>
+    Task<(bool Success, int BattlesEmpowered, string Message)> UseShotAsync(string userId, CancellationToken cancellationToken = default);
 }

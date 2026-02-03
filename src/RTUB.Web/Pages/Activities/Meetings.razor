@@ -3366,7 +3366,6 @@ else
         {
             await MeetingAtaConfirmationService.ConfirmAtaAsync(ataId, currentUserId);
             userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(ataId, currentUserId);
-            Logger.LogInformation("User {UserId} confirmed ATA {AtaId}", currentUserId, ataId);
         }
         catch (Exception ex)
         {
@@ -3388,7 +3387,6 @@ else
         {
             await MeetingAtaConfirmationService.RefuseAtaAsync(ataId, currentUserId);
             userAtaConfirmation = await MeetingAtaConfirmationService.GetUserConfirmationAsync(ataId, currentUserId);
-            Logger.LogInformation("User {UserId} refused ATA {AtaId}", currentUserId, ataId);
         }
         catch (Exception ex)
         {
@@ -3620,7 +3618,6 @@ else
             {
                 // Create new ata
                 await MeetingAtaService.CreateAtaAsync(editingAta);
-                Logger.LogInformation("Ata created for meeting {MeetingId}", ataMeeting.Id);
                 
                 // Update cache to reflect the ata was created
                 meetingHasAta[ataMeeting.Id] = true;
@@ -3630,7 +3627,6 @@ else
             {
                 // Update existing ata
                 await MeetingAtaService.UpdateAtaAsync(editingAta);
-                Logger.LogInformation("Ata updated for meeting {MeetingId}", ataMeeting.Id);
             }
             
             CloseAtaModal();
@@ -3692,8 +3688,6 @@ else
             var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
             var base64 = Convert.ToBase64String(pdfBytes);
             await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
-            
-            Logger.LogInformation("PDF generated for ata of meeting {MeetingId}", ataMeeting.Id);
         }
         catch (Exception ex)
         {
@@ -3770,7 +3764,6 @@ else
             {
                 // Create folder if it doesn't exist (CreateFolderAsync checks for existence)
                 await DocumentStorageService.CreateFolderAsync(folderPath);
-                Logger.LogInformation("Created ATA folder: {FolderPath}", folderPath);
                 
                 // Generate PDF filename
                 var fileName = $"Ata_{ataMeeting.Type}_{ataMeeting.Date:yyyyMMdd}.pdf";
@@ -3778,7 +3771,6 @@ else
                 // Upload PDF to documentation
                 using var pdfStream = new MemoryStream(pdfBytes);
                 await DocumentStorageService.UploadDocumentAsync(folderPath, fileName, pdfStream, "application/pdf");
-                Logger.LogInformation("Uploaded ATA PDF to: {FolderPath}{FileName}", folderPath, fileName);
             }
             catch (Exception ex)
             {
@@ -3797,8 +3789,6 @@ else
             
             // Close confirmation modal
             ClosePublishAtaConfirmModal();
-            
-            Logger.LogInformation("Ata published for meeting {MeetingId}", ataMeeting.Id);
         }
         catch (Exception ex)
         {
@@ -3838,8 +3828,6 @@ else
                 : $"Ata_{ataWithDetails.Id}.pdf";
             var base64 = Convert.ToBase64String(pdfBytes);
             await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
-            
-            Logger.LogInformation("PDF downloaded for ata {AtaId}", viewingAta.Id);
         }
         catch (Exception ex)
         {

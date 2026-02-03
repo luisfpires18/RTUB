@@ -25,6 +25,9 @@ public class Character : BaseEntity
     // Current HP (null means full HP, for backwards compatibility)
     public int? CurrentHP { get; set; } = null;
 
+    // Shot buff - number of arena battles remaining with empowerment
+    public int ShotBuffBattlesRemaining { get; set; } = 0;
+
     // HP constants
     private const int MinHP = 0;
 
@@ -150,6 +153,52 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Creates a combat-ready copy with shot buff applied (+20% to all stats)
+    /// Used for arena battles when shot buff is active
+    /// The copy preserves the character's current HP and uses buffed max HP
+    /// </summary>
+    /// <param name="source">The character to buff</param>
+    /// <returns>A new Character instance with boosted stats for combat simulation</returns>
+    public static Character CreateShotBuffedCopy(Character source)
+    {
+        if (source == null)
+            throw new ArgumentNullException(nameof(source));
+
+        const double buffMultiplier = 1.20; // 20% boost
+
+        // Simple approach: multiply the base HP stat by 1.2
+        // This makes TotalHP automatically scale up (though not exactly 1.2x due to upgrades)
+        // But we also scale the upgrade bonus by storing extra "virtual" upgrades
+        var buffedHP = (int)Math.Round(source.HP * buffMultiplier);
+        var buffedHpUpgrades = (int)Math.Round(source.HpUpgrades * buffMultiplier);
+
+        return new Character
+        {
+            Id = source.Id,
+            UserId = source.UserId,
+            Level = source.Level,
+            XP = source.XP,
+            // Boost base HP stat by 20%
+            HP = buffedHP,
+            // Boost all other stats by 20%
+            Power = (int)Math.Round(source.Power * buffMultiplier),
+            Speed = (int)Math.Round(source.Speed * buffMultiplier),
+            CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
+            // Also scale HP upgrades so total HP is exactly 1.2x
+            HpUpgrades = buffedHpUpgrades,
+            PowerUpgrades = source.PowerUpgrades,
+            SpeedUpgrades = source.SpeedUpgrades,
+            CriticalUpgrades = source.CriticalUpgrades,
+            // Preserve current HP so combat starts with actual HP (damaged or full)
+            CurrentHP = source.CurrentHP,
+            User = source.User,
+            CreatedAt = source.CreatedAt,
+            UpdatedAt = source.UpdatedAt,
+            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining
+        };
+    }
+
+    /// <summary>
     /// Adds XP to the character and handles level-ups
     /// Level up formula: Each level requires 100 * level XP to reach the next level
     /// Level 1->2: 100 XP, Level 2->3: 200 XP, Level 3->4: 300 XP, etc.
@@ -227,11 +276,14 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Sets HP to maximum
+    /// Sets HP to maximum (accounts for shot buff if active)
     /// </summary>
     public void RestoreHP()
     {
-        CurrentHP = TotalHP;
+        var maxHP = ShotBuffBattlesRemaining > 0 
+            ? CreateShotBuffedCopy(this).TotalHP 
+            : TotalHP;
+        CurrentHP = maxHP;
     }
 
     /// <summary>

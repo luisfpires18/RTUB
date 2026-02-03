@@ -179,17 +179,6 @@ public class UpgradeService : IUpgradeService
                     // Commit transaction
                     await transaction.CommitAsync();
 
-                    _logger?.LogInformation(
-                        "User {UserId} purchased {StatType} upgrade. Cost: {Cost}, New Balance: {Balance}, New Upgrade Count: {UpgradeCount}",
-                        userId, statType, cost, user.FidelisBalance, statType switch
-                        {
-                            StatType.HP => character.HpUpgrades,
-                            StatType.Power => character.PowerUpgrades,
-                            StatType.Speed => character.SpeedUpgrades,
-                            StatType.CriticalChance => character.CriticalUpgrades,
-                            _ => 0
-                        });
-
                     var newUpgradeCount = statType switch
                     {
                         StatType.HP => character.HpUpgrades,

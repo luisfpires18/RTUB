@@ -122,6 +122,25 @@
                             <span class="badge bg-success">+@currentBattle.AttackerFidelis.ToString("F2") Fidelis</span>
                         </div>
                     </div>
+                    
+                    <!-- Shot Buff Status -->
+                    @if (character?.ShotBuffBattlesRemaining > 0)
+                    {
+                        <div class="battle-result-row">
+                            <span class="battle-result-label">Buff de Shot:</span>
+                            <span class="badge bg-info">
+                                <i class="bi bi-droplet-fill me-1"></i>
+                                @if (character.ShotBuffBattlesRemaining == 1)
+                                {
+                                    <text>1 batalha restante</text>
+                                }
+                                else
+                                {
+                                    <text>@character.ShotBuffBattlesRemaining batalhas restantes</text>
+                                }
+                            </span>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -276,6 +295,19 @@
         .Skip((currentPage - 1) * pageSize)
         .Take(pageSize)
         .ToList() ?? new();
+    
+    // Helper method to get display max HP accounting for buff
+    // Uses CreateShotBuffedCopy to get the exact same value used in arena battles
+    private int GetDisplayMaxHP(Character? c)
+    {
+        if (c == null) return 0;
+        if (c.ShotBuffBattlesRemaining > 0)
+        {
+            var buffedCopy = Character.CreateShotBuffedCopy(c);
+            return buffedCopy.TotalHP;
+        }
+        return c.TotalHP;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -287,7 +319,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Phaser is loaded globally via script tag in MainLayout
+        // PixiJS is loaded globally via script tag in MainLayout
         // Mark that the component has been rendered interactively
         if (firstRender)
         {
@@ -431,7 +463,7 @@
                         DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente"
                     };
 
-                    await JSRuntime.InvokeVoidAsync("console.log", "Starting Phaser battle");
+                    await JSRuntime.InvokeVoidAsync("console.log", "Starting PixiJS battle");
                     await JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", "phaserBattleContainer", battleData);
 
                     // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
@@ -472,6 +504,7 @@
             // Reload character and battle history
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            await LoadOpponentsAsync();  // Refresh opponents list to show correct HP
             await LoadBattleHistoryAsync();
         }
         catch (Exception ex)

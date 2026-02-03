@@ -70,11 +70,17 @@ public class BattleService : IBattleService
             throw new InvalidOperationException("Nenhum oponente AI disponível. Aguarda até que mais membros criem personagens.");
         }
 
+        // Check if shot buff is active and create buffed copy for combat
+        var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
+        var combatCharacter = hasShotBuff 
+            ? Character.CreateShotBuffedCopy(playerCharacter) 
+            : playerCharacter;
+
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
 
-        // Run combat simulation
-        var combatResult = _combatEngine.Simulate(playerCharacter, aiOpponent, seed);
+        // Run combat simulation (with buffed stats if applicable)
+        var combatResult = _combatEngine.Simulate(combatCharacter, aiOpponent, seed);
 
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, aiOpponent);
@@ -93,8 +99,33 @@ public class BattleService : IBattleService
         // Persist battle
         await _battleRepository.AddAsync(battle);
 
+        // Decrement shot buff counter if it was used
+        if (hasShotBuff)
+        {
+            playerCharacter.ShotBuffBattlesRemaining--;
+            _logger.LogInformation(
+                "Shot buff used in arena battle. Character {CharacterId} has {Remaining} battles remaining",
+                playerCharacterId, playerCharacter.ShotBuffBattlesRemaining);
+        }
+
         // Apply rewards to player character and user
         await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+
+        // Apply HP changes from combat
+        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult, hasShotBuff);
+        
+        // If buff just expired, scale HP down to unbuffed range
+        if (hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 0)
+        {
+            const double buffMultiplier = 1.20;
+            var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
+            var unbuffedHP = (int)(currentHP / buffMultiplier);
+            playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
+            await _characterRepository.UpdateAsync(playerCharacter);
+            _logger.LogInformation(
+                "Shot buff expired for character {CharacterId}. HP scaled from {BuffedHP} to {UnbuffedHP}",
+                playerCharacterId, currentHP, playerCharacter.CurrentHP);
+        }
 
         // Roll for beer drop if player won
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
@@ -137,11 +168,17 @@ public class BattleService : IBattleService
         // This ensures the opponent always starts at full health regardless of their persisted state
         var opponentSnapshot = Character.CreateCpuSnapshot(opponentCharacter);
 
+        // Check if shot buff is active and create buffed copy for combat
+        var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
+        var combatCharacter = hasShotBuff 
+            ? Character.CreateShotBuffedCopy(playerCharacter) 
+            : playerCharacter;
+
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
 
         // Run combat simulation using the snapshot (not the persisted character)
-        var combatResult = _combatEngine.Simulate(playerCharacter, opponentSnapshot, seed);
+        var combatResult = _combatEngine.Simulate(combatCharacter, opponentSnapshot, seed);
 
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);
@@ -160,11 +197,33 @@ public class BattleService : IBattleService
         // Persist battle
         await _battleRepository.AddAsync(battle);
 
+        // Decrement shot buff counter if it was used
+        if (hasShotBuff)
+        {
+            playerCharacter.ShotBuffBattlesRemaining--;
+            _logger.LogInformation(
+                "Shot buff used in arena battle. Character {CharacterId} has {Remaining} battles remaining",
+                playerCharacterId, playerCharacter.ShotBuffBattlesRemaining);
+        }
+
         // Apply rewards to player character and user
         await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
 
         // Update HP based on battle outcome
-        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult);
+        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult, hasShotBuff);
+        
+        // If buff just expired, scale HP down to unbuffed range
+        if (hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 0)
+        {
+            const double buffMultiplier = 1.20;
+            var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
+            var unbuffedHP = (int)(currentHP / buffMultiplier);
+            playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
+            await _characterRepository.UpdateAsync(playerCharacter);
+            _logger.LogInformation(
+                "Shot buff expired for character {CharacterId}. HP scaled from {BuffedHP} to {UnbuffedHP}",
+                playerCharacterId, currentHP, playerCharacter.CurrentHP);
+        }
 
         // Roll for beer drop if player won
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
@@ -176,18 +235,24 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome and level difference
-    /// XP scales based on opponent level - fighting stronger opponents gives more XP
+    /// Calculates XP and Fidelis rewards based on battle outcome and enemy level
+    /// XP and Fidelis scale based on opponent level - fighting stronger opponents gives more rewards
     /// Losses award no rewards
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
-        // Get base rewards based on outcome
+        // Base rewards scaled by enemy level
+        var levelMultiplier = 1.0 + (defender.Level - 1) * 0.1; // +10% per enemy level above 1
+        
         return outcome switch
         {
-            BattleOutcome.AttackerWon => (ApplyLevelScaling(BaseWinXP, attacker.Level, defender.Level), _myTunoScalingConfig.BattleRewards.WinReward),
+            BattleOutcome.AttackerWon => (
+                ApplyLevelScaling(BaseWinXP, attacker.Level, defender.Level), 
+                (decimal)(Math.Round((double)_myTunoScalingConfig.BattleRewards.WinReward * levelMultiplier, 2))),
             BattleOutcome.DefenderWon => (0, 0m), // No rewards for losing
-            BattleOutcome.Draw => (ApplyLevelScaling(BaseDrawXP, attacker.Level, defender.Level), _myTunoScalingConfig.BattleRewards.DrawReward),
+            BattleOutcome.Draw => (
+                ApplyLevelScaling(BaseDrawXP, attacker.Level, defender.Level), 
+                (decimal)(Math.Round((double)_myTunoScalingConfig.BattleRewards.DrawReward * levelMultiplier, 2))),
             _ => (0, 0m)
         };
     }
@@ -247,9 +312,17 @@ public class BattleService : IBattleService
     /// Note: Currently only updates attacker HP as defenders are AI opponents.
     /// For PvP implementation, defender HP should also be updated.
     /// </summary>
-    private async Task ApplyAttackerHPChangesAsync(Character attacker, CombatResult combatResult)
+    /// <summary>
+    /// Updates attacker HP based on battle outcome
+    /// Winners keep their remaining HP, losers go to 0 HP
+    /// HP values from combat are used directly (already on correct scale)
+    /// Note: Currently only updates attacker HP as defenders are AI opponents.
+    /// For PvP implementation, defender HP should also be updated.
+    /// </summary>
+    private async Task ApplyAttackerHPChangesAsync(Character attacker, CombatResult combatResult, bool hadShotBuff = false)
     {
-        // Update attacker HP based on combat result
+        // Combat HP is already on the correct scale (buffed or unbuffed)
+        // Use it directly without any scaling
         attacker.CurrentHP = combatResult.AttackerFinalHP;
         await _characterRepository.UpdateAsync(attacker);
     }

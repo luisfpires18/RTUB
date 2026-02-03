@@ -270,7 +270,9 @@ public class StageBiomeService : IStageBiomeService
     /// </summary>
     private async Task<List<string>> LoadSpritesFromFolderAsync(string relativePath, string bossPrefix, bool excludeBoss)
     {
-        var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+        var normalizedRelativePath = relativePath.TrimStart('/', '\\');
+        var fullPath = Path.Combine(_environment.WebRootPath, normalizedRelativePath);
+        var webPath = $"/{normalizedRelativePath}".Replace("\\", "/");
         
         if (!Directory.Exists(fullPath))
         {
@@ -298,7 +300,7 @@ public class StageBiomeService : IStageBiomeService
                 var isBoss = filename.StartsWith(bossPrefix, StringComparison.OrdinalIgnoreCase);
                 return excludeBoss ? !isBoss : isBoss;
             })
-            .Select(filename => $"{relativePath}/{filename}".Replace("\\", "/"))
+            .Select(filename => $"{webPath}/{filename}")
             .ToList();
 
         _logger.LogInformation(

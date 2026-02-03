@@ -110,8 +110,16 @@ public class StageService : IStageService
 
         var stageProgress = await GetOrCreateStageProgressAsync(character.UserId);
         
+        // Check if shot buff is active - in stage mode, buff lasts until death
+        var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
+        var combatCharacter = hasShotBuff 
+            ? Character.CreateShotBuffedCopy(character) 
+            : character;
+        
         var user = await _userManager.FindByIdAsync(character.UserId);
-        _logger.LogInformation("Stage mode started by {UserName}", user?.UserName ?? character.UserId);
+        _logger.LogInformation("Stage mode started by {UserName}{BuffStatus}", 
+            user?.UserName ?? character.UserId,
+            hasShotBuff ? " (with shot buff)" : "");
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
         var region = stageProgress.CurrentRegion;
@@ -157,17 +165,17 @@ public class StageService : IStageService
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
 
-        // Run multi-enemy combat simulation
+        // Run multi-enemy combat simulation (using buffed character if shot buff active)
         CombatResult combatResult;
         if (enemies.Count == 1)
         {
             // Single enemy - use standard combat
-            combatResult = _combatEngine.Simulate(character, enemies[0], seed);
+            combatResult = _combatEngine.Simulate(combatCharacter, enemies[0], seed);
         }
         else
         {
             // Multiple enemies - use multi-enemy combat
-            combatResult = _combatEngine.SimulateMultiEnemy(character, enemies, seed);
+            combatResult = _combatEngine.SimulateMultiEnemy(combatCharacter, enemies, seed);
         }
 
         // Create stage battle record (store first enemy template for backward compatibility)
@@ -213,11 +221,7 @@ public class StageService : IStageService
         }
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
-        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
-
-        _logger.LogInformation(
-            "Stage battle completed: Character {CharacterId} on Stage {Stage}, Enemies: {EnemyCount}, Outcome: {Outcome}, XP: {XP}, Fidelis: {Fidelis}",
-            characterId, stageNumber, enemyCount, combatResult.Outcome, xpReward, fidelisReward);
+        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount, hasShotBuff);
 
         return stageBattle;
     }
@@ -261,10 +265,6 @@ public class StageService : IStageService
 
         stageProgress.ReturnToCheckpoint();
         await _stageProgressRepository.UpdateAsync(stageProgress);
-
-        _logger.LogInformation(
-            "Player {UserId} returned to checkpoint at stage {Stage}",
-            userId, stageProgress.CurrentStage);
 
         return stageProgress;
     }
@@ -366,15 +366,19 @@ public class StageService : IStageService
             _ => 1
         };
 
-        var xpReward = stageConfig.BaseStageXP * xpMultiplier * enemyCount;
+        // Stage scaling: +5% per stage number (stage 1 = 1.05x, stage 10 = 1.50x, stage 100 = 6x)
+        var stageScaling = 1.0 + (stageNumber * 0.05);
 
-        // Fidelis reward from config based on enemy type (multiplied by enemy count)
-        var fidelisReward = (enemyType switch
+        var xpReward = (int)Math.Round(stageConfig.BaseStageXP * xpMultiplier * enemyCount * stageScaling);
+
+        // Fidelis reward from config based on enemy type (multiplied by enemy count and stage scaling)
+        var baseFidelis = enemyType switch
         {
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
             EnemyType.MiniBoss => fidelisRewardsConfig.MiniBossWin,
             _ => fidelisRewardsConfig.NormalWin
-        }) * enemyCount;
+        };
+        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling, 2);
 
         // Apply XP to character
         character.AddXP(xpReward);
@@ -440,10 +444,33 @@ public class StageService : IStageService
         StageProgress stageProgress,
         CombatResult combatResult,
         EnemyType enemyType,
-        int enemyCount = 1)
+        int enemyCount = 1,
+        bool hasShotBuff = false)
     {
-        // Update character HP
+        // Update character HP from combat result
         character.CurrentHP = combatResult.AttackerFinalHP;
+        
+        // Handle shot buff - in stage mode, buff lasts until death
+        if (hasShotBuff)
+        {
+            if (combatResult.Outcome == BattleOutcome.DefenderWon)
+            {
+                // Player died - buff is consumed, scale HP down (will be 0 anyway)
+                character.ShotBuffBattlesRemaining = 0;
+                _logger.LogInformation(
+                    "Shot buff consumed on death in stage mode. Character {CharacterId} died.",
+                    character.Id);
+            }
+            else
+            {
+                // Player survived - buff continues, but HP needs to be scaled back to buffed range
+                // The combat result HP is already in buffed range, so just keep it
+                _logger.LogInformation(
+                    "Shot buff continues in stage mode. Character {CharacterId} HP: {HP}, Battles remaining: {Remaining}",
+                    character.Id, character.CurrentHP, character.ShotBuffBattlesRemaining);
+            }
+        }
+        
         await _characterRepository.UpdateAsync(character);
 
         if (combatResult.Outcome == BattleOutcome.AttackerWon)

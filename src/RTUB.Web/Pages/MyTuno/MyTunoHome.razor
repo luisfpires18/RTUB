@@ -37,32 +37,9 @@
                     Luta contra oponentes AI e melhora o teu personagem.
                 </p>
             </div>
-            @if (isOwner)
-            {
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
-                        <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
-                    </button>
-                    <button class="btn btn-primary" @onclick="CreateCharactersForAllMembers" disabled="@creatingCharacters">
-                        @if (creatingCharacters)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            <text>A criar...</text>
-                        }
-                        else
-                        {
-                            <i class="bi bi-person-plus me-2"></i>
-                            <text>Criar Tuno para Todos os Membros</text>
-                        }
-                    </button>
-                </div>
-            }
-            else
-            {
-                <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
-                    <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
-                </button>
-            }
+            <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
+            </button>
         </div>
     </div>
 
@@ -78,6 +55,9 @@
     }
     else
     {
+        var isCharacterDead = character != null && (character.CurrentHP ?? character.TotalHP) <= 0;
+        var displayMaxHpForCheck = GetDisplayMaxHP(character);
+        var isFullHp = character != null && (character.CurrentHP ?? character.TotalHP) >= displayMaxHpForCheck;
         <div class="row g-4">
             <!-- Inventory -->
             <div class="col-lg-4">
@@ -85,29 +65,51 @@
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
                     </div>
-                    <div class="card-body d-flex flex-column gap-3">
+                    <div class="card-body">
                         @if (currentUser != null)
                         {
-                            <div class="d-flex justify-content-between align-items-center p-3 border rounded" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-coin text-success me-2 fs-4"></i>
-                                    <span class="fw-semibold">Fidelis</span>
-                                </span>
-                                <strong class="text-success fs-4">@currentUser.FidelisBalance.ToString("F2")</strong>
-                            </div>
-                            
-                            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" 
-                                 style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-cup-straw text-warning me-2"></i>
-                                    <span>Cerveja</span>
-                                </span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <strong class="text-warning">@beerQuantity</strong>
-                                    <button class="btn btn-sm btn-warning" 
+                            <div class="inventory-grid">
+                                <!-- Fidelis -->
+                                <div class="inventory-box inventory-box-fidelis">
+                                    <div class="inventory-icon">
+                                        <i class="bi bi-coin text-success"></i>
+                                    </div>
+                                    <div class="inventory-value text-success">@currentUser.FidelisBalance.ToString("F2")</div>
+                                    <div class="inventory-label">Fidelis</div>
+                                </div>
+                                
+                                <!-- Cerveja (Beer) -->
+                                <div class="inventory-box inventory-box-beer">
+                                    <div class="inventory-icon">
+                                        <i class="bi bi-cup-straw text-warning"></i>
+                                    </div>
+                                    <div class="inventory-value text-warning">@beerQuantity</div>
+                                    <div class="inventory-label">Cerveja</div>
+                                    <button class="btn btn-sm btn-warning inventory-action-btn mt-2" 
                                             @onclick="UseBeer"
-                                            disabled="@(usingBeer || beerQuantity == 0 || character == null || character.CurrentHP >= character.TotalHP)">
+                                            disabled="@(usingBeer || beerQuantity == 0 || character == null || isCharacterDead || isFullHp)">
                                         @if (usingBeer)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <text>Usar</text>
+                                        }
+                                    </button>
+                                </div>
+                                
+                                <!-- Shot -->
+                                <div class="inventory-box inventory-box-shot">
+                                    <div class="inventory-icon">
+                                        <i class="bi bi-droplet-fill text-info"></i>
+                                    </div>
+                                    <div class="inventory-value text-info">@shotQuantity</div>
+                                    <div class="inventory-label">Shot</div>
+                                    <button class="btn btn-sm btn-info inventory-action-btn mt-2" 
+                                            @onclick="UseShot"
+                                            disabled="@(usingShot || shotQuantity == 0 || character == null || isCharacterDead || character.ShotBuffBattlesRemaining > 0)">
+                                        @if (usingShot)
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
                                         }
@@ -133,7 +135,8 @@
                         <!-- HP Bar (above character sprite) -->
                         @{
                             var currentHP = character!.CurrentHP ?? character.TotalHP;
-                            var hpProgress = character.TotalHP > 0 ? Math.Min(100, (currentHP * 100.0 / character.TotalHP)) : 0;
+                            var displayMaxHP = GetDisplayMaxHP(character);
+                            var hpProgress = displayMaxHP > 0 ? Math.Min(100, (currentHP * 100.0 / displayMaxHP)) : 0;
                         }
                         <div class="xp-bar-container mb-3">
                             <div class="xp-bar-bg">
@@ -142,13 +145,13 @@
                                      role="progressbar" 
                                      aria-valuenow="@currentHP" 
                                      aria-valuemin="0" 
-                                     aria-valuemax="@character.TotalHP">
+                                     aria-valuemax="@displayMaxHP">
                                 </div>
                             </div>
                             <div class="xp-bar-text">
                                 <span class="xp-current">HP: @currentHP</span>
                                 <span class="xp-separator">/</span>
-                                <span class="xp-max">@character.TotalHP</span>
+                                <span class="xp-max">@displayMaxHP</span>
                             </div>
                         </div>
                         
@@ -189,16 +192,25 @@
                         <!-- Colored Stat Boxes -->
                         <div class="d-flex flex-column gap-2">
                             <!-- HP Stat Box -->
-                            <div class="p-2 border border-danger rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                            @{
+                                var hasEnhancementHP = character.ShotBuffBattlesRemaining > 0;
+                                var hpColorClass = hasEnhancementHP ? "text-info" : "text-danger";
+                                var hpBorderClass = hasEnhancementHP ? "border-info" : "border-danger";
+                            }
+                            <div class="p-2 border @hpBorderClass rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
-                                    <i class="bi bi-heart-fill text-danger me-2"></i>
+                                    <i class="bi bi-heart-fill @hpColorClass me-2"></i>
                                     <span>HP</span>
+                                    @if (hasEnhancementHP)
+                                    {
+                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
+                                    }
                                 </span>
-                                <strong class="text-danger">@currentHP / @character.TotalHP</strong>
+                                <strong class="@hpColorClass">@currentHP / @displayMaxHP</strong>
                             </div>
                             
                             <!-- Restore HP Button (appears when HP < Max and character is alive) -->
-                            @if (currentHP > 0 && currentHP < character.TotalHP)
+                            @if (currentHP > 0 && currentHP < displayMaxHP)
                             {
                                 <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" 
                                      style="background-color: #1e1e1e;">
@@ -224,33 +236,71 @@
                                 </div>
                             }
                             
+                            @{
+                                var hasEnhancement = character.ShotBuffBattlesRemaining > 0;
+                                var enhancedClass = hasEnhancement ? "text-info" : "";
+                                var enhancedBorderClass = hasEnhancement ? "border-info" : "border-success";
+                                var enhancedSpeedBorderClass = hasEnhancement ? "border-info" : "border-primary";
+                                var enhancedCritBorderClass = hasEnhancement ? "border-info" : "border-warning";
+                            }
+                            
                             <!-- Power Stat Box -->
-                            <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-success") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
-                                    <i class="bi bi-lightning-fill text-success me-2"></i>
+                                    <i class="bi bi-lightning-fill @(hasEnhancement ? "text-info" : "text-success") me-2"></i>
                                     <span>Power</span>
+                                    @if (hasEnhancement)
+                                    {
+                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
+                                    }
                                 </span>
-                                <strong class="text-success">@character.TotalPower</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "text-success")">@character.TotalPower</strong>
                             </div>
                             
                             <!-- Speed Stat Box -->
-                            <div class="p-2 border border-primary rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-primary") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
-                                    <i class="bi bi-speedometer2 text-primary me-2"></i>
+                                    <i class="bi bi-speedometer2 @(hasEnhancement ? "text-info" : "text-primary") me-2"></i>
                                     <span>Speed</span>
+                                    @if (hasEnhancement)
+                                    {
+                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
+                                    }
                                 </span>
-                                <strong class="text-primary">@character.TotalSpeed</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "text-primary")">@character.TotalSpeed</strong>
                             </div>
                             
                             <!-- Critical Stat Box -->
-                            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-warning") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
-                                    <i class="bi bi-bullseye text-warning me-2"></i>
+                                    <i class="bi bi-bullseye @(hasEnhancement ? "text-info" : "text-warning") me-2"></i>
                                     <span>Crítico</span>
+                                    @if (hasEnhancement)
+                                    {
+                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
+                                    }
                                 </span>
-                                <strong class="text-warning">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "text-warning")">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
                             </div>
                         </div>
+                        
+                        <!-- Active Enhancements Section -->
+                        @if (character.ShotBuffBattlesRemaining > 0)
+                        {
+                            <div class="mt-3">
+                                <h6 class="text-info mb-2"><i class="bi bi-magic me-2"></i>Melhorias Ativas</h6>
+                                <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
+                                    <span class="d-flex align-items-center">
+                                        <i class="bi bi-droplet-fill text-info me-2"></i>
+                                        <span>Shot (+20% stats)</span>
+                                    </span>
+                                    <span class="badge bg-info">@character.ShotBuffBattlesRemaining batalhas</span>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle me-1"></i>Apenas em batalhas de Arena
+                                </small>
+                            </div>
+                        }
                         
                         @if (currentHP <= 0)
                         {
@@ -796,18 +846,33 @@
     private const string DefaultDescription = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
     private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
     
+    /// <summary>
+    /// Gets the display max HP for the character, accounting for shot buff.
+    /// Uses CreateShotBuffedCopy to get the exact same value used in arena battles.
+    /// </summary>
+    private int GetDisplayMaxHP(Character? c)
+    {
+        if (c == null) return 100;
+        if (c.ShotBuffBattlesRemaining > 0)
+        {
+            var buffedCopy = Character.CreateShotBuffedCopy(c);
+            return buffedCopy.TotalHP;
+        }
+        return c.TotalHP;
+    }
+    
     private Character? character;
     private ApplicationUser? currentUser;
     private List<MyTunoLeaderboardEntry>? leaderboardEntries;
     private StageProgress? stageProgress;
     private bool loading = true;
-    private bool isOwner = false;
-    private bool creatingCharacters = false;
     private bool leaderboardLoading = false;
     private bool reviving = false;
     private bool restoringHP = false;
     private int beerQuantity = 0;
+    private int shotQuantity = 0;
     private bool usingBeer = false;
+    private bool usingShot = false;
     
     // Info modal state
     private bool showInfoModal = false;
@@ -874,14 +939,12 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
-                    // Check if user is Owner
-                    isOwner = user.IsInRole("Owner");
-                    
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
                         await LoadUpgradeCosts();
                         beerQuantity = await InventoryService.GetBeerQuantityAsync(currentUser.Id);
+                        shotQuantity = await InventoryService.GetShotQuantityAsync(currentUser.Id);
                     }
                 }
             }
@@ -1056,51 +1119,22 @@
         
         if (highestStage <= 1) return checkpoints;
         
-        // Add checkpoints every 10 stages until 100
-        for (int stage = 10; stage <= Math.Min(highestStage, 100); stage += 10)
+        // Add checkpoints every 10 stages until 100, starting at 11
+        for (int stage = 11; stage <= Math.Min(highestStage, 100); stage += 10)
         {
             checkpoints.Add(stage);
         }
         
-        // Add checkpoints every 20 stages after 100
+        // Add checkpoints every 20 stages after 100, starting at 101
         if (highestStage > 100)
         {
-            for (int stage = 120; stage <= highestStage; stage += 20)
+            for (int stage = 101; stage <= highestStage; stage += 20)
             {
                 checkpoints.Add(stage);
             }
         }
         
         return checkpoints;
-    }
-
-    private async Task CreateCharactersForAllMembers()
-    {
-        if (!isOwner) return;
-
-        try
-        {
-            creatingCharacters = true;
-            StateHasChanged();
-
-            var count = await CharacterService.CreateCharactersForAllMembersAsync();
-            toastMessage = $"Criados {count} personagens para membros sem personagem.";
-            toastIsError = false;
-
-            // Reload data to refresh character list
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error creating characters for all members");
-            toastMessage = $"Erro ao criar personagens: {ex.Message}";
-            toastIsError = true;
-        }
-        finally
-        {
-            creatingCharacters = false;
-            StateHasChanged();
-        }
     }
 
     private void ChangeLeaderboardPage(int page)
@@ -1126,13 +1160,18 @@
 
     private decimal GetReviveCost()
     {
-        // Use configurable revive cost from settings (default 100 Fidelis)
-        return MyTunoConfig.Value.BattleRewards.ReviveCost;
+        // Base cost scaled by character level: 75 base * level
+        var baseCost = MyTunoConfig.Value.BattleRewards.ReviveCost;
+        var level = character?.Level ?? 1;
+        return Math.Round(baseCost * level, 2);
     }
 
     private decimal GetRestoreCost()
     {
-        return MyTunoConfig.Value.BattleRewards.RestoreHPCost;
+        // Base cost scaled by total HP (including buff): 35 base * (MaxHP / 100)
+        var baseCost = MyTunoConfig.Value.BattleRewards.RestoreHPCost;
+        var maxHp = GetDisplayMaxHP(character);
+        return Math.Round(baseCost * ((decimal)maxHp / 100m), 2);
     }
 
     private async Task ReviveCharacter()
@@ -1154,8 +1193,9 @@
             currentUser.FidelisBalance -= cost;
             await UserManager.UpdateAsync(currentUser);
 
-            // Restore HP to max
-            character.CurrentHP = character.TotalHP;
+            // Restore HP to max (considering shot buff if active)
+            var maxHP = GetDisplayMaxHP(character);
+            character.CurrentHP = maxHP;
             await CharacterService.UpdateCharacterAsync(character);
 
             // Reload data
@@ -1208,7 +1248,8 @@
             }
             
             // Check if already at full HP
-            if (character.CurrentHP >= character.TotalHP)
+            var displayMaxHPForRestore = GetDisplayMaxHP(character);
+            if (character.CurrentHP >= displayMaxHPForRestore)
             {
                 toastMessage = "HP já está cheio!";
                 toastIsError = false;
@@ -1308,6 +1349,53 @@
         finally
         {
             usingBeer = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseShot()
+    {
+        try
+        {
+            usingShot = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, battlesEmpowered, message) = await InventoryService.UseShotAsync(currentUser.Id);
+            
+            if (success)
+            {
+                // Update shot quantity
+                shotQuantity--;
+                
+                // Reload character to get updated buff status
+                await LoadCharacterAsync();
+                
+                // Show success message
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar shot";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using shot for user");
+        }
+        finally
+        {
+            usingShot = false;
             StateHasChanged();
         }
     }

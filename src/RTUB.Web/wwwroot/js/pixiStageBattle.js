@@ -1,5 +1,5 @@
 /**
- * Stage Battle Phaser3 Scene
+ * Stage Battle PixiJS Scene
  * Different layout from Arena - player at bottom, enemies at top
  * Supports multiple enemies, backgrounds, and region-specific sprites
  */
@@ -10,17 +10,16 @@
     const DEFAULT_HEIGHT = 500;
     const DEFAULT_EVENT_INTERVAL = 600;
 
-    let stageGame = null;
+    let stageApp = null;
     let stageScene = null;
 
-    // Default sprite paths
     const defaultSprites = {
         player: '/sprites/games/my-tuno/default_tuno.png',
         background: '/sprites/games/my-tuno/backgrounds/forest.png',
         enemies: {
-            normal: '/sprites/games/my-tuno/enemies/wolf.png',
-            miniBoss: '/sprites/games/my-tuno/enemies/wolf.png',
-            boss: '/sprites/games/my-tuno/enemies/boss_bear.png'
+            normal: '/sprites/games/my-tuno/enemies/forest/wolf.png',
+            miniBoss: '/sprites/games/my-tuno/enemies/forest/wolf.png',
+            boss: '/sprites/games/my-tuno/enemies/forest/boss_1_bear.png'
         }
     };
 
@@ -44,56 +43,35 @@
         return battleData.events ?? battleData.Events ?? [];
     };
 
-    class StageBattleScene extends Phaser.Scene {
-        constructor() {
-            super({ key: 'StageBattleScene' });
-            this.eventsList = [];
-            this.dotNetRef = null;
-            this.eventInterval = DEFAULT_EVENT_INTERVAL;
+    class StageBattleScene {
+        constructor(container, data) {
+            this.container = container;
+            this.eventsList = data?.events ?? [];
+            this.dotNetRef = data?.dotNetRef ?? null;
+            this.eventInterval = data?.eventInterval ?? DEFAULT_EVENT_INTERVAL;
             this.currentEventIndex = 0;
             
-            // HP tracking
             this.playerMaxHp = 100;
             this.playerCurrentHp = 100;
             this.enemyMaxHp = 100;
             this.enemyCurrentHp = 100;
-            this.enemyHPs = []; // Individual enemy HP tracking for multi-enemy battles
-            this.isInitialSetup = true; // Flag to skip animations for initial HP setup
+            this.enemyHPs = [];
+            this.isInitialSetup = true;
             
-            // Sprites
             this.playerSprite = null;
             this.enemySprites = [];
             this.backgroundSprite = null;
             
-            // UI elements - per-enemy HP bars
             this.playerHpBar = null;
-            this.enemyHpBars = []; // Array of {bar, barBg, text} for each enemy
+            this.enemyHpBars = [];
             this.stageText = null;
             this.logEntries = [];
             this.logText = null;
             
-            // Battle state
             this.isPlaying = false;
             this.playbackSpeed = 1;
             this.battleFinished = false;
             
-            // Config
-            this.stageNumber = 1;
-            this.enemyType = 'normal';
-            this.enemyCount = 1;
-            this.playerName = 'Player';
-            this.enemyName = 'Enemy';
-            
-            // Audio
-            this.audioEnabled = true;
-            this.sfxVolume = 0.5;
-            this.audioContext = null;
-        }
-
-        init(data) {
-            this.eventsList = data?.events ?? [];
-            this.dotNetRef = data?.dotNetRef ?? null;
-            this.eventInterval = data?.eventInterval ?? DEFAULT_EVENT_INTERVAL;
             this.stageNumber = data?.stageNumber ?? 1;
             this.enemyType = data?.enemyType ?? 'normal';
             this.enemyCount = data?.enemyCount ?? 1;
@@ -102,7 +80,6 @@
             this.backgroundPath = data?.backgroundPath ?? defaultSprites.background;
             this.playerSpritePath = data?.playerSpritePath ?? defaultSprites.player;
             
-            // Support both array of sprites (new) and single sprite path (legacy)
             if (data?.enemySprites && Array.isArray(data.enemySprites)) {
                 this.enemySpritePaths = data.enemySprites;
             } else {
@@ -110,17 +87,14 @@
                 this.enemySpritePaths = Array(this.enemyCount).fill(singlePath);
             }
             
-            // Initialize individual enemy HP tracking
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
-            this.currentEventIndex = 0;
-            this.isPlaying = true;
-            this.playbackSpeed = 1;
-            this.battleFinished = false;
-            this.logEntries = [];
-            this.isInitialSetup = true; // Will be set to false after preprocessing
+            this.audioEnabled = true;
+            this.sfxVolume = 0.5;
+            this.audioContext = null;
             
             this.setupAudio();
+            this.initPixi();
         }
 
         setupAudio() {
@@ -136,62 +110,78 @@
             }
         }
 
-        preload() {
-            // Load background
-            this.load.image('stageBg', this.backgroundPath);
+        async initPixi() {
+            // Clear container to prevent multiple canvases
+            while (this.container.firstChild) {
+                this.container.removeChild(this.container.firstChild);
+            }
             
-            // Load player sprite
-            this.load.image('stagePlayer', this.playerSpritePath);
-            
-            // Load individual enemy sprites for each enemy
+            this.app = new PIXI.Application();
+            await this.app.init({
+                width: DEFAULT_WIDTH,
+                height: DEFAULT_HEIGHT,
+                backgroundColor: 0x1a1a1a,
+                antialias: true
+            });
+
+            this.container.appendChild(this.app.canvas);
+            this.stage = this.app.stage;
+
+            await this.loadAssets();
+            this.create();
+        }
+
+        async loadAssets() {
+            const assets = [
+                { alias: 'stageBg', src: this.backgroundPath },
+                { alias: 'stagePlayer', src: this.playerSpritePath }
+            ];
+
             if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
                 for (let i = 0; i < this.enemySpritePaths.length; i++) {
-                    this.load.image(`stageEnemy${i}`, this.enemySpritePaths[i]);
+                    assets.push({ alias: `stageEnemy${i}`, src: this.enemySpritePaths[i] });
                 }
             }
+
+            await PIXI.Assets.load(assets);
         }
 
         create() {
-            const width = this.cameras.main.width;
-            const height = this.cameras.main.height;
+            stageScene = this;
 
-            // Background - stretch to fill
-            this.backgroundSprite = this.add.image(width / 2, height / 2, 'stageBg');
-            this.backgroundSprite.setDisplaySize(width, height);
-            
-            // Semi-transparent overlay for better visibility
-            const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
 
-            // Ground element like Arena
+            this.backgroundSprite = PIXI.Sprite.from('stageBg');
+            this.backgroundSprite.width = width;
+            this.backgroundSprite.height = height;
+            this.backgroundSprite.x = width / 2;
+            this.backgroundSprite.y = height / 2;
+            this.backgroundSprite.anchor.set(0.5);
+            this.stage.addChild(this.backgroundSprite);
+
+            const overlay = new PIXI.Graphics();
+            overlay.rect(0, 0, width, height);
+            overlay.fill({ color: 0x000000, alpha: 0.3 });
+            this.stage.addChild(overlay);
+
             const groundHeight = 50;
-            this.add.rectangle(width / 2, height - groundHeight / 2, width, groundHeight, 0x2a2a2a);
+            const ground = new PIXI.Graphics();
+            ground.rect(0, height - groundHeight, width, groundHeight);
+            ground.fill(0x2a2a2a);
+            this.stage.addChild(ground);
 
-            // Create player on LEFT side
             this.createPlayer(width, height);
-
-            // Create enemies on RIGHT side (can have multiple)
             this.createEnemies(width, height);
-
-            // Create HP bars
-            this.createHPBars(width, height);
-
-            // Create battle log (compact, bottom-left)
             this.createBattleLog(width, height);
 
-            // PRE-PROCESS: Find first player attack and process initial events instantly
             this.preprocessInitialEvents();
 
-            // Start processing events from where we left off
-            this.time.addEvent({
-                delay: this.eventInterval / this.playbackSpeed,
-                callback: this.processNextEvent,
-                callbackScope: this,
-                loop: true
-            });
+            this.isPlaying = true;
+            this.eventTimer = setInterval(() => this.processNextEvent(), this.eventInterval / this.playbackSpeed);
         }
 
         preprocessInitialEvents() {
-            // Find the index of the first player attack
             let firstPlayerAttackIndex = -1;
             for (let i = 0; i < this.eventsList.length; i++) {
                 const evt = this.eventsList[i];
@@ -203,21 +193,18 @@
                 }
             }
 
-            // Process only initial HPUpdate events (those with MaxHP) up to the first player attack
             for (let i = 0; i < this.eventsList.length && i < firstPlayerAttackIndex; i++) {
                 const evt = this.eventsList[i];
                 const evtType = getEventField(evt, 'Type');
                 const maxHP = getEventField(evt, 'MaxHP');
                 
-                // Only process initial HP setup events (those with MaxHP)
                 if (evtType === 'HPUpdate' && maxHP) {
                     this.processInitialHPEvent(evt);
                 }
             }
 
-            // Set current event index to the first player attack (or 0 if not found)
             this.currentEventIndex = firstPlayerAttackIndex >= 0 ? firstPlayerAttackIndex : 0;
-            this.isInitialSetup = false; // Done with initial setup
+            this.isInitialSetup = false;
         }
 
         processInitialHPEvent(evt) {
@@ -228,96 +215,155 @@
             if (character === 'Attacker' || character === 'Player') {
                 this.playerMaxHp = maxHP;
                 this.playerCurrentHp = hp;
-                // Set bar directly without animation - use correct width
                 if (this.playerHpBar) {
                     const ratio = Math.max(0, hp / maxHP);
-                    this.playerHpBar.width = this.playerHpBar.maxWidth * ratio;
+                    this.playerHpBar.bar.width = this.playerHpBar.maxWidth * ratio;
                 }
-                if (this.playerHpText) {
-                    this.playerHpText.setText(`${hp}/${maxHP}`);
+                if (this.playerHpBar?.text) {
+                    this.playerHpBar.text.text = `${hp}/${maxHP}`;
                 }
             } else if (character.startsWith('Enemy')) {
-                // Multi-enemy format: "Enemy0", "Enemy1", etc.
                 const enemyIndex = parseInt(character.replace('Enemy', ''));
                 if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyHPs.length) {
                     this.enemyHPs[enemyIndex].max = maxHP;
                     this.enemyHPs[enemyIndex].current = hp;
-                    // Set bar directly without animation
                     const hpBarData = this.enemyHpBars[enemyIndex];
                     if (hpBarData && hpBarData.text) {
                         hpBarData.bar.width = hpBarData.maxWidth;
-                        hpBarData.text.setText(`${hp}/${maxHP}`);
-                        hpBarData.text.setVisible(true);
+                        hpBarData.text.text = `${hp}/${maxHP}`;
+                        hpBarData.text.visible = true;
                     }
                 }
             } else if (character === 'Defender' && this.enemyCount === 1) {
-                // Legacy single-enemy format: "Defender"
-                const enemyIndex = 0; // First (and only) enemy
+                const enemyIndex = 0;
                 this.enemyHPs[enemyIndex].max = maxHP;
                 this.enemyHPs[enemyIndex].current = hp;
-                // Set bar directly without animation
                 const hpBarData = this.enemyHpBars[enemyIndex];
                 if (hpBarData && hpBarData.text) {
                     hpBarData.bar.width = hpBarData.maxWidth;
-                    hpBarData.text.setText(`${hp}/${maxHP}`);
-                    hpBarData.text.setVisible(true);
+                    hpBarData.text.text = `${hp}/${maxHP}`;
+                    hpBarData.text.visible = true;
                 }
             }
+        }
+
+        createPlayer(width, height) {
+            const groundOffset = 60;
+            const playerX = width * 0.25;
+            const playerY = height - groundOffset;
+            
+            this.playerSprite = PIXI.Sprite.from('stagePlayer');
+            this.playerSprite.anchor.set(0.5, 1);
+            this.playerSprite.x = playerX;
+            this.playerSprite.y = playerY;
+            
+            const maxSpriteHeight = height * 0.45;
+            const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
+            this.playerSprite.scale.set(scale);
+            
+            this.stage.addChild(this.playerSprite);
+            
+            this.playerX = playerX;
+            this.playerDisplayHeight = this.playerSprite.height * scale;
+            
+            // Create HP bar above player sprite
+            const barWidth = 60;
+            const barHeight = 8;
+            const hpBarY = playerY - this.playerDisplayHeight - 10;
+            
+            const playerHpBarBg = new PIXI.Graphics();
+            playerHpBarBg.rect(playerX - barWidth / 2, hpBarY - barHeight / 2, barWidth, barHeight);
+            playerHpBarBg.fill(0x333333);
+            this.stage.addChild(playerHpBarBg);
+            
+            const playerHpBarFill = new PIXI.Graphics();
+            playerHpBarFill.rect(0, 0, barWidth, barHeight);
+            playerHpBarFill.fill(0x44ff44);
+            playerHpBarFill.x = playerX - barWidth / 2;
+            playerHpBarFill.y = hpBarY - barHeight / 2;
+            this.stage.addChild(playerHpBarFill);
+            
+            const playerHpText = new PIXI.Text({
+                text: '100/100',
+                style: {
+                    fontSize: 10,
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            playerHpText.anchor.set(0.5);
+            playerHpText.x = playerX;
+            playerHpText.y = hpBarY - 10;
+            this.stage.addChild(playerHpText);
+
+            this.playerHpBar = {
+                bar: playerHpBarFill,
+                barBg: playerHpBarBg,
+                text: playerHpText,
+                maxWidth: barWidth
+            };
         }
 
         createEnemies(width, height) {
             this.enemySprites = [];
             this.enemyHpBars = [];
             
-            // Detect mobile based on aspect ratio (mobile has narrower width relative to height)
             const isMobile = width <= height || width < 500;
-            
-            // Position enemies on the RIGHT side, grounded at bottom (matches Arena style)
             const groundOffset = 60;
             const enemyX = width * 0.75;
             const baseEnemyY = height - groundOffset;
             
-            // Calculate enemy positions based on count and device
             const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height);
 
             for (let i = 0; i < this.enemyCount; i++) {
                 const pos = positions[i];
                 
-                // Use individual sprite for each enemy
-                const enemy = this.add.image(pos.x, pos.y, `stageEnemy${i}`);
-                enemy.setOrigin(0.5, 1); // Origin at bottom center like Arena
+                const enemy = PIXI.Sprite.from(`stageEnemy${i}`);
+                enemy.anchor.set(0.5, 1);
+                enemy.x = pos.x;
+                enemy.y = pos.y;
                 
-                // Scale enemy based on height - smaller on mobile for many enemies
                 const mobileScale = isMobile ? 0.22 : 0.45;
                 const maxSpriteHeight = height * mobileScale;
                 const scale = Math.min(1, maxSpriteHeight / enemy.height);
-                enemy.setScale(scale);
+                enemy.scale.set(scale);
                 
+                this.stage.addChild(enemy);
                 this.enemySprites.push(enemy);
                 
-                // Create HP bar above this enemy (small, above sprite)
-                const hpBarY = pos.y - enemy.displayHeight - 8;
+                const hpBarY = pos.y - enemy.height * scale - 5;
                 const hpBarWidth = isMobile ? 35 : 60;
                 const hpBarHeight = isMobile ? 4 : 8;
                 
-                // HP bar background (dark)
-                const barBg = this.add.rectangle(pos.x, hpBarY, hpBarWidth, hpBarHeight, 0x333333);
-                barBg.setOrigin(0.5, 0.5);
+                const barBg = new PIXI.Graphics();
+                barBg.rect(pos.x - hpBarWidth / 2, hpBarY - hpBarHeight / 2, hpBarWidth, hpBarHeight);
+                barBg.fill(0x333333);
+                this.stage.addChild(barBg);
                 
-                // HP bar fill (red)
-                const bar = this.add.rectangle(pos.x - hpBarWidth/2, hpBarY, hpBarWidth, hpBarHeight, 0xff4444);
-                bar.setOrigin(0, 0.5);
+                const bar = new PIXI.Graphics();
+                bar.rect(0, 0, hpBarWidth, hpBarHeight);
+                bar.fill(0xff4444);
+                bar.x = pos.x - hpBarWidth / 2;
+                bar.y = hpBarY - hpBarHeight / 2;
+                this.stage.addChild(bar);
                 
-                // HP text (hidden on mobile with many enemies)
                 const showText = !isMobile || this.enemyCount <= 2;
-                const hpText = this.add.text(pos.x, hpBarY - 6, '', {
-                    fontSize: isMobile ? '7px' : '10px',
-                    fontFamily: 'Arial, sans-serif',
-                    color: '#ffffff',
-                    stroke: '#000000',
-                    strokeThickness: 2
-                }).setOrigin(0.5, 0.5);
-                hpText.setVisible(showText);
+                const hpText = new PIXI.Text({
+                    text: '',
+                    style: {
+                        fontSize: isMobile ? 7 : 10,
+                        fontFamily: 'Arial, sans-serif',
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
+                    }
+                });
+                hpText.anchor.set(0.5);
+                hpText.x = pos.x;
+                hpText.y = hpBarY - 8;
+                hpText.visible = showText;
+                this.stage.addChild(hpText);
                 
                 this.enemyHpBars.push({
                     bar: bar,
@@ -333,20 +379,17 @@
             const positions = [];
             
             if (enemyCount >= 4) {
-                // Grid layout for 4+ enemies (both mobile and web)
                 const hSpacing = isMobile ? 55 : 80;
                 const vSpacing = isMobile ? 70 : 90;
                 const topRowY = baseY - vSpacing;
                 const bottomRowY = baseY;
                 
                 if (enemyCount === 4) {
-                    // 2 top, 2 bottom
                     positions.push({ x: baseX - hSpacing/2, y: topRowY });
                     positions.push({ x: baseX + hSpacing/2, y: topRowY });
                     positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
                     positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
                 } else if (enemyCount === 5) {
-                    // 2 top, 1 middle, 2 bottom
                     const midRowY = baseY - vSpacing/2;
                     positions.push({ x: baseX - hSpacing/2, y: topRowY });
                     positions.push({ x: baseX + hSpacing/2, y: topRowY });
@@ -354,7 +397,6 @@
                     positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
                     positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
                 } else {
-                    // 6+ enemies: 3 top, rest bottom
                     const topCount = Math.ceil(enemyCount / 2);
                     const bottomCount = enemyCount - topCount;
                     
@@ -368,7 +410,6 @@
                     }
                 }
             } else {
-                // 1-3 enemies: horizontal line
                 const spacing = isMobile ? 50 : 80;
                 const startX = baseX - ((enemyCount - 1) * spacing) / 2;
                 
@@ -380,68 +421,31 @@
             return positions;
         }
 
-        createPlayer(width, height) {
-            // Player on LEFT side, grounded at bottom (matches Arena style)
-            const groundOffset = 60;
-            const playerX = width * 0.25;
-            const playerY = height - groundOffset;
-            this.playerSprite = this.add.image(playerX, playerY, 'stagePlayer');
-            this.playerSprite.setOrigin(0.5, 1); // Origin at bottom center like Arena
-            
-            // Scale player based on height like Arena
-            const maxSpriteHeight = height * 0.45;
-            const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
-            this.playerSprite.setScale(scale);
-            
-            // Store player position for HP bar
-            this.playerX = playerX;
-            this.playerDisplayHeight = this.playerSprite.displayHeight;
-        }
 
-        createHPBars(width, height) {
-            // Player HP bar - small, positioned above the player character
-            const groundOffset = 60;
-            const playerY = height - groundOffset;
-            const hpBarY = playerY - this.playerDisplayHeight - 15;
-            const barWidth = 60;
-            const barHeight = 8;
-            
-            // Player HP bar background
-            this.add.rectangle(this.playerX, hpBarY, barWidth, barHeight, 0x333333);
-            
-            // Player HP bar fill
-            this.playerHpBar = this.add.rectangle(this.playerX - barWidth / 2, hpBarY, barWidth, barHeight, 0x44ff44);
-            this.playerHpBar.setOrigin(0, 0.5);
-            this.playerHpBar.maxWidth = barWidth;
-            
-            // Player HP text (small, above bar)
-            this.playerHpText = this.add.text(this.playerX, hpBarY - 10, '100/100', {
-                fontSize: '10px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 2
-            }).setOrigin(0.5, 0.5);
-
-            // Note: Enemy HP bars are created per-enemy in createEnemies()
-        }
 
         createBattleLog(width, height) {
-            // Battle log at BOTTOM (matches Arena style - inside ground area)
             const panelHeight = 50;
             const panelY = height - panelHeight / 2;
             
-            this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.9)
-                .setOrigin(0.5, 0.5)
-                .setStrokeStyle(1, 0x333333);
+            const panel = new PIXI.Graphics();
+            panel.rect(20, panelY - panelHeight / 2, width - 40, panelHeight);
+            panel.fill({ color: 0x0f0f0f, alpha: 0.9 });
+            panel.stroke({ width: 1, color: 0x333333 });
+            this.stage.addChild(panel);
             
-            this.logText = this.add.text(25, panelY - panelHeight / 2 + 8, '', {
-                fontFamily: 'Arial',
-                fontSize: '12px',
-                color: '#f1f1f1',
-                wordWrap: { width: width - 50 }
+            this.logText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 12,
+                    fill: 0xf1f1f1,
+                    wordWrap: true,
+                    wordWrapWidth: width - 50
+                }
             });
+            this.logText.x = 25;
+            this.logText.y = panelY - panelHeight / 2 + 8;
+            this.stage.addChild(this.logText);
         }
 
         processNextEvent() {
@@ -484,17 +488,14 @@
             const maxHP = getEventField(evt, 'MaxHP');
 
             if (character === 'Attacker' || character === 'Player') {
-                // Player HP
                 if (maxHP && maxHP > this.playerMaxHp) {
                     this.playerMaxHp = maxHP;
                 }
                 this.playerCurrentHp = hp;
                 this.updatePlayerHPBar();
             } else if (character.startsWith('Enemy')) {
-                // Individual enemy HP (e.g., "Enemy0", "Enemy1")
                 const enemyIndex = parseInt(character.replace('Enemy', ''));
                 if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyHpBars.length) {
-                    // Update individual enemy HP
                     if (maxHP && maxHP > this.enemyHPs[enemyIndex].max) {
                         this.enemyHPs[enemyIndex].max = maxHP;
                     }
@@ -502,7 +503,6 @@
                     this.updateIndividualEnemyHPBar(enemyIndex);
                 }
             } else {
-                // Legacy: single enemy HP (backward compatibility)
                 if (this.enemyMaxHp === 100 && hp > 100) {
                     this.enemyMaxHp = hp;
                 }
@@ -514,13 +514,9 @@
         updatePlayerHPBar() {
             const ratio = Math.max(0, this.playerCurrentHp / this.playerMaxHp);
             const maxWidth = this.playerHpBar.maxWidth || 200;
-            this.tweens.add({
-                targets: this.playerHpBar,
-                width: maxWidth * ratio,
-                duration: 200,
-                ease: 'Power2'
-            });
-            this.playerHpText.setText(`${Math.max(0, this.playerCurrentHp)}/${this.playerMaxHp}`);
+            
+            this.animateTo(this.playerHpBar.bar, { width: maxWidth * ratio }, 200);
+            this.playerHpBar.text.text = `${Math.max(0, this.playerCurrentHp)}/${this.playerMaxHp}`;
         }
 
         updateIndividualEnemyHPBar(enemyIndex) {
@@ -532,37 +528,18 @@
             
             if (!hpBarData) return;
             
-            // Calculate new width based on ratio
             const newWidth = hpBarData.maxWidth * ratio;
-            
-            this.tweens.add({
-                targets: hpBarData.bar,
-                width: Math.max(0, newWidth),
-                duration: 200,
-                ease: 'Power2'
-            });
-            
-            // Update HP text
-            hpBarData.text.setText(`${Math.max(0, Math.round(enemyHP.current))}/${Math.round(enemyHP.max)}`);
+            this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
+            hpBarData.text.text = `${Math.max(0, Math.round(enemyHP.current))}/${Math.round(enemyHP.max)}`;
         }
 
         updateEnemyHPBar() {
             const ratio = Math.max(0, this.enemyCurrentHp / this.enemyMaxHp);
             
-            // Update all enemy HP bars (they share the same total HP for now)
             this.enemyHpBars.forEach(hpBarData => {
-                // Calculate new width based on ratio
                 const newWidth = hpBarData.maxWidth * ratio;
-                
-                this.tweens.add({
-                    targets: hpBarData.bar,
-                    width: Math.max(0, newWidth),
-                    duration: 200,
-                    ease: 'Power2'
-                });
-                
-                // Update HP text
-                hpBarData.text.setText(`${Math.max(0, Math.round(this.enemyCurrentHp / this.enemyCount))}/${Math.round(this.enemyMaxHp / this.enemyCount)}`);
+                this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
+                hpBarData.text.text = `${Math.max(0, Math.round(this.enemyCurrentHp / this.enemyCount))}/${Math.round(this.enemyMaxHp / this.enemyCount)}`;
             });
         }
 
@@ -573,31 +550,24 @@
             const isCritical = getEventField(evt, 'IsCritical') ?? false;
 
             if (attacker === 'Attacker' || attacker === 'Player') {
-                // Player attacking a specific enemy
                 this.animatePlayerAttack();
-                // Flash only the targeted enemy
                 if (defender && defender.startsWith('Enemy')) {
                     const enemyIndex = parseInt(defender.replace('Enemy', ''));
                     this.flashEnemy(enemyIndex);
                 } else {
-                    // Fallback: flash all enemies (legacy)
                     this.flashEnemies();
                 }
             } else if (attacker.startsWith('Enemy')) {
-                // Specific enemy attacking player
                 const enemyIndex = parseInt(attacker.replace('Enemy', ''));
                 this.animateSingleEnemyAttack(enemyIndex);
                 this.flashPlayer();
             } else {
-                // Legacy: enemy attacking player
                 this.animateEnemyAttack();
                 this.flashPlayer();
             }
 
-            // Play sound
             this.playSound(isCritical ? 'critical' : 'attack');
 
-            // Add to log
             const attackerName = attacker === 'Attacker' || attacker === 'Player' ? this.playerName : this.enemyName;
             const critText = isCritical ? ' (CRIT!)' : '';
             this.addLogEntry(`${attackerName}: ${damage} dmg${critText}`);
@@ -606,66 +576,30 @@
         animatePlayerAttack() {
             if (!this.playerSprite) return;
             
-            // Player moves RIGHT towards enemies (mirrors Arena's horizontal lunge)
             const originalX = this.playerSprite.x;
-            this.tweens.add({
-                targets: this.playerSprite,
-                x: originalX + 60,
-                duration: 150,
-                ease: 'Power3',
-                onComplete: () => {
-                    // Return to original position
-                    this.tweens.add({
-                        targets: this.playerSprite,
-                        x: originalX,
-                        duration: 240,
-                        ease: 'Back.Out'
-                    });
-                }
+            this.animateTo(this.playerSprite, { x: originalX + 60 }, 150, () => {
+                this.animateTo(this.playerSprite, { x: originalX }, 240);
             });
         }
 
         animateEnemyAttack() {
-            // Enemies move LEFT towards player (all of them - legacy)
             this.enemySprites.forEach((enemy, index) => {
                 const originalX = enemy.x;
-                this.tweens.add({
-                    targets: enemy,
-                    x: originalX - 60,
-                    duration: 150,
-                    delay: index * 50,
-                    ease: 'Power3',
-                    onComplete: () => {
-                        this.tweens.add({
-                            targets: enemy,
-                            x: originalX,
-                            duration: 240,
-                            ease: 'Back.Out'
-                        });
-                    }
-                });
+                setTimeout(() => {
+                    this.animateTo(enemy, { x: originalX - 60 }, 150, () => {
+                        this.animateTo(enemy, { x: originalX }, 240);
+                    });
+                }, index * 50);
             });
         }
 
         animateSingleEnemyAttack(enemyIndex) {
-            // Only the attacking enemy moves LEFT towards player
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
                     const originalX = enemy.x;
-                    this.tweens.add({
-                        targets: enemy,
-                        x: originalX - 60,
-                        duration: 150,
-                        ease: 'Power3',
-                        onComplete: () => {
-                            this.tweens.add({
-                                targets: enemy,
-                                x: originalX,
-                                duration: 240,
-                                ease: 'Back.Out'
-                            });
-                        }
+                    this.animateTo(enemy, { x: originalX - 60 }, 150, () => {
+                        this.animateTo(enemy, { x: originalX }, 240);
                     });
                 }
             }
@@ -673,31 +607,30 @@
 
         flashPlayer() {
             if (!this.playerSprite) return;
-            this.playerSprite.setTint(0xff0000);
-            this.time.delayedCall(100, () => {
-                this.playerSprite.clearTint();
-            });
+            this.playerSprite.tint = 0xff0000;
+            setTimeout(() => {
+                this.playerSprite.tint = 0xffffff;
+            }, 100);
         }
 
         flashEnemy(enemyIndex) {
-            // Flash only the specific enemy that was hit
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
-                    enemy.setTint(0xff0000);
-                    this.time.delayedCall(100, () => {
-                        enemy.clearTint();
-                    });
+                    enemy.tint = 0xff0000;
+                    setTimeout(() => {
+                        enemy.tint = 0xffffff;
+                    }, 100);
                 }
             }
         }
 
         flashEnemies() {
             this.enemySprites.forEach(enemy => {
-                enemy.setTint(0xff0000);
-                this.time.delayedCall(100, () => {
-                    enemy.clearTint();
-                });
+                enemy.tint = 0xff0000;
+                setTimeout(() => {
+                    enemy.tint = 0xffffff;
+                }, 100);
             });
         }
 
@@ -706,46 +639,25 @@
             this.playSound('ko');
 
             if (character === 'Attacker' || character === 'Player') {
-                // Player KO'd
-                this.tweens.add({
-                    targets: this.playerSprite,
-                    alpha: 0.3,
-                    angle: 90,
-                    duration: 500
-                });
+                this.animateTo(this.playerSprite, { alpha: 0.3, rotation: Math.PI / 2 }, 500);
                 this.addLogEntry(`${this.playerName} defeated!`);
             } else if (character.startsWith('Enemy')) {
-                // Individual enemy KO'd
                 const enemyIndex = parseInt(character.replace('Enemy', ''));
                 if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                     const enemy = this.enemySprites[enemyIndex];
-                    this.tweens.add({
-                        targets: enemy,
-                        alpha: 0,
-                        y: enemy.y - 50,
-                        duration: 500
-                    });
+                    this.animateTo(enemy, { alpha: 0, y: enemy.y - 50 }, 500);
                     this.addLogEntry(`Enemy ${enemyIndex + 1} defeated!`);
                     
-                    // Hide the HP bar for this enemy
                     const hpBarData = this.enemyHpBars[enemyIndex];
                     if (hpBarData) {
-                        this.tweens.add({
-                            targets: [hpBarData.bar, hpBarData.barBg, hpBarData.text],
-                            alpha: 0,
-                            duration: 300
-                        });
+                        this.animateTo(hpBarData.bar, { alpha: 0 }, 300);
+                        this.animateTo(hpBarData.barBg, { alpha: 0 }, 300);
+                        this.animateTo(hpBarData.text, { alpha: 0 }, 300);
                     }
                 }
             } else {
-                // Legacy: all enemies KO'd at once
                 this.enemySprites.forEach(enemy => {
-                    this.tweens.add({
-                        targets: enemy,
-                        alpha: 0,
-                        y: enemy.y - 50,
-                        duration: 500
-                    });
+                    this.animateTo(enemy, { alpha: 0, y: enemy.y - 50 }, 500);
                 });
                 this.addLogEntry(`${this.enemyName} defeated!`);
             }
@@ -759,40 +671,36 @@
                 this.playSound('victory');
                 this.addLogEntry('🎉 VICTORY!');
                 
-                // Victory animation for player
-                this.tweens.add({
-                    targets: this.playerSprite,
-                    y: this.playerSprite.y - 20,
-                    duration: 200,
-                    yoyo: true,
-                    repeat: 2
+                const originalY = this.playerSprite.y;
+                this.animateTo(this.playerSprite, { y: originalY - 20 }, 200, () => {
+                    this.animateTo(this.playerSprite, { y: originalY }, 200, () => {
+                        this.animateTo(this.playerSprite, { y: originalY - 20 }, 200, () => {
+                            this.animateTo(this.playerSprite, { y: originalY }, 200);
+                        });
+                    });
                 });
             } else {
                 this.playSound('defeat');
                 this.addLogEntry('💀 DEFEAT');
             }
 
-            // Display result text
-            const resultText = this.add.text(
-                this.cameras.main.width / 2,
-                this.cameras.main.height / 2,
-                isPlayerWin ? 'VICTORY!' : 'DEFEAT',
-                {
-                    fontSize: '48px',
+            const resultText = new PIXI.Text({
+                text: isPlayerWin ? 'VICTORY!' : 'DEFEAT',
+                style: {
+                    fontSize: 48,
                     fontFamily: 'Arial, sans-serif',
-                    fontStyle: 'bold',
-                    color: isPlayerWin ? '#44ff44' : '#ff4444',
-                    stroke: '#000000',
-                    strokeThickness: 6
+                    fontWeight: 'bold',
+                    fill: isPlayerWin ? 0x44ff44 : 0xff4444,
+                    stroke: { color: 0x000000, width: 6 }
                 }
-            ).setOrigin(0.5);
-
-            this.tweens.add({
-                targets: resultText,
-                scale: { from: 0, to: 1 },
-                duration: 500,
-                ease: 'Back.easeOut'
             });
+            resultText.anchor.set(0.5);
+            resultText.x = this.app.screen.width / 2;
+            resultText.y = this.app.screen.height / 2;
+            resultText.scale.set(0);
+            this.stage.addChild(resultText);
+
+            this.animateTo(resultText, { scale: 1 }, 500);
 
             this.finishBattle();
         }
@@ -800,19 +708,20 @@
         handleDraw() {
             this.addLogEntry('Draw!');
             
-            const drawText = this.add.text(
-                this.cameras.main.width / 2,
-                this.cameras.main.height / 2,
-                'DRAW',
-                {
-                    fontSize: '48px',
+            const drawText = new PIXI.Text({
+                text: 'DRAW',
+                style: {
+                    fontSize: 48,
                     fontFamily: 'Arial, sans-serif',
-                    fontStyle: 'bold',
-                    color: '#ffaa00',
-                    stroke: '#000000',
-                    strokeThickness: 6
+                    fontWeight: 'bold',
+                    fill: 0xffaa00,
+                    stroke: { color: 0x000000, width: 6 }
                 }
-            ).setOrigin(0.5);
+            });
+            drawText.anchor.set(0.5);
+            drawText.x = this.app.screen.width / 2;
+            drawText.y = this.app.screen.height / 2;
+            this.stage.addChild(drawText);
 
             this.finishBattle();
         }
@@ -827,9 +736,9 @@
         addLogEntry(text) {
             if (!text) return;
             this.logEntries.unshift(text);
-            this.logEntries = this.logEntries.slice(0, 4); // Keep only last 4 entries (matches Arena)
+            this.logEntries = this.logEntries.slice(0, 4);
             if (this.logText) {
-                this.logText.setText(this.logEntries.join('\n'));
+                this.logText.text = this.logEntries.join('\n');
             }
         }
 
@@ -838,7 +747,11 @@
             this.battleFinished = true;
             this.isPlaying = false;
 
-            // Notify Blazor that battle is done
+            if (this.eventTimer) {
+                clearInterval(this.eventTimer);
+                this.eventTimer = null;
+            }
+
             if (this.dotNetRef) {
                 try {
                     this.dotNetRef.invokeMethodAsync('OnBattleFinished');
@@ -922,9 +835,77 @@
         setAudioEnabled(enabled) {
             this.audioEnabled = enabled;
         }
+
+        animateTo(target, properties, duration, onComplete) {
+            const startProps = {};
+            Object.keys(properties).forEach(key => {
+                if (key === 'scale') {
+                    startProps[key] = target.scale.x;
+                } else if (key === 'width' || key === 'height') {
+                    startProps[key] = target[key];
+                } else {
+                    startProps[key] = target[key] ?? (key === 'alpha' ? 1 : 0);
+                }
+            });
+
+            const startTime = Date.now();
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                Object.keys(properties).forEach(key => {
+                    const start = startProps[key];
+                    const end = properties[key];
+                    if (key === 'scale') {
+                        target.scale.set(start + (end - start) * progress);
+                    } else {
+                        target[key] = start + (end - start) * progress;
+                    }
+                });
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else if (onComplete) {
+                    onComplete();
+                }
+            };
+            animate();
+        }
+
+        destroy() {
+            if (this.eventTimer) {
+                clearInterval(this.eventTimer);
+                this.eventTimer = null;
+            }
+            if (this.app) {
+                // Stop ticker before destroying
+                this.app.ticker.stop();
+                
+                // Clear stage children manually to avoid null reference issues
+                while (this.stage && this.stage.children && this.stage.children.length > 0) {
+                    const child = this.stage.children[0];
+                    this.stage.removeChild(child);
+                    if (child.destroy) {
+                        try {
+                            child.destroy({ children: true, texture: false, baseTexture: false });
+                        } catch (e) {
+                            // Ignore errors during child destruction
+                        }
+                    }
+                }
+                
+                // Now destroy the app
+                try {
+                    this.app.destroy(false);
+                } catch (e) {
+                    console.warn('Error destroying PixiJS app:', e);
+                }
+                this.app = null;
+                this.stage = null;
+            }
+        }
     }
 
-    // Public API
     window.stageBattleGame = {
         start: function (containerId, battleData) {
             console.log('Starting stage battle game in container:', containerId);
@@ -935,10 +916,8 @@
                 return;
             }
 
-            // Destroy existing game if any
-            if (stageGame) {
-                stageGame.destroy(true);
-                stageGame = null;
+            if (stageScene) {
+                stageScene.destroy();
                 stageScene = null;
             }
 
@@ -951,44 +930,25 @@
             const enemyName = battleData?.enemyName ?? battleData?.EnemyName ?? 'Enemy';
             const backgroundPath = battleData?.backgroundPath ?? battleData?.BackgroundPath ?? defaultSprites.background;
             const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
-            
-            // Support both array of sprites (new) and single sprite path (legacy)
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
 
-            const config = {
-                type: Phaser.AUTO,
-                width: container.clientWidth || DEFAULT_WIDTH,
-                height: container.clientHeight || DEFAULT_HEIGHT,
-                parent: containerId,
-                backgroundColor: '#1a1a1a',
-                scene: StageBattleScene
-            };
-
-            stageGame = new Phaser.Game(config);
-
-            stageGame.events.once('ready', () => {
-                stageScene = stageGame.scene.getScene('StageBattleScene');
-                if (stageScene) {
-                    stageScene.scene.restart({
-                        events: events,
-                        dotNetRef: dotNetRef,
-                        stageNumber: stageNumber,
-                        enemyType: enemyType,
-                        enemyCount: enemyCount,
-                        playerName: playerName,
-                        enemyName: enemyName,
-                        backgroundPath: backgroundPath,
-                        playerSpritePath: playerSpritePath,
-                        enemySprites: enemySprites // Pass array of sprite paths
-                    });
-                }
+            stageScene = new StageBattleScene(container, {
+                events: events,
+                dotNetRef: dotNetRef,
+                stageNumber: stageNumber,
+                enemyType: enemyType,
+                enemyCount: enemyCount,
+                playerName: playerName,
+                enemyName: enemyName,
+                backgroundPath: backgroundPath,
+                playerSpritePath: playerSpritePath,
+                enemySprites: enemySprites
             });
         },
 
         destroy: function () {
-            if (stageGame) {
-                stageGame.destroy(true);
-                stageGame = null;
+            if (stageScene) {
+                stageScene.destroy();
                 stageScene = null;
             }
         },
@@ -1005,42 +965,16 @@
             }
         },
 
-        // Start next battle without destroying/recreating the game
         nextBattle: function (battleData) {
-            if (!stageGame || !stageScene) {
+            if (!stageScene) {
                 console.warn('No active game, using start() instead');
                 this.start('phaserBattleContainer', battleData);
                 return;
             }
 
-            console.log('Starting next stage battle in existing scene');
-            
-            const events = resolveEvents(battleData);
-            const dotNetRef = battleData?.dotNetRef ?? battleData?.DotNetRef ?? null;
-            const stageNumber = battleData?.stageNumber ?? battleData?.StageNumber ?? 1;
-            const enemyType = battleData?.enemyType ?? battleData?.EnemyType ?? 'normal';
-            const enemyCount = battleData?.enemyCount ?? battleData?.EnemyCount ?? 1;
-            const playerName = battleData?.playerName ?? battleData?.PlayerName ?? 'Player';
-            const enemyName = battleData?.enemyName ?? battleData?.EnemyName ?? 'Enemy';
-            const backgroundPath = battleData?.backgroundPath ?? battleData?.BackgroundPath ?? defaultSprites.background;
-            const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
-            
-            // Support both array of sprites (new) and single sprite path (legacy)
-            const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
-
-            // Restart the scene with new data (no need to reload assets if they're the same)
-            stageScene.scene.restart({
-                events: events,
-                dotNetRef: dotNetRef,
-                stageNumber: stageNumber,
-                enemyType: enemyType,
-                enemyCount: enemyCount,
-                playerName: playerName,
-                enemyName: enemyName,
-                backgroundPath: backgroundPath,
-                playerSpritePath: playerSpritePath,
-                enemySprites: enemySprites
-            });
+            console.log('Starting next stage battle');
+            this.destroy();
+            this.start('phaserBattleContainer', battleData);
         }
     };
 })();

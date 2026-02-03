@@ -797,6 +797,9 @@ namespace RTUB.Migrations
                     b.Property<int>("PowerUpgrades")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ShotBuffBattlesRemaining")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Speed")
                         .HasColumnType("INTEGER");
 

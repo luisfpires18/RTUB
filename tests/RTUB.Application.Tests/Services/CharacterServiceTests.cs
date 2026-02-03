@@ -13,11 +13,10 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for CharacterService
 /// Tests character retrieval, creation, and update operations
 /// </summary>
-public class CharacterServiceTests : IDisposable
+public class CharacterServiceTests
 {
     private readonly Mock<ICharacterRepository> _mockCharacterRepository;
     private readonly CharacterService _service;
-    private readonly ApplicationDbContext _mockDbContext;
 
     public CharacterServiceTests()
     {
@@ -28,13 +27,7 @@ public class CharacterServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .Options;
 
-        _mockDbContext = new ApplicationDbContext(
-            options,
-            Mock.Of<IHttpContextAccessor>(),
-            new RTUB.Application.Services.AuditContext(),
-            new RTUB.Application.Services.AuditLogAppender());
-
-        _service = new CharacterService(_mockCharacterRepository.Object, _mockDbContext);
+        _service = new CharacterService(_mockCharacterRepository.Object);
     }
 
     #region GetOrCreateCharacterAsync Tests
@@ -211,9 +204,4 @@ public class CharacterServiceTests : IDisposable
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        _mockDbContext?.Dispose();
-    }
 }

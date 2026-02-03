@@ -28,11 +28,4 @@ public interface ICharacterService
     /// </summary>
     /// <param name="character">The character to update</param>
     Task UpdateCharacterAsync(Character character);
-
-    /// <summary>
-    /// Creates characters for all members who don't have one yet
-    /// Used by OWNER role to initialize characters for all members
-    /// </summary>
-    /// <returns>Number of characters created</returns>
-    Task<int> CreateCharactersForAllMembersAsync();
 }

@@ -24,7 +24,8 @@ public class StageProgress : BaseEntity
 
     /// <summary>
     /// The last checkpoint stage the player can return to
-    /// Checkpoints: every 10 stages until stage 100, then every 20 stages
+    /// Checkpoints: every 10 stages but start after each boss (11, 21, 31...)
+    /// then every 20 stages after 100 (101, 121, 141...)
     /// After stage 10000: no checkpoints (Infinite Land)
     /// </summary>
     public int LastCheckpoint { get; set; } = 1;
@@ -152,8 +153,8 @@ public class StageProgress : BaseEntity
 
     /// <summary>
     /// Calculates the checkpoint for a given stage
-    /// - Before stage 100: checkpoint every 10 stages (1, 10, 20, 30...)
-    /// - After stage 100: checkpoint every 20 stages (100, 120, 140...)
+    /// - Before stage 100: checkpoint every 10 stages, starting after boss (1, 11, 21, 31...)
+    /// - After stage 100: checkpoint every 20 stages (101, 121, 141...)
     /// - After stage 10000: no new checkpoints (Infinite Land)
     /// </summary>
     public static int CalculateCheckpoint(int stage)
@@ -166,18 +167,16 @@ public class StageProgress : BaseEntity
             return 10000;
         }
 
-        // Before stage 100: checkpoint every 10 stages
+        // Before stage 100: checkpoint every 10 stages, starting at 11
         if (stage <= 100)
         {
-            var checkpoint = (stage / 10) * 10;
-            // Stages 1-9 should use checkpoint 1 (starting point)
-            return checkpoint == 0 ? 1 : checkpoint;
+            var checkpoint = ((stage - 1) / 10) * 10 + 1;
+            return checkpoint;
         }
 
-        // After stage 100: checkpoint every 20 stages
-        // Last checkpoint at 100 is 100, then 120, 140, etc.
-        var checkpointsAfter100 = (stage - 100) / 20;
-        return 100 + (checkpointsAfter100 * 20);
+        // After stage 100: checkpoint every 20 stages starting at 101
+        var checkpointsAfter100 = (stage - 101) / 20;
+        return 101 + (checkpointsAfter100 * 20);
     }
 
     /// <summary>
