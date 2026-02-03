@@ -41,7 +41,6 @@ public static class AuditConfiguration
         "MeetingAtaAgendaPoint",
         "InventoryItem",
         "Character",
-        "StageBattle",
         "StageProgress",
     };
 }

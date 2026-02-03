@@ -307,8 +307,6 @@
                                     stageProgress.CurrentStage = targetStage;
                                     stageProgress.CurrentRegion = StageProgress.GetRegionForStage(targetStage);
                                     await StageProgressRepository.UpdateAsync(stageProgress);
-                                    Logger.LogInformation("Updated stage progress to stage {Stage} for user {UserId}", 
-                                        targetStage, currentUser.Id);
                                 }
                                 
                                 currentStageNumber = targetStage;

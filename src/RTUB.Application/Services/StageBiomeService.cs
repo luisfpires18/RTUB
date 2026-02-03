@@ -303,12 +303,6 @@ public class StageBiomeService : IStageBiomeService
             .Select(filename => $"{webPath}/{filename}")
             .ToList();
 
-        _logger.LogInformation(
-            "Loaded {Count} {Type} sprites from {Path}",
-            sprites.Count,
-            excludeBoss ? "non-boss" : "boss",
-            relativePath);
-
         return sprites;
     }
 }

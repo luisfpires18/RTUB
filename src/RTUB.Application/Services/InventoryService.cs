@@ -76,10 +76,6 @@ public class InventoryService : IInventoryService
             return (false, 0, "Erro ao consumir cerveja");
         }
 
-        _logger.LogInformation(
-            "User {UserId} used beer to heal character {CharacterId} for {HealAmount} HP. New HP: {NewHP}/{TotalHP}",
-            userId, character.Id, healAmount, character.CurrentHP, character.TotalHP);
-
         return (true, healAmount, $"Personagem curado! +{healAmount} HP");
     }
 
@@ -163,10 +159,6 @@ public class InventoryService : IInventoryService
             _logger.LogError("Failed to consume shot for user {UserId} even though quantity was checked", userId);
             return (false, 0, "Erro ao consumir shot");
         }
-
-        _logger.LogInformation(
-            "User {UserId} used shot to empower character {CharacterId} for {Battles} arena battles. HP scaled from {OldHP}/{OldMax} to {NewHP}/{NewMax}",
-            userId, character.Id, ShotBuffBattles, currentHpValue, unbuffedMaxHp, character.CurrentHP, buffedMaxHp);
 
         return (true, ShotBuffBattles, $"Shot ativado! +20% stats nas próximas {ShotBuffBattles} batalhas de arena");
     }

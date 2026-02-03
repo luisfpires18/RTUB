@@ -103,9 +103,6 @@ public class BattleService : IBattleService
         if (hasShotBuff)
         {
             playerCharacter.ShotBuffBattlesRemaining--;
-            _logger.LogInformation(
-                "Shot buff used in arena battle. Character {CharacterId} has {Remaining} battles remaining",
-                playerCharacterId, playerCharacter.ShotBuffBattlesRemaining);
         }
 
         // Apply rewards to player character and user
@@ -122,9 +119,6 @@ public class BattleService : IBattleService
             var unbuffedHP = (int)(currentHP / buffMultiplier);
             playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
             await _characterRepository.UpdateAsync(playerCharacter);
-            _logger.LogInformation(
-                "Shot buff expired for character {CharacterId}. HP scaled from {BuffedHP} to {UnbuffedHP}",
-                playerCharacterId, currentHP, playerCharacter.CurrentHP);
         }
 
         // Roll for beer drop if player won
@@ -201,9 +195,6 @@ public class BattleService : IBattleService
         if (hasShotBuff)
         {
             playerCharacter.ShotBuffBattlesRemaining--;
-            _logger.LogInformation(
-                "Shot buff used in arena battle. Character {CharacterId} has {Remaining} battles remaining",
-                playerCharacterId, playerCharacter.ShotBuffBattlesRemaining);
         }
 
         // Apply rewards to player character and user
@@ -220,9 +211,6 @@ public class BattleService : IBattleService
             var unbuffedHP = (int)(currentHP / buffMultiplier);
             playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
             await _characterRepository.UpdateAsync(playerCharacter);
-            _logger.LogInformation(
-                "Shot buff expired for character {CharacterId}. HP scaled from {BuffedHP} to {UnbuffedHP}",
-                playerCharacterId, currentHP, playerCharacter.CurrentHP);
         }
 
         // Roll for beer drop if player won

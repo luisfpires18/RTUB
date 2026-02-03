@@ -457,17 +457,6 @@ public class StageService : IStageService
             {
                 // Player died - buff is consumed, scale HP down (will be 0 anyway)
                 character.ShotBuffBattlesRemaining = 0;
-                _logger.LogInformation(
-                    "Shot buff consumed on death in stage mode. Character {CharacterId} died.",
-                    character.Id);
-            }
-            else
-            {
-                // Player survived - buff continues, but HP needs to be scaled back to buffed range
-                // The combat result HP is already in buffed range, so just keep it
-                _logger.LogInformation(
-                    "Shot buff continues in stage mode. Character {CharacterId} HP: {HP}, Battles remaining: {Remaining}",
-                    character.Id, character.CurrentHP, character.ShotBuffBattlesRemaining);
             }
         }
         
