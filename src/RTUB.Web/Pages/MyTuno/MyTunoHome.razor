@@ -1160,18 +1160,18 @@
 
     private decimal GetReviveCost()
     {
-        // Base cost scaled by character level: 75 base * level
+        // Base cost with gentle level scaling: 15 base * sqrt(level)
         var baseCost = MyTunoConfig.Value.BattleRewards.ReviveCost;
         var level = character?.Level ?? 1;
-        return Math.Round(baseCost * level, 2);
+        return Math.Round(baseCost * (decimal)Math.Sqrt(level), 2);
     }
 
     private decimal GetRestoreCost()
     {
-        // Base cost scaled by total HP (including buff): 35 base * (MaxHP / 100)
+        // Base cost with gentle HP scaling: 5 base * sqrt(MaxHP / 100)
         var baseCost = MyTunoConfig.Value.BattleRewards.RestoreHPCost;
         var maxHp = GetDisplayMaxHP(character);
-        return Math.Round(baseCost * ((decimal)maxHp / 100m), 2);
+        return Math.Round(baseCost * (decimal)Math.Sqrt((double)maxHp / 100.0), 2);
     }
 
     private async Task ReviveCharacter()
