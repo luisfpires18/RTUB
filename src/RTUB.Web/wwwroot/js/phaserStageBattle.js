@@ -162,29 +162,9 @@
             // Semi-transparent overlay for better visibility
             const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
 
-            // Stage number display
-            this.stageText = this.add.text(width / 2, 20, `Stage ${this.stageNumber}`, {
-                fontSize: '24px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 3
-            }).setOrigin(0.5, 0);
-
-            // Enemy type badge
-            const enemyTypeText = this.enemyType === 'boss' ? '⚔️ BOSS' : 
-                                  this.enemyType === 'miniBoss' ? '🛡️ Mini-Boss' : '';
-            if (enemyTypeText) {
-                this.add.text(width / 2, 50, enemyTypeText, {
-                    fontSize: '18px',
-                    fontFamily: 'Arial, sans-serif',
-                    fontStyle: 'bold',
-                    color: this.enemyType === 'boss' ? '#ff4444' : '#ffaa00',
-                    stroke: '#000000',
-                    strokeThickness: 2
-                }).setOrigin(0.5, 0);
-            }
+            // Ground element like Arena
+            const groundHeight = 50;
+            this.add.rectangle(width / 2, height - groundHeight / 2, width, groundHeight, 0x2a2a2a);
 
             // Create player on LEFT side
             this.createPlayer(width, height);
@@ -289,111 +269,178 @@
             this.enemySprites = [];
             this.enemyHpBars = [];
             
-            // Position enemies on the RIGHT side, vertically centered
-            const enemyBaseY = height / 2;
-            const enemySpacing = Math.min(120, (height - 120) / Math.max(this.enemyCount, 1));
-            const startY = enemyBaseY - ((this.enemyCount - 1) * enemySpacing) / 2;
+            // Detect mobile based on aspect ratio (mobile has narrower width relative to height)
+            const isMobile = width <= height || width < 500;
+            
+            // Position enemies on the RIGHT side, grounded at bottom (matches Arena style)
+            const groundOffset = 60;
+            const enemyX = width * 0.75;
+            const baseEnemyY = height - groundOffset;
+            
+            // Calculate enemy positions based on count and device
+            const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height);
 
             for (let i = 0; i < this.enemyCount; i++) {
-                const enemyX = width - 120; // RIGHT side
-                const enemyY = startY + i * enemySpacing;
+                const pos = positions[i];
                 
                 // Use individual sprite for each enemy
-                const enemy = this.add.image(enemyX, enemyY, `stageEnemy${i}`);
+                const enemy = this.add.image(pos.x, pos.y, `stageEnemy${i}`);
+                enemy.setOrigin(0.5, 1); // Origin at bottom center like Arena
                 
-                // Scale enemy appropriately based on type - increased for better visibility
-                const enemySizes = { boss: 160, miniBoss: 140, normal: 120 };
-                const maxSize = enemySizes[this.enemyType] || enemySizes.normal;
-                const scale = maxSize / Math.max(enemy.width, enemy.height);
+                // Scale enemy based on height - smaller on mobile for many enemies
+                const mobileScale = isMobile ? 0.22 : 0.45;
+                const maxSpriteHeight = height * mobileScale;
+                const scale = Math.min(1, maxSpriteHeight / enemy.height);
                 enemy.setScale(scale);
                 
                 this.enemySprites.push(enemy);
                 
-                // Create HP bar above this enemy
-                const scaledHeight = enemy.height * scale;
-                const hpBarY = enemyY - scaledHeight / 2 - 20; // Above enemy sprite
-                const hpBarWidth = 60;
-                const hpBarHeight = 8;
+                // Create HP bar above this enemy (small, above sprite)
+                const hpBarY = pos.y - enemy.displayHeight - 8;
+                const hpBarWidth = isMobile ? 35 : 60;
+                const hpBarHeight = isMobile ? 4 : 8;
                 
                 // HP bar background (dark)
-                const barBg = this.add.rectangle(enemyX, hpBarY, hpBarWidth, hpBarHeight, 0x333333);
+                const barBg = this.add.rectangle(pos.x, hpBarY, hpBarWidth, hpBarHeight, 0x333333);
                 barBg.setOrigin(0.5, 0.5);
                 
                 // HP bar fill (red)
-                const bar = this.add.rectangle(enemyX - hpBarWidth/2, hpBarY, hpBarWidth, hpBarHeight, 0xff4444);
+                const bar = this.add.rectangle(pos.x - hpBarWidth/2, hpBarY, hpBarWidth, hpBarHeight, 0xff4444);
                 bar.setOrigin(0, 0.5);
                 
-                // HP text (smaller, above bar)
-                const hpText = this.add.text(enemyX, hpBarY - 10, '', {
-                    fontSize: '10px',
+                // HP text (hidden on mobile with many enemies)
+                const showText = !isMobile || this.enemyCount <= 2;
+                const hpText = this.add.text(pos.x, hpBarY - 6, '', {
+                    fontSize: isMobile ? '7px' : '10px',
                     fontFamily: 'Arial, sans-serif',
                     color: '#ffffff',
                     stroke: '#000000',
                     strokeThickness: 2
                 }).setOrigin(0.5, 0.5);
+                hpText.setVisible(showText);
                 
                 this.enemyHpBars.push({
                     bar: bar,
                     barBg: barBg,
                     text: hpText,
                     maxWidth: hpBarWidth,
-                    enemyIndex: i // Track which enemy this bar belongs to
+                    enemyIndex: i
                 });
             }
         }
 
-        createPlayer(width, height) {
-            // Player on LEFT side, vertically centered
-            const playerX = 120;
-            const playerY = height / 2;
-            this.playerSprite = this.add.image(playerX, playerY, 'stagePlayer');
+        calculateEnemyPositions(isMobile, enemyCount, baseX, baseY, width, height) {
+            const positions = [];
             
-            // Scale player - increased for better visibility
-            const maxSize = 140;
-            const scale = maxSize / Math.max(this.playerSprite.width, this.playerSprite.height);
+            if (enemyCount >= 4) {
+                // Grid layout for 4+ enemies (both mobile and web)
+                const hSpacing = isMobile ? 55 : 80;
+                const vSpacing = isMobile ? 70 : 90;
+                const topRowY = baseY - vSpacing;
+                const bottomRowY = baseY;
+                
+                if (enemyCount === 4) {
+                    // 2 top, 2 bottom
+                    positions.push({ x: baseX - hSpacing/2, y: topRowY });
+                    positions.push({ x: baseX + hSpacing/2, y: topRowY });
+                    positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
+                    positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
+                } else if (enemyCount === 5) {
+                    // 2 top, 1 middle, 2 bottom
+                    const midRowY = baseY - vSpacing/2;
+                    positions.push({ x: baseX - hSpacing/2, y: topRowY });
+                    positions.push({ x: baseX + hSpacing/2, y: topRowY });
+                    positions.push({ x: baseX, y: midRowY });
+                    positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
+                    positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
+                } else {
+                    // 6+ enemies: 3 top, rest bottom
+                    const topCount = Math.ceil(enemyCount / 2);
+                    const bottomCount = enemyCount - topCount;
+                    
+                    for (let i = 0; i < topCount; i++) {
+                        const xOffset = (i - (topCount - 1) / 2) * hSpacing;
+                        positions.push({ x: baseX + xOffset, y: topRowY });
+                    }
+                    for (let i = 0; i < bottomCount; i++) {
+                        const xOffset = (i - (bottomCount - 1) / 2) * hSpacing;
+                        positions.push({ x: baseX + xOffset, y: bottomRowY });
+                    }
+                }
+            } else {
+                // 1-3 enemies: horizontal line
+                const spacing = isMobile ? 50 : 80;
+                const startX = baseX - ((enemyCount - 1) * spacing) / 2;
+                
+                for (let i = 0; i < enemyCount; i++) {
+                    positions.push({ x: startX + i * spacing, y: baseY });
+                }
+            }
+            
+            return positions;
+        }
+
+        createPlayer(width, height) {
+            // Player on LEFT side, grounded at bottom (matches Arena style)
+            const groundOffset = 60;
+            const playerX = width * 0.25;
+            const playerY = height - groundOffset;
+            this.playerSprite = this.add.image(playerX, playerY, 'stagePlayer');
+            this.playerSprite.setOrigin(0.5, 1); // Origin at bottom center like Arena
+            
+            // Scale player based on height like Arena
+            const maxSpriteHeight = height * 0.45;
+            const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
             this.playerSprite.setScale(scale);
+            
+            // Store player position for HP bar
+            this.playerX = playerX;
+            this.playerDisplayHeight = this.playerSprite.displayHeight;
         }
 
         createHPBars(width, height) {
-            // Player HP bar at TOP-LEFT (mirrors Arena's top positioning)
-            const paddingTop = 30;
-            const barWidth = 200;
-            const barHeight = 24;
-            const barX = 50;
+            // Player HP bar - small, positioned above the player character
+            const groundOffset = 60;
+            const playerY = height - groundOffset;
+            const hpBarY = playerY - this.playerDisplayHeight - 15;
+            const barWidth = 60;
+            const barHeight = 8;
             
             // Player HP bar background
-            this.add.rectangle(barX + barWidth / 2, paddingTop + barHeight / 2, barWidth, barHeight, 0x333333);
+            this.add.rectangle(this.playerX, hpBarY, barWidth, barHeight, 0x333333);
             
-            // Player HP bar fill - use proper scaling with left origin
-            this.playerHpBar = this.add.rectangle(barX, paddingTop + barHeight / 2, barWidth, barHeight, 0x44ff44);
-            this.playerHpBar.setOrigin(0, 0.5);  // Left origin for proper scaling
+            // Player HP bar fill
+            this.playerHpBar = this.add.rectangle(this.playerX - barWidth / 2, hpBarY, barWidth, barHeight, 0x44ff44);
+            this.playerHpBar.setOrigin(0, 0.5);
             this.playerHpBar.maxWidth = barWidth;
             
-            // Player HP text
-            this.playerHpText = this.add.text(barX + barWidth / 2, paddingTop + barHeight / 2, '100/100', {
-                fontSize: '14px',
+            // Player HP text (small, above bar)
+            this.playerHpText = this.add.text(this.playerX, hpBarY - 10, '100/100', {
+                fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
-                color: '#ffffff'
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 2
             }).setOrigin(0.5, 0.5);
 
             // Note: Enemy HP bars are created per-enemy in createEnemies()
         }
 
         createBattleLog(width, height) {
-            // Battle log at BOTTOM CENTER (matches Arena style)
-            const panelHeight = 80;
-            const panelY = height - panelHeight / 2 - 5;
+            // Battle log at BOTTOM (matches Arena style - inside ground area)
+            const panelHeight = 50;
+            const panelY = height - panelHeight / 2;
             
             this.add.rectangle(width / 2, panelY, width - 40, panelHeight, 0x0f0f0f, 0.9)
                 .setOrigin(0.5, 0.5)
                 .setStrokeStyle(1, 0x333333);
             
-            this.logText = this.add.text(30, panelY - panelHeight / 2 + 10, '', {
+            this.logText = this.add.text(25, panelY - panelHeight / 2 + 8, '', {
                 fontFamily: 'Arial',
-                fontSize: '13px',
+                fontSize: '12px',
                 color: '#f1f1f1',
-                wordWrap: { width: width - 60 }
+                wordWrap: { width: width - 50 }
             });
         }
 

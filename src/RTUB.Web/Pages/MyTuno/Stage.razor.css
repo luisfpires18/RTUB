@@ -24,11 +24,19 @@
   background: #1a1a1a;
 }
 
-/* Mobile overrides for battle container */
+/* Mobile responsive styles - match Arena exactly */
 @media (max-width: 768px) {
+  .stage-page {
+    padding: 0 0.5rem;
+    /* Fix screen to prevent horizontal scrolling on mobile */
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   #phaserBattleContainer {
     max-width: 100%;
-    aspect-ratio: 4 / 3; /* Better aspect ratio on mobile for visibility */
+    /* Keep same aspect ratio as Arena for consistency */
   }
 }
 

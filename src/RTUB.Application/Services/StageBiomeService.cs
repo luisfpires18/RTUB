@@ -175,10 +175,17 @@ public class StageBiomeService : IStageBiomeService
             return string.Empty;
         }
 
-        // For now, pick a random boss sprite
-        // In future, could use deterministic selection based on stage number
-        var index = _random.Next(bossSprites.Count);
-        return bossSprites[index];
+        // Calculate which boss this is (1st boss = stage 10, 2nd boss = stage 20, etc.)
+        // Boss stages are at multiples of 10
+        int bossIndex = (stageNumber / 10) - 1; // Stage 10 -> boss 0, Stage 20 -> boss 1, etc.
+        
+        // Clamp to available boss sprites
+        bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
+        
+        _logger.LogInformation("Selecting boss sprite {Index} for stage {Stage} from {Count} available bosses", 
+            bossIndex, stageNumber, bossSprites.Count);
+        
+        return bossSprites[bossIndex];
     }
 
     /// <summary>
