@@ -188,38 +188,85 @@ public class BattleService : IBattleService
         });
         battle.SetReplay(replayJson);
 
-        // Persist battle
+        // Store pending state changes (to be applied in FinalizeAndApplyRewardsAsync)
+        battle.AttackerFinalHP = combatResult.AttackerFinalHP;
+        battle.ShotBuffUsed = hasShotBuff;
+        battle.ShotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1; // Will expire after this battle
+
+        // Persist battle (rewards NOT applied yet)
         await _battleRepository.AddAsync(battle);
 
-        // Decrement shot buff counter if it was used
-        if (hasShotBuff)
+        return battle;
+    }
+
+    /// <summary>
+    /// Finalizes a battle and applies all pending rewards and state changes
+    /// Should be called after the battle animation finishes
+    /// </summary>
+    public async Task<bool> FinalizeAndApplyRewardsAsync(int battleId)
+    {
+        var battle = await _battleRepository.GetByIdAsync(battleId);
+        if (battle == null)
+        {
+            _logger.LogWarning("Battle {BattleId} not found for finalization", battleId);
+            return false;
+        }
+
+        // Check if rewards already applied (prevent double-claiming)
+        if (battle.RewardsApplied)
+        {
+            _logger.LogWarning("Battle {BattleId} rewards already applied", battleId);
+            return false;
+        }
+
+        // Load the attacker character
+        var playerCharacter = await _characterRepository.GetByIdAsync(battle.AttackerCharacterId);
+        if (playerCharacter == null)
+        {
+            _logger.LogError("Player character {CharacterId} not found for battle {BattleId}", battle.AttackerCharacterId, battleId);
+            return false;
+        }
+
+        // Apply shot buff decrement if used
+        if (battle.ShotBuffUsed)
         {
             playerCharacter.ShotBuffBattlesRemaining--;
         }
 
-        // Apply rewards to player character and user
-        await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
+        // Apply rewards
+        await ApplyRewardsAsync(playerCharacter, battle.AttackerXP, battle.AttackerFidelis);
 
-        // Update HP based on battle outcome
-        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult, hasShotBuff);
-        
+        // Apply HP changes
+        if (battle.AttackerFinalHP.HasValue)
+        {
+            playerCharacter.CurrentHP = battle.AttackerFinalHP.Value;
+        }
+
         // If buff just expired, scale HP down to unbuffed range
-        if (hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 0)
+        if (battle.ShotBuffExpired)
         {
             const double buffMultiplier = 1.20;
             var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
             var unbuffedHP = (int)(currentHP / buffMultiplier);
             playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
-            await _characterRepository.UpdateAsync(playerCharacter);
         }
 
+        await _characterRepository.UpdateAsync(playerCharacter);
+
         // Roll for beer drop if player won
-        if (combatResult.Outcome == BattleOutcome.AttackerWon)
+        if (battle.Outcome == BattleOutcome.AttackerWon)
         {
             await TryDropBeerAsync(playerCharacter.UserId);
         }
 
-        return battle;
+        // Mark rewards as applied and persist
+        battle.MarkRewardsApplied();
+        await _battleRepository.UpdateAsync(battle);
+
+        _logger.LogInformation("Battle {BattleId} finalized - rewards applied: {XP} XP, {Fidelis} Fidelis", 
+            battleId, battle.AttackerXP, battle.AttackerFidelis);
+
+        return true;
     }
 
     /// <summary>

@@ -438,6 +438,10 @@ public class StageService : IStageService
 
     /// <summary>
     /// Updates character HP and stage progress after battle
+    /// Only persists StageProgress when there's a new record:
+    /// - HighestStage increased (player beat their previous best)
+    /// - EndlessModeUnlocked changed (beat stage 10000)
+    /// No writes when player dies at a stage below their record.
     /// </summary>
     private async Task UpdateCharacterAndProgressAsync(
         Character character,
@@ -447,6 +451,10 @@ public class StageService : IStageService
         int enemyCount = 1,
         bool hasShotBuff = false)
     {
+        // Track if we need to persist (only when there's a new record)
+        var previousHighestStage = stageProgress.HighestStage;
+        var previousEndlessModeUnlocked = stageProgress.EndlessModeUnlocked;
+
         // Update character HP from combat result
         character.CurrentHP = combatResult.AttackerFinalHP;
         
@@ -489,7 +497,16 @@ public class StageService : IStageService
             }
         }
 
-        await _stageProgressRepository.UpdateAsync(stageProgress);
+        // Only persist when there's a new record worth saving
+        var hasNewRecord = stageProgress.HighestStage > previousHighestStage ||
+                           stageProgress.EndlessModeUnlocked != previousEndlessModeUnlocked;
+
+        if (hasNewRecord)
+        {
+            await _stageProgressRepository.UpdateAsync(stageProgress);
+            _logger.LogInformation("StageProgress persisted - new record for user {UserId}: HighestStage={HighestStage}, EndlessModeUnlocked={EndlessModeUnlocked}",
+                stageProgress.UserId, stageProgress.HighestStage, stageProgress.EndlessModeUnlocked);
+        }
     }
 
     /// <summary>

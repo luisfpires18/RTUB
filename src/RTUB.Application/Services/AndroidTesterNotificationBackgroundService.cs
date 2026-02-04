@@ -128,11 +128,6 @@ public class AndroidTesterNotificationBackgroundService : BackgroundService
                     // Skip if user has logged in today
                     if (u.LastLoginDate.HasValue && u.LastLoginDate.Value.Date >= today)
                     {
-                        _logger.LogDebug(
-                            "Android tester {UserId} has already logged in today ({LastLogin}), skipping remaining notifications",
-                            u.Id,
-                            u.LastLoginDate.Value.ToString("yyyy-MM-dd HH:mm:ss"));
-
                         // Mark as notified to avoid checking again today
                         _notificationsSentToday.Add(u.Id);
                         return false;

@@ -567,7 +567,19 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("RewardsApplied")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Seed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AttackerFinalHP")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShotBuffUsed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShotBuffExpired")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")

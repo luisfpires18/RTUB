@@ -528,9 +528,33 @@
     }
 
     [JSInvokable]
-    public void OnBattleFinished()
+    public async Task OnBattleFinished()
     {
         showBattleAnimation = false;
+        
+        // Apply rewards now that battle animation has finished
+        if (currentBattle != null)
+        {
+            try
+            {
+                var rewardsApplied = await BattleService.FinalizeAndApplyRewardsAsync(currentBattle.Id);
+                if (rewardsApplied)
+                {
+                    Logger.LogInformation("Battle {BattleId} rewards applied after animation", currentBattle.Id);
+                    // Reload character to show updated stats
+                    if (currentUser != null)
+                    {
+                        character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                        currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error finalizing battle {BattleId}", currentBattle.Id);
+            }
+        }
+        
         StateHasChanged();
     }
 
@@ -565,6 +589,11 @@
 
     private void GoBack()
     {
+        // Prevent navigation while battle is in progress
+        if (fighting || showBattleAnimation)
+        {
+            return;
+        }
         Navigation.NavigateTo("/my-tuno");
     }
 

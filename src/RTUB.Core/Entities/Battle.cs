@@ -34,6 +34,27 @@ public class Battle : BaseEntity
     // Replay data (JSON)
     public string ReplayJson { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether rewards have been applied for this battle
+    /// Rewards are only applied after the battle animation finishes
+    /// </summary>
+    public bool RewardsApplied { get; set; } = false;
+
+    /// <summary>
+    /// Attacker's final HP after battle (pending application)
+    /// </summary>
+    public int? AttackerFinalHP { get; set; }
+
+    /// <summary>
+    /// Whether shot buff was used in this battle (for decrementing counter)
+    /// </summary>
+    public bool ShotBuffUsed { get; set; } = false;
+
+    /// <summary>
+    /// Whether shot buff expired after this battle (for HP scaling)
+    /// </summary>
+    public bool ShotBuffExpired { get; set; } = false;
+
     // Navigation
     public virtual Character Attacker { get; set; } = null!;
     public virtual Character Defender { get; set; } = null!;
@@ -94,5 +115,13 @@ public class Battle : BaseEntity
             throw new ArgumentException("Replay JSON cannot be null or empty", nameof(replayJson));
 
         ReplayJson = replayJson;
+    }
+
+    /// <summary>
+    /// Marks the rewards as applied
+    /// </summary>
+    public void MarkRewardsApplied()
+    {
+        RewardsApplied = true;
     }
 }
