@@ -119,12 +119,6 @@ public class AndroidTesterNotificationBackgroundService : BackgroundService
             var usersToNotify = androidTesters
                 .Where(u =>
                 {
-                    // Skip if already notified today
-                    if (_notificationsSentToday.Contains(u.Id))
-                    {
-                        return false;
-                    }
-
                     // Skip if user has logged in today
                     if (u.LastLoginDate.HasValue && u.LastLoginDate.Value.Date >= today)
                     {
