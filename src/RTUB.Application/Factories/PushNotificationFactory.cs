@@ -111,7 +111,7 @@ public class PushNotificationFactory : IPushNotificationFactory
 
         var locationText = string.IsNullOrWhiteSpace(rehearsal.Location)
             ? string.Empty
-            : $" em {rehearsal.Location}";
+            : $" no {rehearsal.Location}";
 
         return new SendPushNotificationDto
         {
