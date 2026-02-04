@@ -12,6 +12,12 @@
 
     let stageApp = null;
     let stageScene = null;
+    
+    // Global audio state - persists between battles
+    let globalAudioEnabled = true;
+    let globalSfxVolume = 0.5;
+    let backgroundMusic = null;
+    let backgroundMusicGainNode = null;
 
     const defaultSprites = {
         player: '/sprites/games/my-tuno/default_tuno.png',
@@ -89,8 +95,9 @@
             
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
-            this.audioEnabled = true;
-            this.sfxVolume = 0.5;
+            // Use global audio state to persist settings between stages
+            this.audioEnabled = globalAudioEnabled;
+            this.sfxVolume = globalSfxVolume;
             this.audioContext = null;
             
             this.setupAudio();
@@ -104,9 +111,36 @@
                 } else if (typeof webkitAudioContext !== 'undefined') {
                     this.audioContext = new webkitAudioContext();
                 }
+                
+                // Start background music if not already playing
+                if (this.audioContext && !backgroundMusic) {
+                    this.loadBackgroundMusic();
+                }
             } catch (e) {
                 console.warn('Audio not supported:', e);
                 this.audioEnabled = false;
+            }
+        }
+        
+        async loadBackgroundMusic() {
+            try {
+                const response = await fetch('/sound/stage_battle.mp3');
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                
+                // Create gain node for volume control
+                backgroundMusicGainNode = this.audioContext.createGain();
+                backgroundMusicGainNode.connect(this.audioContext.destination);
+                backgroundMusicGainNode.gain.value = this.audioEnabled ? 0.3 : 0;
+                
+                // Create and start looping background music
+                backgroundMusic = this.audioContext.createBufferSource();
+                backgroundMusic.buffer = audioBuffer;
+                backgroundMusic.loop = true;
+                backgroundMusic.connect(backgroundMusicGainNode);
+                backgroundMusic.start(0);
+            } catch (e) {
+                console.warn('Could not load background music:', e);
             }
         }
 
@@ -834,6 +868,12 @@
 
         setAudioEnabled(enabled) {
             this.audioEnabled = enabled;
+            globalAudioEnabled = enabled; // Sync with global state
+            
+            // Control background music
+            if (backgroundMusicGainNode) {
+                backgroundMusicGainNode.gain.value = enabled ? 0.3 : 0;
+            }
         }
 
         animateTo(target, properties, duration, onComplete) {
@@ -904,6 +944,18 @@
                 this.stage = null;
             }
         }
+        
+        static stopBackgroundMusic() {
+            if (backgroundMusic) {
+                try {
+                    backgroundMusic.stop();
+                } catch (e) {
+                    // Ignore if already stopped
+                }
+                backgroundMusic = null;
+            }
+            backgroundMusicGainNode = null;
+        }
     }
 
     window.stageBattleGame = {
@@ -951,6 +1003,16 @@
                 stageScene.destroy();
                 stageScene = null;
             }
+            // Stop background music when leaving stage mode
+            StageBattleScene.stopBackgroundMusic();
+        },
+        
+        // Destroy scene only, keep music playing (for stage transitions)
+        destroySceneOnly: function () {
+            if (stageScene) {
+                stageScene.destroy();
+                stageScene = null;
+            }
         },
 
         setSpeed: function (speed) {
@@ -963,6 +1025,13 @@
             if (stageScene) {
                 stageScene.setAudioEnabled(enabled);
             }
+            // Also update global state if no scene exists yet
+            globalAudioEnabled = enabled;
+            
+            // Control background music even without scene
+            if (backgroundMusicGainNode) {
+                backgroundMusicGainNode.gain.value = enabled ? 0.3 : 0;
+            }
         },
 
         nextBattle: function (battleData) {
@@ -973,7 +1042,8 @@
             }
 
             console.log('Starting next stage battle');
-            this.destroy();
+            // Use destroySceneOnly to keep music playing between stages
+            this.destroySceneOnly();
             this.start('phaserBattleContainer', battleData);
         }
     };

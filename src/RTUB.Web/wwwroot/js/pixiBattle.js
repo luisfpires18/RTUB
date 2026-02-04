@@ -7,6 +7,10 @@
 
     let app = null;
     let activeScene = null;
+    
+    // Background music for arena
+    let arenaBackgroundMusic = null;
+    let arenaBackgroundMusicGainNode = null;
 
     const spritePaths = {
         attacker: '/sprites/games/my-tuno/tuno_attacking_right.png',
@@ -101,9 +105,36 @@
                 } else if (typeof webkitAudioContext !== 'undefined') {
                     this.audioContext = new webkitAudioContext();
                 }
+                
+                // Start background music if not already playing
+                if (this.audioContext && !arenaBackgroundMusic) {
+                    this.loadBackgroundMusic();
+                }
             } catch (e) {
                 console.warn('Audio not supported:', e);
                 this.audioEnabled = false;
+            }
+        }
+        
+        async loadBackgroundMusic() {
+            try {
+                const response = await fetch('/sound/arena_battle.mp3');
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                
+                // Create gain node for volume control
+                arenaBackgroundMusicGainNode = this.audioContext.createGain();
+                arenaBackgroundMusicGainNode.connect(this.audioContext.destination);
+                arenaBackgroundMusicGainNode.gain.value = this.audioEnabled ? this.musicVolume : 0;
+                
+                // Create and start looping background music
+                arenaBackgroundMusic = this.audioContext.createBufferSource();
+                arenaBackgroundMusic.buffer = audioBuffer;
+                arenaBackgroundMusic.loop = true;
+                arenaBackgroundMusic.connect(arenaBackgroundMusicGainNode);
+                arenaBackgroundMusic.start(0);
+            } catch (e) {
+                console.warn('Could not load arena background music:', e);
             }
         }
 
@@ -192,12 +223,23 @@
 
         toggleAudio() {
             this.audioEnabled = !this.audioEnabled;
+            
+            // Control background music
+            if (arenaBackgroundMusicGainNode) {
+                arenaBackgroundMusicGainNode.gain.value = this.audioEnabled ? this.musicVolume : 0;
+            }
+            
             return this.audioEnabled;
         }
 
         setVolume(musicVol, sfxVol) {
             this.musicVolume = Math.max(0, Math.min(1, musicVol));
             this.sfxVolume = Math.max(0, Math.min(1, sfxVol));
+            
+            // Update background music volume
+            if (arenaBackgroundMusicGainNode && this.audioEnabled) {
+                arenaBackgroundMusicGainNode.gain.value = this.musicVolume;
+            }
         }
 
         async initPixi() {
@@ -895,11 +937,25 @@
         });
     };
 
+    const stopBackgroundMusic = () => {
+        if (arenaBackgroundMusic) {
+            try {
+                arenaBackgroundMusic.stop();
+            } catch (e) {
+                // Ignore if already stopped
+            }
+            arenaBackgroundMusic = null;
+        }
+        arenaBackgroundMusicGainNode = null;
+    };
+
     const destroyBattle = () => {
         if (activeScene) {
             activeScene.destroy();
             activeScene = null;
         }
+        // Stop background music when leaving arena
+        stopBackgroundMusic();
     };
 
     window.myTunoGame = {
