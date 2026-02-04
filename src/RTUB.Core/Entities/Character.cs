@@ -58,6 +58,29 @@ public class Character : BaseEntity
     public double TotalCriticalChance =>
         Math.Min(1, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
 
+    /// <summary>
+    /// Base action time in seconds (how long before a character can attack)
+    /// </summary>
+    public const double BaseActionTime = 5.0;
+    
+    /// <summary>
+    /// Minimum action time in seconds (cannot go below this)
+    /// </summary>
+    public const double MinActionTime = 1.0;
+    
+    /// <summary>
+    /// Time reduction per speed upgrade in seconds
+    /// </summary>
+    public const double ActionTimeReductionPerUpgrade = 0.1;
+
+    /// <summary>
+    /// Calculates the action time in seconds based on speed upgrades
+    /// Base time is 5 seconds, each speed upgrade reduces by 0.1 seconds
+    /// Minimum is 1 second
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double ActionTime => Math.Max(MinActionTime, BaseActionTime - (SpeedUpgrades * ActionTimeReductionPerUpgrade));
+
     // Private constructor for EF Core
     private Character() { }
 

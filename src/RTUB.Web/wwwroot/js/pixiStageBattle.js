@@ -95,6 +95,18 @@
             
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
+            // Speed bar system - time-based combat
+            this.playerActionTime = 5.0; // Default 5 seconds
+            this.enemyActionTimes = Array(this.enemyCount).fill(5.0);
+            this.playerSpeedBarTimer = 5000; // In milliseconds
+            this.enemySpeedBarTimers = Array(this.enemyCount).fill(5000);
+            this.playerSpeedBar = null;
+            this.enemySpeedBars = [];
+            this.battleStartTime = 0;
+            this.currentSimTime = 0;
+            this.battleSpeed = 1.0;
+            this.battleEvents = null;
+            
             // Use global audio state to persist settings between stages
             this.audioEnabled = globalAudioEnabled;
             this.sfxVolume = globalSfxVolume;
@@ -210,9 +222,10 @@
             this.createBattleLog(width, height);
 
             this.preprocessInitialEvents();
-
-            this.isPlaying = true;
-            this.eventTimer = setInterval(() => this.processNextEvent(), this.eventInterval / this.playbackSpeed);
+            this.startTimedBattle();
+            
+            // Add update loop with ticker
+            this.app.ticker.add(() => this.update());
         }
 
         preprocessInitialEvents() {
@@ -239,16 +252,24 @@
 
             this.currentEventIndex = firstPlayerAttackIndex >= 0 ? firstPlayerAttackIndex : 0;
             this.isInitialSetup = false;
+            
+            // Initialize speed bar timers
+            this.playerSpeedBarTimer = this.playerActionTime * 1000;
+            for (let i = 0; i < this.enemyCount; i++) {
+                this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
+            }
         }
 
         processInitialHPEvent(evt) {
             const character = getEventField(evt, 'Character');
             const hp = getEventField(evt, 'HP');
             const maxHP = getEventField(evt, 'MaxHP');
+            const actionTime = getEventField(evt, 'ActionTime') ?? getEventField(evt, 'actionTime');
 
             if (character === 'Attacker' || character === 'Player') {
                 this.playerMaxHp = maxHP;
                 this.playerCurrentHp = hp;
+                if (actionTime) this.playerActionTime = actionTime;
                 if (this.playerHpBar) {
                     const ratio = Math.max(0, hp / maxHP);
                     this.playerHpBar.bar.width = this.playerHpBar.maxWidth * ratio;
@@ -261,6 +282,7 @@
                 if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyHPs.length) {
                     this.enemyHPs[enemyIndex].max = maxHP;
                     this.enemyHPs[enemyIndex].current = hp;
+                    if (actionTime) this.enemyActionTimes[enemyIndex] = actionTime;
                     const hpBarData = this.enemyHpBars[enemyIndex];
                     if (hpBarData && hpBarData.text) {
                         hpBarData.bar.width = hpBarData.maxWidth;
@@ -272,6 +294,7 @@
                 const enemyIndex = 0;
                 this.enemyHPs[enemyIndex].max = maxHP;
                 this.enemyHPs[enemyIndex].current = hp;
+                if (actionTime) this.enemyActionTimes[enemyIndex] = actionTime;
                 const hpBarData = this.enemyHpBars[enemyIndex];
                 if (hpBarData && hpBarData.text) {
                     hpBarData.bar.width = hpBarData.maxWidth;
@@ -336,6 +359,28 @@
                 bar: playerHpBarFill,
                 barBg: playerHpBarBg,
                 text: playerHpText,
+                maxWidth: barWidth
+            };
+            
+            // Create Speed bar below HP bar (smaller)
+            const speedBarHeight = 4;
+            const speedBarY = hpBarY + barHeight / 2 + 3;
+            
+            const playerSpeedBarBg = new PIXI.Graphics();
+            playerSpeedBarBg.rect(playerX - barWidth / 2, speedBarY, barWidth, speedBarHeight);
+            playerSpeedBarBg.fill(0x222222);
+            this.stage.addChild(playerSpeedBarBg);
+            
+            const playerSpeedBarFill = new PIXI.Graphics();
+            playerSpeedBarFill.rect(0, 0, barWidth, speedBarHeight);
+            playerSpeedBarFill.fill(0x00bcd4); // Cyan for speed
+            playerSpeedBarFill.x = playerX - barWidth / 2;
+            playerSpeedBarFill.y = speedBarY;
+            this.stage.addChild(playerSpeedBarFill);
+            
+            this.playerSpeedBar = {
+                bar: playerSpeedBarFill,
+                barBg: playerSpeedBarBg,
                 maxWidth: barWidth
             };
         }
@@ -403,6 +448,29 @@
                     bar: bar,
                     barBg: barBg,
                     text: hpText,
+                    maxWidth: hpBarWidth,
+                    enemyIndex: i
+                });
+                
+                // Create Speed bar below HP bar for enemy (smaller)
+                const speedBarHeight = isMobile ? 2 : 4;
+                const speedBarY = hpBarY + hpBarHeight / 2 + 2;
+                
+                const speedBarBg = new PIXI.Graphics();
+                speedBarBg.rect(pos.x - hpBarWidth / 2, speedBarY, hpBarWidth, speedBarHeight);
+                speedBarBg.fill(0x222222);
+                this.stage.addChild(speedBarBg);
+                
+                const speedBarFill = new PIXI.Graphics();
+                speedBarFill.rect(0, 0, hpBarWidth, speedBarHeight);
+                speedBarFill.fill(0x00bcd4); // Cyan for speed
+                speedBarFill.x = pos.x - hpBarWidth / 2;
+                speedBarFill.y = speedBarY;
+                this.stage.addChild(speedBarFill);
+                
+                this.enemySpeedBars.push({
+                    bar: speedBarFill,
+                    barBg: speedBarBg,
                     maxWidth: hpBarWidth,
                     enemyIndex: i
                 });
@@ -480,6 +548,124 @@
             this.logText.x = 25;
             this.logText.y = panelY - panelHeight / 2 + 8;
             this.stage.addChild(this.logText);
+        }
+
+        startTimedBattle() {
+            // Find all events and their SimTime values
+            this.battleEvents = this.eventsList.map(evt => ({
+                event: evt,
+                simTime: getEventField(evt, 'SimTime') ?? getEventField(evt, 'simTime') ?? 0
+            })).sort((a, b) => a.simTime - b.simTime);
+            
+            this.currentEventIndex = 0;
+            this.battleStartTime = Date.now();
+            this.currentSimTime = 0;
+            this.battleFinished = false;
+            this.isPlaying = true;
+            
+            // Process initial events (HP updates, BattleStart) that have simTime 0
+            while (this.currentEventIndex < this.battleEvents.length) {
+                const eventData = this.battleEvents[this.currentEventIndex];
+                if (eventData.simTime > 0) break;
+                this.processEvent(eventData.event);
+                this.currentEventIndex++;
+            }
+        }
+
+        update() {
+            const deltaMs = this.app.ticker.deltaMS;
+            
+            // Time-based battle simulation
+            if (!this.battleFinished && this.battleEvents && this.isPlaying) {
+                // Advance simulation time based on battle speed
+                const simDelta = deltaMs * this.battleSpeed;
+                this.currentSimTime += simDelta;
+                
+                // Update player speed bar timer (drain towards 0)
+                if (this.playerCurrentHp > 0) {
+                    this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+                    this.updatePlayerSpeedBar();
+                }
+                
+                // Update enemy speed bar timers
+                for (let i = 0; i < this.enemyCount; i++) {
+                    if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
+                        this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+                        this.updateEnemySpeedBar(i);
+                    }
+                }
+                
+                // Process events that should occur at current simulation time
+                while (this.currentEventIndex < this.battleEvents.length) {
+                    const eventData = this.battleEvents[this.currentEventIndex];
+                    if (eventData.simTime > this.currentSimTime) break;
+                    
+                    const evt = eventData.event;
+                    const evtType = getEventField(evt, 'Type');
+                    
+                    // When an attack happens, reset the attacker's speed bar
+                    if (evtType === 'Attack') {
+                        const attacker = getEventField(evt, 'Attacker');
+                        if (attacker === 'Attacker' || attacker === 'Player') {
+                            this.playerSpeedBarTimer = this.playerActionTime * 1000;
+                        } else if (attacker.startsWith('Enemy')) {
+                            const enemyIndex = parseInt(attacker.replace('Enemy', ''));
+                            if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyCount) {
+                                this.enemySpeedBarTimers[enemyIndex] = this.enemyActionTimes[enemyIndex] * 1000;
+                            }
+                        }
+                    }
+                    
+                    this.processEvent(evt);
+                    this.currentEventIndex++;
+                    
+                    // Check for battle end - stop processing events, let finishBattle be called after delay
+                    if (evtType === 'Victory' || evtType === 'Draw') {
+                        this.isPlaying = false; // Stop processing more events
+                        break;
+                    }
+                }
+            }
+        }
+
+        updatePlayerSpeedBar() {
+            if (!this.playerSpeedBar) return;
+            const ratio = Math.max(0, this.playerSpeedBarTimer / (this.playerActionTime * 1000));
+            const newWidth = this.playerSpeedBar.maxWidth * ratio;
+            this.playerSpeedBar.bar.width = newWidth;
+        }
+
+        updateEnemySpeedBar(enemyIndex) {
+            if (!this.enemySpeedBars[enemyIndex]) return;
+            const actionTimeMs = this.enemyActionTimes[enemyIndex] * 1000;
+            const ratio = Math.max(0, this.enemySpeedBarTimers[enemyIndex] / actionTimeMs);
+            const newWidth = this.enemySpeedBars[enemyIndex].maxWidth * ratio;
+            this.enemySpeedBars[enemyIndex].bar.width = newWidth;
+        }
+
+        processEvent(evt) {
+            const evtType = getEventField(evt, 'Type');
+
+            switch (evtType) {
+                case 'HPUpdate':
+                    this.handleHPUpdate(evt);
+                    break;
+                case 'Attack':
+                    this.handleAttack(evt);
+                    break;
+                case 'KO':
+                    this.handleKO(evt);
+                    break;
+                case 'Victory':
+                    this.handleVictory(evt);
+                    break;
+                case 'Draw':
+                    this.handleDraw();
+                    break;
+                case 'BattleStart':
+                    // Battle start event - nothing to do
+                    break;
+            }
         }
 
         processNextEvent() {
@@ -736,7 +922,8 @@
 
             this.animateTo(resultText, { scale: 1 }, 500);
 
-            this.finishBattle();
+            // Delay finishBattle to allow victory animation to show
+            setTimeout(() => this.finishBattle(), 2000);
         }
 
         handleDraw() {
@@ -757,7 +944,8 @@
             drawText.y = this.app.screen.height / 2;
             this.stage.addChild(drawText);
 
-            this.finishBattle();
+            // Delay finishBattle to allow draw animation to show
+            setTimeout(() => this.finishBattle(), 2000);
         }
 
         handleRoundStart(evt) {
@@ -864,6 +1052,8 @@
 
         setSpeed(speed) {
             this.playbackSpeed = speed;
+            // Convert playback speed to battle speed (1x = 1.0, 1.5x = 1.5, 2x = 2.0)
+            this.battleSpeed = speed;
         }
 
         setAudioEnabled(enabled) {

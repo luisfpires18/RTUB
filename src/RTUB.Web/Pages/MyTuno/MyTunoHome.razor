@@ -612,8 +612,8 @@
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Speed Atual:</span>
-                                            <strong class="fs-5">@character.TotalSpeed</strong>
+                                            <span class="text-muted">Tempo de Ataque:</span>
+                                            <strong class="fs-5">@character.ActionTime.ToString("F1")s</strong>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Upgrades:</span>
@@ -621,7 +621,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+1 Speed</strong>
+                                            <strong class="text-success">-0.1s</strong>
                                         </div>
                                     </div>
                                     <hr />
@@ -643,11 +643,16 @@
                                     </div>
                                     <button class="btn btn-info w-100 upgrade-card__button" 
                                             @onclick="() => PurchaseUpgrade(StatType.Speed)"
-                                            disabled="@(purchasing || speedCostLoading || (currentUser?.FidelisBalance ?? 0) < speedCost)">
+                                            disabled="@(purchasing || speedCostLoading || (currentUser?.FidelisBalance ?? 0) < speedCost || character.ActionTime <= 1.0)">
                                         @if (purchasing && purchasingStat == StatType.Speed)
                                         {
                                             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                                             <text>A comprar...</text>
+                                        }
+                                        else if (character.ActionTime <= 1.0)
+                                        {
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            <text>Máximo Alcançado</text>
                                         }
                                         else
                                         {
@@ -655,7 +660,7 @@
                                             <text>Comprar Upgrade</text>
                                         }
                                     </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < speedCost)
+                                    @if (currentUser != null && currentUser.FidelisBalance < speedCost && character.ActionTime > 1.0)
                                     {
                                         <small class="text-danger d-block mt-2 text-center">
                                             <i class="bi bi-exclamation-triangle me-1"></i>

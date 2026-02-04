@@ -87,6 +87,14 @@
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
             
+            // Speed bar system - time-based combat
+            this.actionTime = { attacker: 5.0, defender: 5.0 }; // In seconds
+            this.speedBars = { attacker: null, defender: null };
+            this.speedBarTimers = { attacker: 0, defender: 0 }; // Current timer values (0 = ready to attack)
+            this.battleStartTime = 0;
+            this.currentSimTime = 0;
+            this.battleSpeed = 1.0;
+            
             // Audio system initialization
             this.audioEnabled = true;
             this.musicVolume = 0.3;
@@ -285,10 +293,11 @@
             this.createCharacters(width, height);
             this.initializeHpFromEvents();
             this.drawHpBars();
+            this.drawSpeedBars();
             this.createLogPanel(width, height);
 
             if (this.mode === 'live') {
-                this.scheduleNextEvent();
+                this.startTimedBattle();
             } else {
                 this.setupReplayLoop();
                 this.updateCharacterStates(0);
@@ -427,6 +436,7 @@
 
             this.maxHp = { attacker: 100, defender: 100 };
             this.currentHp = { attacker: 100, defender: 100 };
+            this.actionTime = { attacker: 5.0, defender: 5.0 };
 
             this.eventsList.forEach((evt) => {
                 const type = getEventField(evt, 'Type');
@@ -435,17 +445,25 @@
                 const character = getEventField(evt, 'Character');
                 const hp = getEventField(evt, 'HP');
                 const maxHP = getEventField(evt, 'MaxHP');
+                const actionTime = getEventField(evt, 'ActionTime') ?? getEventField(evt, 'actionTime');
+                
                 if (character === 'Attacker' && !attackerInitialized) {
                     this.maxHp.attacker = maxHP ?? hp ?? 100;
                     this.currentHp.attacker = hp ?? 100;
+                    if (actionTime) this.actionTime.attacker = actionTime;
                     attackerInitialized = true;
                 }
                 if (character === 'Defender' && !defenderInitialized) {
                     this.maxHp.defender = maxHP ?? hp ?? 100;
                     this.currentHp.defender = hp ?? 100;
+                    if (actionTime) this.actionTime.defender = actionTime;
                     defenderInitialized = true;
                 }
             });
+            
+            // Initialize speed bar timers to full (start draining from actionTime to 0)
+            this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
+            this.speedBarTimers.defender = this.actionTime.defender * 1000;
         }
 
         drawHpBars() {
@@ -507,6 +525,63 @@
 
             this.hpTexts.attacker.text = `${this.currentHp.attacker} / ${this.maxHp.attacker} HP`;
             this.hpTexts.defender.text = `${this.currentHp.defender} / ${this.maxHp.defender} HP`;
+        }
+
+        drawSpeedBars() {
+            const barWidth = 200;
+            const barHeight = 8;
+            const paddingTop = 58; // Below HP bar
+
+            if (!this.speedBarGraphics) {
+                this.speedBarGraphics = new PIXI.Graphics();
+                this.stage.addChild(this.speedBarGraphics);
+            }
+            this.speedBarGraphics.clear();
+
+            const drawSpeedBar = (x, timerMs, actionTimeMs) => {
+                // Speed bar fills from right to left as timer drains
+                const speedPercent = actionTimeMs > 0 ? timerMs / actionTimeMs : 0;
+                
+                // Background
+                this.speedBarGraphics.rect(x, paddingTop, barWidth, barHeight);
+                this.speedBarGraphics.fill(0x222222);
+                
+                // Fill - cyan/blue color for speed
+                this.speedBarGraphics.rect(x, paddingTop, barWidth * speedPercent, barHeight);
+                this.speedBarGraphics.fill(0x00bcd4);
+                
+                // Border
+                this.speedBarGraphics.rect(x, paddingTop, barWidth, barHeight);
+                this.speedBarGraphics.stroke({ width: 1, color: 0x666666 });
+            };
+
+            const attackerActionTimeMs = this.actionTime.attacker * 1000;
+            const defenderActionTimeMs = this.actionTime.defender * 1000;
+
+            drawSpeedBar(50, this.speedBarTimers.attacker, attackerActionTimeMs);
+            drawSpeedBar(this.app.screen.width - 50 - barWidth, this.speedBarTimers.defender, defenderActionTimeMs);
+        }
+
+        startTimedBattle() {
+            // Find all events and their SimTime values
+            this.battleEvents = this.eventsList.map(evt => ({
+                event: evt,
+                simTime: getEventField(evt, 'SimTime') ?? getEventField(evt, 'simTime') ?? 0
+            })).sort((a, b) => a.simTime - b.simTime);
+            
+            this.currentEventIndex = 0;
+            this.battleStartTime = Date.now();
+            this.currentSimTime = 0;
+            this.battleFinished = false;
+            this.isPlaying = true;
+            
+            // Process initial events (HP updates, BattleStart) that have simTime 0
+            while (this.currentEventIndex < this.battleEvents.length) {
+                const eventData = this.battleEvents[this.currentEventIndex];
+                if (eventData.simTime > 0) break;
+                this.processEvent(eventData.event);
+                this.currentEventIndex++;
+            }
         }
 
         scheduleNextEvent() {
@@ -780,6 +855,9 @@
         }
 
         finishBattle() {
+            if (this.battleFinished) return;
+            this.battleFinished = true;
+            
             if (this.dotNetRef?.invokeMethodAsync) {
                 this.dotNetRef.invokeMethodAsync('OnBattleFinished');
             }
@@ -827,11 +905,14 @@
         }
 
         update() {
+            const deltaMs = this.app.ticker.deltaMS;
+            
+            // Character idle animations
             Object.values(this.characterSprites).forEach(char => {
                 if (char.sprite.idleAnimationData) {
                     const data = char.sprite.idleAnimationData;
-                    data.breathTime += this.app.ticker.deltaMS / 1000;
-                    data.scaleTime += this.app.ticker.deltaMS / 1000;
+                    data.breathTime += deltaMs / 1000;
+                    data.scaleTime += deltaMs / 1000;
                     
                     const breathOffset = Math.sin(data.breathTime * Math.PI / 1.8) * 8;
                     char.sprite.y = data.originalY + breathOffset;
@@ -842,8 +923,57 @@
                 }
             });
 
+            // Time-based battle simulation for live mode
+            if (this.mode === 'live' && !this.battleFinished && this.isPlaying && this.battleEvents) {
+                // Advance simulation time based on battle speed
+                const simDelta = deltaMs * this.battleSpeed;
+                this.currentSimTime += simDelta;
+                
+                // Update speed bar timers (drain towards 0)
+                if (this.currentHp.attacker > 0) {
+                    this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
+                }
+                if (this.currentHp.defender > 0) {
+                    this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
+                }
+                
+                // Process events that should occur at current simulation time
+                while (this.currentEventIndex < this.battleEvents.length) {
+                    const eventData = this.battleEvents[this.currentEventIndex];
+                    if (eventData.simTime > this.currentSimTime) break;
+                    
+                    const evt = eventData.event;
+                    const type = getEventField(evt, 'Type');
+                    
+                    // When an attack happens, reset the attacker's speed bar
+                    if (type === 'Attack') {
+                        const attacker = getEventField(evt, 'Attacker');
+                        if (attacker === 'Attacker') {
+                            this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
+                        } else if (attacker === 'Defender') {
+                            this.speedBarTimers.defender = this.actionTime.defender * 1000;
+                        }
+                    }
+                    
+                    this.processEvent(evt);
+                    this.currentEventIndex++;
+                    
+                    // Check for battle end - stop processing events and call finishBattle after delay
+                    if (type === 'Victory' || type === 'Draw') {
+                        this.isPlaying = false; // Stop processing more events
+                        // Delay finishBattle to allow victory animation to show
+                        setTimeout(() => this.finishBattle(), 2000);
+                        break;
+                    }
+                }
+                
+                // Update speed bars visual
+                this.drawSpeedBars();
+            }
+
+            // Replay mode
             if (this.mode === 'replay' && this.isPlaying) {
-                this.replayAccumulator += this.app.ticker.deltaMS * this.playbackSpeed;
+                this.replayAccumulator += deltaMs * this.playbackSpeed;
                 if (this.replayAccumulator >= 1000) {
                     this.replayAccumulator = 0;
                     this.replayIndex += 1;
@@ -978,6 +1108,8 @@
         },
         setSpeed: (newInterval) => {
             if (activeScene) {
+                // Convert interval to speed multiplier (800ms = 1x, 400ms = 2x)
+                activeScene.battleSpeed = 800 / newInterval;
                 activeScene.eventInterval = newInterval;
             }
         },

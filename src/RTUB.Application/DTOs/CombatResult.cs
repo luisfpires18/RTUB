@@ -89,4 +89,15 @@ public class CombatEvent
     /// Timestamp of the event (sequential order)
     /// </summary>
     public int Timestamp { get; set; }
+
+    /// <summary>
+    /// Action time in seconds for this character (for initial ActionTime events)
+    /// Determines how long until the character can attack
+    /// </summary>
+    public double? ActionTime { get; set; }
+
+    /// <summary>
+    /// Simulation time in milliseconds when this event occurred (for real-time combat)
+    /// </summary>
+    public double? SimTime { get; set; }
 }

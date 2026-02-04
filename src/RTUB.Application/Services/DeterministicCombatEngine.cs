@@ -8,16 +8,18 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Deterministic combat engine implementation
-/// Simulates turn-based battles using seeded RNG for reproducibility
+/// Simulates time-based battles using seeded RNG for reproducibility
+/// Characters attack when their action timer reaches 0, based on their ActionTime stat
 /// </summary>
 public class DeterministicCombatEngine : ICombatEngine
 {
-    private const int MaxRounds = 50; // Maximum rounds to prevent infinite fights
+    private const double MaxBattleTime = 300000; // 5 minutes max battle time in ms
     private const double DamageVarianceMin = 0.8;
     private const double DamageVarianceMax = 1.2;
+    private const double TimeStepMs = 10; // Simulation time step in milliseconds
 
     /// <summary>
-    /// Simulates a battle between two characters
+    /// Simulates a battle between two characters using time-based combat
     /// </summary>
     public CombatResult Simulate(Character attacker, Character defender, int seed)
     {
@@ -28,16 +30,19 @@ public class DeterministicCombatEngine : ICombatEngine
 
         var rng = new SeededRandom(seed);
         var events = new List<CombatEvent>();
-        var timestamp = 0;
+        var eventIndex = 0;
 
         // Initialize HP - use CurrentHP if available (persistent HP system), otherwise use TotalHP
         var attackerHP = attacker.CurrentHP ?? attacker.TotalHP;
         var defenderHP = defender.CurrentHP ?? defender.TotalHP;
 
-        // Determine initial turn order (higher Speed attacks first)
-        var attackerSpeed = attacker.TotalSpeed;
-        var defenderSpeed = defender.TotalSpeed;
-        var attackerGoesFirst = attackerSpeed >= defenderSpeed;
+        // Get action times (in seconds, convert to ms)
+        var attackerActionTimeMs = attacker.ActionTime * 1000;
+        var defenderActionTimeMs = defender.ActionTime * 1000;
+
+        // Initialize action timers (start filled, drain to 0)
+        var attackerTimer = attackerActionTimeMs;
+        var defenderTimer = defenderActionTimeMs;
 
         // Emit initial HP values for both characters
         events.Add(new CombatEvent
@@ -46,7 +51,9 @@ public class DeterministicCombatEngine : ICombatEngine
             Character = "Attacker",
             HP = attackerHP,
             MaxHP = attacker.TotalHP,
-            Timestamp = timestamp++
+            ActionTime = attacker.ActionTime,
+            SimTime = 0,
+            Timestamp = eventIndex++
         });
 
         events.Add(new CombatEvent
@@ -55,248 +62,166 @@ public class DeterministicCombatEngine : ICombatEngine
             Character = "Defender",
             HP = defenderHP,
             MaxHP = defender.TotalHP,
-            Timestamp = timestamp++
+            ActionTime = defender.ActionTime,
+            SimTime = 0,
+            Timestamp = eventIndex++
         });
 
-        // Emit initial round start
+        // Emit battle start
         events.Add(new CombatEvent
         {
-            Type = "RoundStart",
-            Round = 1,
-            Timestamp = timestamp++
+            Type = "BattleStart",
+            SimTime = 0,
+            Timestamp = eventIndex++
         });
 
-        // Battle loop
-        for (int round = 1; round <= MaxRounds; round++)
+        // Battle loop - time-based simulation
+        double currentTime = 0;
+
+        while (currentTime < MaxBattleTime && attackerHP > 0 && defenderHP > 0)
         {
-            // Determine turn order for this round based on Speed
-            // Higher Speed character gets more turns (simplified: if Speed difference is significant, faster gets 2 turns)
-            var speedDifference = Math.Abs(attackerSpeed - defenderSpeed);
-            var fasterCharacter = attackerSpeed >= defenderSpeed ? "Attacker" : "Defender";
-            var slowerCharacter = fasterCharacter == "Attacker" ? "Defender" : "Attacker";
+            // Calculate time until next action
+            var timeToAttackerAction = attackerTimer;
+            var timeToDefenderAction = defenderTimer;
+            var timeStep = Math.Min(timeToAttackerAction, timeToDefenderAction);
 
-            // Process turns in this round
-            // Simplified: Each character gets one turn per round, order determined by Speed
-            if (attackerGoesFirst)
+            // Advance time
+            currentTime += timeStep;
+            attackerTimer -= timeStep;
+            defenderTimer -= timeStep;
+
+            // Process attacker action if timer reached 0
+            if (attackerTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
-                // Attacker's turn
-                if (attackerHP > 0 && defenderHP > 0)
+                var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
+                defenderHP = Math.Max(0, defenderHP - damage);
+
+                events.Add(new CombatEvent
                 {
-                    var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
-                    defenderHP = Math.Max(0, defenderHP - damage);
+                    Type = "Attack",
+                    Attacker = "Attacker",
+                    Defender = "Defender",
+                    Damage = damage,
+                    IsCritical = isCritical,
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
 
+                events.Add(new CombatEvent
+                {
+                    Type = "HPUpdate",
+                    Character = "Defender",
+                    HP = defenderHP,
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
+
+                if (defenderHP <= 0)
+                {
                     events.Add(new CombatEvent
                     {
-                        Type = "Attack",
-                        Attacker = "Attacker",
-                        Defender = "Defender",
-                        Damage = damage,
-                        IsCritical = isCritical,
-                        Timestamp = timestamp++
-                    });
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "HPUpdate",
+                        Type = "KO",
                         Character = "Defender",
-                        HP = defenderHP,
-                        Timestamp = timestamp++
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
                     });
 
-                    if (defenderHP <= 0)
-                    {
-                        events.Add(new CombatEvent
-                        {
-                            Type = "KO",
-                            Character = "Defender",
-                            Timestamp = timestamp++
-                        });
-
-                        events.Add(new CombatEvent
-                        {
-                            Type = "Victory",
-                            Winner = "Attacker",
-                            Timestamp = timestamp++
-                        });
-
-                        break;
-                    }
-                }
-
-                // Defender's turn
-                if (attackerHP > 0 && defenderHP > 0)
-                {
-                    var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
-                    attackerHP = Math.Max(0, attackerHP - damage);
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "Attack",
-                        Attacker = "Defender",
-                        Defender = "Attacker",
-                        Damage = damage,
-                        IsCritical = isCritical,
-                        Timestamp = timestamp++
-                    });
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "HPUpdate",
-                        Character = "Attacker",
-                        HP = attackerHP,
-                        Timestamp = timestamp++
-                    });
-
-                    if (attackerHP <= 0)
-                    {
-                        events.Add(new CombatEvent
-                        {
-                            Type = "KO",
-                            Character = "Attacker",
-                            Timestamp = timestamp++
-                        });
-
-                        events.Add(new CombatEvent
-                        {
-                            Type = "Victory",
-                            Winner = "Defender",
-                            Timestamp = timestamp++
-                        });
-
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // Defender goes first
-                if (attackerHP > 0 && defenderHP > 0)
-                {
-                    var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
-                    attackerHP = Math.Max(0, attackerHP - damage);
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "Attack",
-                        Attacker = "Defender",
-                        Defender = "Attacker",
-                        Damage = damage,
-                        IsCritical = isCritical,
-                        Timestamp = timestamp++
-                    });
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "HPUpdate",
-                        Character = "Attacker",
-                        HP = attackerHP,
-                        Timestamp = timestamp++
-                    });
-
-                    if (attackerHP <= 0)
-                    {
-                        events.Add(new CombatEvent
-                        {
-                            Type = "KO",
-                            Character = "Attacker",
-                            Timestamp = timestamp++
-                        });
-
-                        events.Add(new CombatEvent
-                        {
-                            Type = "Victory",
-                            Winner = "Defender",
-                            Timestamp = timestamp++
-                        });
-
-                        break;
-                    }
-                }
-
-                // Attacker's turn
-                if (attackerHP > 0 && defenderHP > 0)
-                {
-                    var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
-                    defenderHP = Math.Max(0, defenderHP - damage);
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "Attack",
-                        Attacker = "Attacker",
-                        Defender = "Defender",
-                        Damage = damage,
-                        IsCritical = isCritical,
-                        Timestamp = timestamp++
-                    });
-
-                    events.Add(new CombatEvent
-                    {
-                        Type = "HPUpdate",
-                        Character = "Defender",
-                        HP = defenderHP,
-                        Timestamp = timestamp++
-                    });
-
-                    if (defenderHP <= 0)
-                    {
-                        events.Add(new CombatEvent
-                        {
-                            Type = "KO",
-                            Character = "Defender",
-                            Timestamp = timestamp++
-                        });
-
-                        events.Add(new CombatEvent
-                        {
-                            Type = "Victory",
-                            Winner = "Attacker",
-                            Timestamp = timestamp++
-                        });
-
-                        break;
-                    }
-                }
-            }
-
-            // End of round
-            events.Add(new CombatEvent
-            {
-                Type = "RoundEnd",
-                Round = round,
-                Timestamp = timestamp++
-            });
-
-            // If both characters are still alive and we've reached max rounds, determine winner by HP
-            if (round == MaxRounds && attackerHP > 0 && defenderHP > 0)
-            {
-                if (attackerHP > defenderHP)
-                {
                     events.Add(new CombatEvent
                     {
                         Type = "Victory",
                         Winner = "Attacker",
-                        Timestamp = timestamp++
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
                     });
+                    break;
                 }
-                else if (defenderHP > attackerHP)
+
+                // Reset attacker timer
+                attackerTimer = attackerActionTimeMs;
+            }
+
+            // Process defender action if timer reached 0
+            if (defenderTimer <= 0 && attackerHP > 0 && defenderHP > 0)
+            {
+                var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
+                attackerHP = Math.Max(0, attackerHP - damage);
+
+                events.Add(new CombatEvent
                 {
+                    Type = "Attack",
+                    Attacker = "Defender",
+                    Defender = "Attacker",
+                    Damage = damage,
+                    IsCritical = isCritical,
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
+
+                events.Add(new CombatEvent
+                {
+                    Type = "HPUpdate",
+                    Character = "Attacker",
+                    HP = attackerHP,
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
+
+                if (attackerHP <= 0)
+                {
+                    events.Add(new CombatEvent
+                    {
+                        Type = "KO",
+                        Character = "Attacker",
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
+                    });
+
                     events.Add(new CombatEvent
                     {
                         Type = "Victory",
                         Winner = "Defender",
-                        Timestamp = timestamp++
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
                     });
+                    break;
                 }
-                else
+
+                // Reset defender timer
+                defenderTimer = defenderActionTimeMs;
+            }
+        }
+
+        // Handle timeout - determine winner by HP
+        if (currentTime >= MaxBattleTime && attackerHP > 0 && defenderHP > 0)
+        {
+            if (attackerHP > defenderHP)
+            {
+                events.Add(new CombatEvent
                 {
-                    // Draw - equal HP
-                    events.Add(new CombatEvent
-                    {
-                        Type = "Draw",
-                        Timestamp = timestamp++
-                    });
-                }
-                break;
+                    Type = "Victory",
+                    Winner = "Attacker",
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
+            }
+            else if (defenderHP > attackerHP)
+            {
+                events.Add(new CombatEvent
+                {
+                    Type = "Victory",
+                    Winner = "Defender",
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
+            }
+            else
+            {
+                events.Add(new CombatEvent
+                {
+                    Type = "Draw",
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
+                });
             }
         }
 
@@ -313,8 +238,9 @@ public class DeterministicCombatEngine : ICombatEngine
     }
 
     /// <summary>
-    /// Simulates a battle between one player and multiple enemies
-    /// Player focuses one enemy at a time until defeated (task requirement #4)
+    /// Simulates a battle between one player and multiple enemies using time-based combat
+    /// Player focuses one enemy at a time until defeated
+    /// All characters have independent action timers
     /// </summary>
     public CombatResult SimulateMultiEnemy(Character player, List<Character> enemies, int seed)
     {
@@ -325,33 +251,39 @@ public class DeterministicCombatEngine : ICombatEngine
 
         var rng = new SeededRandom(seed);
         var events = new List<CombatEvent>();
-        var timestamp = 0;
+        var eventIndex = 0;
 
-        // Initialize player HP
+        // Initialize player HP and action time
         var playerHP = player.CurrentHP ?? player.TotalHP;
         var playerMaxHP = player.TotalHP;
-        
-        // Initialize all enemy HPs
-        var enemyStates = enemies.Select((enemy, index) => new
+        var playerActionTimeMs = player.ActionTime * 1000;
+        var playerTimer = playerActionTimeMs;
+
+        // Initialize all enemy states with HP and action timers
+        var enemyStates = enemies.Select((enemy, index) => new EnemyState
         {
             Enemy = enemy,
             Index = index,
             HP = enemy.CurrentHP ?? enemy.TotalHP,
             MaxHP = enemy.TotalHP,
-            Name = enemy.User?.UserName ?? $"Enemy {index + 1}"
+            Name = enemy.User?.UserName ?? $"Enemy {index + 1}",
+            ActionTimeMs = enemy.ActionTime * 1000,
+            Timer = enemy.ActionTime * 1000
         }).ToList();
 
-        // Emit initial HP for player
+        // Emit initial HP and action time for player
         events.Add(new CombatEvent
         {
             Type = "HPUpdate",
             Character = "Player",
             HP = playerHP,
             MaxHP = playerMaxHP,
-            Timestamp = timestamp++
+            ActionTime = player.ActionTime,
+            SimTime = 0,
+            Timestamp = eventIndex++
         });
 
-        // Emit initial HP for all enemies
+        // Emit initial HP and action time for all enemies
         foreach (var enemyState in enemyStates)
         {
             events.Add(new CombatEvent
@@ -360,46 +292,38 @@ public class DeterministicCombatEngine : ICombatEngine
                 Character = $"Enemy{enemyState.Index}",
                 HP = enemyState.HP,
                 MaxHP = enemyState.MaxHP,
-                Timestamp = timestamp++
+                ActionTime = enemyState.Enemy.ActionTime,
+                SimTime = 0,
+                Timestamp = eventIndex++
             });
         }
+
+        // Emit battle start
+        events.Add(new CombatEvent
+        {
+            Type = "BattleStart",
+            SimTime = 0,
+            Timestamp = eventIndex++
+        });
 
         // Track current target (player focuses one enemy at a time)
         int currentTargetIndex = 0;
 
-        events.Add(new CombatEvent
-        {
-            Type = "RoundStart",
-            Round = 1,
-            Timestamp = timestamp++
-        });
+        // Battle loop - time-based simulation
+        double currentTime = 0;
 
-        // Battle loop
-        for (int round = 1; round <= MaxRounds; round++)
+        while (currentTime < MaxBattleTime && playerHP > 0)
         {
             // Check if any enemies are alive
             var aliveEnemies = enemyStates.Where(e => e.HP > 0).ToList();
-            
             if (!aliveEnemies.Any())
             {
-                // Player won - all enemies defeated
                 events.Add(new CombatEvent
                 {
                     Type = "Victory",
                     Winner = "Player",
-                    Timestamp = timestamp++
-                });
-                break;
-            }
-
-            if (playerHP <= 0)
-            {
-                // Player lost
-                events.Add(new CombatEvent
-                {
-                    Type = "Victory",
-                    Winner = "Enemies",
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
                 break;
             }
@@ -412,85 +336,91 @@ public class DeterministicCombatEngine : ICombatEngine
 
             if (currentTargetIndex >= enemyStates.Count)
             {
-                // All enemies defeated
                 events.Add(new CombatEvent
                 {
                     Type = "Victory",
                     Winner = "Player",
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
                 break;
             }
 
-            var currentTarget = enemyStates[currentTargetIndex];
+            // Find the minimum time until next action
+            var timesToAction = new List<double> { playerTimer };
+            timesToAction.AddRange(aliveEnemies.Select(e => e.Timer));
+            var timeStep = timesToAction.Min();
 
-            // Determine turn order based on speed
-            var playerSpeed = player.TotalSpeed;
-            var targetSpeed = currentTarget.Enemy.TotalSpeed;
-            var playerGoesFirst = playerSpeed >= targetSpeed;
-
-            if (playerGoesFirst)
+            // Advance time
+            currentTime += timeStep;
+            playerTimer -= timeStep;
+            foreach (var enemy in aliveEnemies)
             {
-                // Player attacks current target
-                var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
-                var targetCurrentHP = currentTarget.HP;
-                targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
-
-                events.Add(new CombatEvent
-                {
-                    Type = "Attack",
-                    Attacker = "Player",
-                    Defender = $"Enemy{currentTarget.Index}",
-                    Damage = damage,
-                    IsCritical = isCritical,
-                    Timestamp = timestamp++
-                });
-
-                // Update target HP in our tracking
-                enemyStates[currentTarget.Index] = new
-                {
-                    currentTarget.Enemy,
-                    currentTarget.Index,
-                    HP = targetCurrentHP,
-                    currentTarget.MaxHP,
-                    currentTarget.Name
-                };
-
-                events.Add(new CombatEvent
-                {
-                    Type = "HPUpdate",
-                    Character = $"Enemy{currentTarget.Index}",
-                    HP = targetCurrentHP,
-                    Timestamp = timestamp++
-                });
-
-                if (targetCurrentHP <= 0)
-                {
-                    events.Add(new CombatEvent
-                    {
-                        Type = "KO",
-                        Character = $"Enemy{currentTarget.Index}",
-                        Timestamp = timestamp++
-                    });
-                }
+                enemy.Timer -= timeStep;
             }
 
-            // All alive enemies attack the player
-            foreach (var enemyState in enemyStates.Where(e => e.HP > 0))
+            // Process player action if timer reached 0
+            if (playerTimer <= 0 && playerHP > 0 && currentTargetIndex < enemyStates.Count)
+            {
+                var target = enemyStates[currentTargetIndex];
+                if (target.HP > 0)
+                {
+                    var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                    target.HP = Math.Max(0, target.HP - damage);
+
+                    events.Add(new CombatEvent
+                    {
+                        Type = "Attack",
+                        Attacker = "Player",
+                        Defender = $"Enemy{target.Index}",
+                        Damage = damage,
+                        IsCritical = isCritical,
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
+                    });
+
+                    events.Add(new CombatEvent
+                    {
+                        Type = "HPUpdate",
+                        Character = $"Enemy{target.Index}",
+                        HP = target.HP,
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
+                    });
+
+                    if (target.HP <= 0)
+                    {
+                        events.Add(new CombatEvent
+                        {
+                            Type = "KO",
+                            Character = $"Enemy{target.Index}",
+                            SimTime = currentTime,
+                            Timestamp = eventIndex++
+                        });
+                    }
+                }
+
+                // Reset player timer
+                playerTimer = playerActionTimeMs;
+            }
+
+            // Process enemy actions for all enemies whose timer reached 0
+            foreach (var enemy in aliveEnemies.Where(e => e.Timer <= 0 && e.HP > 0))
             {
                 if (playerHP <= 0) break;
 
-                var (damage, isCritical) = CalculateDamage(enemyState.Enemy.TotalPower, enemyState.Enemy.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, rng);
                 playerHP = Math.Max(0, playerHP - damage);
 
                 events.Add(new CombatEvent
                 {
                     Type = "Attack",
-                    Attacker = $"Enemy{enemyState.Index}",
+                    Attacker = $"Enemy{enemy.Index}",
                     Defender = "Player",
                     Damage = damage,
                     IsCritical = isCritical,
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
 
                 events.Add(new CombatEvent
@@ -498,7 +428,8 @@ public class DeterministicCombatEngine : ICombatEngine
                     Type = "HPUpdate",
                     Character = "Player",
                     HP = playerHP,
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
 
                 if (playerHP <= 0)
@@ -507,86 +438,28 @@ public class DeterministicCombatEngine : ICombatEngine
                     {
                         Type = "KO",
                         Character = "Player",
-                        Timestamp = timestamp++
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
+                    });
+
+                    events.Add(new CombatEvent
+                    {
+                        Type = "Victory",
+                        Winner = "Enemies",
+                        SimTime = currentTime,
+                        Timestamp = eventIndex++
                     });
                     break;
                 }
-            }
 
-            if (!playerGoesFirst && playerHP > 0 && currentTarget.HP > 0)
-            {
-                // Player attacks after enemies (slower speed)
-                var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
-                var targetCurrentHP = enemyStates[currentTarget.Index].HP;
-                targetCurrentHP = Math.Max(0, targetCurrentHP - damage);
-
-                events.Add(new CombatEvent
-                {
-                    Type = "Attack",
-                    Attacker = "Player",
-                    Defender = $"Enemy{currentTarget.Index}",
-                    Damage = damage,
-                    IsCritical = isCritical,
-                    Timestamp = timestamp++
-                });
-
-                enemyStates[currentTarget.Index] = new
-                {
-                    currentTarget.Enemy,
-                    currentTarget.Index,
-                    HP = targetCurrentHP,
-                    currentTarget.MaxHP,
-                    currentTarget.Name
-                };
-
-                events.Add(new CombatEvent
-                {
-                    Type = "HPUpdate",
-                    Character = $"Enemy{currentTarget.Index}",
-                    HP = targetCurrentHP,
-                    Timestamp = timestamp++
-                });
-
-                if (targetCurrentHP <= 0)
-                {
-                    events.Add(new CombatEvent
-                    {
-                        Type = "KO",
-                        Character = $"Enemy{currentTarget.Index}",
-                        Timestamp = timestamp++
-                    });
-                }
-            }
-
-            events.Add(new CombatEvent
-            {
-                Type = "RoundEnd",
-                Round = round,
-                Timestamp = timestamp++
-            });
-
-            // Check for battle end
-            if (playerHP <= 0 || !enemyStates.Any(e => e.HP > 0))
-            {
-                break;
-            }
-
-            // Start next round
-            if (round < MaxRounds)
-            {
-                events.Add(new CombatEvent
-                {
-                    Type = "RoundStart",
-                    Round = round + 1,
-                    Timestamp = timestamp++
-                });
+                // Reset enemy timer
+                enemy.Timer = enemy.ActionTimeMs;
             }
         }
 
-        // Handle max rounds timeout
-        if (playerHP > 0 && enemyStates.Any(e => e.HP > 0))
+        // Handle timeout - determine winner by HP
+        if (currentTime >= MaxBattleTime && playerHP > 0 && enemyStates.Any(e => e.HP > 0))
         {
-            // Determine winner by total HP remaining
             var totalEnemyHP = enemyStates.Sum(e => e.HP);
             
             if (playerHP > totalEnemyHP)
@@ -595,7 +468,8 @@ public class DeterministicCombatEngine : ICombatEngine
                 {
                     Type = "Victory",
                     Winner = "Player",
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
             }
             else
@@ -604,7 +478,8 @@ public class DeterministicCombatEngine : ICombatEngine
                 {
                     Type = "Victory",
                     Winner = "Enemies",
-                    Timestamp = timestamp++
+                    SimTime = currentTime,
+                    Timestamp = eventIndex++
                 });
             }
         }
@@ -617,8 +492,22 @@ public class DeterministicCombatEngine : ICombatEngine
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = playerHP,
-            DefenderFinalHP = enemyStates.Sum(e => e.HP) // Total remaining enemy HP
+            DefenderFinalHP = enemyStates.Sum(e => e.HP)
         };
+    }
+
+    /// <summary>
+    /// Helper class to track enemy state during multi-enemy combat
+    /// </summary>
+    private class EnemyState
+    {
+        public Character Enemy { get; set; } = null!;
+        public int Index { get; set; }
+        public int HP { get; set; }
+        public int MaxHP { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public double ActionTimeMs { get; set; }
+        public double Timer { get; set; }
     }
 
     /// <summary>
