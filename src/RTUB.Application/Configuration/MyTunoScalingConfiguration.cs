@@ -15,6 +15,20 @@ public class MyTunoScalingConfiguration
     /// Default is 0.5 (50% chance)
     /// </summary>
     public double BeerDropChance { get; set; } = 0.5;
+
+    /// <summary>
+    /// Defense constant K for damage mitigation formula: mult = K / (K + defense)
+    /// Higher K means defense is less effective (more damage taken)
+    /// Default is 50
+    /// </summary>
+    public double DefenseK { get; set; } = 50;
+
+    /// <summary>
+    /// Minimum damage that can be dealt after defense mitigation
+    /// Default is 1
+    /// </summary>
+    public int MinDamage { get; set; } = 1;
+
     public StageModeConfig StageMode { get; set; } = new();
 }
 
@@ -61,6 +75,7 @@ public class MyTunoBaseStats
     public int HP { get; set; } = 100;
     public int Power { get; set; } = 10;
     public int Speed { get; set; } = 10;
+    public int Defense { get; set; } = 5;
     public double CriticalChance { get; set; } = 0.01;
 }
 
@@ -77,6 +92,7 @@ public class MyTunoUpgrades
     public MyTunoUpgradeStat Power { get; set; } = new();
     public MyTunoUpgradeStat Speed { get; set; } = new();
     public MyTunoUpgradeStat CriticalChance { get; set; } = new();
+    public MyTunoUpgradeStat Defense { get; set; } = new();
 }
 
 public class MyTunoUpgradeStat
@@ -203,6 +219,11 @@ public class EnemyScaling
     public double SpeedPerStage { get; set; } = 0.03;
 
     /// <summary>
+    /// Defense increase per stage as a percentage
+    /// </summary>
+    public double DefensePerStage { get; set; } = 0.04;
+
+    /// <summary>
     /// Critical chance increase per stage
     /// </summary>
     public double CriticalChancePerStage { get; set; } = 0.002;
@@ -213,9 +234,9 @@ public class EnemyScaling
 /// </summary>
 public class BaseEnemyStats
 {
-    public EnemyTypeStat Normal { get; set; } = new() { Hp = 50, Power = 8, Speed = 5, CriticalChance = 0.05 };
-    public EnemyTypeStat MiniBoss { get; set; } = new() { Hp = 200, Power = 15, Speed = 7, CriticalChance = 0.10 };
-    public EnemyTypeStat Boss { get; set; } = new() { Hp = 500, Power = 20, Speed = 8, CriticalChance = 0.15 };
+    public EnemyTypeStat Normal { get; set; } = new() { Hp = 50, Power = 8, Speed = 5, Defense = 3, CriticalChance = 0.05 };
+    public EnemyTypeStat MiniBoss { get; set; } = new() { Hp = 200, Power = 15, Speed = 7, Defense = 8, CriticalChance = 0.10 };
+    public EnemyTypeStat Boss { get; set; } = new() { Hp = 500, Power = 20, Speed = 8, Defense = 15, CriticalChance = 0.15 };
 }
 
 /// <summary>
@@ -226,6 +247,7 @@ public class EnemyTypeStat
     public int Hp { get; set; }
     public int Power { get; set; }
     public int Speed { get; set; }
+    public int Defense { get; set; }
     public double CriticalChance { get; set; }
 }
 

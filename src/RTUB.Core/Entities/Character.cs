@@ -16,10 +16,11 @@ public class Character : BaseEntity
     public int Level { get; set; } = MyTunoScaling.BaseLevel;
     public int XP { get; set; } = MyTunoScaling.BaseXp;
 
-    // Base Stats (ONLY these three)
+    // Base Stats (ONLY these four)
     public int HP { get; set; } = MyTunoScaling.BaseHp;        // Base HP
     public int Power { get; set; } = MyTunoScaling.BasePower;  // Base Power
     public int Speed { get; set; } = MyTunoScaling.BaseSpeed;  // Base Speed
+    public int Defense { get; set; } = MyTunoScaling.BaseDefense; // Base Defense
     public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
 
     // Current HP (null means full HP, for backwards compatibility)
@@ -36,6 +37,7 @@ public class Character : BaseEntity
     public int PowerUpgrades { get; set; } = MyTunoScaling.InitialPowerUpgrades;
     public int SpeedUpgrades { get; set; } = MyTunoScaling.InitialSpeedUpgrades;
     public int CriticalUpgrades { get; set; } = MyTunoScaling.InitialCriticalUpgrades;
+    public int DefenseUpgrades { get; set; } = MyTunoScaling.InitialDefenseUpgrades;
 
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
@@ -57,6 +59,10 @@ public class Character : BaseEntity
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance =>
         Math.Min(1, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int TotalDefense => (int)(Defense * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+        + (int)(DefenseUpgrades * MyTunoScaling.DefenseUpgradeBonus);
 
     /// <summary>
     /// Base action time in seconds (how long before a character can attack)
@@ -100,11 +106,13 @@ public class Character : BaseEntity
             HP = MyTunoScaling.BaseHp,
             Power = MyTunoScaling.BasePower,
             Speed = MyTunoScaling.BaseSpeed,
+            Defense = MyTunoScaling.BaseDefense,
             CriticalChance = MyTunoScaling.BaseCriticalChance,
             HpUpgrades = MyTunoScaling.InitialHpUpgrades,
             PowerUpgrades = MyTunoScaling.InitialPowerUpgrades,
             SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades,
-            CriticalUpgrades = MyTunoScaling.InitialCriticalUpgrades
+            CriticalUpgrades = MyTunoScaling.InitialCriticalUpgrades,
+            DefenseUpgrades = MyTunoScaling.InitialDefenseUpgrades
         };
     }
 
@@ -114,10 +122,11 @@ public class Character : BaseEntity
     /// <param name="hp">Base HP of the enemy</param>
     /// <param name="power">Base power of the enemy</param>
     /// <param name="speed">Base speed of the enemy</param>
+    /// <param name="defense">Base defense of the enemy</param>
     /// <param name="criticalChance">Critical hit chance</param>
     /// <param name="enemyName">Display name for the enemy</param>
     /// <returns>A Character instance for combat simulation</returns>
-    public static Character CreateStageEnemy(int hp, int power, int speed, double criticalChance, string enemyName)
+    public static Character CreateStageEnemy(int hp, int power, int speed, int defense, double criticalChance, string enemyName)
     {
         var character = new Character
         {
@@ -127,12 +136,14 @@ public class Character : BaseEntity
             HP = hp,
             Power = power,
             Speed = speed,
+            Defense = defense,
             CriticalChance = criticalChance,
             CurrentHP = hp,
             HpUpgrades = 0,
             PowerUpgrades = 0,
             SpeedUpgrades = 0,
-            CriticalUpgrades = 0
+            CriticalUpgrades = 0,
+            DefenseUpgrades = 0
         };
 
         // Create a temporary user with the enemy name
@@ -162,11 +173,13 @@ public class Character : BaseEntity
             HP = source.HP,
             Power = source.Power,
             Speed = source.Speed,
+            Defense = source.Defense,
             CriticalChance = source.CriticalChance,
             HpUpgrades = source.HpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
+            DefenseUpgrades = source.DefenseUpgrades,
             // Key: Set CurrentHP to null = full HP (TotalHP)
             CurrentHP = null,
             User = source.User,
@@ -206,12 +219,14 @@ public class Character : BaseEntity
             // Boost all other stats by 20%
             Power = (int)Math.Round(source.Power * buffMultiplier),
             Speed = (int)Math.Round(source.Speed * buffMultiplier),
+            Defense = (int)Math.Round(source.Defense * buffMultiplier),
             CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
             // Also scale HP upgrades so total HP is exactly 1.2x
             HpUpgrades = buffedHpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
+            DefenseUpgrades = source.DefenseUpgrades,
             // Preserve current HP so combat starts with actual HP (damaged or full)
             CurrentHP = source.CurrentHP,
             User = source.User,
@@ -276,6 +291,14 @@ public class Character : BaseEntity
     public void UpgradeCriticalChance()
     {
         CriticalUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades Defense stat (increments DefenseUpgrades count)
+    /// </summary>
+    public void UpgradeDefense()
+    {
+        DefenseUpgrades++;
     }
 
     /// <summary>

@@ -6,6 +6,7 @@
       "hp": 100,
       "power": 10,
       "speed": 10,
+      "defense": 5,
       "criticalChance": 0.01
     },
     "levelScaling": {
@@ -33,8 +34,15 @@
         "initialBought": 0,
         "bonusPerUpgrade": 0.005,
         "baseCost": 20
+      },
+      "defense": {
+        "initialBought": 0,
+        "bonusPerUpgrade": 2,
+        "baseCost": 12
       }
     },
+    "defenseK": 50,
+    "minDamage": 1,
     "levelCosts": [
       0,
       10,
@@ -72,6 +80,7 @@
         "hpPerStage": 0.08,
         "powerPerStage": 0.05,
         "speedPerStage": 0.03,
+        "defensePerStage": 0.04,
         "criticalChancePerStage": 0.002
       },
       "baseEnemyStats": {
@@ -79,18 +88,21 @@
           "hp": 50,
           "power": 8,
           "speed": 5,
+          "defense": 3,
           "criticalChance": 0.05
         },
         "miniBoss": {
           "hp": 200,
           "power": 15,
           "speed": 7,
+          "defense": 8,
           "criticalChance": 0.10
         },
         "boss": {
           "hp": 500,
           "power": 20,
           "speed": 8,
+          "defense": 15,
           "criticalChance": 0.15
         }
       },

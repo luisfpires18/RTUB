@@ -23,5 +23,10 @@ public enum StatType
     /// <summary>
     /// Critical chance stat (chance to deal double damage)
     /// </summary>
-    CriticalChance = 3
+    CriticalChance = 3,
+
+    /// <summary>
+    /// Defense stat (damage reduction)
+    /// </summary>
+    Defense = 4
 }

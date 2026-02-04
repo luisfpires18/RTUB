@@ -1,5 +1,6 @@
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Utilities;
@@ -10,6 +11,7 @@ namespace RTUB.Application.Services;
 /// Deterministic combat engine implementation
 /// Simulates time-based battles using seeded RNG for reproducibility
 /// Characters attack when their action timer reaches 0, based on their ActionTime stat
+/// Defense reduces incoming damage using diminishing returns formula
 /// </summary>
 public class DeterministicCombatEngine : ICombatEngine
 {
@@ -93,7 +95,7 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process attacker action if timer reached 0
             if (attackerTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
-                var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, defender.TotalDefense, rng);
                 defenderHP = Math.Max(0, defenderHP - damage);
 
                 events.Add(new CombatEvent
@@ -143,7 +145,7 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process defender action if timer reached 0
             if (defenderTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
-                var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
                 attackerHP = Math.Max(0, attackerHP - damage);
 
                 events.Add(new CombatEvent
@@ -365,7 +367,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 var target = enemyStates[currentTargetIndex];
                 if (target.HP > 0)
                 {
-                    var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, rng);
+                    var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
                     target.HP = Math.Max(0, target.HP - damage);
 
                     events.Add(new CombatEvent
@@ -409,7 +411,7 @@ public class DeterministicCombatEngine : ICombatEngine
             {
                 if (playerHP <= 0) break;
 
-                var (damage, isCritical) = CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, rng);
+                var (damage, isCritical) = CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
                 playerHP = Math.Max(0, playerHP - damage);
 
                 events.Add(new CombatEvent
@@ -511,10 +513,10 @@ public class DeterministicCombatEngine : ICombatEngine
     }
 
     /// <summary>
-    /// Calculates damage with variance
-    /// Formula: BaseDamage = Power, FinalDamage = Power * Random(0.8, 1.2)
+    /// Calculates raw damage with variance and critical hit
+    /// Order of operations: Base Power -> Variance -> Critical
     /// </summary>
-    private static (int damage, bool isCritical) CalculateDamage(int power, double criticalChance, SeededRandom rng)
+    private static (int rawDamage, bool isCritical) CalculateRawDamage(int power, double criticalChance, SeededRandom rng)
     {
         var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
         var damage = power * variance;
@@ -524,6 +526,40 @@ public class DeterministicCombatEngine : ICombatEngine
             damage *= 2;
         }
         return ((int)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
+    }
+
+    /// <summary>
+    /// Applies defense mitigation to raw damage using diminishing returns formula
+    /// Formula: mult = K / (K + defense), finalDamage = max(MinDamage, floor(rawDamage * mult))
+    /// Uses config-driven DefenseK and MinDamage values from MyTunoScaling
+    /// </summary>
+    /// <param name="rawDamage">Damage after power/crit calculations, before mitigation</param>
+    /// <param name="defense">Target's total defense stat</param>
+    /// <returns>Final damage after defense mitigation (minimum 1)</returns>
+    private static int ApplyDefenseMitigation(int rawDamage, int defense)
+    {
+        var k = MyTunoScaling.DefenseK;
+        var minDamage = MyTunoScaling.MinDamage;
+
+        // Diminishing returns formula: mult = K / (K + defense)
+        // When defense = 0: mult = 1.0 (no reduction)
+        // When defense = K: mult = 0.5 (50% reduction)
+        // When defense = 2K: mult = 0.33 (67% reduction)
+        var multiplier = k / (k + defense);
+        var mitigatedDamage = (int)Math.Floor(rawDamage * multiplier);
+
+        return Math.Max(minDamage, mitigatedDamage);
+    }
+
+    /// <summary>
+    /// Calculates final damage including defense mitigation
+    /// Order of operations: Power -> Variance -> Critical -> Defense
+    /// </summary>
+    private static (int damage, bool isCritical) CalculateDamage(int power, double criticalChance, int targetDefense, SeededRandom rng)
+    {
+        var (rawDamage, isCritical) = CalculateRawDamage(power, criticalChance, rng);
+        var finalDamage = ApplyDefenseMitigation(rawDamage, targetDefense);
+        return (finalDamage, isCritical);
     }
 
     /// <summary>

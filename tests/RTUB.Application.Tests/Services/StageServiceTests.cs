@@ -65,6 +65,23 @@ public class StageServiceTests : IDisposable
             {
                 WinReward = 10m,
                 DrawReward = 7.5m
+            },
+            StageMode = new StageModeConfig
+            {
+                BaseEnemyStats = new BaseEnemyStats
+                {
+                    Normal = new EnemyTypeStat { Hp = 100, Power = 10, Speed = 10, Defense = 5, CriticalChance = 0.03 },
+                    MiniBoss = new EnemyTypeStat { Hp = 200, Power = 20, Speed = 15, Defense = 10, CriticalChance = 0.05 },
+                    Boss = new EnemyTypeStat { Hp = 500, Power = 50, Speed = 20, Defense = 25, CriticalChance = 0.10 }
+                },
+                EnemyScaling = new EnemyScaling
+                {
+                    HpPerStage = 0.1,
+                    PowerPerStage = 0.08,
+                    SpeedPerStage = 0.02,
+                    DefensePerStage = 0.04,
+                    CriticalChancePerStage = 0.001
+                }
             }
         };
         _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
@@ -74,6 +91,11 @@ public class StageServiceTests : IDisposable
         _biomeServiceMock = new Mock<IStageBiomeService>();
         _biomeServiceMock.Setup(x => x.IsBossStage(It.IsAny<int>())).Returns((int stage) => stage % 10 == 0);
         _biomeServiceMock.Setup(x => x.GetBiomeForStage(It.IsAny<int>())).Returns("Forest");
+        _biomeServiceMock.Setup(x => x.GetEnemyCountForStage(It.IsAny<int>())).Returns(1);
+        _biomeServiceMock.Setup(x => x.GetRandomEnemySpritesAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int stage, int count) => Enumerable.Repeat("/images/enemies/default.png", count).ToList());
+        _biomeServiceMock.Setup(x => x.GetBossSpriteAsync(It.IsAny<int>()))
+            .ReturnsAsync("/images/enemies/boss.png");
         _biomeServiceMock.Setup(x => x.CalculateScaledStats(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()))
             .Returns((int stage, int hp, int damage, bool isBoss) => (hp, damage));
 

@@ -189,13 +189,20 @@ public class StageService : IStageService
             seed,
             combatResult.Outcome);
 
-        // Serialize replay events with enemy sprite paths
+        // Serialize replay events with enemy sprite paths and stats
         var battleData = new
         {
             Events = combatResult.Events,
             EnemyCount = enemies.Count,
             EnemySprites = enemySpritePaths,
-            BiomeName = biomeName
+            BiomeName = biomeName,
+            EnemyStats = enemies.Select(e => new
+            {
+                HP = e.TotalHP,
+                Power = e.TotalPower,
+                Defense = e.TotalDefense,
+                Speed = e.TotalSpeed
+            }).ToList()
         };
         
         var replayJson = JsonSerializer.Serialize(battleData, new JsonSerializerOptions
@@ -280,7 +287,7 @@ public class StageService : IStageService
         var isBoss = _biomeService.IsBossStage(stageNumber);
 
         // Default stats if no template found
-        int baseHP, basePower, baseSpeed;
+        int baseHP, basePower, baseSpeed, baseDefense;
         double baseCriticalChance;
         string enemyName;
 
@@ -289,6 +296,7 @@ public class StageService : IStageService
             baseHP = template.GetScaledHP(stageNumber);
             basePower = template.GetScaledPower(stageNumber);
             baseSpeed = template.GetScaledSpeed(stageNumber);
+            baseDefense = template.GetScaledDefense(stageNumber);
             baseCriticalChance = template.BaseCriticalChance;
             enemyName = template.Name;
         }
@@ -316,6 +324,10 @@ public class StageService : IStageService
             var scaling = stageConfig.EnemyScaling;
             var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
             baseSpeed = (int)(typeStats.Speed * speedScaleFactor);
+
+            // Defense scaling
+            var defenseScaleFactor = 1.0 + (stageNumber - 1) * scaling.DefensePerStage;
+            baseDefense = (int)(typeStats.Defense * defenseScaleFactor);
             
             var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
             baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, 0.5); // Cap at 50%
@@ -329,7 +341,7 @@ public class StageService : IStageService
             };
         }
 
-        return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseCriticalChance, enemyName);
+        return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseDefense, baseCriticalChance, enemyName);
     }
 
     /// <summary>

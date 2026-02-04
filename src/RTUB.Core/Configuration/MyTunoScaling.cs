@@ -7,6 +7,7 @@ public static class MyTunoScaling
     public static int BaseHp { get; private set; } = 100;
     public static int BasePower { get; private set; } = 10;
     public static int BaseSpeed { get; private set; } = 10;
+    public static int BaseDefense { get; private set; } = 5;
     public static double BaseCriticalChance { get; private set; } = 0.01;
 
     public static double StatMultiplierPerLevel { get; private set; } = 0.1;
@@ -16,11 +17,24 @@ public static class MyTunoScaling
     public static int InitialPowerUpgrades { get; private set; } = 0;
     public static int InitialSpeedUpgrades { get; private set; } = 0;
     public static int InitialCriticalUpgrades { get; private set; } = 0;
+    public static int InitialDefenseUpgrades { get; private set; } = 0;
 
     public static double HpUpgradeBonus { get; private set; } = 10;
     public static double PowerUpgradeBonus { get; private set; } = 2;
     public static double SpeedUpgradeBonus { get; private set; } = 1;
     public static double CriticalChanceUpgradeBonus { get; private set; } = 0.005;
+    public static double DefenseUpgradeBonus { get; private set; } = 2;
+
+    /// <summary>
+    /// Defense constant K for damage mitigation formula: mult = K / (K + defense)
+    /// Higher K means defense is less effective (more damage taken)
+    /// </summary>
+    public static double DefenseK { get; private set; } = 50;
+
+    /// <summary>
+    /// Minimum damage that can be dealt after defense mitigation
+    /// </summary>
+    public static int MinDamage { get; private set; } = 1;
 
     /// <summary>
     /// Chance of beer drop after winning a battle (0.0 to 1.0)
@@ -40,6 +54,7 @@ public static class MyTunoScaling
         int baseHp,
         int basePower,
         int baseSpeed,
+        int baseDefense,
         double baseCriticalChance,
         double statMultiplierPerLevel,
         int xpPerLevelBase,
@@ -47,10 +62,14 @@ public static class MyTunoScaling
         int initialPowerUpgrades,
         int initialSpeedUpgrades,
         int initialCriticalUpgrades,
+        int initialDefenseUpgrades,
         double hpUpgradeBonus,
         double powerUpgradeBonus,
         double speedUpgradeBonus,
         double criticalChanceUpgradeBonus,
+        double defenseUpgradeBonus,
+        double defenseK,
+        int minDamage,
         double beerDropChance = 0.2,
         List<decimal>? levelCosts = null)
     {
@@ -59,6 +78,7 @@ public static class MyTunoScaling
         BaseHp = baseHp;
         BasePower = basePower;
         BaseSpeed = baseSpeed;
+        BaseDefense = baseDefense;
         BaseCriticalChance = baseCriticalChance;
         StatMultiplierPerLevel = statMultiplierPerLevel;
         XpPerLevelBase = xpPerLevelBase;
@@ -66,10 +86,14 @@ public static class MyTunoScaling
         InitialPowerUpgrades = initialPowerUpgrades;
         InitialSpeedUpgrades = initialSpeedUpgrades;
         InitialCriticalUpgrades = initialCriticalUpgrades;
+        InitialDefenseUpgrades = initialDefenseUpgrades;
         HpUpgradeBonus = hpUpgradeBonus;
         PowerUpgradeBonus = powerUpgradeBonus;
         SpeedUpgradeBonus = speedUpgradeBonus;
         CriticalChanceUpgradeBonus = criticalChanceUpgradeBonus;
+        DefenseUpgradeBonus = defenseUpgradeBonus;
+        DefenseK = defenseK;
+        MinDamage = minDamage;
         BeerDropChance = beerDropChance;
         LevelCosts = levelCosts ?? new List<decimal>();
     }

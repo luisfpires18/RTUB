@@ -57,6 +57,7 @@ public class UpgradeService : IUpgradeService
             StatType.Power => character.PowerUpgrades,
             StatType.Speed => character.SpeedUpgrades,
             StatType.CriticalChance => character.CriticalUpgrades,
+            StatType.Defense => character.DefenseUpgrades,
             _ => 0
         } : 0;
 
@@ -66,6 +67,7 @@ public class UpgradeService : IUpgradeService
             StatType.Power => _config.Upgrades.Power.BaseCost,
             StatType.Speed => _config.Upgrades.Speed.BaseCost,
             StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
+            StatType.Defense => _config.Upgrades.Defense.BaseCost,
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
 
@@ -129,6 +131,7 @@ public class UpgradeService : IUpgradeService
                         StatType.Power => _config.Upgrades.Power.BaseCost,
                         StatType.Speed => _config.Upgrades.Speed.BaseCost,
                         StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
+                        StatType.Defense => _config.Upgrades.Defense.BaseCost,
                         _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
                     };
 
@@ -138,6 +141,7 @@ public class UpgradeService : IUpgradeService
                         StatType.Power => character.PowerUpgrades,
                         StatType.Speed => character.SpeedUpgrades,
                         StatType.CriticalChance => character.CriticalUpgrades,
+                        StatType.Defense => character.DefenseUpgrades,
                         _ => 0
                     };
 
@@ -169,6 +173,9 @@ public class UpgradeService : IUpgradeService
                         case StatType.CriticalChance:
                             character.UpgradeCriticalChance();
                             break;
+                        case StatType.Defense:
+                            character.UpgradeDefense();
+                            break;
                     }
 
                     // Save changes atomically
@@ -185,6 +192,7 @@ public class UpgradeService : IUpgradeService
                         StatType.Power => character.PowerUpgrades,
                         StatType.Speed => character.SpeedUpgrades,
                         StatType.CriticalChance => character.CriticalUpgrades,
+                        StatType.Defense => character.DefenseUpgrades,
                         _ => 0
                     };
 
@@ -249,6 +257,7 @@ public class UpgradeService : IUpgradeService
                 StatType.Power => _config.Upgrades.Power.BaseCost,
                 StatType.Speed => _config.Upgrades.Speed.BaseCost,
                 StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
+                StatType.Defense => _config.Upgrades.Defense.BaseCost,
                 _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
             };
 
@@ -258,6 +267,7 @@ public class UpgradeService : IUpgradeService
                 StatType.Power => character.PowerUpgrades,
                 StatType.Speed => character.SpeedUpgrades,
                 StatType.CriticalChance => character.CriticalUpgrades,
+                StatType.Defense => character.DefenseUpgrades,
                 _ => 0
             };
 
@@ -285,6 +295,9 @@ public class UpgradeService : IUpgradeService
                 case StatType.CriticalChance:
                     character.UpgradeCriticalChance();
                     break;
+                case StatType.Defense:
+                    character.UpgradeDefense();
+                    break;
             }
 
             await _userManager.UpdateAsync(user);
@@ -297,6 +310,7 @@ public class UpgradeService : IUpgradeService
                 StatType.Power => character.PowerUpgrades,
                 StatType.Speed => character.SpeedUpgrades,
                 StatType.CriticalChance => character.CriticalUpgrades,
+                StatType.Defense => character.DefenseUpgrades,
                 _ => 0
             };
 

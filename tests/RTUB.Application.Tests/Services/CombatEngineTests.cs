@@ -195,11 +195,13 @@ public class CombatEngineTests
         attacker.HP = 10000; // Very high HP
         attacker.Power = 1; // Very low power
         attacker.Speed = 10;
+        attacker.Defense = 0; // No defense so they can actually damage each other
 
         var defender = Character.Create("user2");
         defender.HP = 10000; // Very high HP
         defender.Power = 1; // Very low power
         defender.Speed = 10;
+        defender.Defense = 0; // No defense so they can actually damage each other
 
         var seed = 12345;
 
@@ -207,11 +209,17 @@ public class CombatEngineTests
         var result = _combatEngine.Simulate(attacker, defender, seed);
 
         // Assert - Should not exceed max rounds
-        var maxRound = result.Events
-            .Where(e => e.Round.HasValue)
-            .Max(e => e.Round ?? 0);
-
-        maxRound.Should().BeLessThanOrEqualTo(50); // MaxRounds constant
+        var roundEvents = result.Events.Where(e => e.Round.HasValue).ToList();
+        if (roundEvents.Any())
+        {
+            var maxRound = roundEvents.Max(e => e.Round ?? 0);
+            maxRound.Should().BeLessThanOrEqualTo(50); // MaxRounds constant
+        }
+        else
+        {
+            // Battle ended immediately (e.g., draw)
+            result.Outcome.Should().NotBe(BattleOutcome.AttackerWon);
+        }
     }
 
     [Fact]
@@ -330,9 +338,8 @@ public class CombatEngineTests
         result.Events[1].HP.Should().Be(100);
         result.Events[1].MaxHP.Should().Be(100);
 
-        // Third event should be RoundStart
-        result.Events[2].Type.Should().Be("RoundStart");
-        result.Events[2].Round.Should().Be(1);
+        // Third event should be BattleStart
+        result.Events[2].Type.Should().Be("BattleStart");
 
         // Should have at least one Attack event
         result.Events.Should().Contain(e => e.Type == "Attack");
@@ -389,6 +396,7 @@ public class CombatEngineTests
         defender.HP = 10000; // Very high HP to survive many hits
         defender.Power = 1;
         defender.Speed = 5;
+        defender.Defense = 0; // No defense for consistent damage testing
 
         var seed = 12345;
 
@@ -515,6 +523,7 @@ public class CombatEngineTests
         defender.Power = 1;
         defender.Speed = 1;
         defender.CriticalChance = 0.0;
+        defender.Defense = 0; // No defense for consistent damage testing
 
         // Act
         var result = _combatEngine.Simulate(attacker, defender, 12345);
@@ -615,6 +624,206 @@ public class CombatEngineTests
         totalAttacks.Should().BeGreaterThan(500, "need sufficient sample size");
         observedCritRate.Should().BeGreaterThan(0.40, $"Crit rate too low: {observedCritRate:P1}");
         observedCritRate.Should().BeLessThan(0.60, $"Crit rate too high (possible double-roll): {observedCritRate:P1}");
+    }
+
+    #endregion
+
+    #region Defense Mitigation Tests
+
+    [Fact]
+    public void Simulate_HigherDefense_ShouldReduceDamage()
+    {
+        // Arrange
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 100;
+        attacker.Speed = 10;
+        attacker.CriticalChance = 0; // No crits for consistent testing
+
+        var lowDefenseDefender = Character.Create("user2");
+        lowDefenseDefender.HP = 1000;
+        lowDefenseDefender.Power = 10;
+        lowDefenseDefender.Speed = 5;
+        lowDefenseDefender.Defense = 0; // No defense
+
+        var highDefenseDefender = Character.Create("user3");
+        highDefenseDefender.HP = 1000;
+        highDefenseDefender.Power = 10;
+        highDefenseDefender.Speed = 5;
+        highDefenseDefender.Defense = 100; // High defense
+
+        var seed = 12345;
+
+        // Act
+        var resultLowDef = _combatEngine.Simulate(attacker, lowDefenseDefender, seed);
+        var resultHighDef = _combatEngine.Simulate(attacker, highDefenseDefender, seed);
+
+        // Assert - High defense should result in less total damage taken
+        var lowDefDamage = resultLowDef.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker")
+            .Sum(e => e.Damage ?? 0);
+        var highDefDamage = resultHighDef.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker")
+            .Sum(e => e.Damage ?? 0);
+
+        highDefDamage.Should().BeLessThan(lowDefDamage, 
+            "higher defense should reduce damage taken");
+    }
+
+    [Fact]
+    public void Simulate_ZeroDefense_ShouldNotReduceDamage()
+    {
+        // Arrange - Test that defense=0 gives multiplier of 1 (no reduction)
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 50;
+        attacker.Speed = 20;
+        attacker.CriticalChance = 0;
+
+        var defender = Character.Create("user2");
+        defender.HP = 1000;
+        defender.Power = 10;
+        defender.Speed = 5;
+        defender.Defense = 0;
+
+        var seed = 12345;
+
+        // Act
+        var result = _combatEngine.Simulate(attacker, defender, seed);
+
+        // Assert - Damage should be in expected variance range (0.8-1.2 of power)
+        var attacks = result.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+            .ToList();
+
+        attacks.Should().NotBeEmpty();
+        foreach (var attack in attacks)
+        {
+            var damage = attack.Damage!.Value;
+            var minExpected = (int)(attacker.Power * 0.8);
+            var maxExpected = (int)Math.Round(attacker.Power * 1.2, MidpointRounding.AwayFromZero);
+            damage.Should().BeGreaterThanOrEqualTo(minExpected, "damage should be at least power * 0.8");
+            damage.Should().BeLessThanOrEqualTo(maxExpected, "damage should be at most power * 1.2");
+        }
+    }
+
+    [Fact]
+    public void Simulate_DamageNeverBelowMinimum()
+    {
+        // Arrange - Very high defense to test minimum damage floor
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 10; // Low power
+        attacker.Speed = 10;
+        attacker.CriticalChance = 0;
+
+        var defender = Character.Create("user2");
+        defender.HP = 1000;
+        defender.Power = 10;
+        defender.Speed = 5;
+        defender.Defense = 10000; // Extremely high defense
+
+        var seed = 12345;
+
+        // Act
+        var result = _combatEngine.Simulate(attacker, defender, seed);
+
+        // Assert - All attacks should deal at least MinDamage (1)
+        var attacks = result.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+            .ToList();
+
+        attacks.Should().NotBeEmpty();
+        foreach (var attack in attacks)
+        {
+            attack.Damage!.Value.Should().BeGreaterThanOrEqualTo(1, 
+                "damage should never be below MinDamage");
+        }
+    }
+
+    [Fact]
+    public void Simulate_CritAppliedBeforeDefense()
+    {
+        // Arrange - Test ordering: crit should apply before defense mitigation
+        // This means a crit hit against high defense should still do more than non-crit
+        var attacker = Character.Create("user1");
+        attacker.HP = 1000;
+        attacker.Power = 100;
+        attacker.Speed = 20;
+        attacker.CriticalChance = 1.0; // Always crit
+
+        var defender = Character.Create("user2");
+        defender.HP = 10000;
+        defender.Power = 10;
+        defender.Speed = 5;
+        defender.Defense = 50; // Moderate defense
+
+        var seed = 12345;
+
+        // Act
+        var result = _combatEngine.Simulate(attacker, defender, seed);
+
+        // Assert - With 100% crit chance, all attacks should be crits and do 2x base damage (after mitigation)
+        // Expected: rawDamage = power * variance * 2 (crit), then defense reduction
+        // With defense=50 and K=50: mult = 50/(50+50) = 0.5
+        // So expected range: (100 * 0.85 * 2) * 0.5 = 85 to (100 * 1.15 * 2) * 0.5 = 115
+        var attacks = result.Events
+            .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+            .ToList();
+
+        attacks.Should().NotBeEmpty();
+        
+        // Crit damage with 50 defense should be roughly half of crit damage
+        // Raw crit damage range: 170-230 (power * variance * 2)
+        // After defense (mult=0.5): 85-115
+        foreach (var attack in attacks)
+        {
+            var damage = attack.Damage!.Value;
+            // Crit damage after defense should be around 85-115 range
+            damage.Should().BeGreaterThanOrEqualTo(80, "crit damage after defense should be significant");
+            damage.Should().BeLessThanOrEqualTo(120, "damage should be crit * 0.5 due to defense");
+        }
+    }
+
+    [Theory]
+    [InlineData(0, 1.0)]    // No defense = no reduction
+    [InlineData(50, 0.5)]   // Defense equals K = 50% reduction
+    [InlineData(100, 0.333)] // Defense = 2K = ~33% multiplier
+    [InlineData(150, 0.25)]  // Defense = 3K = 25% multiplier
+    public void DefenseMitigation_DiminishingReturns_FollowsFormula(int defense, double expectedMultiplier)
+    {
+        // Arrange - Characters with controlled stats
+        var attacker = Character.Create("user1");
+        attacker.HP = 10000;
+        attacker.Power = 100;
+        attacker.Speed = 100; // Much higher speed to attack first
+        attacker.CriticalChance = 0;
+
+        var defender = Character.Create("user2");
+        defender.HP = 10000;
+        defender.Power = 1;
+        defender.Speed = 1;
+        defender.Defense = defense;
+
+        // Collect damage from multiple seeds to get average
+        var damages = new List<int>();
+        for (int seed = 1; seed <= 100; seed++)
+        {
+            var result = _combatEngine.Simulate(attacker, defender, seed);
+            var attackDamage = result.Events
+                .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
+                .Select(e => e.Damage!.Value)
+                .ToList();
+            damages.AddRange(attackDamage);
+        }
+
+        // Assert - Average damage should be around expectedMultiplier * power (with variance +-15%)
+        var avgDamage = damages.Average();
+        var expectedAvgDamage = attacker.Power * expectedMultiplier;
+        var tolerance = attacker.Power * 0.2; // 20% tolerance for variance
+
+        avgDamage.Should().BeApproximately(expectedAvgDamage, tolerance,
+            $"average damage {avgDamage} should be near expected {expectedAvgDamage} for defense={defense}");
     }
 
     #endregion

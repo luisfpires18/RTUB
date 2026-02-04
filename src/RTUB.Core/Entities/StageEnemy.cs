@@ -42,6 +42,11 @@ public class StageEnemy : BaseEntity
     public int BaseSpeed { get; set; } = 5;
 
     /// <summary>
+    /// Base defense of the enemy
+    /// </summary>
+    public int BaseDefense { get; set; } = 3;
+
+    /// <summary>
     /// Base critical chance of the enemy
     /// </summary>
     public double BaseCriticalChance { get; set; } = 0.05;
@@ -80,6 +85,7 @@ public class StageEnemy : BaseEntity
         int baseHP,
         int basePower,
         int baseSpeed,
+        int baseDefense = 3,
         double baseCriticalChance = 0.05,
         decimal baseFidelisDrop = 1.0m,
         double beerDropChance = 0.1,
@@ -97,6 +103,7 @@ public class StageEnemy : BaseEntity
             BaseHP = baseHP,
             BasePower = basePower,
             BaseSpeed = baseSpeed,
+            BaseDefense = baseDefense,
             BaseCriticalChance = baseCriticalChance,
             BaseFidelisDrop = baseFidelisDrop,
             BeerDropChance = beerDropChance,
@@ -131,6 +138,15 @@ public class StageEnemy : BaseEntity
     {
         var scaleFactor = 1.0 + (stageNumber - 1) * 0.03; // Slower scaling for speed
         return (int)(BaseSpeed * scaleFactor);
+    }
+
+    /// <summary>
+    /// Calculates scaled defense based on stage number
+    /// </summary>
+    public int GetScaledDefense(int stageNumber)
+    {
+        var scaleFactor = 1.0 + (stageNumber - 1) * 0.04; // 4% per stage
+        return (int)(BaseDefense * scaleFactor);
     }
 
     /// <summary>
