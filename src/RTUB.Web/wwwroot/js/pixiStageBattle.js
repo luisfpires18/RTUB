@@ -608,6 +608,9 @@
                         const attacker = getEventField(evt, 'Attacker');
                         if (attacker === 'Attacker' || attacker === 'Player') {
                             this.playerSpeedBarTimer = this.playerActionTime * 1000;
+                        } else if (attacker === 'Defender') {
+                            // Single-enemy battle - reset enemy 0's speed bar
+                            this.enemySpeedBarTimers[0] = this.enemyActionTimes[0] * 1000;
                         } else if (attacker.startsWith('Enemy')) {
                             const enemyIndex = parseInt(attacker.replace('Enemy', ''));
                             if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemyCount) {
@@ -723,10 +726,18 @@
                     this.updateIndividualEnemyHPBar(enemyIndex);
                 }
             } else {
-                if (this.enemyMaxHp === 100 && hp > 100) {
-                    this.enemyMaxHp = hp;
+                // Handle "Defender" (single enemy battles) - use maxHP from event if available
+                if (maxHP) {
+                    this.enemyMaxHp = maxHP;
+                    // Also update the enemyHPs array for consistency
+                    if (this.enemyHPs[0]) {
+                        this.enemyHPs[0].max = maxHP;
+                    }
                 }
                 this.enemyCurrentHp = hp;
+                if (this.enemyHPs[0]) {
+                    this.enemyHPs[0].current = hp;
+                }
                 this.updateEnemyHPBar();
             }
         }
@@ -809,7 +820,7 @@
                     this.animateTo(enemy, { x: originalX - 60 }, 150, () => {
                         this.animateTo(enemy, { x: originalX }, 240);
                     });
-                }, index * 50);
+                }, (index * 50) / this.battleSpeed);
             });
         }
 
@@ -830,7 +841,7 @@
             this.playerSprite.tint = 0xff0000;
             setTimeout(() => {
                 this.playerSprite.tint = 0xffffff;
-            }, 100);
+            }, 100 / this.battleSpeed);
         }
 
         flashEnemy(enemyIndex) {
@@ -840,7 +851,7 @@
                     enemy.tint = 0xff0000;
                     setTimeout(() => {
                         enemy.tint = 0xffffff;
-                    }, 100);
+                    }, 100 / this.battleSpeed);
                 }
             }
         }
@@ -850,7 +861,7 @@
                 enemy.tint = 0xff0000;
                 setTimeout(() => {
                     enemy.tint = 0xffffff;
-                }, 100);
+                }, 100 / this.battleSpeed);
             });
         }
 
@@ -868,11 +879,19 @@
                     this.animateTo(enemy, { alpha: 0, y: enemy.y - 50 }, 500);
                     this.addLogEntry(`Enemy ${enemyIndex + 1} defeated!`);
                     
+                    // Hide HP bar
                     const hpBarData = this.enemyHpBars[enemyIndex];
                     if (hpBarData) {
                         this.animateTo(hpBarData.bar, { alpha: 0 }, 300);
                         this.animateTo(hpBarData.barBg, { alpha: 0 }, 300);
                         this.animateTo(hpBarData.text, { alpha: 0 }, 300);
+                    }
+                    
+                    // Hide Speed bar
+                    const speedBarData = this.enemySpeedBars[enemyIndex];
+                    if (speedBarData) {
+                        this.animateTo(speedBarData.bar, { alpha: 0 }, 300);
+                        this.animateTo(speedBarData.barBg, { alpha: 0 }, 300);
                     }
                 }
             } else {
@@ -885,7 +904,8 @@
 
         handleVictory(evt) {
             const winner = getEventField(evt, 'Winner');
-            const isPlayerWin = winner === 'Attacker';
+            // Check for both 'Attacker' (1v1 battles) and 'Player' (multi-enemy battles)
+            const isPlayerWin = winner === 'Attacker' || winner === 'Player';
             
             if (isPlayerWin) {
                 this.playSound('victory');
@@ -923,7 +943,7 @@
             this.animateTo(resultText, { scale: 1 }, 500);
 
             // Delay finishBattle to allow victory animation to show
-            setTimeout(() => this.finishBattle(), 2000);
+            setTimeout(() => this.finishBattle(), 800 / this.battleSpeed);
         }
 
         handleDraw() {
@@ -945,7 +965,7 @@
             this.stage.addChild(drawText);
 
             // Delay finishBattle to allow draw animation to show
-            setTimeout(() => this.finishBattle(), 2000);
+            setTimeout(() => this.finishBattle(), 800 / this.battleSpeed);
         }
 
         handleRoundStart(evt) {
@@ -1067,6 +1087,9 @@
         }
 
         animateTo(target, properties, duration, onComplete) {
+            // Adjust animation duration based on battle speed
+            const adjustedDuration = duration / this.battleSpeed;
+            
             const startProps = {};
             Object.keys(properties).forEach(key => {
                 if (key === 'scale') {
@@ -1081,7 +1104,7 @@
             const startTime = Date.now();
             const animate = () => {
                 const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+                const progress = Math.min(elapsed / adjustedDuration, 1);
                 
                 Object.keys(properties).forEach(key => {
                     const start = startProps[key];

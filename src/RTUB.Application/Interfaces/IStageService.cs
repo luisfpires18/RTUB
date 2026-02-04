@@ -67,6 +67,17 @@ public interface IStageService
     Task<StageProgress> ReturnToCheckpointAsync(string userId);
 
     /// <summary>
+    /// Cancels a stage run in progress.
+    /// Restores the character's HP to the specified value and resets stage progress.
+    /// Used when user exits mid-run without completing it.
+    /// </summary>
+    /// <param name="characterId">The character's ID</param>
+    /// <param name="restoreHp">The HP value to restore</param>
+    /// <param name="restoreStage">The stage number to restore to</param>
+    /// <returns>True if cancelled successfully</returns>
+    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage);
+
+    /// <summary>
     /// Gets the biome name for a given stage number
     /// </summary>
     /// <param name="stageNumber">The stage number</param>

@@ -313,12 +313,16 @@ public class Character : BaseEntity
 
     /// <summary>
     /// Heals the character and updates CurrentHP
+    /// Accounts for shot buff if active
     /// </summary>
     public void Heal(int amount)
     {
-        var currentHp = CurrentHP ?? TotalHP;
+        var maxHP = ShotBuffBattlesRemaining > 0 
+            ? CreateShotBuffedCopy(this).TotalHP 
+            : TotalHP;
+        var currentHp = CurrentHP ?? maxHP;
         currentHp += amount;
-        CurrentHP = Math.Min(TotalHP, currentHp);
+        CurrentHP = Math.Min(maxHP, currentHp);
     }
 
     /// <summary>

@@ -532,6 +532,16 @@
     {
         showBattleAnimation = false;
         
+        // Destroy the game (stops music and sounds)
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("myTunoGame.destroyBattle");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error destroying arena battle game");
+        }
+        
         // Apply rewards now that battle animation has finished
         if (currentBattle != null)
         {

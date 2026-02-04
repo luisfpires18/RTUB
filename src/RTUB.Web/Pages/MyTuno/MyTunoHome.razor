@@ -267,7 +267,7 @@
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
                                     }
                                 </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "text-primary")">@character.TotalSpeed</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "text-primary")">@($"{character.ActionTime:F1}s")</strong>
                             </div>
                             
                             <!-- Critical Stat Box -->
@@ -494,7 +494,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--hp">
                                 <div class="card-header upgrade-card__header">
-                                    <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP</h5>
+                                    <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP <span class="badge bg-secondary">@(character.HpUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
@@ -557,7 +557,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--power">
                                 <div class="card-header upgrade-card__header bg-success text-white">
-                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power</h5>
+                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power <span class="badge bg-dark">@(character.PowerUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
@@ -620,7 +620,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--speed">
                                 <div class="card-header upgrade-card__header">
-                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed</h5>
+                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed <span class="badge bg-secondary">@(character.SpeedUpgrades)/40</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
@@ -687,7 +687,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--critical">
                                 <div class="card-header upgrade-card__header bg-warning text-dark">
-                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Crítico</h5>
+                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Crítico <span class="badge bg-secondary">@(character.CriticalUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
@@ -750,7 +750,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--defense">
                                 <div class="card-header upgrade-card__header bg-secondary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-shield-fill me-2"></i>Defense</h5>
+                                    <h5 class="mb-0"><i class="bi bi-shield-fill me-2"></i>Defense <span class="badge bg-dark">@(character.DefenseUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">

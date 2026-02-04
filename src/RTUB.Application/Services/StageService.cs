@@ -277,6 +277,53 @@ public class StageService : IStageService
     }
 
     /// <summary>
+    /// Cancels a stage run in progress.
+    /// Restores the character's HP to the specified value and resets stage progress.
+    /// Used when user exits mid-run without completing it.
+    /// </summary>
+    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage)
+    {
+        try
+        {
+            var character = await _characterRepository.GetByIdAsync(characterId);
+            if (character == null)
+            {
+                _logger.LogWarning("CancelRunAsync: Character {CharacterId} not found", characterId);
+                return false;
+            }
+
+            var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+            if (stageProgress == null)
+            {
+                _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found", character.UserId);
+                return false;
+            }
+
+            // Restore character HP
+            character.CurrentHP = restoreHp;
+            await _characterRepository.UpdateAsync(character);
+
+            // Reset stage progress to the restore point
+            if (stageProgress.CurrentStage != restoreStage)
+            {
+                stageProgress.CurrentStage = restoreStage;
+                stageProgress.EnemiesDefeatedInCurrentStage = 0;
+                await _stageProgressRepository.UpdateAsync(stageProgress);
+            }
+
+            _logger.LogInformation("CancelRunAsync: Restored character {CharacterId} HP to {HP} and stage to {Stage}",
+                characterId, restoreHp, restoreStage);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling run for character {CharacterId}", characterId);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Creates a temporary enemy character for combat simulation
     /// Uses biome service for stat scaling
     /// </summary>

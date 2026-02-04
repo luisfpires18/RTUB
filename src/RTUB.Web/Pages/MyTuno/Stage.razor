@@ -264,6 +264,11 @@
     private int totalShotsDropped = 0;
     private int stagesCleared = 0;
 
+    // Run state tracking for cancel/exit functionality
+    private int? runStartingHp;
+    private int? runStartingStage;
+    private bool runInProgress = false;
+
     // Current battle enemy stats
     private List<EnemyStatsInfo> currentEnemyStats = new();
 
@@ -388,6 +393,14 @@
             var wasAlreadyAnimating = showBattleAnimation;
             showBattleAnimation = true;
             errorMessage = string.Empty;
+            
+            // Store run starting state for cancel functionality (only on first battle of run)
+            if (!runInProgress)
+            {
+                runStartingHp = character.CurrentHP;
+                runStartingStage = stageProgress.CurrentStage;
+                runInProgress = true;
+            }
             
             // Only update UI if we weren't already animating (first battle)
             if (!wasAlreadyAnimating)
@@ -597,12 +610,27 @@
             
             // Brief delay then start next stage automatically
             // Keep showBattleAnimation = true to avoid hiding the container
-            await Task.Delay(500);
+            await Task.Delay(300);
             currentBattle = null;
             await FightStageEnemy();
         }
         else
         {
+            // Run ended (defeat) - mark run as complete so we don't cancel on dispose
+            runInProgress = false;
+            runStartingHp = null;
+            runStartingStage = null;
+            
+            // On defeat, destroy the game entirely (stops music and sounds)
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error destroying stage battle game on defeat");
+            }
+            
             // Only hide battle animation on defeat
             showBattleAnimation = false;
             currentEnemyStats.Clear();
@@ -636,9 +664,34 @@
         }
     }
 
-    private void GoBack()
+    private async Task GoBack()
     {
+        // If a run is in progress, cancel it and restore the starting state
+        await CancelRunIfInProgressAsync();
         Navigation.NavigateTo("/my-tuno");
+    }
+
+    private async Task CancelRunIfInProgressAsync()
+    {
+        if (runInProgress && character != null && runStartingHp.HasValue && runStartingStage.HasValue)
+        {
+            try
+            {
+                await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value);
+                Logger.LogInformation("Run cancelled - restored HP to {HP} and stage to {Stage}", 
+                    runStartingHp.Value, runStartingStage.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error cancelling run");
+            }
+            finally
+            {
+                runInProgress = false;
+                runStartingHp = null;
+                runStartingStage = null;
+            }
+        }
     }
 
     private void ResetRunTotals()
@@ -680,6 +733,21 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel any run in progress (restore HP and stage)
+        if (runInProgress && character != null && runStartingHp.HasValue && runStartingStage.HasValue)
+        {
+            try
+            {
+                await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value);
+                Logger.LogInformation("Run cancelled on dispose - restored HP to {HP} and stage to {Stage}", 
+                    runStartingHp.Value, runStartingStage.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error cancelling run on dispose");
+            }
+        }
+        
         if (hasRendered)
         {
             try

@@ -683,7 +683,7 @@
 
             const defenderTintColor = isCritical ? 0xff0000 : 0xff5555;
             defender.sprite.tint = defenderTintColor;
-            setTimeout(() => defender.sprite.tint = 0xffffff, 200);
+            setTimeout(() => defender.sprite.tint = 0xffffff, 200 / this.battleSpeed);
 
             this.playSound('hit');
 
@@ -797,7 +797,7 @@
                     this.animateTo(koText, { alpha: 0 }, 200, () => {
                         this.stage.removeChild(koText);
                     });
-                }, 400);
+                }, 400 / this.battleSpeed);
             });
         }
 
@@ -851,7 +851,7 @@
                 }, 800, () => {
                     this.stage.removeChild(victoryText);
                 });
-            }, 1200);
+            }, 1200 / this.battleSpeed);
         }
 
         finishBattle() {
@@ -962,7 +962,7 @@
                     if (type === 'Victory' || type === 'Draw') {
                         this.isPlaying = false; // Stop processing more events
                         // Delay finishBattle to allow victory animation to show
-                        setTimeout(() => this.finishBattle(), 2000);
+                        setTimeout(() => this.finishBattle(), 2000 / this.battleSpeed);
                         break;
                     }
                 }

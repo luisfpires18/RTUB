@@ -48,21 +48,26 @@ public class InventoryService : IInventoryService
             return (false, 0, "Personagem não encontrado");
         }
 
+        // Calculate max HP (accounting for shot buff if active)
+        var maxHp = character.ShotBuffBattlesRemaining > 0
+            ? Character.CreateShotBuffedCopy(character).TotalHP
+            : character.TotalHP;
+
         // Check if character is dead
-        var currentHp = character.CurrentHP ?? character.TotalHP;
+        var currentHp = character.CurrentHP ?? maxHp;
         if (currentHp <= 0)
         {
             return (false, 0, "Não podes usar cerveja num personagem morto");
         }
 
         // Check if character needs healing
-        if (currentHp >= character.TotalHP)
+        if (currentHp >= maxHp)
         {
             return (false, 0, "O personagem já está com HP máximo");
         }
 
-        // Calculate heal amount (25% of TotalHP, rounded)
-        var healAmount = (int)Math.Round(character.TotalHP * BeerHealPercentage);
+        // Calculate heal amount (25% of maxHP, rounded)
+        var healAmount = (int)Math.Round(maxHp * BeerHealPercentage);
 
         // Heal the character
         character.Heal(healAmount);
