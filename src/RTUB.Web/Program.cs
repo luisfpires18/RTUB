@@ -144,8 +144,7 @@ public class Program
                 myTunoScaling.Upgrades.Defense.BonusPerUpgrade,
                 myTunoScaling.DefenseK,
                 myTunoScaling.MinDamage,
-                beerDropChance: myTunoScaling.BeerDropChance,
-                levelCosts: myTunoScaling.LevelCosts);
+                beerDropChance: myTunoScaling.BeerDropChance);
         }
 
         // ---------- DB: SQLite only ----------

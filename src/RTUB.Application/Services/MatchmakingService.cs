@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
@@ -15,11 +17,14 @@ namespace RTUB.Application.Services;
 public class MatchmakingService : IMatchmakingService
 {
     private readonly ApplicationDbContext _context;
-    private readonly TimeSpan _cooldownPeriod = TimeSpan.FromHours(1); // Can't fight same opponent within 1 hour
+    private readonly MyTunoScalingConfiguration _config;
+    private readonly TimeSpan _cooldownPeriod;
 
-    public MatchmakingService(ApplicationDbContext context)
+    public MatchmakingService(ApplicationDbContext context, IOptions<MyTunoScalingConfiguration> config)
     {
         _context = context;
+        _config = config.Value;
+        _cooldownPeriod = TimeSpan.FromMinutes(_config.Matchmaking.CooldownMinutes);
     }
 
     /// <summary>
@@ -33,9 +38,10 @@ public class MatchmakingService : IMatchmakingService
         // Calculate player's power rating
         var playerPowerRating = CalculatePowerRating(playerCharacter);
 
-        // Define power range (±30% of player's rating)
-        var minPowerRating = (int)(playerPowerRating * 0.7);
-        var maxPowerRating = (int)(playerPowerRating * 1.3);
+        // Define power range from config
+        var matchConfig = _config.Matchmaking;
+        var minPowerRating = (int)(playerPowerRating * matchConfig.InitialPowerRangeMin);
+        var maxPowerRating = (int)(playerPowerRating * matchConfig.InitialPowerRangeMax);
 
         // Get all characters from members only (exclude Leitao, include Caloiro, Tuno, Veterano, Tunossauro)
         // Query users who are effective members first, then get their characters
@@ -84,9 +90,9 @@ public class MatchmakingService : IMatchmakingService
 
         if (!candidates.Any())
         {
-            // If no candidates in range, expand search (±50%)
-            minPowerRating = (int)(playerPowerRating * 0.5);
-            maxPowerRating = (int)(playerPowerRating * 1.5);
+            // If no candidates in range, expand search from config
+            minPowerRating = (int)(playerPowerRating * matchConfig.ExpandedPowerRangeMin);
+            maxPowerRating = (int)(playerPowerRating * matchConfig.ExpandedPowerRangeMax);
             candidates = memberCharacters
                 .Where(c =>
                 {
@@ -136,14 +142,14 @@ public class MatchmakingService : IMatchmakingService
 
     /// <summary>
     /// Calculates a power rating based on HP, Power, and Speed
-    /// Formula: (HP * 0.5) + (Power * 2) + (Speed * 1.5)
-    /// This gives a balanced rating where Power and Speed are weighted more than HP
+    /// Weights are driven by config (MatchmakingConfig.PowerRatingWeights)
     /// </summary>
-    private static int CalculatePowerRating(Character character)
+    private int CalculatePowerRating(Character character)
     {
-        var hpWeight = 0.5;
-        var powerWeight = 2.0;
-        var speedWeight = 1.5;
+        var weights = _config.Matchmaking.PowerRatingWeights;
+        var hpWeight = weights.Hp;
+        var powerWeight = weights.Power;
+        var speedWeight = weights.Speed;
 
         var rating = (character.TotalHP * hpWeight) +
                     (character.TotalPower * powerWeight) +

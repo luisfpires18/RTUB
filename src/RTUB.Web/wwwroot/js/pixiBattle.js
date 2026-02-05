@@ -381,6 +381,7 @@
 
         startIdleAnimation(sprite) {
             sprite.idleAnimationData = {
+                originalX: sprite.x,
                 originalY: sprite.y,
                 originalScale: sprite.scale.x,
                 breathTime: 0,
@@ -895,6 +896,7 @@
 
         setReplaySpeed(speed) {
             this.playbackSpeed = speed || 1;
+            this.battleSpeed = speed || 1;
         }
 
         jumpToEvent(index) {
@@ -916,6 +918,9 @@
                     
                     const breathOffset = Math.sin(data.breathTime * Math.PI / 1.8) * 8;
                     char.sprite.y = data.originalY + breathOffset;
+
+                    const swayOffset = Math.sin(data.breathTime * 0.8) * 3;
+                    char.sprite.x = data.originalX + swayOffset;
                     
                     const scaleOffset = Math.sin(data.scaleTime * Math.PI / 2) * 0.02;
                     const newScale = data.originalScale * (1 + scaleOffset);
@@ -986,6 +991,9 @@
         }
 
         animateTo(target, properties, duration, onComplete) {
+            // Adjust animation duration based on battle speed
+            const adjustedDuration = duration / this.battleSpeed;
+
             const startProps = {};
             Object.keys(properties).forEach(key => {
                 startProps[key] = target[key] ?? (key === 'alpha' ? 1 : 0);
@@ -994,7 +1002,7 @@
             const startTime = Date.now();
             const animate = () => {
                 const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+                const progress = Math.min(elapsed / adjustedDuration, 1);
                 
                 Object.keys(properties).forEach(key => {
                     const start = startProps[key];
@@ -1106,11 +1114,10 @@
         jumpToReplayEvent: (index) => {
             activeScene?.jumpToEvent(index);
         },
-        setSpeed: (newInterval) => {
+        setSpeed: (speed) => {
             if (activeScene) {
-                // Convert interval to speed multiplier (800ms = 1x, 400ms = 2x)
-                activeScene.battleSpeed = 800 / newInterval;
-                activeScene.eventInterval = newInterval;
+                activeScene.playbackSpeed = speed;
+                activeScene.battleSpeed = speed;
             }
         },
         toggleAudio: () => {

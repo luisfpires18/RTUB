@@ -30,7 +30,7 @@
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex justify-content-between align-items-center gap-3">
             <!-- Left: Back button -->
-            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Back">
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
                 <i class="bi bi-arrow-left"></i>
             </button>
             
@@ -71,11 +71,11 @@
                         <i class="bi bi-sword me-2"></i>
                         @if (currentBattle != null)
                         {
-                            <text>Stage @currentBattle.StageNumber Battle</text>
+                            <text>Stage @currentBattle.StageNumber</text>
                         }
                         else
                         {
-                            <text>Loading Battle...</text>
+                            <text>A carregar batalha...</text>
                         }
                     </h5>
                     <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
@@ -91,7 +91,7 @@
                                 @onclick="() => SetBattleSpeed(3.0)">
                             3x
                         </button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
                     </div>
@@ -106,7 +106,7 @@
             {
                 <div class="card mb-4 rewards-card">
                     <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Run Progress:</h6>
+                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <span class="badge bg-success">
                                 <i class="bi bi-check-circle me-1"></i>@stagesCleared Stages
@@ -120,7 +120,7 @@
                             @if (totalBeersDropped > 0)
                             {
                                 <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@totalBeersDropped Beer
+                                    <i class="bi bi-cup-straw me-1"></i>+@totalBeersDropped Cerveja
                                 </span>
                             }
                             @if (totalShotsDropped > 0)
@@ -139,7 +139,7 @@
             {
                 <div class="card mb-4 enemy-stats-card">
                     <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Enemy Stats:</h6>
+                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Stats do Inimigo:</h6>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             @{
                                 var totalEnemyHP = currentEnemyStats.Sum(e => e.HP);
@@ -151,13 +151,13 @@
                                 <i class="bi bi-heart-fill me-1"></i>@totalEnemyHP HP
                             </span>
                             <span class="badge bg-warning text-dark">
-                                <i class="bi bi-lightning-fill me-1"></i>@avgEnemyPower Power
+                                <i class="bi bi-lightning-fill me-1"></i>@avgEnemyPower Poder
                             </span>
                             <span class="badge bg-info text-dark">
-                                <i class="bi bi-shield-fill me-1"></i>@avgEnemyDefense Defense
+                                <i class="bi bi-shield-fill me-1"></i>@avgEnemyDefense Defesa
                             </span>
                             <span class="badge bg-secondary">
-                                <i class="bi bi-speedometer2 me-1"></i>@avgEnemySpeed Speed
+                                <i class="bi bi-speedometer2 me-1"></i>@avgEnemySpeed Velocidade
                             </span>
                         </div>
                     </div>
@@ -172,18 +172,18 @@
                 <div class="card-body battle-result-body">
                     <div class="battle-result-title">
                         <i class="bi bi-x-circle text-danger"></i>
-                        <h5 class="mb-0">Defeat at Stage @currentBattle.StageNumber</h5>
+                        <h5 class="mb-0">Derrota no Stage @currentBattle.StageNumber</h5>
                     </div>
 
                     <!-- Run Summary - Show total loot earned before defeat -->
                     @if (stagesCleared > 0)
                     {
                         <div class="loot-section mt-3">
-                            <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Run Summary:</h6>
+                            <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Resumo:</h6>
                             <div class="battle-result-rewards">
                                 <div class="reward-item">
                                     <i class="bi bi-check-circle text-success"></i>
-                                    <span>@stagesCleared Stages Cleared</span>
+                                    <span>@stagesCleared Stages Completados</span>
                                 </div>
                                 <div class="reward-item">
                                     <i class="bi bi-star-fill text-warning"></i>
@@ -197,7 +197,7 @@
                                 {
                                     <div class="reward-item">
                                         <i class="bi bi-cup-straw text-warning"></i>
-                                        <span>+@totalBeersDropped Beer</span>
+                                        <span>+@totalBeersDropped Cerveja</span>
                                     </div>
                                 }
                                 @if (totalShotsDropped > 0)
@@ -215,7 +215,7 @@
                     <div class="mt-4">
                         <div class="alert alert-danger">
                             <i class="bi bi-x-circle-fill me-2"></i>
-                            Your character was defeated at Stage @currentBattle.StageNumber!
+                            O teu personagem foi derrotado no Stage @currentBattle.StageNumber!
                         </div>
                         
                         <div class="d-flex gap-3 justify-content-center flex-wrap">
@@ -224,10 +224,10 @@
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
                                 }
-                                <i class="bi bi-arrow-counterclockwise me-2"></i>Return to Checkpoint (Stage @checkpointStage)
+                                <i class="bi bi-arrow-counterclockwise me-2"></i>Voltar ao Checkpoint (Stage @checkpointStage)
                             </button>
                             <button class="btn btn-outline-secondary" @onclick="GoBack">
-                                <i class="bi bi-house me-2"></i>Return to My Tuno
+                                <i class="bi bi-house me-2"></i>Voltar ao My Tuno
                             </button>
                         </div>
                     </div>

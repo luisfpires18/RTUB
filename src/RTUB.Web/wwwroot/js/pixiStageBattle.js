@@ -406,6 +406,15 @@
                 barBg: playerSpeedBarBg,
                 maxWidth: barWidth
             };
+
+            // Store base position for idle bobbing animation
+            this.playerIdleOffset = {
+                baseX: playerX,
+                baseY: playerY,
+                phase: Math.PI, // Offset phase from enemies
+                bobAmplitude: 3,
+                swayAmplitude: 2
+            };
         }
 
         createEnemies(width, height) {
@@ -810,10 +819,19 @@
         }
 
         updateIdleAnimation(deltaMs) {
+            this.idleAnimationTime += deltaMs * 0.002; // Slow animation speed
+
+            // Animate player with gentle bobbing
+            if (this.playerSprite && !this.playerSprite.destroyed && this.playerIdleOffset && this.playerCurrentHp > 0) {
+                const po = this.playerIdleOffset;
+                const bobY = Math.sin(this.idleAnimationTime * 1.5 + po.phase) * po.bobAmplitude;
+                const swayX = Math.sin(this.idleAnimationTime * 0.8 + po.phase * 1.3) * po.swayAmplitude;
+                this.playerSprite.y = po.baseY + bobY;
+                this.playerSprite.x = po.baseX + swayX;
+            }
+
             // Animate enemies with a gentle floating/bobbing motion
             if (!this.enemySprites || this.enemySprites.length === 0) return;
-            
-            this.idleAnimationTime += deltaMs * 0.002; // Slow animation speed
             
             for (let i = 0; i < this.enemySprites.length; i++) {
                 const enemy = this.enemySprites[i];
@@ -1421,6 +1439,8 @@
             this.enemySpeedBars = [];
             this.enemySpeedBarTimers = [];
             this.enemyActionTimes = [];
+            this.playerSprite = null;
+            this.playerIdleOffset = null;
             
             // Load new enemy textures
             await this.loadAssets();

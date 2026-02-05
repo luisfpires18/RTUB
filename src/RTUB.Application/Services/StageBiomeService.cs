@@ -166,15 +166,11 @@ public class StageBiomeService : IStageBiomeService
         var biomeName = GetBiomeForStage(stageNumber);
         var region = GetRegionForBiome(biomeName);
         
-        _logger.LogInformation("GetRandomEnemySpritesWithPlacementAsync - Stage: {Stage}, Count: {Count}, Region: {Region}", 
-            stageNumber, count, region);
-        
         // Get random enemies from database with their placement info
         var enemies = await _stageEnemyRepository.GetRandomEnemiesAsync(EnemyType.Normal, region, count);
         
         if (enemies.Count == 0)
         {
-            _logger.LogWarning("No enemies in database for region {Region}, using file-based sprites as terrestrial", region);
             var sprites = await GetRandomEnemySpritesAsync(stageNumber, count);
             return sprites.Select(s => (s, 0)).ToList(); // All terrestrial by default
         }
@@ -183,9 +179,6 @@ public class StageBiomeService : IStageBiomeService
             SpritePath: e.SpritePath ?? GetDefaultSpriteForBiome(biomeName),
             Placement: (int)e.Placement
         )).ToList();
-        
-        _logger.LogInformation("GetRandomEnemySpritesWithPlacementAsync - Returning enemies: {Enemies}", 
-            string.Join(", ", result.Select(r => $"{r.SpritePath}(P:{r.Placement})")));
         
         return result;
     }
@@ -224,13 +217,9 @@ public class StageBiomeService : IStageBiomeService
         
         if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
         {
-            _logger.LogInformation("Stage {StageNumber}: Found boss '{BossName}' with sprite: {Sprite}", 
-                stageNumber, boss.Name, boss.SpritePath);
             return boss.SpritePath;
         }
 
-        _logger.LogWarning("No boss found in database for stage {StageNumber}, using fallback", stageNumber);
-        
         // Fallback: use file system based approach
         var biomeName = GetBiomeForStage(stageNumber);
         var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b => b.Name == biomeName);
@@ -327,9 +316,6 @@ public class StageBiomeService : IStageBiomeService
         }
 
         var sprites = await LoadSpritesFromFolderAsync(biomeConfig.EnemySpritePath, biomeConfig.BossSpritePrefix, excludeBoss: false);
-        
-        _logger.LogInformation("Loaded {Count} boss sprites for biome {BiomeName}: {Sprites}", 
-            sprites.Count, biomeConfig.Name, string.Join(", ", sprites));
         
         lock (_cacheLock)
         {

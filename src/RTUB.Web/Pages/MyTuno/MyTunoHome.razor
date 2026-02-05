@@ -12,7 +12,6 @@
 @using RTUB.Shared.Components.UI
 @using RTUB.Application.Configuration
 @using Microsoft.Extensions.Options
-@using Microsoft.Extensions.Configuration
 @attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
@@ -23,7 +22,6 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject ILogger<MyTunoHome> Logger
-@inject IConfiguration Configuration
 @inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
 
 <PageTitle>My Tuno - RTUB</PageTitle>
@@ -59,11 +57,11 @@
         var displayMaxHpForCheck = GetDisplayMaxHP(character);
         var isFullHp = character != null && (character.CurrentHP ?? character.TotalHP) >= displayMaxHpForCheck;
         <div class="row g-4">
-            <!-- Inventory -->
-            <div class="col-lg-4">
+            <!-- Inventário -->
+            <div class="col-lg-4 order-lg-3">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventory</h5>
+                        <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventário</h5>
                     </div>
                     <div class="card-body">
                         @if (currentUser != null)
@@ -126,7 +124,7 @@
             </div>
 
             <!-- Character Summary Card -->
-            <div class="col-lg-4">
+            <div class="col-lg-4 order-lg-2">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
@@ -248,7 +246,7 @@
                             <div class="p-2 border @(hasEnhancement ? "border-info" : "border-success") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
                                     <i class="bi bi-lightning-fill @(hasEnhancement ? "text-info" : "text-success") me-2"></i>
-                                    <span>Power</span>
+                                    <span>Poder</span>
                                     @if (hasEnhancement)
                                     {
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
@@ -261,7 +259,7 @@
                             <div class="p-2 border @(hasEnhancement ? "border-info" : "border-primary") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
                                     <i class="bi bi-speedometer2 @(hasEnhancement ? "text-info" : "text-primary") me-2"></i>
-                                    <span>Speed</span>
+                                    <span>Velocidade</span>
                                     @if (hasEnhancement)
                                     {
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
@@ -287,7 +285,7 @@
                             <div class="p-2 border @(hasEnhancement ? "border-info" : "border-secondary") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                 <span class="d-flex align-items-center">
                                     <i class="bi bi-shield-fill @(hasEnhancement ? "text-info" : "") me-2" style="color: @(hasEnhancement ? "" : "white")"></i>
-                                    <span>Defense</span>
+                                    <span>Defesa</span>
                                     @if (hasEnhancement)
                                     {
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
@@ -305,7 +303,7 @@
                                 <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                     <span class="d-flex align-items-center">
                                         <i class="bi bi-droplet-fill text-info me-2"></i>
-                                        <span>Shot (+20% stats)</span>
+                                        <span>Shot (+20% estatísticas)</span>
                                     </span>
                                     <span class="badge bg-info">@character.ShotBuffBattlesRemaining batalhas</span>
                                 </div>
@@ -359,19 +357,19 @@
             </div>
 
             <!-- Leaderboard -->
-            <div class="col-lg-4">
+            <div class="col-lg-4 order-lg-1">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Leaderboard</h5>
+                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Classificação</h5>
                     </div>
                     <div class="card-body">
                         @if (leaderboardLoading)
                         {
-                            <LoadingSpinner Message="A carregar leaderboard..." />
+                            <LoadingSpinner Message="A carregar classificação..." />
                         }
                         else if (leaderboardEntries == null || !leaderboardEntries.Any())
                         {
-                            <EmptyState Title="Leaderboard vazio"
+                            <EmptyState Title="Classificação vazia"
                                         Message="Ainda não há jogadores com vitórias."
                                         Icon="bi-trophy" />
                         }
@@ -379,6 +377,11 @@
                         {
                             <!-- Leaderboard Type Tabs -->
                             <ul class="nav nav-pills nav-fill mb-3">
+                                <li class="nav-item">
+                                    <button class="nav-link @(leaderboardTab == "level" ? "active" : "")" @onclick='() => leaderboardTab = "level"'>
+                                        <i class="bi bi-star-fill me-1"></i>Nível
+                                    </button>
+                                </li>
                                 <li class="nav-item">
                                     <button class="nav-link @(leaderboardTab == "arena" ? "active" : "")" @onclick='() => leaderboardTab = "arena"'>
                                         <i class="bi bi-shield-fill me-1"></i>Arena
@@ -393,9 +396,11 @@
                             
                             <div class="stats-card-grid">
                                 @{
-                                    var sortedLeaderboard = leaderboardTab == "arena"
-                                        ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
-                                        : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
+                                    var sortedLeaderboard = leaderboardTab == "level"
+                                        ? leaderboardEntries.OrderByDescending(e => e.Level).ToList()
+                                        : leaderboardTab == "arena"
+                                            ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
+                                            : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
                                     var paginatedItems = sortedLeaderboard.Skip((leaderboardCurrentPage - 1) * leaderboardPageSize).Take(leaderboardPageSize).ToList();
                                 }
                                 @for (int i = 0; i < paginatedItems.Count; i++)
@@ -403,41 +408,41 @@
                                     var entry = paginatedItems[i];
                                     var position = ((leaderboardCurrentPage - 1) * leaderboardPageSize) + i + 1;
                                     <div class="stats-card">
-                                        <div class="stats-card-position">
-                                            @if (position == 1)
-                                            {
-                                                <span class="stats-medal gold">🥇</span>
-                                            }
-                                            else if (position == 2)
-                                            {
-                                                <span class="stats-medal silver">🥈</span>
-                                            }
-                                            else if (position == 3)
-                                            {
-                                                <span class="stats-medal bronze">🥉</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="stats-position">@position</span>
-                                            }
-                                        </div>
+                                        @if (leaderboardTab != "level")
+                                        {
+                                            <div class="stats-card-position">
+                                                @if (position == 1)
+                                                {
+                                                    <span class="stats-medal gold">🥇</span>
+                                                }
+                                                else if (position == 2)
+                                                {
+                                                    <span class="stats-medal silver">🥈</span>
+                                                }
+                                                else if (position == 3)
+                                                {
+                                                    <span class="stats-medal bronze">🥉</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="stats-position">@position</span>
+                                                }
+                                            </div>
+                                        }
                                         <img src="@(entry.AvatarUrl ?? "/images/default-avatar.webp")"
                                              alt="@entry.DisplayName"
                                              class="stats-avatar"
                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                         <div class="stats-card-content">
                                             <div class="stats-card-title">@entry.DisplayName</div>
-                                            @if (leaderboardTab == "arena")
-                                            {
-                                                <div class="stats-card-subtitle">Nível @entry.Level</div>
-                                            }
-                                            else
-                                            {
-                                                <div class="stats-card-subtitle">Nível @entry.Level</div>
-                                            }
+
                                         </div>
                                         <div class="stats-card-count">
-                                            @if (leaderboardTab == "arena")
+                                            @if (leaderboardTab == "level")
+                                            {
+                                                <span>@entry.Level</span>
+                                            }
+                                            else if (leaderboardTab == "arena")
                                             {
                                                 <i class="bi bi-trophy"></i>
                                                 <span>@entry.Wins</span>
@@ -557,12 +562,12 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--power">
                                 <div class="card-header upgrade-card__header bg-success text-white">
-                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Power <span class="badge bg-dark">@(character.PowerUpgrades)/50</span></h5>
+                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Poder <span class="badge bg-dark">@(character.PowerUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Power Atual:</span>
+                                            <span class="text-muted">Poder Atual:</span>
                                             <strong class="fs-5">@character.TotalPower</strong>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
@@ -571,7 +576,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+2 Power</strong>
+                                            <strong class="text-success">+2 Poder</strong>
                                         </div>
                                     </div>
                                     <hr />
@@ -620,7 +625,7 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--speed">
                                 <div class="card-header upgrade-card__header">
-                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Speed <span class="badge bg-secondary">@(character.SpeedUpgrades)/40</span></h5>
+                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Velocidade <span class="badge bg-secondary">@(character.SpeedUpgrades)/40</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
@@ -750,12 +755,12 @@
                         <div class="col-md-6 col-xl-3">
                             <div class="card h-100 upgrade-card upgrade-card--defense">
                                 <div class="card-header upgrade-card__header bg-secondary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-shield-fill me-2"></i>Defense <span class="badge bg-dark">@(character.DefenseUpgrades)/50</span></h5>
+                                    <h5 class="mb-0"><i class="bi bi-shield-fill me-2"></i>Defesa <span class="badge bg-dark">@(character.DefenseUpgrades)/50</span></h5>
                                 </div>
                                 <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
                                     <div class="upgrade-card__stats mb-3">
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Defense Atual:</span>
+                                            <span class="text-muted">Defesa Atual:</span>
                                             <strong class="fs-5">@character.TotalDefense</strong>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
@@ -764,7 +769,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
                                             <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+2 Defense</strong>
+                                            <strong class="text-success">+2 Defesa</strong>
                                         </div>
                                     </div>
                                     <hr />
@@ -864,11 +869,11 @@
                     <div class="text-center mb-4">
                         <h5 class="mb-2">
                             <i class="bi bi-trophy text-warning me-2"></i>
-                            Highest Reached: <span class="text-success">Stage @stageProgress.HighestStage</span>
+                            Maior Stage Alcançado: <span class="text-success">Stage @stageProgress.HighestStage</span>
                         </h5>
                     </div>
                     
-                    <p class="text-muted text-center mb-3">Select a checkpoint to start from:</p>
+                    <p class="text-muted text-center mb-3">Seleciona um checkpoint para começar:</p>
                     
                     <div class="stage-boxes-container d-flex flex-wrap justify-content-center gap-2">
                         @foreach (var checkpoint in GetAvailableCheckpoints(stageProgress.HighestStage))
@@ -883,13 +888,13 @@
                 else
                 {
                     <div class="text-center">
-                        <LoadingSpinner Message="Loading stage progress..." />
+                        <LoadingSpinner Message="A carregar progresso..." />
                     </div>
                 }
             </BodyContent>
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="CloseStageModal">
-                    <i class="bi bi-x-lg me-2"></i>Close
+                    <i class="bi bi-x-lg me-2"></i>Fechar
                 </button>
             </FooterContent>
         </Modal>
@@ -921,8 +926,8 @@
 </div>
 
 @code {
-    // Configuration defaults - MUST match values in appsettings.json MyTuno section
-    // These are fallbacks in case configuration fails to load
+    // Configuration defaults - fallbacks in case configuration fails to load
+    // Authoritative values are in scaling.config.json
     private const string DefaultVersion = "1.0.0";
     private const string DefaultDescription = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
     private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
@@ -967,7 +972,7 @@
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
     private int leaderboardPageSize = 6;
-    private string leaderboardTab = "arena"; // "arena" or "stage"
+    private string leaderboardTab = "level"; // "level", "arena" or "stage"
     private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
         .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
         .Take(leaderboardPageSize)
@@ -1001,10 +1006,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load configuration values with fallback to constants
-        myTunoVersion = Configuration["MyTuno:Version"] ?? DefaultVersion;
-        myTunoDescription = Configuration["MyTuno:Description"] ?? DefaultDescription;
-        myTunoNextFeatures = Configuration["MyTuno:NextFeatures"] ?? DefaultNextFeatures;
+        // Load configuration values from scaling config with fallback to constants
+        var scalingConfig = MyTunoConfig.Value;
+        myTunoVersion = !string.IsNullOrEmpty(scalingConfig.Version) ? scalingConfig.Version : DefaultVersion;
+        myTunoDescription = !string.IsNullOrEmpty(scalingConfig.Description) ? scalingConfig.Description : DefaultDescription;
+        myTunoNextFeatures = !string.IsNullOrEmpty(scalingConfig.NextFeatures) ? scalingConfig.NextFeatures : DefaultNextFeatures;
         
         await LoadDataAsync();
     }

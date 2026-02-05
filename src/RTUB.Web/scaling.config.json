@@ -1,5 +1,9 @@
 {
   "myTuno": {
+    "version": "1.1.1",
+    "description": "Luta contra inimigos e melhora o teu personagem através de combates! Jogo irá estar em constante mudança",
+    "nextFeatures": "Novos modos de jogo, equipamento personalizável, gráficos melhorados.",
+
     "baseStats": {
       "level": 1,
       "xp": 0,
@@ -11,8 +15,7 @@
     },
     "levelScaling": {
       "statMultiplierPerLevel": 0.1,
-      "xpPerLevelBase": 100,
-      "xpToNextLevelFormula": "level * 100"
+      "xpPerLevelBase": 100
     },
     "upgrades": {
       "hp": {
@@ -43,39 +46,48 @@
     },
     "defenseK": 50,
     "minDamage": 1,
-    "levelCosts": [
-      0,
-      10,
-      25,
-      50,
-      100,
-      175,
-      275,
-      400,
-      550,
-      725,
-      925,
-      1150,
-      1400,
-      1675,
-      1975,
-      2300,
-      2650,
-      3025,
-      3425,
-      3850
-    ],
+
+    "combat": {
+      "criticalChanceCap": 0.5
+    },
+
+    "items": {
+      "shotBuffMultiplier": 1.20
+    },
+
+    "beerDropChance": 0.5,
+
     "battleRewards": {
       "winReward": 15,
-      "drawReward": 10
+      "drawReward": 7.5,
+      "baseWinXP": 50,
+      "baseDrawXP": 30,
+      "xpScalingFactor": 0.08,
+      "minXpMultiplier": 0.2,
+      "maxXpMultiplier": 3.0,
+      "reviveCost": 30,
+      "restoreHPCost": 10,
+      "fidelisLevelMultiplier": 0.1
     },
-    "beerDropChance": 0.5,
+
+    "matchmaking": {
+      "cooldownMinutes": 60,
+      "initialPowerRangeMin": 0.7,
+      "initialPowerRangeMax": 1.3,
+      "expandedPowerRangeMin": 0.5,
+      "expandedPowerRangeMax": 1.5,
+      "powerRatingWeights": {
+        "hp": 0.5,
+        "power": 2.0,
+        "speed": 1.5
+      }
+    },
+
     "stageMode": {
-      "enemyCountStageInterval": 20,
-      "maxEnemiesPerStage": 5,
       "baseStageXP": 30,
       "miniBossXPMultiplier": 3,
       "bossXPMultiplier": 10,
+      "stageRewardScalingFactor": 0.05,
       "enemyScaling": {
         "hpPerStage": 0.08,
         "powerPerStage": 0.05,
@@ -117,19 +129,38 @@
         "miniBossWin": 25,
         "bossWin": 50
       },
-      "regions": [
+      "biomes": [
         {
-          "regionId": "Forest",
-          "displayName": "Forest",
-          "backgroundSprite": "/sprites/games/my-tuno/backgrounds/forest.png",
-          "enemySprites": ["/sprites/games/my-tuno/enemies/wolf.png"],
-          "bossSprite": "/sprites/games/my-tuno/enemies/boss_bear.png",
-          "miniBossSprite": "/sprites/games/my-tuno/enemies/wolf.png"
+          "name": "Forest",
+          "stageMin": 1,
+          "stageMax": 100,
+          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "bossSpritePrefix": "boss_"
+        },
+        {
+          "name": "Desert",
+          "stageMin": 101,
+          "stageMax": 200,
+          "enemySpritePath": "sprites/games/my-tuno/enemies/desert",
+          "bossSpritePrefix": "boss_"
         }
       ],
-      "defaultEnemySprite": "/sprites/games/my-tuno/enemies/wolf.png",
-      "defaultBackground": "/sprites/games/my-tuno/backgrounds/forest.png",
-      "playerSprite": "/sprites/games/my-tuno/default_tuno.png"
+      "encounterRules": {
+        "bossEveryNStages": 10,
+        "enemyCountByStageOffset": [
+          { "from": 1, "to": 2, "count": 1 },
+          { "from": 3, "to": 4, "count": 2 },
+          { "from": 5, "to": 6, "count": 3 },
+          { "from": 7, "to": 8, "count": 4 },
+          { "from": 9, "to": 9, "count": 5 }
+        ]
+      },
+      "scaling": {
+        "hpGrowthPerStage": 0.06,
+        "damageGrowthPerStage": 0.05,
+        "armorGrowthPerStage": 0.03,
+        "bossMultiplier": 2.5
+      }
     }
   }
 }

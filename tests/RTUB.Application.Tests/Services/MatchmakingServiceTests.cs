@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -37,7 +39,7 @@ public class MatchmakingServiceTests : IDisposable
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _matchmakingService = new MatchmakingService(_context);
+        _matchmakingService = new MatchmakingService(_context, Options.Create(new MyTunoScalingConfiguration()));
     }
 
     [Fact]

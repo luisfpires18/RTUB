@@ -368,7 +368,7 @@ public class StageService : IStageService
             baseDefense = (int)(typeStats.Defense * defenseScaleFactor);
             
             var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
-            baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, 0.5); // Cap at 50%
+            baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, _myTunoScalingConfig.Combat.CriticalChanceCap); // Cap from config
 
             var biomeName = _biomeService.GetBiomeForStage(stageNumber);
             enemyName = type switch
@@ -416,8 +416,8 @@ public class StageService : IStageService
             _ => 1
         };
 
-        // Stage scaling: +5% per stage number (stage 1 = 1.05x, stage 10 = 1.50x, stage 100 = 6x)
-        var stageScaling = 1.0 + (stageNumber * 0.05);
+        // Stage scaling from config
+        var stageScaling = 1.0 + (stageNumber * stageConfig.StageRewardScalingFactor);
 
         var xpReward = (int)Math.Round(stageConfig.BaseStageXP * xpMultiplier * enemyCount * stageScaling);
 

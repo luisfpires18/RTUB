@@ -27,10 +27,6 @@ public class BattleService : IBattleService
     private readonly ILogger<BattleService> _logger;
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
 
-    // Reward constants
-    private const int BaseWinXP = 50;
-    private const int BaseDrawXP = 30;
-
     public BattleService(
         ICharacterRepository characterRepository,
         IMatchmakingService matchmakingService,
@@ -211,7 +207,7 @@ public class BattleService : IBattleService
         // If buff just expired, scale HP down to unbuffed range
         if (result.ShotBuffExpired)
         {
-            const double buffMultiplier = 1.20;
+            var buffMultiplier = _myTunoScalingConfig.Items.ShotBuffMultiplier;
             var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
             var unbuffedHP = (int)(currentHP / buffMultiplier);
             playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
@@ -235,18 +231,19 @@ public class BattleService : IBattleService
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
+        var rewards = _myTunoScalingConfig.BattleRewards;
         // Base rewards scaled by enemy level
-        var levelMultiplier = 1.0 + (defender.Level - 1) * 0.1; // +10% per enemy level above 1
+        var levelMultiplier = 1.0 + (defender.Level - 1) * rewards.FidelisLevelMultiplier;
         
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
-                ApplyLevelScaling(BaseWinXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)_myTunoScalingConfig.BattleRewards.WinReward * levelMultiplier, 2))),
+                ApplyLevelScaling(rewards.BaseWinXP, attacker.Level, defender.Level), 
+                (decimal)(Math.Round((double)rewards.WinReward * levelMultiplier, 2))),
             BattleOutcome.DefenderWon => (0, 0m), // No rewards for losing
             BattleOutcome.Draw => (
-                ApplyLevelScaling(BaseDrawXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)_myTunoScalingConfig.BattleRewards.DrawReward * levelMultiplier, 2))),
+                ApplyLevelScaling(rewards.BaseDrawXP, attacker.Level, defender.Level), 
+                (decimal)(Math.Round((double)rewards.DrawReward * levelMultiplier, 2))),
             _ => (0, 0m)
         };
     }
