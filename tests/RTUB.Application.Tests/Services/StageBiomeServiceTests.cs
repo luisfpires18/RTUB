@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using Xunit;
 
@@ -16,6 +17,7 @@ public class StageBiomeServiceTests
 {
     private readonly Mock<IWebHostEnvironment> _environmentMock;
     private readonly Mock<ILogger<StageBiomeService>> _loggerMock;
+    private readonly Mock<IStageEnemyRepository> _stageEnemyRepositoryMock;
     private readonly MyTunoScalingConfiguration _config;
     private readonly StageBiomeService _service;
 
@@ -23,6 +25,7 @@ public class StageBiomeServiceTests
     {
         _environmentMock = new Mock<IWebHostEnvironment>();
         _loggerMock = new Mock<ILogger<StageBiomeService>>();
+        _stageEnemyRepositoryMock = new Mock<IStageEnemyRepository>();
 
         // Setup configuration
         _config = new MyTunoScalingConfiguration
@@ -73,7 +76,7 @@ public class StageBiomeServiceTests
         var optionsMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
         optionsMock.Setup(o => o.Value).Returns(_config);
 
-        _service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object);
+        _service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object, _stageEnemyRepositoryMock.Object);
     }
 
     #region Biome Resolution Tests
@@ -373,7 +376,7 @@ public class StageBiomeServiceTests
         };
         var optionsMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
         optionsMock.Setup(o => o.Value).Returns(emptyConfig);
-        var service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object);
+        var service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object, _stageEnemyRepositoryMock.Object);
 
         // Act
         var biome = service.GetBiomeForStage(1);
@@ -399,7 +402,7 @@ public class StageBiomeServiceTests
         };
         var optionsMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
         optionsMock.Setup(o => o.Value).Returns(emptyConfig);
-        var service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object);
+        var service = new StageBiomeService(optionsMock.Object, _environmentMock.Object, _loggerMock.Object, _stageEnemyRepositoryMock.Object);
 
         // Act
         var count = service.GetEnemyCountForStage(5);

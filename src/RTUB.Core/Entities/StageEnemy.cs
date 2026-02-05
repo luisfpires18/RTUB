@@ -58,6 +58,12 @@ public class StageEnemy : BaseEntity
     public string? SpritePath { get; set; }
 
     /// <summary>
+    /// For bosses only: the specific stage number this boss appears on (10, 20, 30, etc.)
+    /// Null for normal enemies which can appear randomly
+    /// </summary>
+    public int? BossStageNumber { get; set; }
+
+    /// <summary>
     /// Base Fidelis drop amount
     /// </summary>
     public decimal BaseFidelisDrop { get; set; } = 1.0m;
@@ -90,7 +96,8 @@ public class StageEnemy : BaseEntity
         decimal baseFidelisDrop = 1.0m,
         double beerDropChance = 0.1,
         double shotDropChance = 0.05,
-        string? spritePath = null)
+        string? spritePath = null,
+        int? bossStageNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name is required", nameof(name));
@@ -108,7 +115,8 @@ public class StageEnemy : BaseEntity
             BaseFidelisDrop = baseFidelisDrop,
             BeerDropChance = beerDropChance,
             ShotDropChance = shotDropChance,
-            SpritePath = spritePath
+            SpritePath = spritePath,
+            BossStageNumber = bossStageNumber
         };
     }
 

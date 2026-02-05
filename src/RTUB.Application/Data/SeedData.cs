@@ -24,6 +24,9 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
+        // Seed stage enemies (runs even for existing databases if table is empty)
+        await SeedStageEnemiesAsync(dbContext);
+
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

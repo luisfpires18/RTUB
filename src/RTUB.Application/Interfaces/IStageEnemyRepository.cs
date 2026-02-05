@@ -31,4 +31,11 @@ public interface IStageEnemyRepository : IRepository<StageEnemy>
     /// <param name="region">The region type</param>
     /// <returns>A random enemy template, or null if none found</returns>
     Task<StageEnemy?> GetRandomEnemyAsync(EnemyType type, RegionType region);
+
+    /// <summary>
+    /// Gets the boss for a specific stage number
+    /// </summary>
+    /// <param name="stageNumber">The boss stage number (10, 20, 30, etc.)</param>
+    /// <returns>The boss for that stage, or null if not found</returns>
+    Task<StageEnemy?> GetBossForStageAsync(int stageNumber);
 }

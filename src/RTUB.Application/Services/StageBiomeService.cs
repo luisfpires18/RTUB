@@ -15,6 +15,7 @@ public class StageBiomeService : IStageBiomeService
     private readonly MyTunoScalingConfiguration _config;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<StageBiomeService> _logger;
+    private readonly IStageEnemyRepository _stageEnemyRepository;
     private readonly Random _random = new();
     private readonly Dictionary<string, List<string>> _spriteCache = new();
     private readonly object _cacheLock = new();
@@ -22,11 +23,13 @@ public class StageBiomeService : IStageBiomeService
     public StageBiomeService(
         IOptions<MyTunoScalingConfiguration> config,
         IWebHostEnvironment environment,
-        ILogger<StageBiomeService> logger)
+        ILogger<StageBiomeService> logger,
+        IStageEnemyRepository stageEnemyRepository)
     {
         _config = config.Value;
         _environment = environment;
         _logger = logger;
+        _stageEnemyRepository = stageEnemyRepository;
     }
 
     /// <summary>
@@ -154,10 +157,24 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets boss sprite path for a given boss stage
+    /// Gets boss sprite path for a given boss stage from the database
+    /// Bosses are explicitly defined per stage (10, 20, 30, etc.)
     /// </summary>
     public async Task<string> GetBossSpriteAsync(int stageNumber)
     {
+        // First, try to get the boss from the database (preferred method)
+        var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
+        
+        if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
+        {
+            _logger.LogInformation("Stage {StageNumber}: Found boss '{BossName}' with sprite: {Sprite}", 
+                stageNumber, boss.Name, boss.SpritePath);
+            return boss.SpritePath;
+        }
+
+        _logger.LogWarning("No boss found in database for stage {StageNumber}, using fallback", stageNumber);
+        
+        // Fallback: use file system based approach
         var biomeName = GetBiomeForStage(stageNumber);
         var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b => b.Name == biomeName);
         
@@ -176,10 +193,7 @@ public class StageBiomeService : IStageBiomeService
         }
 
         // Calculate which boss this is (1st boss = stage 10, 2nd boss = stage 20, etc.)
-        // Boss stages are at multiples of 10
-        int bossIndex = (stageNumber / 10) - 1; // Stage 10 -> boss 0, Stage 20 -> boss 1, etc.
-        
-        // Clamp to available boss sprites
+        int bossIndex = (stageNumber / 10) - 1;
         bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
         
         return bossSprites[bossIndex];
@@ -257,6 +271,9 @@ public class StageBiomeService : IStageBiomeService
 
         var sprites = await LoadSpritesFromFolderAsync(biomeConfig.EnemySpritePath, biomeConfig.BossSpritePrefix, excludeBoss: false);
         
+        _logger.LogInformation("Loaded {Count} boss sprites for biome {BiomeName}: {Sprites}", 
+            sprites.Count, biomeConfig.Name, string.Join(", ", sprites));
+        
         lock (_cacheLock)
         {
             _spriteCache[cacheKey] = sprites;
@@ -300,9 +317,36 @@ public class StageBiomeService : IStageBiomeService
                 var isBoss = filename.StartsWith(bossPrefix, StringComparison.OrdinalIgnoreCase);
                 return excludeBoss ? !isBoss : isBoss;
             })
+            .OrderBy(filename => ExtractBossNumber(filename, bossPrefix))
             .Select(filename => $"{webPath}/{filename}")
             .ToList();
 
         return sprites;
+    }
+
+    /// <summary>
+    /// Extracts the numeric boss index from a boss sprite filename
+    /// Handles formats like "boss_1_bear.png", "boss_10_basilisk.png"
+    /// </summary>
+    private static int ExtractBossNumber(string filename, string bossPrefix)
+    {
+        // Remove the boss prefix (e.g., "boss_")
+        var withoutPrefix = filename.Substring(bossPrefix.Length);
+        
+        // Extract the number before the next underscore or non-digit
+        var numberPart = string.Empty;
+        foreach (var c in withoutPrefix)
+        {
+            if (char.IsDigit(c))
+            {
+                numberPart += c;
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        return int.TryParse(numberPart, out var number) ? number : int.MaxValue;
     }
 }

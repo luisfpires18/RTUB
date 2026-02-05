@@ -51,4 +51,10 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
         var random = Random.Shared;
         return enemies[random.Next(enemies.Count)];
     }
+
+    public async Task<StageEnemy?> GetBossForStageAsync(int stageNumber)
+    {
+        return await _context.StageEnemies
+            .FirstOrDefaultAsync(e => e.Type == EnemyType.Boss && e.BossStageNumber == stageNumber);
+    }
 }
