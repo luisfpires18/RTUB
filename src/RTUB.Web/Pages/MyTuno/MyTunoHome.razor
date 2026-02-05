@@ -16,7 +16,7 @@
 @attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
-@inject IBattleRepository BattleRepository
+@inject ICharacterRepository CharacterRepository
 @inject IInventoryService InventoryService
 @inject IStageService StageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -1052,7 +1052,7 @@
         try
         {
             leaderboardLoading = true;
-            leaderboardEntries = await BattleRepository.GetTopLeaderboardAsync(50);
+            leaderboardEntries = await CharacterRepository.GetTopLeaderboardAsync(50);
         }
         catch (Exception ex)
         {

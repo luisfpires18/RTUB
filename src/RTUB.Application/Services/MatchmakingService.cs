@@ -10,17 +10,16 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for finding AI opponents for battles
 /// Uses power rating to match players with similar strength opponents
+/// Cooldown is tracked on Character.LastOpponentId and LastBattleAt
 /// </summary>
 public class MatchmakingService : IMatchmakingService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IBattleRepository _battleRepository;
     private readonly TimeSpan _cooldownPeriod = TimeSpan.FromHours(1); // Can't fight same opponent within 1 hour
 
-    public MatchmakingService(ApplicationDbContext context, IBattleRepository battleRepository)
+    public MatchmakingService(ApplicationDbContext context)
     {
         _context = context;
-        _battleRepository = battleRepository;
     }
 
     /// <summary>
@@ -103,18 +102,19 @@ public class MatchmakingService : IMatchmakingService
             candidates = memberCharacters.ToList();
         }
 
-        // Filter out characters that were fought recently (cooldown)
-        // Get all recent battles for the player character
-        var recentBattles = await _battleRepository.GetByAttackerCharacterIdAsync(playerCharacter.Id);
-        var recentOpponentIds = recentBattles
-            .Where(b => b.CreatedAt >= DateTime.UtcNow - _cooldownPeriod)
-            .Select(b => b.DefenderCharacterId)
-            .Distinct()
-            .ToHashSet();
+        // Filter out the last opponent if still on cooldown
+        // Cooldown is tracked on Character.LastOpponentId and LastBattleAt
+        var isOnCooldown = playerCharacter.LastOpponentId.HasValue &&
+                          playerCharacter.LastBattleAt.HasValue &&
+                          playerCharacter.LastBattleAt.Value >= DateTime.UtcNow - _cooldownPeriod;
 
-        var availableCandidates = candidates
-            .Where(c => !recentOpponentIds.Contains(c.Id))
-            .ToList();
+        var availableCandidates = candidates;
+        if (isOnCooldown && playerCharacter.LastOpponentId.HasValue)
+        {
+            availableCandidates = candidates
+                .Where(c => c.Id != playerCharacter.LastOpponentId.Value)
+                .ToList();
+        }
 
         // If no candidates after cooldown filter, ignore cooldown (allow repeat fights)
         if (!availableCandidates.Any())

@@ -1,3 +1,4 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Interfaces;
@@ -5,6 +6,7 @@ namespace RTUB.Application.Interfaces;
 /// <summary>
 /// Interface for Stage Mode service
 /// Handles stage progression, battles, and rewards
+/// Stage battles are not persisted - only the results (progress) are stored
 /// </summary>
 public interface IStageService
 {
@@ -34,7 +36,7 @@ public interface IStageService
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
     /// <returns>The stage battle result</returns>
-    Task<StageBattle> ExecuteStageBattleAsync(int characterId);
+    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId);
 
     /// <summary>
     /// Gets the number of enemies remaining in the current stage
@@ -50,14 +52,6 @@ public interface IStageService
     /// <param name="userId">The user's ID</param>
     /// <returns>True if stage is complete, false if more enemies remain</returns>
     Task<bool> IsStageCompleteAsync(string userId);
-
-    /// <summary>
-    /// Gets recent stage battle history
-    /// </summary>
-    /// <param name="characterId">The player's character ID</param>
-    /// <param name="count">Number of recent battles to retrieve</param>
-    /// <returns>List of recent stage battles</returns>
-    Task<List<StageBattle>> GetRecentBattlesAsync(int characterId, int count = 10);
 
     /// <summary>
     /// Returns the player to their last checkpoint after defeat

@@ -15,11 +15,11 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for managing battles
 /// Handles battle creation, combat simulation, and reward distribution
+/// Battles are NOT persisted to database - only win/loss stats are tracked on Character
 /// </summary>
 public class BattleService : IBattleService
 {
     private readonly ICharacterRepository _characterRepository;
-    private readonly IBattleRepository _battleRepository;
     private readonly IMatchmakingService _matchmakingService;
     private readonly ICombatEngine _combatEngine;
     private readonly IInventoryRepository _inventoryRepository;
@@ -29,12 +29,10 @@ public class BattleService : IBattleService
 
     // Reward constants
     private const int BaseWinXP = 50;
-    private const int BaseLossXP = 20;
     private const int BaseDrawXP = 30;
 
     public BattleService(
         ICharacterRepository characterRepository,
-        IBattleRepository battleRepository,
         IMatchmakingService matchmakingService,
         ICombatEngine combatEngine,
         IInventoryRepository inventoryRepository,
@@ -43,7 +41,6 @@ public class BattleService : IBattleService
         IOptions<MyTunoScalingConfiguration> myTunoScalingConfig)
     {
         _characterRepository = characterRepository;
-        _battleRepository = battleRepository;
         _matchmakingService = matchmakingService;
         _combatEngine = combatEngine;
         _inventoryRepository = inventoryRepository;
@@ -53,87 +50,10 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Creates and executes a battle vs AI opponent
-    /// </summary>
-    public async Task<Battle> CreateBattleVsAIAsync(int playerCharacterId)
-    {
-        // Load player character
-        var playerCharacter = await _characterRepository.GetByIdAsync(playerCharacterId);
-        if (playerCharacter == null)
-            throw new EntityNotFoundException(nameof(Character), playerCharacterId);
-
-        // Find AI opponent
-        var aiOpponent = await _matchmakingService.FindAIOpponentAsync(playerCharacter);
-        if (aiOpponent == null)
-        {
-            _logger.LogWarning("No AI opponent found for character {CharacterId}. Player may need to wait for more member characters to be created.", playerCharacterId);
-            throw new InvalidOperationException("Nenhum oponente AI disponível. Aguarda até que mais membros criem personagens.");
-        }
-
-        // Check if shot buff is active and create buffed copy for combat
-        var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
-        var combatCharacter = hasShotBuff 
-            ? Character.CreateShotBuffedCopy(playerCharacter) 
-            : playerCharacter;
-
-        // Generate seed for deterministic combat
-        var seed = GenerateSeed();
-
-        // Run combat simulation (with buffed stats if applicable)
-        var combatResult = _combatEngine.Simulate(combatCharacter, aiOpponent, seed);
-
-        // Calculate rewards based on outcome
-        var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, aiOpponent);
-
-        // Create battle record
-        var battle = Battle.Create(playerCharacterId, aiOpponent.Id, seed, combatResult.Outcome);
-        battle.SetRewards(xpReward, fidelisReward);
-
-        // Serialize replay events to JSON
-        var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
-        battle.SetReplay(replayJson);
-
-        // Persist battle
-        await _battleRepository.AddAsync(battle);
-
-        // Decrement shot buff counter if it was used
-        if (hasShotBuff)
-        {
-            playerCharacter.ShotBuffBattlesRemaining--;
-        }
-
-        // Apply rewards to player character and user
-        await ApplyRewardsAsync(playerCharacter, xpReward, fidelisReward);
-
-        // Apply HP changes from combat
-        await ApplyAttackerHPChangesAsync(playerCharacter, combatResult, hasShotBuff);
-        
-        // If buff just expired, scale HP down to unbuffed range
-        if (hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 0)
-        {
-            const double buffMultiplier = 1.20;
-            var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
-            var unbuffedHP = (int)(currentHP / buffMultiplier);
-            playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
-            await _characterRepository.UpdateAsync(playerCharacter);
-        }
-
-        // Roll for beer drop if player won
-        if (combatResult.Outcome == BattleOutcome.AttackerWon)
-        {
-            await TryDropBeerAsync(playerCharacter.UserId);
-        }
-
-        return battle;
-    }
-
-    /// <summary>
     /// Creates and executes a battle vs a specific opponent character
+    /// Rewards are NOT applied until FinalizeAndApplyRewardsAsync is called
     /// </summary>
-    public async Task<Battle> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId)
+    public async Task<BattleResult> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId)
     {
         // Load player character
         var playerCharacter = await _characterRepository.GetByIdAsync(playerCharacterId);
@@ -177,73 +97,80 @@ public class BattleService : IBattleService
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);
 
-        // Create battle record
-        var battle = Battle.Create(playerCharacterId, opponentCharacterId, seed, combatResult.Outcome);
-        battle.SetRewards(xpReward, fidelisReward);
-
         // Serialize replay events to JSON
         var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
         {
             WriteIndented = false
         });
-        battle.SetReplay(replayJson);
 
-        // Store pending state changes (to be applied in FinalizeAndApplyRewardsAsync)
-        battle.AttackerFinalHP = combatResult.AttackerFinalHP;
-        battle.ShotBuffUsed = hasShotBuff;
-        battle.ShotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1; // Will expire after this battle
+        // Calculate shot buff state after this battle
+        var shotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1;
+        var shotBuffRemaining = hasShotBuff ? playerCharacter.ShotBuffBattlesRemaining - 1 : 0;
 
-        // Persist battle (rewards NOT applied yet)
-        await _battleRepository.AddAsync(battle);
-
-        return battle;
+        // Create and return battle result (not persisted)
+        return new BattleResult
+        {
+            BattleId = Guid.NewGuid(),
+            AttackerCharacterId = playerCharacterId,
+            DefenderCharacterId = opponentCharacterId,
+            Seed = seed,
+            Outcome = combatResult.Outcome,
+            AttackerXP = xpReward,
+            AttackerFidelis = fidelisReward,
+            ReplayJson = replayJson,
+            AttackerFinalHP = combatResult.AttackerFinalHP,
+            ShotBuffUsed = hasShotBuff,
+            ShotBuffExpired = shotBuffExpired,
+            ShotBuffBattlesRemaining = shotBuffRemaining
+        };
     }
 
     /// <summary>
     /// Finalizes a battle and applies all pending rewards and state changes
     /// Should be called after the battle animation finishes
     /// </summary>
-    public async Task<bool> FinalizeAndApplyRewardsAsync(int battleId)
+    public async Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result)
     {
-        var battle = await _battleRepository.GetByIdAsync(battleId);
-        if (battle == null)
-        {
-            _logger.LogWarning("Battle {BattleId} not found for finalization", battleId);
-            return false;
-        }
-
-        // Check if rewards already applied (prevent double-claiming)
-        if (battle.RewardsApplied)
-        {
-            _logger.LogWarning("Battle {BattleId} rewards already applied", battleId);
-            return false;
-        }
-
         // Load the attacker character
-        var playerCharacter = await _characterRepository.GetByIdAsync(battle.AttackerCharacterId);
+        var playerCharacter = await _characterRepository.GetByIdAsync(result.AttackerCharacterId);
         if (playerCharacter == null)
         {
-            _logger.LogError("Player character {CharacterId} not found for battle {BattleId}", battle.AttackerCharacterId, battleId);
+            _logger.LogError("Player character {CharacterId} not found for battle finalization", result.AttackerCharacterId);
             return false;
         }
 
         // Apply shot buff decrement if used
-        if (battle.ShotBuffUsed)
+        if (result.ShotBuffUsed)
         {
             playerCharacter.ShotBuffBattlesRemaining--;
         }
 
-        // Apply rewards
-        await ApplyRewardsAsync(playerCharacter, battle.AttackerXP, battle.AttackerFidelis);
-
-        // Apply HP changes
-        if (battle.AttackerFinalHP.HasValue)
+        // Update arena statistics
+        switch (result.Outcome)
         {
-            playerCharacter.CurrentHP = battle.AttackerFinalHP.Value;
+            case BattleOutcome.AttackerWon:
+                playerCharacter.ArenaWins++;
+                break;
+            case BattleOutcome.DefenderWon:
+                playerCharacter.ArenaLosses++;
+                break;
+            case BattleOutcome.Draw:
+                playerCharacter.ArenaDraws++;
+                break;
         }
 
+        // Update cooldown tracking
+        playerCharacter.LastOpponentId = result.DefenderCharacterId;
+        playerCharacter.LastBattleAt = DateTime.UtcNow;
+
+        // Apply rewards
+        await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
+
+        // Apply HP changes
+        playerCharacter.CurrentHP = result.AttackerFinalHP;
+
         // If buff just expired, scale HP down to unbuffed range
-        if (battle.ShotBuffExpired)
+        if (result.ShotBuffExpired)
         {
             const double buffMultiplier = 1.20;
             var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
@@ -254,17 +181,13 @@ public class BattleService : IBattleService
         await _characterRepository.UpdateAsync(playerCharacter);
 
         // Roll for beer drop if player won
-        if (battle.Outcome == BattleOutcome.AttackerWon)
+        if (result.Outcome == BattleOutcome.AttackerWon)
         {
             await TryDropBeerAsync(playerCharacter.UserId);
         }
 
-        // Mark rewards as applied and persist
-        battle.MarkRewardsApplied();
-        await _battleRepository.UpdateAsync(battle);
-
-        _logger.LogInformation("Battle {BattleId} finalized - rewards applied: {XP} XP, {Fidelis} Fidelis", 
-            battleId, battle.AttackerXP, battle.AttackerFidelis);
+        _logger.LogInformation("Battle {BattleId} finalized - rewards applied: {XP} XP, {Fidelis} Fidelis, Outcome: {Outcome}", 
+            result.BattleId, result.AttackerXP, result.AttackerFidelis, result.Outcome);
 
         return true;
     }
@@ -339,27 +262,6 @@ public class BattleService : IBattleService
             user.FidelisBalance += fidelis;
             await _userManager.UpdateAsync(user);
         }
-    }
-
-    /// <summary>
-    /// Updates attacker HP based on battle outcome
-    /// Winners keep their remaining HP, losers go to 0 HP
-    /// Note: Currently only updates attacker HP as defenders are AI opponents.
-    /// For PvP implementation, defender HP should also be updated.
-    /// </summary>
-    /// <summary>
-    /// Updates attacker HP based on battle outcome
-    /// Winners keep their remaining HP, losers go to 0 HP
-    /// HP values from combat are used directly (already on correct scale)
-    /// Note: Currently only updates attacker HP as defenders are AI opponents.
-    /// For PvP implementation, defender HP should also be updated.
-    /// </summary>
-    private async Task ApplyAttackerHPChangesAsync(Character attacker, CombatResult combatResult, bool hadShotBuff = false)
-    {
-        // Combat HP is already on the correct scale (buffed or unbuffed)
-        // Use it directly without any scaling
-        attacker.CurrentHP = combatResult.AttackerFinalHP;
-        await _characterRepository.UpdateAsync(attacker);
     }
 
     /// <summary>

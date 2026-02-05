@@ -29,6 +29,32 @@ public class Character : BaseEntity
     // Shot buff - number of arena battles remaining with empowerment
     public int ShotBuffBattlesRemaining { get; set; } = 0;
 
+    // Arena Statistics
+    /// <summary>
+    /// Total number of arena wins
+    /// </summary>
+    public int ArenaWins { get; set; } = 0;
+
+    /// <summary>
+    /// Total number of arena losses
+    /// </summary>
+    public int ArenaLosses { get; set; } = 0;
+
+    /// <summary>
+    /// Total number of arena draws
+    /// </summary>
+    public int ArenaDraws { get; set; } = 0;
+
+    /// <summary>
+    /// Last opponent character ID (for cooldown tracking)
+    /// </summary>
+    public int? LastOpponentId { get; set; } = null;
+
+    /// <summary>
+    /// Timestamp of the last arena battle (for cooldown tracking)
+    /// </summary>
+    public DateTime? LastBattleAt { get; set; } = null;
+
     // HP constants
     private const int MinHP = 0;
 

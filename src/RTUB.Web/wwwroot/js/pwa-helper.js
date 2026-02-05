@@ -189,3 +189,8 @@ if (displayModeQuery?.addEventListener) {
 } else if (displayModeQuery?.addListener) {
     displayModeQuery.addListener(applyPwaMode);
 }
+
+// Global function for Blazor to check if device is mobile/PWA
+window.isMobileDevice = function() {
+    return window.pwaHelper.isMobilePwaOrBrowser();
+};

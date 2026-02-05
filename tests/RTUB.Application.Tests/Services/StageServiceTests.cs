@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
@@ -24,7 +25,6 @@ public class StageServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly IStageProgressRepository _stageProgressRepository;
-    private readonly IStageBattleRepository _stageBattleRepository;
     private readonly IStageEnemyRepository _stageEnemyRepository;
     private readonly ICharacterRepository _characterRepository;
     private readonly Mock<ICombatEngine> _combatEngineMock;
@@ -51,7 +51,6 @@ public class StageServiceTests : IDisposable
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _stageProgressRepository = new StageProgressRepository(_context);
-        _stageBattleRepository = new StageBattleRepository(_context);
         _stageEnemyRepository = new StageEnemyRepository(_context);
         _characterRepository = new CharacterRepository(_context);
         _combatEngineMock = new Mock<ICombatEngine>();
@@ -101,7 +100,6 @@ public class StageServiceTests : IDisposable
 
         _stageService = new StageService(
             _stageProgressRepository,
-            _stageBattleRepository,
             _stageEnemyRepository,
             _characterRepository,
             _combatEngineMock.Object,
@@ -292,8 +290,9 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert
+        // Assert - StageBattleResult is returned but not persisted
         battle.Should().NotBeNull();
+        battle.BattleId.Should().NotBe(Guid.Empty);
         battle.CharacterId.Should().Be(character.Id);
         battle.StageNumber.Should().Be(1);
         battle.EnemyType.Should().Be(EnemyType.Normal);
@@ -302,10 +301,6 @@ public class StageServiceTests : IDisposable
         battle.XPReward.Should().BeGreaterThan(0);
         battle.FidelisReward.Should().BeGreaterThan(0);
         battle.ReplayJson.Should().NotBeNullOrEmpty();
-
-        // Verify battle was persisted
-        var savedBattle = await _stageBattleRepository.GetByIdAsync(battle.Id);
-        savedBattle.Should().NotBeNull();
     }
 
     [Fact]
@@ -767,71 +762,6 @@ public class StageServiceTests : IDisposable
         // Assert
         result.CurrentStage.Should().Be(100);
         result.CurrentRegion.Should().Be(RegionType.Forest); // Stage 100 is in Forest
-    }
-
-    #endregion
-
-    #region GetRecentBattlesAsync Tests
-
-    [Fact]
-    public async Task GetRecentBattlesAsync_ShouldReturnBattles()
-    {
-        // Arrange
-        var user = CreateTestUser();
-        await _context.Users.AddAsync(user);
-
-        var character = Character.Create("user1");
-        await _context.Characters.AddAsync(character);
-        await _context.SaveChangesAsync();
-
-        // Create some battles
-        var battle1 = StageBattle.Create(character.Id, 1, null, EnemyType.Normal, RegionType.Forest, "Enemy 1", 123, BattleOutcome.AttackerWon);
-        battle1.SetReplay("{}");
-        battle1.SetRewards(30, 10m);
-
-        var battle2 = StageBattle.Create(character.Id, 2, null, EnemyType.Normal, RegionType.Forest, "Enemy 2", 456, BattleOutcome.AttackerWon);
-        battle2.SetReplay("{}");
-        battle2.SetRewards(30, 10m);
-
-        await _context.StageBattles.AddRangeAsync(battle1, battle2);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var battles = await _stageService.GetRecentBattlesAsync(character.Id);
-
-        // Assert
-        battles.Should().NotBeNull();
-        battles.Should().HaveCount(2);
-        battles.Should().ContainEquivalentOf(battle1);
-        battles.Should().ContainEquivalentOf(battle2);
-    }
-
-    [Fact]
-    public async Task GetRecentBattlesAsync_WithLimit_ShouldRespectLimit()
-    {
-        // Arrange
-        var user = CreateTestUser();
-        await _context.Users.AddAsync(user);
-
-        var character = Character.Create("user1");
-        await _context.Characters.AddAsync(character);
-        await _context.SaveChangesAsync();
-
-        // Create 15 battles
-        for (int i = 1; i <= 15; i++)
-        {
-            var battle = StageBattle.Create(character.Id, i, null, EnemyType.Normal, RegionType.Forest, $"Enemy {i}", i, BattleOutcome.AttackerWon);
-            battle.SetReplay("{}");
-            battle.SetRewards(30, 10m);
-            await _context.StageBattles.AddAsync(battle);
-        }
-        await _context.SaveChangesAsync();
-
-        // Act
-        var battles = await _stageService.GetRecentBattlesAsync(character.Id, 5);
-
-        // Assert
-        battles.Should().HaveCount(5);
     }
 
     #endregion

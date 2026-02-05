@@ -6,6 +6,7 @@
 @using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
+@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
@@ -240,7 +241,7 @@
     private Character? character;
     private ApplicationUser? currentUser;
     private StageProgress? stageProgress;
-    private StageBattle? currentBattle;
+    private StageBattleResult? currentBattle;
     private bool loading = true;
     private bool fighting = false;
     private bool showBattleAnimation = false;
@@ -444,10 +445,10 @@
                         }
                     }
                     
-                    // Fallback: use old single sprite path if available
+                    // Fallback: use default sprite for enemy type
                     if (enemySpritePaths.Count == 0)
                     {
-                        var fallbackSprite = currentBattle.StageEnemy?.SpritePath ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType);
+                        var fallbackSprite = GetDefaultEnemySpriteForType(currentBattle.EnemyType);
                         enemySpritePaths = Enumerable.Repeat(fallbackSprite, enemyCount).ToList();
                     }
 

@@ -138,13 +138,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // My Tuno DbSets
     public DbSet<Character> Characters { get; set; }
-    public DbSet<Battle> Battles { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
 
     // Stage Mode DbSets
     public DbSet<StageProgress> StageProgresses { get; set; }
     public DbSet<StageEnemy> StageEnemies { get; set; }
-    public DbSet<StageBattle> StageBattles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -756,22 +754,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? ResolveUserIdToNickname(character.UserId)
                             ?? character.UserId;
                         return $"Character - {userName} (Level {character.Level})";
-                    }
-                    break;
-
-                case "Battle":
-                    if (entry.Entity is Battle battle)
-                    {
-                        // Try navigation properties first (if loaded), then fall back to Local cache
-                        var attackerName = battle.Attacker?.User?.Nickname
-                            ?? battle.Attacker?.User?.UserName
-                            ?? (battle.Attacker != null ? ResolveUserIdToNickname(battle.Attacker.UserId) : null)
-                            ?? "Unknown";
-                        var defenderName = battle.Defender?.User?.Nickname
-                            ?? battle.Defender?.User?.UserName
-                            ?? (battle.Defender != null ? ResolveUserIdToNickname(battle.Defender.UserId) : null)
-                            ?? "Unknown";
-                        return $"Battle: {attackerName} vs {defenderName}";
                     }
                     break;
             }

@@ -13,11 +13,11 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for managing Stage Mode
 /// Handles stage progression, battles, and rewards
+/// Stage battles are NOT persisted - only progress is tracked
 /// </summary>
 public class StageService : IStageService
 {
     private readonly IStageProgressRepository _stageProgressRepository;
-    private readonly IStageBattleRepository _stageBattleRepository;
     private readonly IStageEnemyRepository _stageEnemyRepository;
     private readonly ICharacterRepository _characterRepository;
     private readonly ICombatEngine _combatEngine;
@@ -29,7 +29,6 @@ public class StageService : IStageService
 
     public StageService(
         IStageProgressRepository stageProgressRepository,
-        IStageBattleRepository stageBattleRepository,
         IStageEnemyRepository stageEnemyRepository,
         ICharacterRepository characterRepository,
         ICombatEngine combatEngine,
@@ -40,7 +39,6 @@ public class StageService : IStageService
         IStageBiomeService biomeService)
     {
         _stageProgressRepository = stageProgressRepository;
-        _stageBattleRepository = stageBattleRepository;
         _stageEnemyRepository = stageEnemyRepository;
         _characterRepository = characterRepository;
         _combatEngine = combatEngine;
@@ -99,7 +97,7 @@ public class StageService : IStageService
     /// <summary>
     /// Executes a battle on the current stage
     /// </summary>
-    public async Task<StageBattle> ExecuteStageBattleAsync(int characterId)
+    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -178,16 +176,9 @@ public class StageService : IStageService
             combatResult = _combatEngine.SimulateMultiEnemy(combatCharacter, enemies, seed);
         }
 
-        // Create stage battle record (store first enemy template for backward compatibility)
-        var stageBattle = StageBattle.Create(
-            characterId,
-            stageNumber,
-            enemyTemplateIds.FirstOrDefault(),
-            enemyType,
-            region,
-            enemies.Count == 1 ? enemies[0].User?.UserName ?? $"Stage {stageNumber} Enemy" : $"{enemies.Count} Enemies",
-            seed,
-            combatResult.Outcome);
+        var enemyName = enemies.Count == 1 
+            ? enemies[0].User?.UserName ?? $"Stage {stageNumber} Enemy" 
+            : $"{enemies.Count} Enemies";
 
         // Serialize replay events with enemy sprite paths and stats
         var battleData = new
@@ -209,28 +200,32 @@ public class StageService : IStageService
         {
             WriteIndented = false
         });
-        stageBattle.SetReplay(replayJson);
 
         // Calculate and apply rewards (multiply by enemy count)
         var (xpReward, fidelisReward, beersDropped, shotsDropped) =
             await CalculateAndApplyRewardsAsync(character, stageProgress, combatResult, enemies.FirstOrDefault(), stageNumber, enemyCount);
 
-        stageBattle.SetRewards(xpReward, fidelisReward, beersDropped, shotsDropped);
-
-        // Persist stage battle
-        await _stageBattleRepository.AddAsync(stageBattle);
-
-        // Load the StageEnemy navigation property so it's available for sprite rendering
-        var firstTemplate = await _stageEnemyRepository.GetByIdAsync(enemyTemplateIds.FirstOrDefault() ?? 0);
-        if (firstTemplate != null)
-        {
-            stageBattle.StageEnemy = firstTemplate;
-        }
-
         // Update character HP and stage progress (entire stage complete after beating all enemies)
         await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount, hasShotBuff);
 
-        return stageBattle;
+        // Return battle result DTO (not persisted)
+        return new StageBattleResult
+        {
+            BattleId = Guid.NewGuid(),
+            CharacterId = characterId,
+            StageNumber = stageNumber,
+            EnemyType = enemyType,
+            Region = region,
+            EnemyName = enemyName,
+            Seed = seed,
+            Outcome = combatResult.Outcome,
+            XPReward = xpReward,
+            FidelisReward = fidelisReward,
+            BeersDropped = beersDropped,
+            ShotsDropped = shotsDropped,
+            ReplayJson = replayJson,
+            PlayerFinalHP = combatResult.AttackerFinalHP
+        };
     }
 
     /// <summary>
@@ -251,14 +246,6 @@ public class StageService : IStageService
     {
         var remaining = await GetRemainingEnemiesInStageAsync(userId);
         return remaining == 0;
-    }
-
-    /// <summary>
-    /// Gets recent stage battle history
-    /// </summary>
-    public async Task<List<StageBattle>> GetRecentBattlesAsync(int characterId, int count = 10)
-    {
-        return await _stageBattleRepository.GetRecentByCharacterIdAsync(characterId, count);
     }
 
     /// <summary>

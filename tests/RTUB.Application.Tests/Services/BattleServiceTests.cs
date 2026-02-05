@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
@@ -24,7 +25,6 @@ public class BattleServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly ICharacterRepository _characterRepository;
-    private readonly IBattleRepository _battleRepository;
     private readonly Mock<IMatchmakingService> _matchmakingServiceMock;
     private readonly Mock<ICombatEngine> _combatEngineMock;
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
@@ -49,7 +49,6 @@ public class BattleServiceTests : IDisposable
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _characterRepository = new CharacterRepository(_context);
-        _battleRepository = new BattleRepository(_context);
         _matchmakingServiceMock = new Mock<IMatchmakingService>();
         _combatEngineMock = new Mock<ICombatEngine>();
         _inventoryRepositoryMock = new Mock<IInventoryRepository>();
@@ -70,7 +69,6 @@ public class BattleServiceTests : IDisposable
 
         _battleService = new BattleService(
             _characterRepository,
-            _battleRepository,
             _matchmakingServiceMock.Object,
             _combatEngineMock.Object,
             _inventoryRepositoryMock.Object,
@@ -80,23 +78,20 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithValidInputs_ShouldCreateBattle()
+    public async Task CreateBattleVsOpponentAsync_WithValidInputs_ShouldCreateBattle()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
-        var aiOpponent = Character.Create("user2");
+        var opponent = Character.Create("user2");
 
-        await _context.Characters.AddRangeAsync(playerCharacter, aiOpponent);
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync(aiOpponent);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -115,71 +110,64 @@ public class BattleServiceTests : IDisposable
             .Returns(combatResult);
 
         // Act
-        var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
-        // Assert
+        // Assert - BattleResult is returned but not persisted
         battle.Should().NotBeNull();
+        battle.BattleId.Should().NotBe(Guid.Empty);
         battle.AttackerCharacterId.Should().Be(playerCharacter.Id);
-        battle.DefenderCharacterId.Should().Be(aiOpponent.Id);
+        battle.DefenderCharacterId.Should().Be(opponent.Id);
         battle.Outcome.Should().Be(BattleOutcome.AttackerWon);
         battle.AttackerXP.Should().BeGreaterThan(0);
         battle.AttackerFidelis.Should().BeGreaterThan(0);
-        battle.DefenderXP.Should().Be(0); // AI doesn't get rewards
-        battle.DefenderFidelis.Should().Be(0m); // AI doesn't get rewards
         battle.ReplayJson.Should().NotBeNullOrEmpty();
-
-        // Verify battle was persisted
-        var savedBattle = await _battleRepository.GetByIdAsync(battle.Id);
-        savedBattle.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithInvalidCharacterId_ShouldThrowException()
+    public async Task CreateBattleVsOpponentAsync_WithInvalidCharacterId_ShouldThrowException()
     {
+        // Arrange
+        var opponent = Character.Create("user2");
+        await _context.Characters.AddAsync(opponent);
+        await _context.SaveChangesAsync();
+
         // Act
-        var act = () => _battleService.CreateBattleVsAIAsync(999);
+        var act = () => _battleService.CreateBattleVsOpponentAsync(999, opponent.Id);
 
         // Assert
         await act.Should().ThrowAsync<Core.Exceptions.EntityNotFoundException>();
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithNoAIOpponent_ShouldThrowException()
+    public async Task CreateBattleVsOpponentAsync_WithInvalidOpponentId_ShouldThrowException()
     {
         // Arrange
         var playerCharacter = Character.Create("user1");
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
 
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync((Character?)null);
-
         // Act
-        var act = () => _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var act = () => _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, 999);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Nenhum oponente AI disponível*");
+        await act.Should().ThrowAsync<Core.Exceptions.EntityNotFoundException>();
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithWin_ShouldApplyWinRewards()
+    public async Task CreateBattleVsOpponentAsync_WithWin_ShouldApplyWinRewards()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
-        var aiOpponent = Character.Create("user2");
+        var opponent = Character.Create("user2");
 
-        await _context.Characters.AddRangeAsync(playerCharacter, aiOpponent);
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync(aiOpponent);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -199,7 +187,7 @@ public class BattleServiceTests : IDisposable
         var initialFidelis = user.FidelisBalance;
 
         // Act
-        var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
         battle.AttackerXP.Should().Be(50); // BaseWinXP
@@ -215,23 +203,20 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithLoss_ShouldNotAwardRewards()
+    public async Task CreateBattleVsOpponentAsync_WithLoss_ShouldNotAwardRewards()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
-        var aiOpponent = Character.Create("user2");
+        var opponent = Character.Create("user2");
 
-        await _context.Characters.AddRangeAsync(playerCharacter, aiOpponent);
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync(aiOpponent);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -251,7 +236,7 @@ public class BattleServiceTests : IDisposable
         var initialFidelis = user.FidelisBalance;
 
         // Act
-        var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert - Losses should not award any XP or Fidelis
         battle.AttackerXP.Should().Be(0, "losses should not award XP");
@@ -267,23 +252,20 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_WithDraw_ShouldApplyDrawRewards()
+    public async Task CreateBattleVsOpponentAsync_WithDraw_ShouldApplyDrawRewards()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
-        var aiOpponent = Character.Create("user2");
+        var opponent = Character.Create("user2");
 
-        await _context.Characters.AddRangeAsync(playerCharacter, aiOpponent);
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync(aiOpponent);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -303,7 +285,7 @@ public class BattleServiceTests : IDisposable
         var initialFidelis = user.FidelisBalance;
 
         // Act
-        var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
         battle.AttackerXP.Should().Be(30); // BaseDrawXP
@@ -319,23 +301,20 @@ public class BattleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateBattleVsAIAsync_ShouldNotApplyRewardsToAI()
+    public async Task CreateBattleVsOpponentAsync_ShouldNotApplyRewardsToDefender()
     {
         // Arrange
         var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
         var playerCharacter = Character.Create("user1");
-        var aiOpponent = Character.Create("user2");
+        var opponent = Character.Create("user2");
 
-        await _context.Characters.AddRangeAsync(playerCharacter, aiOpponent);
+        await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
             .ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-
-        _matchmakingServiceMock.Setup(m => m.FindAIOpponentAsync(It.IsAny<Character>()))
-            .ReturnsAsync(aiOpponent);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -352,15 +331,16 @@ public class BattleServiceTests : IDisposable
             .Returns(combatResult);
 
         // Act
-        var battle = await _battleService.CreateBattleVsAIAsync(playerCharacter.Id);
+        var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
-        // Assert
-        battle.DefenderXP.Should().Be(0); // AI doesn't get XP
-        battle.DefenderFidelis.Should().Be(0m); // AI doesn't get Fidelis
+        // Assert - battle completed successfully
+        battle.Should().NotBeNull();
+        battle.AttackerCharacterId.Should().Be(playerCharacter.Id);
+        battle.DefenderCharacterId.Should().Be(opponent.Id);
 
-        // Verify AI opponent character was not updated
-        var aiCharacter = await _characterRepository.GetByIdAsync(aiOpponent.Id);
-        aiCharacter!.XP.Should().Be(0); // Should remain unchanged
+        // Verify opponent character XP was not updated
+        var opponentCharacter = await _characterRepository.GetByIdAsync(opponent.Id);
+        opponentCharacter!.XP.Should().Be(0); // Should remain unchanged
     }
 
     [Fact]

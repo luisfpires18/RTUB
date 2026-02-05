@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
-using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
@@ -20,7 +19,6 @@ public class MatchmakingServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
-    private readonly IBattleRepository _battleRepository;
     private readonly IMatchmakingService _matchmakingService;
 
     public MatchmakingServiceTests()
@@ -39,8 +37,7 @@ public class MatchmakingServiceTests : IDisposable
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _battleRepository = new BattleRepository(_context);
-        _matchmakingService = new MatchmakingService(_context, _battleRepository);
+        _matchmakingService = new MatchmakingService(_context);
     }
 
     [Fact]
@@ -118,10 +115,9 @@ public class MatchmakingServiceTests : IDisposable
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
-        // Create a recent battle (within cooldown period)
-        var recentBattle = Battle.Create(playerCharacter.Id, opponent.Id, 12345, Core.Enums.BattleOutcome.AttackerWon);
-        recentBattle.CreatedAt = DateTime.UtcNow.AddMinutes(-30); // 30 minutes ago (within 1 hour cooldown)
-        await _context.Battles.AddAsync(recentBattle);
+        // Set cooldown via Character fields (within 1 hour cooldown period)
+        playerCharacter.LastOpponentId = opponent.Id;
+        playerCharacter.LastBattleAt = DateTime.UtcNow.AddMinutes(-30); // 30 minutes ago
         await _context.SaveChangesAsync();
 
         // Act
@@ -144,10 +140,9 @@ public class MatchmakingServiceTests : IDisposable
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
 
-        // Create an old battle (outside cooldown period)
-        var oldBattle = Battle.Create(playerCharacter.Id, opponent.Id, 12345, Core.Enums.BattleOutcome.AttackerWon);
-        oldBattle.CreatedAt = DateTime.UtcNow.AddHours(-2); // 2 hours ago (outside 1 hour cooldown)
-        await _context.Battles.AddAsync(oldBattle);
+        // Set cooldown via Character fields (outside 1 hour cooldown period)
+        playerCharacter.LastOpponentId = opponent.Id;
+        playerCharacter.LastBattleAt = DateTime.UtcNow.AddHours(-2); // 2 hours ago
         await _context.SaveChangesAsync();
 
         // Act

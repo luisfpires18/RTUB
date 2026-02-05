@@ -74,13 +74,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBetOptionRepository, BetOptionRepository>();
         services.AddScoped<IUserBetRepository, UserBetRepository>();
         services.AddScoped<ICharacterRepository, CharacterRepository>();
-        services.AddScoped<IBattleRepository, BattleRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
 
         // Stage Mode repositories
         services.AddScoped<IStageProgressRepository, StageProgressRepository>();
         services.AddScoped<IStageEnemyRepository, StageEnemyRepository>();
-        services.AddScoped<IStageBattleRepository, StageBattleRepository>();
 
         return services;
     }

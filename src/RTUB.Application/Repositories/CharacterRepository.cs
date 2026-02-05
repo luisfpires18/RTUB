@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -119,5 +120,48 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
         // Return up to 'count' opponents
         return prioritizedOpponents.Take(count).ToList();
+    }
+
+    public async Task<List<MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count)
+    {
+        // Get all characters with their user information and wins
+        var characters = await _context.Characters
+            .AsNoTracking()
+            .Include(c => c.User)
+            .Select(c => new
+            {
+                c.Id,
+                c.UserId,
+                DisplayName = c.User.Nickname ?? c.User.UserName ?? "Jogador",
+                c.User.ImageUrl,
+                c.Level,
+                c.ArenaWins
+            })
+            .ToListAsync();
+
+        // Get highest stage for each user from StageProgress
+        var stageProgressData = await _context.StageProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(sp => sp.UserId, sp => sp.HighestStage);
+
+        // Combine characters with their wins and sort
+        var leaderboard = characters
+            .Select(c => new MyTunoLeaderboardEntry
+            {
+                CharacterId = c.Id,
+                UserId = c.UserId,
+                DisplayName = c.DisplayName,
+                AvatarUrl = c.ImageUrl,
+                Wins = c.ArenaWins,
+                Level = c.Level,
+                HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0
+            })
+            .OrderByDescending(entry => entry.Wins)
+            .ThenByDescending(entry => entry.Level)
+            .ThenBy(entry => entry.DisplayName)
+            .Take(count)
+            .ToList();
+
+        return leaderboard;
     }
 }

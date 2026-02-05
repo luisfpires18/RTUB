@@ -7,6 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
+@using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
@@ -17,7 +18,6 @@
 @attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IBattleService BattleService
-@inject IBattleRepository BattleRepository
 @inject ICharacterRepository CharacterRepository
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -145,10 +145,25 @@
             </div>
         }
 
+        <!-- Arena Statistics -->
+        @if (character != null)
+        {
+            <div class="d-flex justify-content-center gap-3 mb-4">
+                <div class="stat-box-square">
+                    <span class="badge bg-success fs-5">@character.ArenaWins</span>
+                    <p class="mb-0 small text-muted">Vitórias</p>
+                </div>
+                <div class="stat-box-square">
+                    <span class="badge bg-danger fs-5">@character.ArenaLosses</span>
+                    <p class="mb-0 small text-muted">Derrotas</p>
+                </div>
+            </div>
+        }
+
         <!-- Opponent Selection - Only show when battle is not active -->
         @if (!showBattleAnimation)
         {
-            <div class="card mb-4">
+            <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
                 </div>
@@ -177,87 +192,6 @@
                 </div>
             </div>
         }
-
-        <!-- Battle History -->
-        <div class="card">
-            <div class="card-header bg-dark text-white text-center">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Histórico de Batalhas</h5>
-            </div>
-            <div class="card-body">
-                @if (battles == null || !battles.Any())
-                {
-                    <EmptyState Title="Nenhuma batalha encontrada"
-                                Message="Ainda não lutaste nenhuma batalha. Escolhe um oponente acima!"
-                                Icon="bi-sword" />
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Oponente</th>
-                                    <th>Resultado</th>
-                                    <th>XP</th>
-                                    <th>Fidelis</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var battle in paginatedBattles)
-                                {
-                                    <tr>
-                                        <td>@battle.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td>
-                                            @if (battle.Defender?.User != null)
-                                            {
-                                                <span>@battle.Defender.User.UserName</span>
-                                                <small class="text-muted d-block">(Nível @battle.Defender.Level)</small>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">AI Opponent</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (battle.Outcome == BattleOutcome.AttackerWon)
-                                            {
-                                                <span class="badge bg-success">Vitória</span>
-                                            }
-                                            else if (battle.Outcome == BattleOutcome.DefenderWon)
-                                            {
-                                                <span class="badge bg-danger">Derrota</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning text-dark">Empate</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info">+@battle.AttackerXP</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">+@battle.AttackerFidelis.ToString("F2")</span>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    @if (totalPages > 1)
-                    {
-                        <TablePagination CurrentPage="@currentPage"
-                                        PageSize="@pageSize"
-                                        TotalItems="@battles.Count"
-                                        ItemLabel="batalhas"
-                                        OnPageChanged="ChangePage"
-                                        PageSizeOptions="@(new[] { 10, 20, 30, 50 })"
-                                        OnPageSizeChanged="ChangePageSize" />
-                    }
-                }
-            </div>
-        </div>
     }
 
     @if (!string.IsNullOrEmpty(errorMessage))
@@ -270,8 +204,7 @@
     private Character? character;
     private ApplicationUser? currentUser;
     private List<Character>? opponentCharacters;
-    private List<Battle>? battles;
-    private Battle? currentBattle;
+    private BattleResult? currentBattle;
     private bool loading = true;
     private bool fighting = false;
     private bool showBattleAnimation = false;
@@ -286,15 +219,6 @@
     
     // UI timing constant - ensures UI update completes before scrolling on mobile devices
     private const int UiUpdateDelayMs = 50;
-
-    // Pagination
-    private int currentPage = 1;
-    private int pageSize = 20;
-    private int totalPages => battles != null ? (int)Math.Ceiling(battles.Count / (double)pageSize) : 0;
-    private List<Battle> paginatedBattles => battles?
-        .Skip((currentPage - 1) * pageSize)
-        .Take(pageSize)
-        .ToList() ?? new();
     
     // Helper method to get display max HP accounting for buff
     // Uses CreateShotBuffedCopy to get the exact same value used in arena battles
@@ -346,7 +270,6 @@
                     if (character != null)
                     {
                         await LoadOpponentsAsync();
-                        await LoadBattleHistoryAsync();
                     }
                 }
             }
@@ -384,23 +307,6 @@
         }
     }
 
-    private async Task LoadBattleHistoryAsync()
-    {
-        if (character == null) return;
-
-        try
-        {
-            battles = (await BattleRepository.GetByAttackerCharacterIdAsync(character.Id))
-                .OrderByDescending(b => b.CreatedAt)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading battle history");
-            errorMessage = "Erro ao carregar histórico de batalhas.";
-        }
-    }
-
     private async Task FightOpponent(Character opponent)
     {
         if (character == null || currentUser == null || opponent == null) return;
@@ -421,9 +327,13 @@
             currentBattle = null;
             StateHasChanged();
 
-            // Scroll to top with smooth behavior for better mobile UX
+            // Scroll to battle on mobile/PWA only
             await Task.Delay(UiUpdateDelayMs);
-            await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
+            var isMobile = await JSRuntime.InvokeAsync<bool>("isMobileDevice");
+            if (isMobile)
+            {
+                await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
+            }
 
             // Create battle vs specific opponent
             currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);
@@ -501,11 +411,10 @@
                 showBattleAnimation = false;
             }
 
-            // Reload character and battle history
+            // Reload character to show updated stats
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             currentUser = await UserManager.FindByIdAsync(currentUser.Id);
             await LoadOpponentsAsync();  // Refresh opponents list to show correct HP
-            await LoadBattleHistoryAsync();
         }
         catch (Exception ex)
         {
@@ -547,10 +456,10 @@
         {
             try
             {
-                var rewardsApplied = await BattleService.FinalizeAndApplyRewardsAsync(currentBattle.Id);
+                var rewardsApplied = await BattleService.FinalizeAndApplyRewardsAsync(currentBattle);
                 if (rewardsApplied)
                 {
-                    Logger.LogInformation("Battle {BattleId} rewards applied after animation", currentBattle.Id);
+                    Logger.LogInformation("Battle {BattleId} rewards applied after animation", currentBattle.BattleId);
                     // Reload character to show updated stats
                     if (currentUser != null)
                     {
@@ -561,7 +470,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error finalizing battle {BattleId}", currentBattle.Id);
+                Logger.LogError(ex, "Error finalizing battle {BattleId}", currentBattle.BattleId);
             }
         }
         
@@ -605,17 +514,6 @@
             return;
         }
         Navigation.NavigateTo("/my-tuno");
-    }
-
-    private void ChangePage(int page)
-    {
-        currentPage = page;
-    }
-
-    private void ChangePageSize(int newPageSize)
-    {
-        pageSize = newPageSize;
-        currentPage = 1;
     }
 
     public async ValueTask DisposeAsync()

@@ -8,7 +8,7 @@
 
     const DEFAULT_WIDTH = 800;
     const DEFAULT_HEIGHT = 500;
-    const DEFAULT_EVENT_INTERVAL = 600;
+    const DEFAULT_EVENT_INTERVAL = 400; // Reduced from 600ms to 400ms for faster battles
 
     let stageApp = null;
     let stageScene = null;
@@ -96,10 +96,10 @@
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
             // Speed bar system - time-based combat
-            this.playerActionTime = 5.0; // Default 5 seconds
-            this.enemyActionTimes = Array(this.enemyCount).fill(5.0);
-            this.playerSpeedBarTimer = 5000; // In milliseconds
-            this.enemySpeedBarTimers = Array(this.enemyCount).fill(5000);
+            this.playerActionTime = 3.5; // Reduced from 5.0 to 3.5 seconds for faster combat
+            this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
+            this.playerSpeedBarTimer = 3500; // In milliseconds
+            this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
             this.playerSpeedBar = null;
             this.enemySpeedBars = [];
             this.battleStartTime = 0;

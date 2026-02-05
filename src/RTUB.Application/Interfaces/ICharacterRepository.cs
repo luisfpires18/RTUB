@@ -1,3 +1,4 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Interfaces;
@@ -36,4 +37,11 @@ public interface ICharacterRepository : IRepository<Character>
     /// <param name="count">Number of opponents to return (default: 8)</param>
     /// <returns>List of prioritized opponents</returns>
     Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8);
+
+    /// <summary>
+    /// Gets top leaderboard entries ranked by wins, then level
+    /// </summary>
+    /// <param name="count">Number of entries to return</param>
+    /// <returns>List of leaderboard entries</returns>
+    Task<List<MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count);
 }
