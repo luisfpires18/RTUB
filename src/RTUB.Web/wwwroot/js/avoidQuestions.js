@@ -36,6 +36,13 @@ const avoidQuestionsGame = (function () {
     let keysPressed = {};
     let playerFlashing = false;
     let flashEndTime = 0;
+    
+    // Throttling for .NET interop
+    let lastStatsSentAt = 0;
+    let lastReportedLives = -1;
+    let lastReportedLevel = -1;
+    let lastReportedPoints = -1;
+    const STATS_UPDATE_INTERVAL = 250; // ms
 
     function init(canvasId, dotNetReference, configJson) {
         canvas = document.getElementById(canvasId);
@@ -446,9 +453,21 @@ const avoidQuestionsGame = (function () {
     }
 
     function updateDotNetStats() {
-        if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('UpdateStats', lives, level, points, timeElapsed);
+        if (!dotNetRef) return;
+        
+        const now = performance.now();
+        const valuesChanged = lives !== lastReportedLives || level !== lastReportedLevel || points !== lastReportedPoints;
+        
+        // Only send update if values changed or enough time passed
+        if (!valuesChanged && now - lastStatsSentAt < STATS_UPDATE_INTERVAL) {
+            return;
         }
+        
+        lastStatsSentAt = now;
+        lastReportedLives = lives;
+        lastReportedLevel = level;
+        lastReportedPoints = points;
+        dotNetRef.invokeMethodAsync('UpdateStats', lives, level, points, timeElapsed);
     }
 
     function endGame() {

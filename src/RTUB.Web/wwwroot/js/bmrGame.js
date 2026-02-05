@@ -60,6 +60,12 @@ const bmrGame = (function () {
     let cameraX = 0;
     let worldGenX = 0; // Track how far we've generated the world
     
+    // Throttling for .NET interop
+    let lastStatsSentAt = 0;
+    let lastReportedHealth = -1;
+    let lastReportedPoints = -1;
+    const STATS_UPDATE_INTERVAL = 250; // ms
+    
     // Sprites
     let sprites = {
         player: null,
@@ -1180,10 +1186,21 @@ const bmrGame = (function () {
     }
 
     function updateDotNetStats() {
-        if (dotNetRef) {
-            // Endless mode - no levels, just show points
-            dotNetRef.invokeMethodAsync('UpdateStats', health, 1, points);
+        if (!dotNetRef) return;
+        
+        const now = performance.now();
+        const valuesChanged = health !== lastReportedHealth || points !== lastReportedPoints;
+        
+        // Only send update if values changed or enough time passed
+        if (!valuesChanged && now - lastStatsSentAt < STATS_UPDATE_INTERVAL) {
+            return;
         }
+        
+        lastStatsSentAt = now;
+        lastReportedHealth = health;
+        lastReportedPoints = points;
+        // Endless mode - no levels, just show points
+        dotNetRef.invokeMethodAsync('UpdateStats', health, 1, points);
     }
 
     function endGame() {

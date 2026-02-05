@@ -40,6 +40,12 @@ const tomatoThrowerGame = (function () {
     let lastFrameTime = 0;
     let animationId = null;
     
+    // Throttling for .NET interop
+    let lastStatsSentAt = 0;
+    let lastReportedPoints = -1;
+    let lastReportedHits = -1;
+    const STATS_UPDATE_INTERVAL = 250; // ms
+    
     // Images
     let avatarImages = {};
     let imagesLoaded = 0;
@@ -539,9 +545,20 @@ const tomatoThrowerGame = (function () {
     }
 
     function updateDotNetStats() {
-        if (dotNetRef) {
-            dotNetRef.invokeMethodAsync('UpdateStats', points, hits, hits, timeElapsed);
+        if (!dotNetRef) return;
+        
+        const now = performance.now();
+        const valuesChanged = points !== lastReportedPoints || hits !== lastReportedHits;
+        
+        // Only send update if values changed or enough time passed
+        if (!valuesChanged && now - lastStatsSentAt < STATS_UPDATE_INTERVAL) {
+            return;
         }
+        
+        lastStatsSentAt = now;
+        lastReportedPoints = points;
+        lastReportedHits = hits;
+        dotNetRef.invokeMethodAsync('UpdateStats', points, hits, hits, timeElapsed);
     }
 
     function endGame() {
