@@ -252,7 +252,7 @@
     private bool battleAutoStarted = false;
     private int currentStageNumber = 1;
     private int checkpointStage = 1;
-    private bool isFirstBattle = true; // Track if this is the first battle to use start vs nextBattle
+
 
     // Battle controls
     private double battleSpeed = 1.0;
@@ -469,6 +469,21 @@
                         }
                     }
 
+                    // Parse enemy placements (0=Terrestrial, 1=Aerial)
+                    var enemyPlacements = new List<int>();
+                    if (replayData.TryGetProperty("EnemyPlacements", out var placementsProp) && placementsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var p in placementsProp.EnumerateArray())
+                        {
+                            enemyPlacements.Add(p.GetInt32());
+                        }
+                    }
+                    // Default to terrestrial if no placements found
+                    while (enemyPlacements.Count < enemyCount)
+                    {
+                        enemyPlacements.Add(0);
+                    }
+
                     // Create stage battle data object for new stage battle scene
                     var battleData = new
                     {
@@ -481,19 +496,12 @@
                         EnemyName = currentBattle.EnemyName,
                         BackgroundPath = "/sprites/games/my-tuno/backgrounds/forest.png",
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
-                        EnemySprites = enemySpritePaths // Array of sprite paths
+                        EnemySprites = enemySpritePaths, // Array of sprite paths
+                        EnemyPlacements = enemyPlacements // 0=Terrestrial, 1=Aerial
                     };
 
-                    // Use nextBattle for seamless transition, or start for first battle
-                    if (isFirstBattle)
-                    {
-                        await JSRuntime.InvokeVoidAsync("stageBattleGame.start", "phaserBattleContainer", battleData);
-                        isFirstBattle = false;
-                    }
-                    else
-                    {
-                        await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
-                    }
+                    // nextBattle handles both first battle (falls back to start) and subsequent battles
+                    await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
 
                     // Cancel any previous timeout and create new one
                     battleTimeoutCts?.Cancel();
@@ -622,13 +630,15 @@
             totalBeersDropped += currentBattle.BeersDropped;
             totalShotsDropped += currentBattle.ShotsDropped;
             stagesCleared++;
-            StateHasChanged();
             
             // Brief delay then start next stage automatically
-            // Keep showBattleAnimation = true to avoid hiding the container
-            await Task.Delay(300);
+            // Keep showBattleAnimation = true to avoid hiding/recreating the container
+            await Task.Delay(200);
             currentBattle = null;
+            
+            // Only update UI after starting next battle to minimize flicker
             await FightStageEnemy();
+            StateHasChanged();
         }
         else
         {
@@ -718,7 +728,6 @@
         totalBeersDropped = 0;
         totalShotsDropped = 0;
         stagesCleared = 0;
-        isFirstBattle = true;
         currentEnemyStats.Clear();
     }
 

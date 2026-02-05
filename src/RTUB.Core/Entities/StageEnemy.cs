@@ -78,6 +78,11 @@ public class StageEnemy : BaseEntity
     /// </summary>
     public double ShotDropChance { get; set; } = 0.05;
 
+    /// <summary>
+    /// How the enemy is positioned in battle (ground or flying)
+    /// </summary>
+    public PlacementType Placement { get; set; } = PlacementType.Terrestrial;
+
     // Private constructor for EF Core
     private StageEnemy() { }
 
@@ -97,7 +102,8 @@ public class StageEnemy : BaseEntity
         double beerDropChance = 0.1,
         double shotDropChance = 0.05,
         string? spritePath = null,
-        int? bossStageNumber = null)
+        int? bossStageNumber = null,
+        PlacementType placement = PlacementType.Terrestrial)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name is required", nameof(name));
@@ -116,7 +122,8 @@ public class StageEnemy : BaseEntity
             BeerDropChance = beerDropChance,
             ShotDropChance = shotDropChance,
             SpritePath = spritePath,
-            BossStageNumber = bossStageNumber
+            BossStageNumber = bossStageNumber,
+            Placement = placement
         };
     }
 

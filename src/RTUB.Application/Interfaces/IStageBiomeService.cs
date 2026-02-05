@@ -36,6 +36,14 @@ public interface IStageBiomeService
     Task<List<string>> GetRandomEnemySpritesAsync(int stageNumber, int count);
 
     /// <summary>
+    /// Gets random enemy sprite paths with placement info for a given stage
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <param name="count">Number of unique enemy sprites to retrieve</param>
+    /// <returns>List of tuples with sprite path and placement type (0=Terrestrial, 1=Aerial)</returns>
+    Task<List<(string SpritePath, int Placement)>> GetRandomEnemySpritesWithPlacementAsync(int stageNumber, int count);
+
+    /// <summary>
     /// Gets boss sprite path for a given boss stage
     /// </summary>
     /// <param name="stageNumber">The boss stage number</param>

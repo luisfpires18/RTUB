@@ -78,22 +78,39 @@
             this.playbackSpeed = 1;
             this.battleFinished = false;
             
-            this.stageNumber = data?.stageNumber ?? 1;
-            this.enemyType = data?.enemyType ?? 'normal';
-            this.enemyCount = data?.enemyCount ?? 1;
-            this.playerName = data?.playerName ?? 'Player';
-            this.enemyName = data?.enemyName ?? 'Enemy';
-            this.backgroundPath = data?.backgroundPath ?? defaultSprites.background;
-            this.playerSpritePath = data?.playerSpritePath ?? defaultSprites.player;
+            // Handle both PascalCase (from C#) and camelCase property names
+            this.stageNumber = data?.StageNumber ?? data?.stageNumber ?? 1;
+            this.enemyType = data?.EnemyType ?? data?.enemyType ?? 'normal';
+            this.enemyCount = data?.EnemyCount ?? data?.enemyCount ?? 1;
+            this.playerName = data?.PlayerName ?? data?.playerName ?? 'Player';
+            this.enemyName = data?.EnemyName ?? data?.enemyName ?? 'Enemy';
+            this.backgroundPath = data?.BackgroundPath ?? data?.backgroundPath ?? defaultSprites.background;
+            this.playerSpritePath = data?.PlayerSpritePath ?? data?.playerSpritePath ?? defaultSprites.player;
             
-            if (data?.enemySprites && Array.isArray(data.enemySprites)) {
-                this.enemySpritePaths = data.enemySprites;
+            // Get enemy sprites - check both PascalCase and camelCase
+            const enemySpritesData = data?.EnemySprites ?? data?.enemySprites;
+            if (enemySpritesData && Array.isArray(enemySpritesData)) {
+                this.enemySpritePaths = enemySpritesData;
             } else {
-                const singlePath = data?.enemySpritePath ?? defaultSprites.enemies[this.enemyType] ?? defaultSprites.enemies.normal;
+                const singlePath = data?.EnemySpritePath ?? data?.enemySpritePath ?? defaultSprites.enemies[this.enemyType] ?? defaultSprites.enemies.normal;
                 this.enemySpritePaths = Array(this.enemyCount).fill(singlePath);
             }
             
+            // Get enemy placements (0=Terrestrial, 1=Aerial)
+            const placementsData = data?.EnemyPlacements ?? data?.enemyPlacements;
+            if (placementsData && Array.isArray(placementsData)) {
+                this.enemyPlacements = placementsData;
+            } else {
+                this.enemyPlacements = Array(this.enemyCount).fill(0); // Default all terrestrial
+            }
+            
+            console.log('StageBattleScene constructor - Stage:', this.stageNumber, 'PlacementsData:', placementsData, 'Set placements:', this.enemyPlacements);
+            
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
+            
+            // Idle animation settings
+            this.idleAnimationTime = 0;
+            this.enemyIdleOffsets = []; // Store original Y positions for idle bob
             
             // Speed bar system - time-based combat
             this.playerActionTime = 3.5; // Reduced from 5.0 to 3.5 seconds for faster combat
@@ -178,14 +195,20 @@
         }
 
         async loadAssets() {
+            // Use sprite paths as aliases - PIXI will cache by URL correctly
             const assets = [
                 { alias: 'stageBg', src: this.backgroundPath },
                 { alias: 'stagePlayer', src: this.playerSpritePath }
             ];
 
+            // Store the actual paths for creating sprites later
+            this.enemySpriteAliases = [];
             if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
                 for (let i = 0; i < this.enemySpritePaths.length; i++) {
-                    assets.push({ alias: `stageEnemy${i}`, src: this.enemySpritePaths[i] });
+                    // Use unique alias combining index and path to avoid caching issues
+                    const alias = `stageEnemy${i}_${this.stageNumber}`;
+                    assets.push({ alias: alias, src: this.enemySpritePaths[i] });
+                    this.enemySpriteAliases.push(alias);
                 }
             }
 
@@ -388,18 +411,42 @@
         createEnemies(width, height) {
             this.enemySprites = [];
             this.enemyHpBars = [];
+            this.enemyIdleOffsets = []; // Store base positions for idle animation
             
             const isMobile = width <= height || width < 500;
             const groundOffset = 60;
             const enemyX = width * 0.75;
             const baseEnemyY = height - groundOffset;
             
-            const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height);
+            console.log('createEnemies - Stage:', this.stageNumber, 'Using placements:', this.enemyPlacements);
+            
+            // Pass placements to calculate positions
+            const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements);
+            
+            console.log('createEnemies - Calculated positions:', positions);
 
             for (let i = 0; i < this.enemyCount; i++) {
                 const pos = positions[i];
+                if (!pos) continue; // Skip if no position calculated
                 
-                const enemy = PIXI.Sprite.from(`stageEnemy${i}`);
+                const isAerial = pos.isAerial || (this.enemyPlacements && this.enemyPlacements[i] === 1);
+                
+                // Store base position for idle animation
+                // Aerial enemies bob more and have faster horizontal sway
+                this.enemyIdleOffsets.push({
+                    baseX: pos.x,
+                    baseY: pos.y,
+                    phase: i * (Math.PI / 2), // Stagger phases
+                    isAerial: isAerial,
+                    bobAmplitude: isAerial ? 6 : 3, // Aerial bob more
+                    swayAmplitude: isAerial ? 4 : 2
+                });
+                
+                // Use the stage-specific alias stored during loadAssets
+                const alias = this.enemySpriteAliases && this.enemySpriteAliases[i] 
+                    ? this.enemySpriteAliases[i] 
+                    : `stageEnemy${i}_${this.stageNumber}`;
+                const enemy = PIXI.Sprite.from(alias);
                 enemy.anchor.set(0.5, 1);
                 enemy.x = pos.x;
                 enemy.y = pos.y;
@@ -477,53 +524,96 @@
             }
         }
 
-        calculateEnemyPositions(isMobile, enemyCount, baseX, baseY, width, height) {
+        calculateEnemyPositions(isMobile, enemyCount, baseX, baseY, width, height, placements) {
             const positions = [];
             
-            if (enemyCount >= 4) {
-                const hSpacing = isMobile ? 55 : 80;
-                const vSpacing = isMobile ? 70 : 90;
-                const topRowY = baseY - vSpacing;
-                const bottomRowY = baseY;
-                
-                if (enemyCount === 4) {
-                    positions.push({ x: baseX - hSpacing/2, y: topRowY });
-                    positions.push({ x: baseX + hSpacing/2, y: topRowY });
-                    positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
-                    positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
-                } else if (enemyCount === 5) {
-                    const midRowY = baseY - vSpacing/2;
-                    positions.push({ x: baseX - hSpacing/2, y: topRowY });
-                    positions.push({ x: baseX + hSpacing/2, y: topRowY });
-                    positions.push({ x: baseX, y: midRowY });
-                    positions.push({ x: baseX - hSpacing/2, y: bottomRowY });
-                    positions.push({ x: baseX + hSpacing/2, y: bottomRowY });
+            // Separate aerial and terrestrial enemies
+            const aerialIndices = [];
+            const terrestrialIndices = [];
+            
+            for (let i = 0; i < enemyCount; i++) {
+                if (placements && placements[i] === 1) {
+                    aerialIndices.push(i);
                 } else {
-                    const topCount = Math.ceil(enemyCount / 2);
-                    const bottomCount = enemyCount - topCount;
-                    
-                    for (let i = 0; i < topCount; i++) {
-                        const xOffset = (i - (topCount - 1) / 2) * hSpacing;
-                        positions.push({ x: baseX + xOffset, y: topRowY });
-                    }
-                    for (let i = 0; i < bottomCount; i++) {
-                        const xOffset = (i - (bottomCount - 1) / 2) * hSpacing;
-                        positions.push({ x: baseX + xOffset, y: bottomRowY });
-                    }
-                }
-            } else {
-                const spacing = isMobile ? 50 : 80;
-                const startX = baseX - ((enemyCount - 1) * spacing) / 2;
-                
-                for (let i = 0; i < enemyCount; i++) {
-                    positions.push({ x: startX + i * spacing, y: baseY });
+                    terrestrialIndices.push(i);
                 }
             }
             
-            return positions;
+            // Much wider spacing to prevent overlap
+            const hSpacing = isMobile ? 90 : 140;
+            const vSpacing = isMobile ? 100 : 130;
+            const aerialOffset = isMobile ? 80 : 120; // How high aerial enemies fly
+            
+            // Calculate positions for each enemy
+            const tempPositions = Array(enemyCount).fill(null);
+            
+            // Position terrestrial enemies in bottom area
+            if (terrestrialIndices.length > 0) {
+                const count = terrestrialIndices.length;
+                const startX = baseX - ((count - 1) * hSpacing) / 2;
+                
+                for (let i = 0; i < count; i++) {
+                    const idx = terrestrialIndices[i];
+                    tempPositions[idx] = { 
+                        x: startX + i * hSpacing, 
+                        y: baseY,
+                        isAerial: false 
+                    };
+                }
+            }
+            
+            // Position aerial enemies in top area (flying)
+            if (aerialIndices.length > 0) {
+                const count = aerialIndices.length;
+                const startX = baseX - ((count - 1) * hSpacing) / 2;
+                const aerialY = baseY - aerialOffset;
+                
+                for (let i = 0; i < count; i++) {
+                    const idx = aerialIndices[i];
+                    tempPositions[idx] = { 
+                        x: startX + i * hSpacing, 
+                        y: aerialY,
+                        isAerial: true 
+                    };
+                }
+            }
+            
+            // If all same type with 5 enemies, use staggered formation
+            if (enemyCount === 5 && (aerialIndices.length === 5 || terrestrialIndices.length === 5)) {
+                const baseYForType = aerialIndices.length === 5 ? baseY - aerialOffset : baseY;
+                const smallVOffset = isMobile ? 50 : 70;
+                
+                // Staggered 2-1-2 pattern
+                tempPositions[0] = { x: baseX - hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 5 };
+                tempPositions[1] = { x: baseX + hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 5 };
+                tempPositions[2] = { x: baseX, y: baseYForType - smallVOffset/2, isAerial: aerialIndices.length === 5 };
+                tempPositions[3] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 5 };
+                tempPositions[4] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 5 };
+            }
+            
+            // If 4 enemies of same type, use 2x2 grid
+            if (enemyCount === 4 && (aerialIndices.length === 4 || terrestrialIndices.length === 4)) {
+                const baseYForType = aerialIndices.length === 4 ? baseY - aerialOffset : baseY;
+                const smallVOffset = isMobile ? 60 : 80;
+                
+                tempPositions[0] = { x: baseX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[1] = { x: baseX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[2] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
+                tempPositions[3] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
+            }
+            
+            // If 3 enemies, triangle
+            if (enemyCount === 3 && (aerialIndices.length === 3 || terrestrialIndices.length === 3)) {
+                const baseYForType = aerialIndices.length === 3 ? baseY - aerialOffset : baseY;
+                const smallVOffset = isMobile ? 60 : 80;
+                
+                tempPositions[0] = { x: baseX, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 3 };
+                tempPositions[1] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
+                tempPositions[2] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
+            }
+            
+            return tempPositions;
         }
-
-
 
         createBattleLog(width, height) {
             const panelHeight = 50;
@@ -574,6 +664,9 @@
 
         update() {
             const deltaMs = this.app.ticker.deltaMS;
+            
+            // Idle animation for enemies - always runs even during pauses
+            this.updateIdleAnimation(deltaMs);
             
             // Time-based battle simulation
             if (!this.battleFinished && this.battleEvents && this.isPlaying) {
@@ -628,6 +721,37 @@
                         break;
                     }
                 }
+            }
+        }
+
+        updateIdleAnimation(deltaMs) {
+            // Animate enemies with a gentle floating/bobbing motion
+            if (!this.enemySprites || this.enemySprites.length === 0) return;
+            
+            this.idleAnimationTime += deltaMs * 0.002; // Slow animation speed
+            
+            for (let i = 0; i < this.enemySprites.length; i++) {
+                const enemy = this.enemySprites[i];
+                const offset = this.enemyIdleOffsets[i];
+                
+                if (!enemy || !offset || this.enemyHPs[i]?.current <= 0) continue;
+                
+                const phase = offset.phase;
+                const bobAmplitude = offset.bobAmplitude || 3;
+                const swayAmplitude = offset.swayAmplitude || 2;
+                
+                // Aerial enemies bob faster and more dramatically
+                const bobSpeed = offset.isAerial ? 2.0 : 1.5;
+                const swaySpeed = offset.isAerial ? 1.2 : 0.8;
+                
+                // Y bob (up and down)
+                const bobY = Math.sin(this.idleAnimationTime * bobSpeed + phase) * bobAmplitude;
+                
+                // X sway
+                const swayX = Math.sin(this.idleAnimationTime * swaySpeed + phase * 1.3) * swayAmplitude;
+                
+                enemy.y = offset.baseY + bobY;
+                enemy.x = offset.baseX + swayX;
             }
         }
 
@@ -1158,6 +1282,77 @@
             }
         }
         
+        // Reset scene for next battle without destroying the app - much faster!
+        async resetForNextBattle(data) {
+            // Stop current battle processing
+            this.isPlaying = false;
+            this.battleFinished = true;
+            
+            // Update battle data
+            this.eventsList = data?.events ?? [];
+            this.dotNetRef = data?.dotNetRef ?? this.dotNetRef;
+            this.stageNumber = data?.stageNumber ?? this.stageNumber + 1;
+            this.enemyType = data?.enemyType ?? 'Normal';
+            this.enemyCount = data?.enemyCount ?? 1;
+            this.playerName = data?.playerName ?? this.playerName;
+            this.enemyName = data?.enemyName ?? this.enemyName;
+            this.backgroundPath = data?.backgroundPath ?? this.backgroundPath;
+            this.playerSpritePath = data?.playerSpritePath ?? this.playerSpritePath;
+            this.enemySpritePaths = data?.enemySprites ?? [];
+            this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
+            
+            console.log('resetForNextBattle - Stage:', this.stageNumber, 'Received placements:', data?.enemyPlacements, 'Set placements:', this.enemyPlacements);
+            
+            // Reset battle state
+            this.currentEventIndex = 0;
+            this.battleFinished = false;
+            this.logEntries = [];
+            this.playerMaxHp = 100;
+            this.playerCurrentHp = 100;
+            this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
+            this.idleAnimationTime = 0;
+            this.enemyIdleOffsets = [];
+            
+            // Clear all sprites from stage except background
+            const childrenToRemove = [];
+            for (let i = this.stage.children.length - 1; i >= 0; i--) {
+                const child = this.stage.children[i];
+                if (child !== this.backgroundSprite) {
+                    childrenToRemove.push(child);
+                }
+            }
+            childrenToRemove.forEach(child => {
+                this.stage.removeChild(child);
+                if (child.destroy) {
+                    try {
+                        child.destroy({ children: true, texture: false, baseTexture: false });
+                    } catch (e) {}
+                }
+            });
+            
+            // Reset arrays
+            this.enemySprites = [];
+            this.enemyHpBars = [];
+            this.enemySpeedBars = [];
+            this.enemySpeedBarTimers = [];
+            this.enemyActionTimes = [];
+            
+            // Load new enemy textures
+            await this.loadAssets();
+            
+            // Rebuild scene
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            
+            this.createPlayer(width, height);
+            this.createEnemies(width, height);
+            this.createBattleLog(width, height);
+            
+            // Restart battle
+            this.preprocessInitialEvents();
+            this.startTimedBattle();
+        }
+        
         static stopBackgroundMusic() {
             if (backgroundMusic) {
                 try {
@@ -1196,6 +1391,9 @@
             const backgroundPath = battleData?.backgroundPath ?? battleData?.BackgroundPath ?? defaultSprites.background;
             const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
+            const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
+            
+            console.log('Stage battle start - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements);
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -1207,7 +1405,8 @@
                 enemyName: enemyName,
                 backgroundPath: backgroundPath,
                 playerSpritePath: playerSpritePath,
-                enemySprites: enemySprites
+                enemySprites: enemySprites,
+                enemyPlacements: enemyPlacements
             });
         },
 
@@ -1249,15 +1448,39 @@
 
         nextBattle: function (battleData) {
             if (!stageScene) {
-                console.warn('No active game, using start() instead');
+                console.warn('No active scene, using start() instead');
                 this.start('phaserBattleContainer', battleData);
                 return;
             }
 
-            console.log('Starting next stage battle');
-            // Use destroySceneOnly to keep music playing between stages
-            this.destroySceneOnly();
-            this.start('phaserBattleContainer', battleData);
+            const events = resolveEvents(battleData);
+            const stageNumber = battleData?.StageNumber ?? battleData?.stageNumber ?? 1;
+            const enemyType = battleData?.EnemyType ?? battleData?.enemyType ?? 'Normal';
+            const enemyCount = battleData?.EnemyCount ?? battleData?.enemyCount ?? 1;
+            const playerName = battleData?.PlayerName ?? battleData?.playerName ?? 'Player';
+            const enemyName = battleData?.EnemyName ?? battleData?.enemyName ?? 'Enemy';
+            const backgroundPath = battleData?.BackgroundPath ?? battleData?.backgroundPath ?? defaultSprites.background;
+            const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
+            const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
+            const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
+            const dotNetRef = battleData?.DotNetRef ?? battleData?.dotNetRef ?? null;
+
+            console.log('Stage battle nextBattle - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements);
+
+            // Use fast reset instead of destroy/recreate
+            stageScene.resetForNextBattle({
+                events: events,
+                dotNetRef: dotNetRef,
+                stageNumber: stageNumber,
+                enemyType: enemyType,
+                enemyCount: enemyCount,
+                playerName: playerName,
+                enemyName: enemyName,
+                backgroundPath: backgroundPath,
+                playerSpritePath: playerSpritePath,
+                enemySprites: enemySprites,
+                enemyPlacements: enemyPlacements
+            });
         }
     };
 })();

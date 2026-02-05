@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
@@ -154,6 +155,62 @@ public class StageBiomeService : IStageBiomeService
         }
 
         return selectedSprites;
+    }
+
+    /// <summary>
+    /// Gets random enemy sprite paths with placement info for a given stage
+    /// Uses database enemies with their placement types
+    /// </summary>
+    public async Task<List<(string SpritePath, int Placement)>> GetRandomEnemySpritesWithPlacementAsync(int stageNumber, int count)
+    {
+        var biomeName = GetBiomeForStage(stageNumber);
+        var region = GetRegionForBiome(biomeName);
+        
+        _logger.LogInformation("GetRandomEnemySpritesWithPlacementAsync - Stage: {Stage}, Count: {Count}, Region: {Region}", 
+            stageNumber, count, region);
+        
+        // Get random enemies from database with their placement info
+        var enemies = await _stageEnemyRepository.GetRandomEnemiesAsync(EnemyType.Normal, region, count);
+        
+        if (enemies.Count == 0)
+        {
+            _logger.LogWarning("No enemies in database for region {Region}, using file-based sprites as terrestrial", region);
+            var sprites = await GetRandomEnemySpritesAsync(stageNumber, count);
+            return sprites.Select(s => (s, 0)).ToList(); // All terrestrial by default
+        }
+
+        var result = enemies.Select(e => (
+            SpritePath: e.SpritePath ?? GetDefaultSpriteForBiome(biomeName),
+            Placement: (int)e.Placement
+        )).ToList();
+        
+        _logger.LogInformation("GetRandomEnemySpritesWithPlacementAsync - Returning enemies: {Enemies}", 
+            string.Join(", ", result.Select(r => $"{r.SpritePath}(P:{r.Placement})")));
+        
+        return result;
+    }
+
+    private string GetDefaultSpriteForBiome(string biomeName)
+    {
+        return $"/sprites/games/my-tuno/enemies/{biomeName.ToLowerInvariant()}/wolf.png";
+    }
+
+    private RegionType GetRegionForBiome(string biomeName)
+    {
+        return biomeName.ToLowerInvariant() switch
+        {
+            "forest" => RegionType.Forest,
+            "desert" => RegionType.Desert,
+            "mountains" => RegionType.Mountains,
+            "swamp" => RegionType.Swamp,
+            "tundra" => RegionType.Tundra,
+            "volcano" => RegionType.Volcano,
+            "ocean" => RegionType.Ocean,
+            "sky" => RegionType.Sky,
+            "underground" => RegionType.Underground,
+            "cursedlands" => RegionType.CursedLands,
+            _ => RegionType.Forest
+        };
     }
 
     /// <summary>

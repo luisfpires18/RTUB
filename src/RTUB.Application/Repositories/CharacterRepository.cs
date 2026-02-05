@@ -79,47 +79,57 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             return new List<Character>();
 
         var playerLevel = playerCharacter.Level;
+        var halfCount = count / 2; // 4 below/equal, 4 above for count=8
 
-        // Categorize opponents in a single pass for efficiency
-        var higherLevel = new List<(Character character, int levelDiff)>();
-        var sameLevel = new List<Character>();
-        var lowerLevel = new List<(Character character, int levelDiff)>();
+        // Categorize opponents
+        var belowOrEqual = allOpponents
+            .Where(c => c.Level <= playerLevel)
+            .OrderByDescending(c => c.Level) // Closest to player level first
+            .ThenBy(_ => Guid.NewGuid()) // Randomize within same level
+            .ToList();
 
-        foreach (var opponent in allOpponents)
+        var above = allOpponents
+            .Where(c => c.Level > playerLevel)
+            .OrderBy(c => c.Level) // Closest to player level first
+            .ThenBy(_ => Guid.NewGuid()) // Randomize within same level
+            .ToList();
+
+        // Build balanced list: up to half from below/equal, up to half from above
+        var result = new List<Character>();
+
+        // Take up to halfCount from below/equal
+        var belowPortion = belowOrEqual.Take(halfCount).ToList();
+        result.AddRange(belowPortion);
+
+        // Take up to halfCount from above
+        var abovePortion = above.Take(halfCount).ToList();
+        result.AddRange(abovePortion);
+
+        // If we don't have enough from one side, fill from the other
+        var remaining = count - result.Count;
+        if (remaining > 0)
         {
-            if (opponent.Level > playerLevel)
+            if (belowPortion.Count < halfCount)
             {
-                higherLevel.Add((opponent, opponent.Level - playerLevel));
+                // Need more from above
+                var additionalAbove = above.Skip(halfCount).Take(remaining);
+                result.AddRange(additionalAbove);
             }
-            else if (opponent.Level == playerLevel)
+            else if (abovePortion.Count < halfCount)
             {
-                sameLevel.Add(opponent);
-            }
-            else
-            {
-                lowerLevel.Add((opponent, playerLevel - opponent.Level));
+                // Need more from below
+                var additionalBelow = belowOrEqual.Skip(halfCount).Take(remaining);
+                result.AddRange(additionalBelow);
             }
         }
 
-        // Build priority list: higher level first (sorted by proximity), 
-        // then same level, then lower level (sorted by proximity)
-        var prioritizedOpponents = new List<Character>();
-
-        // Add higher level opponents sorted by proximity (smallest diff first)
-        prioritizedOpponents.AddRange(
-            higherLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
-        );
-
-        // Add same level opponents
-        prioritizedOpponents.AddRange(sameLevel);
-
-        // Add lower level opponents sorted by proximity (smallest diff first)
-        prioritizedOpponents.AddRange(
-            lowerLevel.OrderBy(x => x.levelDiff).Select(x => x.character)
-        );
-
-        // Return up to 'count' opponents
-        return prioritizedOpponents.Take(count).ToList();
+        // Sort final result: below/equal first (by level descending), then above (by level ascending)
+        // This puts closest matches to the player at the top
+        return result
+            .OrderByDescending(c => c.Level <= playerLevel ? 1 : 0) // Below/equal first
+            .ThenBy(c => c.Level <= playerLevel ? -c.Level : c.Level) // Sort within groups by proximity
+            .Take(count)
+            .ToList();
     }
 
     public async Task<List<MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count)

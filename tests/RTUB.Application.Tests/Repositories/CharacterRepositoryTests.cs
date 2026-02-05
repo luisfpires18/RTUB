@@ -31,7 +31,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task GetRandomOpponentsAsync_PrioritizesHigherLevelOpponents()
+    public async Task GetRandomOpponentsAsync_ReturnsBalancedOpponents()
     {
         // Arrange - Create player at level 5
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
@@ -73,24 +73,19 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Assert
         result.Should().NotBeNull();
-        (result.Count <= 8).Should().BeTrue();
+        result.Should().HaveCount(8);
 
-        // First opponents should be higher level (6, 7, 8, 9, 10)
-        // Then lower level (4, 3, 2, 1)
-        var higherLevelCount = result.Count(c => c.Level > playerCharacter.Level);
-        var lowerLevelCount = result.Count(c => c.Level < playerCharacter.Level);
+        // Should have balanced distribution: 4 below/equal, 4 above
+        var belowOrEqualCount = result.Count(c => c.Level <= playerCharacter.Level);
+        var aboveCount = result.Count(c => c.Level > playerCharacter.Level);
 
-        // Should prioritize higher level first
-        if (result.Count >= 5)
-        {
-            // First 5 should all be higher level if available
-            var first5 = result.Take(5).ToList();
-            first5.Should().OnlyContain(c => c.Level > playerCharacter.Level);
-        }
+        // With 4 below (1,2,3,4) and 5 above (6,7,8,9,10), we should get 4 of each
+        belowOrEqualCount.Should().Be(4);
+        aboveCount.Should().Be(4);
     }
 
     [Fact]
-    public async Task GetRandomOpponentsAsync_SortsHigherLevelByProximity()
+    public async Task GetRandomOpponentsAsync_SortsAboveLevelByProximity()
     {
         // Arrange - Create player at level 5
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
@@ -106,7 +101,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
 
-        // Create higher level opponents
+        // Create higher level opponents only
         var levels = new[] { 10, 6, 8, 7 }; // Player is level 5
         foreach (var level in levels)
         {
@@ -130,6 +125,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Assert - Should be ordered by proximity: 6, 7, 8, 10
         result.Should().NotBeNull();
         result.Should().HaveCount(4);
+        // All are above player level, sorted by proximity (ascending)
         result[0].Level.Should().Be(6); // Closest to 5
         result[1].Level.Should().Be(7);
         result[2].Level.Should().Be(8);
@@ -137,7 +133,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
     }
 
     [Fact]
-    public async Task GetRandomOpponentsAsync_SortsLowerLevelByProximity()
+    public async Task GetRandomOpponentsAsync_SortsBelowLevelByProximity()
     {
         // Arrange - Create player at level 10
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
@@ -153,7 +149,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
 
-        // Create lower level opponents
+        // Create lower level opponents only
         var levels = new[] { 1, 9, 5, 7 }; // Player is level 10
         foreach (var level in levels)
         {
@@ -174,7 +170,8 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _repository.GetRandomOpponentsAsync(playerCharacter.Id, 8);
 
-        // Assert - Should be ordered by proximity: 9, 7, 5, 1
+        // Assert - Below/equal opponents should be sorted by level descending (closest first)
+        // All are below player level, sorted by proximity (descending by level)
         result.Should().NotBeNull();
         result.Should().HaveCount(4);
         result[0].Level.Should().Be(9); // Closest to 10

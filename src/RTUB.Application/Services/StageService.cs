@@ -88,7 +88,7 @@ public class StageService : IStageService
         if (stageProgress == null)
             throw new ArgumentNullException(nameof(stageProgress));
 
-        var enemyType = StageProgress.GetEnemyTypeForStage(stageProgress.CurrentStage);
+        var enemyType = GetEnemyTypeForStageFromConfig(stageProgress.CurrentStage);
         var region = stageProgress.CurrentRegion;
 
         return await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
@@ -119,7 +119,7 @@ public class StageService : IStageService
             user?.UserName ?? character.UserId,
             hasShotBuff ? " (with shot buff)" : "");
         var stageNumber = stageProgress.CurrentStage;
-        var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
+        var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
         var region = stageProgress.CurrentRegion;
 
         // Get enemy count for this stage (e.g., stage 1 = 1 enemy, stage 9 = 5 enemies)
@@ -132,17 +132,26 @@ public class StageService : IStageService
         var enemies = new List<Character>();
         var enemyTemplateIds = new List<int?>();
         var enemySpritePaths = new List<string>();
+        var enemyPlacements = new List<int>();
         
-        // Get all enemy sprites at once
-        List<string> spritePaths;
+        // Get all enemy sprites with placements at once
         if (enemyType == EnemyType.Boss)
         {
             var bossSprite = await _biomeService.GetBossSpriteAsync(stageNumber);
-            spritePaths = Enumerable.Repeat(bossSprite, enemyCount).ToList();
+            for (int i = 0; i < enemyCount; i++)
+            {
+                enemySpritePaths.Add(bossSprite);
+                enemyPlacements.Add(0); // Bosses are always terrestrial
+            }
         }
         else
         {
-            spritePaths = await _biomeService.GetRandomEnemySpritesAsync(stageNumber, enemyCount);
+            var spritesWithPlacements = await _biomeService.GetRandomEnemySpritesWithPlacementAsync(stageNumber, enemyCount);
+            foreach (var (sprite, placement) in spritesWithPlacements)
+            {
+                enemySpritePaths.Add(sprite);
+                enemyPlacements.Add(placement);
+            }
         }
         
         for (int i = 0; i < enemyCount; i++)
@@ -150,9 +159,6 @@ public class StageService : IStageService
             // Get random enemy template for variety
             var enemyTemplate = await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
             enemyTemplateIds.Add(enemyTemplate?.Id);
-            
-            // Use the sprite path from the biome service
-            enemySpritePaths.Add(spritePaths[i]);
             
             // Create temporary enemy character with scaled stats
             var enemy = CreateTemporaryEnemyCharacter(enemyTemplate, stageNumber, enemyType);
@@ -180,12 +186,13 @@ public class StageService : IStageService
             ? enemies[0].User?.UserName ?? $"Stage {stageNumber} Enemy" 
             : $"{enemies.Count} Enemies";
 
-        // Serialize replay events with enemy sprite paths and stats
+        // Serialize replay events with enemy sprite paths, placements, and stats
         var battleData = new
         {
             Events = combatResult.Events,
             EnemyCount = enemies.Count,
             EnemySprites = enemySpritePaths,
+            EnemyPlacements = enemyPlacements, // 0 = Terrestrial, 1 = Aerial
             BiomeName = biomeName,
             EnemyStats = enemies.Select(e => new
             {
@@ -401,7 +408,7 @@ public class StageService : IStageService
         }
 
         // Player won - full rewards using config values (multiplied by enemy count)
-        var enemyType = StageProgress.GetEnemyTypeForStage(stageNumber);
+        var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
         var xpMultiplier = enemyType switch
         {
             EnemyType.Boss => stageConfig.BossXPMultiplier,
@@ -631,5 +638,20 @@ public class StageService : IStageService
     public bool IsBossStage(int stageNumber)
     {
         return _biomeService.IsBossStage(stageNumber);
+    }
+
+    /// <summary>
+    /// Gets the enemy type for a stage using biome config.
+    /// Uses BossEveryNStages from config instead of hardcoded values.
+    /// </summary>
+    private EnemyType GetEnemyTypeForStageFromConfig(int stageNumber)
+    {
+        // Use biome service's config-driven boss determination
+        if (_biomeService.IsBossStage(stageNumber))
+            return EnemyType.Boss;
+        
+        // Note: MiniBoss is effectively unused since config has bosses every 10 stages
+        // For backward compatibility, treat stages divisible by 10 but not matching boss config as Normal
+        return EnemyType.Normal;
     }
 }

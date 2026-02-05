@@ -57,4 +57,45 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
         return await _context.StageEnemies
             .FirstOrDefaultAsync(e => e.Type == EnemyType.Boss && e.BossStageNumber == stageNumber);
     }
+
+    public async Task<List<StageEnemy>> GetRandomEnemiesAsync(EnemyType type, RegionType region, int count)
+    {
+        var enemies = await GetByTypeAndRegionAsync(type, region);
+
+        if (!enemies.Any())
+        {
+            // Fallback: try any enemy of that type
+            enemies = await _context.StageEnemies
+                .Where(e => e.Type == type)
+                .ToListAsync();
+        }
+
+        if (!enemies.Any())
+        {
+            // Ultimate fallback: get any enemy
+            enemies = await _context.StageEnemies.ToListAsync();
+        }
+
+        if (!enemies.Any())
+            return new List<StageEnemy>();
+
+        // Randomly select enemies (allowing duplicates if not enough unique)
+        var random = Random.Shared;
+        var selected = new List<StageEnemy>();
+        var available = new List<StageEnemy>(enemies);
+
+        for (int i = 0; i < count; i++)
+        {
+            if (available.Count == 0)
+            {
+                // If we run out of unique enemies, allow reuse
+                available = new List<StageEnemy>(enemies);
+            }
+            var index = random.Next(available.Count);
+            selected.Add(available[index]);
+            available.RemoveAt(index); // Try to avoid duplicates first
+        }
+
+        return selected;
+    }
 }
