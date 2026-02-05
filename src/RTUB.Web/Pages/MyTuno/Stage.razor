@@ -257,6 +257,9 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
+    
+    // Cancellation token for battle animation timeout
+    private CancellationTokenSource? battleTimeoutCts;
 
     // Accumulated loot tracker for the current run
     private int totalXPEarned = 0;
@@ -492,15 +495,27 @@
                         await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
                     }
 
+                    // Cancel any previous timeout and create new one
+                    battleTimeoutCts?.Cancel();
+                    battleTimeoutCts = new CancellationTokenSource();
+                    var timeoutToken = battleTimeoutCts.Token;
+                    
                     // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
                     _ = Task.Run(async () =>
                     {
-                        await Task.Delay(120000); // 120 seconds max
-                        if (showBattleAnimation)
+                        try
                         {
-                            Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
-                            showBattleAnimation = false;
-                            await InvokeAsync(StateHasChanged);
+                            await Task.Delay(120000, timeoutToken); // 120 seconds max
+                            if (showBattleAnimation)
+                            {
+                                Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
+                                showBattleAnimation = false;
+                                await InvokeAsync(StateHasChanged);
+                            }
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            // Timeout was cancelled because battle finished normally - this is expected
                         }
                     });
                 }
@@ -621,6 +636,9 @@
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
+            
+            // Cancel the timeout since battle finished normally
+            battleTimeoutCts?.Cancel();
             
             // On defeat, destroy the game entirely (stops music and sounds)
             try
@@ -763,5 +781,9 @@
         }
         
         objRef?.Dispose();
+        
+        // Cancel and dispose timeout token
+        battleTimeoutCts?.Cancel();
+        battleTimeoutCts?.Dispose();
     }
 }
