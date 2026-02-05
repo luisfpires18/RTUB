@@ -230,8 +230,9 @@ public class AndroidTesterNotificationBackgroundService : BackgroundService
     {
         if (_options.NotificationTimes == null || !_options.NotificationTimes.Any())
         {
-            throw new InvalidOperationException(
-                "AndroidTesterNotificationOptions.NotificationTimes must contain at least one time value.");
+            _logger.LogWarning(
+                "AndroidTesterNotificationOptions.NotificationTimes is empty. Using default times: 09:00, 12:00, 15:00, 18:00, 21:00 (UTC)");
+            return;
         }
 
         var invalidTimes = new List<string>();

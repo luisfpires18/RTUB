@@ -459,7 +459,6 @@
                 var rewardsApplied = await BattleService.FinalizeAndApplyRewardsAsync(currentBattle);
                 if (rewardsApplied)
                 {
-                    Logger.LogInformation("Battle {BattleId} rewards applied after animation", currentBattle.BattleId);
                     // Reload character to show updated stats
                     if (currentUser != null)
                     {

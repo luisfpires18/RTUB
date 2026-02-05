@@ -298,9 +298,6 @@ public class StageService : IStageService
                 await _stageProgressRepository.UpdateAsync(stageProgress);
             }
 
-            _logger.LogInformation("CancelRunAsync: Restored character {CharacterId} HP to {HP} and stage to {Stage}",
-                characterId, restoreHp, restoreStage);
-
             return true;
         }
         catch (Exception ex)
@@ -550,8 +547,6 @@ public class StageService : IStageService
         if (hasNewRecord)
         {
             await _stageProgressRepository.UpdateAsync(stageProgress);
-            _logger.LogInformation("StageProgress persisted - new record for user {UserId}: HighestStage={HighestStage}, EndlessModeUnlocked={EndlessModeUnlocked}",
-                stageProgress.UserId, stageProgress.HighestStage, stageProgress.EndlessModeUnlocked);
         }
     }
 

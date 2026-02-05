@@ -186,9 +186,6 @@ public class BattleService : IBattleService
             await TryDropBeerAsync(playerCharacter.UserId);
         }
 
-        _logger.LogInformation("Battle {BattleId} finalized - rewards applied: {XP} XP, {Fidelis} Fidelis, Outcome: {Outcome}", 
-            result.BattleId, result.AttackerXP, result.AttackerFidelis, result.Outcome);
-
         return true;
     }
 

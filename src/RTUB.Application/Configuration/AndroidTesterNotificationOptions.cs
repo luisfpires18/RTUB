@@ -27,14 +27,7 @@ public class AndroidTesterNotificationOptions
 
     /// <summary>
     /// List of times during the day to send notifications (format: "HH:mm").
-    /// Default times: 09:00, 12:00, 15:00, 18:00, 21:00 (UTC).
+    /// If not configured, defaults to: 09:00, 12:00, 15:00, 18:00, 21:00 (UTC).
     /// </summary>
-    public List<string> NotificationTimes { get; set; } = new()
-    {
-        "09:00",
-        "12:00",
-        "15:00",
-        "18:00",
-        "21:00"
-    };
+    public List<string> NotificationTimes { get; set; } = new();
 }

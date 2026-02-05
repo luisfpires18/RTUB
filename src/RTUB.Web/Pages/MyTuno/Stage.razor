@@ -679,8 +679,6 @@
             try
             {
                 await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value);
-                Logger.LogInformation("Run cancelled - restored HP to {HP} and stage to {Stage}", 
-                    runStartingHp.Value, runStartingStage.Value);
             }
             catch (Exception ex)
             {
@@ -740,8 +738,6 @@
             try
             {
                 await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value);
-                Logger.LogInformation("Run cancelled on dispose - restored HP to {HP} and stage to {Stage}", 
-                    runStartingHp.Value, runStartingStage.Value);
             }
             catch (Exception ex)
             {
