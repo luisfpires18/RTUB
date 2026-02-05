@@ -485,6 +485,7 @@ public class StageService : IStageService
     /// - HighestStage increased (player beat their previous best)
     /// - EndlessModeUnlocked changed (beat stage 10000)
     /// No writes when player dies at a stage below their record.
+    /// Handles concurrency exceptions by reloading and retrying once.
     /// </summary>
     private async Task UpdateCharacterAndProgressAsync(
         Character character,
@@ -493,6 +494,56 @@ public class StageService : IStageService
         EnemyType enemyType,
         int enemyCount = 1,
         bool hasShotBuff = false)
+    {
+        const int maxRetries = 1;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await ApplyCharacterAndProgressUpdatesAsync(
+                    character,
+                    stageProgress,
+                    combatResult,
+                    enemyType,
+                    enemyCount,
+                    hasShotBuff);
+                return;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Concurrency conflict updating character/progress for character {CharacterId}, retrying...",
+                        character.Id);
+                    // Retry once - reload entities fresh from database
+                    continue;
+                }
+
+                // Final retry failed - log error but don't fail the entire stage attempt
+                // The combat result is still valid, just progress tracking failed
+                _logger.LogError(
+                    ex,
+                    "Failed to update character progress for character {CharacterId} after {MaxRetries} retries",
+                    character.Id,
+                    maxRetries);
+                return; // Don't rethrow - allow combat to complete even if progress tracking fails
+            }
+        }
+    }
+
+    /// <summary>
+    /// Internal method that applies character and progress updates
+    /// Separated to allow retry logic in UpdateCharacterAndProgressAsync
+    /// </summary>
+    private async Task ApplyCharacterAndProgressUpdatesAsync(
+        Character character,
+        StageProgress stageProgress,
+        CombatResult combatResult,
+        EnemyType enemyType,
+        int enemyCount,
+        bool hasShotBuff)
     {
         // Track if we need to persist (only when there's a new record)
         var previousHighestStage = stageProgress.HighestStage;

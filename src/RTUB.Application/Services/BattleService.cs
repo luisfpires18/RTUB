@@ -128,8 +128,47 @@ public class BattleService : IBattleService
     /// <summary>
     /// Finalizes a battle and applies all pending rewards and state changes
     /// Should be called after the battle animation finishes
+    /// Handles concurrency exceptions by reloading and retrying once
     /// </summary>
     public async Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result)
+    {
+        const int maxRetries = 1;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                return await ApplyBattleRewardsAsync(result);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Concurrency conflict applying battle rewards for character {CharacterId}, retrying...",
+                        result.AttackerCharacterId);
+                    // Retry once - reload character fresh from database
+                    continue;
+                }
+
+                // Final retry failed - log error and return false
+                _logger.LogError(
+                    ex,
+                    "Failed to apply battle rewards for character {CharacterId} after {MaxRetries} retries",
+                    result.AttackerCharacterId,
+                    maxRetries);
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Internal method that applies battle rewards
+    /// Separated to allow retry logic in FinalizeAndApplyRewardsAsync
+    /// </summary>
+    private async Task<bool> ApplyBattleRewardsAsync(BattleResult result)
     {
         // Load the attacker character
         var playerCharacter = await _characterRepository.GetByIdAsync(result.AttackerCharacterId);
