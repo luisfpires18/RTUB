@@ -83,13 +83,13 @@
                                 @onclick="() => SetBattleSpeed(1.0)">
                             1x
                         </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.5 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(1.5)">
-                            1.5x
-                        </button>
                         <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
                                 @onclick="() => SetBattleSpeed(2.0)">
                             2x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(3.0)">
+                            3x
                         </button>
                         <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
@@ -497,7 +497,8 @@
                         BackgroundPath = "/sprites/games/my-tuno/backgrounds/forest.png",
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
                         EnemySprites = enemySpritePaths, // Array of sprite paths
-                        EnemyPlacements = enemyPlacements // 0=Terrestrial, 1=Aerial
+                        EnemyPlacements = enemyPlacements, // 0=Terrestrial, 1=Aerial
+                        BattleSpeed = battleSpeed // Pass current speed setting
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles

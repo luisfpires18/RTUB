@@ -415,7 +415,7 @@
             
             const isMobile = width <= height || width < 500;
             const groundOffset = 60;
-            const enemyX = width * 0.75;
+            const enemyX = width * 0.72; // Shift left slightly to give more room
             const baseEnemyY = height - groundOffset;
             
             console.log('createEnemies - Stage:', this.stageNumber, 'Using placements:', this.enemyPlacements);
@@ -424,6 +424,23 @@
             const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements);
             
             console.log('createEnemies - Calculated positions:', positions);
+
+            // Determine scale factor based on enemy count
+            // More enemies = smaller sprites to fit them all
+            const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+            let countScaleFactor = 1.0;
+            if (this.enemyCount >= 6) {
+                countScaleFactor = 0.65;
+            } else if (this.enemyCount >= 5) {
+                countScaleFactor = 0.75;
+            } else if (this.enemyCount >= 4) {
+                countScaleFactor = 0.85;
+            } else if (this.enemyCount >= 3) {
+                countScaleFactor = 0.92;
+            }
+            
+            // Boss gets a size boost
+            const bossBoost = isBoss ? 1.25 : 1.0;
 
             for (let i = 0; i < this.enemyCount; i++) {
                 const pos = positions[i];
@@ -451,15 +468,19 @@
                 enemy.x = pos.x;
                 enemy.y = pos.y;
                 
-                const mobileScale = isMobile ? 0.22 : 0.45;
+                // Calculate base scale from height
+                const mobileScale = isMobile ? 0.22 : 0.40;
                 const maxSpriteHeight = height * mobileScale;
-                const scale = Math.min(1, maxSpriteHeight / enemy.height);
-                enemy.scale.set(scale);
+                const baseScale = Math.min(1, maxSpriteHeight / enemy.height);
+                
+                // Apply count factor and boss boost
+                const finalScale = baseScale * countScaleFactor * bossBoost;
+                enemy.scale.set(finalScale);
                 
                 this.stage.addChild(enemy);
                 this.enemySprites.push(enemy);
                 
-                const hpBarY = pos.y - enemy.height * scale - 5;
+                const hpBarY = pos.y - enemy.height * finalScale - 5;
                 const hpBarWidth = isMobile ? 35 : 60;
                 const hpBarHeight = isMobile ? 4 : 8;
                 
@@ -539,10 +560,27 @@
                 }
             }
             
-            // Much wider spacing to prevent overlap
-            const hSpacing = isMobile ? 90 : 140;
-            const vSpacing = isMobile ? 100 : 130;
+            // Adjust spacing based on enemy count - tighter when more enemies
+            let hSpacing, vSpacing;
+            if (enemyCount >= 6) {
+                hSpacing = isMobile ? 55 : 90;
+                vSpacing = isMobile ? 70 : 90;
+            } else if (enemyCount >= 5) {
+                hSpacing = isMobile ? 65 : 100;
+                vSpacing = isMobile ? 80 : 100;
+            } else if (enemyCount >= 4) {
+                hSpacing = isMobile ? 75 : 115;
+                vSpacing = isMobile ? 90 : 115;
+            } else {
+                hSpacing = isMobile ? 90 : 140;
+                vSpacing = isMobile ? 100 : 130;
+            }
+            
             const aerialOffset = isMobile ? 80 : 120; // How high aerial enemies fly
+            
+            // Calculate max X to keep enemies on screen (with some padding)
+            const maxX = width - 40;
+            const minX = width * 0.45; // Don't go past middle of screen
             
             // Calculate positions for each enemy
             const tempPositions = Array(enemyCount).fill(null);
@@ -550,7 +588,17 @@
             // Position terrestrial enemies in bottom area
             if (terrestrialIndices.length > 0) {
                 const count = terrestrialIndices.length;
-                const startX = baseX - ((count - 1) * hSpacing) / 2;
+                let startX = baseX - ((count - 1) * hSpacing) / 2;
+                
+                // Ensure rightmost enemy stays on screen
+                const rightmostX = startX + (count - 1) * hSpacing;
+                if (rightmostX > maxX) {
+                    startX -= (rightmostX - maxX);
+                }
+                // Ensure leftmost enemy doesn't go too far left
+                if (startX < minX) {
+                    startX = minX;
+                }
                 
                 for (let i = 0; i < count; i++) {
                     const idx = terrestrialIndices[i];
@@ -565,8 +613,18 @@
             // Position aerial enemies in top area (flying)
             if (aerialIndices.length > 0) {
                 const count = aerialIndices.length;
-                const startX = baseX - ((count - 1) * hSpacing) / 2;
+                let startX = baseX - ((count - 1) * hSpacing) / 2;
                 const aerialY = baseY - aerialOffset;
+                
+                // Ensure rightmost enemy stays on screen
+                const rightmostX = startX + (count - 1) * hSpacing;
+                if (rightmostX > maxX) {
+                    startX -= (rightmostX - maxX);
+                }
+                // Ensure leftmost enemy doesn't go too far left
+                if (startX < minX) {
+                    startX = minX;
+                }
                 
                 for (let i = 0; i < count; i++) {
                     const idx = aerialIndices[i];
@@ -578,38 +636,65 @@
                 }
             }
             
-            // If all same type with 5 enemies, use staggered formation
-            if (enemyCount === 5 && (aerialIndices.length === 5 || terrestrialIndices.length === 5)) {
-                const baseYForType = aerialIndices.length === 5 ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 50 : 70;
+            // If all same type with 5+ enemies, use staggered formation
+            if (enemyCount >= 5 && (aerialIndices.length === enemyCount || terrestrialIndices.length === enemyCount)) {
+                const baseYForType = aerialIndices.length === enemyCount ? baseY - aerialOffset : baseY;
+                const smallVOffset = isMobile ? 45 : 60;
                 
-                // Staggered 2-1-2 pattern
-                tempPositions[0] = { x: baseX - hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 5 };
-                tempPositions[1] = { x: baseX + hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 5 };
-                tempPositions[2] = { x: baseX, y: baseYForType - smallVOffset/2, isAerial: aerialIndices.length === 5 };
-                tempPositions[3] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 5 };
-                tempPositions[4] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 5 };
+                // For 5 enemies: staggered 2-1-2 pattern
+                if (enemyCount === 5) {
+                    let startX = baseX - hSpacing;
+                    if (startX + hSpacing * 2 > maxX) startX = maxX - hSpacing * 2;
+                    if (startX - hSpacing < minX) startX = minX + hSpacing;
+                    
+                    tempPositions[0] = { x: startX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[1] = { x: startX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[2] = { x: startX, y: baseYForType - smallVOffset/2, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[3] = { x: startX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[4] = { x: startX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                }
+                // For 6 enemies: 3-3 rows
+                else if (enemyCount === 6) {
+                    let startX = baseX - hSpacing;
+                    if (startX + hSpacing * 2 > maxX) startX = maxX - hSpacing * 2;
+                    if (startX - hSpacing < minX) startX = minX + hSpacing;
+                    
+                    tempPositions[0] = { x: startX - hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[1] = { x: startX, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[2] = { x: startX + hSpacing, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[3] = { x: startX - hSpacing, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[4] = { x: startX, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[5] = { x: startX + hSpacing, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                }
             }
             
             // If 4 enemies of same type, use 2x2 grid
             if (enemyCount === 4 && (aerialIndices.length === 4 || terrestrialIndices.length === 4)) {
                 const baseYForType = aerialIndices.length === 4 ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 60 : 80;
+                const smallVOffset = isMobile ? 55 : 75;
                 
-                tempPositions[0] = { x: baseX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
-                tempPositions[1] = { x: baseX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
-                tempPositions[2] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
-                tempPositions[3] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
+                let centerX = baseX;
+                if (centerX + hSpacing/2 > maxX) centerX = maxX - hSpacing/2;
+                if (centerX - hSpacing/2 < minX) centerX = minX + hSpacing/2;
+                
+                tempPositions[0] = { x: centerX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[1] = { x: centerX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[2] = { x: centerX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
+                tempPositions[3] = { x: centerX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
             }
             
             // If 3 enemies, triangle
             if (enemyCount === 3 && (aerialIndices.length === 3 || terrestrialIndices.length === 3)) {
                 const baseYForType = aerialIndices.length === 3 ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 60 : 80;
+                const smallVOffset = isMobile ? 55 : 75;
                 
-                tempPositions[0] = { x: baseX, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 3 };
-                tempPositions[1] = { x: baseX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
-                tempPositions[2] = { x: baseX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
+                let centerX = baseX;
+                if (centerX + hSpacing/2 > maxX) centerX = maxX - hSpacing/2;
+                if (centerX - hSpacing/2 < minX) centerX = minX + hSpacing/2;
+                
+                tempPositions[0] = { x: centerX, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 3 };
+                tempPositions[1] = { x: centerX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
+                tempPositions[2] = { x: centerX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
             }
             
             return tempPositions;
@@ -1195,9 +1280,11 @@
         }
 
         setSpeed(speed) {
+            console.log('StageBattleScene.setSpeed called with:', speed);
             this.playbackSpeed = speed;
-            // Convert playback speed to battle speed (1x = 1.0, 1.5x = 1.5, 2x = 2.0)
+            // Convert playback speed to battle speed (1x = 1.0, 2x = 2.0, 3x = 3.0)
             this.battleSpeed = speed;
+            console.log('Battle speed set to:', this.battleSpeed);
         }
 
         setAudioEnabled(enabled) {
@@ -1392,8 +1479,9 @@
             const playerSpritePath = battleData?.playerSpritePath ?? battleData?.PlayerSpritePath ?? defaultSprites.player;
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
+            const initialBattleSpeed = battleData?.battleSpeed ?? battleData?.BattleSpeed ?? 1.0;
             
-            console.log('Stage battle start - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements);
+            console.log('Stage battle start - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements, 'Speed:', initialBattleSpeed);
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -1408,6 +1496,11 @@
                 enemySprites: enemySprites,
                 enemyPlacements: enemyPlacements
             });
+            
+            // Apply initial battle speed after scene is created
+            if (initialBattleSpeed !== 1.0) {
+                stageScene.setSpeed(initialBattleSpeed);
+            }
         },
 
         destroy: function () {
