@@ -1280,11 +1280,9 @@
         }
 
         setSpeed(speed) {
-            console.log('StageBattleScene.setSpeed called with:', speed);
             this.playbackSpeed = speed;
             // Convert playback speed to battle speed (1x = 1.0, 2x = 2.0, 3x = 3.0)
             this.battleSpeed = speed;
-            console.log('Battle speed set to:', this.battleSpeed);
         }
 
         setAudioEnabled(enabled) {
@@ -1480,8 +1478,6 @@
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
             const initialBattleSpeed = battleData?.battleSpeed ?? battleData?.BattleSpeed ?? 1.0;
-            
-            console.log('Stage battle start - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements, 'Speed:', initialBattleSpeed);
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -1557,8 +1553,6 @@
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
             const dotNetRef = battleData?.DotNetRef ?? battleData?.dotNetRef ?? null;
-
-            console.log('Stage battle nextBattle - Stage:', stageNumber, 'EnemyCount:', enemyCount, 'Placements:', enemyPlacements);
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
