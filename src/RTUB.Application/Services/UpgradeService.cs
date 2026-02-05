@@ -145,6 +145,14 @@ public class UpgradeService : IUpgradeService
                         _ => 0
                     };
 
+                    // Check max upgrade level
+                    var maxUpgrades = GetMaxUpgrades(statType);
+                    if (currentUpgradeCount >= maxUpgrades)
+                    {
+                        await transaction.RollbackAsync();
+                        return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
+                    }
+
                     var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, 1.5);
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
@@ -233,6 +241,22 @@ public class UpgradeService : IUpgradeService
     }
 
     /// <summary>
+    /// Gets the max upgrades for a stat type from configuration
+    /// </summary>
+    private int GetMaxUpgrades(StatType statType)
+    {
+        return statType switch
+        {
+            StatType.HP => _config.Upgrades.HP.MaxUpgrades,
+            StatType.Power => _config.Upgrades.Power.MaxUpgrades,
+            StatType.Speed => _config.Upgrades.Speed.MaxUpgrades,
+            StatType.CriticalChance => _config.Upgrades.CriticalChance.MaxUpgrades,
+            StatType.Defense => _config.Upgrades.Defense.MaxUpgrades,
+            _ => 50
+        };
+    }
+
+    /// <summary>
     /// Fallback method for in-memory database that doesn't support transactions
     /// </summary>
     private async Task<UpgradeResult> PurchaseUpgradeWithoutTransactionAsync(string userId, StatType statType)
@@ -270,6 +294,13 @@ public class UpgradeService : IUpgradeService
                 StatType.Defense => character.DefenseUpgrades,
                 _ => 0
             };
+
+            // Check max upgrade level
+            var maxUpgrades = GetMaxUpgrades(statType);
+            if (currentUpgradeCount >= maxUpgrades)
+            {
+                return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
+            }
 
             var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, 1.5);
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);

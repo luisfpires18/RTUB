@@ -476,339 +476,262 @@
             </div>
         </div>
 
-        <!-- Upgrade Shop Section -->
-        <div class="mt-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Loja de Upgrades</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Melhora as estatísticas do teu personagem usando Fidelis.
+        <!-- Bottom Row: Upgrades + 2 Future Sections -->
+        <div class="row g-4 mt-2">
+            <!-- Upgrade Shop -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
                         @if (currentUser != null)
                         {
-                            <span class="badge bg-success ms-2 mytuno-balance-badge">
-                                <i class="bi bi-coin me-1"></i>
-                                Saldo: @currentUser.FidelisBalance.ToString("F2") Fidelis
+                            <span class="badge bg-success mytuno-balance-badge">
+                                <i class="bi bi-coin me-1"></i>@currentUser.FidelisBalance.ToString("F2")
                             </span>
                         }
-                    </p>
-
-                    <div class="row g-4">
-                        <!-- HP Upgrade Card -->
-                        <div class="col-md-6 col-xl-3">
-                            <div class="card h-100 upgrade-card upgrade-card--hp">
-                                <div class="card-header upgrade-card__header">
-                                    <h5 class="mb-0"><i class="bi bi-heart-fill me-2"></i>HP <span class="badge bg-secondary">@(character.HpUpgrades)/50</span></h5>
-                                </div>
-                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
-                                    <div class="upgrade-card__stats mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">HP Atual:</span>
-                                            <strong class="fs-5">@character.TotalHP</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Upgrades:</span>
-                                            <strong>@character.HpUpgrades</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+10 HP</strong>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
-                                            <span class="text-muted">Custo:</span>
-                                            @if (hpCostLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="upgrade-card__price">
-                                                    <i class="bi bi-coin"></i>
-                                                    <strong>@hpCost.ToString("F2") Fidelis</strong>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-danger w-100 upgrade-card__button" 
-                                            @onclick="() => PurchaseUpgrade(StatType.HP)"
-                                            disabled="@(purchasing || hpCostLoading || (currentUser?.FidelisBalance ?? 0) < hpCost)">
-                                        @if (purchasing && purchasingStat == StatType.HP)
-                                        {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            <text>A comprar...</text>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-cart-plus me-2"></i>
-                                            <text>Comprar Upgrade</text>
-                                        }
-                                    </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < hpCost)
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="d-flex flex-column gap-2">
+                        <!-- HP Upgrade Row -->
+                        <div class="enhance-row @(IsHpMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--hp">
+                                <i class="bi bi-heart-fill"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">HP <span class="enhance-row__level">Lv@(character.HpUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar vida</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsHpMaxed)
                                     {
-                                        <small class="text-danger d-block mt-2 text-center">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            Saldo insuficiente
-                                        </small>
+                                        <text>@character.TotalHP</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@character.TotalHP → @(character.TotalHP + 10)</text>
+                                    }
+                                </div>
+                            </div>
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsHpMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.HP)"
+                                        disabled="@(purchasing || hpCostLoading || IsHpMaxed || (currentUser?.FidelisBalance ?? 0) < hpCost)">
+                                    @if (purchasing && purchasingStat == StatType.HP)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Enhance</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsHpMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (hpCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(hpCost)</span>
                                     }
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Power Upgrade Card -->
-                        <div class="col-md-6 col-xl-3">
-                            <div class="card h-100 upgrade-card upgrade-card--power">
-                                <div class="card-header upgrade-card__header bg-success text-white">
-                                    <h5 class="mb-0"><i class="bi bi-lightning-fill me-2"></i>Poder <span class="badge bg-dark">@(character.PowerUpgrades)/50</span></h5>
-                                </div>
-                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
-                                    <div class="upgrade-card__stats mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Poder Atual:</span>
-                                            <strong class="fs-5">@character.TotalPower</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Upgrades:</span>
-                                            <strong>@character.PowerUpgrades</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+2 Poder</strong>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
-                                            <span class="text-muted">Custo:</span>
-                                            @if (powerCostLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="upgrade-card__price">
-                                                    <i class="bi bi-coin"></i>
-                                                    <strong>@powerCost.ToString("F2") Fidelis</strong>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-success w-100 upgrade-card__button" 
-                                            @onclick="() => PurchaseUpgrade(StatType.Power)"
-                                            disabled="@(purchasing || powerCostLoading || (currentUser?.FidelisBalance ?? 0) < powerCost)">
-                                        @if (purchasing && purchasingStat == StatType.Power)
-                                        {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            <text>A comprar...</text>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-cart-plus me-2"></i>
-                                            <text>Comprar Upgrade</text>
-                                        }
-                                    </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < powerCost)
+                        <!-- Power Upgrade Row -->
+                        <div class="enhance-row @(IsPowerMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--power">
+                                <i class="bi bi-lightning-fill"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">Poder <span class="enhance-row__level">Lv@(character.PowerUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar ataque</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsPowerMaxed)
                                     {
-                                        <small class="text-danger d-block mt-2 text-center">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            Saldo insuficiente
-                                        </small>
+                                        <text>@character.TotalPower</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@character.TotalPower → @(character.TotalPower + 2)</text>
+                                    }
+                                </div>
+                            </div>
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsPowerMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.Power)"
+                                        disabled="@(purchasing || powerCostLoading || IsPowerMaxed || (currentUser?.FidelisBalance ?? 0) < powerCost)">
+                                    @if (purchasing && purchasingStat == StatType.Power)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Enhance</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsPowerMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (powerCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(powerCost)</span>
                                     }
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Speed Upgrade Card -->
-                        <div class="col-md-6 col-xl-3">
-                            <div class="card h-100 upgrade-card upgrade-card--speed">
-                                <div class="card-header upgrade-card__header">
-                                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Velocidade <span class="badge bg-secondary">@(character.SpeedUpgrades)/40</span></h5>
-                                </div>
-                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
-                                    <div class="upgrade-card__stats mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Tempo de Ataque:</span>
-                                            <strong class="fs-5">@character.ActionTime.ToString("F1")s</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Upgrades:</span>
-                                            <strong>@character.SpeedUpgrades</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">-0.1s</strong>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
-                                            <span class="text-muted">Custo:</span>
-                                            @if (speedCostLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="upgrade-card__price">
-                                                    <i class="bi bi-coin"></i>
-                                                    <strong>@speedCost.ToString("F2") Fidelis</strong>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-info w-100 upgrade-card__button" 
-                                            @onclick="() => PurchaseUpgrade(StatType.Speed)"
-                                            disabled="@(purchasing || speedCostLoading || (currentUser?.FidelisBalance ?? 0) < speedCost || character.ActionTime <= 1.0)">
-                                        @if (purchasing && purchasingStat == StatType.Speed)
-                                        {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            <text>A comprar...</text>
-                                        }
-                                        else if (character.ActionTime <= 1.0)
-                                        {
-                                            <i class="bi bi-check-circle me-2"></i>
-                                            <text>Máximo Alcançado</text>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-cart-plus me-2"></i>
-                                            <text>Comprar Upgrade</text>
-                                        }
-                                    </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < speedCost && character.ActionTime > 1.0)
+                        <!-- Speed Upgrade Row -->
+                        <div class="enhance-row @(IsSpeedMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--speed">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">Velocidade <span class="enhance-row__level">Lv@(character.SpeedUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar velocidade de ataque</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsSpeedMaxed)
                                     {
-                                        <small class="text-danger d-block mt-2 text-center">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            Saldo insuficiente
-                                        </small>
+                                        <text>@character.ActionTime.ToString("F1")s</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@character.ActionTime.ToString("F1")s → @((character.ActionTime - 0.1).ToString("F1"))s</text>
                                     }
                                 </div>
                             </div>
-                        </div>
-                        <!-- Critical Chance Upgrade Card -->
-                        <div class="col-md-6 col-xl-3">
-                            <div class="card h-100 upgrade-card upgrade-card--critical">
-                                <div class="card-header upgrade-card__header bg-warning text-dark">
-                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>Crítico <span class="badge bg-secondary">@(character.CriticalUpgrades)/50</span></h5>
-                                </div>
-                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
-                                    <div class="upgrade-card__stats mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Chance Atual:</span>
-                                            <strong class="fs-5">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Upgrades:</span>
-                                            <strong>@character.CriticalUpgrades</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-warning">+0.5% Crit</strong>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
-                                            <span class="text-muted">Custo:</span>
-                                            @if (criticalCostLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="upgrade-card__price">
-                                                    <i class="bi bi-coin"></i>
-                                                    <strong>@criticalCost.ToString("F2") Fidelis</strong>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-warning w-100 upgrade-card__button"
-                                            @onclick="() => PurchaseUpgrade(StatType.CriticalChance)"
-                                            disabled="@(purchasing || criticalCostLoading || (currentUser?.FidelisBalance ?? 0) < criticalCost)">
-                                        @if (purchasing && purchasingStat == StatType.CriticalChance)
-                                        {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            <text>A comprar...</text>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-bullseye me-2"></i>
-                                            <text>Comprar Upgrade</text>
-                                        }
-                                    </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < criticalCost)
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsSpeedMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.Speed)"
+                                        disabled="@(purchasing || speedCostLoading || IsSpeedMaxed || (currentUser?.FidelisBalance ?? 0) < speedCost)">
+                                    @if (purchasing && purchasingStat == StatType.Speed)
                                     {
-                                        <small class="text-danger d-block mt-2 text-center">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            Saldo insuficiente
-                                        </small>
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Enhance</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsSpeedMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (speedCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(speedCost)</span>
                                     }
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Defense Upgrade Card -->
-                        <div class="col-md-6 col-xl-3">
-                            <div class="card h-100 upgrade-card upgrade-card--defense">
-                                <div class="card-header upgrade-card__header bg-secondary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-shield-fill me-2"></i>Defesa <span class="badge bg-dark">@(character.DefenseUpgrades)/50</span></h5>
-                                </div>
-                                <div class="card-body upgrade-card__body" style="background-color: #1e1e1e;">
-                                    <div class="upgrade-card__stats mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Defesa Atual:</span>
-                                            <strong class="fs-5">@character.TotalDefense</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Upgrades:</span>
-                                            <strong>@character.DefenseUpgrades</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__stat">
-                                            <span class="text-muted">Próximo Upgrade:</span>
-                                            <strong class="text-success">+2 Defesa</strong>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center upgrade-card__cost">
-                                            <span class="text-muted">Custo:</span>
-                                            @if (defenseCostLoading)
-                                            {
-                                                <span class="spinner-border spinner-border-sm" role="status"></span>
-                                            }
-                                            else
-                                            {
-                                                <span class="upgrade-card__price">
-                                                    <i class="bi bi-coin"></i>
-                                                    <strong>@defenseCost.ToString("F2") Fidelis</strong>
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-secondary w-100 upgrade-card__button"
-                                            @onclick="() => PurchaseUpgrade(StatType.Defense)"
-                                            disabled="@(purchasing || defenseCostLoading || (currentUser?.FidelisBalance ?? 0) < defenseCost)">
-                                        @if (purchasing && purchasingStat == StatType.Defense)
-                                        {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            <text>A comprar...</text>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-shield-fill me-2"></i>
-                                            <text>Comprar Upgrade</text>
-                                        }
-                                    </button>
-                                    @if (currentUser != null && currentUser.FidelisBalance < defenseCost)
+                        <!-- Critical Upgrade Row -->
+                        <div class="enhance-row @(IsCriticalMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--critical">
+                                <i class="bi bi-bullseye"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">Crítico <span class="enhance-row__level">Lv@(character.CriticalUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar chance de crítico</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsCriticalMaxed)
                                     {
-                                        <small class="text-danger d-block mt-2 text-center">
-                                            <i class="bi bi-exclamation-triangle me-1"></i>
-                                            Saldo insuficiente
-                                        </small>
+                                        <text>@($"{character.TotalCriticalChance * 100:F1}%")</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{(character.TotalCriticalChance + 0.005) * 100:F1}%")</text>
+                                    }
+                                </div>
+                            </div>
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsCriticalMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.CriticalChance)"
+                                        disabled="@(purchasing || criticalCostLoading || IsCriticalMaxed || (currentUser?.FidelisBalance ?? 0) < criticalCost)">
+                                    @if (purchasing && purchasingStat == StatType.CriticalChance)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Enhance</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsCriticalMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (criticalCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(criticalCost)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Defense Upgrade Row -->
+                        <div class="enhance-row @(IsDefenseMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--defense">
+                                <i class="bi bi-shield-fill"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">Defesa <span class="enhance-row__level">Lv@(character.DefenseUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar defesa</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsDefenseMaxed)
+                                    {
+                                        <text>@character.TotalDefense</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@character.TotalDefense → @(character.TotalDefense + 2)</text>
+                                    }
+                                </div>
+                            </div>
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.Defense)"
+                                        disabled="@(purchasing || defenseCostLoading || IsDefenseMaxed || (currentUser?.FidelisBalance ?? 0) < defenseCost)">
+                                    @if (purchasing && purchasingStat == StatType.Defense)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Enhance</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsDefenseMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (defenseCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
                                     }
                                 </div>
                             </div>
@@ -818,13 +741,44 @@
                     <!-- Success/Error Messages -->
                     @if (!string.IsNullOrEmpty(toastMessage))
                     {
-                        <div class="mt-3">
+                        <div class="mt-2">
                             <Alert Type="@(toastIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
                                    Message="@toastMessage"
                                    Dismissible="true"
                                    OnDismiss="@(() => toastMessage = string.Empty)" />
                         </div>
                     }
+                </div>
+            </div>
+            </div>
+
+            <!-- Empty Section 2 (Coming Soon) -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>Em Breve</h5>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center text-muted">
+                        <div class="text-center">
+                            <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.4;"></i>
+                            <p class="mt-2 mb-0">Em breve...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty Section 3 (Coming Soon) -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>Em Breve</h5>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center text-muted">
+                        <div class="text-center">
+                            <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.4;"></i>
+                            <p class="mt-2 mb-0">Em breve...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1003,6 +957,28 @@
         StatType.Defense => defenseCost,
         _ => 0
     };
+    
+    // Max upgrades from config
+    private int MaxHpUpgrades => MyTunoConfig.Value.Upgrades.HP.MaxUpgrades;
+    private int MaxPowerUpgrades => MyTunoConfig.Value.Upgrades.Power.MaxUpgrades;
+    private int MaxSpeedUpgrades => MyTunoConfig.Value.Upgrades.Speed.MaxUpgrades;
+    private int MaxCriticalUpgrades => MyTunoConfig.Value.Upgrades.CriticalChance.MaxUpgrades;
+    private int MaxDefenseUpgrades => MyTunoConfig.Value.Upgrades.Defense.MaxUpgrades;
+    
+    private bool IsHpMaxed => character != null && character.HpUpgrades >= MaxHpUpgrades;
+    private bool IsPowerMaxed => character != null && character.PowerUpgrades >= MaxPowerUpgrades;
+    private bool IsSpeedMaxed => character != null && character.SpeedUpgrades >= MaxSpeedUpgrades;
+    private bool IsCriticalMaxed => character != null && character.CriticalUpgrades >= MaxCriticalUpgrades;
+    private bool IsDefenseMaxed => character != null && character.DefenseUpgrades >= MaxDefenseUpgrades;
+
+    private string FormatCost(decimal cost)
+    {
+        if (cost >= 1_000_000_000_000m) return $"{cost / 1_000_000_000_000m:F2}T";
+        if (cost >= 1_000_000_000m) return $"{cost / 1_000_000_000m:F2}B";
+        if (cost >= 1_000_000m) return $"{cost / 1_000_000m:F2}M";
+        if (cost >= 1_000m) return $"{cost / 1_000m:F2}K";
+        return cost.ToString("F2");
+    }
 
     protected override async Task OnInitializedAsync()
     {

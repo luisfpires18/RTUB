@@ -132,6 +132,7 @@ public class MyTunoUpgradeStat
     public int InitialBought { get; set; }
     public double BonusPerUpgrade { get; set; }
     public decimal BaseCost { get; set; }
+    public int MaxUpgrades { get; set; } = 50;
 }
 
 /// <summary>
