@@ -90,7 +90,6 @@
 
     "stageMode": {
       "baseStageXP": 30,
-      "miniBossXPMultiplier": 3,
       "bossXPMultiplier": 10,
       "stageRewardScalingFactor": 0.05,
       "enemyScaling": {
@@ -108,13 +107,6 @@
           "defense": 3,
           "criticalChance": 0.05
         },
-        "miniBoss": {
-          "hp": 200,
-          "power": 15,
-          "speed": 7,
-          "defense": 8,
-          "criticalChance": 0.10
-        },
         "boss": {
           "hp": 500,
           "power": 20,
@@ -126,12 +118,10 @@
       "dropRates": {
         "beerDropChance": 0.10,
         "shotDropChance": 0.05,
-        "bossDropMultiplier": 3.0,
-        "miniBossDropMultiplier": 2.0
+        "bossDropMultiplier": 3.0
       },
       "fidelisRewards": {
         "normalWin": 10,
-        "miniBossWin": 25,
         "bossWin": 50
       },
       "biomes": [
@@ -166,6 +156,41 @@
         "armorGrowthPerStage": 0.03,
         "bossMultiplier": 2.5
       }
+    },
+    "gathering": {
+      "maxEnergy": 10,
+      "regenIntervalSeconds": 60,
+      "castTimeSeconds": 3,
+      "resources": [
+        {
+          "type": "Vodka",
+          "name": "Vodka",
+          "energyCost": 1,
+          "icon": "bi-droplet",
+          "isActive": true
+        },
+        {
+          "type": "Gin",
+          "name": "Gin",
+          "energyCost": 2,
+          "icon": "bi-cup-hot",
+          "isActive": true
+        },
+        {
+          "type": "Whisky",
+          "name": "Whisky",
+          "energyCost": 3,
+          "icon": "bi-cup-straw",
+          "isActive": true
+        },
+        {
+          "type": "Absinto",
+          "name": "Absinto",
+          "energyCost": 4,
+          "icon": "bi-fire",
+          "isActive": true
+        }
+      ]
     }
   }
 }
