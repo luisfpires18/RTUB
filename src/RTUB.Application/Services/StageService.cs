@@ -114,10 +114,6 @@ public class StageService : IStageService
             ? Character.CreateShotBuffedCopy(character) 
             : character;
         
-        var user = await _userManager.FindByIdAsync(character.UserId);
-        _logger.LogInformation("Stage mode started by {UserName}{BuffStatus}", 
-            user?.UserName ?? character.UserId,
-            hasShotBuff ? " (with shot buff)" : "");
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
         var region = stageProgress.CurrentRegion;
@@ -344,7 +340,6 @@ public class StageService : IStageService
             var typeStats = type switch
             {
                 EnemyType.Boss => baseStats.Boss,
-                EnemyType.MiniBoss => baseStats.MiniBoss,
                 _ => baseStats.Normal
             };
 
@@ -374,7 +369,6 @@ public class StageService : IStageService
             enemyName = type switch
             {
                 EnemyType.Boss => $"{biomeName} Boss (Stage {stageNumber})",
-                EnemyType.MiniBoss => $"{biomeName} Mini-Boss (Stage {stageNumber})",
                 _ => $"{biomeName} Enemy (Stage {stageNumber})"
             };
         }
@@ -412,7 +406,6 @@ public class StageService : IStageService
         var xpMultiplier = enemyType switch
         {
             EnemyType.Boss => stageConfig.BossXPMultiplier,
-            EnemyType.MiniBoss => stageConfig.MiniBossXPMultiplier,
             _ => 1
         };
 
@@ -425,7 +418,6 @@ public class StageService : IStageService
         var baseFidelis = enemyType switch
         {
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
-            EnemyType.MiniBoss => fidelisRewardsConfig.MiniBossWin,
             _ => fidelisRewardsConfig.NormalWin
         };
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling, 2);
@@ -451,11 +443,6 @@ public class StageService : IStageService
         {
             beerChance *= dropRates.BossDropMultiplier;
             shotChance *= dropRates.BossDropMultiplier;
-        }
-        else if (enemyType == EnemyType.MiniBoss)
-        {
-            beerChance *= dropRates.MiniBossDropMultiplier;
-            shotChance *= dropRates.MiniBossDropMultiplier;
         }
 
         // Each enemy has a chance to drop items
@@ -579,14 +566,10 @@ public class StageService : IStageService
                 stageProgress.RecordEnemyDefeat();
             }
 
-            // Record boss/mini-boss defeats
+            // Record boss defeats
             if (enemyType == EnemyType.Boss)
             {
                 stageProgress.RecordBossDefeat();
-            }
-            else if (enemyType == EnemyType.MiniBoss)
-            {
-                stageProgress.RecordMiniBossDefeat();
             }
 
             // Check if all enemies in this stage are defeated (they should all be defeated now)
@@ -650,8 +633,6 @@ public class StageService : IStageService
         if (_biomeService.IsBossStage(stageNumber))
             return EnemyType.Boss;
         
-        // Note: MiniBoss is effectively unused since config has bosses every 10 stages
-        // For backward compatibility, treat stages divisible by 10 but not matching boss config as Normal
         return EnemyType.Normal;
     }
 }

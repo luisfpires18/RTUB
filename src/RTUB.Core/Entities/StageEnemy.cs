@@ -5,7 +5,7 @@ namespace RTUB.Core.Entities;
 
 /// <summary>
 /// Represents an enemy template in Stage Mode
-/// Defines base stats for enemy mobs, mini-bosses, and bosses
+/// Defines base stats for normal enemies and bosses
 /// </summary>
 public class StageEnemy : BaseEntity
 {
@@ -17,7 +17,7 @@ public class StageEnemy : BaseEntity
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Type of enemy (Normal, MiniBoss, Boss)
+    /// Type of enemy (Normal, Boss)
     /// </summary>
     public EnemyType Type { get; set; } = EnemyType.Normal;
 

@@ -52,14 +52,14 @@ public class StageProgress : BaseEntity
     public int TotalStagesCleared { get; set; } = 0;
 
     /// <summary>
-    /// Total mini-bosses defeated
-    /// </summary>
-    public int TotalMiniBossesDefeated { get; set; } = 0;
-
-    /// <summary>
     /// Total bosses defeated
     /// </summary>
     public int TotalBossesDefeated { get; set; } = 0;
+
+    /// <summary>
+    /// Legacy DB column - kept for compatibility. No longer tracked since miniBoss was removed.
+    /// </summary>
+    public int TotalMiniBossesDefeated { get; set; } = 0;
 
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
@@ -84,7 +84,6 @@ public class StageProgress : BaseEntity
             CurrentRegion = RegionType.Forest,
             EndlessModeUnlocked = false,
             TotalStagesCleared = 0,
-            TotalMiniBossesDefeated = 0,
             TotalBossesDefeated = 0
         };
     }
@@ -117,14 +116,6 @@ public class StageProgress : BaseEntity
     public void RecordEnemyDefeat()
     {
         EnemiesDefeatedInCurrentStage++;
-    }
-
-    /// <summary>
-    /// Records defeating a mini-boss
-    /// </summary>
-    public void RecordMiniBossDefeat()
-    {
-        TotalMiniBossesDefeated++;
     }
 
     /// <summary>
@@ -202,19 +193,13 @@ public class StageProgress : BaseEntity
 
     /// <summary>
     /// Gets the enemy type for a given stage
-    /// - Every 100 stages: Boss
-    /// - Every 10 stages (not 100): Mini-boss
-    /// - Other stages: Normal enemy
-    /// Note: After stage 10000 (Infinite Land), no mini-bosses appear
+    /// - Boss stages determined by config (bossEveryNStages)
+    /// - All other stages: Normal enemy
     /// </summary>
     public static EnemyType GetEnemyTypeForStage(int stage)
     {
-        if (stage % 100 == 0) return EnemyType.Boss;
-
-        // No mini-bosses in Infinite Land (after stage 10000)
-        if (stage > 10000) return EnemyType.Normal;
-
-        if (stage % 10 == 0) return EnemyType.MiniBoss;
+        // Boss every 10 stages (config-driven via bossEveryNStages)
+        if (stage % 10 == 0) return EnemyType.Boss;
 
         return EnemyType.Normal;
     }

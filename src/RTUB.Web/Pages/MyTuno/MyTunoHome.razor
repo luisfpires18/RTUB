@@ -13,6 +13,7 @@
 @using RTUB.Application.Configuration
 @using Microsoft.Extensions.Options
 @attribute [Authorize]
+@implements IDisposable
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
 @inject ICharacterRepository CharacterRepository
@@ -131,17 +132,31 @@
                                     <div class="item-card__desc">+20% Stats</div>
                                 </div>
 
-                                <!-- Empty slots -->
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
+                                <!-- Gathering resources (config-driven) -->
+                                @foreach (var res in activeResources)
+                                {
+                                    var resType = Enum.Parse<InventoryItemType>(res.Type);
+                                    var cssModifier = res.Type.ToLower();
+                                    <div class="item-card item-card--@cssModifier" title="@res.Name — Recurso de craft">
+                                        <div class="item-card__qty">@GetResourceQuantity(resType)</div>
+                                        <div class="item-card__icon">
+                                            @if (!string.IsNullOrEmpty(res.SpritePath))
+                                            {
+                                                <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi @res.Icon"></i>
+                                            }
+                                        </div>
+                                        <div class="item-card__name">@res.Name</div>
+                                        <div class="item-card__desc">Craft</div>
+                                    </div>
+                                }
+                                @for (var i = 0; i < (14 - 2 - activeResources.Count); i++)
+                                {
+                                    <div class="item-card item-card--empty"></div>
+                                }
                                 <div class="item-card item-card--empty"></div>
                                 <div class="item-card item-card--empty"></div>
                                 <div class="item-card item-card--empty"></div>
@@ -544,7 +559,7 @@
                                     }
                                     else
                                     {
-                                        <text>Enhance</text>
+                                        <text>Aumentar</text>
                                     }
                                 </button>
                                 <div class="enhance-row__cost">
@@ -593,7 +608,7 @@
                                     }
                                     else
                                     {
-                                        <text>Enhance</text>
+                                        <text>Aumentar</text>
                                     }
                                 </button>
                                 <div class="enhance-row__cost">
@@ -642,7 +657,7 @@
                                     }
                                     else
                                     {
-                                        <text>Enhance</text>
+                                        <text>Aumentar</text>
                                     }
                                 </button>
                                 <div class="enhance-row__cost">
@@ -691,7 +706,7 @@
                                     }
                                     else
                                     {
-                                        <text>Enhance</text>
+                                        <text>Aumentar</text>
                                     }
                                 </button>
                                 <div class="enhance-row__cost">
@@ -740,7 +755,7 @@
                                     }
                                     else
                                     {
-                                        <text>Enhance</text>
+                                        <text>Aumentar</text>
                                     }
                                 </button>
                                 <div class="enhance-row__cost">
@@ -832,16 +847,79 @@
                 </div>
             </div>
 
-            <!-- Empty Section 3 (Coming Soon) -->
+            <!-- Destilaria (Resource Gathering) -->
             <div class="col-lg-4">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>Em Breve</h5>
+                        <h5 class="mb-0"><i class="bi bi-moisture me-2"></i>Destilaria</h5>
                     </div>
-                    <div class="card-body d-flex align-items-center justify-content-center text-muted">
-                        <div class="text-center">
-                            <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.4;"></i>
-                            <p class="mt-2 mb-0">Em breve...</p>
+                    <div class="card-body p-3 d-flex flex-column">
+                        <!-- Energy Bar -->
+                        <div class="energy-bar mb-3">
+                            <div class="energy-bar__header">
+                                <span class="energy-bar__label"><i class="bi bi-lightning-charge-fill me-1"></i>Energia</span>
+                                <span class="energy-bar__value">@currentEnergy / @maxEnergy</span>
+                            </div>
+                            <div class="energy-bar__track">
+                                <div class="energy-bar__fill" style="width: @(maxEnergy > 0 ? (int)(100.0 * currentEnergy / maxEnergy) : 0)%"></div>
+                            </div>
+                            @if (currentEnergy < maxEnergy)
+                            {
+                                <div class="energy-bar__regen">
+                                    <i class="bi bi-arrow-repeat me-1"></i>+1 / @(gatheringConfig.RegenIntervalSeconds)s
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Cast Bar (shown during gathering) -->
+                        @if (gathering != null)
+                        {
+                            <div class="cast-bar mb-3">
+                                <div class="cast-bar__header">
+                                    <span class="cast-bar__label">A destilar @GetResourceName(gathering.Value)...</span>
+                                    <span class="cast-bar__time">@castTimeRemaining.ToString("F1")s</span>
+                                </div>
+                                <div class="cast-bar__track">
+                                    <div class="cast-bar__fill" style="width: @((int)(100.0 * castProgress))%; transition: width 0.1s linear;"></div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Resource Nodes -->
+                        <div class="gather-grid">
+                            @foreach (var res in activeResources)
+                            {
+                                var resType = Enum.Parse<InventoryItemType>(res.Type);
+                                var cssModifier = res.Type.ToLower();
+                                var isDisabled = currentEnergy < res.EnergyCost || gathering != null;
+                                <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "")"
+                                     @onclick="() => GatherResource(resType)"
+                                     title="@res.Name — @res.EnergyCost Energia">
+                                    <div class="gather-node__cost">
+                                        <i class="bi bi-lightning-charge-fill"></i>@res.EnergyCost
+                                    </div>
+                                    <div class="gather-node__icon">
+                                        @if (gathering == resType)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(res.SpritePath))
+                                        {
+                                            <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi @res.Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="gather-node__name">@res.Name</div>
+                                    <div class="gather-node__qty">@GetResourceQuantity(resType)</div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="text-center mt-auto pt-2">
+                            <small class="text-muted" style="font-size: 0.7rem;">Recolhe recursos para craft futuro!</small>
                         </div>
                     </div>
                 </div>
@@ -979,6 +1057,21 @@
     private bool usingBeer = false;
     private bool usingShot = false;
     
+    // Gathering (Destilaria) state
+    private int currentEnergy = 10;
+    private int maxEnergy = 10;
+    private Dictionary<InventoryItemType, int> resourceQuantities = new();
+    private InventoryItemType? gathering = null;
+    private System.Threading.Timer? energyRegenTimer;
+    private GatheringConfig gatheringConfig = new();
+    private List<GatheringResourceConfig> activeResources = new();
+    
+    // Cast bar state
+    private double castProgress = 0;
+    private double castTimeRemaining = 0;
+    private System.Threading.Timer? castBarTimer;
+    private DateTime castStartTime;
+    
     // Info modal state
     private bool showInfoModal = false;
     private string myTunoVersion = DefaultVersion;
@@ -1076,6 +1169,27 @@
                         await LoadUpgradeCosts();
                         beerQuantity = await InventoryService.GetBeerQuantityAsync(currentUser.Id);
                         shotQuantity = await InventoryService.GetShotQuantityAsync(currentUser.Id);
+                        
+                        // Load gathering config and resources
+                        gatheringConfig = MyTunoConfig.Value.Gathering;
+                        activeResources = gatheringConfig.Resources.Where(r => r.IsActive).ToList();
+                        
+                        foreach (var res in activeResources)
+                        {
+                            if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
+                            {
+                                var qty = await InventoryService.GetResourceQuantityAsync(currentUser.Id, itemType);
+                                resourceQuantities[itemType] = qty;
+                            }
+                        }
+                        
+                        // Load energy
+                        var (energy, max, secondsUntilNext) = await InventoryService.GetCurrentEnergyAsync(currentUser.Id);
+                        currentEnergy = energy;
+                        maxEnergy = max;
+                        
+                        // Start energy regen timer (synced with server)
+                        StartEnergyRegenTimer(secondsUntilNext);
                     }
                 }
             }
@@ -1532,5 +1646,121 @@
             usingShot = false;
             StateHasChanged();
         }
+    }
+
+    private int GetResourceQuantity(InventoryItemType type)
+    {
+        return resourceQuantities.TryGetValue(type, out var qty) ? qty : 0;
+    }
+
+    private string GetResourceName(InventoryItemType type)
+    {
+        var res = activeResources.FirstOrDefault(r => r.Type == type.ToString());
+        return res?.Name ?? type.ToString();
+    }
+
+    private int GetResourceEnergyCost(InventoryItemType type)
+    {
+        var res = activeResources.FirstOrDefault(r => r.Type == type.ToString());
+        return res?.EnergyCost ?? int.MaxValue;
+    }
+
+    private async Task GatherResource(InventoryItemType resourceType)
+    {
+        if (gathering != null || currentUser == null) return;
+
+        var cost = GetResourceEnergyCost(resourceType);
+        if (currentEnergy < cost) return;
+
+        try
+        {
+            // Start cast bar
+            gathering = resourceType;
+            var castTime = gatheringConfig.CastTimeSeconds;
+            if (castTime <= 0) castTime = 3;
+            castTimeRemaining = castTime;
+            castProgress = 0;
+            castStartTime = DateTime.UtcNow;
+            StateHasChanged();
+
+            // Animate cast bar with a timer (update every 100ms)
+            var castTcs = new TaskCompletionSource<bool>();
+            castBarTimer?.Dispose();
+            castBarTimer = new System.Threading.Timer(async _ =>
+            {
+                var elapsed = (DateTime.UtcNow - castStartTime).TotalSeconds;
+                castProgress = Math.Min(1.0, elapsed / castTime);
+                castTimeRemaining = Math.Max(0, castTime - elapsed);
+
+                if (elapsed >= castTime)
+                {
+                    castBarTimer?.Dispose();
+                    castBarTimer = null;
+                    castTcs.TrySetResult(true);
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+
+            // Wait for cast to complete
+            await castTcs.Task;
+
+            // Cast finished — actually gather the resource
+            var (success, gathered, remainingEnergy, message) = await InventoryService.GatherResourceAsync(currentUser.Id, resourceType);
+
+            if (success)
+            {
+                currentEnergy = remainingEnergy;
+                resourceQuantities[resourceType] = GetResourceQuantity(resourceType) + 1;
+
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao destilar recurso";
+            toastIsError = true;
+            Logger.LogError(ex, "Error gathering resource {Type}", resourceType);
+        }
+        finally
+        {
+            gathering = null;
+            castProgress = 0;
+            castTimeRemaining = 0;
+            castBarTimer?.Dispose();
+            castBarTimer = null;
+            StateHasChanged();
+        }
+    }
+
+    private void StartEnergyRegenTimer(int secondsUntilNext = 0)
+    {
+        energyRegenTimer?.Dispose();
+        var regenInterval = gatheringConfig.RegenIntervalSeconds;
+        if (regenInterval <= 0) regenInterval = 60;
+        
+        // Use the server-provided offset for the first tick, then full interval for subsequent ticks
+        var initialDelay = secondsUntilNext > 0 ? secondsUntilNext : regenInterval;
+        
+        energyRegenTimer = new System.Threading.Timer(async _ =>
+        {
+            if (currentEnergy < maxEnergy)
+            {
+                currentEnergy = Math.Min(maxEnergy, currentEnergy + 1);
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromSeconds(initialDelay), TimeSpan.FromSeconds(regenInterval));
+    }
+
+    public void Dispose()
+    {
+        energyRegenTimer?.Dispose();
+        castBarTimer?.Dispose();
     }
 }

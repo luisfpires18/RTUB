@@ -55,6 +55,22 @@ public class Character : BaseEntity
     /// </summary>
     public DateTime? LastBattleAt { get; set; } = null;
 
+    // Energy system (for resource gathering)
+    /// <summary>
+    /// Current stored energy for gathering resources
+    /// </summary>
+    public int Energy { get; set; } = 10;
+
+    /// <summary>
+    /// Maximum energy capacity
+    /// </summary>
+    public int MaxEnergy { get; set; } = 10;
+
+    /// <summary>
+    /// Timestamp of the last energy regeneration tick (for calculating passive regen)
+    /// </summary>
+    public DateTime? LastEnergyRegenAt { get; set; } = null;
+
     // HP constants
     private const int MinHP = 0;
 
@@ -369,5 +385,45 @@ public class Character : BaseEntity
     {
         var currentHp = CurrentHP ?? TotalHP;
         return currentHp > MinHP;
+    }
+
+    /// <summary>
+    /// Regenerates energy based on time elapsed since last regen.
+    /// 1 energy per second, capped at MaxEnergy.
+    /// Returns the updated energy value.
+    /// </summary>
+    public int RegenerateEnergy()
+    {
+        if (LastEnergyRegenAt == null)
+        {
+            LastEnergyRegenAt = DateTime.UtcNow;
+            return Energy;
+        }
+
+        var elapsed = DateTime.UtcNow - LastEnergyRegenAt.Value;
+        var regenAmount = (int)elapsed.TotalSeconds;
+
+        if (regenAmount > 0)
+        {
+            Energy = Math.Min(MaxEnergy, Energy + regenAmount);
+            LastEnergyRegenAt = DateTime.UtcNow;
+        }
+
+        return Energy;
+    }
+
+    /// <summary>
+    /// Spends energy for gathering. Returns true if successful.
+    /// </summary>
+    public bool SpendEnergy(int amount)
+    {
+        RegenerateEnergy();
+
+        if (Energy < amount)
+            return false;
+
+        Energy -= amount;
+        LastEnergyRegenAt = DateTime.UtcNow;
+        return true;
     }
 }

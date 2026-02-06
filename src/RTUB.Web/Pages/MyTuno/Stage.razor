@@ -272,6 +272,7 @@
     private int? runStartingHp;
     private int? runStartingStage;
     private bool runInProgress = false;
+    private bool _disposed = false;
 
     // Current battle enemy stats
     private List<EnemyStatsInfo> currentEnemyStats = new();
@@ -404,6 +405,7 @@
                 runStartingHp = character.CurrentHP;
                 runStartingStage = stageProgress.CurrentStage;
                 runInProgress = true;
+                Logger.LogInformation("Stage mode started by {UserName}", currentUser.UserName);
             }
             
             // Only update UI if we weren't already animating (first battle)
@@ -515,7 +517,7 @@
                         try
                         {
                             await Task.Delay(120000, timeoutToken); // 120 seconds max
-                            if (showBattleAnimation)
+                            if (showBattleAnimation && !_disposed)
                             {
                                 Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
                                 showBattleAnimation = false;
@@ -525,6 +527,10 @@
                         catch (TaskCanceledException)
                         {
                             // Timeout was cancelled because battle finished normally - this is expected
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Component was disposed while timeout was pending - expected
                         }
                     });
                 }
@@ -622,6 +628,9 @@
     [JSInvokable]
     public async Task OnBattleFinished()
     {
+        // Guard: component may have been disposed while JS animation was playing
+        if (_disposed) return;
+
         // Auto-continue to next stage if victory (don't hide battle animation)
         if (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon)
         {
@@ -635,11 +644,12 @@
             // Brief delay then start next stage automatically
             // Keep showBattleAnimation = true to avoid hiding/recreating the container
             await Task.Delay(200);
+            if (_disposed) return;
             currentBattle = null;
             
             // Only update UI after starting next battle to minimize flicker
             await FightStageEnemy();
-            StateHasChanged();
+            if (!_disposed) StateHasChanged();
         }
         else
         {
@@ -652,19 +662,22 @@
             battleTimeoutCts?.Cancel();
             
             // On defeat, destroy the game entirely (stops music and sounds)
-            try
+            if (!_disposed)
             {
-                await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Error destroying stage battle game on defeat");
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error destroying stage battle game on defeat");
+                }
             }
             
             // Only hide battle animation on defeat
             showBattleAnimation = false;
             currentEnemyStats.Clear();
-            StateHasChanged();
+            if (!_disposed) StateHasChanged();
         }
     }
 
@@ -740,7 +753,6 @@
         return enemyType switch
         {
             EnemyType.Boss => "boss",
-            EnemyType.MiniBoss => "miniBoss",
             _ => "normal"
         };
     }
@@ -753,13 +765,18 @@
         return enemyType switch
         {
             EnemyType.Boss => "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png",
-            EnemyType.MiniBoss => "/sprites/games/my-tuno/enemies/forest/wolf.png",
             _ => "/sprites/games/my-tuno/enemies/forest/wolf.png"
         };
     }
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+
+        // Cancel and dispose timeout token first to prevent further callbacks
+        battleTimeoutCts?.Cancel();
+        battleTimeoutCts?.Dispose();
+
         // Cancel any run in progress (restore HP and stage)
         if (runInProgress && character != null && runStartingHp.HasValue && runStartingStage.HasValue)
         {
@@ -780,20 +797,13 @@
                 // Destroy stage battle game
                 await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
             }
-            catch (JSDisconnectedException)
+            catch (Exception)
             {
-                // Ignore if JS context is disconnected
-            }
-            catch (InvalidOperationException)
-            {
-                // Ignore if JS interop is not available
+                // Ignore all JS interop errors during disposal
+                // (JSDisconnectedException, TaskCanceledException, InvalidOperationException, JSException, etc.)
             }
         }
         
         objRef?.Dispose();
-        
-        // Cancel and dispose timeout token
-        battleTimeoutCts?.Cancel();
-        battleTimeoutCts?.Dispose();
     }
 }

@@ -71,6 +71,50 @@
   font-size: 1.4rem;
 }
 
+/* Vodka card - silver/clear */
+.item-card--vodka {
+  border-color: rgba(200, 200, 220, 0.4);
+  background: linear-gradient(180deg, #1a1a28 0%, #12121e 100%);
+  cursor: default;
+}
+
+.item-card--vodka .item-card__icon {
+  color: #c8c8dc;
+}
+
+/* Gin card - green/herbal */
+.item-card--gin {
+  border-color: rgba(46, 204, 113, 0.4);
+  background: linear-gradient(180deg, #0f1f1a 0%, #0a1512 100%);
+  cursor: default;
+}
+
+.item-card--gin .item-card__icon {
+  color: #2ecc71;
+}
+
+/* Whisky card - amber */
+.item-card--whisky {
+  border-color: rgba(230, 126, 34, 0.4);
+  background: linear-gradient(180deg, #221a0f 0%, #18120a 100%);
+  cursor: default;
+}
+
+.item-card--whisky .item-card__icon {
+  color: #e67e22;
+}
+
+/* Absinto card - bright green */
+.item-card--absinto {
+  border-color: rgba(0, 255, 100, 0.4);
+  background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
+  cursor: default;
+}
+
+.item-card--absinto .item-card__icon {
+  color: #00ff64;
+}
+
 /* Quantity badge (top-left) */
 .item-card__qty {
   position: absolute;
@@ -475,6 +519,237 @@
   background-color: #6f42c1 !important;
 }
 
+/* ==========================================
+   Energy Bar (Destilaria)
+   ========================================== */
+.energy-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.energy-bar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.energy-bar__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1c40f;
+}
+
+.energy-bar__value {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #f1c40f;
+}
+
+.energy-bar__track {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(241, 196, 15, 0.2);
+}
+
+.energy-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f39c12, #f1c40f);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px rgba(241, 196, 15, 0.4);
+}
+
+.energy-bar__regen {
+  font-size: 0.65rem;
+  color: rgba(241, 196, 15, 0.6);
+  text-align: right;
+}
+
+/* ==========================================
+   Cast Bar (gathering progress)
+   ========================================== */
+.cast-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cast-bar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cast-bar__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a88ee5;
+}
+
+.cast-bar__time {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a88ee5;
+}
+
+.cast-bar__track {
+  height: 14px;
+  background: rgba(111, 66, 193, 0.1);
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(111, 66, 193, 0.3);
+}
+
+.cast-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c4ddb, #a88ee5);
+  border-radius: 7px;
+  box-shadow: 0 0 10px rgba(111, 66, 193, 0.5);
+}
+
+/* ==========================================
+   Gather Grid (Destilaria resource nodes)
+   ========================================== */
+.gather-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  flex: 1;
+  align-content: start;
+}
+
+.gather-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem 0.5rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 100px;
+}
+
+.gather-node:hover:not(.gather-node--disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(111, 66, 193, 0.25);
+}
+
+.gather-node:active:not(.gather-node--disabled) {
+  transform: translateY(1px);
+}
+
+.gather-node--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gather-node--active {
+  border-color: rgba(241, 196, 15, 0.6) !important;
+  box-shadow: 0 0 16px rgba(241, 196, 15, 0.2) !important;
+}
+
+/* Vodka - clear/white */
+.gather-node--vodka {
+  border-color: rgba(200, 200, 220, 0.4);
+  background: linear-gradient(180deg, #1a1a28 0%, #12121e 100%);
+}
+.gather-node--vodka:hover:not(.gather-node--disabled) {
+  border-color: rgba(200, 200, 220, 0.7);
+  box-shadow: 0 4px 16px rgba(200, 200, 220, 0.2);
+}
+.gather-node--vodka .gather-node__icon { color: #c8c8dc; }
+
+/* Gin - light blue/teal */
+.gather-node--gin {
+  border-color: rgba(46, 204, 113, 0.4);
+  background: linear-gradient(180deg, #0f1f1a 0%, #0a1512 100%);
+}
+.gather-node--gin:hover:not(.gather-node--disabled) {
+  border-color: rgba(46, 204, 113, 0.7);
+  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.2);
+}
+.gather-node--gin .gather-node__icon { color: #2ecc71; }
+
+/* Whisky - amber/gold */
+.gather-node--whisky {
+  border-color: rgba(230, 126, 34, 0.4);
+  background: linear-gradient(180deg, #221a0f 0%, #18120a 100%);
+}
+.gather-node--whisky:hover:not(.gather-node--disabled) {
+  border-color: rgba(230, 126, 34, 0.7);
+  box-shadow: 0 4px 16px rgba(230, 126, 34, 0.2);
+}
+.gather-node--whisky .gather-node__icon { color: #e67e22; }
+
+/* Absinto - green glow */
+.gather-node--absinto {
+  border-color: rgba(39, 174, 96, 0.4);
+  background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
+}
+.gather-node--absinto:hover:not(.gather-node--disabled) {
+  border-color: rgba(0, 255, 100, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 255, 100, 0.2);
+}
+.gather-node--absinto .gather-node__icon { color: #00ff64; }
+
+/* Cost badge (top-right) */
+.gather-node__cost {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f1c40f;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.gather-node__cost i {
+  font-size: 0.65rem;
+}
+
+/* Quantity badge (top-left) */
+.gather-node__qty {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Icon */
+.gather-node__icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+/* Sprite images for drinks */
+.gather-sprite {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* Name */
+.gather-node__name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e2e2;
+  text-align: center;
+}
+
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .my-tuno-home-page {
@@ -518,5 +793,18 @@
 
   .equip-layout__sprite {
     max-height: 120px;
+  }
+
+  .gather-grid {
+    gap: 0.4rem;
+  }
+
+  .gather-node {
+    padding: 0.5rem 0.35rem;
+    min-height: 80px;
+  }
+
+  .gather-node__icon {
+    font-size: 1.5rem;
   }
 }

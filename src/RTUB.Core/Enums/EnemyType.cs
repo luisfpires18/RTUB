@@ -11,13 +11,7 @@ public enum EnemyType
     Normal = 0,
 
     /// <summary>
-    /// Mini-boss - appears every 10 stages
-    /// Tougher than normal mobs
-    /// </summary>
-    MiniBoss = 1,
-
-    /// <summary>
-    /// Boss - appears every 100 stages
+    /// Boss - appears at boss stages (configured via bossEveryNStages)
     /// Very tough with lots of HP
     /// </summary>
     Boss = 2

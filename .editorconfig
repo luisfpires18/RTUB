@@ -184,3 +184,7 @@ csharp_space_between_square_brackets = false
 # Wrapping preferences
 csharp_preserve_single_line_statements = true
 csharp_preserve_single_line_blocks = true
+
+# Auto-generated EF Core migration files (Designer.cs uses block-scoped namespace)
+[**/Migrations/*.Designer.cs]
+csharp_style_namespace_declarations = block_scoped:silent

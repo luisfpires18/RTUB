@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -25,10 +27,12 @@ public class InventoryServiceTests
         _characterRepositoryMock = new Mock<ICharacterRepository>();
         _loggerMock = new Mock<ILogger<InventoryService>>();
 
+        var config = Options.Create(new MyTunoScalingConfiguration());
         _inventoryService = new InventoryService(
             _inventoryRepositoryMock.Object,
             _characterRepositoryMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            config);
     }
 
     [Fact]

@@ -47,6 +47,11 @@ public class MyTunoScalingConfiguration
     public int MinDamage { get; set; } = 1;
 
     public StageModeConfig StageMode { get; set; } = new();
+
+    /// <summary>
+    /// Configuration for the Destilaria (resource gathering) system
+    /// </summary>
+    public GatheringConfig Gathering { get; set; } = new();
 }
 
 public class BattleRewards
@@ -146,11 +151,6 @@ public class StageModeConfig
     public int BaseStageXP { get; set; } = 30;
 
     /// <summary>
-    /// XP multiplier for mini-boss stages
-    /// </summary>
-    public int MiniBossXPMultiplier { get; set; } = 3;
-
-    /// <summary>
     /// XP multiplier for boss stages
     /// </summary>
     public int BossXPMultiplier { get; set; } = 10;
@@ -235,7 +235,6 @@ public class EnemyScaling
 public class BaseEnemyStats
 {
     public EnemyTypeStat Normal { get; set; } = new() { Hp = 50, Power = 8, Speed = 5, Defense = 3, CriticalChance = 0.05 };
-    public EnemyTypeStat MiniBoss { get; set; } = new() { Hp = 200, Power = 15, Speed = 7, Defense = 8, CriticalChance = 0.10 };
     public EnemyTypeStat Boss { get; set; } = new() { Hp = 500, Power = 20, Speed = 8, Defense = 15, CriticalChance = 0.15 };
 }
 
@@ -257,7 +256,6 @@ public class EnemyTypeStat
 public class FidelisRewards
 {
     public decimal NormalWin { get; set; } = 10m;
-    public decimal MiniBossWin { get; set; } = 25m;
     public decimal BossWin { get; set; } = 50m;
 }
 
@@ -269,7 +267,6 @@ public class StageDropRates
     public double BeerDropChance { get; set; } = 0.10;
     public double ShotDropChance { get; set; } = 0.05;
     public double BossDropMultiplier { get; set; } = 3.0;
-    public double MiniBossDropMultiplier { get; set; } = 2.0;
 }
 
 /// <summary>
@@ -434,4 +431,68 @@ public class PowerRatingWeights
     public double Hp { get; set; } = 0.5;
     public double Power { get; set; } = 2.0;
     public double Speed { get; set; } = 1.5;
+}
+
+/// <summary>
+/// Configuration for the Destilaria (resource gathering) system
+/// </summary>
+public class GatheringConfig
+{
+    /// <summary>
+    /// Maximum energy capacity for gathering
+    /// </summary>
+    public int MaxEnergy { get; set; } = 10;
+
+    /// <summary>
+    /// Seconds between each energy regeneration tick (1 energy per interval)
+    /// Default is 60 (1 energy per minute)
+    /// </summary>
+    public int RegenIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Cast time in seconds before a resource is gathered
+    /// </summary>
+    public int CastTimeSeconds { get; set; } = 3;
+
+    /// <summary>
+    /// List of available gathering resources
+    /// </summary>
+    public List<GatheringResourceConfig> Resources { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration for a single gathering resource
+/// </summary>
+public class GatheringResourceConfig
+{
+    /// <summary>
+    /// The InventoryItemType name (e.g., "Vodka", "Gin")
+    /// </summary>
+    public string Type { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Display name for the resource
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Energy cost to gather this resource
+    /// </summary>
+    public int EnergyCost { get; set; } = 1;
+
+    /// <summary>
+    /// Bootstrap icon class (e.g., "bi-droplet") — used as fallback if no sprite
+    /// </summary>
+    public string Icon { get; set; } = "bi-box";
+
+    /// <summary>
+    /// Path to the sprite image relative to wwwroot (e.g., "sprites/games/my-tuno/drinks/vodka.png")
+    /// If empty, the bootstrap icon is used instead
+    /// </summary>
+    public string SpritePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether this resource is currently available for gathering
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 }

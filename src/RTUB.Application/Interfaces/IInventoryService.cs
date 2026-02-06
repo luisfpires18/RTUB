@@ -1,3 +1,5 @@
+using RTUB.Core.Enums;
+
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
@@ -37,4 +39,31 @@ public interface IInventoryService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Tuple containing success status, battles empowered, and message</returns>
     Task<(bool Success, int BattlesEmpowered, string Message)> UseShotAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of a resource type in the user's inventory
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="type">The inventory item type</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The quantity of the resource, or 0 if none</returns>
+    Task<int> GetResourceQuantityAsync(string userId, InventoryItemType type, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the current energy for a character, including passive regeneration
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Tuple of current energy, max energy, and seconds until next energy regen tick</returns>
+    Task<(int CurrentEnergy, int MaxEnergy, int SecondsUntilNextRegen)> GetCurrentEnergyAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gathers a resource by spending energy
+    /// Energy costs: Vodka=1, Gin=2, Whisky=3, Absinto=4
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="resourceType">The type of resource to gather</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Tuple containing success status, gathered quantity, remaining energy, and message</returns>
+    Task<(bool Success, int Gathered, int RemainingEnergy, string Message)> GatherResourceAsync(string userId, InventoryItemType resourceType, CancellationToken cancellationToken = default);
 }

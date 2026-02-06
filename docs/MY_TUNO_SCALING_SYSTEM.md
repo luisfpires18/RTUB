@@ -4,7 +4,7 @@
 
 The My-Tuno game features two main combat modes with distinct scaling mechanics:
 1. **Arena Mode**: Player vs Player matchmaking-based battles
-2. **Stage Mode**: Single-player progressive difficulty with multiple enemies
+2. **Stage Mode**: Single-player progressive difficulty — the goal is to push as far as possible before being defeated. There is no "winning" stage mode; the player always eventually loses as enemies scale infinitely.
 
 The scaling system is configured via `scaling.config.json` and defined in `MyTunoScalingConfiguration.cs`.
 
@@ -205,7 +205,6 @@ Each stat has independent upgrade scaling with a configurable max level cap:
 ```json
 "baseEnemyStats": {
   "normal": { "hp": 50, "power": 8, "speed": 5, "defense": 3, "criticalChance": 0.05 },
-  "miniBoss": { "hp": 200, "power": 15, "speed": 7, "defense": 8, "criticalChance": 0.10 },
   "boss": { "hp": 500, "power": 20, "speed": 8, "defense": 15, "criticalChance": 0.15 }
 }
 ```
@@ -255,7 +254,6 @@ Each stat has independent upgrade scaling with a configurable max level cap:
 ```json
 "stageMode": {
   "baseStageXP": 30,
-  "miniBossXPMultiplier": 3,
   "bossXPMultiplier": 10,
   "stageRewardScalingFactor": 0.05
 }
@@ -263,7 +261,7 @@ Each stat has independent upgrade scaling with a configurable max level cap:
 
 **Formula**: `XP = BaseStageXP × EnemyCount × EnemyTypeMultiplier × (1.0 + Stage × StageRewardScalingFactor)`
 
-- **EnemyTypeMultiplier**: Normal: 1.0, Mini-Boss: 3.0, Boss: 10.0
+- **EnemyTypeMultiplier**: Normal: 1.0, Boss: 10.0
 - **StageRewardScalingFactor**: 0.05 (5% per stage)
 
 **Examples**:
@@ -278,7 +276,6 @@ Each stat has independent upgrade scaling with a configurable max level cap:
 ```json
 "fidelisRewards": {
   "normalWin": 10,
-  "miniBossWin": 25,
   "bossWin": 50
 }
 ```
@@ -291,13 +288,11 @@ Fixed rewards per enemy type, no scaling applied.
 "dropRates": {
   "beerDropChance": 0.10,
   "shotDropChance": 0.05,
-  "bossDropMultiplier": 3.0,
-  "miniBossDropMultiplier": 2.0
+  "bossDropMultiplier": 3.0
 }
 ```
 
 - Normal enemy: 10% beer, 5% shot
-- Mini-boss: 20% beer, 10% shot (2× multiplier)
 - Boss: 30% beer, 15% shot (3× multiplier)
 
 ### 2.7 Biome System

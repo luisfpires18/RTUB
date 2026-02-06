@@ -70,7 +70,6 @@ public class StageServiceTests : IDisposable
                 BaseEnemyStats = new BaseEnemyStats
                 {
                     Normal = new EnemyTypeStat { Hp = 100, Power = 10, Speed = 10, Defense = 5, CriticalChance = 0.03 },
-                    MiniBoss = new EnemyTypeStat { Hp = 200, Power = 20, Speed = 15, Defense = 10, CriticalChance = 0.05 },
                     Boss = new EnemyTypeStat { Hp = 500, Power = 50, Speed = 20, Defense = 25, CriticalChance = 0.10 }
                 },
                 EnemyScaling = new EnemyScaling
@@ -93,6 +92,8 @@ public class StageServiceTests : IDisposable
         _biomeServiceMock.Setup(x => x.GetEnemyCountForStage(It.IsAny<int>())).Returns(1);
         _biomeServiceMock.Setup(x => x.GetRandomEnemySpritesAsync(It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((int stage, int count) => Enumerable.Repeat("/images/enemies/default.png", count).ToList());
+        _biomeServiceMock.Setup(x => x.GetRandomEnemySpritesWithPlacementAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int stage, int count) => Enumerable.Repeat(("/images/enemies/default.png", 0), count).ToList());
         _biomeServiceMock.Setup(x => x.GetBossSpriteAsync(It.IsAny<int>()))
             .ReturnsAsync("/images/enemies/boss.png");
         _biomeServiceMock.Setup(x => x.CalculateScaledStats(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()))
@@ -150,7 +151,6 @@ public class StageServiceTests : IDisposable
         progress.CurrentRegion.Should().Be(RegionType.Forest);
         progress.EndlessModeUnlocked.Should().BeFalse();
         progress.TotalStagesCleared.Should().Be(0);
-        progress.TotalMiniBossesDefeated.Should().Be(0);
         progress.TotalBossesDefeated.Should().Be(0);
 
         // Verify it was persisted
@@ -406,16 +406,17 @@ public class StageServiceTests : IDisposable
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
         // Assert
-        battle.XPReward.Should().Be(30); // BaseStageXP for normal enemy
-        battle.FidelisReward.Should().Be(10m); // Win reward from config
+        // Stage 1: stageScaling = 1.0 + (1 * 0.05) = 1.05
+        battle.XPReward.Should().Be(32); // round(BaseStageXP(30) * 1.05) = 32
+        battle.FidelisReward.Should().Be(10.50m); // round(NormalWin(10) * 1.05, 2) = 10.50
 
         // Verify character XP was updated
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.XP.Should().Be(initialXP + 30);
+        updatedCharacter!.XP.Should().Be(initialXP + 32);
 
         // Verify user Fidelis was updated
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == 110m)), Times.Once);
+            u.FidelisBalance == 110.50m)), Times.Once);
     }
 
     [Fact]
@@ -493,68 +494,19 @@ public class StageServiceTests : IDisposable
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
         // Assert
-        battle.XPReward.Should().Be(10); // BaseStageXP / 3 for loss
-        battle.FidelisReward.Should().Be(5m); // Loss reward from config
-        battle.BeersDropped.Should().Be(0); // No drops on loss
-        battle.ShotsDropped.Should().Be(0); // No drops on loss
+        // Stage mode gives no rewards on defeat
+        battle.XPReward.Should().Be(0);
+        battle.FidelisReward.Should().Be(0m);
+        battle.BeersDropped.Should().Be(0);
+        battle.ShotsDropped.Should().Be(0);
 
-        // Verify character XP was updated
+        // Verify character XP was NOT updated (no consolation rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.XP.Should().Be(initialXP + 10);
+        updatedCharacter!.XP.Should().Be(initialXP);
 
-        // Verify user Fidelis was updated
+        // Verify user Fidelis was NOT updated (no rewards on defeat)
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == 105m)), Times.Once);
-    }
-
-    [Fact]
-    public async Task ExecuteStageBattleAsync_WhenFightingMiniBoss_ShouldGiveTripleXP()
-    {
-        // Arrange
-        var user = CreateTestUser();
-        await _context.Users.AddAsync(user);
-
-        var character = Character.Create("user1");
-        await _context.Characters.AddAsync(character);
-        await _context.SaveChangesAsync();
-
-        // Create progress at stage 10 (mini-boss stage)
-        var progress = StageProgress.Create("user1");
-        for (int i = 1; i < 10; i++)
-        {
-            progress.AdvanceStage();
-        }
-        await _stageProgressRepository.AddAsync(progress);
-
-        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
-            .ReturnsAsync(user);
-        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
-
-        var combatResult = new Application.DTOs.CombatResult
-        {
-            Outcome = BattleOutcome.AttackerWon,
-            Events = new List<Application.DTOs.CombatEvent>
-            {
-                new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
-            },
-            AttackerFinalHP = 50,
-            DefenderFinalHP = 0
-        };
-
-        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
-            .Returns(combatResult);
-
-        // Act
-        var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
-
-        // Assert
-        battle.EnemyType.Should().Be(EnemyType.MiniBoss);
-        battle.XPReward.Should().Be(90); // BaseStageXP (30) * MiniBossXPMultiplier (3)
-
-        // Verify mini-boss defeat was recorded
-        var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
-        updatedProgress!.TotalMiniBossesDefeated.Should().Be(1);
+            u.FidelisBalance == 100m)), Times.Never);
     }
 
     [Fact]
@@ -600,7 +552,8 @@ public class StageServiceTests : IDisposable
 
         // Assert
         battle.EnemyType.Should().Be(EnemyType.Boss);
-        battle.XPReward.Should().Be(300); // BaseStageXP (30) * BossXPMultiplier (10)
+        // BaseStageXP (30) * BossXPMultiplier (10) * stageScaling (1 + 100*0.05 = 6.0) = 1800
+        battle.XPReward.Should().Be(1800);
 
         // Verify boss defeat was recorded
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
@@ -723,7 +676,7 @@ public class StageServiceTests : IDisposable
 
         // Assert
         result.Should().NotBeNull();
-        result.CurrentStage.Should().Be(20); // Should reset to checkpoint at 20
+        result.CurrentStage.Should().Be(21); // Should reset to checkpoint at 21 (after boss at 20)
         result.HighestStage.Should().Be(25); // Highest stage should remain
     }
 
@@ -760,8 +713,8 @@ public class StageServiceTests : IDisposable
         var result = await _stageService.ReturnToCheckpointAsync(userId);
 
         // Assert
-        result.CurrentStage.Should().Be(100);
-        result.CurrentRegion.Should().Be(RegionType.Forest); // Stage 100 is in Forest
+        result.CurrentStage.Should().Be(101);
+        result.CurrentRegion.Should().Be(RegionType.Desert); // Stage 101 is in Desert region
     }
 
     #endregion
@@ -770,18 +723,23 @@ public class StageServiceTests : IDisposable
 
     [Theory]
     [InlineData(1, 1)]
-    [InlineData(5, 1)] // Stages 2-9 checkpoint at 1 (starting point)
-    [InlineData(10, 10)]
-    [InlineData(15, 10)]
-    [InlineData(20, 20)]
-    [InlineData(99, 90)]
-    [InlineData(100, 100)]
-    [InlineData(101, 100)]
-    [InlineData(120, 120)]
-    [InlineData(135, 120)]
-    [InlineData(140, 140)]
-    [InlineData(999, 980)]
-    [InlineData(10000, 10000)]
+    [InlineData(5, 1)] // Stages 2-10 checkpoint at 1 (starting point)
+    [InlineData(10, 1)] // Boss stage - checkpoint is still 1 (before boss)
+    [InlineData(11, 11)] // After boss - new checkpoint starts
+    [InlineData(15, 11)]
+    [InlineData(20, 11)] // Boss stage - checkpoint is 11
+    [InlineData(21, 21)] // After boss - new checkpoint
+    [InlineData(25, 21)]
+    [InlineData(99, 91)]
+    [InlineData(100, 91)] // Boss stage
+    [InlineData(101, 101)] // After stage 100: every 20 stages
+    [InlineData(120, 101)]
+    [InlineData(121, 121)]
+    [InlineData(135, 121)]
+    [InlineData(140, 121)]
+    [InlineData(141, 141)]
+    [InlineData(999, 981)]
+    [InlineData(10000, 9981)] // Last checkpoint before Infinite Land
     [InlineData(10001, 10000)]
     [InlineData(15000, 10000)]
     public void CalculateCheckpoint_ShouldReturnCorrectCheckpoint(int stage, int expectedCheckpoint)
@@ -820,17 +778,17 @@ public class StageServiceTests : IDisposable
     [InlineData(1, EnemyType.Normal)]
     [InlineData(5, EnemyType.Normal)]
     [InlineData(9, EnemyType.Normal)]
-    [InlineData(10, EnemyType.MiniBoss)]
-    [InlineData(20, EnemyType.MiniBoss)]
-    [InlineData(30, EnemyType.MiniBoss)]
-    [InlineData(90, EnemyType.MiniBoss)]
+    [InlineData(10, EnemyType.Boss)]
+    [InlineData(20, EnemyType.Boss)]
+    [InlineData(30, EnemyType.Boss)]
+    [InlineData(90, EnemyType.Boss)]
     [InlineData(100, EnemyType.Boss)]
     [InlineData(200, EnemyType.Boss)]
     [InlineData(1000, EnemyType.Boss)]
     [InlineData(10000, EnemyType.Boss)]
-    [InlineData(10001, EnemyType.Normal)] // No mini-bosses in Infinite Land
-    [InlineData(10010, EnemyType.Normal)] // No mini-bosses in Infinite Land
-    [InlineData(10100, EnemyType.Boss)] // Bosses still appear every 100
+    [InlineData(10001, EnemyType.Normal)]
+    [InlineData(10010, EnemyType.Boss)]
+    [InlineData(10100, EnemyType.Boss)]
     public void GetEnemyTypeForStage_ShouldReturnCorrectType(int stage, EnemyType expectedType)
     {
         // Act
@@ -886,18 +844,18 @@ public class StageServiceTests : IDisposable
         // Arrange
         var progress = StageProgress.Create("user1");
 
-        // Advance to stage 9
-        for (int i = 1; i < 9; i++)
+        // Advance to stage 10 (boss stage)
+        for (int i = 1; i < 10; i++)
         {
             progress.AdvanceStage();
         }
 
-        // Act - advance to stage 10 (checkpoint)
+        // Act - advance to stage 11 (first stage after boss = new checkpoint)
         progress.AdvanceStage();
 
         // Assert
-        progress.CurrentStage.Should().Be(10);
-        progress.LastCheckpoint.Should().Be(10);
+        progress.CurrentStage.Should().Be(11);
+        progress.LastCheckpoint.Should().Be(11);
     }
 
     [Fact]
@@ -950,19 +908,6 @@ public class StageServiceTests : IDisposable
 
         // Assert
         progress.EndlessModeUnlocked.Should().BeTrue();
-    }
-
-    [Fact]
-    public void RecordMiniBossDefeat_ShouldIncrementCounter()
-    {
-        // Arrange
-        var progress = StageProgress.Create("user1");
-
-        // Act
-        progress.RecordMiniBossDefeat();
-
-        // Assert
-        progress.TotalMiniBossesDefeated.Should().Be(1);
     }
 
     #endregion

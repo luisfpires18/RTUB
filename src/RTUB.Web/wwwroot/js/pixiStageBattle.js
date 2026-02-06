@@ -24,7 +24,6 @@
         background: '/sprites/games/my-tuno/backgrounds/forest.png',
         enemies: {
             normal: '/sprites/games/my-tuno/enemies/forest/wolf.png',
-            miniBoss: '/sprites/games/my-tuno/enemies/forest/wolf.png',
             boss: '/sprites/games/my-tuno/enemies/forest/boss_1_bear.png'
         }
     };
@@ -1357,11 +1356,14 @@
                 clearInterval(this.eventTimer);
                 this.eventTimer = null;
             }
-            if (this.app) {
-                // Stop ticker before destroying
-                this.app.ticker.stop();
-                
-                // Clear stage children manually to avoid null reference issues
+            
+            if (!this.app) return; // Already destroyed
+            
+            // Stop ticker before destroying
+            try { this.app.ticker.stop(); } catch (e) { /* ignore */ }
+            
+            // Clear stage children manually to avoid null reference issues
+            try {
                 while (this.stage && this.stage.children && this.stage.children.length > 0) {
                     const child = this.stage.children[0];
                     this.stage.removeChild(child);
@@ -1373,16 +1375,19 @@
                         }
                     }
                 }
-                
-                // Now destroy the app
-                try {
-                    this.app.destroy(false);
-                } catch (e) {
-                    console.warn('Error destroying PixiJS app:', e);
-                }
-                this.app = null;
-                this.stage = null;
+            } catch (e) {
+                // Ignore errors during stage cleanup
             }
+            
+            // Destroy the app — catch PixiJS internal errors (GpuBufferSystem null ref, etc.)
+            try {
+                this.app.destroy(false);
+            } catch (e) {
+                // PixiJS can throw when GPU context is already lost or buffers are null
+                console.warn('PixiJS app.destroy error (safe to ignore):', e.message);
+            }
+            this.app = null;
+            this.stage = null;
         }
         
         // Reset scene for next battle without destroying the app - much faster!

@@ -58,7 +58,7 @@ public enum RegionType
 
     /// <summary>
     /// Stages 10001+: Infinite Land (Endless mode)
-    /// No checkpoints, no mini-bosses
+    /// No checkpoints
     /// </summary>
     InfiniteLand = 99
 }

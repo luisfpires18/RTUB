@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -14,6 +16,7 @@ public class InventoryService : IInventoryService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly ICharacterRepository _characterRepository;
     private readonly ILogger<InventoryService> _logger;
+    private readonly GatheringConfig _gatheringConfig;
 
     // Beer heals 25% of total HP
     private const double BeerHealPercentage = 0.25;
@@ -21,11 +24,13 @@ public class InventoryService : IInventoryService
     public InventoryService(
         IInventoryRepository inventoryRepository,
         ICharacterRepository characterRepository,
-        ILogger<InventoryService> logger)
+        ILogger<InventoryService> logger,
+        IOptions<MyTunoScalingConfiguration> config)
     {
         _inventoryRepository = inventoryRepository;
         _characterRepository = characterRepository;
         _logger = logger;
+        _gatheringConfig = config.Value.Gathering;
     }
 
     /// <summary>
@@ -166,5 +171,130 @@ public class InventoryService : IInventoryService
         }
 
         return (true, ShotBuffBattles, $"Shot ativado! +20% stats nas próximas {ShotBuffBattles} batalhas de arena");
+    }
+
+    /// <summary>
+    /// Gets the energy cost for a resource type from config
+    /// </summary>
+    private int GetEnergyCost(InventoryItemType type)
+    {
+        var typeName = type.ToString();
+        var resource = _gatheringConfig.Resources.FirstOrDefault(r => r.Type == typeName);
+        return resource?.EnergyCost ?? int.MaxValue;
+    }
+
+    /// <summary>
+    /// Gets the quantity of a resource in the user's inventory
+    /// </summary>
+    public async Task<int> GetResourceQuantityAsync(string userId, InventoryItemType type, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, type, cancellationToken);
+        return item?.Quantity ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the current energy for a character, applying passive regen since last check
+    /// </summary>
+    public async Task<(int CurrentEnergy, int MaxEnergy, int SecondsUntilNextRegen)> GetCurrentEnergyAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+        {
+            return (0, 10, 0);
+        }
+
+        ApplyEnergyRegen(character);
+        await _characterRepository.UpdateAsync(character);
+
+        // Calculate seconds until next regen tick
+        var secondsUntilNext = 0;
+        if (character.Energy < character.MaxEnergy)
+        {
+            var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+            if (regenInterval <= 0) regenInterval = 60;
+            var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;
+            var elapsed = (DateTime.UtcNow - lastRegen).TotalSeconds;
+            secondsUntilNext = Math.Max(1, regenInterval - (int)elapsed);
+        }
+
+        return (character.Energy, character.MaxEnergy, secondsUntilNext);
+    }
+
+    /// <summary>
+    /// Gathers a resource by spending energy
+    /// </summary>
+    public async Task<(bool Success, int Gathered, int RemainingEnergy, string Message)> GatherResourceAsync(string userId, InventoryItemType resourceType, CancellationToken cancellationToken = default)
+    {
+        // Validate resource type is active in config
+        var typeName = resourceType.ToString();
+        var resourceConfig = _gatheringConfig.Resources.FirstOrDefault(r => r.Type == typeName && r.IsActive);
+        if (resourceConfig == null)
+        {
+            return (false, 0, 0, "Tipo de recurso inválido para destilação");
+        }
+
+        var energyCost = resourceConfig.EnergyCost;
+
+        // Get character
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+        {
+            _logger.LogWarning("User {UserId} attempted to gather but has no character", userId);
+            return (false, 0, 0, "Personagem não encontrado");
+        }
+
+        // Apply passive energy regen first
+        ApplyEnergyRegen(character);
+
+        // Check if enough energy
+        if (character.Energy < energyCost)
+        {
+            return (false, 0, character.Energy, $"Energia insuficiente! Precisas de {energyCost} energia");
+        }
+
+        // Spend energy (don't reset LastEnergyRegenAt — preserve partial regen progress)
+        character.Energy -= energyCost;
+        await _characterRepository.UpdateAsync(character);
+
+        // Add resource to inventory
+        await _inventoryRepository.AddItemAsync(userId, resourceType, 1, cancellationToken);
+
+        var resourceName = resourceType switch
+        {
+            InventoryItemType.Vodka => "Vodka",
+            InventoryItemType.Gin => "Gin",
+            InventoryItemType.Whisky => "Whisky",
+            InventoryItemType.Absinto => "Absinto",
+            _ => resourceType.ToString()
+        };
+
+        return (true, 1, character.Energy, $"+1 {resourceName}!");
+    }
+
+    /// <summary>
+    /// Applies passive energy regeneration based on elapsed time since last regen
+    /// 1 energy per regen interval (default 60 seconds), capped at MaxEnergy
+    /// </summary>
+    private void ApplyEnergyRegen(Character character)
+    {
+        if (character.Energy >= character.MaxEnergy)
+        {
+            character.LastEnergyRegenAt = DateTime.UtcNow;
+            return;
+        }
+
+        var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+        if (regenInterval <= 0) regenInterval = 60;
+
+        var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;
+        var elapsed = DateTime.UtcNow - lastRegen;
+        var regenAmount = (int)(elapsed.TotalSeconds / regenInterval);
+
+        if (regenAmount > 0)
+        {
+            character.Energy = Math.Min(character.MaxEnergy, character.Energy + regenAmount);
+            // Keep remainder time by advancing lastRegen by the consumed ticks only
+            character.LastEnergyRegenAt = lastRegen.AddSeconds(regenAmount * regenInterval);
+        }
     }
 }
