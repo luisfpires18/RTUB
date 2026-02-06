@@ -340,8 +340,8 @@
                             // Handle start query parameter - persist to DB if different
                             if (StartStage.HasValue && StartStage.Value > 0)
                             {
-                                // Validate start stage: must be between 1 and highest reached
-                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.HighestStage);
+                                // Validate start stage: can only go back, not skip forward
+                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.CurrentStage);
                                 
                                 // Update DB if different from current
                                 if (targetStage != stageProgress.CurrentStage)
@@ -352,6 +352,9 @@
                                 }
                                 
                                 currentStageNumber = targetStage;
+                                
+                                // Clean URL to prevent reuse/tampering
+                                Navigation.NavigateTo("/my-tuno/stages", replace: true);
                             }
                             else
                             {
