@@ -26,6 +26,7 @@ public class InstrumentTypeTests
             InstrumentType.Pandeireta,
             InstrumentType.Estandarte,
             InstrumentType.Violino,
+            InstrumentType.Saxofone,
         };
 
         // Act
@@ -57,6 +58,6 @@ public class InstrumentTypeTests
         var count = Enum.GetValues<InstrumentType>().Length;
 
         // Assert
-        count.Should().Be(12);
+        count.Should().Be(13);
     }
 }

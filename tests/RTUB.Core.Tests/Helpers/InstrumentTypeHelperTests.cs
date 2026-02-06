@@ -23,6 +23,7 @@ public class InstrumentTypeHelperTests
     [InlineData(InstrumentType.Pandeireta, "Pandeireta")]
     [InlineData(InstrumentType.Estandarte, "Estandarte")]
     [InlineData(InstrumentType.Violino, "Violino")]
+    [InlineData(InstrumentType.Saxofone, "Saxofone")]
     public void GetDisplayName_ReturnsCorrectName(InstrumentType instrument, string expected)
     {
         // Act
@@ -45,6 +46,7 @@ public class InstrumentTypeHelperTests
     [InlineData("Pandeireta", InstrumentType.Pandeireta)]
     [InlineData("Estandarte", InstrumentType.Estandarte)]
     [InlineData("Violino", InstrumentType.Violino)]
+    [InlineData("Saxofone", InstrumentType.Saxofone)]
     public void ParseDisplayName_WithValidName_ReturnsCorrectEnum(string displayName, InstrumentType expected)
     {
         // Act

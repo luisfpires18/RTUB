@@ -23,6 +23,7 @@ public class InventoryPageTests
     [InlineData("Percussao", "bi-circle")]
     [InlineData("Pandeireta", "bi-record-circle")]
     [InlineData("Estandarte", "bi-flag")]
+    [InlineData("Saxofone", "bi-music-note-beamed")]
     public void GetInstrumentIcon_ReturnsCorrectIcon_ForInstrumentType(string category, string expectedIcon)
     {
         // Arrange & Act
@@ -60,6 +61,7 @@ public class InventoryPageTests
             "Percussao" => "bi-circle",
             "Pandeireta" => "bi-record-circle",
             "Estandarte" => "bi-flag",
+            "Saxofone" => "bi-music-note-beamed",
             _ => "bi-music-note-beamed"
         };
     }

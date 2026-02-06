@@ -1,6 +1,6 @@
 {
   "myTuno": {
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "Luta contra inimigos e melhora o teu personagem através de combates! Jogo irá estar em constante mudança",
     "nextFeatures": "Novos modos de jogo, equipamento personalizável, gráficos melhorados.",
 
@@ -93,7 +93,7 @@
       "bossXPMultiplier": 10,
       "stageRewardScalingFactor": 0.05,
       "enemyScaling": {
-        "hpPerStage": 0.08,
+        "hpPerStage": 0.1,
         "powerPerStage": 0.05,
         "speedPerStage": 0.03,
         "defensePerStage": 0.04,

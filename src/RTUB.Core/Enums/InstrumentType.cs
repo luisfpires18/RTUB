@@ -16,5 +16,6 @@ public enum InstrumentType
     Percussao,
     Pandeireta,
     Estandarte,
-    Violino
+    Violino,
+    Saxofone
 }

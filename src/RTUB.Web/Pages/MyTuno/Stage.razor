@@ -340,14 +340,11 @@
                             // Handle start query parameter - persist to DB if different
                             if (StartStage.HasValue && StartStage.Value > 0)
                             {
-                                // Validate start stage: must be 1 OR between checkpoint and highest
-                                var targetStage = StartStage.Value;
-                                if (targetStage < 1) targetStage = 1;
-                                if (targetStage > stageProgress.HighestStage) targetStage = stageProgress.HighestStage;
+                                // Validate start stage: must be between 1 and highest reached
+                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.HighestStage);
                                 
-                                // Only update if different and valid (stage 1 or >= checkpoint)
-                                if (targetStage != stageProgress.CurrentStage && 
-                                    (targetStage == 1 || targetStage >= stageProgress.LastCheckpoint))
+                                // Update DB if different from current
+                                if (targetStage != stageProgress.CurrentStage)
                                 {
                                     stageProgress.CurrentStage = targetStage;
                                     stageProgress.CurrentRegion = StageProgress.GetRegionForStage(targetStage);

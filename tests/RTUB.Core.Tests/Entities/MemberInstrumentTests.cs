@@ -67,6 +67,7 @@ public class MemberInstrumentTests
     [InlineData(InstrumentType.Pandeireta)]
     [InlineData(InstrumentType.Estandarte)]
     [InlineData(InstrumentType.Violino)]
+    [InlineData(InstrumentType.Saxofone)]
     public void Create_WithDifferentInstrumentTypes_ShouldCreateInstance(InstrumentType type)
     {
         // Act
