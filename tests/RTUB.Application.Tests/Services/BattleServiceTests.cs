@@ -188,6 +188,7 @@ public class BattleServiceTests : IDisposable
 
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
         battle.AttackerXP.Should().Be(50); // BaseWinXP
@@ -237,6 +238,7 @@ public class BattleServiceTests : IDisposable
 
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert - Losses should not award any XP or Fidelis
         battle.AttackerXP.Should().Be(0, "losses should not award XP");
@@ -286,6 +288,7 @@ public class BattleServiceTests : IDisposable
 
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
         battle.AttackerXP.Should().Be(30); // BaseDrawXP
@@ -454,6 +457,7 @@ public class BattleServiceTests : IDisposable
 
         // Act
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
+        await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
         // With level difference of 9 (defender level 10 - attacker level 1)

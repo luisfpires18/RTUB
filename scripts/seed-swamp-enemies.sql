@@ -52,7 +52,7 @@ VALUES ('Stalker', 0, 1, 60, 13, 10, 4, 0.05, '/sprites/games/my-tuno/enemies/sw
 
 -- =====================
 -- SWAMP - 10 bosses (stages 110-200)
--- Bosses 1,2,3,10 have sprites; Bosses 4-9 have NULL sprite (fallback)
+-- All bosses have sprites
 -- =====================
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
@@ -64,27 +64,37 @@ VALUES ('Pelican', 2, 1, 700, 28, 7, 20, 0.12, '/sprites/games/my-tuno/enemies/s
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
 VALUES ('Leech Lord', 2, 1, 650, 34, 10, 15, 0.15, '/sprites/games/my-tuno/enemies/swamp/boss_3_leech.png', '80', 0.5, 0.2, datetime('now'), 130, 0);
 
--- Bosses 4-9: No sprite files yet (NULL = fallback)
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Bog Lurker', 2, 1, 680, 32, 12, 16, 0.14, NULL, '90', 0.5, 0.2, datetime('now'), 140, 0);
+VALUES ('Hydra', 2, 1, 680, 32, 12, 16, 0.14, '/sprites/games/my-tuno/enemies/swamp/boss_4_hydra.png', '90', 0.5, 0.2, datetime('now'), 140, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Mire Beast', 2, 1, 800, 26, 6, 24, 0.08, NULL, '100', 0.5, 0.2, datetime('now'), 150, 0);
+VALUES ('Anaconda', 2, 1, 800, 26, 6, 24, 0.08, '/sprites/games/my-tuno/enemies/swamp/boss_5_anaconda.png', '100', 0.5, 0.2, datetime('now'), 150, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Swamp Hydra', 2, 1, 750, 36, 8, 20, 0.12, NULL, '110', 0.5, 0.2, datetime('now'), 160, 0);
+VALUES ('Crayfish', 2, 1, 750, 36, 8, 20, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_6_crayfish.png', '110', 0.5, 0.2, datetime('now'), 160, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Marsh Titan', 2, 1, 850, 30, 9, 26, 0.10, NULL, '120', 0.5, 0.2, datetime('now'), 170, 0);
+VALUES ('Darner', 2, 1, 850, 30, 9, 26, 0.10, '/sprites/games/my-tuno/enemies/swamp/boss_7_darner.png', '120', 0.5, 0.2, datetime('now'), 170, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Venom Drake', 2, 1, 780, 40, 11, 22, 0.18, NULL, '130', 0.5, 0.2, datetime('now'), 180, 0);
+VALUES ('Hippopotamus', 2, 1, 780, 40, 11, 22, 0.18, '/sprites/games/my-tuno/enemies/swamp/boss_8_hippopotamus.png', '130', 0.5, 0.2, datetime('now'), 180, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Shadow Serpent', 2, 1, 1000, 34, 6, 28, 0.12, NULL, '140', 0.5, 0.2, datetime('now'), 190, 0);
+VALUES ('Troll', 2, 1, 1000, 34, 6, 28, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_9_troll.png', '140', 0.5, 0.2, datetime('now'), 190, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
 VALUES ('Aligator', 2, 1, 1400, 45, 10, 35, 0.20, '/sprites/games/my-tuno/enemies/swamp/boss_10_aligator.png', '250', 0.8, 0.4, datetime('now'), 200, 0);
+
+-- =====================
+-- FIX: Update bosses 4-9 that already exist with NULL sprites and old names
+-- Run these even if INSERTs above fail (UNIQUE constraint)
+-- =====================
+UPDATE "StageEnemies" SET "Name" = 'Hydra', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_4_hydra.png' WHERE "BossStageNumber" = 140 AND "Region" = 1;
+UPDATE "StageEnemies" SET "Name" = 'Anaconda', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_5_anaconda.png' WHERE "BossStageNumber" = 150 AND "Region" = 1;
+UPDATE "StageEnemies" SET "Name" = 'Crayfish', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_6_crayfish.png' WHERE "BossStageNumber" = 160 AND "Region" = 1;
+UPDATE "StageEnemies" SET "Name" = 'Darner', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_7_darner.png' WHERE "BossStageNumber" = 170 AND "Region" = 1;
+UPDATE "StageEnemies" SET "Name" = 'Hippopotamus', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_8_hippopotamus.png' WHERE "BossStageNumber" = 180 AND "Region" = 1;
+UPDATE "StageEnemies" SET "Name" = 'Troll', "SpritePath" = '/sprites/games/my-tuno/enemies/swamp/boss_9_troll.png' WHERE "BossStageNumber" = 190 AND "Region" = 1;
 
 -- =====================
 -- FIX: Set Aerial placement for flying enemies

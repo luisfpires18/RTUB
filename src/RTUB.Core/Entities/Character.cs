@@ -122,12 +122,36 @@ public class Character : BaseEntity
     public const double ActionTimeReductionPerUpgrade = 0.1;
 
     /// <summary>
-    /// Calculates the action time in seconds based on speed upgrades
-    /// Base time is 5 seconds, each speed upgrade reduces by 0.1 seconds
-    /// Minimum is 1 second
+    /// Seconds of action time reduced per point of TotalSpeed.
+    /// Provides a small but meaningful speed scaling from the Speed stat itself,
+    /// so enemies with high scaled speed (from higher stages) attack faster.
+    /// At TotalSpeed=20 this provides 0.6s reduction, at TotalSpeed=50 it's 1.5s.
+    /// </summary>
+    public const double ActionTimeReductionPerSpeedPoint = 0.03;
+
+    /// <summary>
+    /// Calculates the action time in seconds.
+    /// Two sources of speed reduction:
+    /// 1) TotalSpeed stat: -0.03s per point (enemies scale this via stages, players via levels)
+    /// 2) SpeedUpgrades: -0.1s per upgrade (player-only flat reduction from shop purchases)
+    /// Minimum is 1 second.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double ActionTime => Math.Max(MinActionTime, BaseActionTime - (SpeedUpgrades * ActionTimeReductionPerUpgrade));
+    public double ActionTime
+    {
+        get
+        {
+            var time = BaseActionTime;
+            
+            // Speed stat provides a small per-point reduction (meaningful for enemies at higher stages)
+            time -= TotalSpeed * ActionTimeReductionPerSpeedPoint;
+            
+            // Speed upgrades provide the main flat reduction for players
+            time -= SpeedUpgrades * ActionTimeReductionPerUpgrade;
+            
+            return Math.Max(MinActionTime, time);
+        }
+    }
 
     // Private constructor for EF Core
     private Character() { }

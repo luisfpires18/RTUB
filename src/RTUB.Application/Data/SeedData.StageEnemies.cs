@@ -167,18 +167,18 @@ public static partial class SeedData
         var bossWebBasePath = "/sprites/games/my-tuno/enemies/swamp";
         var bossStats = GetSwampBossStats();
 
-        // Bosses 1,2,3,10 have sprites; bosses 4-9 use null (fallback)
+        // All bosses have sprites
         var bossSeeds = new List<BossSeedInfo>
         {
             new(1, "Frog King", $"{bossWebBasePath}/boss_1_frog.png"),
             new(2, "Pelican", $"{bossWebBasePath}/boss_2_pelican.png", PlacementType.Aerial),
             new(3, "Leech Lord", $"{bossWebBasePath}/boss_3_leech.png"),
-            new(4, "Bog Lurker", null),
-            new(5, "Mire Beast", null),
-            new(6, "Swamp Hydra", null),
-            new(7, "Marsh Titan", null),
-            new(8, "Venom Drake", null),
-            new(9, "Shadow Serpent", null),
+            new(4, "Hydra", $"{bossWebBasePath}/boss_4_hydra.png"),
+            new(5, "Anaconda", $"{bossWebBasePath}/boss_5_anaconda.png"),
+            new(6, "Crayfish", $"{bossWebBasePath}/boss_6_crayfish.png"),
+            new(7, "Darner", $"{bossWebBasePath}/boss_7_darner.png"),
+            new(8, "Hippopotamus", $"{bossWebBasePath}/boss_8_hippopotamus.png"),
+            new(9, "Troll", $"{bossWebBasePath}/boss_9_troll.png"),
             new(10, "Aligator", $"{bossWebBasePath}/boss_10_aligator.png")
         };
 
