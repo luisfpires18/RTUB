@@ -1,4 +1,250 @@
 /* ==========================================
+   Item Grid (Inventory - RPG-style cards)
+   ========================================== */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  flex: 1;
+  align-content: start;
+}
+
+.item-card {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.25);
+  border-radius: 10px;
+  padding: 0.4rem;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.item-card:hover:not(.item-card--empty) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+/* Beer card - warm yellow/orange */
+.item-card--beer {
+  border-color: rgba(255, 193, 7, 0.5);
+  background: linear-gradient(180deg, #2a2210 0%, #1a1608 100%);
+}
+
+.item-card--beer:hover {
+  border-color: #ffc107;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.item-card--beer .item-card__icon {
+  color: #ffc107;
+}
+
+/* Shot card - cyan/info */
+.item-card--shot {
+  border-color: rgba(13, 202, 240, 0.5);
+  background: linear-gradient(180deg, #0f1a2e 0%, #081018 100%);
+}
+
+.item-card--shot:hover {
+  border-color: #0dcaf0;
+  box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
+}
+
+.item-card--shot .item-card__icon {
+  color: #0dcaf0;
+}
+
+/* Empty/locked slot */
+.item-card--empty {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 15, 20, 0.6);
+  cursor: default;
+}
+
+.item-card--empty .item-card__icon {
+  color: rgba(255, 255, 255, 0.12);
+  font-size: 1.4rem;
+}
+
+/* Quantity badge (top-left) */
+.item-card__qty {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 1;
+}
+
+/* Icon */
+.item-card__icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+/* Name & desc */
+.item-card__name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e2e2;
+  line-height: 1.1;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.item-card__desc {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+  text-align: center;
+}
+
+/* ==========================================
+   Equipment Layout (slots around character)
+   ========================================== */
+.equip-layout {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.75rem;
+  flex: 1;
+  padding: 0.75rem 0.25rem 0.5rem;
+}
+
+.equip-layout__side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.equip-layout__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 80px;
+}
+
+.equip-layout__sprite {
+  max-height: 180px;
+  width: 100%;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(0 3px 8px rgba(111, 66, 193, 0.4));
+  opacity: 0.6;
+}
+
+.equip-slot {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px dashed rgba(111, 66, 193, 0.25);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.equip-slot:hover {
+  border-color: rgba(111, 66, 193, 0.45);
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.equip-slot__label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Weapon slots row below character */
+.equip-weapons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.equip-slot--weapon {
+  flex: 1;
+  max-width: 120px;
+  height: 64px;
+  border-color: rgba(192, 57, 43, 0.35);
+}
+
+.equip-slot--weapon:hover {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: rgba(192, 57, 43, 0.5);
+}
+
+/* ==========================================
+   Fidelis Balance Bar (top currency display)
+   ========================================== */
+.fidelis-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.fidelis-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.5rem;
+  background: linear-gradient(180deg, #1a1a2e 0%, #151525 40%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.3);
+  border-radius: 50px;
+  box-shadow: 0 4px 16px rgba(111, 66, 193, 0.15), inset 0 1px 0 rgba(111, 66, 193, 0.1);
+}
+
+.fidelis-bar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  border-radius: 50%;
+  font-size: 1.1rem;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.4);
+}
+
+.fidelis-bar__info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.fidelis-bar__label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fidelis-bar__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #2ecc71;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
    RPG-style Enhance Row (Upgrade Shop)
    ========================================== */
 .enhance-row {
@@ -238,5 +484,39 @@
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+  }
+
+  .item-card__icon {
+    font-size: 1.5rem;
+  }
+
+  .equip-slot {
+    width: 52px;
+    height: 52px;
+    font-size: 1rem;
+  }
+
+  .equip-slot--weapon {
+    height: 48px;
+    max-width: 90px;
+  }
+
+  .equip-layout {
+    gap: 0.4rem;
+    padding: 0.4rem 0;
+  }
+
+  .equip-weapons {
+    gap: 0.5rem;
+    padding: 0 0.5rem;
+  }
+
+  .equip-layout__sprite {
+    max-height: 120px;
   }
 }
