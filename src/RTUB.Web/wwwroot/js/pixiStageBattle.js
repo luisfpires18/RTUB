@@ -194,9 +194,10 @@
         }
 
         async loadAssets() {
-            // Use sprite paths as aliases - PIXI will cache by URL correctly
+            // Use unique alias for background to avoid PIXI cache returning old texture
+            this.bgAlias = `stageBg_${this.stageNumber}`;
             const assets = [
-                { alias: 'stageBg', src: this.backgroundPath },
+                { alias: this.bgAlias, src: this.backgroundPath },
                 { alias: 'stagePlayer', src: this.playerSpritePath }
             ];
 
@@ -220,7 +221,7 @@
             const width = this.app.screen.width;
             const height = this.app.screen.height;
 
-            this.backgroundSprite = PIXI.Sprite.from('stageBg');
+            this.backgroundSprite = PIXI.Sprite.from(this.bgAlias);
             this.backgroundSprite.width = width;
             this.backgroundSprite.height = height;
             this.backgroundSprite.x = width / 2;
@@ -1449,6 +1450,14 @@
             
             // Load new enemy textures
             await this.loadAssets();
+            
+            // Update background if it changed
+            if (this.backgroundSprite) {
+                const newBgTexture = PIXI.Assets.get(this.bgAlias);
+                if (newBgTexture && this.backgroundSprite.texture !== newBgTexture) {
+                    this.backgroundSprite.texture = newBgTexture;
+                }
+            }
             
             // Rebuild scene
             const width = this.app.screen.width;

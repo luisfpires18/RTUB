@@ -1367,19 +1367,11 @@
         
         if (highestStage <= 1) return checkpoints;
         
-        // Add checkpoints every 10 stages until 100, starting at 11
-        for (int stage = 11; stage <= Math.Min(highestStage, 100); stage += 10)
+        // Add checkpoints every 10 stages (after each boss), starting at 11
+        // Each biome has 10 bosses at stages 10, 20, 30... so checkpoints at 11, 21, 31...
+        for (int stage = 11; stage <= highestStage; stage += 10)
         {
             checkpoints.Add(stage);
-        }
-        
-        // Add checkpoints every 20 stages after 100, starting at 101
-        if (highestStage > 100)
-        {
-            for (int stage = 101; stage <= highestStage; stage += 20)
-            {
-                checkpoints.Add(stage);
-            }
         }
         
         return checkpoints;

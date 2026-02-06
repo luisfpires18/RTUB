@@ -145,7 +145,7 @@ public class StageProgress : BaseEntity
     /// <summary>
     /// Calculates the checkpoint for a given stage
     /// - Before stage 100: checkpoint every 10 stages, starting after boss (1, 11, 21, 31...)
-    /// - After stage 100: checkpoint every 20 stages (101, 121, 141...)
+    /// - All stages: checkpoint every 10 stages (1, 11, 21, 31... after each boss)
     /// - After stage 10000: no new checkpoints (Infinite Land)
     /// </summary>
     public static int CalculateCheckpoint(int stage)
@@ -158,16 +158,9 @@ public class StageProgress : BaseEntity
             return 10000;
         }
 
-        // Before stage 100: checkpoint every 10 stages, starting at 11
-        if (stage <= 100)
-        {
-            var checkpoint = ((stage - 1) / 10) * 10 + 1;
-            return checkpoint;
-        }
-
-        // After stage 100: checkpoint every 20 stages starting at 101
-        var checkpointsAfter100 = (stage - 101) / 20;
-        return 101 + (checkpointsAfter100 * 20);
+        // Checkpoint every 10 stages: 1, 11, 21, 31, ..., 991, 1001, ...
+        var checkpoint = ((stage - 1) / 10) * 10 + 1;
+        return checkpoint;
     }
 
     /// <summary>

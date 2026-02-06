@@ -193,17 +193,26 @@ public class StageBiomeService : IStageBiomeService
         return biomeName.ToLowerInvariant() switch
         {
             "forest" => RegionType.Forest,
-            "desert" => RegionType.Desert,
-            "mountains" => RegionType.Mountains,
             "swamp" => RegionType.Swamp,
-            "tundra" => RegionType.Tundra,
-            "volcano" => RegionType.Volcano,
-            "ocean" => RegionType.Ocean,
-            "sky" => RegionType.Sky,
-            "underground" => RegionType.Underground,
-            "cursedlands" => RegionType.CursedLands,
+            "mountains" => RegionType.Mountains,
+            "snowy" => RegionType.Snowy,
+            "ruins" => RegionType.Ruins,
+            "tropical" => RegionType.Tropical,
+            "caverns" => RegionType.Caverns,
+            "desert" => RegionType.Desert,
+            "volcanic" => RegionType.Volcanic,
+            "dark" => RegionType.Dark,
             _ => RegionType.Forest
         };
+    }
+
+    /// <summary>
+    /// Gets the background image path for a given stage number
+    /// </summary>
+    public string GetBackgroundForStage(int stageNumber)
+    {
+        var biomeName = GetBiomeForStage(stageNumber);
+        return $"/sprites/games/my-tuno/backgrounds/{biomeName.ToLowerInvariant()}.png";
     }
 
     /// <summary>
@@ -220,22 +229,30 @@ public class StageBiomeService : IStageBiomeService
             return boss.SpritePath;
         }
 
-        // Fallback: use file system based approach
+        // Fallback: pick a random existing boss from any region
+        var fallbackBoss = await _stageEnemyRepository.GetRandomEnemyAsync(EnemyType.Boss, GetRegionForBiome(GetBiomeForStage(stageNumber)));
+        if (fallbackBoss != null && !string.IsNullOrEmpty(fallbackBoss.SpritePath))
+        {
+            _logger.LogWarning("No boss configured for stage {StageNumber}, using fallback boss: {BossName}", stageNumber, fallbackBoss.Name);
+            return fallbackBoss.SpritePath;
+        }
+
+        // Last resort: file system based approach
         var biomeName = GetBiomeForStage(stageNumber);
         var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b => b.Name == biomeName);
         
         if (biomeConfig == null)
         {
-            _logger.LogError("Biome configuration not found for {BiomeName}", biomeName);
-            return string.Empty;
+            _logger.LogWarning("No biome configured for {BiomeName}, using default boss sprite", biomeName);
+            return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
         }
 
         var bossSprites = await GetBossSpritesForBiomeAsync(biomeConfig);
         
         if (bossSprites.Count == 0)
         {
-            _logger.LogError("No boss sprites found for biome {BiomeName}", biomeName);
-            return string.Empty;
+            _logger.LogWarning("No boss sprites found for biome {BiomeName}, using default boss sprite", biomeName);
+            return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
         }
 
         // Calculate which boss this is (1st boss = stage 10, 2nd boss = stage 20, etc.)

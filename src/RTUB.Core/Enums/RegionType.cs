@@ -12,9 +12,9 @@ public enum RegionType
     Forest = 0,
 
     /// <summary>
-    /// Stages 101-200: Desert region
+    /// Stages 101-200: Swamp region
     /// </summary>
-    Desert = 1,
+    Swamp = 1,
 
     /// <summary>
     /// Stages 201-300: Mountains region
@@ -22,39 +22,39 @@ public enum RegionType
     Mountains = 2,
 
     /// <summary>
-    /// Stages 301-400: Swamp region
+    /// Stages 301-400: Snowy region
     /// </summary>
-    Swamp = 3,
+    Snowy = 3,
 
     /// <summary>
-    /// Stages 401-500: Tundra region
+    /// Stages 401-500: Ruins region
     /// </summary>
-    Tundra = 4,
+    Ruins = 4,
 
     /// <summary>
-    /// Stages 501-600: Volcano region
+    /// Stages 501-600: Tropical region
     /// </summary>
-    Volcano = 5,
+    Tropical = 5,
 
     /// <summary>
-    /// Stages 601-700: Ocean region
+    /// Stages 601-700: Caverns region
     /// </summary>
-    Ocean = 6,
+    Caverns = 6,
 
     /// <summary>
-    /// Stages 701-800: Sky region
+    /// Stages 701-800: Desert region
     /// </summary>
-    Sky = 7,
+    Desert = 7,
 
     /// <summary>
-    /// Stages 801-900: Underground region
+    /// Stages 801-900: Volcanic region
     /// </summary>
-    Underground = 8,
+    Volcanic = 8,
 
     /// <summary>
-    /// Stages 901-1000: Cursed Lands region
+    /// Stages 901-1000: Dark region
     /// </summary>
-    CursedLands = 9,
+    Dark = 9,
 
     /// <summary>
     /// Stages 10001+: Infinite Land (Endless mode)

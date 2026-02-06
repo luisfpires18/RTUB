@@ -701,7 +701,7 @@ public class StageServiceTests : IDisposable
 
         var progress = StageProgress.Create(userId);
 
-        // Advance to stage 115 (checkpoint would be at 100, which is in Forest region)
+        // Advance to stage 115 (checkpoint would be at 111 with every-10 checkpoints)
         for (int i = 1; i < 115; i++)
         {
             progress.AdvanceStage();
@@ -713,8 +713,8 @@ public class StageServiceTests : IDisposable
         var result = await _stageService.ReturnToCheckpointAsync(userId);
 
         // Assert
-        result.CurrentStage.Should().Be(101);
-        result.CurrentRegion.Should().Be(RegionType.Desert); // Stage 101 is in Desert region
+        result.CurrentStage.Should().Be(111);
+        result.CurrentRegion.Should().Be(RegionType.Swamp); // Stage 111 is in Swamp region
     }
 
     #endregion
@@ -732,14 +732,16 @@ public class StageServiceTests : IDisposable
     [InlineData(25, 21)]
     [InlineData(99, 91)]
     [InlineData(100, 91)] // Boss stage
-    [InlineData(101, 101)] // After stage 100: every 20 stages
-    [InlineData(120, 101)]
+    [InlineData(101, 101)] // Every 10 stages across all biomes
+    [InlineData(110, 101)]
+    [InlineData(111, 111)]
+    [InlineData(120, 111)]
     [InlineData(121, 121)]
-    [InlineData(135, 121)]
-    [InlineData(140, 121)]
+    [InlineData(135, 131)]
+    [InlineData(140, 131)]
     [InlineData(141, 141)]
-    [InlineData(999, 981)]
-    [InlineData(10000, 9981)] // Last checkpoint before Infinite Land
+    [InlineData(999, 991)]
+    [InlineData(10000, 9991)] // Last checkpoint before Infinite Land
     [InlineData(10001, 10000)]
     [InlineData(15000, 10000)]
     public void CalculateCheckpoint_ShouldReturnCorrectCheckpoint(int stage, int expectedCheckpoint)
@@ -755,14 +757,14 @@ public class StageServiceTests : IDisposable
     [InlineData(1, RegionType.Forest)]
     [InlineData(50, RegionType.Forest)]
     [InlineData(100, RegionType.Forest)]
-    [InlineData(101, RegionType.Desert)]
-    [InlineData(200, RegionType.Desert)]
+    [InlineData(101, RegionType.Swamp)]
+    [InlineData(200, RegionType.Swamp)]
     [InlineData(201, RegionType.Mountains)]
     [InlineData(300, RegionType.Mountains)]
-    [InlineData(1000, RegionType.CursedLands)]
+    [InlineData(1000, RegionType.Dark)]
     [InlineData(1001, RegionType.Forest)] // Cycles back
     [InlineData(1100, RegionType.Forest)]
-    [InlineData(10000, RegionType.CursedLands)]
+    [InlineData(10000, RegionType.Dark)]
     [InlineData(10001, RegionType.InfiniteLand)]
     [InlineData(15000, RegionType.InfiniteLand)]
     public void GetRegionForStage_ShouldReturnCorrectRegion(int stage, RegionType expectedRegion)
@@ -875,7 +877,7 @@ public class StageServiceTests : IDisposable
 
         // Assert
         progress.CurrentStage.Should().Be(101);
-        progress.CurrentRegion.Should().Be(RegionType.Desert);
+        progress.CurrentRegion.Should().Be(RegionType.Swamp);
     }
 
     [Fact]

@@ -22,6 +22,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Stage> Logger
+@inject IStageBiomeService BiomeService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -340,8 +341,8 @@
                             // Handle start query parameter - persist to DB if different
                             if (StartStage.HasValue && StartStage.Value > 0)
                             {
-                                // Validate start stage: can only go back, not skip forward
-                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.CurrentStage);
+                                // Validate start stage: can go to any previously reached stage, not beyond
+                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.HighestStage);
                                 
                                 // Update DB if different from current
                                 if (targetStage != stageProgress.CurrentStage)
@@ -366,6 +367,11 @@
                     }
                 }
             }
+        }
+        catch (NavigationException)
+        {
+            // Blazor uses this exception for flow control during NavigateTo — let it propagate
+            throw;
         }
         catch (Exception ex)
         {
@@ -497,7 +503,7 @@
                         EnemyCount = enemyCount,
                         PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
                         EnemyName = currentBattle.EnemyName,
-                        BackgroundPath = "/sprites/games/my-tuno/backgrounds/forest.png",
+                        BackgroundPath = BiomeService.GetBackgroundForStage(battleStageNumber),
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
                         EnemySprites = enemySpritePaths, // Array of sprite paths
                         EnemyPlacements = enemyPlacements, // 0=Terrestrial, 1=Aerial

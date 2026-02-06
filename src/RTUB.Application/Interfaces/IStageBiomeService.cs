@@ -51,6 +51,13 @@ public interface IStageBiomeService
     Task<string> GetBossSpriteAsync(int stageNumber);
 
     /// <summary>
+    /// Gets the background image path for a given stage number
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>Background image path (relative to wwwroot)</returns>
+    string GetBackgroundForStage(int stageNumber);
+
+    /// <summary>
     /// Calculates scaled enemy stats for a given stage
     /// </summary>
     /// <param name="stageNumber">The stage number</param>
