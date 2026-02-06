@@ -71,7 +71,7 @@
       "minXpMultiplier": 0.2,
       "maxXpMultiplier": 3.0,
       "reviveCost": 30,
-      "restoreHPCost": 10,
+      "restoreHPCost": 20,
       "fidelisLevelMultiplier": 0.1
     },
 

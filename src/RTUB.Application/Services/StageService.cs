@@ -208,7 +208,7 @@ public class StageService : IStageService
 
         // Calculate rewards (deferred - not applied until run ends)
         var (xpReward, fidelisReward, beersDropped, shotsDropped) =
-            CalculateRewardsForBattle(combatResult, stageNumber, enemyCount);
+            CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
         await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
@@ -416,6 +416,7 @@ public class StageService : IStageService
     private (int xp, decimal fidelis, int beers, int shots) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
+        int characterLevel,
         int enemyCount = 1)
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
@@ -445,7 +446,9 @@ public class StageService : IStageService
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
             _ => fidelisRewardsConfig.NormalWin
         };
-        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling, 2);
+        // Scale Fidelis with character level (same multiplier as battle arena)
+        var levelMultiplier = 1.0 + (characterLevel - 1) * _myTunoScalingConfig.BattleRewards.FidelisLevelMultiplier;
+        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling * (decimal)levelMultiplier, 2);
 
         var beerChance = dropRates.BeerDropChance;
         var shotChance = dropRates.ShotDropChance;
@@ -481,10 +484,18 @@ public class StageService : IStageService
             return;
         }
 
-        // Apply XP
+        // Apply XP (preserve HP if character is dead — level-up heals to full,
+        // but we must not revive a character who just died in battle)
         if (xp > 0)
         {
+            var hpBeforeXP = character.CurrentHP;
+            var wasAlive = character.IsAlive();
             character.AddXP(xp);
+            if (!wasAlive)
+            {
+                // Restore dead state — don't let level-up revive a defeated character
+                character.CurrentHP = hpBeforeXP;
+            }
             await _characterRepository.UpdateAsync(character);
         }
 

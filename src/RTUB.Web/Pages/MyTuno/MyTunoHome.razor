@@ -1498,10 +1498,10 @@
 
     private decimal GetRestoreCost()
     {
-        // Base cost with gentle HP scaling: 5 base * sqrt(MaxHP / 100)
+        // Base cost with gentle level scaling (same formula as revive)
         var baseCost = MyTunoConfig.Value.BattleRewards.RestoreHPCost;
-        var maxHp = GetDisplayMaxHP(character);
-        return Math.Round(baseCost * (decimal)Math.Sqrt((double)maxHp / 100.0), 2);
+        var level = character?.Level ?? 1;
+        return Math.Round(baseCost * (decimal)Math.Sqrt(level), 2);
     }
 
     private async Task ReviveCharacter()

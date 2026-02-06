@@ -57,17 +57,51 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task UpdateAsync(T entity)
     {
-        DetachLocalDuplicate(entity);
-
-        // Attach the entity if it's not being tracked
+        // In Blazor Server, the DbContext is long-lived (scoped per circuit).
+        // Check if this exact entity instance is already tracked — if so, just mark modified.
+        // If a *different* instance with the same PK is tracked, copy values onto it
+        // instead of detaching (which can leave Detached entries in the change tracker
+        // that cause "Unexpected entry.EntityState: Detached" in EF Core's CommandBatchPreparer).
         var entry = _context.Entry(entity);
+
         if (entry.State == EntityState.Detached)
         {
-            _dbSet.Attach(entity);
-            entry.State = EntityState.Modified;
+            // Entity is not tracked — find if a different instance with the same PK is
+            var entityType = _context.Model.FindEntityType(typeof(T));
+            var primaryKey = entityType?.FindPrimaryKey();
+
+            if (primaryKey != null)
+            {
+                var keyValues = primaryKey.Properties
+                    .Select(p => p.PropertyInfo?.GetValue(entity))
+                    .ToArray();
+
+                var trackedEntry = _context.ChangeTracker
+                    .Entries<T>()
+                    .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
+
+                if (trackedEntry != null)
+                {
+                    // Copy property values from the incoming entity onto the tracked one
+                    trackedEntry.CurrentValues.SetValues(entity);
+                    trackedEntry.State = EntityState.Modified;
+                }
+                else
+                {
+                    // No tracked entity — attach and mark modified
+                    _dbSet.Attach(entity);
+                    _context.Entry(entity).State = EntityState.Modified;
+                }
+            }
+            else
+            {
+                _dbSet.Attach(entity);
+                entry.State = EntityState.Modified;
+            }
         }
         else
         {
+            // Already tracked (same instance) — just mark modified
             entry.State = EntityState.Modified;
         }
 
@@ -86,8 +120,6 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task DeleteAsync(T entity)
     {
-        DetachLocalDuplicate(entity);
-
         // Check if entity is already tracked
         var entry = _context.Entry(entity);
         if (entry.State == EntityState.Detached)

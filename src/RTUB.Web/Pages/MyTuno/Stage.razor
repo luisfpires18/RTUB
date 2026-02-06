@@ -186,14 +186,20 @@
                                     <i class="bi bi-check-circle text-success"></i>
                                     <span>@stagesCleared Stages Completados</span>
                                 </div>
-                                <div class="reward-item">
-                                    <i class="bi bi-star-fill text-warning"></i>
-                                    <span>+@totalXPEarned XP</span>
-                                </div>
-                                <div class="reward-item">
-                                    <i class="bi bi-coin text-success"></i>
-                                    <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
-                                </div>
+                                @if (totalXPEarned > 0)
+                                {
+                                    <div class="reward-item">
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                        <span>+@totalXPEarned XP</span>
+                                    </div>
+                                }
+                                @if (totalFidelisEarned > 0)
+                                {
+                                    <div class="reward-item">
+                                        <i class="bi bi-coin text-success"></i>
+                                        <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
+                                    </div>
+                                }
                                 @if (totalBeersDropped > 0)
                                 {
                                     <div class="reward-item">
@@ -274,6 +280,7 @@
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private bool runInProgress = false;
+    private bool pendingDefeatRewards = false;
     private bool _disposed = false;
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
@@ -434,6 +441,23 @@
 
             // Execute stage battle
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+
+            // If the player lost, immediately mark the run as finished so that
+            // CancelRunIfInProgressAsync (called on dispose/navigate-away) will NOT
+            // restore HP while the defeat animation is still playing.
+            // Without this, navigating away during the death animation would restore
+            // the character to full HP because runInProgress was still true.
+            if (currentBattle.Outcome != BattleOutcome.AttackerWon)
+            {
+                // Mark run as finished IMMEDIATELY so CancelRunIfInProgressAsync
+                // (called on dispose/navigate-away) cannot restore HP during the
+                // death animation. Rewards are applied later in OnBattleFinished
+                // (or DisposeAsync if the component is disposed before the callback).
+                runInProgress = false;
+                runStartingHp = null;
+                runStartingStage = null;
+                pendingDefeatRewards = true;
+            }
 
             // Start live battle animation
             if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
@@ -682,7 +706,7 @@
         else
         {
             // Run ended (defeat) - apply accumulated rewards from cleared stages
-            if (character != null && stagesCleared > 0)
+            if (pendingDefeatRewards && character != null && stagesCleared > 0)
             {
                 try
                 {
@@ -694,8 +718,9 @@
                     Logger.LogError(ex, "Error applying run rewards");
                 }
             }
+            pendingDefeatRewards = false;
 
-            // Mark run as complete so we don't cancel on dispose
+            // Mark run as complete (may already be false from FightStageEnemy)
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
@@ -828,6 +853,22 @@
 
         // Cancel any run in progress (restore HP and stage) - uses lock to wait for fight to finish
         await CancelRunIfInProgressAsync();
+
+        // Apply pending defeat rewards if OnBattleFinished never fired
+        // (e.g., user navigated away during the death animation)
+        if (pendingDefeatRewards && character != null && stagesCleared > 0)
+        {
+            try
+            {
+                await StageService.ApplyRunRewardsAsync(
+                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped);
+            }
+            catch (Exception)
+            {
+                // Best-effort during disposal
+            }
+            pendingDefeatRewards = false;
+        }
         
         if (hasRendered)
         {
