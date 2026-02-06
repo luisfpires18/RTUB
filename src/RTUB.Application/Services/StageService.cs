@@ -192,10 +192,12 @@ public class StageService : IStageService
             BiomeName = biomeName,
             EnemyStats = enemies.Select(e => new
             {
+                Name = e.User?.UserName ?? "Enemy",
                 HP = e.TotalHP,
                 Power = e.TotalPower,
                 Defense = e.TotalDefense,
-                Speed = e.TotalSpeed
+                Speed = e.TotalSpeed,
+                ActionTime = Math.Round(e.ActionTime, 1)
             }).ToList()
         };
         
@@ -204,9 +206,9 @@ public class StageService : IStageService
             WriteIndented = false
         });
 
-        // Calculate and apply rewards (multiply by enemy count)
+        // Calculate rewards (deferred - not applied until run ends)
         var (xpReward, fidelisReward, beersDropped, shotsDropped) =
-            await CalculateAndApplyRewardsAsync(character, stageProgress, combatResult, enemies.FirstOrDefault(), stageNumber, enemyCount);
+            CalculateRewardsForBattle(combatResult, stageNumber, enemyCount);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
         await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount, hasShotBuff);
@@ -405,14 +407,20 @@ public class StageService : IStageService
     /// Also applies Fidelis to user and adds item drops to inventory.
     /// Character changes are saved later by ApplyCharacterAndProgressUpdatesAsync to avoid double-save concurrency issues.
     /// </summary>
-    private async Task<(int xp, decimal fidelis, int beers, int shots)> CalculateAndApplyRewardsAsync(
-        Character character,
-        StageProgress stageProgress,
+    /// <summary>
+    /// Pure calculation of rewards for a stage battle (no side effects).
+    /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
+    /// </summary>
+    private (int xp, decimal fidelis, int beers, int shots) CalculateRewardsForBattle(
         CombatResult combatResult,
-        Character? enemyTemplate,
         int stageNumber,
         int enemyCount = 1)
     {
+        if (combatResult.Outcome != BattleOutcome.AttackerWon)
+        {
+            return (0, 0m, 0, 0);
+        }
+
         var random = Random.Shared;
         var beersDropped = 0;
         var shotsDropped = 0;
@@ -420,13 +428,6 @@ public class StageService : IStageService
         var dropRates = stageConfig.DropRates;
         var fidelisRewardsConfig = stageConfig.FidelisRewards;
 
-        if (combatResult.Outcome != BattleOutcome.AttackerWon)
-        {
-            // Player lost - no rewards on defeat
-            return (0, 0m, 0, 0);
-        }
-
-        // Player won - full rewards using config values (multiplied by enemy count)
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
         var xpMultiplier = enemyType switch
         {
@@ -434,12 +435,9 @@ public class StageService : IStageService
             _ => 1
         };
 
-        // Stage scaling from config
         var stageScaling = 1.0 + (stageNumber * stageConfig.StageRewardScalingFactor);
-
         var xpReward = (int)Math.Round(stageConfig.BaseStageXP * xpMultiplier * enemyCount * stageScaling);
 
-        // Fidelis reward from config based on enemy type (multiplied by enemy count and stage scaling)
         var baseFidelis = enemyType switch
         {
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
@@ -447,54 +445,71 @@ public class StageService : IStageService
         };
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling, 2);
 
-        // Apply XP to character (in-memory only — saved later with HP/progress)
-        character.AddXP(xpReward);
-
-        // Apply Fidelis to user (separate Identity save, independent of character)
-        var playerUser = await _userManager.FindByIdAsync(character.UserId);
-        if (playerUser != null)
-        {
-            playerUser.FidelisBalance += fidelisReward;
-            await _userManager.UpdateAsync(playerUser);
-        }
-
-        // Roll for drops using config drop rates (each enemy can drop)
         var beerChance = dropRates.BeerDropChance;
         var shotChance = dropRates.ShotDropChance;
-
-        // Bosses have higher drop rates from config multipliers
         if (enemyType == EnemyType.Boss)
         {
             beerChance *= dropRates.BossDropMultiplier;
             shotChance *= dropRates.BossDropMultiplier;
         }
 
-        // Each enemy has a chance to drop items
         for (int i = 0; i < enemyCount; i++)
         {
-            if (random.NextDouble() < beerChance)
-            {
-                beersDropped++;
-            }
-
-            if (random.NextDouble() < shotChance)
-            {
-                shotsDropped++;
-            }
-        }
-
-        // Add all dropped items to inventory
-        if (beersDropped > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beersDropped);
-        }
-
-        if (shotsDropped > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shotsDropped);
+            if (random.NextDouble() < beerChance) beersDropped++;
+            if (random.NextDouble() < shotChance) shotsDropped++;
         }
 
         return (xpReward, fidelisReward, beersDropped, shotsDropped);
+    }
+
+    /// <summary>
+    /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
+    /// Called after defeat to commit all rewards earned during the run.
+    /// Not called on cancel/back — rewards are forfeited.
+    /// </summary>
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots)
+    {
+        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0)
+            return;
+
+        var character = await _characterRepository.GetByIdAsync(characterId);
+        if (character == null)
+        {
+            _logger.LogWarning("ApplyRunRewardsAsync: Character {CharacterId} not found", characterId);
+            return;
+        }
+
+        // Apply XP
+        if (xp > 0)
+        {
+            character.AddXP(xp);
+            await _characterRepository.UpdateAsync(character);
+        }
+
+        // Apply Fidelis
+        if (fidelis > 0)
+        {
+            var user = await _userManager.FindByIdAsync(character.UserId);
+            if (user != null)
+            {
+                user.FidelisBalance += fidelis;
+                await _userManager.UpdateAsync(user);
+            }
+        }
+
+        // Apply item drops
+        if (beers > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beers);
+        }
+        if (shots > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
+        }
+
+        _logger.LogInformation(
+            "Applied run rewards for character {CharacterId}: +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots",
+            characterId, xp, fidelis, beers, shots);
     }
 
     /// <summary>

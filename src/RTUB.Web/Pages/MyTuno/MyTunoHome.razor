@@ -70,6 +70,24 @@
                         <span class="fidelis-bar__label">Fidelis</span>
                         <span class="fidelis-bar__value">@currentUser.FidelisBalance.ToString("F2")</span>
                     </div>
+                    <div class="ms-auto">
+                        @if (CanClaimDailyReward)
+                        {
+                            <button class="btn btn-sm btn-warning" @onclick="ClaimDailyReward" disabled="@claimingDailyReward">
+                                @if (claimingDailyReward)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                <i class="bi bi-gift-fill me-1"></i>Daily Reward
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-clock me-1"></i>Daily Reward @DailyRewardTimeRemaining
+                            </span>
+                        }
+                    </div>
                 </div>
             </div>
         }
@@ -1106,6 +1124,34 @@
     private bool defenseCostLoading = true;
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
+    private bool claimingDailyReward = false;
+
+    // Daily reward: base 5 Fidelis + 1 per character level
+    private const decimal DailyRewardBase = 5m;
+    private const decimal DailyRewardPerLevel = 1m;
+
+    private bool CanClaimDailyReward =>
+        currentUser != null &&
+        (currentUser.LastDailyRewardClaim == null ||
+         currentUser.LastDailyRewardClaim.Value.Date < DateTime.UtcNow.Date);
+
+    private string DailyRewardTimeRemaining
+    {
+        get
+        {
+            if (currentUser?.LastDailyRewardClaim == null) return "";
+            var nextClaim = currentUser.LastDailyRewardClaim.Value.Date.AddDays(1);
+            var remaining = nextClaim - DateTime.UtcNow;
+            if (remaining.TotalSeconds <= 0) return "";
+            return $"{(int)remaining.TotalHours}h {remaining.Minutes}m";
+        }
+    }
+
+    private decimal GetDailyRewardAmount()
+    {
+        var level = character?.Level ?? 1;
+        return DailyRewardBase + (level * DailyRewardPerLevel);
+    }
     private decimal SelectedUpgradeCost => purchasingStat switch
     {
         StatType.HP => hpCost,
@@ -1128,6 +1174,50 @@
     private bool IsSpeedMaxed => character != null && character.SpeedUpgrades >= MaxSpeedUpgrades;
     private bool IsCriticalMaxed => character != null && character.CriticalUpgrades >= MaxCriticalUpgrades;
     private bool IsDefenseMaxed => character != null && character.DefenseUpgrades >= MaxDefenseUpgrades;
+
+    private async Task ClaimDailyReward()
+    {
+        if (currentUser == null || character == null || !CanClaimDailyReward) return;
+
+        try
+        {
+            claimingDailyReward = true;
+
+            // Re-check from DB to prevent double-claim
+            var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
+            if (freshUser == null) return;
+
+            if (freshUser.LastDailyRewardClaim != null && freshUser.LastDailyRewardClaim.Value.Date >= DateTime.UtcNow.Date)
+            {
+                toastMessage = "Já recebeste o Daily Reward hoje!";
+                toastIsError = true;
+                currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
+                return;
+            }
+
+            var reward = GetDailyRewardAmount();
+            freshUser.FidelisBalance += reward;
+            freshUser.LastDailyRewardClaim = DateTime.UtcNow;
+            await UserManager.UpdateAsync(freshUser);
+
+            // Update local state
+            currentUser.FidelisBalance = freshUser.FidelisBalance;
+            currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
+
+            toastMessage = $"Daily Reward: +{reward:F2} Fidelis!";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error claiming daily reward");
+            toastMessage = "Erro ao receber Daily Reward.";
+            toastIsError = true;
+        }
+        finally
+        {
+            claimingDailyReward = false;
+        }
+    }
 
     private string FormatCost(decimal cost)
     {

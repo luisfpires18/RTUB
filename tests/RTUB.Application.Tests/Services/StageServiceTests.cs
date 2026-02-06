@@ -380,6 +380,7 @@ public class StageServiceTests : IDisposable
 
         var character = Character.Create("user1");
         var initialXP = character.XP;
+        var initialFidelis = user.FidelisBalance;
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
 
@@ -405,18 +406,27 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert
+        // Assert - rewards are calculated but NOT applied immediately (deferred until run ends)
         // Stage 1: stageScaling = 1.0 + (1 * 0.05) = 1.05
         battle.XPReward.Should().Be(32); // round(BaseStageXP(30) * 1.05) = 32
         battle.FidelisReward.Should().Be(10.50m); // round(NormalWin(10) * 1.05, 2) = 10.50
 
-        // Verify character XP was updated
+        // Verify character XP was NOT updated yet (deferred rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.XP.Should().Be(initialXP + 32);
+        updatedCharacter!.XP.Should().Be(initialXP);
 
-        // Verify user Fidelis was updated
+        // Verify user Fidelis was NOT updated yet (deferred rewards)
+        _userManagerMock.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+
+        // Act - now apply deferred rewards
+        await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0);
+
+        // Assert - rewards are now applied
+        var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
+        finalCharacter!.XP.Should().Be(initialXP + 32);
+
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == 110.50m)), Times.Once);
+            u.FidelisBalance == initialFidelis + 10.50m)), Times.Once);
     }
 
     [Fact]

@@ -72,6 +72,13 @@ public interface IStageService
     Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage);
 
     /// <summary>
+    /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
+    /// Called after defeat to commit all rewards earned during the run.
+    /// Not called on cancel/back — rewards are forfeited.
+    /// </summary>
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots);
+
+    /// <summary>
     /// Gets the biome name for a given stage number
     /// </summary>
     /// <param name="stageNumber">The stage number</param>

@@ -140,27 +140,27 @@
             {
                 <div class="card mb-4 enemy-stats-card">
                     <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Stats do Inimigo:</h6>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            @{
-                                var totalEnemyHP = currentEnemyStats.Sum(e => e.HP);
-                                var avgEnemyPower = (int)currentEnemyStats.Average(e => e.Power);
-                                var avgEnemyDefense = (int)currentEnemyStats.Average(e => e.Defense);
-                                var avgEnemySpeed = (int)currentEnemyStats.Average(e => e.Speed);
-                            }
-                            <span class="badge bg-danger">
-                                <i class="bi bi-heart-fill me-1"></i>@totalEnemyHP HP
-                            </span>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-lightning-fill me-1"></i>@avgEnemyPower Poder
-                            </span>
-                            <span class="badge bg-info text-dark">
-                                <i class="bi bi-shield-fill me-1"></i>@avgEnemyDefense Defesa
-                            </span>
-                            <span class="badge bg-secondary">
-                                <i class="bi bi-speedometer2 me-1"></i>@avgEnemySpeed Velocidade
-                            </span>
-                        </div>
+                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Stats dos Inimigos:</h6>
+                        @foreach (var enemy in currentEnemyStats)
+                        {
+                            <div class="mb-2">
+                                <small class="fw-bold d-block mb-1">@enemy.Name</small>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-heart-fill me-1"></i>@enemy.HP HP
+                                    </span>
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-lightning-fill me-1"></i>@enemy.Power Poder
+                                    </span>
+                                    <span class="badge bg-info text-dark">
+                                        <i class="bi bi-shield-fill me-1"></i>@enemy.Defense Defesa
+                                    </span>
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
+                                    </span>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -285,7 +285,7 @@
     [SupplyParameterFromQuery(Name = "start")]
     public int? StartStage { get; set; }
 
-    private record EnemyStatsInfo(int HP, int Power, int Defense, int Speed);
+    private record EnemyStatsInfo(string Name, int HP, int Power, int Defense, int Speed, double ActionTime);
 
     protected override async Task OnInitializedAsync()
     {
@@ -476,11 +476,13 @@
                     {
                         foreach (var stat in statsProp.EnumerateArray())
                         {
+                            var name = stat.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "Enemy" : "Enemy";
                             var hp = stat.TryGetProperty("HP", out var hpProp) ? hpProp.GetInt32() : 0;
                             var power = stat.TryGetProperty("Power", out var powerProp) ? powerProp.GetInt32() : 0;
                             var defense = stat.TryGetProperty("Defense", out var defenseProp) ? defenseProp.GetInt32() : 0;
                             var speed = stat.TryGetProperty("Speed", out var speedProp) ? speedProp.GetInt32() : 0;
-                            currentEnemyStats.Add(new EnemyStatsInfo(hp, power, defense, speed));
+                            var actionTime = stat.TryGetProperty("ActionTime", out var atProp) ? atProp.GetDouble() : 5.0;
+                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, power, defense, speed, actionTime));
                         }
                     }
 
@@ -676,7 +678,21 @@
         }
         else
         {
-            // Run ended (defeat) - mark run as complete so we don't cancel on dispose
+            // Run ended (defeat) - apply accumulated rewards from cleared stages
+            if (character != null && stagesCleared > 0)
+            {
+                try
+                {
+                    await StageService.ApplyRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error applying run rewards");
+                }
+            }
+
+            // Mark run as complete so we don't cancel on dispose
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
