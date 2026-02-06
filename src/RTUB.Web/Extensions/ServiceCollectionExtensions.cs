@@ -133,6 +133,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBattleService, BattleService>();
         services.AddScoped<IStageService, StageService>();
         services.AddScoped<IStageBiomeService, StageBiomeService>();
+        services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
 
         return services;
     }

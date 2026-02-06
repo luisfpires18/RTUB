@@ -1,0 +1,120 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+
+@*
+    StageEnemyCard Component
+    Displays a stage enemy card with sprite, stats, drops, and action buttons.
+    Purple hover style matching AvatarCard pattern.
+*@
+
+<div class="stage-enemy-card" tabindex="0">
+    <!-- Edit & Delete buttons in top-right -->
+    <button class="stage-enemy-card-edit-btn"
+            @onclick="OnEdit"
+            @onclick:stopPropagation="true"
+            title="Edit"
+            aria-label="Edit enemy">
+        <i class="bi bi-pencil"></i>
+    </button>
+    <button class="stage-enemy-card-delete-btn"
+            @onclick="OnDelete"
+            @onclick:stopPropagation="true"
+            title="Delete"
+            aria-label="Delete enemy">
+        <i class="bi bi-trash"></i>
+    </button>
+
+    <!-- Sprite -->
+    <div class="stage-enemy-card-sprite">
+        @if (!string.IsNullOrEmpty(Enemy.SpritePath))
+        {
+            <img src="@Enemy.SpritePath" alt="@Enemy.Name" loading="lazy" />
+        }
+        else
+        {
+            <i class="bi bi-image fs-1 text-muted"></i>
+        }
+    </div>
+
+    <!-- Content -->
+    <div class="stage-enemy-card-content">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="stage-enemy-card-name mb-0">@Enemy.Name</h6>
+            <span class="badge @(Enemy.Type == EnemyType.Boss ? "bg-danger" : "bg-primary") stage-enemy-card-badge">
+                @(Enemy.Type == EnemyType.Boss ? "Boss" : "Normal")
+            </span>
+        </div>
+
+        <!-- Stats -->
+        <div class="stage-enemy-card-stats">
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-heart-fill text-danger"></i> HP</span>
+                <span>@Enemy.BaseHP</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-lightning-fill text-warning"></i> Power</span>
+                <span>@Enemy.BasePower</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-speedometer text-info"></i> Speed</span>
+                <span>@Enemy.BaseSpeed</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-shield-fill text-success"></i> Defense</span>
+                <span>@Enemy.BaseDefense</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-bullseye text-purple"></i> Crit</span>
+                <span>@($"{Enemy.BaseCriticalChance:P0}")</span>
+            </div>
+            @if (Enemy.Type == EnemyType.Boss && Enemy.BossStageNumber.HasValue)
+            {
+                <div class="stage-enemy-card-stat">
+                    <span><i class="bi bi-flag-fill text-danger"></i> Stage</span>
+                    <span>@Enemy.BossStageNumber</span>
+                </div>
+            }
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-geo-alt"></i> Placement</span>
+                <span>@Enemy.Placement</span>
+            </div>
+        </div>
+
+        <!-- Drops -->
+        <div class="stage-enemy-card-drops">
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-coin text-warning"></i> Fidelis</span>
+                <span>@Enemy.BaseFidelisDrop</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-cup-straw text-warning"></i> Beer %</span>
+                <span>@($"{Enemy.BeerDropChance:P0}")</span>
+            </div>
+            <div class="stage-enemy-card-stat">
+                <span><i class="bi bi-droplet-fill text-info"></i> Shot %</span>
+                <span>@($"{Enemy.ShotDropChance:P0}")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The stage enemy to display
+    /// </summary>
+    [Parameter, EditorRequired]
+    public StageEnemy Enemy { get; set; } = default!;
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+}

@@ -1,0 +1,13 @@
+.stage-enemies-page .region-section {
+    padding: 1rem 0;
+}
+
+.stage-enemies-page .region-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 0.75rem;
+}
+
+.stage-enemies-page .region-header h3 {
+    color: var(--bs-white);
+    font-weight: 600;
+}

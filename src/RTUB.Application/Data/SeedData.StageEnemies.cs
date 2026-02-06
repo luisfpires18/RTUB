@@ -14,10 +14,11 @@ public static partial class SeedData
         Console.WriteLine("Seeding stage enemies...");
 
         var existingEnemies = await dbContext.StageEnemies.AsNoTracking().ToListAsync();
+
         var existingNormalNames = new HashSet<string>(
             existingEnemies
-                .Where(e => e.Type == EnemyType.Normal && e.Region == RegionType.Forest)
-                .Select(e => e.Name),
+                .Where(e => e.Type == EnemyType.Normal)
+                .Select(e => $"{e.Region}:{e.Name}"),
             StringComparer.OrdinalIgnoreCase);
 
         var existingBossStages = new HashSet<int>(
@@ -30,169 +31,14 @@ public static partial class SeedData
         // ===================
         // FOREST REGION (1-100)
         // ===================
-        
-        // Normal enemies (for random selection in stages 1-9, 11-19, etc.)
-        if (!existingNormalNames.Contains("Wolf"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Wolf",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 50,
-            basePower: 8,
-            baseSpeed: 6,
-            baseDefense: 3,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/wolf.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Boar"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Boar",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 70,
-            basePower: 10,
-            baseSpeed: 4,
-            baseDefense: 5,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/boar.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Spider"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Spider",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 40,
-            basePower: 12,
-            baseSpeed: 8,
-            baseDefense: 2,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/spider.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Snake"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Snake",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 45,
-            basePower: 9,
-            baseSpeed: 7,
-            baseDefense: 2,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/snake.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Bee"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Bee",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 30,
-            basePower: 6,
-            baseSpeed: 10,
-            baseDefense: 1,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/bee.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Beetle"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Beetle",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 60,
-            basePower: 7,
-            baseSpeed: 3,
-            baseDefense: 8,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/beetle.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Eagle"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Eagle",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 55,
-            basePower: 11,
-            baseSpeed: 9,
-            baseDefense: 3,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/eagle.png"
-            ));
-        }
-
-        if (!existingNormalNames.Contains("Panther"))
-        {
-            enemies.Add(StageEnemy.Create(
-            name: "Panther",
-            type: EnemyType.Normal,
-            region: RegionType.Forest,
-            baseHP: 65,
-            basePower: 14,
-            baseSpeed: 8,
-            baseDefense: 4,
-            spritePath: "/sprites/games/my-tuno/enemies/forest/panther.png"
-            ));
-        }
+        SeedForestNormals(existingNormalNames, enemies);
+        SeedForestBosses(existingBossStages, enemies);
 
         // ===================
-        // FOREST BOSSES (stages 10, 20, 30, ... 100)
-        // Uses existing boss sprite files: boss_1_bear.png, boss_2_tiger.png, etc.
+        // SWAMP REGION (101-200)
         // ===================
-
-        var bossWebBasePath = "/sprites/games/my-tuno/enemies/forest";
-        var bossStats = GetForestBossStats();
-        var bossSeeds = new List<BossSeedInfo>
-        {
-            new(1, "Bear", $"{bossWebBasePath}/boss_1_bear.png"),
-            new(2, "Tiger", $"{bossWebBasePath}/boss_2_tiger.png"),
-            new(3, "Mantis", $"{bossWebBasePath}/boss_3_mantis.png"),
-            new(4, "Falcon", $"{bossWebBasePath}/boss_4_falcon.png"),
-            new(5, "Leecher", $"{bossWebBasePath}/boss_5_leecher.png"),
-            new(6, "Python", $"{bossWebBasePath}/boss_6_python.png"),
-            new(7, "Centipede", $"{bossWebBasePath}/boss_7_centipede.png"),
-            new(8, "Jaguar", $"{bossWebBasePath}/boss_8_jaguar.png"),
-            new(9, "Gorilla", $"{bossWebBasePath}/boss_9_gorilla.png"),
-            new(10, "Basilisk", $"{bossWebBasePath}/boss_10_basilisk.png")
-        };
-
-        foreach (var boss in bossSeeds)
-        {
-            var bossStageNumber = boss.Index * 10;
-            if (existingBossStages.Contains(bossStageNumber))
-            {
-                continue;
-            }
-
-            var stats = bossStats.TryGetValue(boss.Index, out var foundStats)
-                ? foundStats
-                : BossStats.Default;
-
-            enemies.Add(StageEnemy.Create(
-                name: boss.Name,
-                type: EnemyType.Boss,
-                region: RegionType.Forest,
-                baseHP: stats.BaseHP,
-                basePower: stats.BasePower,
-                baseSpeed: stats.BaseSpeed,
-                baseDefense: stats.BaseDefense,
-                baseCriticalChance: stats.BaseCriticalChance,
-                baseFidelisDrop: stats.BaseFidelisDrop,
-                beerDropChance: stats.BeerDropChance,
-                shotDropChance: stats.ShotDropChance,
-                spritePath: boss.SpritePath,
-                bossStageNumber: bossStageNumber
-            ));
-        }
+        SeedSwampNormals(existingNormalNames, enemies);
+        SeedSwampBosses(existingBossStages, enemies);
 
         if (enemies.Count == 0)
         {
@@ -223,7 +69,183 @@ public static partial class SeedData
         };
     }
 
-    private sealed record BossSeedInfo(int Index, string Name, string SpritePath);
+    private static void SeedForestNormals(HashSet<string> existingNormalNames, List<StageEnemy> enemies)
+    {
+        var forestBasePath = "/sprites/games/my-tuno/enemies/forest";
+        var normals = new List<(string Name, int HP, int Power, int Speed, int Defense, PlacementType Placement)>
+        {
+            ("Wolf", 50, 8, 6, 3, PlacementType.Terrestrial),
+            ("Boar", 70, 10, 4, 5, PlacementType.Terrestrial),
+            ("Spider", 40, 12, 8, 2, PlacementType.Terrestrial),
+            ("Snake", 45, 9, 7, 2, PlacementType.Terrestrial),
+            ("Bee", 30, 6, 10, 1, PlacementType.Aerial),
+            ("Beetle", 60, 7, 3, 8, PlacementType.Aerial),
+            ("Eagle", 55, 11, 9, 3, PlacementType.Aerial),
+            ("Panther", 65, 14, 8, 4, PlacementType.Terrestrial),
+            ("Cheetah", 55, 13, 12, 3, PlacementType.Terrestrial),
+            ("Stag", 75, 9, 7, 6, PlacementType.Terrestrial)
+        };
+
+        foreach (var (name, hp, power, speed, defense, placement) in normals)
+        {
+            if (!existingNormalNames.Contains($"Forest:{name}"))
+            {
+                enemies.Add(StageEnemy.Create(
+                    name: name,
+                    type: EnemyType.Normal,
+                    region: RegionType.Forest,
+                    baseHP: hp,
+                    basePower: power,
+                    baseSpeed: speed,
+                    baseDefense: defense,
+                    spritePath: $"{forestBasePath}/{name.ToLowerInvariant()}.png",
+                    placement: placement
+                ));
+            }
+        }
+    }
+
+    private static void SeedForestBosses(HashSet<int> existingBossStages, List<StageEnemy> enemies)
+    {
+        var bossWebBasePath = "/sprites/games/my-tuno/enemies/forest";
+        var bossStats = GetForestBossStats();
+        var bossSeeds = new List<BossSeedInfo>
+        {
+            new(1, "Bear", $"{bossWebBasePath}/boss_1_bear.png"),
+            new(2, "Tiger", $"{bossWebBasePath}/boss_2_tiger.png"),
+            new(3, "Mantis", $"{bossWebBasePath}/boss_3_mantis.png"),
+            new(4, "Falcon", $"{bossWebBasePath}/boss_4_falcon.png", PlacementType.Aerial),
+            new(5, "Leecher", $"{bossWebBasePath}/boss_5_leecher.png"),
+            new(6, "Python", $"{bossWebBasePath}/boss_6_python.png"),
+            new(7, "Centipede", $"{bossWebBasePath}/boss_7_centipede.png"),
+            new(8, "Jaguar", $"{bossWebBasePath}/boss_8_jaguar.png"),
+            new(9, "Gorilla", $"{bossWebBasePath}/boss_9_gorilla.png"),
+            new(10, "Basilisk", $"{bossWebBasePath}/boss_10_basilisk.png")
+        };
+
+        SeedBosses(bossSeeds, bossStats, RegionType.Forest, existingBossStages, enemies);
+    }
+
+    private static void SeedSwampNormals(HashSet<string> existingNormalNames, List<StageEnemy> enemies)
+    {
+        var swampBasePath = "/sprites/games/my-tuno/enemies/swamp";
+        var normals = new List<(string Name, int HP, int Power, int Speed, int Defense, PlacementType Placement)>
+        {
+            ("Crab", 65, 10, 4, 8, PlacementType.Terrestrial),
+            ("Crocodile", 90, 14, 3, 7, PlacementType.Terrestrial),
+            ("Crow", 40, 9, 11, 2, PlacementType.Aerial),
+            ("Frog", 35, 7, 9, 3, PlacementType.Terrestrial),
+            ("Leech", 45, 12, 6, 2, PlacementType.Terrestrial),
+            ("Mosquito", 30, 8, 13, 1, PlacementType.Aerial),
+            ("Salamander", 55, 11, 7, 5, PlacementType.Terrestrial),
+            ("Slime", 80, 6, 2, 10, PlacementType.Terrestrial),
+            ("Snake", 50, 10, 8, 3, PlacementType.Terrestrial),
+            ("Stalker", 60, 13, 10, 4, PlacementType.Terrestrial)
+        };
+
+        foreach (var (name, hp, power, speed, defense, placement) in normals)
+        {
+            if (!existingNormalNames.Contains($"Swamp:{name}"))
+            {
+                enemies.Add(StageEnemy.Create(
+                    name: name,
+                    type: EnemyType.Normal,
+                    region: RegionType.Swamp,
+                    baseHP: hp,
+                    basePower: power,
+                    baseSpeed: speed,
+                    baseDefense: defense,
+                    spritePath: $"{swampBasePath}/{name.ToLowerInvariant()}.png",
+                    placement: placement
+                ));
+            }
+        }
+    }
+
+    private static void SeedSwampBosses(HashSet<int> existingBossStages, List<StageEnemy> enemies)
+    {
+        var bossWebBasePath = "/sprites/games/my-tuno/enemies/swamp";
+        var bossStats = GetSwampBossStats();
+
+        // Bosses 1,2,3,10 have sprites; bosses 4-9 use null (fallback)
+        var bossSeeds = new List<BossSeedInfo>
+        {
+            new(1, "Frog King", $"{bossWebBasePath}/boss_1_frog.png"),
+            new(2, "Pelican", $"{bossWebBasePath}/boss_2_pelican.png", PlacementType.Aerial),
+            new(3, "Leech Lord", $"{bossWebBasePath}/boss_3_leech.png"),
+            new(4, "Bog Lurker", null),
+            new(5, "Mire Beast", null),
+            new(6, "Swamp Hydra", null),
+            new(7, "Marsh Titan", null),
+            new(8, "Venom Drake", null),
+            new(9, "Shadow Serpent", null),
+            new(10, "Aligator", $"{bossWebBasePath}/boss_10_aligator.png")
+        };
+
+        SeedBosses(bossSeeds, bossStats, RegionType.Swamp, existingBossStages, enemies);
+    }
+
+    private static void SeedBosses(
+        List<BossSeedInfo> bossSeeds,
+        Dictionary<int, BossStats> bossStats,
+        RegionType region,
+        HashSet<int> existingBossStages,
+        List<StageEnemy> enemies)
+    {
+        var stageOffset = region switch
+        {
+            RegionType.Forest => 0,
+            RegionType.Swamp => 100,
+            _ => 0
+        };
+
+        foreach (var boss in bossSeeds)
+        {
+            var bossStageNumber = stageOffset + boss.Index * 10;
+            if (existingBossStages.Contains(bossStageNumber))
+                continue;
+
+            var stats = bossStats.TryGetValue(boss.Index, out var foundStats)
+                ? foundStats
+                : BossStats.Default;
+
+            enemies.Add(StageEnemy.Create(
+                name: boss.Name,
+                type: EnemyType.Boss,
+                region: region,
+                baseHP: stats.BaseHP,
+                basePower: stats.BasePower,
+                baseSpeed: stats.BaseSpeed,
+                baseDefense: stats.BaseDefense,
+                baseCriticalChance: stats.BaseCriticalChance,
+                baseFidelisDrop: stats.BaseFidelisDrop,
+                beerDropChance: stats.BeerDropChance,
+                shotDropChance: stats.ShotDropChance,
+                spritePath: boss.SpritePath,
+                bossStageNumber: bossStageNumber,
+                placement: boss.Placement
+            ));
+        }
+    }
+
+    private static Dictionary<int, BossStats> GetSwampBossStats()
+    {
+        return new Dictionary<int, BossStats>
+        {
+            { 1, new BossStats(600, 24, 5, 18, 0.10, 60, 0.5, 0.2) },
+            { 2, new BossStats(700, 28, 7, 20, 0.12, 70, 0.5, 0.2) },
+            { 3, new BossStats(650, 34, 10, 15, 0.15, 80, 0.5, 0.2) },
+            { 4, new BossStats(680, 32, 12, 16, 0.14, 90, 0.5, 0.2) },
+            { 5, new BossStats(800, 26, 6, 24, 0.08, 100, 0.5, 0.2) },
+            { 6, new BossStats(750, 36, 8, 20, 0.12, 110, 0.5, 0.2) },
+            { 7, new BossStats(850, 30, 9, 26, 0.10, 120, 0.5, 0.2) },
+            { 8, new BossStats(780, 40, 11, 22, 0.18, 130, 0.5, 0.2) },
+            { 9, new BossStats(1000, 34, 6, 28, 0.12, 140, 0.5, 0.2) },
+            { 10, new BossStats(1400, 45, 10, 35, 0.20, 250, 0.8, 0.4) }
+        };
+    }
+
+    private sealed record BossSeedInfo(int Index, string Name, string? SpritePath, PlacementType Placement = PlacementType.Terrestrial);
 
     private sealed record BossStats(
         int BaseHP,

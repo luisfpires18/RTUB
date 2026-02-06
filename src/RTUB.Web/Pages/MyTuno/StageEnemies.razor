@@ -1,0 +1,529 @@
+@page "/owner/stage-enemies"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@attribute [Authorize(Roles = "Owner")]
+@inherits CrudTablePageBase<StageEnemy>
+@inject IStageEnemyManagementService StageEnemyService
+@inject ILogger<StageEnemies> Logger
+
+<div class="stage-enemies-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-bug"></i> Stage Enemies</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">Manage enemies for Stage Mode.</p>
+            </div>
+
+            <div class="page-header-actions justify-content-lg-end">
+                <button class="btn btn-success" @onclick="OpenCreateModal" title="Add New Enemy">
+                    <i class="bi bi-plus-lg"></i> Add Enemy
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedEnemyType"
+                                SelectedValueChanged="@(value => selectedEnemyType = value)"
+                                OnChange="@OnEnemyTypeFilterChanged"
+                                AllItemsLabel="All Types"
+                                Options="@enemyTypeOptions" />
+            </div>
+            <div class="flex-lg-shrink-0 filter-dropdown-container">
+                <FilterDropdown SelectedValue="@selectedRegion"
+                                SelectedValueChanged="@(value => selectedRegion = value)"
+                                OnChange="@OnRegionFilterChanged"
+                                AllItemsLabel="All Regions"
+                                Options="@regionOptions" />
+            </div>
+            <div class="flex-grow-1">
+                <SearchBar @bind-Value="SearchTerm"
+                           OnSearch="UpdateSearch"
+                           Placeholder="Search by name..." />
+            </div>
+        </div>
+    </div>
+
+    @if (AllItems == null)
+    {
+        <LoadingSpinner Message="Loading stage enemies..." />
+    }
+    else if (!FilteredItems.Any())
+    {
+        <EmptyState Title="No enemies found"
+                    Message="No stage enemies match the current filters."
+                    Icon="bi-emoji-neutral" />
+    }
+    else
+    {
+        @foreach (var regionGroup in GetGroupedByRegion())
+        {
+            <div class="region-section mb-4">
+                <div class="region-header d-flex align-items-center gap-2 mb-3">
+                    <i class="bi @GetRegionIcon(regionGroup.Key) fs-4"></i>
+                    <h3 class="mb-0">@regionGroup.Key</h3>
+                    <span class="badge bg-secondary">@regionGroup.Count()</span>
+                </div>
+
+                <div class="row">
+                    @foreach (var enemy in regionGroup)
+                    {
+                        <div class="col-md-6 col-lg-4 col-xl-3 mb-3" @key="enemy.Id">
+                            <StageEnemyCard Enemy="@enemy"
+                                            OnEdit="@(() => OpenEditModal(enemy))"
+                                            OnDelete="@(() => OpenDeleteModal(enemy))" />
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (FilteredItems.Count > PaginationHelper.PageSize)
+        {
+            <TablePagination CurrentPage="@PaginationHelper.CurrentPage"
+                            PageSize="@PaginationHelper.PageSize"
+                            TotalItems="@FilteredItems.Count"
+                            ItemLabel="enemies"
+                            PageSizeOptions="@(new[] { 12, 24, 48, 96 })"
+                            OnPageChanged="ChangePage"
+                            OnPageSizeChanged="ChangePageSize" />
+        }
+    }
+</div>
+
+<!-- Create/Edit Modal -->
+<Modal Show="@modals.IsOpen(ModalType.Edit)"
+       ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))"
+       Title="@(isCreateMode ? "New Stage Enemy" : "Edit Stage Enemy")"
+       Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (formModel != null)
+        {
+            <EditForm Model="formModel" @ref="editForm" OnValidSubmit="SaveEnemy">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="row">
+                    <!-- Left Column: Identity -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-type text-primary me-2"></i>Name
+                            </label>
+                            <InputText class="form-control" @bind-Value="formModel.Name" placeholder="e.g. Wolf, Dragon..." />
+                            <ValidationMessage For="() => formModel.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-stars text-primary me-2"></i>Type
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Type">
+                                @foreach (var t in Enum.GetValues<EnemyType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-map text-primary me-2"></i>Region
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Region">
+                                @foreach (var r in Enum.GetValues<RegionType>())
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>Placement
+                            </label>
+                            <InputSelect class="form-select" @bind-Value="formModel.Placement">
+                                @foreach (var p in Enum.GetValues<PlacementType>())
+                                {
+                                    <option value="@p">@p</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-image text-primary me-2"></i>Sprite Path
+                            </label>
+                            <InputText class="form-control" @bind-Value="formModel.SpritePath" placeholder="/images/enemies/wolf.png" />
+                            <small class="text-light-theme">Relative path to the enemy sprite image</small>
+                        </div>
+
+                        @if (formModel.Type == EnemyType.Boss)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label text-white-full fw-semibold">
+                                    <i class="bi bi-flag-fill text-danger me-2"></i>Boss Stage Number
+                                </label>
+                                <InputNumber class="form-control" @bind-Value="formModel.BossStageNumber" />
+                                <small class="text-light-theme">The stage number where this boss appears (e.g. 10, 20, 30)</small>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Right Column: Stats & Drops -->
+                    <div class="col-md-6">
+                        <h6 class="text-white-full fw-semibold mb-3"><i class="bi bi-bar-chart text-info me-2"></i>Base Stats</h6>
+
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-heart-fill text-danger me-1"></i>HP
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseHP" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-lightning-fill text-warning me-1"></i>Power
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BasePower" />
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-speedometer text-info me-1"></i>Speed
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseSpeed" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-shield-fill text-success me-1"></i>Defense
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseDefense" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full small">
+                                <i class="bi bi-bullseye text-purple me-1"></i>Critical Chance (0.0 - 1.0)
+                            </label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseCriticalChance" step="0.01" />
+                        </div>
+
+                        <h6 class="text-white-full fw-semibold mb-3 mt-4"><i class="bi bi-gift text-warning me-2"></i>Drops</h6>
+
+                        <div class="mb-2">
+                            <label class="form-label text-white-full small">
+                                <i class="bi bi-coin text-warning me-1"></i>Fidelis Drop
+                            </label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseFidelisDrop" step="0.1" />
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-cup-straw text-warning me-1"></i>Beer Drop %
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BeerDropChance" step="0.01" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-full small">
+                                    <i class="bi bi-droplet-fill text-info me-1"></i>Shot Drop %
+                                </label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.ShotDropChance" step="0.01" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => modals.Close(ModalType.Edit)">Cancel</button>
+        <button type="button" class="btn btn-success" @onclick="SaveEnemy">Save</button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDialog Show="@modals.IsOpen(ModalType.Delete)"
+               ShowChanged="@((bool show) => modals.Toggle(ModalType.Delete, show))"
+               Title="Confirm Delete"
+               ConfirmText="Delete"
+               CancelText="Cancel"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteEnemy"
+               OnCancel="() => { modals.Close(ModalType.Delete); deletingEnemy = null; }">
+    <BodyContent>
+        <p>Are you sure you want to delete the enemy <strong>@deletingEnemy?.Name</strong>?</p>
+        <p class="text-muted">This action cannot be undone.</p>
+    </BodyContent>
+</ConfirmDialog>
+
+@code {
+    private enum ModalType { Edit, Delete }
+    private readonly MultiModalState<ModalType> modals = new();
+    private bool isCreateMode;
+    private StageEnemyFormModel? formModel;
+    private StageEnemy? deletingEnemy;
+    private int? editingEnemyId;
+    private EditForm? editForm;
+
+    // Filter state
+    private string selectedEnemyType = string.Empty;
+    private string selectedRegion = string.Empty;
+
+    private IEnumerable<FilterDropdownOption> enemyTypeOptions => Enum.GetValues<EnemyType>()
+        .Select(t => new FilterDropdownOption(t.ToString(), t.ToString()));
+
+    private IEnumerable<FilterDropdownOption> regionOptions => Enum.GetValues<RegionType>()
+        .Select(r => new FilterDropdownOption(r.ToString(), r.ToString()));
+
+    protected override async Task OnInitializedAsync()
+    {
+        PaginationHelper.PageSize = 24;
+        await LoadItemsAsync();
+        ApplyFiltersAndPagination();
+    }
+
+    protected override async Task LoadItemsAsync()
+    {
+        AllItems = (await StageEnemyService.GetAllAsync()).ToList();
+    }
+
+    protected override Dictionary<string, Func<StageEnemy, IComparable>> GetSortColumnSelectors()
+    {
+        return new Dictionary<string, Func<StageEnemy, IComparable>>
+        {
+            [nameof(StageEnemy.Name)] = e => e.Name,
+            [nameof(StageEnemy.Type)] = e => (int)e.Type,
+            [nameof(StageEnemy.Region)] = e => (int)e.Region,
+            [nameof(StageEnemy.BaseHP)] = e => e.BaseHP
+        };
+    }
+
+    protected override List<Func<StageEnemy, string>> GetSearchSelectors()
+    {
+        return new List<Func<StageEnemy, string>>
+        {
+            e => e.Name,
+            e => e.Type.ToString(),
+            e => e.Region.ToString()
+        };
+    }
+
+    protected override void ApplyFiltersAndPagination()
+    {
+        if (AllItems == null) return;
+
+        var filtered = AllItems.AsEnumerable();
+
+        // Apply type filter
+        if (!string.IsNullOrEmpty(selectedEnemyType) && Enum.TryParse<EnemyType>(selectedEnemyType, out var typeFilter))
+        {
+            filtered = filtered.Where(e => e.Type == typeFilter);
+        }
+
+        // Apply region filter
+        if (!string.IsNullOrEmpty(selectedRegion) && Enum.TryParse<RegionType>(selectedRegion, out var regionFilter))
+        {
+            filtered = filtered.Where(e => e.Region == regionFilter);
+        }
+
+        // Apply search
+        if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            SearchHelper.SearchTerm = SearchTerm;
+            filtered = SearchHelper.FilterMultiple(filtered.ToList(), GetSearchSelectors());
+        }
+
+        // Apply sorting
+        FilteredItems = SortHelper.ApplySort(filtered.ToList(), GetSortColumnSelectors());
+
+        // Apply pagination
+        UpdatePagination();
+    }
+
+    private IEnumerable<IGrouping<RegionType, StageEnemy>> GetGroupedByRegion()
+    {
+        return PaginatedItems
+            .OrderBy(e => (int)e.Region)
+            .ThenBy(e => (int)e.Type)
+            .ThenBy(e => e.Name)
+            .GroupBy(e => e.Region);
+    }
+
+    private void OnEnemyTypeFilterChanged()
+    {
+        PaginationHelper.CurrentPage = 1;
+        ApplyFiltersAndPagination();
+    }
+
+    private void OnRegionFilterChanged()
+    {
+        PaginationHelper.CurrentPage = 1;
+        ApplyFiltersAndPagination();
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingEnemyId = null;
+        formModel = new StageEnemyFormModel();
+        modals.Open(ModalType.Edit);
+    }
+
+    private void OpenEditModal(StageEnemy enemy)
+    {
+        isCreateMode = false;
+        editingEnemyId = enemy.Id;
+        formModel = new StageEnemyFormModel
+        {
+            Name = enemy.Name,
+            Type = enemy.Type,
+            Region = enemy.Region,
+            BaseHP = enemy.BaseHP,
+            BasePower = enemy.BasePower,
+            BaseSpeed = enemy.BaseSpeed,
+            BaseDefense = enemy.BaseDefense,
+            BaseCriticalChance = enemy.BaseCriticalChance,
+            BaseFidelisDrop = enemy.BaseFidelisDrop,
+            BeerDropChance = enemy.BeerDropChance,
+            ShotDropChance = enemy.ShotDropChance,
+            SpritePath = enemy.SpritePath,
+            BossStageNumber = enemy.BossStageNumber,
+            Placement = enemy.Placement
+        };
+        modals.Open(ModalType.Edit);
+    }
+
+    private async Task SaveEnemy()
+    {
+        if (formModel == null) return;
+
+        try
+        {
+            if (isCreateMode)
+            {
+                await StageEnemyService.CreateAsync(
+                    formModel.Name,
+                    formModel.Type,
+                    formModel.Region,
+                    formModel.BaseHP,
+                    formModel.BasePower,
+                    formModel.BaseSpeed,
+                    formModel.BaseDefense,
+                    formModel.BaseCriticalChance,
+                    formModel.BaseFidelisDrop,
+                    formModel.BeerDropChance,
+                    formModel.ShotDropChance,
+                    formModel.SpritePath,
+                    formModel.BossStageNumber,
+                    formModel.Placement);
+            }
+            else if (editingEnemyId.HasValue)
+            {
+                await StageEnemyService.UpdateAsync(
+                    editingEnemyId.Value,
+                    formModel.Name,
+                    formModel.Type,
+                    formModel.Region,
+                    formModel.BaseHP,
+                    formModel.BasePower,
+                    formModel.BaseSpeed,
+                    formModel.BaseDefense,
+                    formModel.BaseCriticalChance,
+                    formModel.BaseFidelisDrop,
+                    formModel.BeerDropChance,
+                    formModel.ShotDropChance,
+                    formModel.SpritePath,
+                    formModel.BossStageNumber,
+                    formModel.Placement);
+            }
+
+            await RefreshDataAsync();
+            modals.Close(ModalType.Edit);
+            formModel = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving stage enemy");
+        }
+    }
+
+    private void OpenDeleteModal(StageEnemy enemy)
+    {
+        deletingEnemy = enemy;
+        modals.Open(ModalType.Delete);
+    }
+
+    private async Task DeleteEnemy()
+    {
+        if (deletingEnemy == null) return;
+
+        var enemyId = deletingEnemy.Id;
+        try
+        {
+            await StageEnemyService.DeleteAsync(enemyId);
+            await RefreshDataAsync();
+            modals.Close(ModalType.Delete);
+            deletingEnemy = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting stage enemy {Id}", enemyId);
+        }
+    }
+
+    private static string GetRegionIcon(RegionType region) => region switch
+    {
+        RegionType.Forest => "bi-tree",
+        RegionType.Swamp => "bi-moisture",
+        RegionType.Mountains => "bi-triangle",
+        RegionType.Snowy => "bi-snow",
+        RegionType.Ruins => "bi-building",
+        RegionType.Tropical => "bi-sun",
+        RegionType.Caverns => "bi-diamond",
+        RegionType.Desert => "bi-brightness-high",
+        RegionType.Volcanic => "bi-fire",
+        RegionType.Dark => "bi-moon-stars",
+        RegionType.InfiniteLand => "bi-infinity",
+        _ => "bi-geo"
+    };
+
+    /// <summary>
+    /// Form model for creating/editing stage enemies.
+    /// Avoids issues with the entity's private constructor.
+    /// </summary>
+    private class StageEnemyFormModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        public EnemyType Type { get; set; } = EnemyType.Normal;
+        public RegionType Region { get; set; } = RegionType.Forest;
+        public int BaseHP { get; set; } = 50;
+        public int BasePower { get; set; } = 8;
+        public int BaseSpeed { get; set; } = 5;
+        public int BaseDefense { get; set; } = 3;
+        public double BaseCriticalChance { get; set; } = 0.05;
+        public decimal BaseFidelisDrop { get; set; } = 1.0m;
+        public double BeerDropChance { get; set; } = 0.1;
+        public double ShotDropChance { get; set; } = 0.05;
+
+        [StringLength(500)]
+        public string? SpritePath { get; set; }
+
+        public int? BossStageNumber { get; set; }
+        public PlacementType Placement { get; set; } = PlacementType.Terrestrial;
+    }
+}

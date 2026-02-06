@@ -1,0 +1,154 @@
+/* StageEnemyCard Component Styles */
+/* Purple hover matching AvatarCard pattern */
+
+.stage-enemy-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    cursor: default;
+}
+
+.stage-enemy-card:hover,
+.stage-enemy-card:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+.stage-enemy-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+/* Top-right action buttons (AvatarCard pattern) */
+.stage-enemy-card-edit-btn,
+.stage-enemy-card-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    opacity: 0;
+}
+
+.stage-enemy-card:hover .stage-enemy-card-edit-btn,
+.stage-enemy-card:hover .stage-enemy-card-delete-btn,
+.stage-enemy-card:focus .stage-enemy-card-edit-btn,
+.stage-enemy-card:focus .stage-enemy-card-delete-btn {
+    opacity: 1;
+}
+
+.stage-enemy-card-edit-btn {
+    right: 2.75rem;
+    color: var(--bs-primary);
+}
+
+.stage-enemy-card-delete-btn {
+    right: 0.5rem;
+    color: var(--bs-danger);
+}
+
+.stage-enemy-card-edit-btn:hover {
+    background-color: var(--bs-primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.stage-enemy-card-delete-btn:hover {
+    background-color: var(--bs-danger);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Sprite */
+.stage-enemy-card-sprite {
+    min-height: 120px;
+    background: rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.stage-enemy-card-sprite img {
+    max-height: 100px;
+    max-width: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* Content */
+.stage-enemy-card-content {
+    padding: 0.75rem 1rem 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.stage-enemy-card-name {
+    color: var(--bs-white);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.stage-enemy-card-badge {
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+/* Stats */
+.stage-enemy-card-stats {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.stage-enemy-card-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.1rem 0;
+}
+
+.stage-enemy-card-stat span:first-child {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Drops */
+.stage-enemy-card-drops {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stage-enemy-card-sprite {
+        min-height: 80px;
+    }
+
+    .stage-enemy-card-sprite img {
+        max-height: 70px;
+    }
+
+    .stage-enemy-card-edit-btn,
+    .stage-enemy-card-delete-btn {
+        opacity: 1;
+    }
+}

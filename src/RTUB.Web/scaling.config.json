@@ -136,7 +136,7 @@
           "name": "Swamp",
           "stageMin": 101,
           "stageMax": 200,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_"
         },
         {

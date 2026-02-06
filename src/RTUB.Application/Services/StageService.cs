@@ -273,41 +273,65 @@ public class StageService : IStageService
     /// </summary>
     public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage)
     {
-        try
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
-            var character = await _characterRepository.GetByIdAsync(characterId);
-            if (character == null)
+            try
             {
-                _logger.LogWarning("CancelRunAsync: Character {CharacterId} not found", characterId);
+                var character = await _characterRepository.GetByIdAsync(characterId);
+                if (character == null)
+                {
+                    _logger.LogWarning("CancelRunAsync: Character {CharacterId} not found", characterId);
+                    return false;
+                }
+
+                var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+                if (stageProgress == null)
+                {
+                    _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found", character.UserId);
+                    return false;
+                }
+
+                // Restore character HP
+                character.CurrentHP = restoreHp;
+                await _characterRepository.UpdateAsync(character);
+
+                // Reset stage progress to the restore point
+                if (stageProgress.CurrentStage != restoreStage)
+                {
+                    stageProgress.CurrentStage = restoreStage;
+                    stageProgress.EnemiesDefeatedInCurrentStage = 0;
+                    await _stageProgressRepository.UpdateAsync(stageProgress);
+                }
+
+                return true;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "CancelRunAsync: Concurrency conflict for character {CharacterId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        characterId,
+                        attempt + 1,
+                        maxRetries);
+                    // Brief delay to let the concurrent operation finish
+                    await Task.Delay(100 * (attempt + 1));
+                    continue;
+                }
+
+                _logger.LogError(ex, "CancelRunAsync: Failed after {MaxRetries} retries for character {CharacterId}", maxRetries, characterId);
                 return false;
             }
-
-            var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
-            if (stageProgress == null)
+            catch (Exception ex)
             {
-                _logger.LogWarning("CancelRunAsync: Stage progress for user {UserId} not found", character.UserId);
+                _logger.LogError(ex, "Error cancelling run for character {CharacterId}", characterId);
                 return false;
             }
-
-            // Restore character HP
-            character.CurrentHP = restoreHp;
-            await _characterRepository.UpdateAsync(character);
-
-            // Reset stage progress to the restore point
-            if (stageProgress.CurrentStage != restoreStage)
-            {
-                stageProgress.CurrentStage = restoreStage;
-                stageProgress.EnemiesDefeatedInCurrentStage = 0;
-                await _stageProgressRepository.UpdateAsync(stageProgress);
-            }
-
-            return true;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error cancelling run for character {CharacterId}", characterId);
-            return false;
-        }
+
+        return false;
     }
 
     /// <summary>
@@ -377,8 +401,9 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Calculates and applies rewards for a stage battle
-    /// Rewards scale based on config values
+    /// Calculates rewards for a stage battle and applies XP to character (in-memory only, no save).
+    /// Also applies Fidelis to user and adds item drops to inventory.
+    /// Character changes are saved later by ApplyCharacterAndProgressUpdatesAsync to avoid double-save concurrency issues.
     /// </summary>
     private async Task<(int xp, decimal fidelis, int beers, int shots)> CalculateAndApplyRewardsAsync(
         Character character,
@@ -422,11 +447,10 @@ public class StageService : IStageService
         };
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling, 2);
 
-        // Apply XP to character
+        // Apply XP to character (in-memory only — saved later with HP/progress)
         character.AddXP(xpReward);
-        await _characterRepository.UpdateAsync(character);
 
-        // Apply Fidelis to user
+        // Apply Fidelis to user (separate Identity save, independent of character)
         var playerUser = await _userManager.FindByIdAsync(character.UserId);
         if (playerUser != null)
         {
@@ -474,12 +498,12 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Updates character HP and stage progress after battle
+    /// Updates character HP, XP and stage progress after battle.
     /// Only persists StageProgress when there's a new record:
     /// - HighestStage increased (player beat their previous best)
     /// - EndlessModeUnlocked changed (beat stage 10000)
     /// No writes when player dies at a stage below their record.
-    /// Handles concurrency exceptions by reloading and retrying once.
+    /// Handles concurrency exceptions by reloading entities and retrying.
     /// </summary>
     private async Task UpdateCharacterAndProgressAsync(
         Character character,
@@ -489,7 +513,7 @@ public class StageService : IStageService
         int enemyCount = 1,
         bool hasShotBuff = false)
     {
-        const int maxRetries = 1;
+        const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
@@ -509,9 +533,39 @@ public class StageService : IStageService
                 {
                     _logger.LogWarning(
                         ex,
-                        "Concurrency conflict updating character/progress for character {CharacterId}, retrying...",
-                        character.Id);
-                    // Retry once - reload entities fresh from database
+                        "Concurrency conflict updating character/progress for character {CharacterId}, reloading and retrying (attempt {Attempt}/{MaxRetries})...",
+                        character.Id,
+                        attempt + 1,
+                        maxRetries);
+
+                    // Reload entities fresh from database to get current values
+                    try
+                    {
+                        var freshCharacter = await _characterRepository.GetByIdAsync(character.Id);
+                        if (freshCharacter != null)
+                        {
+                            // Re-apply the in-memory changes on top of fresh DB values
+                            character.CurrentHP = freshCharacter.CurrentHP;
+                            character.XP = freshCharacter.XP;
+                            character.Level = freshCharacter.Level;
+                        }
+
+                        var freshProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+                        if (freshProgress != null)
+                        {
+                            stageProgress.HighestStage = freshProgress.HighestStage;
+                            stageProgress.CurrentStage = freshProgress.CurrentStage;
+                            stageProgress.EnemiesDefeatedInCurrentStage = freshProgress.EnemiesDefeatedInCurrentStage;
+                            stageProgress.EndlessModeUnlocked = freshProgress.EndlessModeUnlocked;
+                        }
+                    }
+                    catch (Exception reloadEx)
+                    {
+                        _logger.LogWarning(reloadEx, "Failed to reload entities for retry");
+                    }
+
+                    // Brief delay before retry to let concurrent operation finish
+                    await Task.Delay(50 * (attempt + 1));
                     continue;
                 }
 
