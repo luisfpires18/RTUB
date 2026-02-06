@@ -51,7 +51,27 @@
                 <span class="android-tester-label">Last Login:</span>
                 <span class="android-tester-value">@GetLastLoginText()</span>
             </div>
+
+            <!-- Device Info (from User-Agent) -->
+            @if (!string.IsNullOrWhiteSpace(LastUserAgent))
+            {
+                <div class="android-tester-info-row" title="@LastUserAgent">
+                    <i class="bi bi-@GetDeviceIcon()"></i>
+                    <span class="android-tester-label">Device:</span>
+                    <span class="android-tester-value android-tester-value-device">@GetDeviceLabel()</span>
+                </div>
+            }
         </div>
+
+        <!-- View Details Button -->
+        @if (OnViewDetails.HasDelegate)
+        {
+            <div class="android-tester-details-btn-wrapper">
+                <button class="btn btn-sm btn-outline-light android-tester-details-btn" @onclick="OnViewDetails" @onclick:stopPropagation="true">
+                    <i class="bi bi-list-check me-1"></i> View Details
+                </button>
+            </div>
+        }
     </div>
 </div>
 
@@ -80,6 +100,12 @@
     [Parameter]
     public List<DateTime> LoginDays { get; set; } = new();
 
+    [Parameter]
+    public string? LastUserAgent { get; set; }
+
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
     private bool LoggedInToday => LoginDays.Any(d => d.Date == DateTime.UtcNow.Date);
 
     private string GetLastLoginText()
@@ -97,5 +123,32 @@
             return $"{daysAgo} days ago";
         else
             return LastLoginDate.Value.ToString("dd/MM/yyyy");
+    }
+
+    private bool IsMobileUserAgent()
+    {
+        if (string.IsNullOrWhiteSpace(LastUserAgent))
+            return false;
+        var ua = LastUserAgent.ToLowerInvariant();
+        return ua.Contains("android") || ua.Contains("iphone") || ua.Contains("mobile");
+    }
+
+    private string GetDeviceIcon()
+    {
+        return IsMobileUserAgent() ? "phone" : "laptop";
+    }
+
+    private string GetDeviceLabel()
+    {
+        if (string.IsNullOrWhiteSpace(LastUserAgent))
+            return "Unknown";
+        var ua = LastUserAgent.ToLowerInvariant();
+        if (ua.Contains("android"))
+            return "Android";
+        if (ua.Contains("iphone") || ua.Contains("ipad"))
+            return "iOS";
+        if (ua.Contains("mobile"))
+            return "Mobile";
+        return "Desktop";
     }
 }

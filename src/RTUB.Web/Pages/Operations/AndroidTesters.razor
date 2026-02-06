@@ -8,11 +8,13 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
+@using RTUB.Application.Configuration
 @using RTUB.Shared
 @inject UserManager<ApplicationUser> UserManager
 @inject ApplicationDbContext DbContext
 @inject IPushNotificationService PushNotificationService
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 @attribute [Authorize(Roles = "Owner")]
 
 <PageTitle>Android Testers</PageTitle>
@@ -151,7 +153,7 @@
         <!-- Login Activity Card -->
         <div class="card">
             <div class="card-header d-flex flex-column flex-lg-row gap-2 align-items-lg-center justify-content-between">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Android Testers - Last 14 Days Login Activity</h5>
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Android Testers - Login Activity (@campaignStartDate.ToString("dd/MM") to @campaignEndDate.ToString("dd/MM"))</h5>
             </div>
             <div class="card-body">
                 @if (androidTesters.Any())
@@ -162,16 +164,6 @@
                             <SearchBar @bind-Value="searchTerm"
                                        Placeholder="Search by name or username..."
                                        OnSearch="@HandleSearchChanged" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Filter by Login Day</label>
-                            <select class="form-select" @bind="selectedDayFilter" @bind:after="FilterAndPaginate">
-                                <option value="">All Days</option>
-                                @foreach (var day in availableLoginDays)
-                                {
-                                    <option value="@day.ToString("yyyy-MM-dd")">@day.ToString("dddd, MMM dd, yyyy")</option>
-                                }
-                            </select>
                         </div>
                     </div>
 
@@ -185,7 +177,7 @@
                     {
                         <!-- Stats Row -->
                         <div class="row mb-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card bg-primary text-white">
                                     <div class="card-body">
                                         <h6 class="card-title">Total Android Testers</h6>
@@ -193,19 +185,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="card bg-success text-white">
                                     <div class="card-body">
-                                        <h6 class="card-title">Active (Last 14 Days)</h6>
-                                        <h3 class="mb-0">@androidTesters.Count(t => t.LoginDays.Any())</h3>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card bg-info text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Total Logins</h6>
-                                        <h3 class="mb-0">@totalLoginsLast14Days</h3>
+                                        <h6 class="card-title">Active Today</h6>
+                                        <h3 class="mb-0">@androidTesters.Count(t => t.LoginDays.Any(d => d.Date == DateTime.UtcNow.Date))</h3>
                                     </div>
                                 </div>
                             </div>
@@ -220,9 +204,11 @@
                                                    TunaName="@tester.DisplayNickname"
                                                    FullName="@tester.DisplayFullName"
                                                    LoginCount="@tester.LoginDays.Count"
-                                                   TotalDays="@LoginDaysWindow"
+                                                   TotalDays="@totalCampaignDays"
                                                    LastLoginDate="@tester.LastLoginDate"
-                                                   LoginDays="@tester.LoginDays" />
+                                                   LoginDays="@tester.LoginDays"
+                                                   LastUserAgent="@tester.LastUserAgent"
+                                                   OnViewDetails="@(() => OpenDetailsModal(tester))" />
                             }
                         </div>
 
@@ -247,23 +233,118 @@
     }
 </div>
 
+<!-- View Details Modal -->
+<Modal Show="@showDetailsModal"
+       ShowChanged="@((bool show) => { if (!show) showDetailsModal = false; })"
+       Title="@($"Login Activity - {selectedTesterForDetails?.DisplayNickname}")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (selectedTesterForDetails != null)
+        {
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <img src="@selectedTesterForDetails.AvatarUrl" alt="@selectedTesterForDetails.DisplayNickname" 
+                     class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;" />
+                <div>
+                    <strong>@selectedTesterForDetails.DisplayNickname</strong>
+                    <div class="text-muted small">@selectedTesterForDetails.DisplayFullName</div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Day</th>
+                            <th style="width: 120px;">Date</th>
+                            <th>User-Agent</th>
+                            <th style="width: 80px; text-align: center;">Login</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < totalCampaignDays; i++)
+                        {
+                            var dayDate = detailsWindowStart.AddDays(i);
+                            var today = DateTime.UtcNow.Date;
+                            var isCurrentDay = dayDate == today;
+                            var isFutureDay = dayDate > today;
+                            var loginRecord = selectedTesterLoginRecords?.FirstOrDefault(l => l.LoginDate == dayDate);
+                            var dayNumber = i + 1;
+
+                            <tr class="@(isCurrentDay ? "table-active fw-semibold" : "")">
+                                <td>Day @dayNumber.ToString("00")</td>
+                                <td>
+                                    @dayDate.ToString("dd/MM/yyyy")
+                                    @if (isCurrentDay)
+                                    {
+                                        <span class="badge bg-purple ms-1">TODAY</span>
+                                    }
+                                </td>
+                                <td class="text-truncate" style="max-width: 300px;" title="@(loginRecord?.UserAgent ?? "")">
+                                    @if (isFutureDay)
+                                    {
+                                        <span class="text-muted fst-italic">—</span>
+                                    }
+                                    else if (loginRecord != null && !string.IsNullOrWhiteSpace(loginRecord.UserAgent))
+                                    {
+                                        <span class="small">@GetShortUserAgent(loginRecord.UserAgent)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (isFutureDay)
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else if (loginRecord != null)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger"></i>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="() => showDetailsModal = false">Close</button>
+    </FooterContent>
+</Modal>
+
 @code {
     // Constants
     private const string NotificationTitle = "RTUB - Android Testers";
     private const string NotificationTag = "android-testers-notification";
     private const int MaxMessageLength = 500;
-    private const int LoginDaysWindow = 14;
+    
+    // Campaign dates from appsettings
+    private DateTime campaignStartDate;
+    private DateTime campaignEndDate;
+    private int totalCampaignDays;
     
     private bool isLoading = true;
     private List<TesterLoginInfo> androidTesters = new();
     private List<TesterLoginInfo> filteredTesters = new();
     private List<TesterLoginInfo> paginatedTesters = new();
     private Dictionary<string, List<DateTime>> loginsByUser = new();
-    private List<DateTime> availableLoginDays = new();
-    private int totalLoginsLast14Days = 0;
+    private Dictionary<string, List<AndroidTesterLogin>> loginRecordsByUser = new();
     private string searchTerm = string.Empty;
-    private string selectedDayFilter = string.Empty;
     private PaginationHelper<TesterLoginInfo> paginationHelper = new() { PageSize = 24 };
+    
+    // Details modal state
+    private bool showDetailsModal = false;
+    private TesterLoginInfo? selectedTesterForDetails;
+    private List<AndroidTesterLogin>? selectedTesterLoginRecords;
+    private DateTime detailsWindowStart;
     
     // Tester management fields
     private List<ApplicationUser> selectedAndroidTesters = new();
@@ -287,7 +368,14 @@
         isLoading = true;
         try
         {
-            var cutoffDate = DateTime.UtcNow.Date.AddDays(-LoginDaysWindow);
+            // Load campaign dates from appsettings
+            var options = new AndroidTesterNotificationOptions();
+            Configuration.GetSection(AndroidTesterNotificationOptions.SectionName).Bind(options);
+            campaignStartDate = options.StartDate?.Date ?? DateTime.UtcNow.Date.AddDays(-13);
+            campaignEndDate = options.EndDate?.Date ?? DateTime.UtcNow.Date;
+            totalCampaignDays = (int)(campaignEndDate - campaignStartDate).TotalDays + 1;
+            
+            var cutoffDate = campaignStartDate;
             
             // Load all users for management section
             allUsers = await UserManager.Users
@@ -304,10 +392,10 @@
             
             selectedAndroidTesters = testers.ToList();
 
-            // Load login records for the last 14 days
+            // Load login records for the campaign period
             var logins = await DbContext.AndroidTesterLogins
                 .AsNoTracking()
-                .Where(l => l.LoginDate >= cutoffDate)
+                .Where(l => l.LoginDate >= cutoffDate && l.LoginDate <= campaignEndDate)
                 .OrderByDescending(l => l.LoginDate)
                 .ToListAsync();
 
@@ -316,14 +404,16 @@
                 .GroupBy(l => l.UserId)
                 .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate).ToList());
 
-            totalLoginsLast14Days = logins.Count;
+            // Keep full login records grouped by user (for details modal)
+            loginRecordsByUser = logins
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Get unique login days for filter dropdown (sorted descending)
-            availableLoginDays = logins
-                .Select(l => l.LoginDate)
-                .Distinct()
-                .OrderByDescending(d => d)
-                .ToList();
+            // Get the latest user-agent per user (most recent login with a user-agent)
+            var latestUserAgentByUser = logins
+                .Where(l => !string.IsNullOrWhiteSpace(l.UserAgent))
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.First().UserAgent);
 
             androidTesters = testers
                 .Select(u => new TesterLoginInfo
@@ -335,7 +425,8 @@
                     LastName = u.LastName ?? string.Empty,
                     AvatarUrl = u.ProfilePictureSrc,
                     LoginDays = loginsByUser.ContainsKey(u.Id) ? loginsByUser[u.Id] : new List<DateTime>(),
-                    LastLoginDate = u.LastLoginDate
+                    LastLoginDate = u.LastLoginDate,
+                    LastUserAgent = latestUserAgentByUser.TryGetValue(u.Id, out var ua) ? ua : null
                 })
                 .OrderByDescending(t => t.LoginDays.Count)
                 .ThenBy(t => t.DisplayNickname)
@@ -362,15 +453,6 @@
     private void FilterAndPaginate()
     {
         var baseList = androidTesters.ToList();
-        
-        // Apply day filter first
-        if (!string.IsNullOrWhiteSpace(selectedDayFilter))
-        {
-            var filterDate = DateTime.Parse(selectedDayFilter);
-            baseList = baseList
-                .Where(t => t.LoginDays.Any(d => d.Date == filterDate.Date))
-                .ToList();
-        }
         
         // Apply search filter
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -470,7 +552,7 @@
         var loginCount = tester.LoginDays.Count;
         
         if (loginCount == 0)
-            return $"0/{LoginDaysWindow} logins";
+            return $"0/{totalCampaignDays} logins";
         
         var lastLogin = tester.LoginDays.First(); // Already ordered by date descending
         var daysAgo = (DateTime.UtcNow.Date - lastLogin).Days;
@@ -483,7 +565,7 @@
         else
             daysText = $"{daysAgo} days ago";
         
-        return $"{loginCount}/{LoginDaysWindow} logins - Last: {daysText}";
+        return $"{loginCount}/{totalCampaignDays} logins - Last: {daysText}";
     }
 
     // Tester management methods
@@ -583,6 +665,39 @@
         }
     }
 
+    private void OpenDetailsModal(TesterLoginInfo tester)
+    {
+        selectedTesterForDetails = tester;
+        detailsWindowStart = campaignStartDate;
+        selectedTesterLoginRecords = loginRecordsByUser.TryGetValue(tester.UserId, out var records) 
+            ? records 
+            : new List<AndroidTesterLogin>();
+        showDetailsModal = true;
+    }
+
+    private string GetShortUserAgent(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+            return "—";
+        var ua = userAgent.ToLowerInvariant();
+        if (ua.Contains("android"))
+            return "Android";
+        if (ua.Contains("iphone"))
+            return "iPhone";
+        if (ua.Contains("ipad"))
+            return "iPad";
+        if (ua.Contains("mobile"))
+            return "Mobile";
+        if (ua.Contains("windows"))
+            return "Windows";
+        if (ua.Contains("macintosh") || ua.Contains("mac os"))
+            return "macOS";
+        if (ua.Contains("linux"))
+            return "Linux";
+        // Truncate if too long
+        return userAgent.Length > 30 ? userAgent[..30] + "…" : userAgent;
+    }
+
     private class TesterLoginInfo
     {
         public string UserId { get; set; } = string.Empty;
@@ -593,6 +708,7 @@
         public string AvatarUrl { get; set; } = string.Empty;
         public List<DateTime> LoginDays { get; set; } = new();
         public DateTime? LastLoginDate { get; set; }
+        public string? LastUserAgent { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 

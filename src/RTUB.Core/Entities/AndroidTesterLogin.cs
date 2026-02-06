@@ -25,4 +25,11 @@ public class AndroidTesterLogin : BaseEntity
     /// </summary>
     [Required]
     public DateTime LoginDate { get; set; }
+
+    /// <summary>
+    /// The User-Agent string from the HTTP request at the time of login.
+    /// Helps identify whether the login was from a mobile device or desktop browser.
+    /// </summary>
+    [MaxLength(512)]
+    public string? UserAgent { get; set; }
 }

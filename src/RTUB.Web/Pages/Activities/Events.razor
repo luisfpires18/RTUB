@@ -87,6 +87,13 @@
                                 AllItemsLabel="Todos os tipos"
                                 Options="@eventTypeOptions" />
             </div>
+            <div class="form-check form-switch d-flex align-items-center videos-only-toggle">
+                <input class="form-check-input form-check-input-clickable" type="checkbox" role="switch" id="showVideosOnlySwitch"
+                       @bind="showVideosOnly" @bind:after="OnVideosOnlyToggled">
+                <label class="form-check-label ms-2 form-check-label-clickable" for="showVideosOnlySwitch">
+                    Atuação com videos
+                </label>
+            </div>
         </div>
     </div>
 
@@ -95,7 +102,7 @@
 {
     <p>A carregar atuações...</p>
 }
-else if (!filteredFutureEvents.Any() && !filteredPreviousEvents.Any())
+else if ((!filteredFutureEvents.Any() || showVideosOnly) && !filteredPreviousEvents.Any())
 {
     <EmptyState Title="Nenhum evento encontrado"
                Message="@GetEmptyStateMessage()"
@@ -103,7 +110,7 @@ else if (!filteredFutureEvents.Any() && !filteredPreviousEvents.Any())
 }
 else
 {
-    @if (filteredFutureEvents.Any())
+    @if (filteredFutureEvents.Any() && !showVideosOnly)
     {
         <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
             @foreach (var eventItem in paginatedFutureEvents)
@@ -168,10 +175,13 @@ else
 }
 
 <!-- Previous Events Section -->
-<hr class="my-5" />
+@if (!showVideosOnly)
+{
+    <hr class="my-5" />
+}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Atuações Anteriores</h2>
+    <h2>@(showVideosOnly ? "Atuações com Videos" : "Atuações Anteriores")</h2>
 </div>
 
 <SearchBar @bind-Value="previousEventsSearch"
@@ -1691,6 +1701,9 @@ else
     
     // PWA mode detection
     private bool isMobilePwa = false;
+    
+    // Videos-only toggle
+    private bool showVideosOnly = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1817,6 +1830,14 @@ else
         filteredFutureEvents = futureEvents;
         filteredPreviousEvents = previousEvents;
         
+        // When "Atuação com videos" toggle is active, filter previous events to only those with videos
+        if (showVideosOnly)
+        {
+            filteredPreviousEvents = filteredPreviousEvents
+                .Where(e => GetVideoCount(e.Id) > 0)
+                .ToList();
+        }
+        
         // For backward compatibility, assign to events as well
         events = filteredFutureEvents;
         
@@ -1857,6 +1878,11 @@ else
     private string GetEmptyStateMessage()
     {
         var messages = new List<string>();
+        
+        if (showVideosOnly)
+        {
+            messages.Add("com videos");
+        }
         
         if (!string.IsNullOrEmpty(selectedFiscalYear))
         {
@@ -1982,6 +2008,11 @@ else
         }
         
         // Re-run full filtering to apply search
+        FilterEvents();
+    }
+
+    private void OnVideosOnlyToggled()
+    {
         FilterEvents();
     }
 

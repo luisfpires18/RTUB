@@ -342,11 +342,13 @@ public class Program
 
                             if (!existingLogin)
                             {
+                                var userAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
                                 db.AndroidTesterLogins.Add(new AndroidTesterLogin
                                 {
                                     UserId = userId,
                                     LoginDate = today,
-                                    CreatedAt = now
+                                    CreatedAt = now,
+                                    UserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Length > 512 ? userAgent[..512] : userAgent
                                 });
                                 await db.SaveChangesAsync();
                                 logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",
@@ -807,11 +809,13 @@ public class Program
 
                     if (!existingLogin)
                     {
+                        var userAgent = http.Request.Headers["User-Agent"].ToString();
                         db.AndroidTesterLogins.Add(new AndroidTesterLogin
                         {
                             UserId = user.Id,
                             LoginDate = today,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = DateTime.UtcNow,
+                            UserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Length > 512 ? userAgent[..512] : userAgent
                         });
                         await db.SaveChangesAsync();
                         logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",

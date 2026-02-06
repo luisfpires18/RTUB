@@ -420,3 +420,23 @@
         min-width: 100%;
     }
 }
+
+/* Videos-only toggle */
+.videos-only-toggle {
+    white-space: nowrap;
+    padding-bottom: 0.35rem;
+    margin-left: 0.5rem;
+}
+
+.videos-only-toggle .form-check-label {
+    font-size: 0.875rem;
+    user-select: none;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 991.98px) {
+    .videos-only-toggle {
+        margin-left: 0;
+        padding-top: 0.25rem;
+    }
+}
