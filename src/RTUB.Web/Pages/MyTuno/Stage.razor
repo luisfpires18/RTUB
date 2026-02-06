@@ -380,6 +380,7 @@
 
     private async Task FightStageEnemy()
     {
+        if (_disposed) return;
         if (character == null || currentUser == null || stageProgress == null) return;
         
         // Prevent multiple concurrent battles
@@ -564,7 +565,12 @@
                 checkpointStage = stageProgress.LastCheckpoint;
             }
         }
-        catch (Exception ex)
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected - exit silently
+            return;
+        }
+        catch (Exception ex) when (!_disposed)
         {
             Logger.LogError(ex, "Error starting stage battle");
             errorMessage = $"Erro ao iniciar batalha: {ex.Message}";
@@ -573,16 +579,20 @@
         finally
         {
             fighting = false;
-            if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
+            if (!_disposed)
             {
-                showBattleAnimation = false;
+                if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
+                {
+                    showBattleAnimation = false;
+                }
+                StateHasChanged();
             }
-            StateHasChanged();
         }
     }
 
     private async Task ContinueToNextStage()
     {
+        if (_disposed) return;
         // Reset battle state and start next fight
         currentBattle = null;
         await FightStageEnemy();
