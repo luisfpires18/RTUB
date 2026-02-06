@@ -133,11 +133,11 @@ public class StageService : IStageService
         // Get all enemy sprites with placements at once
         if (enemyType == EnemyType.Boss)
         {
-            var bossSprite = await _biomeService.GetBossSpriteAsync(stageNumber);
+            var (bossSprite, bossPlacement) = await _biomeService.GetBossSpriteWithPlacementAsync(stageNumber);
             for (int i = 0; i < enemyCount; i++)
             {
                 enemySpritePaths.Add(bossSprite);
-                enemyPlacements.Add(0); // Bosses are always terrestrial
+                enemyPlacements.Add(bossPlacement);
             }
         }
         else
@@ -211,7 +211,7 @@ public class StageService : IStageService
             CalculateRewardsForBattle(combatResult, stageNumber, enemyCount);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
-        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount, hasShotBuff);
+        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
 
         // Return battle result DTO (not persisted)
         return new StageBattleResult
@@ -273,7 +273,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage)
+    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -294,8 +294,9 @@ public class StageService : IStageService
                     return false;
                 }
 
-                // Restore character HP
+                // Restore character HP and shot buff state
                 character.CurrentHP = restoreHp;
+                character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
                 await _characterRepository.UpdateAsync(character);
 
                 // Reset stage progress to the restore point
@@ -338,13 +339,14 @@ public class StageService : IStageService
 
     /// <summary>
     /// Creates a temporary enemy character for combat simulation
-    /// Uses biome service for stat scaling
+    /// Uses biome service for stat scaling and biome difficulty multiplier
     /// </summary>
     private Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
     {
         var stageConfig = _myTunoScalingConfig.StageMode;
         var baseStats = stageConfig.BaseEnemyStats;
         var isBoss = _biomeService.IsBossStage(stageNumber);
+        var difficultyMultiplier = _biomeService.GetDifficultyMultiplier(stageNumber);
 
         // Default stats if no template found
         int baseHP, basePower, baseSpeed, baseDefense;
@@ -353,10 +355,10 @@ public class StageService : IStageService
 
         if (template != null)
         {
-            baseHP = template.GetScaledHP(stageNumber);
-            basePower = template.GetScaledPower(stageNumber);
-            baseSpeed = template.GetScaledSpeed(stageNumber);
-            baseDefense = template.GetScaledDefense(stageNumber);
+            baseHP = (int)(template.GetScaledHP(stageNumber) * difficultyMultiplier);
+            basePower = (int)(template.GetScaledPower(stageNumber) * difficultyMultiplier);
+            baseSpeed = (int)(template.GetScaledSpeed(stageNumber) * difficultyMultiplier);
+            baseDefense = (int)(template.GetScaledDefense(stageNumber) * difficultyMultiplier);
             baseCriticalChance = template.BaseCriticalChance;
             enemyName = template.Name;
         }
@@ -376,17 +378,17 @@ public class StageService : IStageService
                 typeStats.Power, 
                 isBoss);
 
-            baseHP = scaledHP;
-            basePower = scaledPower;
+            baseHP = (int)(scaledHP * difficultyMultiplier);
+            basePower = (int)(scaledPower * difficultyMultiplier);
             
             // Speed scaling (using simple formula for now)
             var scaling = stageConfig.EnemyScaling;
             var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
-            baseSpeed = (int)(typeStats.Speed * speedScaleFactor);
+            baseSpeed = (int)(typeStats.Speed * speedScaleFactor * difficultyMultiplier);
 
             // Defense scaling
             var defenseScaleFactor = 1.0 + (stageNumber - 1) * scaling.DefensePerStage;
-            baseDefense = (int)(typeStats.Defense * defenseScaleFactor);
+            baseDefense = (int)(typeStats.Defense * defenseScaleFactor * difficultyMultiplier);
             
             var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
             baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, _myTunoScalingConfig.Combat.CriticalChanceCap); // Cap from config
@@ -525,8 +527,7 @@ public class StageService : IStageService
         StageProgress stageProgress,
         CombatResult combatResult,
         EnemyType enemyType,
-        int enemyCount = 1,
-        bool hasShotBuff = false)
+        int enemyCount = 1)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -538,8 +539,7 @@ public class StageService : IStageService
                     stageProgress,
                     combatResult,
                     enemyType,
-                    enemyCount,
-                    hasShotBuff);
+                    enemyCount);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -605,8 +605,7 @@ public class StageService : IStageService
         StageProgress stageProgress,
         CombatResult combatResult,
         EnemyType enemyType,
-        int enemyCount,
-        bool hasShotBuff)
+        int enemyCount)
     {
         // Track if we need to persist (only when there's a new record)
         var previousHighestStage = stageProgress.HighestStage;
@@ -615,14 +614,10 @@ public class StageService : IStageService
         // Update character HP from combat result
         character.CurrentHP = combatResult.AttackerFinalHP;
         
-        // Handle shot buff - in stage mode, buff lasts until death
-        if (hasShotBuff)
+        // Decrement shot buff on stage death (costs 1 charge per death)
+        if (combatResult.Outcome == BattleOutcome.DefenderWon && character.ShotBuffBattlesRemaining > 0)
         {
-            if (combatResult.Outcome == BattleOutcome.DefenderWon)
-            {
-                // Player died - buff is consumed, scale HP down (will be 0 anyway)
-                character.ShotBuffBattlesRemaining = 0;
-            }
+            character.ShotBuffBattlesRemaining--;
         }
         
         await _characterRepository.UpdateAsync(character);

@@ -40,16 +40,59 @@ public static partial class SeedData
         SeedSwampNormals(existingNormalNames, enemies);
         SeedSwampBosses(existingBossStages, enemies);
 
-        if (enemies.Count == 0)
+        if (enemies.Count > 0)
+        {
+            await dbContext.StageEnemies.AddRangeAsync(enemies);
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine($"Seeded {enemies.Count} stage enemies ({enemies.Count(e => e.Type == EnemyType.Boss)} bosses, {enemies.Count(e => e.Type == EnemyType.Normal)} normal)");
+        }
+        else
         {
             Console.WriteLine("No new stage enemies to seed.");
-            return;
         }
 
-        await dbContext.StageEnemies.AddRangeAsync(enemies);
-        await dbContext.SaveChangesAsync();
+        // Sync placements for existing enemies that may have been created before the Placement column existed
+        await SyncEnemyPlacementsAsync(dbContext);
+    }
 
-        Console.WriteLine($"Seeded {enemies.Count} stage enemies ({enemies.Count(e => e.Type == EnemyType.Boss)} bosses, {enemies.Count(e => e.Type == EnemyType.Normal)} normal)");
+    private static async Task SyncEnemyPlacementsAsync(ApplicationDbContext dbContext)
+    {
+        // Define the expected placements for enemies that should be Aerial
+        var aerialEnemies = new Dictionary<(RegionType Region, string Name, EnemyType Type), PlacementType>
+        {
+            // Forest aerial normals
+            { (RegionType.Forest, "Bee", EnemyType.Normal), PlacementType.Aerial },
+            { (RegionType.Forest, "Beetle", EnemyType.Normal), PlacementType.Aerial },
+            { (RegionType.Forest, "Eagle", EnemyType.Normal), PlacementType.Aerial },
+            // Forest aerial boss
+            { (RegionType.Forest, "Falcon", EnemyType.Boss), PlacementType.Aerial },
+            // Swamp aerial normals
+            { (RegionType.Swamp, "Crow", EnemyType.Normal), PlacementType.Aerial },
+            { (RegionType.Swamp, "Mosquito", EnemyType.Normal), PlacementType.Aerial },
+            // Swamp aerial boss
+            { (RegionType.Swamp, "Pelican", EnemyType.Boss), PlacementType.Aerial },
+        };
+
+        var enemiesToFix = await dbContext.StageEnemies
+            .Where(e => e.Placement == PlacementType.Terrestrial)
+            .ToListAsync();
+
+        var fixedCount = 0;
+        foreach (var enemy in enemiesToFix)
+        {
+            var key = (enemy.Region, enemy.Name, enemy.Type);
+            if (aerialEnemies.TryGetValue(key, out var expectedPlacement) && enemy.Placement != expectedPlacement)
+            {
+                enemy.Placement = expectedPlacement;
+                fixedCount++;
+            }
+        }
+
+        if (fixedCount > 0)
+        {
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine($"Fixed {fixedCount} enemy placement(s) (Terrestrial → Aerial).");
+        }
     }
 
     private static Dictionary<int, BossStats> GetForestBossStats()

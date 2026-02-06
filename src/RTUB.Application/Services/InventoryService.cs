@@ -170,7 +170,7 @@ public class InventoryService : IInventoryService
             return (false, 0, "Erro ao consumir shot");
         }
 
-        return (true, ShotBuffBattles, $"Shot ativado! +20% stats nas próximas {ShotBuffBattles} batalhas de arena");
+        return (true, ShotBuffBattles, $"Shot ativado! +20% stats nas próximas {ShotBuffBattles} batalhas");
     }
 
     /// <summary>

@@ -139,7 +139,7 @@ Each stat has independent upgrade scaling with a configurable max level cap:
 - Player base: 1%, upgradeable by +0.5% per upgrade
 
 #### Items
-- **Shot Buff Multiplier**: 1.20 (+20% to all stats, arena battles only)
+- **Shot Buff Multiplier**: 1.20 (+20% to all stats, arena and stage mode)
 
 ### 1.5 Matchmaking
 

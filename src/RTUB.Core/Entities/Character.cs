@@ -26,7 +26,7 @@ public class Character : BaseEntity
     // Current HP (null means full HP, for backwards compatibility)
     public int? CurrentHP { get; set; } = null;
 
-    // Shot buff - number of arena battles remaining with empowerment
+    // Shot buff - number of battles remaining with empowerment
     public int ShotBuffBattlesRemaining { get; set; } = 0;
 
     // Arena Statistics
@@ -329,10 +329,24 @@ public class Character : BaseEntity
 
     /// <summary>
     /// Upgrades HP stat (increments HpUpgrades count)
+    /// If the character was at full HP before the upgrade, heals to the new max HP
+    /// Accounts for shot buff when determining full HP
     /// </summary>
     public void UpgradeHP()
     {
+        var maxHP = ShotBuffBattlesRemaining > 0
+            ? CreateShotBuffedCopy(this).TotalHP
+            : TotalHP;
+        var wasAtFullHp = CurrentHP == null || CurrentHP >= maxHP;
         HpUpgrades++;
+        if (wasAtFullHp)
+        {
+            // Recalculate buffed max after upgrade
+            var newMaxHP = ShotBuffBattlesRemaining > 0
+                ? CreateShotBuffedCopy(this).TotalHP
+                : TotalHP;
+            CurrentHP = newMaxHP;
+        }
     }
 
     /// <summary>

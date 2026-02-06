@@ -298,6 +298,13 @@ public class BiomeConfig
     /// Prefix for boss sprite filenames (e.g., "boss_")
     /// </summary>
     public string BossSpritePrefix { get; set; } = "boss_";
+
+    /// <summary>
+    /// Difficulty multiplier applied to all enemy stats in this biome.
+    /// 1.0 = default (Forest), higher values make enemies tougher.
+    /// Applied on top of the per-stage scaling.
+    /// </summary>
+    public double DifficultyMultiplier { get; set; } = 1.0;
 }
 
 /// <summary>

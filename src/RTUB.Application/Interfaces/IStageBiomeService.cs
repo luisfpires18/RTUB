@@ -51,6 +51,13 @@ public interface IStageBiomeService
     Task<string> GetBossSpriteAsync(int stageNumber);
 
     /// <summary>
+    /// Gets boss sprite path and placement for a given boss stage
+    /// </summary>
+    /// <param name="stageNumber">The boss stage number</param>
+    /// <returns>Tuple of (sprite path, placement type: 0=Terrestrial, 1=Aerial)</returns>
+    Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber);
+
+    /// <summary>
     /// Gets the background image path for a given stage number
     /// </summary>
     /// <param name="stageNumber">The stage number</param>
@@ -66,4 +73,12 @@ public interface IStageBiomeService
     /// <param name="isBoss">Whether this is a boss enemy</param>
     /// <returns>Tuple of (scaledHp, scaledDamage)</returns>
     (int hp, int damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss);
+
+    /// <summary>
+    /// Gets the difficulty multiplier for a given stage number based on its biome.
+    /// Forest = 1.0 (default), subsequent biomes are progressively harder.
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>The difficulty multiplier (1.0+)</returns>
+    double GetDifficultyMultiplier(int stageNumber);
 }

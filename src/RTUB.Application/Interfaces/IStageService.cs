@@ -62,14 +62,15 @@ public interface IStageService
 
     /// <summary>
     /// Cancels a stage run in progress.
-    /// Restores the character's HP to the specified value and resets stage progress.
+    /// Restores the character's HP and shot buff to the specified values and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
     /// <param name="characterId">The character's ID</param>
     /// <param name="restoreHp">The HP value to restore</param>
     /// <param name="restoreStage">The stage number to restore to</param>
+    /// <param name="restoreShotBuffBattles">The shot buff battles remaining to restore</param>
     /// <returns>True if cancelled successfully</returns>
-    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage);
+    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0);
 
     /// <summary>
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.

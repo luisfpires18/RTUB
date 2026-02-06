@@ -221,12 +221,21 @@ public class StageBiomeService : IStageBiomeService
     /// </summary>
     public async Task<string> GetBossSpriteAsync(int stageNumber)
     {
+        var (spritePath, _) = await GetBossSpriteWithPlacementAsync(stageNumber);
+        return spritePath;
+    }
+
+    /// <summary>
+    /// Gets boss sprite path and placement for a given boss stage from the database
+    /// </summary>
+    public async Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber)
+    {
         // First, try to get the boss from the database (preferred method)
         var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
         
         if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
         {
-            return boss.SpritePath;
+            return (boss.SpritePath, (int)boss.Placement);
         }
 
         // Fallback: pick a random existing boss from any region
@@ -234,7 +243,7 @@ public class StageBiomeService : IStageBiomeService
         if (fallbackBoss != null && !string.IsNullOrEmpty(fallbackBoss.SpritePath))
         {
             _logger.LogWarning("No boss configured for stage {StageNumber}, using fallback boss: {BossName}", stageNumber, fallbackBoss.Name);
-            return fallbackBoss.SpritePath;
+            return (fallbackBoss.SpritePath, (int)fallbackBoss.Placement);
         }
 
         // Last resort: file system based approach
@@ -244,7 +253,7 @@ public class StageBiomeService : IStageBiomeService
         if (biomeConfig == null)
         {
             _logger.LogWarning("No biome configured for {BiomeName}, using default boss sprite", biomeName);
-            return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
+            return ("/sprites/games/my-tuno/enemies/forest/boss_1_bear.png", 0);
         }
 
         var bossSprites = await GetBossSpritesForBiomeAsync(biomeConfig);
@@ -252,14 +261,14 @@ public class StageBiomeService : IStageBiomeService
         if (bossSprites.Count == 0)
         {
             _logger.LogWarning("No boss sprites found for biome {BiomeName}, using default boss sprite", biomeName);
-            return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
+            return ("/sprites/games/my-tuno/enemies/forest/boss_1_bear.png", 0);
         }
 
         // Calculate which boss this is (1st boss = stage 10, 2nd boss = stage 20, etc.)
         int bossIndex = (stageNumber / 10) - 1;
         bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
         
-        return bossSprites[bossIndex];
+        return (bossSprites[bossIndex], 0); // File-based fallback defaults to terrestrial
     }
 
     /// <summary>
@@ -290,6 +299,28 @@ public class StageBiomeService : IStageBiomeService
         }
 
         return (scaledHp, scaledDamage);
+    }
+
+    /// <summary>
+    /// Gets the difficulty multiplier for a given stage number based on its biome
+    /// </summary>
+    public double GetDifficultyMultiplier(int stageNumber)
+    {
+        var biomes = _config.StageMode.Biomes;
+        if (biomes == null || biomes.Count == 0)
+            return 1.0;
+
+        foreach (var biome in biomes)
+        {
+            if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
+            {
+                return biome.DifficultyMultiplier;
+            }
+        }
+
+        // Beyond configured biomes, use the last biome's multiplier
+        var lastBiome = biomes.OrderByDescending(b => b.StageMax).First();
+        return lastBiome.DifficultyMultiplier;
     }
 
     /// <summary>
