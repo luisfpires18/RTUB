@@ -785,17 +785,82 @@
   cursor: not-allowed;
 }
 
+.gather-node--locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.gather-node--locked .gather-node__name {
+  color: #888;
+}
+
 .gather-node--active {
   border-color: rgba(241, 196, 15, 0.6) !important;
   box-shadow: 0 0 16px rgba(241, 196, 15, 0.2) !important;
 }
+
+/* Cerveja - golden yellow beer */
+.gather-node--cerveja {
+  border-color: rgba(241, 196, 15, 0.4);
+  background: linear-gradient(180deg, #1f1c0f 0%, #15120a 100%);
+}
+.gather-node--cerveja:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(241, 196, 15, 0.7);
+  box-shadow: 0 4px 16px rgba(241, 196, 15, 0.2);
+}
+.gather-node--cerveja .gather-node__icon { color: #f1c40f; }
+
+/* Vinho - deep red wine */
+.gather-node--vinho {
+  border-color: rgba(192, 57, 43, 0.4);
+  background: linear-gradient(180deg, #1f0f0f 0%, #150a0a 100%);
+}
+.gather-node--vinho:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(192, 57, 43, 0.7);
+  box-shadow: 0 4px 16px rgba(192, 57, 43, 0.2);
+}
+.gather-node--vinho .gather-node__icon { color: #c0392b; }
+
+/* Licor - purple/pink liqueur */
+.gather-node--licor {
+  border-color: rgba(155, 89, 182, 0.4);
+  background: linear-gradient(180deg, #1a0f1f 0%, #120a15 100%);
+}
+.gather-node--licor:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(155, 89, 182, 0.7);
+  box-shadow: 0 4px 16px rgba(155, 89, 182, 0.2);
+}
+.gather-node--licor .gather-node__icon { color: #9b59b6; }
+
+/* Rum - dark amber */
+.gather-node--rum {
+  border-color: rgba(180, 100, 50, 0.4);
+  background: linear-gradient(180deg, #1f150f 0%, #150f0a 100%);
+}
+.gather-node--rum:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(180, 100, 50, 0.7);
+  box-shadow: 0 4px 16px rgba(180, 100, 50, 0.2);
+}
+.gather-node--rum .gather-node__icon { color: #b46432; }
+
+/* Tequilla - lime green */
+.gather-node--tequilla {
+  border-color: rgba(39, 174, 96, 0.4);
+  background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
+}
+.gather-node--tequilla:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(39, 174, 96, 0.7);
+  box-shadow: 0 4px 16px rgba(39, 174, 96, 0.2);
+}
+.gather-node--tequilla .gather-node__icon { color: #27ae60; }
 
 /* Vodka - clear/white */
 .gather-node--vodka {
   border-color: rgba(200, 200, 220, 0.4);
   background: linear-gradient(180deg, #1a1a28 0%, #12121e 100%);
 }
-.gather-node--vodka:hover:not(.gather-node--disabled) {
+.gather-node--vodka:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(200, 200, 220, 0.7);
   box-shadow: 0 4px 16px rgba(200, 200, 220, 0.2);
 }
@@ -803,36 +868,47 @@
 
 /* Gin - light blue/teal */
 .gather-node--gin {
-  border-color: rgba(46, 204, 113, 0.4);
-  background: linear-gradient(180deg, #0f1f1a 0%, #0a1512 100%);
+  border-color: rgba(52, 152, 219, 0.4);
+  background: linear-gradient(180deg, #0f1a1f 0%, #0a1215 100%);
 }
-.gather-node--gin:hover:not(.gather-node--disabled) {
-  border-color: rgba(46, 204, 113, 0.7);
-  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.2);
+.gather-node--gin:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(52, 152, 219, 0.7);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.2);
 }
-.gather-node--gin .gather-node__icon { color: #2ecc71; }
+.gather-node--gin .gather-node__icon { color: #3498db; }
 
 /* Whisky - amber/gold */
 .gather-node--whisky {
   border-color: rgba(230, 126, 34, 0.4);
   background: linear-gradient(180deg, #221a0f 0%, #18120a 100%);
 }
-.gather-node--whisky:hover:not(.gather-node--disabled) {
+.gather-node--whisky:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(230, 126, 34, 0.7);
   box-shadow: 0 4px 16px rgba(230, 126, 34, 0.2);
 }
 .gather-node--whisky .gather-node__icon { color: #e67e22; }
 
-/* Absinto - green glow */
+/* Absinto - toxic green glow */
 .gather-node--absinto {
-  border-color: rgba(39, 174, 96, 0.4);
+  border-color: rgba(0, 255, 100, 0.4);
   background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
 }
-.gather-node--absinto:hover:not(.gather-node--disabled) {
+.gather-node--absinto:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(0, 255, 100, 0.6);
   box-shadow: 0 4px 16px rgba(0, 255, 100, 0.2);
 }
 .gather-node--absinto .gather-node__icon { color: #00ff64; }
+
+/* Aguardente - electric purple/lightning */
+.gather-node--aguardente {
+  border-color: rgba(142, 68, 173, 0.4);
+  background: linear-gradient(180deg, #1a0f1f 0%, #120a15 100%);
+}
+.gather-node--aguardente:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(142, 68, 173, 0.8);
+  box-shadow: 0 4px 16px rgba(142, 68, 173, 0.3), 0 0 8px rgba(155, 89, 182, 0.3);
+}
+.gather-node--aguardente .gather-node__icon { color: #8e44ad; }
 
 /* Cost badge (top-right) */
 .gather-node__cost {

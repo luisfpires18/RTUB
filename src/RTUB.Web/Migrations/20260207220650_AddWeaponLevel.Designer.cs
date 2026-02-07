@@ -2,17 +2,20 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
 #nullable disable
 
-namespace RTUB.Migrations
-{
-    [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+namespace RTUB.Migrations;
+
+[DbContext(typeof(ApplicationDbContext))]
+[Migration("20260207220650_AddWeaponLevel")]
+partial class AddWeaponLevel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -5246,6 +5249,5 @@ namespace RTUB.Migrations
                     b.Navigation("YouTubeUrls");
                 });
 #pragma warning restore 612, 618
-        }
     }
 }

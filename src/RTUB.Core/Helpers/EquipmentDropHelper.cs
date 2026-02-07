@@ -14,12 +14,12 @@ public static class EquipmentDropHelper
     {
         return slot switch
         {
-            EquipmentSlot.Head => "Cabeça",
-            EquipmentSlot.Shoulders => "Ombros",
-            EquipmentSlot.Chest => "Peito",
-            EquipmentSlot.Gloves => "Luvas",
-            EquipmentSlot.Legs => "Pernas",
-            EquipmentSlot.Boots => "Botas",
+            EquipmentSlot.Head => "HEAD",
+            EquipmentSlot.Shoulders => "SHOULDERS",
+            EquipmentSlot.Chest => "CHEST",
+            EquipmentSlot.Gloves => "GLOVES",
+            EquipmentSlot.Legs => "LEGS",
+            EquipmentSlot.Boots => "BOOTS",
             _ => slot.ToString()
         };
     }
@@ -29,16 +29,7 @@ public static class EquipmentDropHelper
     /// </summary>
     public static string GetFallbackIcon(EquipmentSlot slot)
     {
-        return slot switch
-        {
-            EquipmentSlot.Head => "bi-hat",
-            EquipmentSlot.Shoulders => "bi-shield-shaded",
-            EquipmentSlot.Chest => "bi-vest",
-            EquipmentSlot.Gloves => "bi-hand-index",
-            EquipmentSlot.Legs => "bi-rulers",
-            EquipmentSlot.Boots => "bi-boot",
-            _ => "bi-gem"
-        };
+        return "bi-shield-shaded";
     }
 
     /// <summary>

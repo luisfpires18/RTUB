@@ -115,112 +115,153 @@
                     <div class="card-body p-3 d-flex flex-column">
                         @if (currentUser != null)
                         {
-                            <div class="item-grid">
-                                <!-- Cerveja (Beer) -->
-                                <div class="item-card item-card--beer" @onclick="UseBeer" 
-                                     style="cursor: @(usingBeer || beerQuantity == 0 || character == null || isCharacterDead || isFullHp ? "not-allowed" : "pointer")">
-                                    <div class="item-card__qty">@beerQuantity</div>
-                                    <div class="item-card__icon">
-                                        @if (usingBeer)
-                                        {
-                                            <span class="spinner-border spinner-border-sm text-warning"></span>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-cup-straw"></i>
-                                        }
-                                    </div>
-                                    <div class="item-card__name">Cerveja</div>
-                                    <div class="item-card__desc">Cura HP</div>
-                                </div>
+                            <!-- Inventory tabs -->
+                            <ul class="nav nav-tabs nav-fill mb-2" style="font-size: 0.75rem;">
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link @(inventoryTab == 0 ? "active" : "")" @onclick="() => inventoryTab = 0">
+                                        <i class="bi bi-cup-straw me-1"></i>Consumíveis
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link @(inventoryTab == 1 ? "active" : "")" @onclick="() => inventoryTab = 1">
+                                        <i class="bi bi-hammer me-1"></i>Craft
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link @(inventoryTab == 2 ? "active" : "")" @onclick="() => inventoryTab = 2">
+                                        <i class="bi bi-shield-shaded me-1"></i>Equipável
+                                    </button>
+                                </li>
+                            </ul>
 
-                                <!-- Shot -->
-                                <div class="item-card item-card--shot" @onclick="UseShot"
-                                     style="cursor: @(usingShot || shotQuantity == 0 || character == null || isCharacterDead || character.ShotBuffBattlesRemaining > 0 ? "not-allowed" : "pointer")">
-                                    <div class="item-card__qty">@shotQuantity</div>
-                                    <div class="item-card__icon">
-                                        @if (usingShot)
-                                        {
-                                            <span class="spinner-border spinner-border-sm text-info"></span>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-droplet-fill"></i>
-                                        }
-                                    </div>
-                                    <div class="item-card__name">Shot</div>
-                                    <div class="item-card__desc">+20% Stats</div>
-                                </div>
-
-                                <!-- Gathering resources (config-driven) -->
-                                @foreach (var res in activeResources)
-                                {
-                                    var resType = Enum.Parse<InventoryItemType>(res.Type);
-                                    var cssModifier = res.Type.ToLower();
-                                    <div class="item-card item-card--@cssModifier" title="@res.Name — Recurso de craft">
-                                        <div class="item-card__qty">@GetResourceQuantity(resType)</div>
+                            @if (inventoryTab == 0)
+                            {
+                                <!-- Consumables: Beer, Shot -->
+                                <div class="item-grid">
+                                    <div class="item-card item-card--beer" @onclick="UseBeer" 
+                                         style="cursor: @(usingBeer || beerQuantity == 0 || character == null || isCharacterDead || isFullHp ? "not-allowed" : "pointer")">
+                                        <div class="item-card__qty">@beerQuantity</div>
                                         <div class="item-card__icon">
-                                            @if (!string.IsNullOrEmpty(res.SpritePath))
+                                            @if (usingBeer)
                                             {
-                                                <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                                <span class="spinner-border spinner-border-sm text-warning"></span>
                                             }
                                             else
                                             {
-                                                <i class="bi @res.Icon"></i>
+                                                <i class="bi bi-cup-straw"></i>
                                             }
                                         </div>
-                                        <div class="item-card__name">@res.Name</div>
-                                        <div class="item-card__desc">Craft</div>
+                                        <div class="item-card__name">Cerveja</div>
+                                        <div class="item-card__desc">Cura HP</div>
                                     </div>
-                                }
-                                @for (var i = 0; i < (14 - 2 - activeResources.Count); i++)
-                                {
-                                    <div class="item-card item-card--empty"></div>
-                                }
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
-                                <div class="item-card item-card--empty"></div>
 
-                                @* ── Instrument Parts ── *@
-                                @foreach (var kvp in instrumentParts)
-                                {
-                                    var invInstrType = InstrumentTypeHelper.FromInventoryPartType(kvp.Key);
-                                    var invInstrName = invInstrType.HasValue ? InstrumentTypeHelper.GetDisplayName(invInstrType.Value) : kvp.Key.ToString();
-                                    var invImgUrl = invInstrType.HasValue && instrumentImages.TryGetValue(invInstrType.Value, out var invUrl) ? invUrl : null;
-                                    var invItemKey = kvp.Key;
-                                    <div class="item-card item-card--instrument item-card--clickable" title="@invInstrName" @onclick="() => OnInventoryItemClick(invItemKey)" style="cursor: pointer;">
-                                        <div class="item-card__qty">@kvp.Value</div>
+                                    <div class="item-card item-card--shot" @onclick="UseShot"
+                                         style="cursor: @(usingShot || shotQuantity == 0 || character == null || isCharacterDead || character.ShotBuffBattlesRemaining > 0 ? "not-allowed" : "pointer")">
+                                        <div class="item-card__qty">@shotQuantity</div>
                                         <div class="item-card__icon">
-                                            @if (!string.IsNullOrEmpty(invImgUrl))
+                                            @if (usingShot)
                                             {
-                                                <img src="@invImgUrl" alt="@invInstrName" class="gather-sprite" />
+                                                <span class="spinner-border spinner-border-sm text-info"></span>
                                             }
                                             else
                                             {
-                                                <i class="bi bi-music-note-beamed"></i>
+                                                <i class="bi bi-droplet-fill"></i>
                                             }
                                         </div>
-                                        <div class="item-card__name" style="font-size: 0.55rem;">@invInstrName</div>
+                                        <div class="item-card__name">Shot</div>
+                                        <div class="item-card__desc">+20% Stats</div>
                                     </div>
-                                }
 
-                                @* ── Equipment Pieces ── *@
-                                @foreach (var kvp in equipmentItems)
-                                {
-                                    var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
-                                    var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
-                                    var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
-                                    var eqItemKey = kvp.Key;
-                                    <div class="item-card item-card--equipment item-card--clickable" title="@eqName" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
-                                        <div class="item-card__qty">@kvp.Value</div>
-                                        <div class="item-card__icon">
-                                            <i class="bi @eqIcon"></i>
+                                    @for (var i = 0; i < 6; i++)
+                                    {
+                                        <div class="item-card item-card--empty"></div>
+                                    }
+                                </div>
+                            }
+                            else if (inventoryTab == 1)
+                            {
+                                <!-- Craftable: Gathering resources + Instrument parts -->
+                                <div class="item-grid">
+                                    @foreach (var res in activeResources)
+                                    {
+                                        var resType = Enum.Parse<InventoryItemType>(res.Type);
+                                        var cssModifier = res.Type.ToLower();
+                                        <div class="item-card item-card--@cssModifier" title="@res.Name — Recurso de craft">
+                                            <div class="item-card__qty">@GetResourceQuantity(resType)</div>
+                                            <div class="item-card__icon">
+                                                @if (!string.IsNullOrEmpty(res.SpritePath))
+                                                {
+                                                    <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi @res.Icon"></i>
+                                                }
+                                            </div>
+                                            <div class="item-card__name">@res.Name</div>
+                                            <div class="item-card__desc">Craft</div>
                                         </div>
-                                        <div class="item-card__name" style="font-size: 0.55rem;">@eqName</div>
-                                    </div>
-                                }
-                            </div>
+                                    }
+
+                                    @foreach (var kvp in instrumentParts)
+                                    {
+                                        var invInstrType = InstrumentTypeHelper.FromInventoryPartType(kvp.Key);
+                                        var invInstrName = invInstrType.HasValue ? InstrumentTypeHelper.GetDisplayName(invInstrType.Value) : kvp.Key.ToString();
+                                        var invImgUrl = invInstrType.HasValue && instrumentImages.TryGetValue(invInstrType.Value, out var invUrl) ? invUrl : null;
+                                        var invItemKey = kvp.Key;
+                                        <div class="item-card item-card--instrument item-card--clickable" title="@invInstrName" @onclick="() => OnInventoryItemClick(invItemKey)" style="cursor: pointer;">
+                                            <div class="item-card__qty">@kvp.Value</div>
+                                            <div class="item-card__icon">
+                                                @if (!string.IsNullOrEmpty(invImgUrl))
+                                                {
+                                                    <img src="@invImgUrl" alt="@invInstrName" class="gather-sprite" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-music-note-beamed"></i>
+                                                }
+                                            </div>
+                                            <div class="item-card__name" style="font-size: 0.55rem;">@invInstrName</div>
+                                        </div>
+                                    }
+
+                                    @{
+                                        var craftEmpty = Math.Max(0, 8 - activeResources.Count - instrumentParts.Count);
+                                        for (var i = 0; i < craftEmpty; i++)
+                                        {
+                                            <div class="item-card item-card--empty"></div>
+                                        }
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Equipable: Equipment pieces -->
+                                <div class="item-grid">
+                                    @foreach (var kvp in equipmentItems)
+                                    {
+                                        var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
+                                        var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
+                                        var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
+                                        var eqItemKey = kvp.Key;
+                                        <div class="item-card item-card--equipment item-card--clickable" title="@eqName" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
+                                            <div class="item-card__qty">@kvp.Value</div>
+                                            <div class="item-card__icon">
+                                                <i class="bi @eqIcon"></i>
+                                            </div>
+                                            <div class="item-card__name" style="font-size: 0.55rem;">@eqName</div>
+                                        </div>
+                                    }
+
+                                    @{
+                                        var equipEmpty = Math.Max(0, 8 - equipmentItems.Count);
+                                        for (var i = 0; i < equipEmpty; i++)
+                                        {
+                                            <div class="item-card item-card--empty"></div>
+                                        }
+                                    }
+                                </div>
+                            }
                         }
                     </div>
                 </div>
@@ -582,7 +623,7 @@
         <!-- Bottom Row: Upgrades + 2 Future Sections -->
         <div class="row g-4 mt-2">
             <!-- Upgrade Shop -->
-            <div class="col-lg-4">
+            <div class="col-lg-4 order-lg-last">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
@@ -850,27 +891,27 @@
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
                                 @{ var headItem = character!.EquippedHead; var headHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentHead); }
-                                <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "Cabeça — Clica para desequipar" : (headHasInv ? "Cabeça — Clica para equipar" : "Cabeça"))"
+                                <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
                                      @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
                                      style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
-                                    <i class="bi @(headItem.HasValue ? "bi-hat" : "bi-cap-front")"></i>
-                                    <span class="equip-slot__label">Cabeça</span>
+                                    <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-cap-front")"></i>
+                                    <span class="equip-slot__label">HEAD</span>
                                 </div>
 
                                 @{ var shouldersItem = character.EquippedShoulders; var shouldersHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentShoulders); }
-                                <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "Ombros — Clica para desequipar" : (shouldersHasInv ? "Ombros — Clica para equipar" : "Ombros"))"
+                                <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
                                      @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
                                      style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
                                     <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-chevron-bar-expand")"></i>
-                                    <span class="equip-slot__label">Ombros</span>
+                                    <span class="equip-slot__label">SHOULDERS</span>
                                 </div>
 
                                 @{ var chestItem = character.EquippedChest; var chestHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentChest); }
-                                <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "Peito — Clica para desequipar" : (chestHasInv ? "Peito — Clica para equipar" : "Peito"))"
+                                <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
                                      @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
                                      style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
-                                    <i class="bi @(chestItem.HasValue ? "bi-vest" : "bi-shield-fill")"></i>
-                                    <span class="equip-slot__label">Peito</span>
+                                    <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-shield-fill")"></i>
+                                    <span class="equip-slot__label">CHEST</span>
                                 </div>
                             </div>
 
@@ -884,27 +925,27 @@
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
                                 @{ var glovesItem = character.EquippedGloves; var glovesHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentGloves); }
-                                <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "Luvas — Clica para desequipar" : (glovesHasInv ? "Luvas — Clica para equipar" : "Luvas"))"
+                                <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
                                      @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
                                      style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
-                                    <i class="bi @(glovesItem.HasValue ? "bi-hand-index" : "bi-hand-index-fill")"></i>
-                                    <span class="equip-slot__label">Luvas</span>
+                                    <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-hand-index-fill")"></i>
+                                    <span class="equip-slot__label">GLOVES</span>
                                 </div>
 
                                 @{ var legsItem = character.EquippedLegs; var legsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentLegs); }
-                                <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "Pernas — Clica para desequipar" : (legsHasInv ? "Pernas — Clica para equipar" : "Pernas"))"
+                                <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
                                      @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
                                      style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
-                                    <i class="bi @(legsItem.HasValue ? "bi-rulers" : "bi-signpost-split-fill")"></i>
-                                    <span class="equip-slot__label">Pernas</span>
+                                    <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-signpost-split-fill")"></i>
+                                    <span class="equip-slot__label">LEGS</span>
                                 </div>
 
                                 @{ var bootsItem = character.EquippedBoots; var bootsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentBoots); }
-                                <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "Botas — Clica para desequipar" : (bootsHasInv ? "Botas — Clica para equipar" : "Botas"))"
+                                <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
                                      @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
                                      style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
-                                    <i class="bi @(bootsItem.HasValue ? "bi-boot" : "bi-box-arrow-in-down")"></i>
-                                    <span class="equip-slot__label">Botas</span>
+                                    <i class="bi @(bootsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                    <span class="equip-slot__label">BOOTS</span>
                                 </div>
                             </div>
                         </div>
@@ -930,7 +971,7 @@
                                 {
                                     <i class="bi bi-slash-lg"></i>
                                 }
-                                <span class="equip-slot__label">@(weapon1?.Name ?? "Arma 1")</span>
+                                <span class="equip-slot__label">@(weapon1?.Name ?? "Arma 1")@if (weapon1?.Level > 0) { <span class="badge bg-warning text-dark ms-1" style="font-size: 0.5rem;">+@weapon1.Level</span> }</span>
                             </div>
                             @if (!isTwoHanded)
                             {
@@ -946,22 +987,20 @@
                                     {
                                         <i class="bi bi-slash-lg"></i>
                                     }
-                                    <span class="equip-slot__label">@(weapon2?.Name ?? "Arma 2")</span>
+                                    <span class="equip-slot__label">@(weapon2?.Name ?? "Arma 2")@if (weapon2?.Level > 0) { <span class="badge bg-warning text-dark ms-1" style="font-size: 0.5rem;">+@weapon2.Level</span> }</span>
                                 </div>
                             }
                         </div>
 
                         @* Equipment stat summary *@
-                        @if (character.EquipmentHPBonus > 0 || character.EquipmentPowerBonus > 0 || character.EquipmentSpeedBonus > 0 || character.EquipmentDefenseBonus > 0 || character.EquipmentCriticalBonus > 0)
+                        @if (character.EquipmentHPBonus > 0 || character.EquipmentPowerBonus > 0 || character.EquipmentDefenseBonus > 0)
                         {
                             <div class="equip-stats-summary mt-2 px-2">
                                 <small class="text-muted d-block mb-1" style="font-size: 0.65rem;"><i class="bi bi-plus-circle me-1"></i>Bónus de Equipamento:</small>
                                 <div class="d-flex flex-wrap gap-1" style="font-size: 0.65rem;">
                                     @if (character.EquipmentHPBonus > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@character.EquipmentHPBonus HP</span> }
                                     @if (character.EquipmentPowerBonus > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@character.EquipmentPowerBonus Poder</span> }
-                                    @if (character.EquipmentSpeedBonus > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@character.EquipmentSpeedBonus Vel</span> }
                                     @if (character.EquipmentDefenseBonus > 0) { <span class="badge bg-secondary bg-opacity-25">+@character.EquipmentDefenseBonus Def</span> }
-                                    @if (character.EquipmentCriticalBonus > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{character.EquipmentCriticalBonus * 100:F1}%") Crit</span> }
                                 </div>
                             </div>
                         }
@@ -1015,19 +1054,36 @@
 
                         <!-- Resource Nodes -->
                         <div class="gather-grid">
-                            @foreach (var res in activeResources)
+                            @{
+                                var allResources = gatheringConfig.Resources.Where(r => r.IsActive).ToList();
+                                var highestStageReached = stageProgress?.HighestStage ?? 1;
+                            }
+                            @foreach (var res in allResources)
                             {
                                 var resType = Enum.Parse<InventoryItemType>(res.Type);
                                 var cssModifier = res.Type.ToLower();
-                                var isDisabled = currentEnergy < res.EnergyCost || gathering != null;
-                                <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "")"
-                                     @onclick="() => GatherResource(resType)"
-                                     title="@res.Name — @res.EnergyCost Energia">
+                                var isLocked = res.UnlockStage > highestStageReached;
+                                var isDisabled = isLocked || currentEnergy < res.EnergyCost || gathering != null;
+                                var unlockBiome = isLocked ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin == res.UnlockStage) : null;
+                                <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "") @(isLocked ? "gather-node--locked" : "")"
+                                     @onclick="async () => { if (!isLocked) await GatherResource(resType); }"
+                                     title="@(isLocked ? $"{res.Name} — Desbloqueia no Stage {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
                                     <div class="gather-node__cost">
-                                        <i class="bi bi-lightning-charge-fill"></i>@res.EnergyCost
+                                        @if (isLocked)
+                                        {
+                                            <i class="bi bi-lock-fill"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-lightning-charge-fill"></i>@res.EnergyCost
+                                        }
                                     </div>
                                     <div class="gather-node__icon">
-                                        @if (gathering == resType)
+                                        @if (isLocked)
+                                        {
+                                            <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                        }
+                                        else if (gathering == resType)
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
                                         }
@@ -1041,7 +1097,14 @@
                                         }
                                     </div>
                                     <div class="gather-node__name">@res.Name</div>
-                                    <div class="gather-node__qty">@GetResourceQuantity(resType)</div>
+                                    @if (isLocked)
+                                    {
+                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Stage {res.UnlockStage}")</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="gather-node__qty">@GetResourceQuantity(resType)</div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -1054,7 +1117,7 @@
             </div>
 
             <!-- Forging Section -->
-            <div class="col-lg-4">
+            <div class="col-lg-4 order-lg-first">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
@@ -1172,33 +1235,14 @@
                             <i class="bi bi-hammer me-2"></i>Forjar Arma
                         </button>
 
-                        <!-- Forged Weapons List -->
-                        @if (forgedWeapons.Any())
-                        {
-                            <div class="forge-weapons-list">
-                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;"><i class="bi bi-sword me-1"></i>Armas Forjadas:</small>
-                                @foreach (var weapon in forgedWeapons)
-                                {
-                                    var isEquippedW = weapon.IsEquipped;
-                                    var wSlot = isEquippedW ? 0 : (character.EquippedWeapon1 == null ? 1 : (character.EquippedWeapon2 == null ? 2 : 0));
-                                    <div class="forge-weapon-card @(isEquippedW ? "forge-weapon-card--equipped" : "")" 
-                                         @onclick="() => OnForgedWeaponClick(weapon)"
-                                         style="cursor: pointer;">
-                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType) me-1"></i>
-                                        <span class="forge-weapon-card__name">@weapon.Name</span>
-                                        <span class="badge @(isEquippedW ? "bg-success" : "bg-dark") ms-auto" style="font-size: 0.6rem;">
-                                            @(isEquippedW ? "Equipado" : WeaponTypeHelper.GetDisplayName(weapon.WeaponType))
-                                        </span>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center mt-auto pt-2">
-                                <small class="text-muted" style="font-size: 0.7rem;">Forja a tua primeira arma!</small>
-                            </div>
-                        }
+                        <!-- Forged Weapons Button -->
+                        <button class="btn btn-outline-light w-100 mt-2" @onclick="() => showWeaponsListModal = true">
+                            <i class="bi bi-backpack2-fill me-2"></i>Armas Forjadas
+                            @if (forgedWeapons.Any())
+                            {
+                                <span class="badge bg-warning text-dark ms-2">@forgedWeapons.Count</span>
+                            }
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1299,7 +1343,13 @@
                     <div class="equip-confirm-icon">
                         <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
                     </div>
-                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">@pendingWeapon.Name</h5>
+                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">
+                        @pendingWeapon.Name
+                        @if (pendingWeapon.Level > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@pendingWeapon.Level</span>
+                        }
+                    </h5>
                     <span class="badge bg-info bg-opacity-25 text-info">
                         @WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)
                         @if (pendingWeapon.IsTwoHanded) { <text> (Duas Mãos)</text> }
@@ -1310,31 +1360,107 @@
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
                         @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@pendingWeapon.BonusHP HP</span> }
                         @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@pendingWeapon.BonusPower Poder</span> }
-                        @if (pendingWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@pendingWeapon.BonusSpeed Vel</span> }
                         @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@pendingWeapon.BonusDefense Def</span> }
-                        @if (pendingWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
                     </div>
                 </div>
             </BodyContent>
             <FooterContent>
-                @if (pendingWeapon.IsEquipped)
-                {
-                    <button class="btn btn-danger" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
-                        <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
+                    @{
+                        var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
+                        var canAffordUpgrade = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
+                    }
+                    <button class="btn btn-warning btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
+                        <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
+                        <small class="opacity-75">(@upgradeCost.ToString("F0") <i class="bi bi-coin"></i>)</small>
                     </button>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                    @if (pendingWeapon.IsEquipped)
+                    {
+                        <button class="btn btn-danger" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
+                            <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-success" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
+                            <i class="bi bi-box-arrow-in-up me-2"></i>Equipar Slot 1
+                        </button>
+                        @if (!pendingWeapon.IsTwoHanded)
+                        {
+                            <button class="btn btn-outline-success" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
+                                <i class="bi bi-box-arrow-in-up me-2"></i>Slot 2
+                            </button>
+                        }
+                    }
+                </div>
+            </FooterContent>
+        </Modal>
+    }
+
+    <!-- Weapons List Modal -->
+    @if (showWeaponsListModal)
+    {
+        <Modal Show="@showWeaponsListModal"
+               ShowChanged="@((bool show) => { if (!show) showWeaponsListModal = false; })"
+               Title="Armas Forjadas"
+               Size="Modal.ModalSize.Large"
+               Centered="true">
+            <BodyContent>
+                @if (!forgedWeapons.Any())
+                {
+                    <EmptyState Title="Sem armas"
+                                Message="Ainda não forjaste nenhuma arma. Combina um instrumento com uma bebida na Forja!"
+                                Icon="bi-hammer" />
                 }
                 else
                 {
-                    <button class="btn btn-success" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
-                        <i class="bi bi-box-arrow-in-up me-2"></i>Equipar Slot 1
-                    </button>
-                    @if (!pendingWeapon.IsTwoHanded)
-                    {
-                        <button class="btn btn-outline-success" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
-                            <i class="bi bi-box-arrow-in-up me-2"></i>Slot 2
-                        </button>
-                    }
+                    <div class="stats-card-grid">
+                        @foreach (var weapon in forgedWeapons)
+                        {
+                            var isEquippedW = weapon.IsEquipped;
+                            <div class="stats-card @(isEquippedW ? "border-success" : "")" style="cursor: pointer;" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
+                                <div class="stats-card-position" style="width: 40px;">
+                                    <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType)" style="font-size: 1.5rem; color: var(--bs-warning);"></i>
+                                </div>
+                                <div class="stats-card-content">
+                                    <div class="stats-card-title">
+                                        @weapon.Name
+                                        @if (weapon.Level > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">+@weapon.Level</span>
+                                        }
+                                    </div>
+                                    <div class="stats-card-subtitle" style="font-size: 0.75rem; color: #aaa;">
+                                        @WeaponTypeHelper.GetDisplayName(weapon.WeaponType)
+                                        @if (weapon.IsTwoHanded) { <text> (2H)</text> }
+                                        <span class="ms-2">
+                                            @if (weapon.BonusHP > 0) { <span class="text-danger">+@weapon.BonusHP HP</span> }
+                                            @if (weapon.BonusPower > 0) { <span class="text-success ms-1">+@weapon.BonusPower Pow</span> }
+                                            @if (weapon.BonusDefense > 0) { <span class="text-secondary ms-1">+@weapon.BonusDefense Def</span> }
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="stats-card-count">
+                                    @if (isEquippedW)
+                                    {
+                                        <span class="badge bg-success" style="font-size: 0.75rem;"><i class="bi bi-check-circle me-1"></i>Equipado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-dark" style="font-size: 0.7rem;">Não equipado</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
                 }
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="() => showWeaponsListModal = false">
+                    <i class="bi bi-x-lg me-2"></i>Fechar
+                </button>
             </FooterContent>
         </Modal>
     }
@@ -1405,9 +1531,7 @@
                         <div class="d-flex flex-wrap gap-1 justify-content-center">
                             @if (actionItemStats.HP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@actionItemStats.HP HP</span> }
                             @if (actionItemStats.Power > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@actionItemStats.Power Poder</span> }
-                            @if (actionItemStats.Speed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@actionItemStats.Speed Vel</span> }
                             @if (actionItemStats.Defense > 0) { <span class="badge bg-secondary bg-opacity-25">+@actionItemStats.Defense Def</span> }
-                            @if (actionItemStats.CriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{actionItemStats.CriticalChance * 100:F1}%") Crit</span> }
                         </div>
                     </div>
                 }
@@ -1419,12 +1543,21 @@
             <FooterContent>
                 @if (actionIsEquip)
                 {
-                    <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                        <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
-                    </button>
+                    @if (pendingActionIsEquipped)
+                    {
+                        <button class="btn btn-warning" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                            <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                            <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
+                        </button>
+                    }
                 }
-                <button class="btn btn-warning" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                    <i class="bi bi-coin me-2"></i>Descartar
+                <button class="btn btn-danger" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                    <i class="bi bi-trash me-2"></i>Descartar
                 </button>
             </FooterContent>
         </Modal>
@@ -1555,10 +1688,12 @@
     private Dictionary<InventoryItemType, int> equipmentItems = new();
     private Dictionary<InstrumentType, string?> instrumentImages = new();
     private bool equipping = false;
+    private int inventoryTab = 0;
     
     // Unified item action modal state (equip / discard from inventory)
     private bool showItemActionModal = false;
     private InventoryItemType? pendingActionItem = null;
+    private bool pendingActionIsEquipped = false;
     private bool itemActioning = false;
     
     // Forging state
@@ -1581,6 +1716,7 @@
     
     // Weapon action modal state
     private bool showWeaponActionModal = false;
+    private bool showWeaponsListModal = false;
     private ForgedWeapon? pendingWeapon = null;
     private bool weaponActioning = false;
     
@@ -1620,9 +1756,9 @@
     private bool toastIsError = false;
     private bool claimingDailyReward = false;
 
-    // Daily reward: base 5 Fidelis + 1 per character level
-    private const decimal DailyRewardBase = 5m;
-    private const decimal DailyRewardPerLevel = 1m;
+    // Daily reward from config
+    private decimal DailyRewardBase => MyTunoConfig.Value.DailyReward.BaseFidelis;
+    private decimal DailyRewardPerLevel => MyTunoConfig.Value.DailyReward.PerLevelFidelis;
 
     private bool CanClaimDailyReward =>
         currentUser != null &&
@@ -1765,9 +1901,13 @@
                         beerQuantity = await InventoryService.GetBeerQuantityAsync(currentUser.Id);
                         shotQuantity = await InventoryService.GetShotQuantityAsync(currentUser.Id);
                         
-                        // Load gathering config and resources
+                        // Load stage progress for unlock checks
+                        stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+                        var highestStage = stageProgress?.HighestStage ?? 1;
+                        
+                        // Load gathering config and resources (filtered by stage unlock)
                         gatheringConfig = MyTunoConfig.Value.Gathering;
-                        activeResources = gatheringConfig.Resources.Where(r => r.IsActive).ToList();
+                        activeResources = gatheringConfig.Resources.Where(r => r.IsActive && r.UnlockStage <= highestStage).ToList();
                         
                         foreach (var res in activeResources)
                         {
@@ -2285,37 +2425,31 @@
     {
         if (itemActioning || currentUser == null || character == null) return;
         pendingActionItem = itemType;
+        pendingActionIsEquipped = IsItemCurrentlyEquipped(itemType);
         showItemActionModal = true;
     }
 
-    // Equipment slot click (from Equipamento panel) — direct equip/unequip
+    // Equipment slot click (from Equipamento panel) — opens modal for equip/unequip/discard
     private void OnEquipSlotClick(InventoryItemType? itemType)
     {
         if (itemActioning || equipping || currentUser == null || character == null) return;
         if (itemType == null) return;
 
-        var isEquipped = IsItemCurrentlyEquipped(itemType.Value);
-        if (isEquipped)
-        {
-            // Unequip directly
-            _ = PerformUnequip(itemType.Value);
-        }
-        else
-        {
-            // Open the item action modal for equip/discard choice
-            pendingActionItem = itemType.Value;
-            showItemActionModal = true;
-        }
+        pendingActionItem = itemType.Value;
+        pendingActionIsEquipped = IsItemCurrentlyEquipped(itemType.Value);
+        showItemActionModal = true;
     }
 
-    // Handles both Equip and Discard from the unified modal
+    // Handles Equip, Unequip, and Discard from the unified modal
     private async Task ConfirmItemAction(bool isDiscard)
     {
         if (pendingActionItem == null || currentUser == null) return;
 
         showItemActionModal = false;
         var item = pendingActionItem.Value;
+        var wasEquipped = pendingActionIsEquipped;
         pendingActionItem = null;
+        pendingActionIsEquipped = false;
 
         try
         {
@@ -2324,6 +2458,11 @@
 
             if (isDiscard)
             {
+                // If item is currently equipped, unequip first before discarding
+                if (wasEquipped)
+                {
+                    await UnequipItem(item);
+                }
                 var (success, fidelisGained, message) = await InventoryService.DiscardItemAsync(currentUser.Id, item);
                 if (success)
                 {
@@ -2338,6 +2477,10 @@
                     toastMessage = message;
                     toastIsError = true;
                 }
+            }
+            else if (wasEquipped)
+            {
+                await PerformUnequip(item);
             }
             else
             {
@@ -2370,6 +2513,7 @@
     {
         showItemActionModal = false;
         pendingActionItem = null;
+        pendingActionIsEquipped = false;
     }
 
     private string GetEquipItemDisplayName(InventoryItemType itemType)
@@ -2732,6 +2876,44 @@
         {
             weaponActioning = false;
             pendingWeapon = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmWeaponUpgrade()
+    {
+        if (currentUser == null || pendingWeapon == null) return;
+
+        try
+        {
+            weaponActioning = true;
+            StateHasChanged();
+
+            var (success, message) = await InventoryService.UpgradeWeaponAsync(currentUser.Id, pendingWeapon.Id);
+            if (success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error upgrading weapon");
+            toastMessage = "Erro ao melhorar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            weaponActioning = false;
             StateHasChanged();
         }
     }

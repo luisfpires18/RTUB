@@ -133,8 +133,7 @@ public class Character : BaseEntity
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * LevelScaleFactor())
-        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus)
-        + EquipmentSpeedBonus;
+        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
     /// <summary>
     /// Maximum critical chance cap (50%)

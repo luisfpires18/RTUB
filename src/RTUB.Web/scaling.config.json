@@ -96,7 +96,7 @@
       "bossXPMultiplier": 10,
       "stageRewardScalingFactor": 0.005,
       "maxStageRewardMultiplier": 3.0,
-      "fidelisLevelMultiplierCap": 1.3,
+      "fidelisLevelMultiplierCap": 1.5,
       "enemyScaling": {
         "hpPerStage": 0.66,
         "powerPerStage": 0.66,
@@ -136,24 +136,27 @@
         ]
       },
       "equipmentStats": {
-        "head":       { "hp": 15, "power": 0, "speed": 0, "defense": 3, "criticalChance": 0 },
-        "shoulders":  { "hp": 10, "power": 0, "speed": 0, "defense": 5, "criticalChance": 0 },
-        "chest":      { "hp": 25, "power": 0, "speed": 0, "defense": 8, "criticalChance": 0 },
-        "gloves":     { "hp": 0,  "power": 5, "speed": 0, "defense": 0, "criticalChance": 0.01 },
-        "legs":       { "hp": 15, "power": 0, "speed": 2, "defense": 3, "criticalChance": 0 },
-        "boots":      { "hp": 0,  "power": 0, "speed": 4, "defense": 2, "criticalChance": 0 },
-        "instrument": { "hp": 0,  "power": 8, "speed": 0, "defense": 0, "criticalChance": 0.005 }
+        "head":       { "hp": 15, "power": 0, "defense": 3 },
+        "shoulders":  { "hp": 10, "power": 0, "defense": 5 },
+        "chest":      { "hp": 25, "power": 0, "defense": 8 },
+        "gloves":     { "hp": 0,  "power": 5, "defense": 0 },
+        "legs":       { "hp": 15, "power": 0, "defense": 3 },
+        "boots":      { "hp": 5,  "power": 0, "defense": 2 },
+        "instrument": { "hp": 0,  "power": 8, "defense": 0 }
       },
       "discardValues": {
         "equipment": 25,
         "instrumentPart": 30
       },
       "forging": {
-        "castTimeSeconds": 5
+        "castTimeSeconds": 5,
+        "weaponUpgradeBaseCost": 50,
+        "weaponUpgradeCostMultiplier": 1.5,
+        "weaponUpgradeStatBonus": 0.10
       },
       "fidelisRewards": {
-        "normalWin": 10,
-        "bossWin": 50
+        "normalWin": 100,
+        "bossWin": 250
       },
       "biomes": [
         {
@@ -260,34 +263,90 @@
       "castTimeSeconds": 3,
       "resources": [
         {
-          "type": "Vodka",
-          "name": "Vodka Limão",
+          "type": "Cerveja",
+          "name": "Cerveja",
           "energyCost": 1,
+          "icon": "bi-cup-straw",
+          "isActive": true,
+          "unlockStage": 1
+        },
+        {
+          "type": "Vinho",
+          "name": "Vinho",
+          "energyCost": 2,
+          "icon": "bi-droplet-fill",
+          "isActive": true,
+          "unlockStage": 101
+        },
+        {
+          "type": "Licor",
+          "name": "Licor",
+          "energyCost": 3,
+          "icon": "bi-cup",
+          "isActive": true,
+          "unlockStage": 201
+        },
+        {
+          "type": "Rum",
+          "name": "Rum",
+          "energyCost": 4,
+          "icon": "bi-cup-hot",
+          "isActive": true,
+          "unlockStage": 301
+        },
+        {
+          "type": "Tequilla",
+          "name": "Tequilla",
+          "energyCost": 5,
+          "icon": "bi-hurricane",
+          "isActive": true,
+          "unlockStage": 401
+        },
+        {
+          "type": "Vodka",
+          "name": "Vodka",
+          "energyCost": 6,
           "icon": "bi-droplet",
-          "isActive": true
+          "isActive": true,
+          "unlockStage": 501
+        },
+        {
+          "type": "Gin",
+          "name": "Gin",
+          "energyCost": 7,
+          "icon": "bi-moisture",
+          "isActive": true,
+          "unlockStage": 601
+        },
+        {
+          "type": "Whisky",
+          "name": "Whisky",
+          "energyCost": 8,
+          "icon": "bi-fire",
+          "isActive": true,
+          "unlockStage": 701
+        },
+        {
+          "type": "Absinto",
+          "name": "Absinto",
+          "energyCost": 9,
+          "icon": "bi-radioactive",
+          "isActive": true,
+          "unlockStage": 801
+        },
+        {
+          "type": "Aguardente",
+          "name": "Aguardente",
+          "energyCost": 10,
+          "icon": "bi-lightning-fill",
+          "isActive": true,
+          "unlockStage": 901
         }
-        //{
-        //  "type": "Gin",
-        //  "name": "Gin",
-        //  "energyCost": 2,
-        //  "icon": "bi-cup-hot",
-        //  "isActive": true
-        //},
-        //{
-        //  "type": "Whisky",
-        //  "name": "Whisky",
-        //  "energyCost": 3,
-        //  "icon": "bi-cup-straw",
-        //  "isActive": true
-        //},
-        //{
-        //  "type": "Absinto",
-        //  "name": "Absinto",
-        //  "energyCost": 4,
-        //  "icon": "bi-fire",
-        //  "isActive": true
-        //}
       ]
+    },
+    "dailyReward": {
+      "baseFidelis": 45,
+      "perLevelFidelis": 3
     }
   }
 }

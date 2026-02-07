@@ -114,4 +114,14 @@ public interface IInventoryService
     /// Unequips a weapon from a slot (1 or 2).
     /// </summary>
     Task<(bool Success, string Message)> UnequipWeaponAsync(string userId, int slot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Upgrades a forged weapon by one level, increasing its stats. Costs Fidelis.
+    /// </summary>
+    Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the Fidelis cost to upgrade a weapon to the next level.
+    /// </summary>
+    decimal GetWeaponUpgradeCost(int currentLevel);
 }

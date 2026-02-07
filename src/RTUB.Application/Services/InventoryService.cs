@@ -534,17 +534,20 @@ public class InventoryService : IInventoryService
         if (!consumedDrink)
             return (false, null, "Erro ao consumir bebida");
 
-        // Calculate weapon stats from config
+        // Calculate weapon stats from config, scaled by drink energy cost
         var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
+        var drinkResource = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == drink.ToString());
+        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
 
         var weapon = ForgedWeapon.Create(
             userId, weaponName, weaponType,
             instrumentPart, drink,
-            bonusHP: weaponStats.HP,
-            bonusPower: weaponStats.Power,
-            bonusSpeed: weaponStats.Speed,
-            bonusDefense: weaponStats.Defense,
-            bonusCriticalChance: weaponStats.CriticalChance);
+            bonusHP: weaponStats.HP * drinkCostMultiplier,
+            bonusPower: weaponStats.Power * drinkCostMultiplier,
+            bonusSpeed: weaponStats.Speed * drinkCostMultiplier,
+            bonusDefense: weaponStats.Defense * drinkCostMultiplier,
+            bonusCriticalChance: weaponStats.CriticalChance * drinkCostMultiplier);
 
         _dbContext.ForgedWeapons.Add(weapon);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -665,15 +668,14 @@ public class InventoryService : IInventoryService
     private void RecalculateEquipmentBonuses(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
-        int hp = 0, power = 0, speed = 0, defense = 0;
-        double critical = 0;
+        int hp = 0, power = 0, defense = 0;
 
-        if (character.EquippedHead.HasValue) { hp += stats.Head.HP; power += stats.Head.Power; speed += stats.Head.Speed; defense += stats.Head.Defense; critical += stats.Head.CriticalChance; }
-        if (character.EquippedShoulders.HasValue) { hp += stats.Shoulders.HP; power += stats.Shoulders.Power; speed += stats.Shoulders.Speed; defense += stats.Shoulders.Defense; critical += stats.Shoulders.CriticalChance; }
-        if (character.EquippedChest.HasValue) { hp += stats.Chest.HP; power += stats.Chest.Power; speed += stats.Chest.Speed; defense += stats.Chest.Defense; critical += stats.Chest.CriticalChance; }
-        if (character.EquippedGloves.HasValue) { hp += stats.Gloves.HP; power += stats.Gloves.Power; speed += stats.Gloves.Speed; defense += stats.Gloves.Defense; critical += stats.Gloves.CriticalChance; }
-        if (character.EquippedLegs.HasValue) { hp += stats.Legs.HP; power += stats.Legs.Power; speed += stats.Legs.Speed; defense += stats.Legs.Defense; critical += stats.Legs.CriticalChance; }
-        if (character.EquippedBoots.HasValue) { hp += stats.Boots.HP; power += stats.Boots.Power; speed += stats.Boots.Speed; defense += stats.Boots.Defense; critical += stats.Boots.CriticalChance; }
+        if (character.EquippedHead.HasValue) { hp += stats.Head.HP; power += stats.Head.Power; defense += stats.Head.Defense; }
+        if (character.EquippedShoulders.HasValue) { hp += stats.Shoulders.HP; power += stats.Shoulders.Power; defense += stats.Shoulders.Defense; }
+        if (character.EquippedChest.HasValue) { hp += stats.Chest.HP; power += stats.Chest.Power; defense += stats.Chest.Defense; }
+        if (character.EquippedGloves.HasValue) { hp += stats.Gloves.HP; power += stats.Gloves.Power; defense += stats.Gloves.Defense; }
+        if (character.EquippedLegs.HasValue) { hp += stats.Legs.HP; power += stats.Legs.Power; defense += stats.Legs.Defense; }
+        if (character.EquippedBoots.HasValue) { hp += stats.Boots.HP; power += stats.Boots.Power; defense += stats.Boots.Defense; }
 
         // Add weapon bonuses from forged weapons
         var equippedWeaponIds = new HashSet<int>();
@@ -691,16 +693,62 @@ public class InventoryService : IInventoryService
             {
                 hp += w.BonusHP;
                 power += w.BonusPower;
-                speed += w.BonusSpeed;
                 defense += w.BonusDefense;
-                critical += w.BonusCriticalChance;
             }
         }
 
         character.EquipmentHPBonus = hp;
         character.EquipmentPowerBonus = power;
-        character.EquipmentSpeedBonus = speed;
         character.EquipmentDefenseBonus = defense;
-        character.EquipmentCriticalBonus = critical;
+    }
+
+    public decimal GetWeaponUpgradeCost(int currentLevel)
+    {
+        var forging = _scalingConfig.StageMode.Forging;
+        return forging.WeaponUpgradeBaseCost * (decimal)Math.Pow((double)forging.WeaponUpgradeCostMultiplier, currentLevel);
+    }
+
+    public async Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
+    {
+        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+        if (weapon == null)
+            return (false, "Arma não encontrada");
+
+        var cost = GetWeaponUpgradeCost(weapon.Level);
+
+        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        if (character == null)
+            return (false, "Personagem não encontrado");
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user == null || user.FidelisBalance < cost)
+            return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
+
+        user.FidelisBalance -= cost;
+        weapon.Level += 1;
+
+        // Recalculate stats: increase base stats by upgrade bonus per level
+        var statBonus = _scalingConfig.StageMode.Forging.WeaponUpgradeStatBonus;
+        var levelMultiplier = 1.0 + (weapon.Level * statBonus);
+        var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
+
+        // Find drink cost multiplier from the weapon's source drink
+        var drinkResource = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
+        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
+
+        weapon.BonusHP = (int)(baseStats.HP * drinkCostMultiplier * levelMultiplier);
+        weapon.BonusPower = (int)(baseStats.Power * drinkCostMultiplier * levelMultiplier);
+        weapon.BonusDefense = (int)(baseStats.Defense * drinkCostMultiplier * levelMultiplier);
+
+        // Recalculate equipment bonuses if weapon is equipped
+        if (weapon.IsEquipped)
+        {
+            RecalculateEquipmentBonuses(character, cancellationToken);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, $"Arma melhorada para +{weapon.Level}!");
     }
 }

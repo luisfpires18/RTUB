@@ -682,8 +682,15 @@ public class StageService : IStageService
         var previousHighestStage = stageProgress.HighestStage;
         var previousEndlessModeUnlocked = stageProgress.EndlessModeUnlocked;
 
-        // Always restore HP to full after every stage battle (no HP carry-over)
-        character.CurrentHP = null; // null = full HP
+        // HP carries over between stages — only set to final HP from combat
+        if (combatResult.AttackerFinalHP > 0)
+        {
+            character.CurrentHP = combatResult.AttackerFinalHP;
+        }
+        else
+        {
+            character.CurrentHP = null; // Defeated — restore to full on next run
+        }
         
         await _characterRepository.UpdateAsync(character);
 

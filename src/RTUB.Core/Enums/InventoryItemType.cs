@@ -16,24 +16,54 @@ public enum InventoryItemType
     Shot = 2,
 
     /// <summary>
-    /// Vodka - gathered resource, used for crafting (costs 1 energy)
+    /// Cerveja - gathered resource, used for crafting (costs 1 energy)
     /// </summary>
-    Vodka = 3,
+    Cerveja = 3,
 
     /// <summary>
-    /// Gin - gathered resource, used for crafting (costs 2 energy)
+    /// Vinho - gathered resource, used for crafting (costs 2 energy)
     /// </summary>
-    Gin = 4,
+    Vinho = 4,
 
     /// <summary>
-    /// Whisky - gathered resource, used for crafting (costs 3 energy)
+    /// Licor - gathered resource, used for crafting (costs 3 energy)
     /// </summary>
-    Whisky = 5,
+    Licor = 5,
 
     /// <summary>
-    /// Absinto - gathered resource, used for crafting (costs 4 energy)
+    /// Rum - gathered resource, used for crafting (costs 4 energy)
     /// </summary>
-    Absinto = 6,
+    Rum = 6,
+
+    /// <summary>
+    /// Tequilla - gathered resource, used for crafting (costs 5 energy)
+    /// </summary>
+    Tequilla = 7,
+
+    /// <summary>
+    /// Vodka - gathered resource, used for crafting (costs 6 energy)
+    /// </summary>
+    Vodka = 8,
+
+    /// <summary>
+    /// Gin - gathered resource, used for crafting (costs 7 energy)
+    /// </summary>
+    Gin = 9,
+
+    /// <summary>
+    /// Whisky - gathered resource, used for crafting (costs 8 energy)
+    /// </summary>
+    Whisky = 10,
+
+    /// <summary>
+    /// Absinto - gathered resource, used for crafting (costs 9 energy)
+    /// </summary>
+    Absinto = 11,
+
+    /// <summary>
+    /// Aguardente - gathered resource, used for crafting (costs 10 energy)
+    /// </summary>
+    Aguardente = 12,
 
     // ── Instrument Parts (dropped in Stage Mode, used for future crafting) ──
 

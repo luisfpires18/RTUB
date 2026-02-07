@@ -52,6 +52,11 @@ public class MyTunoScalingConfiguration
     /// Configuration for the Destilaria (resource gathering) system
     /// </summary>
     public GatheringConfig Gathering { get; set; } = new();
+
+    /// <summary>
+    /// Daily reward configuration
+    /// </summary>
+    public DailyRewardConfig DailyReward { get; set; } = new();
 }
 
 public class BattleRewards
@@ -350,10 +355,10 @@ public class EquipmentStatsConfig
     public EquipmentPieceStats Head { get; set; } = new() { HP = 15, Defense = 3 };
     public EquipmentPieceStats Shoulders { get; set; } = new() { HP = 10, Defense = 5 };
     public EquipmentPieceStats Chest { get; set; } = new() { HP = 25, Defense = 8 };
-    public EquipmentPieceStats Gloves { get; set; } = new() { Power = 5, CriticalChance = 0.01 };
-    public EquipmentPieceStats Legs { get; set; } = new() { HP = 15, Speed = 2, Defense = 3 };
-    public EquipmentPieceStats Boots { get; set; } = new() { Speed = 4, Defense = 2 };
-    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 8, CriticalChance = 0.005 };
+    public EquipmentPieceStats Gloves { get; set; } = new() { Power = 5 };
+    public EquipmentPieceStats Legs { get; set; } = new() { HP = 15, Defense = 3 };
+    public EquipmentPieceStats Boots { get; set; } = new() { HP = 5, Defense = 2 };
+    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 8 };
 }
 
 /// <summary>
@@ -375,6 +380,15 @@ public class ForgingConfig
 {
     /// <summary>Cast time in seconds for forging a weapon.</summary>
     public int CastTimeSeconds { get; set; } = 5;
+
+    /// <summary>Base Fidelis cost to upgrade a weapon from level 0 to 1.</summary>
+    public decimal WeaponUpgradeBaseCost { get; set; } = 50m;
+
+    /// <summary>Cost multiplier per level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
+    public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.5m;
+
+    /// <summary>Stat increase percentage per weapon level (0.10 = +10% per level).</summary>
+    public double WeaponUpgradeStatBonus { get; set; } = 0.10;
 }
 
 /// <summary>
@@ -610,4 +624,22 @@ public class GatheringResourceConfig
     /// Whether this resource is currently available for gathering
     /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// The minimum stage the player must have reached to unlock this drink.
+    /// 1 = available from the start. Matches the stageMin of the corresponding biome.
+    /// </summary>
+    public int UnlockStage { get; set; } = 1;
+}
+
+/// <summary>
+/// Configuration for daily login rewards
+/// </summary>
+public class DailyRewardConfig
+{
+    /// <summary>Base Fidelis amount for the daily reward.</summary>
+    public decimal BaseFidelis { get; set; } = 15m;
+
+    /// <summary>Additional Fidelis per character level.</summary>
+    public decimal PerLevelFidelis { get; set; } = 2m;
 }

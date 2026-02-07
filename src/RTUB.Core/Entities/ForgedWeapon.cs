@@ -39,6 +39,9 @@ public class ForgedWeapon : BaseEntity
     /// <summary>Whether this weapon is currently equipped</summary>
     public bool IsEquipped { get; set; }
 
+    /// <summary>Weapon enhancement level (+1, +2, +3, etc.)</summary>
+    public int Level { get; set; }
+
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
 

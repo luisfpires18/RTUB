@@ -651,7 +651,7 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteStageBattleAsync_ShouldRestoreFullHPAfterBattle()
+    public async Task ExecuteStageBattleAsync_ShouldPreserveHPAfterBattle()
     {
         // Arrange
         var user = CreateTestUser();
@@ -683,9 +683,9 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert — HP should always be restored to full (null) after any stage battle
+        // Assert — HP should carry over from combat (continuous until defeat)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.CurrentHP.Should().BeNull("HP should be restored to full after every stage battle");
+        updatedCharacter!.CurrentHP.Should().Be(75, "HP should carry over from combat without healing between stages");
     }
 
     #endregion
