@@ -155,6 +155,13 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
                     }
 
+                    // Speed: also block if action time already at minimum
+                    if (statType == StatType.Speed && character.ActionTime <= Character.MinActionTime)
+                    {
+                        await transaction.RollbackAsync();
+                        return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
+                    }
+
                     // Speed uses a steeper exponent (1.8) to make it more costly than other stats
                     var exponent = statType == StatType.Speed ? 1.8 : 1.5;
                     var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, exponent);
@@ -304,6 +311,12 @@ public class UpgradeService : IUpgradeService
             if (currentUpgradeCount >= maxUpgrades)
             {
                 return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
+            }
+
+            // Speed: also block if action time already at minimum
+            if (statType == StatType.Speed && character.ActionTime <= Character.MinActionTime)
+            {
+                return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
             }
 
             // Speed uses a steeper exponent (1.8) to make it more costly than other stats

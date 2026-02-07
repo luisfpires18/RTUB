@@ -1171,7 +1171,7 @@
     
     private bool IsHpMaxed => character != null && character.HpUpgrades >= MaxHpUpgrades;
     private bool IsPowerMaxed => character != null && character.PowerUpgrades >= MaxPowerUpgrades;
-    private bool IsSpeedMaxed => character != null && character.SpeedUpgrades >= MaxSpeedUpgrades;
+    private bool IsSpeedMaxed => character != null && (character.SpeedUpgrades >= MaxSpeedUpgrades || character.ActionTime <= Character.MinActionTime);
     private bool IsCriticalMaxed => character != null && character.CriticalUpgrades >= MaxCriticalUpgrades;
     private bool IsDefenseMaxed => character != null && character.DefenseUpgrades >= MaxDefenseUpgrades;
 
