@@ -1,5 +1,6 @@
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
@@ -78,7 +79,7 @@ public interface IStageService
     /// Not called on cancel/back — rewards are forfeited.
     /// Optionally restores the character's HP to the value they had before the run started.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
 
     /// <summary>
     /// Gets the biome name for a given stage number

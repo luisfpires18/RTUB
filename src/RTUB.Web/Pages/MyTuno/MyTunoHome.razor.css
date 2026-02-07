@@ -127,6 +127,74 @@
   z-index: 1;
 }
 
+/* Instrument part card - purple */
+.item-card--instrument {
+  border-color: rgba(111, 66, 193, 0.5);
+  background: linear-gradient(180deg, #1a1030 0%, #110a20 100%);
+  cursor: default;
+}
+
+.item-card--instrument .item-card__icon {
+  color: #a855f7;
+}
+
+.item-card--instrument .item-card__icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Equipment card - amber/orange */
+.item-card--equipment {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(180deg, #1f1a0f 0%, #15100a 100%);
+  cursor: default;
+}
+
+.item-card--equipment .item-card__icon {
+  color: #f59e0b;
+}
+
+/* Equippable card - clickable from inventory */
+.item-card--equippable {
+  cursor: pointer !important;
+  border-width: 2px;
+}
+
+.item-card--equippable:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(40, 167, 69, 0.35);
+  border-color: rgba(40, 167, 69, 0.7) !important;
+}
+
+.item-card--equippable .item-card__desc {
+  color: rgba(40, 167, 69, 0.8);
+  font-weight: 600;
+}
+
+/* Clickable inventory card */
+.item-card--clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.item-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Discard modal reward highlight */
+.discard-fidelis-reward {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
 /* Icon */
 .item-card__icon {
   font-size: 2.2rem;
@@ -206,6 +274,43 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
+.equip-slot--filled {
+  border-style: solid;
+  border-color: rgba(111, 66, 193, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #1e1040 0%, #140a2e 100%);
+}
+
+.equip-slot--filled:hover {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: rgba(192, 57, 43, 0.7);
+}
+
+/* Slot has item available in inventory to equip */
+.equip-slot--available {
+  border-color: rgba(40, 167, 69, 0.5);
+  border-style: dashed;
+  animation: equip-pulse 2s ease-in-out infinite;
+  color: rgba(40, 167, 69, 0.6);
+}
+
+.equip-slot--available:hover {
+  border-color: rgba(40, 167, 69, 0.8);
+  color: rgba(40, 167, 69, 0.9);
+  box-shadow: 0 0 12px rgba(40, 167, 69, 0.3);
+}
+
+@keyframes equip-pulse {
+  0%, 100% { border-color: rgba(40, 167, 69, 0.35); }
+  50% { border-color: rgba(40, 167, 69, 0.7); }
+}
+
+.equip-slot__img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .equip-slot__label {
   font-size: 0.55rem;
   font-weight: 600;
@@ -232,6 +337,36 @@
 .equip-slot--weapon:hover {
   border-color: rgba(192, 57, 43, 0.6);
   color: rgba(192, 57, 43, 0.5);
+}
+
+.equip-slot--weapon.equip-slot--filled {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #1e1015 0%, #140a0e 100%);
+}
+
+.equip-stats-summary {
+  font-size: 0.65rem;
+}
+
+/* Equip confirmation modal */
+.equip-confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.4);
+  box-shadow: 0 0 20px rgba(111, 66, 193, 0.2);
+}
+
+.equip-confirm-stats {
+  background: rgba(15, 15, 28, 0.6);
+  border: 1px solid rgba(111, 66, 193, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
 }
 
 /* ==========================================

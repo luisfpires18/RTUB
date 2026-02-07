@@ -216,6 +216,16 @@ public class StageModeConfig
     public StageDropRates DropRates { get; set; } = new();
 
     /// <summary>
+    /// Stat bonuses for equipped items (equipment + instruments)
+    /// </summary>
+    public EquipmentStatsConfig EquipmentStats { get; set; } = new();
+
+    /// <summary>
+    /// Fidelis values for discarding items
+    /// </summary>
+    public DiscardValuesConfig DiscardValues { get; set; } = new();
+
+    /// <summary>
     /// Biome configurations for infinite stage progression
     /// </summary>
     public List<BiomeConfig> Biomes { get; set; } = new();
@@ -299,7 +309,58 @@ public class StageDropRates
 {
     public double BeerDropChance { get; set; } = 0.10;
     public double ShotDropChance { get; set; } = 0.05;
+    public double InstrumentPartDropChance { get; set; } = 0.005;
+    public double EquipmentDropChance { get; set; } = 0.008;
     public double BossDropMultiplier { get; set; } = 3.0;
+    public List<EquipmentDropConfig> EquipmentDrops { get; set; } = new();
+}
+
+/// <summary>
+/// Per-slot configuration for equipment drops, including optional custom sprite.
+/// </summary>
+public class EquipmentDropConfig
+{
+    public string Slot { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? SpritePath { get; set; }
+}
+
+/// <summary>
+/// Stat bonuses granted by each equipped piece.
+/// </summary>
+public class EquipmentPieceStats
+{
+    public int HP { get; set; }
+    public int Power { get; set; }
+    public int Speed { get; set; }
+    public int Defense { get; set; }
+    public double CriticalChance { get; set; }
+}
+
+/// <summary>
+/// Configuration for equipment stat bonuses by slot.
+/// </summary>
+public class EquipmentStatsConfig
+{
+    public EquipmentPieceStats Head { get; set; } = new() { HP = 15, Defense = 3 };
+    public EquipmentPieceStats Shoulders { get; set; } = new() { HP = 10, Defense = 5 };
+    public EquipmentPieceStats Chest { get; set; } = new() { HP = 25, Defense = 8 };
+    public EquipmentPieceStats Gloves { get; set; } = new() { Power = 5, CriticalChance = 0.01 };
+    public EquipmentPieceStats Legs { get; set; } = new() { HP = 15, Speed = 2, Defense = 3 };
+    public EquipmentPieceStats Boots { get; set; } = new() { Speed = 4, Defense = 2 };
+    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 8, CriticalChance = 0.005 };
+}
+
+/// <summary>
+/// Fidelis values for discarding items from inventory.
+/// </summary>
+public class DiscardValuesConfig
+{
+    /// <summary>Fidelis gained from discarding an equipment piece.</summary>
+    public decimal Equipment { get; set; } = 25m;
+
+    /// <summary>Fidelis gained from discarding an instrument part.</summary>
+    public decimal InstrumentPart { get; set; } = 30m;
 }
 
 /// <summary>

@@ -66,4 +66,31 @@ public interface IInventoryService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Tuple containing success status, gathered quantity, remaining energy, and message</returns>
     Task<(bool Success, int Gathered, int RemainingEnergy, string Message)> GatherResourceAsync(string userId, InventoryItemType resourceType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all instrument part quantities for a user
+    /// </summary>
+    Task<Dictionary<InventoryItemType, int>> GetInstrumentPartsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all equipment item quantities for a user
+    /// </summary>
+    Task<Dictionary<InventoryItemType, int>> GetEquipmentItemsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Equips an item from inventory to the character's equipment slot.
+    /// Consumes 1 from inventory and sets the equipped slot.
+    /// </summary>
+    Task<(bool Success, string Message)> EquipItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unequips an item from a character's slot back to inventory.
+    /// </summary>
+    Task<(bool Success, string Message)> UnequipItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Discards an inventory item in exchange for Fidelis currency.
+    /// Consumes 1 from inventory and credits the Fidelis value to the user.
+    /// </summary>
+    Task<(bool Success, decimal FidelisGained, string Message)> DiscardItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default);
 }

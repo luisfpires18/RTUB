@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -27,10 +28,14 @@ public class InventoryServiceTests
         _characterRepositoryMock = new Mock<ICharacterRepository>();
         _loggerMock = new Mock<ILogger<InventoryService>>();
 
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        var userManagerMock = new Mock<UserManager<ApplicationUser>>(userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
         var config = Options.Create(new MyTunoScalingConfiguration());
         _inventoryService = new InventoryService(
             _inventoryRepositoryMock.Object,
             _characterRepositoryMock.Object,
+            userManagerMock.Object,
             _loggerMock.Object,
             config);
     }

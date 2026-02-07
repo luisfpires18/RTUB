@@ -121,9 +121,33 @@
         }
       },
       "dropRates": {
-        "beerDropChance": 0.05,
-        "shotDropChance": 0.02,
         "bossDropMultiplier": 3.0
+        "beerDropChance": 0.10,
+        "shotDropChance": 0.05,
+        "instrumentPartDropChance": 0.005,
+        "equipmentDropChance": 0.008,
+        "bossDropMultiplier": 3.0,
+        "equipmentDrops": [
+          { "slot": "Head", "name": "Cabeça", "spritePath": null },
+          { "slot": "Shoulders", "name": "Ombros", "spritePath": null },
+          { "slot": "Chest", "name": "Peito", "spritePath": null },
+          { "slot": "Gloves", "name": "Luvas", "spritePath": null },
+          { "slot": "Legs", "name": "Pernas", "spritePath": null },
+          { "slot": "Boots", "name": "Botas", "spritePath": null }
+        ]
+      },
+      "equipmentStats": {
+        "head":       { "hp": 15, "power": 0, "speed": 0, "defense": 3, "criticalChance": 0 },
+        "shoulders":  { "hp": 10, "power": 0, "speed": 0, "defense": 5, "criticalChance": 0 },
+        "chest":      { "hp": 25, "power": 0, "speed": 0, "defense": 8, "criticalChance": 0 },
+        "gloves":     { "hp": 0,  "power": 5, "speed": 0, "defense": 0, "criticalChance": 0.01 },
+        "legs":       { "hp": 15, "power": 0, "speed": 2, "defense": 3, "criticalChance": 0 },
+        "boots":      { "hp": 0,  "power": 0, "speed": 4, "defense": 2, "criticalChance": 0 },
+        "instrument": { "hp": 0,  "power": 8, "speed": 0, "defense": 0, "criticalChance": 0.005 }
+      },
+      "discardValues": {
+        "equipment": 25,
+        "instrumentPart": 30
       },
       "fidelisRewards": {
         "normalWin": 10,

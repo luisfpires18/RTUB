@@ -69,6 +69,18 @@ public class StageBattleResult
     public int ShotsDropped { get; set; }
 
     /// <summary>
+    /// Instrument parts dropped (rare drops for crafting).
+    /// Each entry is the InventoryItemType of the instrument part.
+    /// </summary>
+    public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
+
+    /// <summary>
+    /// Equipment pieces dropped (rare drops for crafting).
+    /// Each entry is the InventoryItemType of the equipment slot.
+    /// </summary>
+    public List<InventoryItemType> EquipmentDropped { get; set; } = new();
+
+    /// <summary>
     /// Replay JSON data for battle animation
     /// </summary>
     public string ReplayJson { get; set; } = string.Empty;

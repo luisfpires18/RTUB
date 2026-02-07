@@ -9,13 +9,18 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Core.Helpers
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
+@inject INaipeService NaipeService
+@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject IStageProgressRepository StageProgressRepository
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -130,6 +135,41 @@
                                     <i class="bi bi-cup me-1"></i>+@totalShotsDropped Shot
                                 </span>
                             }
+                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
+                            {
+                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
+                                var imageUrl = instrumentPartImages.GetValueOrDefault(partType);
+                                <span class="badge bg-purple text-white instrument-drop-badge">
+                                    @if (!string.IsNullOrEmpty(imageUrl))
+                                    {
+                                        <img src="@imageUrl" alt="@instrumentName" class="instrument-drop-icon me-1" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-music-note me-1"></i>
+                                    }
+                                    +@qty @instrumentName
+                                </span>
+                            }
+                            @foreach (var (equipType, qty) in totalEquipmentDropped)
+                            {
+                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
+                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
+                                var equipSprite = GetEquipmentSpritePath(slot);
+                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
+                                <span class="badge bg-equipment text-white equipment-drop-badge">
+                                    @if (!string.IsNullOrEmpty(equipSprite))
+                                    {
+                                        <img src="@equipSprite" alt="@equipName" class="equipment-drop-icon me-1" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @fallbackIcon me-1"></i>
+                                    }
+                                    +@qty @equipName
+                                </span>
+                            }
                         </div>
                     </div>
                 </div>
@@ -203,6 +243,41 @@
                                     <span>+@totalShotsDropped Shot</span>
                                 </div>
                             }
+                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
+                            {
+                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
+                                var imageUrl = instrumentPartImages.GetValueOrDefault(partType);
+                                <div class="defeat-reward-row instrument-part-reward">
+                                    @if (!string.IsNullOrEmpty(imageUrl))
+                                    {
+                                        <img src="@imageUrl" alt="@instrumentName" class="instrument-drop-icon" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    }
+                                    <span>+@qty @instrumentName</span>
+                                </div>
+                            }
+                            @foreach (var (equipType, qty) in totalEquipmentDropped)
+                            {
+                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
+                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
+                                var equipSprite = GetEquipmentSpritePath(slot);
+                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
+                                <div class="defeat-reward-row equipment-reward">
+                                    @if (!string.IsNullOrEmpty(equipSprite))
+                                    {
+                                        <img src="@equipSprite" alt="@equipName" class="equipment-drop-icon" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
+                                    }
+                                    <span>+@qty @equipName</span>
+                                </div>
+                            }
                         </div>
                     }
                     else
@@ -246,6 +321,9 @@
     private decimal totalFidelisEarned = 0;
     private int totalBeersDropped = 0;
     private int totalShotsDropped = 0;
+    private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
+    private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
+    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
@@ -253,6 +331,7 @@
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private bool runInProgress = false;
+    private bool pendingDefeatRewards = false;
     private bool _disposed = false;
 
     // Defeat summary state
@@ -423,6 +502,7 @@
                 runInProgress = false;
                 runStartingHp = null;
                 runStartingStage = null;
+                pendingDefeatRewards = true;
             }
 
             // Start live battle animation
@@ -620,6 +700,31 @@
             totalFidelisEarned += currentBattle.FidelisReward;
             totalBeersDropped += currentBattle.BeersDropped;
             totalShotsDropped += currentBattle.ShotsDropped;
+
+            // Accumulate instrument part drops
+            foreach (var partType in currentBattle.InstrumentPartsDropped)
+            {
+                if (totalInstrumentPartsDropped.ContainsKey(partType))
+                    totalInstrumentPartsDropped[partType]++;
+                else
+                    totalInstrumentPartsDropped[partType] = 1;
+
+                // Load image for this instrument part if not already loaded
+                if (!instrumentPartImages.ContainsKey(partType))
+                {
+                    await LoadInstrumentPartImageAsync(partType);
+                }
+            }
+
+            // Accumulate equipment drops
+            foreach (var equipType in currentBattle.EquipmentDropped)
+            {
+                if (totalEquipmentDropped.ContainsKey(equipType))
+                    totalEquipmentDropped[equipType]++;
+                else
+                    totalEquipmentDropped[equipType] = 1;
+            }
+
             stagesCleared++;
             
             // Brief delay then start next stage automatically
@@ -640,7 +745,9 @@
                 try
                 {
                     await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp);
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
                 }
                 catch (Exception ex)
                 {
@@ -652,6 +759,7 @@
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
+            pendingDefeatRewards = false;
             
             // Cancel the timeout since battle finished normally
             battleTimeoutCts?.Cancel();
@@ -754,6 +862,8 @@
         totalFidelisEarned = 0;
         totalBeersDropped = 0;
         totalShotsDropped = 0;
+        totalInstrumentPartsDropped.Clear();
+        totalEquipmentDropped.Clear();
         stagesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -789,6 +899,45 @@
         };
     }
 
+    /// <summary>
+    /// Loads the naipe PictureUrl for an instrument part type to display in the loot tracker.
+    /// </summary>
+    private async Task LoadInstrumentPartImageAsync(InventoryItemType partType)
+    {
+        try
+        {
+            var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+            if (instrumentType == null)
+            {
+                instrumentPartImages[partType] = null;
+                return;
+            }
+
+            var configs = await NaipeService.GetAllTypeConfigsAsync();
+            var config = configs.FirstOrDefault(c => c.InstrumentType == instrumentType.Value);
+            instrumentPartImages[partType] = config?.PictureUrl;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load naipe image for {PartType}", partType);
+            instrumentPartImages[partType] = null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the custom sprite path for an equipment slot from scaling config.
+    /// Returns null if no custom sprite is configured (UI will fall back to icon).
+    /// </summary>
+    private string? GetEquipmentSpritePath(EquipmentSlot? slot)
+    {
+        if (slot == null) return null;
+
+        var equipmentDrops = ScalingConfig.Value.StageMode.DropRates.EquipmentDrops;
+        var config = equipmentDrops.FirstOrDefault(e =>
+            string.Equals(e.Slot, slot.Value.ToString(), StringComparison.OrdinalIgnoreCase));
+        return config?.SpritePath;
+    }
+
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
@@ -799,6 +948,24 @@
 
         // Cancel any run in progress (restore HP and stage) - uses lock to wait for fight to finish
         await CancelRunIfInProgressAsync();
+
+        // Apply pending defeat rewards if OnBattleFinished never fired
+        // (e.g., user navigated away during the death animation)
+        if (pendingDefeatRewards && character != null && stagesCleared > 0)
+        {
+            try
+            {
+                await StageService.ApplyRunRewardsAsync(
+                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp,
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+            }
+            catch (Exception)
+            {
+                // Best-effort during disposal
+            }
+            pendingDefeatRewards = false;
+        }
         
         if (hasRendered)
         {

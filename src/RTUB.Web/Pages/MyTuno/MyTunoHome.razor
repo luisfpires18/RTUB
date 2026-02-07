@@ -11,6 +11,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Shared.Components.UI
 @using RTUB.Application.Configuration
+@using RTUB.Core.Helpers
 @using Microsoft.Extensions.Options
 @attribute [Authorize]
 @implements IDisposable
@@ -18,6 +19,7 @@
 @inject IUpgradeService UpgradeService
 @inject ICharacterRepository CharacterRepository
 @inject IInventoryService InventoryService
+@inject INaipeService NaipeService
 @inject IStageService StageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -179,6 +181,45 @@
                                 <div class="item-card item-card--empty"></div>
                                 <div class="item-card item-card--empty"></div>
                                 <div class="item-card item-card--empty"></div>
+
+                                @* ── Instrument Parts ── *@
+                                @foreach (var kvp in instrumentParts)
+                                {
+                                    var invInstrType = InstrumentTypeHelper.FromInventoryPartType(kvp.Key);
+                                    var invInstrName = invInstrType.HasValue ? InstrumentTypeHelper.GetDisplayName(invInstrType.Value) : kvp.Key.ToString();
+                                    var invImgUrl = invInstrType.HasValue && instrumentImages.TryGetValue(invInstrType.Value, out var invUrl) ? invUrl : null;
+                                    var invItemKey = kvp.Key;
+                                    <div class="item-card item-card--instrument item-card--clickable" title="@invInstrName" @onclick="() => OnInventoryItemClick(invItemKey)" style="cursor: pointer;">
+                                        <div class="item-card__qty">@kvp.Value</div>
+                                        <div class="item-card__icon">
+                                            @if (!string.IsNullOrEmpty(invImgUrl))
+                                            {
+                                                <img src="@invImgUrl" alt="@invInstrName" class="gather-sprite" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-music-note-beamed"></i>
+                                            }
+                                        </div>
+                                        <div class="item-card__name" style="font-size: 0.55rem;">@invInstrName</div>
+                                    </div>
+                                }
+
+                                @* ── Equipment Pieces ── *@
+                                @foreach (var kvp in equipmentItems)
+                                {
+                                    var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
+                                    var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
+                                    var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
+                                    var eqItemKey = kvp.Key;
+                                    <div class="item-card item-card--equipment item-card--clickable" title="@eqName" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
+                                        <div class="item-card__qty">@kvp.Value</div>
+                                        <div class="item-card__icon">
+                                            <i class="bi @eqIcon"></i>
+                                        </div>
+                                        <div class="item-card__name" style="font-size: 0.55rem;">@eqName</div>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
@@ -808,16 +849,27 @@
                         <div class="equip-layout">
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
-                                <div class="equip-slot" title="Cabeça">
-                                    <i class="bi bi-cap-front"></i>
+                                @{ var headItem = character!.EquippedHead; var headHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentHead); }
+                                <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "Cabeça — Clica para desequipar" : (headHasInv ? "Cabeça — Clica para equipar" : "Cabeça"))"
+                                     @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
+                                     style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
+                                    <i class="bi @(headItem.HasValue ? "bi-hat" : "bi-cap-front")"></i>
                                     <span class="equip-slot__label">Cabeça</span>
                                 </div>
-                                <div class="equip-slot" title="Ombros">
-                                    <i class="bi bi-chevron-bar-expand"></i>
+
+                                @{ var shouldersItem = character.EquippedShoulders; var shouldersHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentShoulders); }
+                                <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "Ombros — Clica para desequipar" : (shouldersHasInv ? "Ombros — Clica para equipar" : "Ombros"))"
+                                     @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
+                                     style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
+                                    <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-chevron-bar-expand")"></i>
                                     <span class="equip-slot__label">Ombros</span>
                                 </div>
-                                <div class="equip-slot" title="Peito">
-                                    <i class="bi bi-shield-fill"></i>
+
+                                @{ var chestItem = character.EquippedChest; var chestHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentChest); }
+                                <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "Peito — Clica para desequipar" : (chestHasInv ? "Peito — Clica para equipar" : "Peito"))"
+                                     @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
+                                     style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
+                                    <i class="bi @(chestItem.HasValue ? "bi-vest" : "bi-shield-fill")"></i>
                                     <span class="equip-slot__label">Peito</span>
                                 </div>
                             </div>
@@ -831,36 +883,84 @@
 
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
-                                <div class="equip-slot" title="Luvas">
-                                    <i class="bi bi-hand-index-fill"></i>
+                                @{ var glovesItem = character.EquippedGloves; var glovesHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentGloves); }
+                                <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "Luvas — Clica para desequipar" : (glovesHasInv ? "Luvas — Clica para equipar" : "Luvas"))"
+                                     @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
+                                     style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
+                                    <i class="bi @(glovesItem.HasValue ? "bi-hand-index" : "bi-hand-index-fill")"></i>
                                     <span class="equip-slot__label">Luvas</span>
                                 </div>
-                                <div class="equip-slot" title="Pernas">
-                                    <i class="bi bi-signpost-split-fill"></i>
+
+                                @{ var legsItem = character.EquippedLegs; var legsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentLegs); }
+                                <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "Pernas — Clica para desequipar" : (legsHasInv ? "Pernas — Clica para equipar" : "Pernas"))"
+                                     @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
+                                     style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
+                                    <i class="bi @(legsItem.HasValue ? "bi-rulers" : "bi-signpost-split-fill")"></i>
                                     <span class="equip-slot__label">Pernas</span>
                                 </div>
-                                <div class="equip-slot" title="Botas">
-                                    <i class="bi bi-box-arrow-in-down"></i>
+
+                                @{ var bootsItem = character.EquippedBoots; var bootsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentBoots); }
+                                <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "Botas — Clica para desequipar" : (bootsHasInv ? "Botas — Clica para equipar" : "Botas"))"
+                                     @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
+                                     style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
+                                    <i class="bi @(bootsItem.HasValue ? "bi-boot" : "bi-box-arrow-in-down")"></i>
                                     <span class="equip-slot__label">Botas</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Weapon slots below character -->
+                        <!-- Weapon slot (Instrument) below character -->
                         <div class="equip-weapons">
-                            <div class="equip-slot equip-slot--weapon" title="Arma Principal">
-                                <i class="bi bi-slash-lg"></i>
-                                <span class="equip-slot__label">Arma 1</span>
-                            </div>
-                            <div class="equip-slot equip-slot--weapon" title="Arma Secundária">
-                                <i class="bi bi-slash-lg"></i>
-                                <span class="equip-slot__label">Arma 2</span>
+                            @{
+                                var instrEquipped = character.EquippedInstrument;
+                                var instrType = instrEquipped.HasValue ? InstrumentTypeHelper.FromInventoryPartType(instrEquipped.Value) : null;
+                                var instrName = instrType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrType.Value) : "Instrumento";
+                                var instrImg = instrType.HasValue && instrumentImages.TryGetValue(instrType.Value, out var iUrl) ? iUrl : null;
+                            }
+                            @{ var firstInstrInInventory = instrEquipped.HasValue ? instrEquipped : (instrumentParts.Any(k => k.Value > 0) ? instrumentParts.First(k => k.Value > 0).Key : (InventoryItemType?)null); }
+                            <div class="equip-slot equip-slot--weapon @(instrEquipped.HasValue ? "equip-slot--filled" : "") @(!instrEquipped.HasValue && firstInstrInInventory.HasValue ? "equip-slot--available" : "")" 
+                                 title="@(instrEquipped.HasValue ? instrName + " — Clica para desequipar" : (firstInstrInInventory.HasValue ? "Clica para equipar instrumento" : "Instrumento"))"
+                                 @onclick="() => OnEquipSlotClick(firstInstrInInventory)"
+                                 style="cursor: @(firstInstrInInventory.HasValue ? "pointer" : "default")">
+                                @if (instrEquipped.HasValue)
+                                {
+                                    @if (!string.IsNullOrEmpty(instrImg))
+                                    {
+                                        <img src="@instrImg" alt="@instrName" class="equip-slot__img" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-music-note-beamed"></i>
+                                    }
+                                }
+                                else
+                                {
+                                    <i class="bi bi-slash-lg"></i>
+                                }
+                                <span class="equip-slot__label">@instrName</span>
                             </div>
                         </div>
 
-                        <div class="text-center mt-auto pt-2">
-                            <small class="text-muted" style="font-size: 0.7rem;">Em breve — Equipamento vai estar disponível!</small>
-                        </div>
+                        @* Equipment stat summary *@
+                        @if (character.EquipmentHPBonus > 0 || character.EquipmentPowerBonus > 0 || character.EquipmentSpeedBonus > 0 || character.EquipmentDefenseBonus > 0 || character.EquipmentCriticalBonus > 0)
+                        {
+                            <div class="equip-stats-summary mt-2 px-2">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.65rem;"><i class="bi bi-plus-circle me-1"></i>Bónus de Equipamento:</small>
+                                <div class="d-flex flex-wrap gap-1" style="font-size: 0.65rem;">
+                                    @if (character.EquipmentHPBonus > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@character.EquipmentHPBonus HP</span> }
+                                    @if (character.EquipmentPowerBonus > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@character.EquipmentPowerBonus Poder</span> }
+                                    @if (character.EquipmentSpeedBonus > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@character.EquipmentSpeedBonus Vel</span> }
+                                    @if (character.EquipmentDefenseBonus > 0) { <span class="badge bg-secondary bg-opacity-25">+@character.EquipmentDefenseBonus Def</span> }
+                                    @if (character.EquipmentCriticalBonus > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{character.EquipmentCriticalBonus * 100:F1}%") Crit</span> }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center mt-auto pt-2">
+                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens das Stages para ganhar bónus!</small>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -965,6 +1065,65 @@
                 </button>
                 <button class="btn btn-primary" @onclick="ConfirmPurchase">
                     <i class="bi bi-check-lg me-2"></i>Confirmar
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
+    <!-- Item Action Modal (Equip / Discard) -->
+    @if (showItemActionModal && pendingActionItem.HasValue)
+    {
+        var actionItemName = GetEquipItemDisplayName(pendingActionItem.Value);
+        var actionItemIcon = GetEquipItemIcon(pendingActionItem.Value);
+        var actionItemImgUrl = GetEquipItemImageUrl(pendingActionItem.Value);
+        var actionItemStats = GetEquipItemStats(pendingActionItem.Value);
+        var actionDiscardValues = MyTunoConfig.Value.StageMode.DiscardValues;
+        var actionIsInstr = InstrumentTypeHelper.IsInstrumentPart(pendingActionItem.Value);
+        var actionFidelisValue = actionIsInstr ? actionDiscardValues.InstrumentPart : actionDiscardValues.Equipment;
+        var actionIsEquipped = IsItemCurrentlyEquipped(pendingActionItem.Value);
+        <Modal Show="@showItemActionModal"
+               ShowChanged="@((bool show) => { if (!show) CloseItemActionModal(); })"
+               Title="@actionItemName"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <div class="text-center mb-3">
+                    <div class="equip-confirm-icon">
+                        @if (!string.IsNullOrEmpty(actionItemImgUrl))
+                        {
+                            <img src="@actionItemImgUrl" alt="@actionItemName" style="width: 56px; height: 56px; object-fit: contain;" />
+                        }
+                        else
+                        {
+                            <i class="bi @actionItemIcon" style="font-size: 2.5rem; color: var(--bs-primary);"></i>
+                        }
+                    </div>
+                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">@actionItemName</h5>
+                </div>
+                @if (actionItemStats != null)
+                {
+                    <div class="equip-confirm-stats mb-3">
+                        <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                        <div class="d-flex flex-wrap gap-1 justify-content-center">
+                            @if (actionItemStats.HP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@actionItemStats.HP HP</span> }
+                            @if (actionItemStats.Power > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@actionItemStats.Power Poder</span> }
+                            @if (actionItemStats.Speed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@actionItemStats.Speed Vel</span> }
+                            @if (actionItemStats.Defense > 0) { <span class="badge bg-secondary bg-opacity-25">+@actionItemStats.Defense Def</span> }
+                            @if (actionItemStats.CriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{actionItemStats.CriticalChance * 100:F1}%") Crit</span> }
+                        </div>
+                    </div>
+                }
+                <div class="discard-fidelis-reward">
+                    <i class="bi bi-coin text-warning me-1"></i>
+                    <span class="text-warning">Descartar: <strong>+@actionFidelisValue.ToString("F2") Fidelis</strong></span>
+                </div>
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                    <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
+                </button>
+                <button class="btn btn-warning" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                    <i class="bi bi-coin me-2"></i>Descartar
                 </button>
             </FooterContent>
         </Modal>
@@ -1089,6 +1248,17 @@
     private double castTimeRemaining = 0;
     private System.Threading.Timer? castBarTimer;
     private DateTime castStartTime;
+    
+    // Instrument parts and equipment inventory
+    private Dictionary<InventoryItemType, int> instrumentParts = new();
+    private Dictionary<InventoryItemType, int> equipmentItems = new();
+    private Dictionary<InstrumentType, string?> instrumentImages = new();
+    private bool equipping = false;
+    
+    // Unified item action modal state (equip / discard from inventory)
+    private bool showItemActionModal = false;
+    private InventoryItemType? pendingActionItem = null;
+    private bool itemActioning = false;
     
     // Info modal state
     private bool showInfoModal = false;
@@ -1288,6 +1458,17 @@
                         var (energy, max, secondsUntilNext) = await InventoryService.GetCurrentEnergyAsync(currentUser.Id);
                         currentEnergy = energy;
                         maxEnergy = max;
+                        
+                        // Load instrument parts and equipment
+                        instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
+                        equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+                        
+                        // Load instrument images from naipe type configs
+                        var naipeConfigs = await NaipeService.GetAllTypeConfigsAsync();
+                        foreach (var config in naipeConfigs)
+                        {
+                            instrumentImages[config.InstrumentType] = config.PictureUrl;
+                        }
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
@@ -1763,6 +1944,219 @@
     {
         var res = activeResources.FirstOrDefault(r => r.Type == type.ToString());
         return res?.EnergyCost ?? int.MaxValue;
+    }
+
+    // ── Equipment slot interaction ──
+
+    private bool HasInstrumentInInventory()
+    {
+        return instrumentParts.Any(kvp => kvp.Value > 0);
+    }
+
+    // Opens the unified item action modal from inventory card click
+    private void OnInventoryItemClick(InventoryItemType itemType)
+    {
+        if (itemActioning || currentUser == null || character == null) return;
+        pendingActionItem = itemType;
+        showItemActionModal = true;
+    }
+
+    // Equipment slot click (from Equipamento panel) — direct equip/unequip
+    private void OnEquipSlotClick(InventoryItemType? itemType)
+    {
+        if (itemActioning || equipping || currentUser == null || character == null) return;
+        if (itemType == null) return;
+
+        var isEquipped = IsItemCurrentlyEquipped(itemType.Value);
+        if (isEquipped)
+        {
+            // Unequip directly
+            _ = PerformUnequip(itemType.Value);
+        }
+        else
+        {
+            // Open the item action modal for equip/discard choice
+            pendingActionItem = itemType.Value;
+            showItemActionModal = true;
+        }
+    }
+
+    // Handles both Equip and Discard from the unified modal
+    private async Task ConfirmItemAction(bool isDiscard)
+    {
+        if (pendingActionItem == null || currentUser == null) return;
+
+        showItemActionModal = false;
+        var item = pendingActionItem.Value;
+        pendingActionItem = null;
+
+        try
+        {
+            itemActioning = true;
+            StateHasChanged();
+
+            if (isDiscard)
+            {
+                var (success, fidelisGained, message) = await InventoryService.DiscardItemAsync(currentUser.Id, item);
+                if (success)
+                {
+                    instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
+                    equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+                    currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                    toastMessage = message;
+                    toastIsError = false;
+                }
+                else
+                {
+                    toastMessage = message;
+                    toastIsError = true;
+                }
+            }
+            else
+            {
+                await EquipItem(item);
+            }
+        }
+        finally
+        {
+            itemActioning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PerformUnequip(InventoryItemType itemType)
+    {
+        try
+        {
+            equipping = true;
+            StateHasChanged();
+            await UnequipItem(itemType);
+        }
+        finally
+        {
+            equipping = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseItemActionModal()
+    {
+        showItemActionModal = false;
+        pendingActionItem = null;
+    }
+
+    private string GetEquipItemDisplayName(InventoryItemType itemType)
+    {
+        // Instrument part?
+        var instrType = InstrumentTypeHelper.FromInventoryPartType(itemType);
+        if (instrType.HasValue)
+            return InstrumentTypeHelper.GetDisplayName(instrType.Value);
+
+        // Equipment piece?
+        var eqSlot = EquipmentDropHelper.FromInventoryItemType(itemType);
+        if (eqSlot.HasValue)
+            return EquipmentDropHelper.GetDisplayName(eqSlot.Value);
+
+        return itemType.ToString();
+    }
+
+    private string GetEquipItemIcon(InventoryItemType itemType)
+    {
+        // Instrument → music note
+        var instrType = InstrumentTypeHelper.FromInventoryPartType(itemType);
+        if (instrType.HasValue)
+            return "bi-music-note-beamed";
+
+        // Equipment piece → slot icon
+        var eqSlot = EquipmentDropHelper.FromInventoryItemType(itemType);
+        if (eqSlot.HasValue)
+            return EquipmentDropHelper.GetFallbackIcon(eqSlot.Value);
+
+        return "bi-gem";
+    }
+
+    private string? GetEquipItemImageUrl(InventoryItemType itemType)
+    {
+        var instrType = InstrumentTypeHelper.FromInventoryPartType(itemType);
+        if (instrType.HasValue && instrumentImages.TryGetValue(instrType.Value, out var url))
+            return url;
+        return null;
+    }
+
+    private EquipmentPieceStats? GetEquipItemStats(InventoryItemType itemType)
+    {
+        var config = MyTunoConfig.Value.StageMode.EquipmentStats;
+
+        // Instrument part?
+        var instrType = InstrumentTypeHelper.FromInventoryPartType(itemType);
+        if (instrType.HasValue)
+            return config.Instrument;
+
+        // Equipment piece?
+        var eqSlot = EquipmentDropHelper.FromInventoryItemType(itemType);
+        return eqSlot switch
+        {
+            EquipmentSlot.Head => config.Head,
+            EquipmentSlot.Shoulders => config.Shoulders,
+            EquipmentSlot.Chest => config.Chest,
+            EquipmentSlot.Gloves => config.Gloves,
+            EquipmentSlot.Legs => config.Legs,
+            EquipmentSlot.Boots => config.Boots,
+            _ => null
+        };
+    }
+
+    private bool IsItemCurrentlyEquipped(InventoryItemType itemType)
+    {
+        if (character == null) return false;
+        return character.EquippedHead == itemType
+            || character.EquippedShoulders == itemType
+            || character.EquippedChest == itemType
+            || character.EquippedGloves == itemType
+            || character.EquippedLegs == itemType
+            || character.EquippedBoots == itemType
+            || character.EquippedInstrument == itemType;
+    }
+
+    private async Task EquipItem(InventoryItemType itemType)
+    {
+        if (currentUser == null) return;
+
+        var (success, message) = await InventoryService.EquipItemAsync(currentUser.Id, itemType);
+        if (success)
+        {
+            // Reload character and inventory
+            character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
+            equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+            toastMessage = message;
+            toastIsError = false;
+        }
+        else
+        {
+            toastMessage = message;
+            toastIsError = true;
+        }
+    }
+
+    private async Task UnequipItem(InventoryItemType itemType)
+    {
+        if (currentUser == null) return;
+
+        var (success, message) = await InventoryService.UnequipItemAsync(currentUser.Id, itemType);
+        if (success)
+        {
+            character = await CharacterService.GetCharacterAsync(currentUser.Id);
+            instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
+            equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+            toastMessage = message;
+            toastIsError = false;
+        }
+        else
+        {
+            toastMessage = message;
+            toastIsError = true;
+        }
     }
 
     private async Task GatherResource(InventoryItemType resourceType)

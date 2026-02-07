@@ -35,6 +35,8 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
 
         if (existingItem != null)
         {
+            // Ensure we have the latest DB value (Blazor Server DbContext is long-lived)
+            await _context.Entry(existingItem).ReloadAsync(cancellationToken);
             // Update existing item
             existingItem.AddQuantity(quantity);
             await _context.SaveChangesAsync(cancellationToken);
@@ -59,6 +61,9 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
 
         if (existingItem == null)
             return false;
+
+        // Ensure we have the latest DB value (Blazor Server DbContext is long-lived)
+        await _context.Entry(existingItem).ReloadAsync(cancellationToken);
 
         // Try to consume quantity
         var success = existingItem.ConsumeQuantity(quantity);

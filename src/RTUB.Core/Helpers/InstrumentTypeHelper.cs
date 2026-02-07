@@ -60,4 +60,71 @@ public static class InstrumentTypeHelper
 
         return DisplayNameToType.TryGetValue(displayName, out var type) ? type : null;
     }
+
+    /// <summary>
+    /// Converts an InstrumentType to its corresponding InventoryItemType (instrument part).
+    /// </summary>
+    public static InventoryItemType ToInventoryPartType(InstrumentType instrument)
+    {
+        return instrument switch
+        {
+            InstrumentType.Guitarra => InventoryItemType.GuitarraPart,
+            InstrumentType.Bandolim => InventoryItemType.BandolimPart,
+            InstrumentType.Cavaquinho => InventoryItemType.CavaquinhoPart,
+            InstrumentType.Acordeao => InventoryItemType.AcordeaoPart,
+            InstrumentType.Fagote => InventoryItemType.FagotePart,
+            InstrumentType.Flauta => InventoryItemType.FlautaPart,
+            InstrumentType.Baixo => InventoryItemType.BaixoPart,
+            InstrumentType.Contrabaixo => InventoryItemType.ContrabaixoPart,
+            InstrumentType.Percussao => InventoryItemType.PercussaoPart,
+            InstrumentType.Pandeireta => InventoryItemType.PandeiretaPart,
+            InstrumentType.Estandarte => InventoryItemType.EstandartePart,
+            InstrumentType.Violino => InventoryItemType.ViolinoPart,
+            InstrumentType.Saxofone => InventoryItemType.SaxofonePart,
+            _ => throw new ArgumentOutOfRangeException(nameof(instrument), instrument, "Unknown instrument type")
+        };
+    }
+
+    /// <summary>
+    /// Converts an InventoryItemType (instrument part) back to its InstrumentType.
+    /// Returns null if the item type is not an instrument part.
+    /// </summary>
+    public static InstrumentType? FromInventoryPartType(InventoryItemType itemType)
+    {
+        return itemType switch
+        {
+            InventoryItemType.GuitarraPart => InstrumentType.Guitarra,
+            InventoryItemType.BandolimPart => InstrumentType.Bandolim,
+            InventoryItemType.CavaquinhoPart => InstrumentType.Cavaquinho,
+            InventoryItemType.AcordeaoPart => InstrumentType.Acordeao,
+            InventoryItemType.FagotePart => InstrumentType.Fagote,
+            InventoryItemType.FlautaPart => InstrumentType.Flauta,
+            InventoryItemType.BaixoPart => InstrumentType.Baixo,
+            InventoryItemType.ContrabaixoPart => InstrumentType.Contrabaixo,
+            InventoryItemType.PercussaoPart => InstrumentType.Percussao,
+            InventoryItemType.PandeiretaPart => InstrumentType.Pandeireta,
+            InventoryItemType.EstandartePart => InstrumentType.Estandarte,
+            InventoryItemType.ViolinoPart => InstrumentType.Violino,
+            InventoryItemType.SaxofonePart => InstrumentType.Saxofone,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Checks if an InventoryItemType is an instrument part.
+    /// </summary>
+    public static bool IsInstrumentPart(InventoryItemType itemType)
+    {
+        return (int)itemType >= 100 && (int)itemType <= 112;
+    }
+
+    /// <summary>
+    /// Gets all instrument part InventoryItemType values.
+    /// </summary>
+    public static IReadOnlyList<InventoryItemType> AllInstrumentPartTypes { get; } =
+        Enum.GetValues(typeof(InstrumentType))
+            .Cast<InstrumentType>()
+            .Select(ToInventoryPartType)
+            .ToList()
+            .AsReadOnly();
 }
