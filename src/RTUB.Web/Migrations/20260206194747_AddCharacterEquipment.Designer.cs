@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260206194747_AddCharacterEquipment")]
+    partial class AddCharacterEquipment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -772,16 +775,13 @@ namespace RTUB.Migrations
                     b.Property<int?>("EquippedHead")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("EquippedInstrument")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("EquippedLegs")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("EquippedShoulders")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquippedWeapon1")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquippedWeapon2")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("HP")
@@ -1341,73 +1341,6 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("FiscalYears");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ForgedWeapon", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("BonusCriticalChance")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("BonusDefense")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusPower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BonusSpeed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsEquipped")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsTwoHanded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SourceDrink")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SourceInstrument")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("WeaponType")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ForgedWeapons");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>
@@ -4455,17 +4388,6 @@ namespace RTUB.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("Event");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ForgedWeapon", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.GalleryMedia", b =>

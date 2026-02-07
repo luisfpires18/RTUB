@@ -7,6 +7,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -204,7 +205,7 @@ public class StageService : IStageService
         });
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, beersDropped, shotsDropped) =
+        var (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
@@ -225,6 +226,8 @@ public class StageService : IStageService
             FidelisReward = fidelisReward,
             BeersDropped = beersDropped,
             ShotsDropped = shotsDropped,
+            InstrumentPartsDropped = instrumentPartsDropped,
+            EquipmentDropped = equipmentDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP
         };
@@ -421,7 +424,7 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int beers, int shots) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int beers, int shots, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
@@ -429,12 +432,14 @@ public class StageService : IStageService
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0);
+            return (0, 0m, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>());
         }
 
         var random = Random.Shared;
         var beersDropped = 0;
         var shotsDropped = 0;
+        var instrumentPartsDropped = new List<InventoryItemType>();
+        var equipmentDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
         var dropRates = stageConfig.DropRates;
         var fidelisRewardsConfig = stageConfig.FidelisRewards;
@@ -463,19 +468,44 @@ public class StageService : IStageService
 
         var beerChance = dropRates.BeerDropChance;
         var shotChance = dropRates.ShotDropChance;
+        var instrumentPartChance = dropRates.InstrumentPartDropChance;
+        var equipmentChance = dropRates.EquipmentDropChance;
         if (enemyType == EnemyType.Boss)
         {
             beerChance *= dropRates.BossDropMultiplier;
             shotChance *= dropRates.BossDropMultiplier;
+            instrumentPartChance *= dropRates.BossDropMultiplier;
+            equipmentChance *= dropRates.BossDropMultiplier;
         }
+
+        var instrumentTypes = Enum.GetValues(typeof(InstrumentType))
+            .Cast<InstrumentType>()
+            .Where(t => t != InstrumentType.Saxofone && t != InstrumentType.Fagote)
+            .ToArray();
+        var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         for (int i = 0; i < enemyCount; i++)
         {
             if (random.NextDouble() < beerChance) beersDropped++;
             if (random.NextDouble() < shotChance) shotsDropped++;
+
+            // Roll for instrument part drop (very rare)
+            if (random.NextDouble() < instrumentPartChance)
+            {
+                // Pick a random instrument type (Saxofone and Fagote excluded)
+                var randomInstrument = instrumentTypes[random.Next(instrumentTypes.Length)];
+                instrumentPartsDropped.Add(InstrumentTypeHelper.ToInventoryPartType(randomInstrument));
+            }
+
+            // Roll for equipment drop (slightly above instrument parts)
+            if (random.NextDouble() < equipmentChance)
+            {
+                var randomSlot = (EquipmentSlot)equipmentSlots.GetValue(random.Next(equipmentSlots.Length))!;
+                equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
+            }
         }
 
-        return (xpReward, fidelisReward, beersDropped, shotsDropped);
+        return (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped);
     }
 
     /// <summary>
@@ -483,8 +513,11 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
     {
+        var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
+        var hasEquipment = equipment != null && equipment.Count > 0;
+
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
         {
@@ -497,7 +530,7 @@ public class StageService : IStageService
         character.CurrentHP = restoreHp;
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0)
+        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0 && !hasInstrumentParts && !hasEquipment)
             return;
 
         // Apply XP
@@ -528,9 +561,27 @@ public class StageService : IStageService
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
         }
 
+        // Apply instrument part drops
+        if (hasInstrumentParts)
+        {
+            foreach (var (partType, quantity) in instrumentParts!)
+            {
+                await _inventoryRepository.AddItemAsync(character.UserId, partType, quantity);
+            }
+        }
+
+        // Apply equipment drops
+        if (hasEquipment)
+        {
+            foreach (var (equipType, quantity) in equipment!)
+            {
+                await _inventoryRepository.AddItemAsync(character.UserId, equipType, quantity);
+            }
+        }
+
         _logger.LogInformation(
-            "Applied run rewards for character {CharacterId}: +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots",
-            characterId, xp, fidelis, beers, shots);
+            "Applied run rewards for character {CharacterId}: +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
+            characterId, xp, fidelis, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
     }
 
     /// <summary>
@@ -631,8 +682,15 @@ public class StageService : IStageService
         var previousHighestStage = stageProgress.HighestStage;
         var previousEndlessModeUnlocked = stageProgress.EndlessModeUnlocked;
 
-        // Always restore HP to full after every stage battle (no HP carry-over)
-        character.CurrentHP = null; // null = full HP
+        // HP carries over between stages — only set to final HP from combat
+        if (combatResult.AttackerFinalHP > 0)
+        {
+            character.CurrentHP = combatResult.AttackerFinalHP;
+        }
+        else
+        {
+            character.CurrentHP = null; // Defeated — restore to full on next run
+        }
         
         await _characterRepository.UpdateAsync(character);
 

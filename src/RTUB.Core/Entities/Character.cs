@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using RTUB.Core.Configuration;
+using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
 
@@ -81,6 +82,38 @@ public class Character : BaseEntity
     public int CriticalUpgrades { get; set; } = MyTunoScaling.InitialCriticalUpgrades;
     public int DefenseUpgrades { get; set; } = MyTunoScaling.InitialDefenseUpgrades;
 
+    // ── Equipped Items (null = empty slot) ──
+
+    /// <summary>Equipment piece in head slot</summary>
+    public InventoryItemType? EquippedHead { get; set; }
+    /// <summary>Equipment piece in shoulders slot</summary>
+    public InventoryItemType? EquippedShoulders { get; set; }
+    /// <summary>Equipment piece in chest slot</summary>
+    public InventoryItemType? EquippedChest { get; set; }
+    /// <summary>Equipment piece in gloves slot</summary>
+    public InventoryItemType? EquippedGloves { get; set; }
+    /// <summary>Equipment piece in legs slot</summary>
+    public InventoryItemType? EquippedLegs { get; set; }
+    /// <summary>Equipment piece in boots slot</summary>
+    public InventoryItemType? EquippedBoots { get; set; }
+    /// <summary>Forged weapon in primary weapon slot (ID of ForgedWeapon entity)</summary>
+    public int? EquippedWeapon1 { get; set; }
+    /// <summary>Forged weapon in secondary weapon slot (ID of ForgedWeapon entity, null if two-handed weapon in slot 1)</summary>
+    public int? EquippedWeapon2 { get; set; }
+
+    // ── Equipment Stat Bonuses (recalculated on equip/unequip) ──
+
+    /// <summary>Total HP bonus from all equipped items</summary>
+    public int EquipmentHPBonus { get; set; }
+    /// <summary>Total Power bonus from all equipped items</summary>
+    public int EquipmentPowerBonus { get; set; }
+    /// <summary>Total Speed bonus from all equipped items</summary>
+    public int EquipmentSpeedBonus { get; set; }
+    /// <summary>Total Defense bonus from all equipped items</summary>
+    public int EquipmentDefenseBonus { get; set; }
+    /// <summary>Total Critical chance bonus from all equipped items</summary>
+    public double EquipmentCriticalBonus { get; set; }
+
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
 
@@ -90,11 +123,13 @@ public class Character : BaseEntity
     // When exponent=0 this reduces to simple linear scaling.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalHP => (int)(HP * LevelScaleFactor())
-        + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus);
+        + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus)
+        + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalPower => (int)(Power * LevelScaleFactor())
-        + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
+        + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus)
+        + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * LevelScaleFactor())
@@ -111,7 +146,8 @@ public class Character : BaseEntity
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalDefense => (int)(Defense * LevelScaleFactor())
-        + (int)(DefenseUpgrades * MyTunoScaling.DefenseUpgradeBonus);
+        + (int)(DefenseUpgrades * MyTunoScaling.DefenseUpgradeBonus)
+        + EquipmentDefenseBonus;
 
     /// <summary>
     /// Computes the level-based stat multiplier using polynomial growth.
@@ -202,7 +238,21 @@ public class Character : BaseEntity
             PowerUpgrades = MyTunoScaling.InitialPowerUpgrades,
             SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades,
             CriticalUpgrades = MyTunoScaling.InitialCriticalUpgrades,
-            DefenseUpgrades = MyTunoScaling.InitialDefenseUpgrades
+            DefenseUpgrades = MyTunoScaling.InitialDefenseUpgrades,
+            // No equipment equipped by default
+            EquippedHead = null,
+            EquippedShoulders = null,
+            EquippedChest = null,
+            EquippedGloves = null,
+            EquippedLegs = null,
+            EquippedBoots = null,
+            EquippedWeapon1 = null,
+            EquippedWeapon2 = null,
+            EquipmentHPBonus = 0,
+            EquipmentPowerBonus = 0,
+            EquipmentSpeedBonus = 0,
+            EquipmentDefenseBonus = 0,
+            EquipmentCriticalBonus = 0
         };
     }
 
@@ -270,6 +320,20 @@ public class Character : BaseEntity
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
             DefenseUpgrades = source.DefenseUpgrades,
+            // Carry over equipment bonuses
+            EquippedHead = source.EquippedHead,
+            EquippedShoulders = source.EquippedShoulders,
+            EquippedChest = source.EquippedChest,
+            EquippedGloves = source.EquippedGloves,
+            EquippedLegs = source.EquippedLegs,
+            EquippedBoots = source.EquippedBoots,
+            EquippedWeapon1 = source.EquippedWeapon1,
+            EquippedWeapon2 = source.EquippedWeapon2,
+            EquipmentHPBonus = source.EquipmentHPBonus,
+            EquipmentPowerBonus = source.EquipmentPowerBonus,
+            EquipmentSpeedBonus = source.EquipmentSpeedBonus,
+            EquipmentDefenseBonus = source.EquipmentDefenseBonus,
+            EquipmentCriticalBonus = source.EquipmentCriticalBonus,
             // Key: Set CurrentHP to null = full HP (TotalHP)
             CurrentHP = null,
             User = source.User,
@@ -317,6 +381,20 @@ public class Character : BaseEntity
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
             DefenseUpgrades = source.DefenseUpgrades,
+            // Carry over equipment bonuses (not buffed — they are flat bonuses)
+            EquippedHead = source.EquippedHead,
+            EquippedShoulders = source.EquippedShoulders,
+            EquippedChest = source.EquippedChest,
+            EquippedGloves = source.EquippedGloves,
+            EquippedLegs = source.EquippedLegs,
+            EquippedBoots = source.EquippedBoots,
+            EquippedWeapon1 = source.EquippedWeapon1,
+            EquippedWeapon2 = source.EquippedWeapon2,
+            EquipmentHPBonus = source.EquipmentHPBonus,
+            EquipmentPowerBonus = source.EquipmentPowerBonus,
+            EquipmentSpeedBonus = source.EquipmentSpeedBonus,
+            EquipmentDefenseBonus = source.EquipmentDefenseBonus,
+            EquipmentCriticalBonus = source.EquipmentCriticalBonus,
             // Preserve current HP so combat starts with actual HP (damaged or full)
             CurrentHP = source.CurrentHP,
             User = source.User,

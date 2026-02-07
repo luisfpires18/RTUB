@@ -750,3 +750,57 @@
     font-size: 1.8rem;
   }
 }
+
+/* Instrument Part Drop Styles */
+.bg-purple {
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+}
+
+.text-purple {
+  color: #a855f7 !important;
+}
+
+.instrument-drop-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.instrument-drop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.instrument-part-reward {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1)) !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+/* Equipment Drop Styles */
+.bg-equipment {
+  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+}
+
+.text-equipment {
+  color: #f59e0b !important;
+}
+
+.equipment-drop-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.equipment-drop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.equipment-reward {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(245, 158, 11, 0.1)) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}

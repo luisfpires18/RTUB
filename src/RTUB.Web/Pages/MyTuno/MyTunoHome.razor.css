@@ -127,6 +127,74 @@
   z-index: 1;
 }
 
+/* Instrument part card - purple */
+.item-card--instrument {
+  border-color: rgba(111, 66, 193, 0.5);
+  background: linear-gradient(180deg, #1a1030 0%, #110a20 100%);
+  cursor: default;
+}
+
+.item-card--instrument .item-card__icon {
+  color: #a855f7;
+}
+
+.item-card--instrument .item-card__icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Equipment card - amber/orange */
+.item-card--equipment {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(180deg, #1f1a0f 0%, #15100a 100%);
+  cursor: default;
+}
+
+.item-card--equipment .item-card__icon {
+  color: #f59e0b;
+}
+
+/* Equippable card - clickable from inventory */
+.item-card--equippable {
+  cursor: pointer !important;
+  border-width: 2px;
+}
+
+.item-card--equippable:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(40, 167, 69, 0.35);
+  border-color: rgba(40, 167, 69, 0.7) !important;
+}
+
+.item-card--equippable .item-card__desc {
+  color: rgba(40, 167, 69, 0.8);
+  font-weight: 600;
+}
+
+/* Clickable inventory card */
+.item-card--clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.item-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Discard modal reward highlight */
+.discard-fidelis-reward {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
 /* Icon */
 .item-card__icon {
   font-size: 2.2rem;
@@ -206,6 +274,43 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
+.equip-slot--filled {
+  border-style: solid;
+  border-color: rgba(111, 66, 193, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #1e1040 0%, #140a2e 100%);
+}
+
+.equip-slot--filled:hover {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: rgba(192, 57, 43, 0.7);
+}
+
+/* Slot has item available in inventory to equip */
+.equip-slot--available {
+  border-color: rgba(40, 167, 69, 0.5);
+  border-style: dashed;
+  animation: equip-pulse 2s ease-in-out infinite;
+  color: rgba(40, 167, 69, 0.6);
+}
+
+.equip-slot--available:hover {
+  border-color: rgba(40, 167, 69, 0.8);
+  color: rgba(40, 167, 69, 0.9);
+  box-shadow: 0 0 12px rgba(40, 167, 69, 0.3);
+}
+
+@keyframes equip-pulse {
+  0%, 100% { border-color: rgba(40, 167, 69, 0.35); }
+  50% { border-color: rgba(40, 167, 69, 0.7); }
+}
+
+.equip-slot__img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .equip-slot__label {
   font-size: 0.55rem;
   font-weight: 600;
@@ -232,6 +337,36 @@
 .equip-slot--weapon:hover {
   border-color: rgba(192, 57, 43, 0.6);
   color: rgba(192, 57, 43, 0.5);
+}
+
+.equip-slot--weapon.equip-slot--filled {
+  border-color: rgba(192, 57, 43, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #1e1015 0%, #140a0e 100%);
+}
+
+.equip-stats-summary {
+  font-size: 0.65rem;
+}
+
+/* Equip confirmation modal */
+.equip-confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.4);
+  box-shadow: 0 0 20px rgba(111, 66, 193, 0.2);
+}
+
+.equip-confirm-stats {
+  background: rgba(15, 15, 28, 0.6);
+  border: 1px solid rgba(111, 66, 193, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
 }
 
 /* ==========================================
@@ -650,17 +785,82 @@
   cursor: not-allowed;
 }
 
+.gather-node--locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.gather-node--locked .gather-node__name {
+  color: #888;
+}
+
 .gather-node--active {
   border-color: rgba(241, 196, 15, 0.6) !important;
   box-shadow: 0 0 16px rgba(241, 196, 15, 0.2) !important;
 }
+
+/* Cerveja - golden yellow beer */
+.gather-node--cerveja {
+  border-color: rgba(241, 196, 15, 0.4);
+  background: linear-gradient(180deg, #1f1c0f 0%, #15120a 100%);
+}
+.gather-node--cerveja:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(241, 196, 15, 0.7);
+  box-shadow: 0 4px 16px rgba(241, 196, 15, 0.2);
+}
+.gather-node--cerveja .gather-node__icon { color: #f1c40f; }
+
+/* Vinho - deep red wine */
+.gather-node--vinho {
+  border-color: rgba(192, 57, 43, 0.4);
+  background: linear-gradient(180deg, #1f0f0f 0%, #150a0a 100%);
+}
+.gather-node--vinho:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(192, 57, 43, 0.7);
+  box-shadow: 0 4px 16px rgba(192, 57, 43, 0.2);
+}
+.gather-node--vinho .gather-node__icon { color: #c0392b; }
+
+/* Licor - purple/pink liqueur */
+.gather-node--licor {
+  border-color: rgba(155, 89, 182, 0.4);
+  background: linear-gradient(180deg, #1a0f1f 0%, #120a15 100%);
+}
+.gather-node--licor:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(155, 89, 182, 0.7);
+  box-shadow: 0 4px 16px rgba(155, 89, 182, 0.2);
+}
+.gather-node--licor .gather-node__icon { color: #9b59b6; }
+
+/* Rum - dark amber */
+.gather-node--rum {
+  border-color: rgba(180, 100, 50, 0.4);
+  background: linear-gradient(180deg, #1f150f 0%, #150f0a 100%);
+}
+.gather-node--rum:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(180, 100, 50, 0.7);
+  box-shadow: 0 4px 16px rgba(180, 100, 50, 0.2);
+}
+.gather-node--rum .gather-node__icon { color: #b46432; }
+
+/* Tequilla - lime green */
+.gather-node--tequilla {
+  border-color: rgba(39, 174, 96, 0.4);
+  background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
+}
+.gather-node--tequilla:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(39, 174, 96, 0.7);
+  box-shadow: 0 4px 16px rgba(39, 174, 96, 0.2);
+}
+.gather-node--tequilla .gather-node__icon { color: #27ae60; }
 
 /* Vodka - clear/white */
 .gather-node--vodka {
   border-color: rgba(200, 200, 220, 0.4);
   background: linear-gradient(180deg, #1a1a28 0%, #12121e 100%);
 }
-.gather-node--vodka:hover:not(.gather-node--disabled) {
+.gather-node--vodka:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(200, 200, 220, 0.7);
   box-shadow: 0 4px 16px rgba(200, 200, 220, 0.2);
 }
@@ -668,36 +868,47 @@
 
 /* Gin - light blue/teal */
 .gather-node--gin {
-  border-color: rgba(46, 204, 113, 0.4);
-  background: linear-gradient(180deg, #0f1f1a 0%, #0a1512 100%);
+  border-color: rgba(52, 152, 219, 0.4);
+  background: linear-gradient(180deg, #0f1a1f 0%, #0a1215 100%);
 }
-.gather-node--gin:hover:not(.gather-node--disabled) {
-  border-color: rgba(46, 204, 113, 0.7);
-  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.2);
+.gather-node--gin:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(52, 152, 219, 0.7);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.2);
 }
-.gather-node--gin .gather-node__icon { color: #2ecc71; }
+.gather-node--gin .gather-node__icon { color: #3498db; }
 
 /* Whisky - amber/gold */
 .gather-node--whisky {
   border-color: rgba(230, 126, 34, 0.4);
   background: linear-gradient(180deg, #221a0f 0%, #18120a 100%);
 }
-.gather-node--whisky:hover:not(.gather-node--disabled) {
+.gather-node--whisky:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(230, 126, 34, 0.7);
   box-shadow: 0 4px 16px rgba(230, 126, 34, 0.2);
 }
 .gather-node--whisky .gather-node__icon { color: #e67e22; }
 
-/* Absinto - green glow */
+/* Absinto - toxic green glow */
 .gather-node--absinto {
-  border-color: rgba(39, 174, 96, 0.4);
+  border-color: rgba(0, 255, 100, 0.4);
   background: linear-gradient(180deg, #0f1f14 0%, #0a150e 100%);
 }
-.gather-node--absinto:hover:not(.gather-node--disabled) {
+.gather-node--absinto:hover:not(.gather-node--disabled):not(.gather-node--locked) {
   border-color: rgba(0, 255, 100, 0.6);
   box-shadow: 0 4px 16px rgba(0, 255, 100, 0.2);
 }
 .gather-node--absinto .gather-node__icon { color: #00ff64; }
+
+/* Aguardente - electric purple/lightning */
+.gather-node--aguardente {
+  border-color: rgba(142, 68, 173, 0.4);
+  background: linear-gradient(180deg, #1a0f1f 0%, #120a15 100%);
+}
+.gather-node--aguardente:hover:not(.gather-node--disabled):not(.gather-node--locked) {
+  border-color: rgba(142, 68, 173, 0.8);
+  box-shadow: 0 4px 16px rgba(142, 68, 173, 0.3), 0 0 8px rgba(155, 89, 182, 0.3);
+}
+.gather-node--aguardente .gather-node__icon { color: #8e44ad; }
 
 /* Cost badge (top-right) */
 .gather-node__cost {
@@ -748,6 +959,141 @@
   font-weight: 700;
   color: #e2e2e2;
   text-align: center;
+}
+
+/* ==========================================
+   Forging Section
+   ========================================== */
+.forge-slots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.forge-slot {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 2px dashed rgba(255, 193, 7, 0.25);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.forge-slot:hover {
+  border-color: rgba(255, 193, 7, 0.5);
+  color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.forge-slot--filled {
+  border-style: solid;
+  border-color: rgba(255, 193, 7, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #2a2210 0%, #1a1608 100%);
+}
+
+.forge-slot__label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.forge-plus {
+  font-size: 1.5rem;
+  color: rgba(255, 193, 7, 0.5);
+  font-weight: 700;
+}
+
+/* Forge pickers (dropdown lists) */
+.forge-picker {
+  background: rgba(15, 15, 28, 0.95);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.forge-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #e2e2e2;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-size: 0.8rem;
+}
+
+.forge-picker__item:hover {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.forge-picker__item--selected {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.5);
+}
+
+/* Forged weapons list */
+.forge-weapons-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+.forge-weapon-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.forge-weapon-card:hover {
+  border-color: rgba(255, 193, 7, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+}
+
+.forge-weapon-card--equipped {
+  border-color: rgba(40, 167, 69, 0.5);
+  background: linear-gradient(180deg, #0f1e14 0%, #0a1510 100%);
+}
+
+.forge-weapon-card--equipped:hover {
+  border-color: rgba(40, 167, 69, 0.7);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.forge-result-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 193, 7, 0.1);
+  border: 2px solid rgba(255, 193, 7, 0.3);
 }
 
 /* Mobile responsive styles */
@@ -802,5 +1148,15 @@
 
   .gather-node__icon {
     font-size: 1.5rem;
+  }
+
+  .forge-slot {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+
+  .forge-weapons-list {
+    grid-template-columns: 1fr;
   }
 }
