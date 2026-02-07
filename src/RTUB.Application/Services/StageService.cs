@@ -438,7 +438,9 @@ public class StageService : IStageService
             _ => 1
         };
 
-        var stageScaling = 1.0 + (stageNumber * stageConfig.StageRewardScalingFactor);
+        // Diminishing returns: approaches maxMultiplier asymptotically
+        var maxMult = stageConfig.MaxStageRewardMultiplier;
+        var stageScaling = 1.0 + (maxMult - 1.0) * (1.0 - Math.Exp(-stageNumber * stageConfig.StageRewardScalingFactor));
         var xpReward = (int)Math.Round(stageConfig.BaseStageXP * xpMultiplier * enemyCount * stageScaling);
 
         var baseFidelis = enemyType switch
@@ -446,8 +448,9 @@ public class StageService : IStageService
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
             _ => fidelisRewardsConfig.NormalWin
         };
-        // Scale Fidelis with character level (same multiplier as battle arena)
-        var levelMultiplier = 1.0 + (characterLevel - 1) * _myTunoScalingConfig.BattleRewards.FidelisLevelMultiplier;
+        // Scale Fidelis with character level, capped by config
+        var rawLevelMult = 1.0 + (characterLevel - 1) * _myTunoScalingConfig.BattleRewards.FidelisLevelMultiplier;
+        var levelMultiplier = Math.Min(rawLevelMult, stageConfig.FidelisLevelMultiplierCap);
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling * (decimal)levelMultiplier, 2);
 
         var beerChance = dropRates.BeerDropChance;

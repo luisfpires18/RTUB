@@ -407,9 +407,9 @@ public class StageServiceTests : IDisposable
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
         // Assert - rewards are calculated but NOT applied immediately (deferred until run ends)
-        // Stage 1: stageScaling = 1.0 + (1 * 0.05) = 1.05
-        battle.XPReward.Should().Be(32); // round(BaseStageXP(30) * 1.05) = 32
-        battle.FidelisReward.Should().Be(10.50m); // round(NormalWin(10) * 1.05, 2) = 10.50
+        // Stage 1: stageScaling = 1.0 + (maxMult-1)*(1-e^(-1*0.005)) ≈ 1.035
+        battle.XPReward.Should().Be(31); // round(BaseStageXP(30) * 1.035) = 31
+        battle.FidelisReward.Should().Be(10.35m); // round(NormalWin(10) * 1.035, 2) = 10.35
 
         // Verify character XP was NOT updated yet (deferred rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
@@ -423,10 +423,10 @@ public class StageServiceTests : IDisposable
 
         // Assert - rewards are now applied
         var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        finalCharacter!.XP.Should().Be(initialXP + 32);
+        finalCharacter!.XP.Should().Be(initialXP + 31);
 
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 10.50m)), Times.Once);
+            u.FidelisBalance == initialFidelis + 10.35m)), Times.Once);
     }
 
     [Fact]
@@ -562,8 +562,8 @@ public class StageServiceTests : IDisposable
 
         // Assert
         battle.EnemyType.Should().Be(EnemyType.Boss);
-        // BaseStageXP (30) * BossXPMultiplier (10) * stageScaling (1 + 100*0.05 = 6.0) = 1800
-        battle.XPReward.Should().Be(1800);
+        // BaseStageXP (30) * BossXPMultiplier (10) * stageScaling (1 + 7*(1-e^(-100*0.005)) ≈ 3.754) = 1126
+        battle.XPReward.Should().Be(1126);
 
         // Verify boss defeat was recorded
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");

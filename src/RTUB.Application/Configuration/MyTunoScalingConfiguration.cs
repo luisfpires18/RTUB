@@ -156,11 +156,26 @@ public class StageModeConfig
     public int BossXPMultiplier { get; set; } = 10;
 
     /// <summary>
-    /// Stage reward scaling factor per stage number
-    /// Formula: stageScaling = 1.0 + (stageNumber * StageRewardScalingFactor)
-    /// Default 0.05 means +5% per stage (stage 10 = 1.5x, stage 100 = 6x)
+    /// Stage reward scaling rate for diminishing returns curve.
+    /// Formula: stageScaling = 1.0 + (MaxStageRewardMultiplier - 1) * (1 - e^(-stageNumber * StageRewardScalingFactor))
+    /// Default 0.005 gives a smooth curve approaching MaxStageRewardMultiplier.
     /// </summary>
-    public double StageRewardScalingFactor { get; set; } = 0.05;
+    public double StageRewardScalingFactor { get; set; } = 0.005;
+
+    /// <summary>
+    /// Maximum reward multiplier from stage progression (asymptotic cap).
+    /// The diminishing returns curve approaches this value but never exceeds it.
+    /// Default 8.0 means rewards plateau at ~8x base at very high stages.
+    /// </summary>
+    public double MaxStageRewardMultiplier { get; set; } = 8.0;
+
+    /// <summary>
+    /// Maximum Fidelis level multiplier cap.
+    /// Limits the effect of character level on Fidelis rewards.
+    /// Formula: levelMultiplier = min(1 + (level-1) * FidelisLevelMultiplier, FidelisLevelMultiplierCap)
+    /// Default 5.0 caps at 5x regardless of level.
+    /// </summary>
+    public double FidelisLevelMultiplierCap { get; set; } = 5.0;
 
     /// <summary>
     /// Enemy stat scaling per stage

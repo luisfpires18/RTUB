@@ -427,7 +427,7 @@
                 runStartingStage = stageProgress.CurrentStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runInProgress = true;
-                Logger.LogInformation("Stage mode started by {UserName}", currentUser.UserName);
+                Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
             }
             
             // Only update UI if we weren't already animating (first battle)

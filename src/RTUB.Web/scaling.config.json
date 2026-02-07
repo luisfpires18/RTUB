@@ -91,7 +91,9 @@
     "stageMode": {
       "baseStageXP": 30,
       "bossXPMultiplier": 10,
-      "stageRewardScalingFactor": 0.05,
+      "stageRewardScalingFactor": 0.005,
+      "maxStageRewardMultiplier": 3.0,
+      "fidelisLevelMultiplierCap": 1.3,
       "enemyScaling": {
         "hpPerStage": 0.66,
         "powerPerStage": 0.66,
