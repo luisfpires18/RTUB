@@ -661,7 +661,7 @@
                                     }
                                     else
                                     {
-                                        <text>@character.ActionTime.ToString("F1")s → @((character.ActionTime - 0.1).ToString("F1"))s</text>
+                                        <text>@character.ActionTime.ToString("F1")s → @(GetSpeedPreview())s</text>
                                     }
                                 </div>
                             </div>
@@ -710,7 +710,7 @@
                                     }
                                     else
                                     {
-                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{(character.TotalCriticalChance + 0.005) * 100:F1}%")</text>
+                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{Math.Min(Character.MaxCriticalChance, character.TotalCriticalChance + 0.005) * 100:F1}%")</text>
                                     }
                                 </div>
                             </div>
@@ -1175,6 +1175,17 @@
     private bool IsCriticalMaxed => character != null && character.CriticalUpgrades >= MaxCriticalUpgrades;
     private bool IsDefenseMaxed => character != null && character.DefenseUpgrades >= MaxDefenseUpgrades;
 
+    /// <summary>
+    /// Gets a preview of the ActionTime after one more speed upgrade
+    /// </summary>
+    private string GetSpeedPreview()
+    {
+        if (character == null) return "0.0";
+        var previewReduction = Character.ActionTimeReductionPerUpgrade + Character.ActionTimeReductionPerSpeedPoint;
+        var previewTime = Math.Max(Character.MinActionTime, character.ActionTime - previewReduction);
+        return previewTime.ToString("F1");
+    }
+
     private async Task ClaimDailyReward()
     {
         if (currentUser == null || character == null || !CanClaimDailyReward) return;
@@ -1498,10 +1509,17 @@
 
     private decimal GetRestoreCost()
     {
-        // Base cost with gentle level scaling (same formula as revive)
+        // Cost scales with both level AND how much HP is missing
+        // Formula: baseCost × sqrt(level) × (missingHP / totalHP)
+        // Restoring 10% HP costs ~10% of full restore price
         var baseCost = MyTunoConfig.Value.BattleRewards.RestoreHPCost;
         var level = character?.Level ?? 1;
-        return Math.Round(baseCost * (decimal)Math.Sqrt(level), 2);
+        var maxHP = GetDisplayMaxHP(character);
+        var currentHP = character?.CurrentHP ?? maxHP;
+        var missingHP = maxHP - currentHP;
+        if (missingHP <= 0 || maxHP <= 0) return 0;
+        var hpRatio = (decimal)missingHP / (decimal)maxHP;
+        return Math.Round(baseCost * (decimal)Math.Sqrt(level) * hpRatio, 2);
     }
 
     private async Task ReviveCharacter()

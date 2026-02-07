@@ -40,59 +40,28 @@ public static partial class SeedData
         SeedSwampNormals(existingNormalNames, enemies);
         SeedSwampBosses(existingBossStages, enemies);
 
-        if (enemies.Count > 0)
-        {
-            await dbContext.StageEnemies.AddRangeAsync(enemies);
-            await dbContext.SaveChangesAsync();
-            Console.WriteLine($"Seeded {enemies.Count} stage enemies ({enemies.Count(e => e.Type == EnemyType.Boss)} bosses, {enemies.Count(e => e.Type == EnemyType.Normal)} normal)");
-        }
-        else
+        // ===================
+        // MOUNTAINS REGION (201-300)
+        // ===================
+        SeedMountainsNormals(existingNormalNames, enemies);
+        SeedMountainsBosses(existingBossStages, enemies);
+
+        // ===================
+        // SNOWY REGION (301-400)
+        // ===================
+        SeedSnowyNormals(existingNormalNames, enemies);
+        SeedSnowyBosses(existingBossStages, enemies);
+
+        if (enemies.Count == 0)
         {
             Console.WriteLine("No new stage enemies to seed.");
+            return;
         }
 
-        // Sync placements for existing enemies that may have been created before the Placement column existed
-        await SyncEnemyPlacementsAsync(dbContext);
-    }
+        await dbContext.StageEnemies.AddRangeAsync(enemies);
+        await dbContext.SaveChangesAsync();
 
-    private static async Task SyncEnemyPlacementsAsync(ApplicationDbContext dbContext)
-    {
-        // Define the expected placements for enemies that should be Aerial
-        var aerialEnemies = new Dictionary<(RegionType Region, string Name, EnemyType Type), PlacementType>
-        {
-            // Forest aerial normals
-            { (RegionType.Forest, "Bee", EnemyType.Normal), PlacementType.Aerial },
-            { (RegionType.Forest, "Beetle", EnemyType.Normal), PlacementType.Aerial },
-            { (RegionType.Forest, "Eagle", EnemyType.Normal), PlacementType.Aerial },
-            // Forest aerial boss
-            { (RegionType.Forest, "Falcon", EnemyType.Boss), PlacementType.Aerial },
-            // Swamp aerial normals
-            { (RegionType.Swamp, "Crow", EnemyType.Normal), PlacementType.Aerial },
-            { (RegionType.Swamp, "Mosquito", EnemyType.Normal), PlacementType.Aerial },
-            // Swamp aerial boss
-            { (RegionType.Swamp, "Pelican", EnemyType.Boss), PlacementType.Aerial },
-        };
-
-        var enemiesToFix = await dbContext.StageEnemies
-            .Where(e => e.Placement == PlacementType.Terrestrial)
-            .ToListAsync();
-
-        var fixedCount = 0;
-        foreach (var enemy in enemiesToFix)
-        {
-            var key = (enemy.Region, enemy.Name, enemy.Type);
-            if (aerialEnemies.TryGetValue(key, out var expectedPlacement) && enemy.Placement != expectedPlacement)
-            {
-                enemy.Placement = expectedPlacement;
-                fixedCount++;
-            }
-        }
-
-        if (fixedCount > 0)
-        {
-            await dbContext.SaveChangesAsync();
-            Console.WriteLine($"Fixed {fixedCount} enemy placement(s) (Terrestrial → Aerial).");
-        }
+        Console.WriteLine($"Seeded {enemies.Count} stage enemies ({enemies.Count(e => e.Type == EnemyType.Boss)} bosses, {enemies.Count(e => e.Type == EnemyType.Normal)} normal)");
     }
 
     private static Dictionary<int, BossStats> GetForestBossStats()
@@ -239,6 +208,8 @@ public static partial class SeedData
         {
             RegionType.Forest => 0,
             RegionType.Swamp => 100,
+            RegionType.Mountains => 200,
+            RegionType.Snowy => 300,
             _ => 0
         };
 
@@ -285,6 +256,154 @@ public static partial class SeedData
             { 8, new BossStats(780, 40, 11, 22, 0.18, 130, 0.5, 0.2) },
             { 9, new BossStats(1000, 34, 6, 28, 0.12, 140, 0.5, 0.2) },
             { 10, new BossStats(1400, 45, 10, 35, 0.20, 250, 0.8, 0.4) }
+        };
+    }
+
+    private static void SeedMountainsNormals(HashSet<string> existingNormalNames, List<StageEnemy> enemies)
+    {
+        var basePath = "/sprites/games/my-tuno/enemies/mountains";
+        var normals = new List<(string Name, int HP, int Power, int Speed, int Defense, PlacementType Placement)>
+        {
+            ("Goat", 70, 9, 6, 7, PlacementType.Terrestrial),
+            ("Hound", 55, 12, 9, 4, PlacementType.Terrestrial),
+            ("Hyena", 60, 13, 8, 3, PlacementType.Terrestrial),
+            ("Lynx", 50, 14, 10, 3, PlacementType.Terrestrial),
+            ("Monkey", 45, 10, 11, 3, PlacementType.Terrestrial),
+            ("Elephant", 95, 11, 3, 10, PlacementType.Terrestrial),
+            ("Rhino", 85, 15, 4, 9, PlacementType.Terrestrial),
+            ("Bear", 80, 13, 5, 8, PlacementType.Terrestrial),
+            ("Vulture", 40, 11, 12, 2, PlacementType.Aerial),
+            ("Pigeon", 35, 7, 13, 1, PlacementType.Aerial)
+        };
+
+        foreach (var (name, hp, power, speed, defense, placement) in normals)
+        {
+            if (!existingNormalNames.Contains($"Mountains:{name}"))
+            {
+                enemies.Add(StageEnemy.Create(
+                    name: name,
+                    type: EnemyType.Normal,
+                    region: RegionType.Mountains,
+                    baseHP: hp,
+                    basePower: power,
+                    baseSpeed: speed,
+                    baseDefense: defense,
+                    spritePath: $"{basePath}/{name.ToLowerInvariant()}.png",
+                    placement: placement
+                ));
+            }
+        }
+    }
+
+    private static void SeedMountainsBosses(HashSet<int> existingBossStages, List<StageEnemy> enemies)
+    {
+        var bossWebBasePath = "/sprites/games/my-tuno/enemies/mountains";
+        var bossStats = GetMountainsBossStats();
+        var bossSeeds = new List<BossSeedInfo>
+        {
+            new(1, "Alpine Guardian", $"{bossWebBasePath}/boss_1_alpine.png"),
+            new(2, "Alpaca Chief", $"{bossWebBasePath}/boss_2_alpaca.png"),
+            new(3, "Bull Titan", $"{bossWebBasePath}/boss_3_bull.png"),
+            new(4, "Giraffe Sage", $"{bossWebBasePath}/boss_4_giraffe.png"),
+            new(5, "Snow Leopard", $"{bossWebBasePath}/boss_5_leopard.png"),
+            new(6, "Mountain Fox", $"{bossWebBasePath}/boss_6_fox.png"),
+            new(7, "Alpha Wolf", $"{bossWebBasePath}/boss_7_wolf.png"),
+            new(8, "Harpy", $"{bossWebBasePath}/boss_8_harpy.png", PlacementType.Aerial),
+            new(9, "Mountain Gorilla", $"{bossWebBasePath}/boss_9_gorilla.png"),
+            new(10, "Stone Golem", $"{bossWebBasePath}/boss_10_golem.png")
+        };
+
+        SeedBosses(bossSeeds, bossStats, RegionType.Mountains, existingBossStages, enemies);
+    }
+
+    private static Dictionary<int, BossStats> GetMountainsBossStats()
+    {
+        return new Dictionary<int, BossStats>
+        {
+            { 1, new BossStats(600, 24, 5, 18, 0.10, 60, 0.5, 0.2) },
+            { 2, new BossStats(700, 28, 7, 20, 0.12, 70, 0.5, 0.2) },
+            { 3, new BossStats(650, 34, 10, 15, 0.15, 80, 0.5, 0.2) },
+            { 4, new BossStats(680, 32, 12, 16, 0.14, 90, 0.5, 0.2) },
+            { 5, new BossStats(800, 26, 6, 24, 0.08, 100, 0.5, 0.2) },
+            { 6, new BossStats(750, 36, 8, 20, 0.12, 110, 0.5, 0.2) },
+            { 7, new BossStats(850, 30, 9, 26, 0.10, 120, 0.5, 0.2) },
+            { 8, new BossStats(780, 40, 11, 22, 0.18, 130, 0.5, 0.2) },
+            { 9, new BossStats(1000, 34, 6, 28, 0.12, 140, 0.5, 0.2) },
+            { 10, new BossStats(1400, 45, 10, 35, 0.20, 250, 0.8, 0.4) }
+        };
+    }
+
+    private static void SeedSnowyNormals(HashSet<string> existingNormalNames, List<StageEnemy> enemies)
+    {
+        var basePath = "/sprites/games/my-tuno/enemies/snowy";
+        var normals = new List<(string Name, int HP, int Power, int Speed, int Defense, PlacementType Placement)>
+        {
+            ("Wolf", 65, 12, 8, 5, PlacementType.Terrestrial),
+            ("Fox", 45, 10, 11, 3, PlacementType.Terrestrial),
+            ("Bear", 90, 14, 4, 9, PlacementType.Terrestrial),
+            ("Owl", 40, 9, 12, 2, PlacementType.Aerial),
+            ("Panda", 85, 11, 5, 10, PlacementType.Terrestrial),
+            ("Penguin", 50, 8, 7, 6, PlacementType.Terrestrial),
+            ("Rabbit", 35, 7, 14, 2, PlacementType.Terrestrial),
+            ("Reindeer", 75, 10, 8, 7, PlacementType.Terrestrial),
+            ("Snowman", 70, 8, 3, 12, PlacementType.Terrestrial),
+            ("Mammoth", 100, 13, 3, 11, PlacementType.Terrestrial)
+        };
+
+        foreach (var (name, hp, power, speed, defense, placement) in normals)
+        {
+            if (!existingNormalNames.Contains($"Snowy:{name}"))
+            {
+                enemies.Add(StageEnemy.Create(
+                    name: name,
+                    type: EnemyType.Normal,
+                    region: RegionType.Snowy,
+                    baseHP: hp,
+                    basePower: power,
+                    baseSpeed: speed,
+                    baseDefense: defense,
+                    spritePath: $"{basePath}/{name.ToLowerInvariant()}.png",
+                    placement: placement
+                ));
+            }
+        }
+    }
+
+    private static void SeedSnowyBosses(HashSet<int> existingBossStages, List<StageEnemy> enemies)
+    {
+        var bossWebBasePath = "/sprites/games/my-tuno/enemies/snowy";
+        var bossStats = GetSnowyBossStats();
+        var bossSeeds = new List<BossSeedInfo>
+        {
+            new(1, "Ice Golem", $"{bossWebBasePath}/boss_1_golem.png"),
+            new(2, "Frost Snowman", $"{bossWebBasePath}/boss_2_snoman.png"),
+            new(3, "Winter Owl", $"{bossWebBasePath}/boss_3_owl.png", PlacementType.Aerial),
+            new(4, "Panda Warlord", $"{bossWebBasePath}/boss_4_panda.png"),
+            new(5, "Saber Tiger", $"{bossWebBasePath}/boss_5_tiger.png"),
+            new(6, "Emperor Penguin", $"{bossWebBasePath}/boss_6_penguin.png"),
+            new(7, "Yeti", $"{bossWebBasePath}/boss_7_yeti.png"),
+            new(8, "Dire Wolf", $"{bossWebBasePath}/boss_8_direwolf.png"),
+            new(9, "Ancient Mammoth", $"{bossWebBasePath}/boss_9_mammoth.png"),
+            new(10, "Frost Drake", $"{bossWebBasePath}/boss_10_drake.png")
+        };
+
+        SeedBosses(bossSeeds, bossStats, RegionType.Snowy, existingBossStages, enemies);
+    }
+
+    private static Dictionary<int, BossStats> GetSnowyBossStats()
+    {
+        return new Dictionary<int, BossStats>
+        {
+            { 1, new BossStats(650, 26, 5, 20, 0.10, 70, 0.5, 0.2) },
+            { 2, new BossStats(750, 30, 7, 22, 0.12, 80, 0.5, 0.2) },
+            { 3, new BossStats(700, 36, 10, 17, 0.15, 90, 0.5, 0.2) },
+            { 4, new BossStats(730, 34, 12, 18, 0.14, 100, 0.5, 0.2) },
+            { 5, new BossStats(850, 28, 6, 26, 0.08, 110, 0.5, 0.2) },
+            { 6, new BossStats(800, 38, 8, 22, 0.12, 120, 0.5, 0.2) },
+            { 7, new BossStats(900, 32, 9, 28, 0.10, 130, 0.5, 0.2) },
+            { 8, new BossStats(830, 42, 11, 24, 0.18, 140, 0.5, 0.2) },
+            { 9, new BossStats(1100, 36, 6, 30, 0.12, 150, 0.5, 0.2) },
+            { 10, new BossStats(1500, 48, 10, 38, 0.20, 300, 0.8, 0.4) }
         };
     }
 

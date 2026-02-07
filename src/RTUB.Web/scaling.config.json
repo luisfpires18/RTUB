@@ -1,6 +1,6 @@
 {
   "myTuno": {
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Luta contra inimigos e melhora o teu personagem através de combates! Jogo irá estar em constante mudança",
     "nextFeatures": "Novos modos de jogo, equipamento personalizável, gráficos melhorados.",
 
@@ -14,21 +14,21 @@
       "criticalChance": 0.01
     },
     "levelScaling": {
-      "statMultiplierPerLevel": 0.1,
-      "xpPerLevelBase": 100
+      "statMultiplierPerLevel": 0.15,
+      "xpPerLevelBase": 120
     },
     "upgrades": {
       "hp": {
         "initialBought": 0,
         "bonusPerUpgrade": 10,
         "baseCost": 5,
-        "maxUpgrades": 1500
+        "maxUpgrades": 3000
       },
       "power": {
         "initialBought": 0,
         "bonusPerUpgrade": 2,
         "baseCost": 10,
-        "maxUpgrades": 1500
+        "maxUpgrades": 3000
       },
       "speed": {
         "initialBought": 0,
@@ -46,7 +46,7 @@
         "initialBought": 0,
         "bonusPerUpgrade": 2,
         "baseCost": 12,
-        "maxUpgrades": 1500
+        "maxUpgrades": 3000
       }
     },
     "defenseK": 50,
@@ -60,7 +60,7 @@
       "shotBuffMultiplier": 1.20
     },
 
-    "beerDropChance": 0.5,
+    "beerDropChance": 0.05,
 
     "battleRewards": {
       "winReward": 15,
@@ -93,19 +93,19 @@
       "bossXPMultiplier": 10,
       "stageRewardScalingFactor": 0.05,
       "enemyScaling": {
-        "hpPerStage": 0.5,
-        "powerPerStage": 0.5,
-        "speedPerStage": 0.05,
-        "defensePerStage": 0.2,
-        "criticalChancePerStage": 0.003
+        "hpPerStage": 0.66,
+        "powerPerStage": 0.66,
+        "speedPerStage": 0.08,
+        "defensePerStage": 0.33,
+        "criticalChancePerStage": 0.007
       },
       "baseEnemyStats": {
         "normal": {
-          "hp": 100,
-          "power": 10,
+          "hp": 150,
+          "power": 15,
           "speed": 5,
-          "defense": 5,
-          "criticalChance": 0.05
+          "defense": 8,
+          "criticalChance": 0.06
         },
         "boss": {
           "hp": 350,
@@ -116,8 +116,8 @@
         }
       },
       "dropRates": {
-        "beerDropChance": 0.10,
-        "shotDropChance": 0.05,
+        "beerDropChance": 0.05,
+        "shotDropChance": 0.02,
         "bossDropMultiplier": 3.0
       },
       "fidelisRewards": {
@@ -131,7 +131,7 @@
           "stageMax": 100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.0
+          "difficultyMultiplier": 1.1
         },
         {
           "name": "Swamp",
@@ -139,63 +139,63 @@
           "stageMax": 200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.15
+          "difficultyMultiplier": 1.4
         },
         {
           "name": "Mountains",
           "stageMin": 201,
           "stageMax": 300,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/mountains",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.30
+          "difficultyMultiplier": 1.7
         },
         {
           "name": "Snowy",
           "stageMin": 301,
           "stageMax": 400,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.45
+          "difficultyMultiplier": 2
         },
         {
-          "name": "Ruins",
+          "name": "Tropical",
           "stageMin": 401,
           "stageMax": 500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.60
+          "difficultyMultiplier": 2.3
         },
         {
-          "name": "Tropical",
+          "name": "Caverns",
           "stageMin": 501,
           "stageMax": 600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.75
+          "difficultyMultiplier": 2.6
         },
         {
-          "name": "Caverns",
+          "name": "Desert",
           "stageMin": 601,
           "stageMax": 700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.90
+          "difficultyMultiplier": 3
         },
         {
-          "name": "Desert",
+          "name": "Volcanic",
           "stageMin": 701,
           "stageMax": 800,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.05
+          "difficultyMultiplier": 3.5
         },
         {
-          "name": "Volcanic",
+          "name": "Ruins",
           "stageMin": 801,
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.20
+          "difficultyMultiplier": 4
         },
         {
           "name": "Dark",
@@ -203,7 +203,7 @@
           "stageMax": 1000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.50
+          "difficultyMultiplier": 5
         }
       ],
       "encounterRules": {
@@ -217,9 +217,9 @@
         ]
       },
       "scaling": {
-        "hpGrowthPerStage": 0.1,
-        "damageGrowthPerStage": 0.1,
-        "armorGrowthPerStage": 0.5,
+        "hpGrowthPerStage": 0.15,
+        "damageGrowthPerStage": 0.15,
+        "armorGrowthPerStage": 0.6,
         "bossMultiplier": 2.5
       }
     },

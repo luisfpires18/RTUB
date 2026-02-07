@@ -27,29 +27,29 @@ public enum RegionType
     Snowy = 3,
 
     /// <summary>
-    /// Stages 401-500: Ruins region
+    /// Stages 401-500: Tropical region
     /// </summary>
-    Ruins = 4,
+    Tropical = 4,
 
     /// <summary>
-    /// Stages 501-600: Tropical region
+    /// Stages 501-600: Caverns region
     /// </summary>
-    Tropical = 5,
+    Caverns = 5,
 
     /// <summary>
-    /// Stages 601-700: Caverns region
+    /// Stages 601-700: Desert region
     /// </summary>
-    Caverns = 6,
+    Desert = 6,
 
     /// <summary>
-    /// Stages 701-800: Desert region
+    /// Stages 701-800: Volcanic region
     /// </summary>
-    Desert = 7,
+    Volcanic = 7,
 
     /// <summary>
-    /// Stages 801-900: Volcanic region
+    /// Stages 801-900: Ruins region
     /// </summary>
-    Volcanic = 8,
+    Ruins = 8,
 
     /// <summary>
     /// Stages 901-1000: Dark region

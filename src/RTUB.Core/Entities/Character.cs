@@ -98,9 +98,14 @@ public class Character : BaseEntity
     public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
         + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
+    /// <summary>
+    /// Maximum critical chance cap (50%)
+    /// </summary>
+    public const double MaxCriticalChance = 0.5;
+
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance =>
-        Math.Min(1, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
+        Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalDefense => (int)(Defense * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
@@ -117,17 +122,19 @@ public class Character : BaseEntity
     public const double MinActionTime = 1.0;
     
     /// <summary>
-    /// Time reduction per speed upgrade in seconds
+    /// Time reduction per speed upgrade in seconds.
+    /// At 40 upgrades: 40 × 0.075 = 3.0s reduction from upgrades alone.
+    /// Combined with TotalSpeed scaling, reaches 1.0s minimum at max upgrades.
     /// </summary>
-    public const double ActionTimeReductionPerUpgrade = 0.1;
+    public const double ActionTimeReductionPerUpgrade = 0.075;
 
     /// <summary>
     /// Seconds of action time reduced per point of TotalSpeed.
     /// Provides a small but meaningful speed scaling from the Speed stat itself,
     /// so enemies with high scaled speed (from higher stages) attack faster.
-    /// At TotalSpeed=20 this provides 0.6s reduction, at TotalSpeed=50 it's 1.5s.
+    /// At TotalSpeed=50 this provides 1.0s reduction.
     /// </summary>
-    public const double ActionTimeReductionPerSpeedPoint = 0.03;
+    public const double ActionTimeReductionPerSpeedPoint = 0.02;
 
     /// <summary>
     /// Calculates the action time in seconds.

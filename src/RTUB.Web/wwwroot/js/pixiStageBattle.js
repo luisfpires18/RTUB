@@ -103,9 +103,6 @@
                 this.enemyPlacements = Array(this.enemyCount).fill(0); // Default all terrestrial
             }
             
-            // Shot buff status for blue glow overlay
-            this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? false;
-            
             console.log('StageBattleScene constructor - Stage:', this.stageNumber, 'PlacementsData:', placementsData, 'Set placements:', this.enemyPlacements);
             
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
@@ -346,12 +343,6 @@
             
             this.stage.addChild(this.playerSprite);
             
-            // Add blue glow border when shot buff is active
-            this.playerBuffGlow = null;
-            if (this.hasShotBuff) {
-                this.createPlayerBuffGlow(playerX, playerY, scale);
-            }
-            
             this.playerX = playerX;
             this.playerDisplayHeight = this.playerSprite.height * scale;
             
@@ -424,33 +415,6 @@
                 bobAmplitude: 3,
                 swayAmplitude: 2
             };
-        }
-
-        createPlayerBuffGlow(playerX, playerY, scale) {
-            // Create a blue aura effect using a tinted copy of the player sprite behind it
-            const auraContainer = new PIXI.Container();
-            auraContainer.x = playerX;
-            auraContainer.y = playerY;
-            
-            // Create multiple scaled, tinted copies of the sprite for a layered aura
-            const auraLayers = [0.18, 0.14, 0.10]; // alpha values from outer to inner
-            const scaleOffsets = [1.18, 1.12, 1.06]; // scale multipliers from outer to inner
-            
-            this.auraSprites = [];
-            for (let i = 0; i < auraLayers.length; i++) {
-                const auraSpr = PIXI.Sprite.from('stagePlayer');
-                auraSpr.anchor.set(0.5, 1);
-                auraSpr.scale.set(scale * scaleOffsets[i]);
-                auraSpr.tint = 0x00bfff;
-                auraSpr.alpha = auraLayers[i];
-                auraContainer.addChild(auraSpr);
-                this.auraSprites.push(auraSpr);
-            }
-            
-            // Insert aura behind the player sprite
-            const playerIndex = this.stage.getChildIndex(this.playerSprite);
-            this.stage.addChildAt(auraContainer, playerIndex);
-            this.playerBuffGlow = auraContainer;
         }
 
         createEnemies(width, height) {
@@ -864,20 +828,6 @@
                 const swayX = Math.sin(this.idleAnimationTime * 0.8 + po.phase * 1.3) * po.swayAmplitude;
                 this.playerSprite.y = po.baseY + bobY;
                 this.playerSprite.x = po.baseX + swayX;
-                
-                // Move buff aura with player and pulse
-                if (this.playerBuffGlow && !this.playerBuffGlow.destroyed) {
-                    this.playerBuffGlow.x = po.baseX + swayX;
-                    this.playerBuffGlow.y = po.baseY + bobY;
-                    // Pulse each aura layer with slightly offset phases for a breathing effect
-                    if (this.auraSprites) {
-                        const baseAlphas = [0.18, 0.14, 0.10];
-                        for (let i = 0; i < this.auraSprites.length; i++) {
-                            const pulse = 0.7 + Math.sin(this.idleAnimationTime * 2.0 + i * 0.5) * 0.3;
-                            this.auraSprites[i].alpha = baseAlphas[i] * pulse;
-                        }
-                    }
-                }
             }
 
             // Animate enemies with a gentle floating/bobbing motion
@@ -1459,7 +1409,6 @@
             this.playerSpritePath = data?.playerSpritePath ?? this.playerSpritePath;
             this.enemySpritePaths = data?.enemySprites ?? [];
             this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
-            this.hasShotBuff = data?.hasShotBuff ?? this.hasShotBuff ?? false;
             
             console.log('resetForNextBattle - Stage:', this.stageNumber, 'Received placements:', data?.enemyPlacements, 'Set placements:', this.enemyPlacements);
             
@@ -1638,7 +1587,6 @@
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
             const dotNetRef = battleData?.DotNetRef ?? battleData?.dotNetRef ?? null;
-            const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -1652,8 +1600,7 @@
                 backgroundPath: backgroundPath,
                 playerSpritePath: playerSpritePath,
                 enemySprites: enemySprites,
-                enemyPlacements: enemyPlacements,
-                hasShotBuff: hasShotBuff
+                enemyPlacements: enemyPlacements
             });
         }
     };

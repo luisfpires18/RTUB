@@ -71,8 +71,10 @@ public class UpgradeService : IUpgradeService
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
 
-        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.5
-        var cost = baseCost * (decimal)Math.Pow(1 + upgradeCount, 1.5);
+        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ exponent
+        // Speed uses a steeper exponent (1.8) to make it more costly than other stats
+        var exponent = statType == StatType.Speed ? 1.8 : 1.5;
+        var cost = baseCost * (decimal)Math.Pow(1 + upgradeCount, exponent);
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -153,7 +155,9 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
                     }
 
-                    var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, 1.5);
+                    // Speed uses a steeper exponent (1.8) to make it more costly than other stats
+                    var exponent = statType == StatType.Speed ? 1.8 : 1.5;
+                    var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, exponent);
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     // Validate sufficient balance
@@ -302,7 +306,9 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
             }
 
-            var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, 1.5);
+            // Speed uses a steeper exponent (1.8) to make it more costly than other stats
+            var exponent = statType == StatType.Speed ? 1.8 : 1.5;
+            var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, exponent);
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

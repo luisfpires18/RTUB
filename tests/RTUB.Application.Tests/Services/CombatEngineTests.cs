@@ -457,15 +457,15 @@ public class CombatEngineTests
     /// Verifies that TotalCriticalChance is capped at 1.0 (100%)
     /// </summary>
     [Fact]
-    public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToOne()
+    public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToFiftyPercent()
     {
         // Arrange
         var character = Character.Create("user1");
         character.CriticalChance = 0.50;
-        character.CriticalUpgrades = 200; // Way more than enough to exceed 100%
+        character.CriticalUpgrades = 200; // Way more than enough to exceed 50%
 
-        // Act & Assert
-        character.TotalCriticalChance.Should().Be(1.0);
+        // Act & Assert - Capped at 50%
+        character.TotalCriticalChance.Should().Be(0.5);
     }
 
     /// <summary>
@@ -509,14 +509,14 @@ public class CombatEngineTests
     /// Verifies that with 100% crit chance, all attacks are crits
     /// </summary>
     [Fact]
-    public void Simulate_With100PercentCritChance_ShouldAlwaysCrit()
+    public void Simulate_WithMaxCritChance_ShouldCritFrequently()
     {
-        // Arrange
+        // Arrange - 50% is the max crit cap
         var attacker = Character.Create("user1");
         attacker.HP = 1000;
         attacker.Power = 100;
         attacker.Speed = 100;
-        attacker.CriticalChance = 1.0; // 100% crit
+        attacker.CriticalChance = 0.50; // 50% crit (max cap)
 
         var defender = Character.Create("user2");
         defender.HP = 10000;
@@ -532,10 +532,10 @@ public class CombatEngineTests
             .Select(e => e.Damage!.Value)
             .ToList();
 
-        // Assert - All damage should be at or above min crit damage (Power * 0.8 * 2)
+        // Assert - With 50% crit chance, a significant portion should be crits
         var minCritDamage = (int)(attacker.Power * 0.8 * 2);
-        attackDamages.Should().OnlyContain(d => d >= minCritDamage - 1, // -1 for rounding
-            "with 100% crit chance, all attacks should be critical hits");
+        var critCount = attackDamages.Count(d => d >= minCritDamage - 1);
+        critCount.Should().BeGreaterThan(0, "with 50% crit chance, some attacks should be critical hits");
     }
 
     /// <summary>
@@ -750,7 +750,7 @@ public class CombatEngineTests
         attacker.HP = 1000;
         attacker.Power = 100;
         attacker.Speed = 20;
-        attacker.CriticalChance = 1.0; // Always crit
+        attacker.CriticalChance = 0.50; // Max crit chance (50%)
 
         var defender = Character.Create("user2");
         defender.HP = 10000;
@@ -763,26 +763,22 @@ public class CombatEngineTests
         // Act
         var result = _combatEngine.Simulate(attacker, defender, seed);
 
-        // Assert - With 100% crit chance, all attacks should be crits and do 2x base damage (after mitigation)
-        // Expected: rawDamage = power * variance * 2 (crit), then defense reduction
+        // Assert - With 50% crit chance, some attacks should be crits doing 2x base damage (after mitigation)
+        // Non-crit expected: rawDamage = power * variance, then defense reduction
+        // Crit expected: rawDamage = power * variance * 2, then defense reduction
         // With defense=50 and K=50: mult = 50/(50+50) = 0.5
-        // So expected range: (100 * 0.85 * 2) * 0.5 = 85 to (100 * 1.15 * 2) * 0.5 = 115
         var attacks = result.Events
             .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
             .ToList();
 
         attacks.Should().NotBeEmpty();
-        
-        // Crit damage with 50 defense should be roughly half of crit damage
-        // Raw crit damage range: 170-230 (power * variance * 2)
-        // After defense (mult=0.5): 85-115
-        foreach (var attack in attacks)
-        {
-            var damage = attack.Damage!.Value;
-            // Crit damage after defense should be around 85-115 range
-            damage.Should().BeGreaterThanOrEqualTo(80, "crit damage after defense should be significant");
-            damage.Should().BeLessThanOrEqualTo(120, "damage should be crit * 0.5 due to defense");
-        }
+
+        // With 50% crit, we expect a mix of normal and crit hits
+        // Normal damage after defense: (100 * 0.85~1.15) * 0.5 = ~42-57
+        // Crit damage after defense: (100 * 0.85~1.15 * 2) * 0.5 = ~85-115
+        // Some attacks should be crits (higher damage)
+        var highDamageCount = attacks.Count(a => a.Damage!.Value >= 80);
+        highDamageCount.Should().BeGreaterThan(0, "with 50% crit chance, some attacks should be critical hits with higher damage");
     }
 
     [Theory]

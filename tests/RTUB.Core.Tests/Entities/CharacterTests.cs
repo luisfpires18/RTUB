@@ -374,15 +374,15 @@ public class CharacterTests
     }
 
     [Fact]
-    public void TotalCriticalChance_WhenExceedsOne_ShouldClampToOne()
+    public void TotalCriticalChance_WhenExceedsMax_ShouldClampToFiftyPercent()
     {
         // Arrange
         var character = Character.Create("user-123");
         character.CriticalChance = 0.50; // 50% base
         character.CriticalUpgrades = 200; // Would add 100%
 
-        // Act & Assert - Should be capped at 1.0 (100%)
-        character.TotalCriticalChance.Should().Be(1.0);
+        // Act & Assert - Should be capped at 0.5 (50%)
+        character.TotalCriticalChance.Should().Be(0.5);
     }
 
     [Fact]
