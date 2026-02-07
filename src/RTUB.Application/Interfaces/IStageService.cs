@@ -76,8 +76,9 @@ public interface IStageService
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
+    /// Optionally restores the character's HP to the value they had before the run started.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null);
 
     /// <summary>
     /// Gets the biome name for a given stage number

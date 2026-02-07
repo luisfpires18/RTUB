@@ -312,13 +312,25 @@ public class StageBiomeService : IStageBiomeService
             return (baseHp, baseDamage);
         }
 
-        // Calculate growth multiplier based on stage number
-        // Formula: stat = baseStat * (1 + growthRate)^stage
-        var hpMultiplier = Math.Pow(1 + scaling.HpGrowthPerStage, stageNumber - 1);
-        var damageMultiplier = Math.Pow(1 + scaling.DamageGrowthPerStage, stageNumber - 1);
+        // Polynomial growth matching the player level formula:
+        // factor = 1 + multiplier * (stage-1)^(1+exponent)
+        var stages = stageNumber - 1;
+        double scaleFactor;
+        if (stages <= 0)
+        {
+            scaleFactor = 1.0;
+        }
+        else
+        {
+            var mult = Core.Configuration.MyTunoScaling.StatMultiplierPerLevel;
+            var exp = Core.Configuration.MyTunoScaling.StatGrowthExponent;
+            scaleFactor = exp == 0.0
+                ? 1.0 + stages * mult
+                : 1.0 + mult * Math.Pow(stages, 1.0 + exp);
+        }
 
-        var scaledHp = (int)(baseHp * hpMultiplier);
-        var scaledDamage = (int)(baseDamage * damageMultiplier);
+        var scaledHp = (int)(baseHp * scaleFactor);
+        var scaledDamage = (int)(baseDamage * scaleFactor);
 
         // Apply boss multiplier if applicable
         if (isBoss)

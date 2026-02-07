@@ -15,55 +15,148 @@
   background: #1a1a1a;
 }
 
-/* Battle result card */
-.battle-result-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4);
+/* ===== Battle Result - Game-style results panel ===== */
+
+.result-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem 0;
 }
 
-.battle-result-body {
-  padding: 2rem;
+.result-panel {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: linear-gradient(180deg, #1a1028 0%, #0d0a14 100%);
+  border: 2px solid rgba(124, 77, 255, 0.4);
+  border-radius: 24px;
+  padding: 3.5rem 2rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.25rem;
-  text-align: center;
+  box-shadow:
+    0 0 40px rgba(124, 77, 255, 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: result-slide-in 0.4s ease-out;
 }
 
-.battle-result-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 1rem;
+@keyframes result-slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.result-banner {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 2.5rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(249, 168, 37, 0.25), rgba(245, 127, 23, 0.35));
-  color: #ffe7b0;
-  font-weight: 600;
+  white-space: nowrap;
 }
 
-.battle-result-title i {
-  font-size: 1.2rem;
+.result-banner-win {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  box-shadow:
+    0 4px 20px rgba(67, 160, 71, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.battle-result-row {
+.result-banner-loss {
+  background: linear-gradient(135deg, #e53935, #c62828);
+  box-shadow:
+    0 4px 20px rgba(229, 57, 53, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.result-banner span {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.result-subtitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.5px;
+}
+
+.result-rewards {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  align-items: center;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.battle-result-label {
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.battle-result-rewards {
+.result-reward-row {
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.result-reward-row i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.result-buff-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.result-buff-row i {
+  font-size: 1rem;
+}
+
+.result-btn {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c4dff, #651fff);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(124, 77, 255, 0.35);
+}
+
+.result-btn:hover {
+  background: linear-gradient(135deg, #9165ff, #7c4dff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(124, 77, 255, 0.5);
+}
+
+.result-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
 }
 
 /* Mobile responsive styles */
@@ -81,43 +174,20 @@
     max-width: 100%;
   }
 
-  .battle-result-body {
-    padding: 1.5rem 1rem;
+  .result-panel {
+    max-width: 340px;
+    padding: 3rem 1.5rem 1.5rem;
   }
 
-  .battle-result-title {
-    font-size: 0.9rem;
-  }
-
-  .battle-result-row {
-    gap: 0.5rem;
+  .result-subtitle {
+    font-size: 1.3rem;
   }
 }
 
 @media (max-width: 480px) {
-  .battle-result-body {
-    padding: 1rem 0.75rem;
-  }
-
-  .battle-result-title {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  .battle-result-title i {
-    font-size: 1rem;
-  }
-
-  .battle-result-label {
-    font-size: 0.9rem;
-  }
-
-  .battle-result-rewards {
-    gap: 0.4rem;
-  }
-
-  .battle-result-rewards .badge {
-    font-size: 0.75rem;
+  .result-panel {
+    max-width: 300px;
+    padding: 2.5rem 1.25rem 1.25rem;
   }
 }
 

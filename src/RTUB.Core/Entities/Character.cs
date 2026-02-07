@@ -85,17 +85,19 @@ public class Character : BaseEntity
     public virtual ApplicationUser User { get; set; } = null!;
 
     // Computed properties (not stored in database)
-    // Stats scale with level: base stats increase by 10% per level
+    // Stats scale with level using polynomial growth:
+    // stat = base * (1 + multiplier * (level-1)^(1+exponent)) + upgrades
+    // When exponent=0 this reduces to simple linear scaling.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalHP => (int)(HP * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+    public int TotalHP => (int)(HP * LevelScaleFactor())
         + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalPower => (int)(Power * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+    public int TotalPower => (int)(Power * LevelScaleFactor())
         + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalSpeed => (int)(Speed * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+    public int TotalSpeed => (int)(Speed * LevelScaleFactor())
         + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
 
     /// <summary>
@@ -108,8 +110,23 @@ public class Character : BaseEntity
         Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(Defense * (1 + (Level - 1) * MyTunoScaling.StatMultiplierPerLevel))
+    public int TotalDefense => (int)(Defense * LevelScaleFactor())
         + (int)(DefenseUpgrades * MyTunoScaling.DefenseUpgradeBonus);
+
+    /// <summary>
+    /// Computes the level-based stat multiplier using polynomial growth.
+    /// Formula: 1 + multiplier * (level-1)^(1+exponent)
+    /// When exponent=0 this is simple linear: 1 + multiplier * (level-1)
+    /// </summary>
+    private double LevelScaleFactor()
+    {
+        var levelsGained = Level - 1;
+        if (levelsGained <= 0) return 1.0;
+        var exponent = MyTunoScaling.StatGrowthExponent;
+        if (exponent == 0.0)
+            return 1.0 + levelsGained * MyTunoScaling.StatMultiplierPerLevel;
+        return 1.0 + MyTunoScaling.StatMultiplierPerLevel * Math.Pow(levelsGained, 1.0 + exponent);
+    }
 
     /// <summary>
     /// Base action time in seconds (how long before a character can attack)

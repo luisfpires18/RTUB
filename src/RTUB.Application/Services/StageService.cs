@@ -103,9 +103,6 @@ public class StageService : IStageService
         if (character == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(Character), characterId);
 
-        if (!character.IsAlive())
-            throw new InvalidOperationException("Personagem derrotado. Precisa de reviver antes de lutar.");
-
         var stageProgress = await GetOrCreateStageProgressAsync(character.UserId);
         
         // Check if shot buff is active - in stage mode, buff lasts until death
@@ -381,13 +378,24 @@ public class StageService : IStageService
             baseHP = (int)(scaledHP * difficultyMultiplier);
             basePower = (int)(scaledPower * difficultyMultiplier);
             
-            // Speed scaling (using simple formula for now)
+            // Speed/Defense scaling — polynomial matching player formula at half/80% rate
             var scaling = stageConfig.EnemyScaling;
-            var speedScaleFactor = 1.0 + (stageNumber - 1) * scaling.SpeedPerStage;
-            baseSpeed = (int)(typeStats.Speed * speedScaleFactor * difficultyMultiplier);
+            var stages = stageNumber - 1;
+            var mult = Core.Configuration.MyTunoScaling.StatMultiplierPerLevel;
+            var exp = Core.Configuration.MyTunoScaling.StatGrowthExponent;
 
-            // Defense scaling
-            var defenseScaleFactor = 1.0 + (stageNumber - 1) * scaling.DefensePerStage;
+            double speedScaleFactor, defenseScaleFactor;
+            if (stages <= 0 || exp == 0.0)
+            {
+                speedScaleFactor = 1.0 + stages * scaling.SpeedPerStage;
+                defenseScaleFactor = 1.0 + stages * scaling.DefensePerStage;
+            }
+            else
+            {
+                speedScaleFactor = 1.0 + (mult * 0.5) * Math.Pow(stages, 1.0 + exp);
+                defenseScaleFactor = 1.0 + (mult * 0.8) * Math.Pow(stages, 1.0 + exp);
+            }
+            baseSpeed = (int)(typeStats.Speed * speedScaleFactor * difficultyMultiplier);
             baseDefense = (int)(typeStats.Defense * defenseScaleFactor * difficultyMultiplier);
             
             var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
@@ -475,11 +483,8 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null)
     {
-        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0)
-            return;
-
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
         {
@@ -487,18 +492,18 @@ public class StageService : IStageService
             return;
         }
 
-        // Apply XP (preserve HP if character is dead — level-up heals to full,
-        // but we must not revive a character who just died in battle)
+        // Restore HP to the value the player had before the run started
+        // null restoreHp means the player entered with full HP (CurrentHP was null)
+        character.CurrentHP = restoreHp;
+        await _characterRepository.UpdateAsync(character);
+
+        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0)
+            return;
+
+        // Apply XP
         if (xp > 0)
         {
-            var hpBeforeXP = character.CurrentHP;
-            var wasAlive = character.IsAlive();
             character.AddXP(xp);
-            if (!wasAlive)
-            {
-                // Restore dead state — don't let level-up revive a defeated character
-                character.CurrentHP = hpBeforeXP;
-            }
             await _characterRepository.UpdateAsync(character);
         }
 
@@ -530,10 +535,11 @@ public class StageService : IStageService
 
     /// <summary>
     /// Updates character HP, XP and stage progress after battle.
+    /// On victory: reduces HP and advances stage.
+    /// On defeat: restores HP to full (no death in stage mode).
     /// Only persists StageProgress when there's a new record:
     /// - HighestStage increased (player beat their previous best)
     /// - EndlessModeUnlocked changed (beat stage 10000)
-    /// No writes when player dies at a stage below their record.
     /// Handles concurrency exceptions by reloading entities and retrying.
     /// </summary>
     private async Task UpdateCharacterAndProgressAsync(
@@ -625,14 +631,8 @@ public class StageService : IStageService
         var previousHighestStage = stageProgress.HighestStage;
         var previousEndlessModeUnlocked = stageProgress.EndlessModeUnlocked;
 
-        // Update character HP from combat result
-        character.CurrentHP = combatResult.AttackerFinalHP;
-        
-        // Decrement shot buff on stage death (costs 1 charge per death)
-        if (combatResult.Outcome == BattleOutcome.DefenderWon && character.ShotBuffBattlesRemaining > 0)
-        {
-            character.ShotBuffBattlesRemaining--;
-        }
+        // Always restore HP to full after every stage battle (no HP carry-over)
+        character.CurrentHP = null; // null = full HP
         
         await _characterRepository.UpdateAsync(character);
 

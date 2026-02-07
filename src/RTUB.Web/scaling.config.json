@@ -15,6 +15,7 @@
     },
     "levelScaling": {
       "statMultiplierPerLevel": 0.15,
+      "statGrowthExponent": 0.15,
       "xpPerLevelBase": 120
     },
     "upgrades": {
@@ -70,6 +71,8 @@
       "xpScalingFactor": 0.08,
       "minXpMultiplier": 0.2,
       "maxXpMultiplier": 3.0,
+      "attackerLevelXpScale": 0.08,
+      "attackerLevelFidelisScale": 0.06,
       "reviveCost": 30,
       "restoreHPCost": 20,
       "fidelisLevelMultiplier": 0.1

@@ -347,16 +347,16 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void CalculateScaledStats_Stage50_ShowsExponentialGrowth()
+    public void CalculateScaledStats_Stage50_ShowsPolynomialGrowth()
     {
-        // Test that stats grow exponentially
+        // Test that stats grow polynomially (faster than linear, slower than exponential)
         // Act
         var (hp10, _) = _service.CalculateScaledStats(10, 100, 10, isBoss: false);
         var (hp50, _) = _service.CalculateScaledStats(50, 100, 10, isBoss: false);
 
         // Assert
-        // HP at stage 50 should be much higher than at stage 10 due to exponential growth
-        Assert.True(hp50 > hp10 * 5, $"Stage 50 HP ({hp50}) should be > 5x stage 10 HP ({hp10})");
+        // HP at stage 50 should be significantly higher than at stage 10 due to polynomial growth
+        Assert.True(hp50 > hp10 * 3, $"Stage 50 HP ({hp50}) should be > 3x stage 10 HP ({hp10})");
     }
 
     #endregion

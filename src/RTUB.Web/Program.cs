@@ -131,6 +131,7 @@ public class Program
                 myTunoScaling.BaseStats.Defense,
                 myTunoScaling.BaseStats.CriticalChance,
                 myTunoScaling.LevelScaling.StatMultiplierPerLevel,
+                myTunoScaling.LevelScaling.StatGrowthExponent,
                 myTunoScaling.LevelScaling.XpPerLevelBase,
                 myTunoScaling.Upgrades.HP.InitialBought,
                 myTunoScaling.Upgrades.Power.InitialBought,

@@ -91,62 +91,44 @@
             </div>
         }
 
-        <!-- Battle Result -->
-        @if (currentBattle != null && !showBattleAnimation)
+        <!-- Battle Result Summary (game-style panel) -->
+        @if (showResultSummary && currentBattle != null)
         {
-            <div class="card mb-4 battle-result-card">
-                <div class="card-body battle-result-body">
-                    <div class="battle-result-title">
-                        <i class="bi bi-trophy"></i>
-                        <h5 class="mb-0">Batalha Concluída!</h5>
+            <div class="result-overlay">
+                <div class="result-panel">
+                    <div class="result-banner @(currentBattle.Outcome == BattleOutcome.AttackerWon ? "result-banner-win" : "result-banner-loss")">
+                        <span>@(currentBattle.Outcome == BattleOutcome.AttackerWon ? "VITÓRIA" : currentBattle.Outcome == BattleOutcome.DefenderWon ? "DERROTA" : "EMPATE")</span>
                     </div>
-                    <div class="battle-result-row">
-                        <span class="battle-result-label">Resultado:</span>
-                        @if (currentBattle.Outcome == BattleOutcome.AttackerWon)
-                        {
-                            <span class="badge bg-success">Vitória</span>
-                        }
-                        else if (currentBattle.Outcome == BattleOutcome.DefenderWon)
-                        {
-                            <span class="badge bg-danger">Derrota</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark">Empate</span>
-                        }
-                    </div>
-                    <div class="battle-result-row">
-                        <span class="battle-result-label">Recompensas:</span>
-                        <div class="battle-result-rewards">
-                            <span class="badge bg-info">+@currentBattle.AttackerXP XP</span>
-                            <span class="badge bg-success">+@currentBattle.AttackerFidelis.ToString("F2") Fidelis</span>
+                    <div class="result-subtitle">Arena</div>
+                    <div class="result-rewards">
+                        <div class="result-reward-row">
+                            <i class="bi bi-star-fill text-warning"></i>
+                            <span>+@currentBattle.AttackerXP XP</span>
+                        </div>
+                        <div class="result-reward-row">
+                            <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                            <span>+@currentBattle.AttackerFidelis.ToString("F0") Fidelis</span>
                         </div>
                     </div>
-                    
-                    <!-- Shot Buff Status -->
                     @if (character?.ShotBuffBattlesRemaining > 0)
                     {
-                        <div class="battle-result-row">
-                            <span class="battle-result-label">Buff de Shot:</span>
-                            <span class="badge bg-info">
-                                <i class="bi bi-droplet-fill me-1"></i>
-                                @if (character.ShotBuffBattlesRemaining == 1)
-                                {
-                                    <text>1 batalha restante</text>
-                                }
-                                else
-                                {
-                                    <text>@character.ShotBuffBattlesRemaining batalhas restantes</text>
-                                }
+                        <div class="result-buff-row">
+                            <i class="bi bi-droplet-fill text-info"></i>
+                            <span>
+                                Shot Buff: @character.ShotBuffBattlesRemaining
+                                @(character.ShotBuffBattlesRemaining == 1 ? "batalha restante" : "batalhas restantes")
                             </span>
                         </div>
                     }
+                    <button class="result-btn" @onclick="ResultGoBack">
+                        IR MY TUNO
+                    </button>
                 </div>
             </div>
         }
 
         <!-- Arena Statistics -->
-        @if (character != null)
+        @if (character != null && !showResultSummary)
         {
             <div class="d-flex justify-content-center gap-3 mb-4">
                 <div class="stat-box-square">
@@ -160,8 +142,8 @@
             </div>
         }
 
-        <!-- Opponent Selection - Only show when battle is not active -->
-        @if (!showBattleAnimation)
+        <!-- Opponent Selection - Only show when battle/result is not active -->
+        @if (!showBattleAnimation && !showResultSummary)
         {
             <div class="card">
                 <div class="card-header bg-primary text-white">
@@ -208,6 +190,7 @@
     private bool loading = true;
     private bool fighting = false;
     private bool showBattleAnimation = false;
+    private bool showResultSummary = false;
     private int? fightingOpponentId = null;
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
@@ -326,6 +309,7 @@
             fighting = true;
             fightingOpponentId = opponent.Id;
             showBattleAnimation = true;
+            showResultSummary = false;
             errorMessage = string.Empty;
             currentBattle = null;
             StateHasChanged();
@@ -491,6 +475,8 @@
             }
         }
         
+        // Show the result summary panel
+        showResultSummary = true;
         StateHasChanged();
     }
 
@@ -527,6 +513,13 @@
         {
             return;
         }
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void ResultGoBack()
+    {
+        showResultSummary = false;
+        currentBattle = null;
         Navigation.NavigateTo("/my-tuno");
     }
 

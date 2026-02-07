@@ -314,20 +314,42 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteStageBattleAsync_WithDeadCharacter_ShouldThrow()
+    public async Task ExecuteStageBattleAsync_WithDeadCharacter_ShouldStillWork()
     {
-        // Arrange
+        // Arrange - player no longer dies in stage mode, so even a character at 0 HP can fight
+        var user = CreateTestUser();
+        await _context.Users.AddAsync(user);
+
         var character = Character.Create("user1");
-        character.CurrentHP = 0; // Dead character
+        character.CurrentHP = 0;
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
 
-        // Act
-        var act = () => _stageService.ExecuteStageBattleAsync(character.Id);
+        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var combatResult = new Application.DTOs.CombatResult
+        {
+            Outcome = BattleOutcome.AttackerWon,
+            Events = new List<Application.DTOs.CombatEvent>
+            {
+                new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
+            },
+            AttackerFinalHP = 50,
+            DefenderFinalHP = 0
+        };
+
+        _combatEngineMock.Setup(e => e.Simulate(It.IsAny<Character>(), It.IsAny<Character>(), It.IsAny<int>()))
+            .Returns(combatResult);
+
+        // Act - should not throw
+        var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Personagem derrotado*");
+        battle.Should().NotBeNull();
+        battle.Outcome.Should().Be(BattleOutcome.AttackerWon);
     }
 
     [Fact]
@@ -418,12 +440,13 @@ public class StageServiceTests : IDisposable
         // Verify user Fidelis was NOT updated yet (deferred rewards)
         _userManagerMock.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
 
-        // Act - now apply deferred rewards
-        await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0);
+        // Act - now apply deferred rewards (restore HP to pre-run value of 3000)
+        await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0, restoreHp: 3000);
 
-        // Assert - rewards are now applied
+        // Assert - rewards are now applied and HP is restored to pre-run value
         var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
         finalCharacter!.XP.Should().Be(initialXP + 31);
+        finalCharacter.CurrentHP.Should().Be(3000, "HP should be restored to the value before the stage run started");
 
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
             u.FidelisBalance == initialFidelis + 10.35m)), Times.Once);
@@ -467,6 +490,10 @@ public class StageServiceTests : IDisposable
         progress.Should().NotBeNull();
         progress!.CurrentStage.Should().Be(1); // Should remain at stage 1
         progress.TotalStagesCleared.Should().Be(0); // No stages cleared
+
+        // Character HP should be restored to full (no death in stage mode)
+        var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
+        updatedCharacter!.CurrentHP.Should().BeNull(); // null = full HP
     }
 
     [Fact]
@@ -513,6 +540,9 @@ public class StageServiceTests : IDisposable
         // Verify character XP was NOT updated (no consolation rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
         updatedCharacter!.XP.Should().Be(initialXP);
+
+        // Character HP should be restored to full (no death in stage mode)
+        updatedCharacter.CurrentHP.Should().BeNull(); // null = full HP
 
         // Verify user Fidelis was NOT updated (no rewards on defeat)
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
@@ -621,7 +651,7 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteStageBattleAsync_ShouldUpdateCharacterHP()
+    public async Task ExecuteStageBattleAsync_ShouldRestoreFullHPAfterBattle()
     {
         // Arrange
         var user = CreateTestUser();
@@ -643,7 +673,7 @@ public class StageServiceTests : IDisposable
             {
                 new() { Type = "Victory", Winner = "Attacker", Timestamp = 0 }
             },
-            AttackerFinalHP = 75, // Character took some damage
+            AttackerFinalHP = 75, // Character took some damage during combat
             DefenderFinalHP = 0
         };
 
@@ -653,9 +683,9 @@ public class StageServiceTests : IDisposable
         // Act
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
-        // Assert
+        // Assert — HP should always be restored to full (null) after any stage battle
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        updatedCharacter!.CurrentHP.Should().Be(75);
+        updatedCharacter!.CurrentHP.Should().BeNull("HP should be restored to full after every stage battle");
     }
 
     #endregion

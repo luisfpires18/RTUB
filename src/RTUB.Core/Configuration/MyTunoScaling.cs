@@ -11,6 +11,7 @@ public static class MyTunoScaling
     public static double BaseCriticalChance { get; private set; } = 0.01;
 
     public static double StatMultiplierPerLevel { get; private set; } = 0.1;
+    public static double StatGrowthExponent { get; private set; } = 0.0;
     public static int XpPerLevelBase { get; private set; } = 100;
 
     public static int InitialHpUpgrades { get; private set; } = 0;
@@ -51,6 +52,7 @@ public static class MyTunoScaling
         int baseDefense,
         double baseCriticalChance,
         double statMultiplierPerLevel,
+        double statGrowthExponent,
         int xpPerLevelBase,
         int initialHpUpgrades,
         int initialPowerUpgrades,
@@ -74,6 +76,7 @@ public static class MyTunoScaling
         BaseDefense = baseDefense;
         BaseCriticalChance = baseCriticalChance;
         StatMultiplierPerLevel = statMultiplierPerLevel;
+        StatGrowthExponent = statGrowthExponent;
         XpPerLevelBase = xpPerLevelBase;
         InitialHpUpgrades = initialHpUpgrades;
         InitialPowerUpgrades = initialPowerUpgrades;

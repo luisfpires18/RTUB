@@ -70,22 +70,39 @@ public class BattleRewards
     public int BaseDrawXP { get; set; } = 30;
 
     /// <summary>
-    /// XP scaling based on level difference
-    /// Formula: XP = BaseXP * (1.0 + (defenderLevel - attackerLevel) * XpScalingFactor)
+    /// XP scaling based on level difference between attacker and defender.
+    /// Applied after attacker level scaling.
+    /// Formula: levelDiffMultiplier = clamp(1.0 + levelDiff * XpScalingFactor, Min, Max)
     /// </summary>
     public double XpScalingFactor { get; set; } = 0.05; // 5% per level difference
 
     /// <summary>
-    /// Minimum XP multiplier (prevents too little XP from weak opponents)
-    /// Default 0.2 means minimum 20% of base XP
+    /// Minimum level-difference XP multiplier (prevents too little XP from weak opponents)
+    /// Default 0.2 means minimum 20% of level-scaled XP
     /// </summary>
     public double MinXpMultiplier { get; set; } = 0.2;
 
     /// <summary>
-    /// Maximum XP multiplier (prevents too much XP from strong opponents)
-    /// Default 3.0 means maximum 300% of base XP
+    /// Maximum level-difference XP multiplier (prevents too much XP from strong opponents)
+    /// Default 3.0 means maximum 300% of level-scaled XP
     /// </summary>
     public double MaxXpMultiplier { get; set; } = 3.0;
+
+    /// <summary>
+    /// Attacker level scaling factor for XP rewards.
+    /// Scales base XP by attacker level so higher-level players earn proportionally more XP.
+    /// Formula: effectiveBaseXP = BaseXP * (1 + attackerLevel * AttackerLevelXpScale)
+    /// Default 0.08 means +8% per attacker level (level 100 → 9x base XP).
+    /// </summary>
+    public double AttackerLevelXpScale { get; set; } = 0.08;
+
+    /// <summary>
+    /// Attacker level scaling factor for Fidelis rewards.
+    /// Scales base Fidelis by attacker level so higher-level players earn proportionally more.
+    /// Formula: effectiveBaseFidelis = BaseFidelis * (1 + attackerLevel * AttackerLevelFidelisScale)
+    /// Default 0.06 means +6% per attacker level (level 100 → 7x base Fidelis).
+    /// </summary>
+    public double AttackerLevelFidelisScale { get; set; } = 0.06;
 
     /// <summary>
     /// Cost in Fidelis to revive a defeated character
@@ -120,6 +137,7 @@ public class MyTunoBaseStats
 public class MyTunoLevelScaling
 {
     public double StatMultiplierPerLevel { get; set; } = 0.1;
+    public double StatGrowthExponent { get; set; } = 0.0;
     public int XpPerLevelBase { get; set; } = 100;
 }
 

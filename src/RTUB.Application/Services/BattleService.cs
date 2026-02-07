@@ -201,17 +201,11 @@ public class BattleService : IBattleService
         // Apply rewards
         await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
 
-        // Apply HP changes
-        playerCharacter.CurrentHP = result.AttackerFinalHP;
+        // Apply HP changes — always restore to full after arena battle
+        playerCharacter.CurrentHP = null; // null = full HP
 
-        // If buff just expired, scale HP down to unbuffed range
-        if (result.ShotBuffExpired)
-        {
-            var buffMultiplier = _myTunoScalingConfig.Items.ShotBuffMultiplier;
-            var currentHP = playerCharacter.CurrentHP ?? playerCharacter.TotalHP;
-            var unbuffedHP = (int)(currentHP / buffMultiplier);
-            playerCharacter.CurrentHP = Math.Min(unbuffedHP, playerCharacter.TotalHP);
-        }
+        // If buff just expired, no need to scale HP since we're at full
+        // (ShotBuffExpired handling preserved for shot buff battle count tracking)
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
@@ -232,18 +226,20 @@ public class BattleService : IBattleService
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
         var rewards = _myTunoScalingConfig.BattleRewards;
-        // Base rewards scaled by enemy level
-        var levelMultiplier = 1.0 + (defender.Level - 1) * rewards.FidelisLevelMultiplier;
+
+        // Fidelis: scale by both attacker level and defender level
+        var attackerFidelisScale = 1.0 + attacker.Level * rewards.AttackerLevelFidelisScale;
+        var defenderFidelisScale = 1.0 + (defender.Level - 1) * rewards.FidelisLevelMultiplier;
         
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
                 ApplyLevelScaling(rewards.BaseWinXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)rewards.WinReward * levelMultiplier, 2))),
+                (decimal)(Math.Round((double)rewards.WinReward * attackerFidelisScale * defenderFidelisScale, 2))),
             BattleOutcome.DefenderWon => (0, 0m), // No rewards for losing
             BattleOutcome.Draw => (
                 ApplyLevelScaling(rewards.BaseDrawXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)rewards.DrawReward * levelMultiplier, 2))),
+                (decimal)(Math.Round((double)rewards.DrawReward * attackerFidelisScale * defenderFidelisScale, 2))),
             _ => (0, 0m)
         };
     }
@@ -257,17 +253,19 @@ public class BattleService : IBattleService
     {
         var config = _myTunoScalingConfig.BattleRewards;
 
-        // Calculate level difference
+        // Scale base XP by attacker level so higher-level players earn more
+        var attackerScale = 1.0 + attackerLevel * config.AttackerLevelXpScale;
+        var effectiveBaseXp = baseXp * attackerScale;
+
+        // Calculate level-difference multiplier
         var levelDiff = defenderLevel - attackerLevel;
+        var levelDiffMultiplier = 1.0 + (levelDiff * config.XpScalingFactor);
 
-        // Calculate multiplier based on level difference
-        var multiplier = 1.0 + (levelDiff * config.XpScalingFactor);
+        // Clamp level-diff multiplier to prevent extreme values
+        levelDiffMultiplier = Math.Max(config.MinXpMultiplier, Math.Min(config.MaxXpMultiplier, levelDiffMultiplier));
 
-        // Clamp multiplier to prevent extreme values
-        multiplier = Math.Max(config.MinXpMultiplier, Math.Min(config.MaxXpMultiplier, multiplier));
-
-        // Apply multiplier and round to integer
-        var scaledXp = (int)Math.Round(baseXp * multiplier);
+        // Apply both multipliers
+        var scaledXp = (int)Math.Round(effectiveBaseXp * levelDiffMultiplier);
 
         // Ensure at least 1 XP is awarded (unless baseXp is 0)
         if (baseXp > 0 && scaledXp < 1)

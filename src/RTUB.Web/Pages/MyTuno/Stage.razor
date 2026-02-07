@@ -166,78 +166,52 @@
             }
         }
 
-        <!-- Defeat Screen - Only shown when player loses -->
-        @if (currentBattle != null && !showBattleAnimation && currentBattle.Outcome != BattleOutcome.AttackerWon)
+        @if (showDefeatSummary)
         {
-            <div class="card mb-4 battle-result-card">
-                <div class="card-body battle-result-body">
-                    <div class="battle-result-title">
-                        <i class="bi bi-x-circle text-danger"></i>
-                        <h5 class="mb-0">Derrota no Stage @currentBattle.StageNumber</h5>
+            <div class="defeat-overlay">
+                <div class="defeat-panel">
+                    <div class="defeat-banner">
+                        <span>STAGE LIMPA</span>
                     </div>
-
-                    <!-- Run Summary - Show total loot earned before defeat -->
+                    <div class="defeat-stage">Stage @defeatedAtStage</div>
                     @if (stagesCleared > 0)
                     {
-                        <div class="loot-section mt-3">
-                            <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Resumo:</h6>
-                            <div class="battle-result-rewards">
-                                <div class="reward-item">
-                                    <i class="bi bi-check-circle text-success"></i>
-                                    <span>@stagesCleared Stages Completados</span>
-                                </div>
-                                @if (totalXPEarned > 0)
-                                {
-                                    <div class="reward-item">
-                                        <i class="bi bi-star-fill text-warning"></i>
-                                        <span>+@totalXPEarned XP</span>
-                                    </div>
-                                }
-                                @if (totalFidelisEarned > 0)
-                                {
-                                    <div class="reward-item">
-                                        <i class="bi bi-coin text-success"></i>
-                                        <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
-                                    </div>
-                                }
-                                @if (totalBeersDropped > 0)
-                                {
-                                    <div class="reward-item">
-                                        <i class="bi bi-cup-straw text-warning"></i>
-                                        <span>+@totalBeersDropped Cerveja</span>
-                                    </div>
-                                }
-                                @if (totalShotsDropped > 0)
-                                {
-                                    <div class="reward-item">
-                                        <i class="bi bi-cup text-danger"></i>
-                                        <span>+@totalShotsDropped Shot</span>
-                                    </div>
-                                }
+                        <div class="defeat-rewards">
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>@stagesCleared Stages</span>
                             </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <span>+@totalXPEarned XP</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
+                            </div>
+                            @if (totalBeersDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@totalBeersDropped Cerveja</span>
+                                </div>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup text-danger"></i>
+                                    <span>+@totalShotsDropped Shot</span>
+                                </div>
+                            }
                         </div>
                     }
-
-                    <!-- Defeat Message -->
-                    <div class="mt-4">
-                        <div class="alert alert-danger">
-                            <i class="bi bi-x-circle-fill me-2"></i>
-                            O teu personagem foi derrotado no Stage @currentBattle.StageNumber!
-                        </div>
-                        
-                        <div class="d-flex gap-3 justify-content-center flex-wrap">
-                            <button class="btn btn-warning" @onclick="ReturnToCheckpoint" disabled="@returningToCheckpoint">
-                                @if (returningToCheckpoint)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                }
-                                <i class="bi bi-arrow-counterclockwise me-2"></i>Voltar ao Checkpoint (Stage @checkpointStage)
-                            </button>
-                            <button class="btn btn-outline-secondary" @onclick="GoBack">
-                                <i class="bi bi-house me-2"></i>Voltar ao My Tuno
-                            </button>
-                        </div>
-                    </div>
+                    else
+                    {
+                        <p class="defeat-no-rewards">Nenhuma stage completada.</p>
+                    }
+                    <button class="defeat-btn" @onclick="DefeatGoBack">
+                        IR MY TUNO
+                    </button>
                 </div>
             </div>
         }
@@ -252,7 +226,6 @@
     private bool loading = true;
     private bool fighting = false;
     private bool showBattleAnimation = false;
-    private bool returningToCheckpoint = false;
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Stage>? objRef;
     private bool hasRendered = false;
@@ -280,8 +253,12 @@
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private bool runInProgress = false;
-    private bool pendingDefeatRewards = false;
     private bool _disposed = false;
+
+    // Defeat summary state
+    private bool showDefeatSummary = false;
+    private int defeatedAtStage = 0;
+    private int? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -310,7 +287,7 @@
             hasRendered = true;
             
             // Auto-start battle after first render (only once)
-            if (character != null && character.IsAlive() && currentBattle == null && !battleAutoStarted)
+            if (character != null && currentBattle == null && !battleAutoStarted)
             {
                 battleAutoStarted = true;
                 await Task.Delay(500); // Brief delay for UI to settle
@@ -406,13 +383,6 @@
         // Acquire lock to prevent concurrent DbContext access (e.g. dispose cancel vs fight)
         if (!await _stageLock.WaitAsync(0)) return;
 
-        // Check if character is alive
-        if (!character.IsAlive())
-        {
-            errorMessage = "Your character is defeated. You need to revive before fighting.";
-            return;
-        }
-
         try
         {
             fighting = true;
@@ -445,18 +415,14 @@
             // If the player lost, immediately mark the run as finished so that
             // CancelRunIfInProgressAsync (called on dispose/navigate-away) will NOT
             // restore HP while the defeat animation is still playing.
-            // Without this, navigating away during the death animation would restore
-            // the character to full HP because runInProgress was still true.
             if (currentBattle.Outcome != BattleOutcome.AttackerWon)
             {
-                // Mark run as finished IMMEDIATELY so CancelRunIfInProgressAsync
-                // (called on dispose/navigate-away) cannot restore HP during the
-                // death animation. Rewards are applied later in OnBattleFinished
-                // (or DisposeAsync if the component is disposed before the callback).
+                // Save the pre-run HP before clearing run state
+                defeatRestoreHp = runStartingHp;
+                // Mark run as finished IMMEDIATELY
                 runInProgress = false;
                 runStartingHp = null;
                 runStartingStage = null;
-                pendingDefeatRewards = true;
             }
 
             // Start live battle animation
@@ -640,43 +606,6 @@
         await FightStageEnemy();
     }
 
-    private async Task ReturnToCheckpoint()
-    {
-        if (currentUser == null || stageProgress == null) return;
-
-        try
-        {
-            returningToCheckpoint = true;
-            errorMessage = string.Empty;
-
-            stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
-            currentStageNumber = stageProgress.CurrentStage;
-            checkpointStage = stageProgress.LastCheckpoint;
-            
-            // Reload character to get fresh HP
-            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-            
-            // Reset battle state and loot tracker for new run
-            currentBattle = null;
-            showBattleAnimation = false;
-            ResetRunTotals();
-            StateHasChanged();
-            
-            // Brief delay then start the battle
-            await Task.Delay(300);
-            await FightStageEnemy();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error returning to checkpoint");
-            errorMessage = "Error returning to checkpoint. Please try again.";
-        }
-        finally
-        {
-            returningToCheckpoint = false;
-        }
-    }
-
     [JSInvokable]
     public async Task OnBattleFinished()
     {
@@ -705,20 +634,19 @@
         }
         else
         {
-            // Run ended (defeat) - apply accumulated rewards from cleared stages
-            if (pendingDefeatRewards && character != null && stagesCleared > 0)
+            // Run ended (defeat) - restore HP to pre-run value and apply accumulated rewards
+            if (character != null)
             {
                 try
                 {
                     await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped);
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp);
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error applying run rewards");
                 }
             }
-            pendingDefeatRewards = false;
 
             // Mark run as complete (may already be false from FightStageEnemy)
             runInProgress = false;
@@ -727,23 +655,34 @@
             
             // Cancel the timeout since battle finished normally
             battleTimeoutCts?.Cancel();
-            
-            // On defeat, destroy the game entirely (stops music and sounds)
-            if (!_disposed)
+
+            // Return to checkpoint but do NOT auto-restart — show defeat summary instead
+            if (!_disposed && currentUser != null && stageProgress != null)
             {
                 try
                 {
-                    await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy");
+                    // Save the stage where the player was defeated before returning to checkpoint
+                    defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
+
+                    stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
+                    currentStageNumber = stageProgress.CurrentStage;
+                    checkpointStage = stageProgress.LastCheckpoint;
+                    
+                    // Reload character to get fresh HP
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogWarning(ex, "Error destroying stage battle game on defeat");
+                    Logger.LogError(ex, "Error returning to checkpoint after defeat");
                 }
             }
-            
-            // Only hide battle animation on defeat
+
+            // Stop the battle animation and show defeat summary
             showBattleAnimation = false;
+            showDefeatSummary = true;
             currentEnemyStats.Clear();
+            currentBattle = null;
+            
             if (!_disposed) StateHasChanged();
         }
     }
@@ -819,6 +758,13 @@
         currentEnemyStats.Clear();
     }
 
+    private void DefeatGoBack()
+    {
+        showDefeatSummary = false;
+        ResetRunTotals();
+        Navigation.NavigateTo("/my-tuno");
+    }
+
     /// <summary>
     /// Gets the enemy type name for JavaScript
     /// </summary>
@@ -853,22 +799,6 @@
 
         // Cancel any run in progress (restore HP and stage) - uses lock to wait for fight to finish
         await CancelRunIfInProgressAsync();
-
-        // Apply pending defeat rewards if OnBattleFinished never fired
-        // (e.g., user navigated away during the death animation)
-        if (pendingDefeatRewards && character != null && stagesCleared > 0)
-        {
-            try
-            {
-                await StageService.ApplyRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped);
-            }
-            catch (Exception)
-            {
-                // Best-effort during disposal
-            }
-            pendingDefeatRewards = false;
-        }
         
         if (hasRendered)
         {
