@@ -139,6 +139,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // My Tuno DbSets
     public DbSet<Character> Characters { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<ForgedWeapon> ForgedWeapons { get; set; }
 
     // Stage Mode DbSets
     public DbSet<StageProgress> StageProgresses { get; set; }

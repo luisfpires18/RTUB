@@ -1,9 +1,12 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -15,12 +18,13 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for InventoryService
 /// Tests beer inventory management and healing functionality
 /// </summary>
-public class InventoryServiceTests
+public class InventoryServiceTests : IDisposable
 {
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ICharacterRepository> _characterRepositoryMock;
     private readonly Mock<ILogger<InventoryService>> _loggerMock;
     private readonly IInventoryService _inventoryService;
+    private readonly ApplicationDbContext _dbContext;
 
     public InventoryServiceTests()
     {
@@ -32,12 +36,27 @@ public class InventoryServiceTests
         var userManagerMock = new Mock<UserManager<ApplicationUser>>(userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         var config = Options.Create(new MyTunoScalingConfiguration());
+
+        var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"InventoryTests_{Guid.NewGuid()}")
+            .Options;
+        var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        var auditContext = new AuditContext();
+        var auditLogAppenderMock = new Mock<IAuditLogAppender>();
+        _dbContext = new ApplicationDbContext(dbOptions, httpContextAccessorMock.Object, auditContext, auditLogAppenderMock.Object);
+
         _inventoryService = new InventoryService(
             _inventoryRepositoryMock.Object,
             _characterRepositoryMock.Object,
             userManagerMock.Object,
             _loggerMock.Object,
-            config);
+            config,
+            _dbContext);
+    }
+
+    public void Dispose()
+    {
+        _dbContext.Dispose();
     }
 
     [Fact]

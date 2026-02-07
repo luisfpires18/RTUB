@@ -121,7 +121,6 @@
         }
       },
       "dropRates": {
-        "bossDropMultiplier": 3.0
         "beerDropChance": 0.10,
         "shotDropChance": 0.05,
         "instrumentPartDropChance": 0.005,
@@ -148,6 +147,9 @@
       "discardValues": {
         "equipment": 25,
         "instrumentPart": 30
+      },
+      "forging": {
+        "castTimeSeconds": 5
       },
       "fidelisRewards": {
         "normalWin": 10,

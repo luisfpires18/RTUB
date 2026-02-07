@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -21,6 +23,7 @@ public class InventoryService : IInventoryService
     private readonly ILogger<InventoryService> _logger;
     private readonly GatheringConfig _gatheringConfig;
     private readonly MyTunoScalingConfiguration _scalingConfig;
+    private readonly ApplicationDbContext _dbContext;
 
     // Beer heals 25% of total HP
     private const double BeerHealPercentage = 0.25;
@@ -30,7 +33,8 @@ public class InventoryService : IInventoryService
         ICharacterRepository characterRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<InventoryService> logger,
-        IOptions<MyTunoScalingConfiguration> config)
+        IOptions<MyTunoScalingConfiguration> config,
+        ApplicationDbContext dbContext)
     {
         _inventoryRepository = inventoryRepository;
         _characterRepository = characterRepository;
@@ -38,6 +42,7 @@ public class InventoryService : IInventoryService
         _logger = logger;
         _scalingConfig = config.Value;
         _gatheringConfig = config.Value.Gathering;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -336,8 +341,7 @@ public class InventoryService : IInventoryService
     {
         // Validate the item is equippable
         var isEquipment = EquipmentDropHelper.IsEquipment(itemType);
-        var isInstrument = InstrumentTypeHelper.IsInstrumentPart(itemType);
-        if (!isEquipment && !isInstrument)
+        if (!isEquipment)
             return (false, "Este item não pode ser equipado");
 
         // Check inventory
@@ -351,40 +355,30 @@ public class InventoryService : IInventoryService
             return (false, "Personagem não encontrado");
 
         // Determine slot and unequip current item if occupied
-        InventoryItemType? currentlyEquipped = null;
+        var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
+        if (slot == null)
+            return (false, "Slot de equipamento inválido");
 
-        if (isEquipment)
+        InventoryItemType? currentlyEquipped = slot.Value switch
         {
-            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
-            if (slot == null)
-                return (false, "Slot de equipamento inválido");
+            EquipmentSlot.Head => character.EquippedHead,
+            EquipmentSlot.Shoulders => character.EquippedShoulders,
+            EquipmentSlot.Chest => character.EquippedChest,
+            EquipmentSlot.Gloves => character.EquippedGloves,
+            EquipmentSlot.Legs => character.EquippedLegs,
+            EquipmentSlot.Boots => character.EquippedBoots,
+            _ => null
+        };
 
-            currentlyEquipped = slot.Value switch
-            {
-                EquipmentSlot.Head => character.EquippedHead,
-                EquipmentSlot.Shoulders => character.EquippedShoulders,
-                EquipmentSlot.Chest => character.EquippedChest,
-                EquipmentSlot.Gloves => character.EquippedGloves,
-                EquipmentSlot.Legs => character.EquippedLegs,
-                EquipmentSlot.Boots => character.EquippedBoots,
-                _ => null
-            };
-
-            // Set new item in slot
-            switch (slot.Value)
-            {
-                case EquipmentSlot.Head: character.EquippedHead = itemType; break;
-                case EquipmentSlot.Shoulders: character.EquippedShoulders = itemType; break;
-                case EquipmentSlot.Chest: character.EquippedChest = itemType; break;
-                case EquipmentSlot.Gloves: character.EquippedGloves = itemType; break;
-                case EquipmentSlot.Legs: character.EquippedLegs = itemType; break;
-                case EquipmentSlot.Boots: character.EquippedBoots = itemType; break;
-            }
-        }
-        else // instrument
+        // Set new item in slot
+        switch (slot.Value)
         {
-            currentlyEquipped = character.EquippedInstrument;
-            character.EquippedInstrument = itemType;
+            case EquipmentSlot.Head: character.EquippedHead = itemType; break;
+            case EquipmentSlot.Shoulders: character.EquippedShoulders = itemType; break;
+            case EquipmentSlot.Chest: character.EquippedChest = itemType; break;
+            case EquipmentSlot.Gloves: character.EquippedGloves = itemType; break;
+            case EquipmentSlot.Legs: character.EquippedLegs = itemType; break;
+            case EquipmentSlot.Boots: character.EquippedBoots = itemType; break;
         }
 
         // Return currently equipped item to inventory
@@ -398,14 +392,11 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, "Erro ao consumir item do inventário");
 
-        // Recalculate equipment stat bonuses
         RecalculateEquipmentBonuses(character);
 
         await _characterRepository.UpdateAsync(character);
 
-        var displayName = isEquipment
-            ? EquipmentDropHelper.GetDisplayName(EquipmentDropHelper.FromInventoryItemType(itemType)!.Value)
-            : InstrumentTypeHelper.GetDisplayName(InstrumentTypeHelper.FromInventoryPartType(itemType)!.Value);
+        var displayName = EquipmentDropHelper.GetDisplayName(EquipmentDropHelper.FromInventoryItemType(itemType)!.Value);
 
         return (true, $"{displayName} equipado!");
     }
@@ -416,8 +407,7 @@ public class InventoryService : IInventoryService
     public async Task<(bool Success, string Message)> UnequipItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default)
     {
         var isEquipment = EquipmentDropHelper.IsEquipment(itemType);
-        var isInstrument = InstrumentTypeHelper.IsInstrumentPart(itemType);
-        if (!isEquipment && !isInstrument)
+        if (!isEquipment)
             return (false, "Este item não pode ser desequipado");
 
         var character = await _characterRepository.GetByUserIdAsync(userId);
@@ -425,59 +415,43 @@ public class InventoryService : IInventoryService
             return (false, "Personagem não encontrado");
 
         // Verify item is actually equipped
-        InventoryItemType? currentlyEquipped = null;
+        var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
+        if (slot == null)
+            return (false, "Slot de equipamento inválido");
 
-        if (isEquipment)
+        InventoryItemType? currentlyEquipped = slot.Value switch
         {
-            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
-            if (slot == null)
-                return (false, "Slot de equipamento inválido");
+            EquipmentSlot.Head => character.EquippedHead,
+            EquipmentSlot.Shoulders => character.EquippedShoulders,
+            EquipmentSlot.Chest => character.EquippedChest,
+            EquipmentSlot.Gloves => character.EquippedGloves,
+            EquipmentSlot.Legs => character.EquippedLegs,
+            EquipmentSlot.Boots => character.EquippedBoots,
+            _ => null
+        };
 
-            currentlyEquipped = slot.Value switch
-            {
-                EquipmentSlot.Head => character.EquippedHead,
-                EquipmentSlot.Shoulders => character.EquippedShoulders,
-                EquipmentSlot.Chest => character.EquippedChest,
-                EquipmentSlot.Gloves => character.EquippedGloves,
-                EquipmentSlot.Legs => character.EquippedLegs,
-                EquipmentSlot.Boots => character.EquippedBoots,
-                _ => null
-            };
+        if (currentlyEquipped != itemType)
+            return (false, "Este item não está equipado neste slot");
 
-            if (currentlyEquipped != itemType)
-                return (false, "Este item não está equipado neste slot");
-
-            // Clear slot
-            switch (slot.Value)
-            {
-                case EquipmentSlot.Head: character.EquippedHead = null; break;
-                case EquipmentSlot.Shoulders: character.EquippedShoulders = null; break;
-                case EquipmentSlot.Chest: character.EquippedChest = null; break;
-                case EquipmentSlot.Gloves: character.EquippedGloves = null; break;
-                case EquipmentSlot.Legs: character.EquippedLegs = null; break;
-                case EquipmentSlot.Boots: character.EquippedBoots = null; break;
-            }
-        }
-        else // instrument
+        // Clear slot
+        switch (slot.Value)
         {
-            currentlyEquipped = character.EquippedInstrument;
-            if (currentlyEquipped != itemType)
-                return (false, "Este instrumento não está equipado");
-
-            character.EquippedInstrument = null;
+            case EquipmentSlot.Head: character.EquippedHead = null; break;
+            case EquipmentSlot.Shoulders: character.EquippedShoulders = null; break;
+            case EquipmentSlot.Chest: character.EquippedChest = null; break;
+            case EquipmentSlot.Gloves: character.EquippedGloves = null; break;
+            case EquipmentSlot.Legs: character.EquippedLegs = null; break;
+            case EquipmentSlot.Boots: character.EquippedBoots = null; break;
         }
 
         // Return to inventory
         await _inventoryRepository.AddItemAsync(userId, itemType, 1, cancellationToken);
 
-        // Recalculate equipment stat bonuses
         RecalculateEquipmentBonuses(character);
 
         await _characterRepository.UpdateAsync(character);
 
-        var displayName = isEquipment
-            ? EquipmentDropHelper.GetDisplayName(EquipmentDropHelper.FromInventoryItemType(itemType)!.Value)
-            : InstrumentTypeHelper.GetDisplayName(InstrumentTypeHelper.FromInventoryPartType(itemType)!.Value);
+        var displayName = EquipmentDropHelper.GetDisplayName(EquipmentDropHelper.FromInventoryItemType(itemType)!.Value);
 
         return (true, $"{displayName} desequipado!");
     }
@@ -522,10 +496,173 @@ public class InventoryService : IInventoryService
         return (true, fidelisValue, $"{displayName} descartado por {fidelisValue:F2} Fidelis!");
     }
 
+    // ── Forging ──
+
+    private static readonly HashSet<InventoryItemType> DrinkTypes = new()
+    {
+        InventoryItemType.Vodka, InventoryItemType.Gin,
+        InventoryItemType.Whisky, InventoryItemType.Absinto
+    };
+
+    public async Task<(bool Success, ForgedWeapon? Weapon, string Message)> ForgeWeaponAsync(
+        string userId, InventoryItemType instrumentPart, InventoryItemType drink,
+        WeaponType weaponType, string weaponName, CancellationToken cancellationToken = default)
+    {
+        if (!InstrumentTypeHelper.IsInstrumentPart(instrumentPart))
+            return (false, null, "Item de instrumento inválido");
+
+        if (!DrinkTypes.Contains(drink))
+            return (false, null, "Bebida inválida");
+
+        if (string.IsNullOrWhiteSpace(weaponName) || weaponName.Length > 100)
+            return (false, null, "Nome da arma inválido (máx 100 caracteres)");
+
+        var instrItem = await _inventoryRepository.GetItemAsync(userId, instrumentPart, cancellationToken);
+        if (instrItem == null || instrItem.Quantity <= 0)
+            return (false, null, "Não tens este instrumento no inventário");
+
+        var drinkItem = await _inventoryRepository.GetItemAsync(userId, drink, cancellationToken);
+        if (drinkItem == null || drinkItem.Quantity <= 0)
+            return (false, null, "Não tens esta bebida no inventário");
+
+        // Consume both materials
+        var consumedInstr = await _inventoryRepository.ConsumeItemAsync(userId, instrumentPart, 1, cancellationToken);
+        if (!consumedInstr)
+            return (false, null, "Erro ao consumir instrumento");
+
+        var consumedDrink = await _inventoryRepository.ConsumeItemAsync(userId, drink, 1, cancellationToken);
+        if (!consumedDrink)
+            return (false, null, "Erro ao consumir bebida");
+
+        // Calculate weapon stats from config
+        var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
+
+        var weapon = ForgedWeapon.Create(
+            userId, weaponName, weaponType,
+            instrumentPart, drink,
+            bonusHP: weaponStats.HP,
+            bonusPower: weaponStats.Power,
+            bonusSpeed: weaponStats.Speed,
+            bonusDefense: weaponStats.Defense,
+            bonusCriticalChance: weaponStats.CriticalChance);
+
+        _dbContext.ForgedWeapons.Add(weapon);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, weapon, $"Arma forjada: {weaponName}!");
+    }
+
+    public async Task<List<ForgedWeapon>> GetForgedWeaponsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ForgedWeapons
+            .AsNoTracking()
+            .Where(w => w.UserId == userId)
+            .OrderByDescending(w => w.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(bool Success, string Message)> EquipWeaponAsync(string userId, int weaponId, int slot, CancellationToken cancellationToken = default)
+    {
+        if (slot != 1 && slot != 2)
+            return (false, "Slot inválido");
+
+        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+        if (weapon == null)
+            return (false, "Arma não encontrada");
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+            return (false, "Personagem não encontrado");
+
+        // Unequip any weapons currently in the target slot(s)
+        if (weapon.IsTwoHanded)
+        {
+            // Two-handed fills both slots: unequip whatever is in slot 1 and 2
+            await UnequipWeaponInternal(character, 1, cancellationToken);
+            await UnequipWeaponInternal(character, 2, cancellationToken);
+            character.EquippedWeapon1 = weaponId;
+            character.EquippedWeapon2 = weaponId; // same weapon in both slots
+        }
+        else
+        {
+            // One-handed: if the other slot has a two-handed weapon, unequip it from both
+            var otherSlot = slot == 1 ? 2 : 1;
+            var otherWeaponId = slot == 1 ? character.EquippedWeapon2 : character.EquippedWeapon1;
+            if (otherWeaponId.HasValue)
+            {
+                var otherWeapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == otherWeaponId.Value, cancellationToken);
+                if (otherWeapon?.IsTwoHanded == true)
+                {
+                    await UnequipWeaponInternal(character, 1, cancellationToken);
+                    await UnequipWeaponInternal(character, 2, cancellationToken);
+                }
+            }
+
+            await UnequipWeaponInternal(character, slot, cancellationToken);
+            if (slot == 1) character.EquippedWeapon1 = weaponId;
+            else character.EquippedWeapon2 = weaponId;
+        }
+
+        weapon.IsEquipped = true;
+        RecalculateEquipmentBonuses(character, cancellationToken);
+        await _characterRepository.UpdateAsync(character);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, $"{weapon.Name} equipado!");
+    }
+
+    public async Task<(bool Success, string Message)> UnequipWeaponAsync(string userId, int slot, CancellationToken cancellationToken = default)
+    {
+        if (slot != 1 && slot != 2)
+            return (false, "Slot inválido");
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+            return (false, "Personagem não encontrado");
+
+        var weaponId = slot == 1 ? character.EquippedWeapon1 : character.EquippedWeapon2;
+        if (!weaponId.HasValue)
+            return (false, "Nenhuma arma equipada neste slot");
+
+        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
+
+        // If two-handed, clear both slots
+        if (weapon?.IsTwoHanded == true)
+        {
+            character.EquippedWeapon1 = null;
+            character.EquippedWeapon2 = null;
+        }
+        else
+        {
+            if (slot == 1) character.EquippedWeapon1 = null;
+            else character.EquippedWeapon2 = null;
+        }
+
+        if (weapon != null) weapon.IsEquipped = false;
+
+        RecalculateEquipmentBonuses(character, cancellationToken);
+        await _characterRepository.UpdateAsync(character);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, weapon != null ? $"{weapon.Name} desequipado!" : "Arma desequipada!");
+    }
+
+    private async Task UnequipWeaponInternal(Character character, int slot, CancellationToken cancellationToken)
+    {
+        var weaponId = slot == 1 ? character.EquippedWeapon1 : character.EquippedWeapon2;
+        if (!weaponId.HasValue) return;
+
+        var weapon = await _dbContext.ForgedWeapons.FirstOrDefaultAsync(w => w.Id == weaponId.Value, cancellationToken);
+        if (weapon != null) weapon.IsEquipped = false;
+
+        if (slot == 1) character.EquippedWeapon1 = null;
+        else character.EquippedWeapon2 = null;
+    }
+
     /// <summary>
     /// Recalculates all equipment stat bonuses based on currently equipped items.
     /// </summary>
-    private void RecalculateEquipmentBonuses(Character character)
+    private void RecalculateEquipmentBonuses(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
         int hp = 0, power = 0, speed = 0, defense = 0;
@@ -537,7 +674,28 @@ public class InventoryService : IInventoryService
         if (character.EquippedGloves.HasValue) { hp += stats.Gloves.HP; power += stats.Gloves.Power; speed += stats.Gloves.Speed; defense += stats.Gloves.Defense; critical += stats.Gloves.CriticalChance; }
         if (character.EquippedLegs.HasValue) { hp += stats.Legs.HP; power += stats.Legs.Power; speed += stats.Legs.Speed; defense += stats.Legs.Defense; critical += stats.Legs.CriticalChance; }
         if (character.EquippedBoots.HasValue) { hp += stats.Boots.HP; power += stats.Boots.Power; speed += stats.Boots.Speed; defense += stats.Boots.Defense; critical += stats.Boots.CriticalChance; }
-        if (character.EquippedInstrument.HasValue) { hp += stats.Instrument.HP; power += stats.Instrument.Power; speed += stats.Instrument.Speed; defense += stats.Instrument.Defense; critical += stats.Instrument.CriticalChance; }
+
+        // Add weapon bonuses from forged weapons
+        var equippedWeaponIds = new HashSet<int>();
+        if (character.EquippedWeapon1.HasValue) equippedWeaponIds.Add(character.EquippedWeapon1.Value);
+        if (character.EquippedWeapon2.HasValue) equippedWeaponIds.Add(character.EquippedWeapon2.Value);
+
+        if (equippedWeaponIds.Count > 0)
+        {
+            var weapons = _dbContext.ForgedWeapons
+                .AsNoTracking()
+                .Where(w => equippedWeaponIds.Contains(w.Id))
+                .ToList();
+
+            foreach (var w in weapons)
+            {
+                hp += w.BonusHP;
+                power += w.BonusPower;
+                speed += w.BonusSpeed;
+                defense += w.BonusDefense;
+                critical += w.BonusCriticalChance;
+            }
+        }
 
         character.EquipmentHPBonus = hp;
         character.EquipmentPowerBonus = power;

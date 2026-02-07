@@ -96,8 +96,10 @@ public class Character : BaseEntity
     public InventoryItemType? EquippedLegs { get; set; }
     /// <summary>Equipment piece in boots slot</summary>
     public InventoryItemType? EquippedBoots { get; set; }
-    /// <summary>Instrument part in weapon slot</summary>
-    public InventoryItemType? EquippedInstrument { get; set; }
+    /// <summary>Forged weapon in primary weapon slot (ID of ForgedWeapon entity)</summary>
+    public int? EquippedWeapon1 { get; set; }
+    /// <summary>Forged weapon in secondary weapon slot (ID of ForgedWeapon entity, null if two-handed weapon in slot 1)</summary>
+    public int? EquippedWeapon2 { get; set; }
 
     // ── Equipment Stat Bonuses (recalculated on equip/unequip) ──
 
@@ -119,7 +121,6 @@ public class Character : BaseEntity
     // Stats scale with level using polynomial growth:
     // stat = base * (1 + multiplier * (level-1)^(1+exponent)) + upgrades
     // When exponent=0 this reduces to simple linear scaling.
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalHP => (int)(HP * LevelScaleFactor())
         + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus)
@@ -246,7 +247,8 @@ public class Character : BaseEntity
             EquippedGloves = null,
             EquippedLegs = null,
             EquippedBoots = null,
-            EquippedInstrument = null,
+            EquippedWeapon1 = null,
+            EquippedWeapon2 = null,
             EquipmentHPBonus = 0,
             EquipmentPowerBonus = 0,
             EquipmentSpeedBonus = 0,
@@ -326,7 +328,8 @@ public class Character : BaseEntity
             EquippedGloves = source.EquippedGloves,
             EquippedLegs = source.EquippedLegs,
             EquippedBoots = source.EquippedBoots,
-            EquippedInstrument = source.EquippedInstrument,
+            EquippedWeapon1 = source.EquippedWeapon1,
+            EquippedWeapon2 = source.EquippedWeapon2,
             EquipmentHPBonus = source.EquipmentHPBonus,
             EquipmentPowerBonus = source.EquipmentPowerBonus,
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,
@@ -386,7 +389,8 @@ public class Character : BaseEntity
             EquippedGloves = source.EquippedGloves,
             EquippedLegs = source.EquippedLegs,
             EquippedBoots = source.EquippedBoots,
-            EquippedInstrument = source.EquippedInstrument,
+            EquippedWeapon1 = source.EquippedWeapon1,
+            EquippedWeapon2 = source.EquippedWeapon2,
             EquipmentHPBonus = source.EquipmentHPBonus,
             EquipmentPowerBonus = source.EquipmentPowerBonus,
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,

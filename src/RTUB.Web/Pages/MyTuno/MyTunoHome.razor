@@ -909,36 +909,46 @@
                             </div>
                         </div>
 
-                        <!-- Weapon slot (Instrument) below character -->
+                        <!-- Weapon slots (Forged Weapons) below character -->
                         <div class="equip-weapons">
                             @{
-                                var instrEquipped = character.EquippedInstrument;
-                                var instrType = instrEquipped.HasValue ? InstrumentTypeHelper.FromInventoryPartType(instrEquipped.Value) : null;
-                                var instrName = instrType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrType.Value) : "Instrumento";
-                                var instrImg = instrType.HasValue && instrumentImages.TryGetValue(instrType.Value, out var iUrl) ? iUrl : null;
+                                var weapon1Id = character.EquippedWeapon1;
+                                var weapon1 = weapon1Id.HasValue ? forgedWeapons.FirstOrDefault(w => w.Id == weapon1Id.Value) : null;
+                                var weapon2Id = character.EquippedWeapon2;
+                                var weapon2 = weapon2Id.HasValue ? forgedWeapons.FirstOrDefault(w => w.Id == weapon2Id.Value) : null;
+                                var isTwoHanded = weapon1 != null && weapon1.IsTwoHanded;
                             }
-                            @{ var firstInstrInInventory = instrEquipped.HasValue ? instrEquipped : (instrumentParts.Any(k => k.Value > 0) ? instrumentParts.First(k => k.Value > 0).Key : (InventoryItemType?)null); }
-                            <div class="equip-slot equip-slot--weapon @(instrEquipped.HasValue ? "equip-slot--filled" : "") @(!instrEquipped.HasValue && firstInstrInInventory.HasValue ? "equip-slot--available" : "")" 
-                                 title="@(instrEquipped.HasValue ? instrName + " — Clica para desequipar" : (firstInstrInInventory.HasValue ? "Clica para equipar instrumento" : "Instrumento"))"
-                                 @onclick="() => OnEquipSlotClick(firstInstrInInventory)"
-                                 style="cursor: @(firstInstrInInventory.HasValue ? "pointer" : "default")">
-                                @if (instrEquipped.HasValue)
+                            <div class="equip-slot equip-slot--weapon @(weapon1 != null ? "equip-slot--filled" : "")" 
+                                 title="@(weapon1 != null ? weapon1.Name + " — Clica para desequipar" : "Arma 1")"
+                                 @onclick="() => OnWeaponSlotClick(1)"
+                                 style="cursor: @(weapon1 != null ? "pointer" : "default")">
+                                @if (weapon1 != null)
                                 {
-                                    @if (!string.IsNullOrEmpty(instrImg))
-                                    {
-                                        <img src="@instrImg" alt="@instrName" class="equip-slot__img" />
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-music-note-beamed"></i>
-                                    }
+                                    <i class="bi @WeaponTypeHelper.GetIcon(weapon1.WeaponType)"></i>
                                 }
                                 else
                                 {
                                     <i class="bi bi-slash-lg"></i>
                                 }
-                                <span class="equip-slot__label">@instrName</span>
+                                <span class="equip-slot__label">@(weapon1?.Name ?? "Arma 1")</span>
                             </div>
+                            @if (!isTwoHanded)
+                            {
+                                <div class="equip-slot equip-slot--weapon @(weapon2 != null ? "equip-slot--filled" : "")" 
+                                     title="@(weapon2 != null ? weapon2.Name + " — Clica para desequipar" : "Arma 2")"
+                                     @onclick="() => OnWeaponSlotClick(2)"
+                                     style="cursor: @(weapon2 != null ? "pointer" : "default")">
+                                    @if (weapon2 != null)
+                                    {
+                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon2.WeaponType)"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-slash-lg"></i>
+                                    }
+                                    <span class="equip-slot__label">@(weapon2?.Name ?? "Arma 2")</span>
+                                </div>
+                            }
                         </div>
 
                         @* Equipment stat summary *@
@@ -1037,12 +1047,296 @@
                         </div>
 
                         <div class="text-center mt-auto pt-2">
-                            <small class="text-muted" style="font-size: 0.7rem;">Recolhe recursos para craft futuro!</small>
+                            <small class="text-muted" style="font-size: 0.7rem;">Recolhe recursos para craft!</small>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Forging Section -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
+                    </div>
+                    <div class="card-body p-3 d-flex flex-column">
+                        <p class="text-muted mb-3" style="font-size: 0.75rem;">Combina um instrumento com uma bebida para forjar uma arma!</p>
+
+                        <!-- Forge Slots -->
+                        <div class="forge-slots mb-3">
+                            <!-- Instrument Slot -->
+                            <div class="forge-slot @(forgeInstrument.HasValue ? "forge-slot--filled" : "")"
+                                 @onclick="ToggleForgeInstrumentPicker"
+                                 title="@(forgeInstrument.HasValue ? GetEquipItemDisplayName(forgeInstrument.Value) : "Escolher instrumento")">
+                                @if (forgeInstrument.HasValue)
+                                {
+                                    var fInstrType = InstrumentTypeHelper.FromInventoryPartType(forgeInstrument.Value);
+                                    var fInstrImg = fInstrType.HasValue && instrumentImages.TryGetValue(fInstrType.Value, out var fUrl) ? fUrl : null;
+                                    @if (!string.IsNullOrEmpty(fInstrImg))
+                                    {
+                                        <img src="@fInstrImg" alt="Instrumento" class="forge-slot__img" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-music-note-beamed"></i>
+                                    }
+                                    <span class="forge-slot__label" style="font-size: 0.55rem;">@GetEquipItemDisplayName(forgeInstrument.Value)</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-music-note-beamed" style="opacity: 0.4;"></i>
+                                    <span class="forge-slot__label">Instrumento</span>
+                                }
+                            </div>
+
+                            <div class="forge-plus"><i class="bi bi-plus-lg"></i></div>
+
+                            <!-- Drink Slot -->
+                            <div class="forge-slot @(forgeDrink.HasValue ? "forge-slot--filled" : "")"
+                                 @onclick="ToggleForgeDrinkPicker"
+                                 title="@(forgeDrink.HasValue ? GetResourceName(forgeDrink.Value) : "Escolher bebida")">
+                                @if (forgeDrink.HasValue)
+                                {
+                                    var drinkRes = activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString());
+                                    <i class="bi @(drinkRes?.Icon ?? "bi-droplet")"></i>
+                                    <span class="forge-slot__label" style="font-size: 0.55rem;">@GetResourceName(forgeDrink.Value)</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-cup-straw" style="opacity: 0.4;"></i>
+                                    <span class="forge-slot__label">Bebida</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Instrument Picker -->
+                        @if (showForgeInstrumentPicker)
+                        {
+                            <div class="forge-picker mb-2">
+                                @foreach (var kvp in instrumentParts)
+                                {
+                                    var pickInstrType = InstrumentTypeHelper.FromInventoryPartType(kvp.Key);
+                                    var pickInstrName = pickInstrType.HasValue ? InstrumentTypeHelper.GetDisplayName(pickInstrType.Value) : kvp.Key.ToString();
+                                    var pickKey = kvp.Key;
+                                    <button class="forge-picker__item @(forgeInstrument == pickKey ? "forge-picker__item--selected" : "")"
+                                            @onclick="() => SelectForgeInstrument(pickKey)">
+                                        <i class="bi bi-music-note-beamed me-1"></i>@pickInstrName <span class="badge bg-dark">@kvp.Value</span>
+                                    </button>
+                                }
+                                @if (!instrumentParts.Any())
+                                {
+                                    <small class="text-muted">Sem instrumentos no inventário.</small>
+                                }
+                            </div>
+                        }
+
+                        <!-- Drink Picker -->
+                        @if (showForgeDrinkPicker)
+                        {
+                            <div class="forge-picker mb-2">
+                                @foreach (var res in activeResources)
+                                {
+                                    var resType = Enum.Parse<InventoryItemType>(res.Type);
+                                    var resQty = GetResourceQuantity(resType);
+                                    if (resQty <= 0) continue;
+                                    <button class="forge-picker__item @(forgeDrink == resType ? "forge-picker__item--selected" : "")"
+                                            @onclick="() => SelectForgeDrink(resType)">
+                                        <i class="bi @res.Icon me-1"></i>@res.Name <span class="badge bg-dark">@resQty</span>
+                                    </button>
+                                }
+                                @if (!activeResources.Any(r => GetResourceQuantity(Enum.Parse<InventoryItemType>(r.Type)) > 0))
+                                {
+                                    <small class="text-muted">Sem bebidas no inventário.</small>
+                                }
+                            </div>
+                        }
+
+                        <!-- Forge Cast Bar -->
+                        @if (forging)
+                        {
+                            <div class="cast-bar mb-3">
+                                <div class="cast-bar__header">
+                                    <span class="cast-bar__label">A forjar arma...</span>
+                                    <span class="cast-bar__time">@forgeCastTimeRemaining.ToString("F1")s</span>
+                                </div>
+                                <div class="cast-bar__track">
+                                    <div class="cast-bar__fill" style="width: @((int)(100.0 * forgeCastProgress))%; transition: width 0.1s linear;"></div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Forge Button -->
+                        <button class="btn btn-primary w-100 mb-3" 
+                                @onclick="StartForge"
+                                disabled="@(!forgeInstrument.HasValue || !forgeDrink.HasValue || forging)">
+                            <i class="bi bi-hammer me-2"></i>Forjar Arma
+                        </button>
+
+                        <!-- Forged Weapons List -->
+                        @if (forgedWeapons.Any())
+                        {
+                            <div class="forge-weapons-list">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;"><i class="bi bi-sword me-1"></i>Armas Forjadas:</small>
+                                @foreach (var weapon in forgedWeapons)
+                                {
+                                    var isEquippedW = weapon.IsEquipped;
+                                    var wSlot = isEquippedW ? 0 : (character.EquippedWeapon1 == null ? 1 : (character.EquippedWeapon2 == null ? 2 : 0));
+                                    <div class="forge-weapon-card @(isEquippedW ? "forge-weapon-card--equipped" : "")" 
+                                         @onclick="() => OnForgedWeaponClick(weapon)"
+                                         style="cursor: pointer;">
+                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType) me-1"></i>
+                                        <span class="forge-weapon-card__name">@weapon.Name</span>
+                                        <span class="badge @(isEquippedW ? "bg-success" : "bg-dark") ms-auto" style="font-size: 0.6rem;">
+                                            @(isEquippedW ? "Equipado" : WeaponTypeHelper.GetDisplayName(weapon.WeaponType))
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center mt-auto pt-2">
+                                <small class="text-muted" style="font-size: 0.7rem;">Forja a tua primeira arma!</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
+    }
+
+    <!-- Forge Weapon Type & Name Modal -->
+    @if (showForgeWeaponTypeModal)
+    {
+        <Modal Show="@showForgeWeaponTypeModal"
+               ShowChanged="@((bool show) => { if (!show) CloseForgeWeaponTypeModal(); })"
+               Title="Escolher Tipo de Arma"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <div class="text-center mb-3">
+                    <i class="bi bi-hammer" style="font-size: 2rem; color: var(--bs-warning);"></i>
+                    <p class="text-muted mt-2 mb-3" style="font-size: 0.85rem;">Escolhe o tipo de arma e dá-lhe um nome!</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="font-size: 0.8rem;">Tipo de Arma</label>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        @foreach (var wt in WeaponTypeHelper.AllWeaponTypes)
+                        {
+                            var wtLocal = wt;
+                            <button class="btn btn-sm @(selectedForgeWeaponType == wtLocal ? "btn-primary" : "btn-outline-secondary")"
+                                    @onclick="() => SelectForgeWeaponType(wtLocal)">
+                                <i class="bi @WeaponTypeHelper.GetIcon(wtLocal) me-1"></i>@WeaponTypeHelper.GetDisplayName(wtLocal)
+                                @if (WeaponTypeHelper.IsTwoHanded(wtLocal)) { <small class="ms-1 opacity-75">(2H)</small> }
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label" style="font-size: 0.8rem;">Nome da Arma</label>
+                    <input type="text" class="form-control" maxlength="100" @bind="forgeWeaponName" placeholder="@forgeWeaponDefaultName" />
+                </div>
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="CloseForgeWeaponTypeModal">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                </button>
+                <button class="btn btn-warning" @onclick="ConfirmForge" disabled="@(selectedForgeWeaponType == null)">
+                    <i class="bi bi-hammer me-2"></i>Forjar!
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
+    <!-- Forge Result Modal -->
+    @if (showForgeResultModal && lastForgedWeapon != null)
+    {
+        <Modal Show="@showForgeResultModal"
+               ShowChanged="@((bool show) => { if (!show) showForgeResultModal = false; })"
+               Title="Arma Forjada!"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <div class="text-center">
+                    <div class="forge-result-icon mb-3">
+                        <i class="bi @WeaponTypeHelper.GetIcon(lastForgedWeapon.WeaponType)" style="font-size: 3rem; color: var(--bs-warning);"></i>
+                    </div>
+                    <h4 class="text-warning mb-2">@lastForgedWeapon.Name</h4>
+                    <span class="badge bg-info bg-opacity-25 text-info mb-3">
+                        @WeaponTypeHelper.GetDisplayName(lastForgedWeapon.WeaponType)
+                        @if (lastForgedWeapon.IsTwoHanded) { <text> (Duas Mãos)</text> }
+                    </span>
+                    <div class="equip-confirm-stats mt-3">
+                        <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                        <div class="d-flex flex-wrap gap-1 justify-content-center">
+                            @if (lastForgedWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@lastForgedWeapon.BonusHP HP</span> }
+                            @if (lastForgedWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@lastForgedWeapon.BonusPower Poder</span> }
+                            @if (lastForgedWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@lastForgedWeapon.BonusSpeed Vel</span> }
+                            @if (lastForgedWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@lastForgedWeapon.BonusDefense Def</span> }
+                            @if (lastForgedWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{lastForgedWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
+                        </div>
+                    </div>
+                </div>
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-primary" @onclick="() => showForgeResultModal = false">
+                    <i class="bi bi-check-lg me-2"></i>Fechar
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
+    <!-- Weapon Action Modal (Equip/Unequip forged weapon) -->
+    @if (showWeaponActionModal && pendingWeapon != null)
+    {
+        <Modal Show="@showWeaponActionModal"
+               ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
+               Title="@pendingWeapon.Name"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <div class="text-center mb-3">
+                    <div class="equip-confirm-icon">
+                        <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
+                    </div>
+                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">@pendingWeapon.Name</h5>
+                    <span class="badge bg-info bg-opacity-25 text-info">
+                        @WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)
+                        @if (pendingWeapon.IsTwoHanded) { <text> (Duas Mãos)</text> }
+                    </span>
+                </div>
+                <div class="equip-confirm-stats mb-3">
+                    <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                        @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@pendingWeapon.BonusHP HP</span> }
+                        @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@pendingWeapon.BonusPower Poder</span> }
+                        @if (pendingWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@pendingWeapon.BonusSpeed Vel</span> }
+                        @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@pendingWeapon.BonusDefense Def</span> }
+                        @if (pendingWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
+                    </div>
+                </div>
+            </BodyContent>
+            <FooterContent>
+                @if (pendingWeapon.IsEquipped)
+                {
+                    <button class="btn btn-danger" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
+                        <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-success" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
+                        <i class="bi bi-box-arrow-in-up me-2"></i>Equipar Slot 1
+                    </button>
+                    @if (!pendingWeapon.IsTwoHanded)
+                    {
+                        <button class="btn btn-outline-success" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
+                            <i class="bi bi-box-arrow-in-up me-2"></i>Slot 2
+                        </button>
+                    }
+                }
+            </FooterContent>
+        </Modal>
     }
 
     <!-- Purchase Confirmation Modal -->
@@ -1079,8 +1373,8 @@
         var actionItemStats = GetEquipItemStats(pendingActionItem.Value);
         var actionDiscardValues = MyTunoConfig.Value.StageMode.DiscardValues;
         var actionIsInstr = InstrumentTypeHelper.IsInstrumentPart(pendingActionItem.Value);
+        var actionIsEquip = EquipmentDropHelper.IsEquipment(pendingActionItem.Value);
         var actionFidelisValue = actionIsInstr ? actionDiscardValues.InstrumentPart : actionDiscardValues.Equipment;
-        var actionIsEquipped = IsItemCurrentlyEquipped(pendingActionItem.Value);
         <Modal Show="@showItemActionModal"
                ShowChanged="@((bool show) => { if (!show) CloseItemActionModal(); })"
                Title="@actionItemName"
@@ -1099,8 +1393,12 @@
                         }
                     </div>
                     <h5 class="mt-2 mb-1" style="color: #e2e2e2;">@actionItemName</h5>
+                    @if (actionIsInstr)
+                    {
+                        <span class="badge bg-info bg-opacity-25 text-info mt-1"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
+                    }
                 </div>
-                @if (actionItemStats != null)
+                @if (actionItemStats != null && actionIsEquip)
                 {
                     <div class="equip-confirm-stats mb-3">
                         <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
@@ -1119,9 +1417,12 @@
                 </div>
             </BodyContent>
             <FooterContent>
-                <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                    <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
-                </button>
+                @if (actionIsEquip)
+                {
+                    <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                        <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
+                    </button>
+                }
                 <button class="btn btn-warning" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
                     <i class="bi bi-coin me-2"></i>Descartar
                 </button>
@@ -1259,6 +1560,29 @@
     private bool showItemActionModal = false;
     private InventoryItemType? pendingActionItem = null;
     private bool itemActioning = false;
+    
+    // Forging state
+    private InventoryItemType? forgeInstrument = null;
+    private InventoryItemType? forgeDrink = null;
+    private bool forging = false;
+    private double forgeCastProgress = 0;
+    private double forgeCastTimeRemaining = 0;
+    private System.Threading.Timer? forgeCastBarTimer;
+    private DateTime forgeCastStartTime;
+    private bool showForgeInstrumentPicker = false;
+    private bool showForgeDrinkPicker = false;
+    private bool showForgeWeaponTypeModal = false;
+    private bool showForgeResultModal = false;
+    private string forgeWeaponName = "";
+    private string forgeWeaponDefaultName = "";
+    private WeaponType? selectedForgeWeaponType = null;
+    private List<ForgedWeapon> forgedWeapons = new();
+    private ForgedWeapon? lastForgedWeapon = null;
+    
+    // Weapon action modal state
+    private bool showWeaponActionModal = false;
+    private ForgedWeapon? pendingWeapon = null;
+    private bool weaponActioning = false;
     
     // Info modal state
     private bool showInfoModal = false;
@@ -1469,6 +1793,9 @@
                         {
                             instrumentImages[config.InstrumentType] = config.PictureUrl;
                         }
+                        
+                        // Load forged weapons
+                        forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
@@ -2114,8 +2441,7 @@
             || character.EquippedChest == itemType
             || character.EquippedGloves == itemType
             || character.EquippedLegs == itemType
-            || character.EquippedBoots == itemType
-            || character.EquippedInstrument == itemType;
+            || character.EquippedBoots == itemType;
     }
 
     private async Task EquipItem(InventoryItemType itemType)
@@ -2156,6 +2482,257 @@
         {
             toastMessage = message;
             toastIsError = true;
+        }
+    }
+
+    // ── Forging methods ──
+
+    private void ToggleForgeInstrumentPicker()
+    {
+        if (forging) return;
+        showForgeInstrumentPicker = !showForgeInstrumentPicker;
+        showForgeDrinkPicker = false;
+    }
+
+    private void SelectForgeInstrument(InventoryItemType instrType)
+    {
+        forgeInstrument = instrType;
+        showForgeInstrumentPicker = false;
+    }
+
+    private void ToggleForgeDrinkPicker()
+    {
+        if (forging) return;
+        showForgeDrinkPicker = !showForgeDrinkPicker;
+        showForgeInstrumentPicker = false;
+    }
+
+    private void SelectForgeDrink(InventoryItemType drinkType)
+    {
+        forgeDrink = drinkType;
+        showForgeDrinkPicker = false;
+    }
+
+    private async Task StartForge()
+    {
+        if (forging || !forgeInstrument.HasValue || !forgeDrink.HasValue || currentUser == null) return;
+
+        try
+        {
+            forging = true;
+            var castTime = MyTunoConfig.Value.StageMode.Forging?.CastTimeSeconds ?? 5;
+            forgeCastTimeRemaining = castTime;
+            forgeCastProgress = 0;
+            forgeCastStartTime = DateTime.UtcNow;
+            StateHasChanged();
+
+            var castTcs = new TaskCompletionSource<bool>();
+            forgeCastBarTimer?.Dispose();
+            forgeCastBarTimer = new System.Threading.Timer(async _ =>
+            {
+                var elapsed = (DateTime.UtcNow - forgeCastStartTime).TotalSeconds;
+                forgeCastProgress = Math.Min(1.0, elapsed / castTime);
+                forgeCastTimeRemaining = Math.Max(0, castTime - elapsed);
+
+                if (elapsed >= castTime)
+                {
+                    forgeCastBarTimer?.Dispose();
+                    forgeCastBarTimer = null;
+                    castTcs.TrySetResult(true);
+                }
+
+                await InvokeAsync(StateHasChanged);
+            }, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+
+            await castTcs.Task;
+
+            // Cast finished — open weapon type + name modal
+            selectedForgeWeaponType = WeaponType.Sword;
+            forgeWeaponDefaultName = WeaponTypeHelper.GenerateDefaultName(WeaponType.Sword, forgeInstrument.Value, forgeDrink.Value);
+            forgeWeaponName = forgeWeaponDefaultName;
+            showForgeWeaponTypeModal = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during forge cast");
+            toastMessage = "Erro ao forjar arma.";
+            toastIsError = true;
+            forging = false;
+        }
+        finally
+        {
+            forgeCastProgress = 0;
+            forgeCastTimeRemaining = 0;
+            forgeCastBarTimer?.Dispose();
+            forgeCastBarTimer = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseForgeWeaponTypeModal()
+    {
+        showForgeWeaponTypeModal = false;
+        forging = false;
+    }
+
+    private void SelectForgeWeaponType(WeaponType wt)
+    {
+        selectedForgeWeaponType = wt;
+        if (forgeInstrument.HasValue && forgeDrink.HasValue)
+        {
+            forgeWeaponDefaultName = WeaponTypeHelper.GenerateDefaultName(wt, forgeInstrument.Value, forgeDrink.Value);
+            forgeWeaponName = forgeWeaponDefaultName;
+        }
+    }
+
+    private async Task ConfirmForge()
+    {
+        if (currentUser == null || !forgeInstrument.HasValue || !forgeDrink.HasValue || selectedForgeWeaponType == null) return;
+
+        showForgeWeaponTypeModal = false;
+
+        try
+        {
+            var weaponName = string.IsNullOrWhiteSpace(forgeWeaponName) ? forgeWeaponDefaultName : forgeWeaponName.Trim();
+            var (success, weapon, message) = await InventoryService.ForgeWeaponAsync(
+                currentUser.Id, forgeInstrument.Value, forgeDrink.Value, selectedForgeWeaponType.Value, weaponName);
+
+            if (success && weapon != null)
+            {
+                lastForgedWeapon = weapon;
+                showForgeResultModal = true;
+
+                // Refresh inventory and forged weapons
+                instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
+                foreach (var res in activeResources)
+                {
+                    if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
+                    {
+                        var qty = await InventoryService.GetResourceQuantityAsync(currentUser.Id, itemType);
+                        resourceQuantities[itemType] = qty;
+                    }
+                }
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error confirming forge");
+            toastMessage = "Erro ao forjar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            forging = false;
+            forgeInstrument = null;
+            forgeDrink = null;
+            StateHasChanged();
+        }
+    }
+
+    private void OnWeaponSlotClick(int slot)
+    {
+        if (character == null || weaponActioning) return;
+        var weaponId = slot == 1 ? character.EquippedWeapon1 : character.EquippedWeapon2;
+        if (!weaponId.HasValue) return;
+
+        var weapon = forgedWeapons.FirstOrDefault(w => w.Id == weaponId.Value);
+        if (weapon == null) return;
+
+        pendingWeapon = weapon;
+        showWeaponActionModal = true;
+    }
+
+    private void OnForgedWeaponClick(ForgedWeapon weapon)
+    {
+        if (weaponActioning) return;
+        pendingWeapon = weapon;
+        showWeaponActionModal = true;
+    }
+
+    private async Task ConfirmWeaponEquip(int slot)
+    {
+        if (currentUser == null || pendingWeapon == null) return;
+        showWeaponActionModal = false;
+
+        try
+        {
+            weaponActioning = true;
+            StateHasChanged();
+
+            var (success, message) = await InventoryService.EquipWeaponAsync(currentUser.Id, pendingWeapon.Id, slot);
+            if (success)
+            {
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error equipping weapon");
+            toastMessage = "Erro ao equipar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            weaponActioning = false;
+            pendingWeapon = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmWeaponUnequip()
+    {
+        if (currentUser == null || pendingWeapon == null) return;
+        showWeaponActionModal = false;
+
+        try
+        {
+            weaponActioning = true;
+            StateHasChanged();
+
+            // Find which slot has this weapon
+            var slot = character?.EquippedWeapon1 == pendingWeapon.Id ? 1 : 2;
+            var (success, message) = await InventoryService.UnequipWeaponAsync(currentUser.Id, slot);
+            if (success)
+            {
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error unequipping weapon");
+            toastMessage = "Erro ao desequipar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            weaponActioning = false;
+            pendingWeapon = null;
+            StateHasChanged();
         }
     }
 
@@ -2256,5 +2833,6 @@
     {
         energyRegenTimer?.Dispose();
         castBarTimer?.Dispose();
+        forgeCastBarTimer?.Dispose();
     }
 }

@@ -1,3 +1,4 @@
+using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
@@ -93,4 +94,24 @@ public interface IInventoryService
     /// Consumes 1 from inventory and credits the Fidelis value to the user.
     /// </summary>
     Task<(bool Success, decimal FidelisGained, string Message)> DiscardItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Forges a weapon by consuming an instrument part and a drink.
+    /// </summary>
+    Task<(bool Success, ForgedWeapon? Weapon, string Message)> ForgeWeaponAsync(string userId, InventoryItemType instrumentPart, InventoryItemType drink, WeaponType weaponType, string weaponName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all forged weapons for a user.
+    /// </summary>
+    Task<List<ForgedWeapon>> GetForgedWeaponsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Equips a forged weapon to a weapon slot (1 or 2).
+    /// </summary>
+    Task<(bool Success, string Message)> EquipWeaponAsync(string userId, int weaponId, int slot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unequips a weapon from a slot (1 or 2).
+    /// </summary>
+    Task<(bool Success, string Message)> UnequipWeaponAsync(string userId, int slot, CancellationToken cancellationToken = default);
 }

@@ -226,6 +226,11 @@ public class StageModeConfig
     public DiscardValuesConfig DiscardValues { get; set; } = new();
 
     /// <summary>
+    /// Forging configuration (cast time, etc.)
+    /// </summary>
+    public ForgingConfig Forging { get; set; } = new();
+
+    /// <summary>
     /// Biome configurations for infinite stage progression
     /// </summary>
     public List<BiomeConfig> Biomes { get; set; } = new();
@@ -361,6 +366,15 @@ public class DiscardValuesConfig
 
     /// <summary>Fidelis gained from discarding an instrument part.</summary>
     public decimal InstrumentPart { get; set; } = 30m;
+}
+
+/// <summary>
+/// Forging configuration for weapon crafting
+/// </summary>
+public class ForgingConfig
+{
+    /// <summary>Cast time in seconds for forging a weapon.</summary>
+    public int CastTimeSeconds { get; set; } = 5;
 }
 
 /// <summary>
