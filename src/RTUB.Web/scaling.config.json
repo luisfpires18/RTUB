@@ -200,7 +200,7 @@
           "name": "Tropical",
           "stageMin": 401,
           "stageMax": 500,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/tropical",
           "bossSpritePrefix": "boss_",
           "difficultyMultiplier": 2.3
         },
@@ -208,7 +208,7 @@
           "name": "Caverns",
           "stageMin": 501,
           "stageMax": 600,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/caverns",
           "bossSpritePrefix": "boss_",
           "difficultyMultiplier": 2.6
         },
@@ -232,7 +232,7 @@
           "name": "Ruins",
           "stageMin": 801,
           "stageMax": 900,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
           "difficultyMultiplier": 4
         },
