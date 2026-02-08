@@ -119,7 +119,7 @@ public class InventoryService : IInventoryService
         return shotItem?.Quantity ?? 0;
     }
 
-    // Shot empowers the next 5 arena battles
+    // Shot empowers the next 5 arena battles or stage runs
     private const int ShotBuffBattles = 5;
     private const double ShotBuffMultiplier = 1.20; // 20% boost
 
@@ -155,7 +155,7 @@ public class InventoryService : IInventoryService
         // Check if already has active buff
         if (character.ShotBuffBattlesRemaining > 0)
         {
-            return (false, 0, $"Já tens um buff ativo ({character.ShotBuffBattlesRemaining} batalhas restantes)");
+            return (false, 0, "Já tens um buff ativo");
         }
 
         // Apply the buff
@@ -182,7 +182,7 @@ public class InventoryService : IInventoryService
             return (false, 0, "Erro ao consumir shot");
         }
 
-        return (true, ShotBuffBattles, $"Shot ativado! +20% stats nas próximas {ShotBuffBattles} batalhas");
+        return (true, ShotBuffBattles, "Shot ativado! +20% stats na próxima batalha");
     }
 
     /// <summary>

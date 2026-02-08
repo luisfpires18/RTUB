@@ -170,7 +170,7 @@ public class StageEnemy : BaseEntity
         var stages = stageNumber - 1;
         if (stages <= 0) return BaseSpeed;
         var exponent = MyTunoScaling.StatGrowthExponent;
-        var mult = MyTunoScaling.StatMultiplierPerLevel * 0.5; // Half rate for speed
+        var mult = MyTunoScaling.StatMultiplierPerLevel * MyTunoScaling.EnemySpeedScalingRate;
         var factor = exponent == 0.0
             ? 1.0 + stages * mult
             : 1.0 + mult * Math.Pow(stages, 1.0 + exponent);

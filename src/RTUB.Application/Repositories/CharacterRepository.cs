@@ -174,4 +174,27 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
         return leaderboard;
     }
+
+    public async Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId, int minGames = 5)
+    {
+        // Get all member user IDs
+        var memberUserIds = await _context.Users
+            .Where(u => u.Categories.Contains(MemberCategory.Caloiro) ||
+                       u.Categories.Contains(MemberCategory.Tuno) ||
+                       u.Categories.Contains(MemberCategory.Veterano) ||
+                       u.Categories.Contains(MemberCategory.Tunossauro))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        // Get all eligible opponents with at least minGames total arena games
+        return await _context.Characters
+            .AsNoTracking()
+            .Include(c => c.User)
+            .Where(c => memberUserIds.Contains(c.UserId)
+                     && c.Id != excludeCharacterId
+                     && (c.ArenaWins + c.ArenaLosses) >= minGames)
+            .OrderByDescending(c => c.Level)
+            .ThenByDescending(c => c.ArenaWins)
+            .ToListAsync();
+    }
 }

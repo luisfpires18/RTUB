@@ -126,6 +126,10 @@
             // Use global audio state to persist settings between stages
             this.audioEnabled = globalAudioEnabled;
             this.sfxVolume = globalSfxVolume;
+            
+            // Shot buff visual
+            this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? false;
+            this.playerAura = null;
             this.audioContext = null;
             
             this.setupAudio();
@@ -341,10 +345,21 @@
             const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
             this.playerSprite.scale.set(scale);
             
-            this.stage.addChild(this.playerSprite);
-            
             this.playerX = playerX;
-            this.playerDisplayHeight = this.playerSprite.height * scale;
+            this.playerDisplayHeight = this.playerSprite.height;
+            
+            // Add blue aura BEFORE sprite so it renders behind
+            if (this.hasShotBuff) {
+                const auraSize = this.playerDisplayHeight * 0.7;
+                this.playerAura = new PIXI.Graphics();
+                this.playerAura.circle(0, 0, auraSize);
+                this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+                this.playerAura.x = playerX;
+                this.playerAura.y = playerY - this.playerDisplayHeight / 2;
+                this.stage.addChild(this.playerAura);
+            }
+            
+            this.stage.addChild(this.playerSprite);
             
             // Create HP bar above player sprite
             const barWidth = 60;
@@ -439,9 +454,9 @@
             const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
             let countScaleFactor = 1.0;
             if (this.enemyCount >= 6) {
-                countScaleFactor = 0.65;
+                countScaleFactor = 0.55;
             } else if (this.enemyCount >= 5) {
-                countScaleFactor = 0.75;
+                countScaleFactor = 0.65;
             } else if (this.enemyCount >= 4) {
                 countScaleFactor = 0.85;
             } else if (this.enemyCount >= 3) {
@@ -575,8 +590,8 @@
                 hSpacing = isMobile ? 55 : 90;
                 vSpacing = isMobile ? 70 : 90;
             } else if (enemyCount >= 5) {
-                hSpacing = isMobile ? 65 : 100;
-                vSpacing = isMobile ? 80 : 100;
+                hSpacing = isMobile ? 80 : 130;
+                vSpacing = isMobile ? 95 : 130;
             } else if (enemyCount >= 4) {
                 hSpacing = isMobile ? 75 : 115;
                 vSpacing = isMobile ? 90 : 115;
@@ -648,19 +663,19 @@
             // If all same type with 5+ enemies, use staggered formation
             if (enemyCount >= 5 && (aerialIndices.length === enemyCount || terrestrialIndices.length === enemyCount)) {
                 const baseYForType = aerialIndices.length === enemyCount ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 45 : 60;
+                const smallVOffset = isMobile ? 55 : 80;
                 
-                // For 5 enemies: staggered 2-1-2 pattern
+                // For 5 enemies: staggered 2-1-2 pattern with wider spread
                 if (enemyCount === 5) {
                     let startX = baseX - hSpacing;
                     if (startX + hSpacing * 2 > maxX) startX = maxX - hSpacing * 2;
                     if (startX - hSpacing < minX) startX = minX + hSpacing;
                     
-                    tempPositions[0] = { x: startX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
-                    tempPositions[1] = { x: startX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
-                    tempPositions[2] = { x: startX, y: baseYForType - smallVOffset/2, isAerial: aerialIndices.length === enemyCount };
-                    tempPositions[3] = { x: startX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
-                    tempPositions[4] = { x: startX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[0] = { x: startX - hSpacing * 0.7, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[1] = { x: startX + hSpacing * 0.7, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[2] = { x: startX, y: baseYForType - smallVOffset / 2, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[3] = { x: startX - hSpacing * 0.7, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                    tempPositions[4] = { x: startX + hSpacing * 0.7, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
                 }
                 // For 6 enemies: 3-3 rows
                 else if (enemyCount === 6) {
@@ -828,6 +843,13 @@
                 const swayX = Math.sin(this.idleAnimationTime * 0.8 + po.phase * 1.3) * po.swayAmplitude;
                 this.playerSprite.y = po.baseY + bobY;
                 this.playerSprite.x = po.baseX + swayX;
+                
+                // Animate blue aura to follow player and pulse
+                if (this.playerAura && !this.playerAura.destroyed) {
+                    this.playerAura.x = po.baseX + swayX;
+                    this.playerAura.y = po.baseY + bobY - this.playerDisplayHeight / 2;
+                    this.playerAura.alpha = 0.25 + Math.sin(this.idleAnimationTime * 1.2) * 0.12;
+                }
             }
 
             // Animate enemies with a gentle floating/bobbing motion
@@ -1330,6 +1352,12 @@
 
             const startTime = Date.now();
             const animate = () => {
+                // Guard against destroyed or null targets
+                if (!target || target.destroyed) {
+                    if (onComplete) onComplete();
+                    return;
+                }
+                
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / adjustedDuration, 1);
                 
@@ -1409,6 +1437,7 @@
             this.playerSpritePath = data?.playerSpritePath ?? this.playerSpritePath;
             this.enemySpritePaths = data?.enemySprites ?? [];
             this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
+            this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? this.hasShotBuff;
             
             console.log('resetForNextBattle - Stage:', this.stageNumber, 'Received placements:', data?.enemyPlacements, 'Set placements:', this.enemyPlacements);
             
@@ -1512,6 +1541,7 @@
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
             const initialBattleSpeed = battleData?.battleSpeed ?? battleData?.BattleSpeed ?? 1.0;
+            const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -1524,7 +1554,8 @@
                 backgroundPath: backgroundPath,
                 playerSpritePath: playerSpritePath,
                 enemySprites: enemySprites,
-                enemyPlacements: enemyPlacements
+                enemyPlacements: enemyPlacements,
+                HasShotBuff: hasShotBuff
             });
             
             // Apply initial battle speed after scene is created
@@ -1587,6 +1618,7 @@
             const enemySprites = battleData?.enemySprites ?? battleData?.EnemySprites;
             const enemyPlacements = battleData?.enemyPlacements ?? battleData?.EnemyPlacements ?? [];
             const dotNetRef = battleData?.DotNetRef ?? battleData?.dotNetRef ?? null;
+            const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -1600,7 +1632,8 @@
                 backgroundPath: backgroundPath,
                 playerSpritePath: playerSpritePath,
                 enemySprites: enemySprites,
-                enemyPlacements: enemyPlacements
+                enemyPlacements: enemyPlacements,
+                HasShotBuff: hasShotBuff
             });
         }
     };

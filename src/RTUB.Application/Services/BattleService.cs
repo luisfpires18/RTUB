@@ -187,10 +187,14 @@ public class BattleService : IBattleService
             return false;
         }
 
-        // Apply shot buff decrement if used
+        // Apply battle HP result — arena battles use persistent HP
+        // AttackerFinalHP is in buffed scale if buff was active; ExpireShotBuff will scale it down
+        playerCharacter.CurrentHP = result.AttackerFinalHP > 0 ? result.AttackerFinalHP : 0;
+
+        // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
         if (result.ShotBuffUsed)
         {
-            playerCharacter.ShotBuffBattlesRemaining--;
+            playerCharacter.ExpireShotBuff();
         }
 
         // Update arena statistics
@@ -214,11 +218,7 @@ public class BattleService : IBattleService
         // Apply rewards
         await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
 
-        // Apply HP changes — always restore to full after arena battle
-        playerCharacter.CurrentHP = null; // null = full HP
-
-        // If buff just expired, no need to scale HP since we're at full
-        // (ShotBuffExpired handling preserved for shot buff battle count tracking)
+        // Arena battles do NOT restore HP — if you die, you stay dead until revived
 
         await _characterRepository.UpdateAsync(playerCharacter);
 

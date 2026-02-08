@@ -395,7 +395,7 @@ public class StageService : IStageService
             }
             else
             {
-                speedScaleFactor = 1.0 + (mult * 0.5) * Math.Pow(stages, 1.0 + exp);
+                speedScaleFactor = 1.0 + scaling.SpeedPerStage * Math.Pow(stages, 1.0 + exp);
                 defenseScaleFactor = 1.0 + (mult * 0.8) * Math.Pow(stages, 1.0 + exp);
             }
             baseSpeed = (int)(typeStats.Speed * speedScaleFactor * difficultyMultiplier);
@@ -528,6 +528,14 @@ public class StageService : IStageService
         // Restore HP to the value the player had before the run started
         // null restoreHp means the player entered with full HP (CurrentHP was null)
         character.CurrentHP = restoreHp;
+        
+        // Consume shot buff if it was active during this run
+        // ExpireShotBuff handles scaling CurrentHP proportionally when buff reaches 0
+        if (character.ShotBuffBattlesRemaining > 0)
+        {
+            character.ExpireShotBuff();
+        }
+        
         await _characterRepository.UpdateAsync(character);
 
         if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0 && !hasInstrumentParts && !hasEquipment)

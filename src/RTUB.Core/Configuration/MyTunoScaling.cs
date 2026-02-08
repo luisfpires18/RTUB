@@ -38,6 +38,14 @@ public static class MyTunoScaling
     public static int MinDamage { get; private set; } = 1;
 
     /// <summary>
+    /// Enemy speed scaling rate relative to StatMultiplierPerLevel.
+    /// Controls how fast enemies' speed grows per stage in the polynomial formula.
+    /// Lower values = slower speed growth. Default 0.5 means speed grows at half the rate of HP/Power.
+    /// A value of ~0.073 makes enemies reach 1.0s action time around stage 900.
+    /// </summary>
+    public static double EnemySpeedScalingRate { get; private set; } = 0.5;
+
+    /// <summary>
     /// Chance of beer drop after winning a battle (0.0 to 1.0)
     /// Default is 0.2 (20% chance)
     /// </summary>
@@ -66,7 +74,8 @@ public static class MyTunoScaling
         double defenseUpgradeMultiplier,
         double defenseK,
         int minDamage,
-        double beerDropChance = 0.2)
+        double beerDropChance = 0.2,
+        double enemySpeedScalingRate = 0.5)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -91,5 +100,6 @@ public static class MyTunoScaling
         DefenseK = defenseK;
         MinDamage = minDamage;
         BeerDropChance = beerDropChance;
+        EnemySpeedScalingRate = enemySpeedScalingRate;
     }
 }

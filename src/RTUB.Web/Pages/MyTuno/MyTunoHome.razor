@@ -319,7 +319,7 @@
                         <div class="text-center mb-3">
                             <img src="/sprites/games/my-tuno/default_tuno.png" 
                                  alt="My Tuno Character" 
-                                 class="character-sprite img-fluid"
+                                 class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
                                  style="max-height: 200px; max-width: 100%; object-fit: contain;" />
                         </div>
                         
@@ -465,9 +465,9 @@
                                 <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
                                     <span class="d-flex align-items-center">
                                         <i class="bi bi-droplet-fill text-info me-2"></i>
-                                        <span>Shot (+20% estatísticas)</span>
+                                        <span>Shot (+20% stats)</span>
                                     </span>
-                                    <span class="badge bg-info">@character.ShotBuffBattlesRemaining batalhas</span>
+                                    <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
                                 </div>
                                 <small class="text-muted d-block mt-1">
                                     <i class="bi bi-info-circle me-1"></i>Ativo em Arena e Modo Stage

@@ -87,6 +87,10 @@
             this.playbackSpeed = 1;
             this.replayAccumulator = 0;
             
+            // Shot buff visual
+            this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? false;
+            this.attackerAura = null;
+            
             // Speed bar system - time-based combat
             this.actionTime = { attacker: 5.0, defender: 5.0 }; // In seconds
             this.speedBars = { attacker: null, defender: null };
@@ -332,6 +336,19 @@
             attackerSprite.y = characterY;
             const attackerScale = this.getSpriteScale(attackerSprite, height);
             attackerSprite.scale.set(attackerScale);
+            
+            // Add blue aura BEFORE sprite so it renders behind
+            if (this.hasShotBuff) {
+                const attackerDisplayHeight = attackerSprite.height;
+                const auraSize = attackerDisplayHeight * 0.7;
+                this.attackerAura = new PIXI.Graphics();
+                this.attackerAura.circle(0, 0, auraSize);
+                this.attackerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+                this.attackerAura.x = attackerX;
+                this.attackerAura.y = characterY - attackerSprite.height / 2;
+                this.stage.addChild(this.attackerAura);
+            }
+            
             this.stage.addChild(attackerSprite);
 
             const defenderSprite = PIXI.Sprite.from('defenderSprite');
@@ -927,6 +944,16 @@
                     char.sprite.scale.set(newScale);
                 }
             });
+            
+            // Animate attacker aura (shot buff glow)
+            if (this.attackerAura && !this.attackerAura.destroyed && this.characterSprites.attacker) {
+                const attacker = this.characterSprites.attacker;
+                this.attackerAura.x = attacker.sprite.x;
+                const spriteHeight = attacker.sprite.height;
+                this.attackerAura.y = attacker.sprite.y - spriteHeight / 2;
+                const time = performance.now() / 1000;
+                this.attackerAura.alpha = 0.25 + Math.sin(time * 1.2) * 0.12;
+            }
 
             // Time-based battle simulation for live mode
             if (this.mode === 'live' && !this.battleFinished && this.isPlaying && this.battleEvents) {
@@ -1001,6 +1028,12 @@
 
             const startTime = Date.now();
             const animate = () => {
+                // Guard against destroyed or null targets
+                if (!target || target.destroyed) {
+                    if (onComplete) onComplete();
+                    return;
+                }
+                
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / adjustedDuration, 1);
                 
@@ -1065,13 +1098,15 @@
         const dotNetRef = resolveDotNetRef(battleData);
         const attackerName = resolveAttackerName(battleData);
         const defenderName = resolveDefenderName(battleData);
+        const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
         return new BattleScene(container, {
             events,
             dotNetRef,
             mode,
             attackerName,
-            defenderName
+            defenderName,
+            HasShotBuff: hasShotBuff
         });
     };
 

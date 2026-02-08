@@ -46,6 +46,14 @@ public class MyTunoScalingConfiguration
     /// </summary>
     public int MinDamage { get; set; } = 1;
 
+    /// <summary>
+    /// Enemy speed scaling rate relative to StatMultiplierPerLevel.
+    /// Controls how fast enemies' speed grows per stage.
+    /// A value of 0.073 with StatMultiplierPerLevel=0.15 makes enemies reach 1.0s action time around stage 900.
+    /// Default is 0.5 (original half-rate scaling).
+    /// </summary>
+    public double EnemySpeedScalingRate { get; set; } = 0.5;
+
     public StageModeConfig StageMode { get; set; } = new();
 
     /// <summary>

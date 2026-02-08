@@ -115,14 +115,18 @@
                         <div class="result-buff-row">
                             <i class="bi bi-droplet-fill text-info"></i>
                             <span>
-                                Shot Buff: @character.ShotBuffBattlesRemaining
-                                @(character.ShotBuffBattlesRemaining == 1 ? "batalha restante" : "batalhas restantes")
+                                Shot Buff ativo (@character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges"))
                             </span>
                         </div>
                     }
-                    <button class="result-btn" @onclick="ResultGoBack">
-                        IR MY TUNO
-                    </button>
+                    <div class="d-flex flex-column gap-2 mt-2 w-100">
+                        <button class="result-btn" @onclick="ResultFightAgain">
+                            <i class="bi bi-sword me-2"></i>LUTAR
+                        </button>
+                        <button class="result-btn result-btn-secondary" @onclick="ResultGoBack">
+                            IR MY TUNO
+                        </button>
+                    </div>
                 </div>
             </div>
         }
@@ -145,6 +149,14 @@
         <!-- Opponent Selection - Only show when battle/result is not active -->
         @if (!showBattleAnimation && !showResultSummary)
         {
+            @if (character != null && !character.IsAlive())
+            {
+                <div class="alert alert-danger text-center mb-4" role="alert">
+                    <i class="bi bi-heart-fill me-2"></i>
+                    <strong>O teu personagem está derrotado!</strong> Usa uma cerveja para reviver antes de lutar.
+                </div>
+            }
+
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
@@ -170,6 +182,19 @@
                                 </div>
                             }
                         </div>
+
+                        @if (totalItems > pageSize)
+                        {
+                            <div class="mt-3">
+                                <TablePagination CurrentPage="@currentPage"
+                                                PageSize="@pageSize"
+                                                TotalItems="@totalItems"
+                                                ItemLabel="oponentes"
+                                                PageSizeOptions="@(new[] { 8, 16, 32, 48, 60 })"
+                                                OnPageChanged="@HandlePageChanged"
+                                                OnPageSizeChanged="@HandlePageSizeChanged" />
+                            </div>
+                        }
                     }
                 </div>
             </div>
@@ -185,6 +210,7 @@
 @code {
     private Character? character;
     private ApplicationUser? currentUser;
+    private List<Character>? allOpponentCharacters;
     private List<Character>? opponentCharacters;
     private BattleResult? currentBattle;
     private bool loading = true;
@@ -195,6 +221,11 @@
     private string errorMessage = string.Empty;
     private DotNetObjectReference<Arena>? objRef;
     private bool hasRendered = false; // Track if component has rendered interactively
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 8;
+    private int totalItems = 0;
 
     // Battle controls
     private double battleSpeed = 1.0;
@@ -277,20 +308,74 @@
 
         try
         {
-            // Use the new random opponent selection method
-            opponentCharacters = await CharacterRepository.GetRandomOpponentsAsync(character.Id, 8);
+            // Get all opponents with at least 5 arena games
+            allOpponentCharacters = await CharacterRepository.GetArenaOpponentsAsync(character.Id, 5);
             
-            // Ensure all enemies have full HP (AI always starts fresh)
-            foreach (var opponent in opponentCharacters)
+            // Opponents always fight as CPU snapshots at full HP
+            // Clear their HP and buff state so EnemyCard displays 100% HP
+            foreach (var opponent in allOpponentCharacters)
             {
-                opponent.CurrentHP = opponent.TotalHP;
+                opponent.CurrentHP = null; // null = full HP (TotalHP)
+                opponent.ShotBuffBattlesRemaining = 0; // Don't show opponent's buff in card
             }
+
+            totalItems = allOpponentCharacters.Count;
+            ApplyPagination();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading opponents");
             errorMessage = "Erro ao carregar oponentes.";
         }
+    }
+
+    private void ApplyPagination()
+    {
+        if (allOpponentCharacters == null)
+        {
+            opponentCharacters = null;
+            return;
+        }
+
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)totalItems / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        opponentCharacters = allOpponentCharacters
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private Task HandlePageChanged(int page)
+    {
+        currentPage = page;
+        ApplyPagination();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChanged(int newSize)
+    {
+        pageSize = newSize;
+        currentPage = 1;
+        ApplyPagination();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task ResultFightAgain()
+    {
+        // Dismiss result and go back to opponent selection
+        showResultSummary = false;
+        currentBattle = null;
+        // Reload opponents for fresh list
+        if (character != null && currentUser != null)
+        {
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            await LoadOpponentsAsync();
+        }
+        StateHasChanged();
     }
 
     private async Task FightOpponent(Character opponent)
@@ -357,7 +442,8 @@
                         EventsJson = currentBattle.ReplayJson,  // Pass as JSON string
                         DotNetRef = objRef,
                         AttackerName = character.User?.Nickname ?? character.User?.UserName ?? "Jogador",
-                        DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente"
+                        DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente",
+                        HasShotBuff = character.ShotBuffBattlesRemaining > 0
                     };
 
                     await JSRuntime.InvokeVoidAsync("console.log", "Starting PixiJS battle");

@@ -159,6 +159,18 @@
   box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
 }
 
+.result-btn-secondary {
+  background: linear-gradient(135deg, #546e7a, #455a64);
+  box-shadow: 0 4px 16px rgba(84, 110, 122, 0.35);
+  font-size: 0.95rem;
+  letter-spacing: 1.5px;
+}
+
+.result-btn-secondary:hover {
+  background: linear-gradient(135deg, #607d8b, #546e7a);
+  box-shadow: 0 6px 24px rgba(84, 110, 122, 0.5);
+}
+
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .arena-page {

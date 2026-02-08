@@ -446,8 +446,11 @@ public class Character : BaseEntity
         {
             XP -= Level * MyTunoScaling.XpPerLevelBase;
             Level++;
-            // Heal to full HP on level-up
-            CurrentHP = TotalHP;
+            // Heal to full HP on level-up (accounts for shot buff)
+            var maxHP = ShotBuffBattlesRemaining > 0
+                ? CreateShotBuffedCopy(this).TotalHP
+                : TotalHP;
+            CurrentHP = maxHP;
         }
     }
 
@@ -538,6 +541,30 @@ public class Character : BaseEntity
             ? CreateShotBuffedCopy(this).TotalHP 
             : TotalHP;
         CurrentHP = maxHP;
+    }
+
+    /// <summary>
+    /// Decrements the shot buff counter by 1.
+    /// When the buff fully expires (reaches 0), scales CurrentHP proportionally
+    /// from the buffed max HP down to the unbuffed max HP so the HP bar stays consistent.
+    /// </summary>
+    public void ExpireShotBuff()
+    {
+        if (ShotBuffBattlesRemaining <= 0) return;
+
+        // Capture buffed max HP before decrementing
+        var buffedMaxHp = CreateShotBuffedCopy(this).TotalHP;
+
+        ShotBuffBattlesRemaining--;
+
+        if (ShotBuffBattlesRemaining == 0)
+        {
+            // Buff fully expired — scale CurrentHP proportionally back to unbuffed max
+            var unbuffedMaxHp = TotalHP;
+            var currentHp = CurrentHP ?? buffedMaxHp;
+            var hpRatio = (double)currentHp / buffedMaxHp;
+            CurrentHP = Math.Max(1, (int)Math.Round(hpRatio * unbuffedMaxHp));
+        }
     }
 
     /// <summary>
