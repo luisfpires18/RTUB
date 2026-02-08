@@ -65,7 +65,8 @@ public class CharacterTests
         character.HpUpgrades = 5;
 
         // Act & Assert
-        character.TotalHP.Should().Be(100 + (5 * 10)); // 100 + 50 = 150
+        // Multiplicative: (int)(100 * 1.0 * (1 + 5 * 0.02)) = 110
+        character.TotalHP.Should().Be(110);
     }
 
     [Fact]
@@ -86,7 +87,8 @@ public class CharacterTests
         character.PowerUpgrades = 3;
 
         // Act & Assert
-        character.TotalPower.Should().Be(10 + (3 * 2)); // 10 + 6 = 16
+        // Multiplicative: (int)(10 * 1.0 * (1 + 3 * 0.02)) = (int)(10.6) = 10
+        character.TotalPower.Should().Be(10);
     }
 
     [Fact]
@@ -214,7 +216,7 @@ public class CharacterTests
 
         // Assert
         character.HpUpgrades.Should().Be(1);
-        character.TotalHP.Should().Be(110); // 100 + (1 * 10)
+        character.TotalHP.Should().Be(102); // (int)(100 * 1.0 * (1 + 1 * 0.02)) = 102
     }
 
     [Fact]
@@ -228,7 +230,7 @@ public class CharacterTests
 
         // Assert
         character.PowerUpgrades.Should().Be(1);
-        character.TotalPower.Should().Be(12); // 10 + (1 * 2)
+        character.TotalPower.Should().Be(10); // (int)(10 * 1.0 * (1 + 1 * 0.02)) = (int)(10.2) = 10
     }
 
     [Fact]
@@ -263,9 +265,9 @@ public class CharacterTests
         character.HpUpgrades.Should().Be(2);
         character.PowerUpgrades.Should().Be(1);
         character.SpeedUpgrades.Should().Be(3);
-        character.TotalHP.Should().Be(120); // 100 + (2 * 10)
-        character.TotalPower.Should().Be(12); // 10 + (1 * 2)
-        character.TotalSpeed.Should().Be(13); // 10 + (3 * 1)
+        character.TotalHP.Should().Be(104); // (int)(100 * 1.0 * (1 + 2 * 0.02)) = 104
+        character.TotalPower.Should().Be(10); // (int)(10 * 1.0 * (1 + 1 * 0.02)) = 10
+        character.TotalSpeed.Should().Be(13); // 10 + (3 * 1) (additive for speed)
     }
 
     #endregion

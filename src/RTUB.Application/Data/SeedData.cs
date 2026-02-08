@@ -27,9 +27,6 @@ public static partial class SeedData
         // Seed stage enemies (runs even for existing databases if table is empty)
         await SeedStageEnemiesAsync(dbContext);
 
-        // Fix characters whose SpeedUpgrades exceed the effective cap (ActionTime already at floor)
-        await CorrectSpeedUpgradesAsync(dbContext);
-
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

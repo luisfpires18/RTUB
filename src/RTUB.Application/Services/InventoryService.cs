@@ -500,8 +500,11 @@ public class InventoryService : IInventoryService
 
     private static readonly HashSet<InventoryItemType> DrinkTypes = new()
     {
-        InventoryItemType.Vodka, InventoryItemType.Gin,
-        InventoryItemType.Whisky, InventoryItemType.Absinto
+        InventoryItemType.Cerveja, InventoryItemType.Vinho,
+        InventoryItemType.Licor, InventoryItemType.Rum,
+        InventoryItemType.Tequilla, InventoryItemType.Vodka,
+        InventoryItemType.Gin, InventoryItemType.Whisky,
+        InventoryItemType.Absinto, InventoryItemType.Aguardente
     };
 
     public async Task<(bool Success, ForgedWeapon? Weapon, string Message)> ForgeWeaponAsync(

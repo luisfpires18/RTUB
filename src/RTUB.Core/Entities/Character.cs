@@ -122,18 +122,16 @@ public class Character : BaseEntity
     // stat = base * (1 + multiplier * (level-1)^(1+exponent)) + upgrades
     // When exponent=0 this reduces to simple linear scaling.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalHP => (int)(HP * LevelScaleFactor())
-        + (int)(HpUpgrades * MyTunoScaling.HpUpgradeBonus)
+    public int TotalHP => (int)(HP * LevelScaleFactor() * (1 + HpUpgrades * MyTunoScaling.HpUpgradeMultiplier))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalPower => (int)(Power * LevelScaleFactor())
-        + (int)(PowerUpgrades * MyTunoScaling.PowerUpgradeBonus)
+    public int TotalPower => (int)(Power * LevelScaleFactor() * (1 + PowerUpgrades * MyTunoScaling.PowerUpgradeMultiplier))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int TotalSpeed => (int)(Speed * LevelScaleFactor())
-        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeBonus);
+        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
 
     /// <summary>
     /// Maximum critical chance cap (50%)
@@ -142,12 +140,28 @@ public class Character : BaseEntity
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance =>
-        Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeBonus));
+        Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier));
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(Defense * LevelScaleFactor())
-        + (int)(DefenseUpgrades * MyTunoScaling.DefenseUpgradeBonus)
+    public int TotalDefense => (int)(Defense * LevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
         + EquipmentDefenseBonus;
+
+    // Preview properties: what the stat will be after the next upgrade
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int NextTotalHP => (int)(HP * LevelScaleFactor() * (1 + (HpUpgrades + 1) * MyTunoScaling.HpUpgradeMultiplier))
+        + EquipmentHPBonus;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int NextTotalPower => (int)(Power * LevelScaleFactor() * (1 + (PowerUpgrades + 1) * MyTunoScaling.PowerUpgradeMultiplier))
+        + EquipmentPowerBonus;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int NextTotalDefense => (int)(Defense * LevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
+        + EquipmentDefenseBonus;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double NextTotalCriticalChance =>
+        Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier));
 
     /// <summary>
     /// Computes the level-based stat multiplier using polynomial growth.

@@ -42,7 +42,7 @@ public class UpgradeService : IUpgradeService
 
     /// <summary>
     /// Calculates the cost for upgrading a specific stat
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ 1.5
+    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
     /// </summary>
     public async Task<decimal> GetUpgradeCostAsync(string userId, StatType statType)
     {
@@ -61,20 +61,10 @@ public class UpgradeService : IUpgradeService
             _ => 0
         } : 0;
 
-        var baseCost = statType switch
-        {
-            StatType.HP => _config.Upgrades.HP.BaseCost,
-            StatType.Power => _config.Upgrades.Power.BaseCost,
-            StatType.Speed => _config.Upgrades.Speed.BaseCost,
-            StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
-            StatType.Defense => _config.Upgrades.Defense.BaseCost,
-            _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
-        };
+        var upgradeStat = GetUpgradeStatConfig(statType);
 
-        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ exponent
-        // Speed uses a steeper exponent (1.8) to make it more costly than other stats
-        var exponent = statType == StatType.Speed ? 1.8 : 1.5;
-        var cost = baseCost * (decimal)Math.Pow(1 + upgradeCount, exponent);
+        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+        var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, upgradeStat.CostExponent);
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -127,15 +117,7 @@ public class UpgradeService : IUpgradeService
                     }
 
                     // Calculate cost based on current upgrade count
-                    var baseCost = statType switch
-                    {
-                        StatType.HP => _config.Upgrades.HP.BaseCost,
-                        StatType.Power => _config.Upgrades.Power.BaseCost,
-                        StatType.Speed => _config.Upgrades.Speed.BaseCost,
-                        StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
-                        StatType.Defense => _config.Upgrades.Defense.BaseCost,
-                        _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
-                    };
+                    var upgradeStat = GetUpgradeStatConfig(statType);
 
                     var currentUpgradeCount = statType switch
                     {
@@ -148,7 +130,7 @@ public class UpgradeService : IUpgradeService
                     };
 
                     // Check max upgrade level
-                    var maxUpgrades = GetMaxUpgrades(statType);
+                    var maxUpgrades = upgradeStat.MaxUpgrades;
                     if (currentUpgradeCount >= maxUpgrades)
                     {
                         await transaction.RollbackAsync();
@@ -162,9 +144,8 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
                     }
 
-                    // Speed uses a steeper exponent (1.8) to make it more costly than other stats
-                    var exponent = statType == StatType.Speed ? 1.8 : 1.5;
-                    var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, exponent);
+                    // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+                    var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + currentUpgradeCount, upgradeStat.CostExponent);
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     // Validate sufficient balance
@@ -252,18 +233,18 @@ public class UpgradeService : IUpgradeService
     }
 
     /// <summary>
-    /// Gets the max upgrades for a stat type from configuration
+    /// Gets the upgrade configuration for a stat type (baseCost, costExponent, maxUpgrades, etc.)
     /// </summary>
-    private int GetMaxUpgrades(StatType statType)
+    private MyTunoUpgradeStat GetUpgradeStatConfig(StatType statType)
     {
         return statType switch
         {
-            StatType.HP => _config.Upgrades.HP.MaxUpgrades,
-            StatType.Power => _config.Upgrades.Power.MaxUpgrades,
-            StatType.Speed => _config.Upgrades.Speed.MaxUpgrades,
-            StatType.CriticalChance => _config.Upgrades.CriticalChance.MaxUpgrades,
-            StatType.Defense => _config.Upgrades.Defense.MaxUpgrades,
-            _ => 50
+            StatType.HP => _config.Upgrades.HP,
+            StatType.Power => _config.Upgrades.Power,
+            StatType.Speed => _config.Upgrades.Speed,
+            StatType.CriticalChance => _config.Upgrades.CriticalChance,
+            StatType.Defense => _config.Upgrades.Defense,
+            _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
     }
 
@@ -286,15 +267,7 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Personagem não encontrado");
             }
 
-            var baseCost = statType switch
-            {
-                StatType.HP => _config.Upgrades.HP.BaseCost,
-                StatType.Power => _config.Upgrades.Power.BaseCost,
-                StatType.Speed => _config.Upgrades.Speed.BaseCost,
-                StatType.CriticalChance => _config.Upgrades.CriticalChance.BaseCost,
-                StatType.Defense => _config.Upgrades.Defense.BaseCost,
-                _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
-            };
+            var upgradeStat = GetUpgradeStatConfig(statType);
 
             var currentUpgradeCount = statType switch
             {
@@ -307,7 +280,7 @@ public class UpgradeService : IUpgradeService
             };
 
             // Check max upgrade level
-            var maxUpgrades = GetMaxUpgrades(statType);
+            var maxUpgrades = upgradeStat.MaxUpgrades;
             if (currentUpgradeCount >= maxUpgrades)
             {
                 return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
@@ -319,9 +292,8 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
             }
 
-            // Speed uses a steeper exponent (1.8) to make it more costly than other stats
-            var exponent = statType == StatType.Speed ? 1.8 : 1.5;
-            var cost = baseCost * (decimal)Math.Pow(1 + currentUpgradeCount, exponent);
+            // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+            var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + currentUpgradeCount, upgradeStat.CostExponent);
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

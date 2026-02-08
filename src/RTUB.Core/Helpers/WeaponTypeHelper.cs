@@ -14,13 +14,17 @@ public static class WeaponTypeHelper
     {
         return weaponType switch
         {
-            WeaponType.Sword => "Espada",
-            WeaponType.Axe => "Machado",
-            WeaponType.Mace => "Maça",
-            WeaponType.Staff => "Cajado",
-            WeaponType.Shield => "Escudo",
-            WeaponType.Bow => "Arco",
-            WeaponType.Dagger => "Adaga",
+            WeaponType.SwordOneHand => "Sword (1H)",
+            WeaponType.AxeOneHand => "Axe (1H)",
+            WeaponType.Mace => "Mace (1H)",
+            WeaponType.Shield => "Shield (1H)",
+            WeaponType.Dagger => "Dagger (1H)",
+            WeaponType.Staff => "Staff (2H)",
+            WeaponType.Bow => "Bow (2H)",
+            WeaponType.SwordTwoHand => "Sword (2H)",
+            WeaponType.Spear => "Spear (2H)",
+            WeaponType.AxeTwoHand => "Axe (2H)",
+            WeaponType.Hammer => "Hammer (2H)",
             _ => weaponType.ToString()
         };
     }
@@ -32,13 +36,17 @@ public static class WeaponTypeHelper
     {
         return weaponType switch
         {
-            WeaponType.Sword => "bi-slash-lg",
-            WeaponType.Axe => "bi-hammer",
+            WeaponType.SwordOneHand => "bi-slash-lg",
+            WeaponType.SwordTwoHand => "bi-slash-lg",
+            WeaponType.AxeOneHand => "bi-hammer",
+            WeaponType.AxeTwoHand => "bi-hammer",
             WeaponType.Mace => "bi-hammer",
             WeaponType.Staff => "bi-magic",
             WeaponType.Shield => "bi-shield-fill",
-            WeaponType.Bow => "bi-bullseye",
             WeaponType.Dagger => "bi-lightning",
+            WeaponType.Bow => "bi-bullseye",
+            WeaponType.Spear => "bi-chevron-bar-up",
+            WeaponType.Hammer => "bi-hammer",
             _ => "bi-sword"
         };
     }
@@ -48,7 +56,9 @@ public static class WeaponTypeHelper
     /// </summary>
     public static bool IsTwoHanded(WeaponType weaponType)
     {
-        return weaponType == WeaponType.Staff || weaponType == WeaponType.Bow;
+        return weaponType is WeaponType.Staff or WeaponType.Bow
+            or WeaponType.SwordTwoHand or WeaponType.Spear
+            or WeaponType.AxeTwoHand or WeaponType.Hammer;
     }
 
     /// <summary>
@@ -68,16 +78,22 @@ public static class WeaponTypeHelper
         var weaponName = GetDisplayName(weaponType);
         var instrName = InstrumentTypeHelper.FromInventoryPartType(sourceInstrument) is { } instrType
             ? InstrumentTypeHelper.GetDisplayName(instrType)
-            : "Instrumento";
+            : "Instrument";
         var drinkName = sourceDrink switch
         {
+            InventoryItemType.Cerveja => "Cerveja",
+            InventoryItemType.Vinho => "Vinho",
+            InventoryItemType.Licor => "Licor",
+            InventoryItemType.Rum => "Rum",
+            InventoryItemType.Tequilla => "Tequilla",
             InventoryItemType.Vodka => "Vodka",
             InventoryItemType.Gin => "Gin",
             InventoryItemType.Whisky => "Whisky",
             InventoryItemType.Absinto => "Absinto",
-            _ => "Bebida"
+            InventoryItemType.Aguardente => "Aguardente",
+            _ => "Drink"
         };
 
-        return $"{weaponName} da {instrName} com {drinkName}";
+        return $"{weaponName} {instrName} + {drinkName}";
     }
 }

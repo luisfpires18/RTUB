@@ -20,11 +20,11 @@ public static class MyTunoScaling
     public static int InitialCriticalUpgrades { get; private set; } = 0;
     public static int InitialDefenseUpgrades { get; private set; } = 0;
 
-    public static double HpUpgradeBonus { get; private set; } = 10;
-    public static double PowerUpgradeBonus { get; private set; } = 2;
-    public static double SpeedUpgradeBonus { get; private set; } = 1;
-    public static double CriticalChanceUpgradeBonus { get; private set; } = 0.005;
-    public static double DefenseUpgradeBonus { get; private set; } = 2;
+    public static double HpUpgradeMultiplier { get; private set; } = 0.02;
+    public static double PowerUpgradeMultiplier { get; private set; } = 0.02;
+    public static double SpeedUpgradeMultiplier { get; private set; } = 1;
+    public static double CriticalChanceUpgradeMultiplier { get; private set; } = 0.005;
+    public static double DefenseUpgradeMultiplier { get; private set; } = 0.02;
 
     /// <summary>
     /// Defense constant K for damage mitigation formula: mult = K / (K + defense)
@@ -59,11 +59,11 @@ public static class MyTunoScaling
         int initialSpeedUpgrades,
         int initialCriticalUpgrades,
         int initialDefenseUpgrades,
-        double hpUpgradeBonus,
-        double powerUpgradeBonus,
-        double speedUpgradeBonus,
-        double criticalChanceUpgradeBonus,
-        double defenseUpgradeBonus,
+        double hpUpgradeMultiplier,
+        double powerUpgradeMultiplier,
+        double speedUpgradeMultiplier,
+        double criticalChanceUpgradeMultiplier,
+        double defenseUpgradeMultiplier,
         double defenseK,
         int minDamage,
         double beerDropChance = 0.2)
@@ -83,11 +83,11 @@ public static class MyTunoScaling
         InitialSpeedUpgrades = initialSpeedUpgrades;
         InitialCriticalUpgrades = initialCriticalUpgrades;
         InitialDefenseUpgrades = initialDefenseUpgrades;
-        HpUpgradeBonus = hpUpgradeBonus;
-        PowerUpgradeBonus = powerUpgradeBonus;
-        SpeedUpgradeBonus = speedUpgradeBonus;
-        CriticalChanceUpgradeBonus = criticalChanceUpgradeBonus;
-        DefenseUpgradeBonus = defenseUpgradeBonus;
+        HpUpgradeMultiplier = hpUpgradeMultiplier;
+        PowerUpgradeMultiplier = powerUpgradeMultiplier;
+        SpeedUpgradeMultiplier = speedUpgradeMultiplier;
+        CriticalChanceUpgradeMultiplier = criticalChanceUpgradeMultiplier;
+        DefenseUpgradeMultiplier = defenseUpgradeMultiplier;
         DefenseK = defenseK;
         MinDamage = minDamage;
         BeerDropChance = beerDropChance;

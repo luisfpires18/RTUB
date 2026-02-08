@@ -645,7 +645,7 @@
                                     }
                                     else
                                     {
-                                        <text>@character.TotalHP → @(character.TotalHP + 10)</text>
+                                        <text>@character.TotalHP → @character.NextTotalHP</text>
                                     }
                                 </div>
                             </div>
@@ -694,7 +694,7 @@
                                     }
                                     else
                                     {
-                                        <text>@character.TotalPower → @(character.TotalPower + 2)</text>
+                                        <text>@character.TotalPower → @character.NextTotalPower</text>
                                     }
                                 </div>
                             </div>
@@ -792,7 +792,7 @@
                                     }
                                     else
                                     {
-                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{Math.Min(Character.MaxCriticalChance, character.TotalCriticalChance + 0.005) * 100:F1}%")</text>
+                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{character.NextTotalCriticalChance * 100:F1}%")</text>
                                     }
                                 </div>
                             </div>
@@ -841,7 +841,7 @@
                                     }
                                     else
                                     {
-                                        <text>@character.TotalDefense → @(character.TotalDefense + 2)</text>
+                                        <text>@character.TotalDefense → @character.NextTotalDefense</text>
                                     }
                                 </div>
                             </div>
@@ -1271,7 +1271,6 @@
                             <button class="btn btn-sm @(selectedForgeWeaponType == wtLocal ? "btn-primary" : "btn-outline-secondary")"
                                     @onclick="() => SelectForgeWeaponType(wtLocal)">
                                 <i class="bi @WeaponTypeHelper.GetIcon(wtLocal) me-1"></i>@WeaponTypeHelper.GetDisplayName(wtLocal)
-                                @if (WeaponTypeHelper.IsTwoHanded(wtLocal)) { <small class="ms-1 opacity-75">(2H)</small> }
                             </button>
                         }
                     </div>
@@ -1308,7 +1307,6 @@
                     <h4 class="text-warning mb-2">@lastForgedWeapon.Name</h4>
                     <span class="badge bg-info bg-opacity-25 text-info mb-3">
                         @WeaponTypeHelper.GetDisplayName(lastForgedWeapon.WeaponType)
-                        @if (lastForgedWeapon.IsTwoHanded) { <text> (Duas Mãos)</text> }
                     </span>
                     <div class="equip-confirm-stats mt-3">
                         <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
@@ -1352,7 +1350,6 @@
                     </h5>
                     <span class="badge bg-info bg-opacity-25 text-info">
                         @WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)
-                        @if (pendingWeapon.IsTwoHanded) { <text> (Duas Mãos)</text> }
                     </span>
                 </div>
                 <div class="equip-confirm-stats mb-3">
@@ -1434,7 +1431,6 @@
                                     </div>
                                     <div class="stats-card-subtitle" style="font-size: 0.75rem; color: #aaa;">
                                         @WeaponTypeHelper.GetDisplayName(weapon.WeaponType)
-                                        @if (weapon.IsTwoHanded) { <text> (2H)</text> }
                                         <span class="ms-2">
                                             @if (weapon.BonusHP > 0) { <span class="text-danger">+@weapon.BonusHP HP</span> }
                                             @if (weapon.BonusPower > 0) { <span class="text-success ms-1">+@weapon.BonusPower Pow</span> }
@@ -2691,8 +2687,8 @@
             await castTcs.Task;
 
             // Cast finished — open weapon type + name modal
-            selectedForgeWeaponType = WeaponType.Sword;
-            forgeWeaponDefaultName = WeaponTypeHelper.GenerateDefaultName(WeaponType.Sword, forgeInstrument.Value, forgeDrink.Value);
+            selectedForgeWeaponType = WeaponType.SwordOneHand;
+            forgeWeaponDefaultName = WeaponTypeHelper.GenerateDefaultName(WeaponType.SwordOneHand, forgeInstrument.Value, forgeDrink.Value);
             forgeWeaponName = forgeWeaponDefaultName;
             showForgeWeaponTypeModal = true;
         }

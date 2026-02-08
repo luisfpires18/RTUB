@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Core.Entities;
 
@@ -68,7 +69,7 @@ public class ForgedWeapon : BaseEntity
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Weapon name is required", nameof(name));
 
-        var isTwoHanded = weaponType == WeaponType.Staff || weaponType == WeaponType.Bow;
+        var isTwoHanded = WeaponTypeHelper.IsTwoHanded(weaponType);
 
         return new ForgedWeapon
         {
