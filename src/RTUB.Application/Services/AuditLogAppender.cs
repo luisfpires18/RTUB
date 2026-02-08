@@ -31,8 +31,7 @@ public class AuditLogAppender : IAuditLogAppender
             "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id",
             "LastNotificationSent", // Question notification tracking - not business data
             "IsAwaitingUserReply", // Question workflow state - not business data
-            "Status", // Question status changes are handled via entity display name
-            "FidelisBalance" // Excluded to avoid audit log spam from frequent balance updates
+            "Status" // Question status changes are handled via entity display name
         };
 
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
@@ -190,7 +189,9 @@ public class AuditLogAppender : IAuditLogAppender
             "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
             "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
-            "LastLoginDate" // Exclude login tracking - already logged separately
+            "LastLoginDate", // Exclude login tracking - already logged separately
+            "FidelisBalance", // High-frequency balance updates - not business-critical
+            "LastDailyRewardClaim" // Daily reward tracking - not business-critical
         };
 
         // Critical fields that should mark the action as critical (even if not logged)
@@ -300,16 +301,6 @@ public class AuditLogAppender : IAuditLogAppender
         if (action == "Modified" && changes.Count <= 1 && !isCriticalChange)
         {
             return null;
-        }
-
-        if (action == "Modified" && !isCriticalChange)
-        {
-            var nonMetadataKeys = changes.Keys.Where(key => !key.StartsWith("_", StringComparison.Ordinal)).ToList();
-            if (nonMetadataKeys.Count == 1 &&
-                string.Equals(nonMetadataKeys[0], "FidelisBalance", StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
         }
 
         // Use the modified user's username as the display name

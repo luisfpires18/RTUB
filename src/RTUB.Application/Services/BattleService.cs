@@ -26,6 +26,7 @@ public class BattleService : IBattleService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<BattleService> _logger;
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
+    private readonly IAuditLogService _auditLogService;
 
     public BattleService(
         ICharacterRepository characterRepository,
@@ -34,7 +35,8 @@ public class BattleService : IBattleService
         IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<BattleService> logger,
-        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig)
+        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
+        IAuditLogService auditLogService)
     {
         _characterRepository = characterRepository;
         _matchmakingService = matchmakingService;
@@ -43,6 +45,7 @@ public class BattleService : IBattleService
         _userManager = userManager;
         _logger = logger;
         _myTunoScalingConfig = myTunoScalingConfig.Value;
+        _auditLogService = auditLogService;
     }
 
     /// <summary>
@@ -70,9 +73,19 @@ public class BattleService : IBattleService
 
         var playerUser = await _userManager.FindByIdAsync(playerCharacter.UserId);
         var opponentUser = await _userManager.FindByIdAsync(opponentCharacter.UserId);
-        _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", 
-            playerUser?.UserName ?? playerCharacter.UserId, 
-            opponentUser?.UserName ?? opponentCharacter.UserId);
+        var playerName = playerUser?.UserName ?? playerCharacter.UserId;
+        var opponentName = opponentUser?.UserName ?? opponentCharacter.UserId;
+        _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", playerName, opponentName);
+        await _auditLogService.AddAsync(new AuditLog
+        {
+            EntityType = "ArenaBattle",
+            Action = "Started",
+            UserName = playerName,
+            UserId = playerCharacter.UserId,
+            Timestamp = DateTime.UtcNow,
+            EntityDisplayName = $"{playerName} vs {opponentName}",
+            Changes = System.Text.Json.JsonSerializer.Serialize(new { Opponent = opponentName })
+        });
 
         // Create CPU snapshot of opponent with full HP
         // This ensures the opponent always starts at full health regardless of their persisted state

@@ -28,6 +28,15 @@ public static class AuditConfiguration
     /// Note: Only add entities that inherit from BaseEntity and generate excessive audit logs.
     /// Critical entities like ApplicationUser, RoleAssignment, Report, etc. should NEVER be excluded.
     /// </summary>
+    /// <summary>
+    /// Entity types excluded from Modified audit logging only.
+    /// Created and Deleted actions are still logged.
+    /// </summary>
+    public static readonly HashSet<string> ModifiedExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ForgedWeapon",
+    };
+
     public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "Message",

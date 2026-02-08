@@ -74,7 +74,8 @@ public class BattleServiceTests : IDisposable
             _inventoryRepositoryMock.Object,
             _userManagerMock.Object,
             _loggerMock.Object,
-            _myTunoScalingConfigMock.Object);
+            _myTunoScalingConfigMock.Object,
+            Mock.Of<IAuditLogService>());
     }
 
     [Fact]

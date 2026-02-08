@@ -219,6 +219,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         entry.Entity.UpdatedBy = username;
                     }
 
+                    // Skip audit logging for entities excluded from Modified-only tracking
+                    if (AuditConfiguration.ModifiedExcludedEntityTypes.Contains(entityTypeName))
+                        break;
+
                     // Check if this is a soft delete (DeletedAt field changed from null to a value)
                     var deletedAtProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "DeletedAt");
                     var isSoftDelete = deletedAtProperty != null

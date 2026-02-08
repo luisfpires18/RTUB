@@ -28,6 +28,7 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<Stage> Logger
 @inject IStageBiomeService BiomeService
+@inject IAuditLogService AuditLogService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -477,6 +478,16 @@
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runInProgress = true;
                 Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
+                await AuditLogService.AddAsync(new AuditLog
+                {
+                    EntityType = "StageRun",
+                    Action = "Started",
+                    UserName = currentUser.UserName,
+                    UserId = currentUser.Id,
+                    Timestamp = DateTime.UtcNow,
+                    EntityDisplayName = $"Stage {stageProgress.CurrentStage}",
+                    Changes = System.Text.Json.JsonSerializer.Serialize(new { Stage = stageProgress.CurrentStage, HP = character.CurrentHP })
+                });
             }
             
             // Only update UI if we weren't already animating (first battle)
