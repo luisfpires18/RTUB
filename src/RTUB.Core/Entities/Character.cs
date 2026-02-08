@@ -142,8 +142,16 @@ public class Character : BaseEntity
     public double TotalCriticalChance =>
         Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier));
 
+    /// <summary>
+    /// Effective defense base — self-heals characters whose Defense column is still 0
+    /// from the original migration (defaultValue: 0). The switch from additive to multiplicative
+    /// upgrade formulas made 0 * anything = 0, so we fall back to config base.
+    /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(Defense * LevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
+    private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int TotalDefense => (int)(EffectiveDefense * LevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
@@ -156,7 +164,7 @@ public class Character : BaseEntity
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalDefense => (int)(Defense * LevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
+    public int NextTotalDefense => (int)(EffectiveDefense * LevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

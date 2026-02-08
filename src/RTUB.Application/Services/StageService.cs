@@ -541,14 +541,11 @@ public class StageService : IStageService
         }
 
         // Apply Fidelis
-        if (fidelis > 0)
+        var user = await _userManager.FindByIdAsync(character.UserId);
+        if (fidelis > 0 && user != null)
         {
-            var user = await _userManager.FindByIdAsync(character.UserId);
-            if (user != null)
-            {
-                user.FidelisBalance += fidelis;
-                await _userManager.UpdateAsync(user);
-            }
+            user.FidelisBalance += fidelis;
+            await _userManager.UpdateAsync(user);
         }
 
         // Apply item drops
@@ -580,8 +577,8 @@ public class StageService : IStageService
         }
 
         _logger.LogInformation(
-            "Applied run rewards for character {CharacterId}: +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
-            characterId, xp, fidelis, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
+            user?.UserName ?? "Unknown", characterId, xp, fidelis, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
     }
 
     /// <summary>

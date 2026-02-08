@@ -236,8 +236,26 @@
                             }
                             else
                             {
-                                <!-- Equipable: Equipment pieces -->
+                                <!-- Equipable: Equipment pieces + Forged Weapons -->
                                 <div class="item-grid">
+                                    @foreach (var weapon in forgedWeapons.Where(w => !w.IsEquipped))
+                                    {
+                                        var wLocal = weapon;
+                                        var wTitle = wLocal.Level > 0 ? wLocal.Name + " +" + wLocal.Level : wLocal.Name;
+                                        <div class="item-card item-card--equipment item-card--clickable" 
+                                             title="@wTitle" 
+                                             @onclick="() => OnForgedWeaponClick(wLocal)" style="cursor: pointer;">
+                                            @if (wLocal.Level > 0)
+                                            {
+                                                <div class="item-card__qty">+@wLocal.Level</div>
+                                            }
+                                            <div class="item-card__icon">
+                                                <i class="bi @WeaponTypeHelper.GetIcon(wLocal.WeaponType)" style="color: var(--bs-warning);"></i>
+                                            </div>
+                                            <div class="item-card__name" style="font-size: 0.5rem;">@wLocal.Name</div>
+                                        </div>
+                                    }
+
                                     @foreach (var kvp in equipmentItems)
                                     {
                                         var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
@@ -254,7 +272,7 @@
                                     }
 
                                     @{
-                                        var equipEmpty = Math.Max(0, 8 - equipmentItems.Count);
+                                        var equipEmpty = Math.Max(0, 8 - forgedWeapons.Count(w => !w.IsEquipped) - equipmentItems.Count);
                                         for (var i = 0; i < equipEmpty; i++)
                                         {
                                             <div class="item-card item-card--empty"></div>

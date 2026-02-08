@@ -1,6 +1,7 @@
 using FluentAssertions;
 using RTUB.Application.DTOs;
 using RTUB.Application.Services;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -396,7 +397,7 @@ public class CombatEngineTests
         defender.HP = 10000; // Very high HP to survive many hits
         defender.Power = 1;
         defender.Speed = 5;
-        defender.Defense = 0; // No defense for consistent damage testing
+        // defender gets base defense from Character.Create (BaseDefense)
 
         var seed = 12345;
 
@@ -418,11 +419,13 @@ public class CombatEngineTests
         }
 
         // All damage should be within expected range
-        // Base damage: Power * 0.8 to Power * 1.2
-        // Critical hits: Base damage * 2 (so Power * 0.8 * 2 to Power * 1.2 * 2)
+        // Base damage: Power * variance (0.8-1.2) * defense mitigation
+        // Defense mitigation: K / (K + TotalDefense)
+        // Critical hits: Base damage * 2
+        var defMitigation = MyTunoScaling.DefenseK / (MyTunoScaling.DefenseK + defender.TotalDefense);
         foreach (var damage in attacks)
         {
-            damage.Should().BeGreaterThanOrEqualTo((int)(attacker.Power * 0.8));
+            damage.Should().BeGreaterThanOrEqualTo((int)(attacker.Power * 0.8 * defMitigation));
             // Account for critical hits which can double damage
             damage.Should().BeLessThanOrEqualTo((int)(attacker.Power * 1.2 * 2));
         }
@@ -671,9 +674,10 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void Simulate_ZeroDefense_ShouldNotReduceDamage()
+    public void Simulate_BaseDefense_ShouldGiveMinimalReduction()
     {
-        // Arrange - Test that defense=0 gives multiplier of 1 (no reduction)
+        // Arrange - Test that base defense (from Character.Create) gives only minor reduction
+        // With K=50 and BaseDefense=5 at level 1: mitigation = 50/(50+5) ≈ 0.909
         var attacker = Character.Create("user1");
         attacker.HP = 1000;
         attacker.Power = 50;
@@ -684,14 +688,15 @@ public class CombatEngineTests
         defender.HP = 1000;
         defender.Power = 10;
         defender.Speed = 5;
-        defender.Defense = 0;
+        // defender keeps base defense from Character.Create
 
         var seed = 12345;
 
         // Act
         var result = _combatEngine.Simulate(attacker, defender, seed);
 
-        // Assert - Damage should be in expected variance range (0.8-1.2 of power)
+        // Assert - Damage should account for base defense mitigation
+        var defMitigation = MyTunoScaling.DefenseK / (MyTunoScaling.DefenseK + defender.TotalDefense);
         var attacks = result.Events
             .Where(e => e.Type == "Attack" && e.Attacker == "Attacker" && e.Damage.HasValue)
             .ToList();
@@ -700,9 +705,9 @@ public class CombatEngineTests
         foreach (var attack in attacks)
         {
             var damage = attack.Damage!.Value;
-            var minExpected = (int)(attacker.Power * 0.8);
+            var minExpected = (int)(attacker.Power * 0.8 * defMitigation);
             var maxExpected = (int)Math.Round(attacker.Power * 1.2, MidpointRounding.AwayFromZero);
-            damage.Should().BeGreaterThanOrEqualTo(minExpected, "damage should be at least power * 0.8");
+            damage.Should().BeGreaterThanOrEqualTo(minExpected, "damage should be at least power * 0.8 * defenseMitigation");
             damage.Should().BeLessThanOrEqualTo(maxExpected, "damage should be at most power * 1.2");
         }
     }
