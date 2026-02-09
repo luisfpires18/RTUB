@@ -129,9 +129,9 @@ public class UpgradeService : IUpgradeService
                         _ => 0
                     };
 
-                    // Check max upgrade level
+                    // Check max upgrade level (0 = unlimited)
                     var maxUpgrades = upgradeStat.MaxUpgrades;
-                    if (currentUpgradeCount >= maxUpgrades)
+                    if (maxUpgrades > 0 && currentUpgradeCount >= maxUpgrades)
                     {
                         await transaction.RollbackAsync();
                         return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
@@ -279,9 +279,9 @@ public class UpgradeService : IUpgradeService
                 _ => 0
             };
 
-            // Check max upgrade level
+            // Check max upgrade level (0 = unlimited)
             var maxUpgrades = upgradeStat.MaxUpgrades;
-            if (currentUpgradeCount >= maxUpgrades)
+            if (maxUpgrades > 0 && currentUpgradeCount >= maxUpgrades)
             {
                 return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
             }

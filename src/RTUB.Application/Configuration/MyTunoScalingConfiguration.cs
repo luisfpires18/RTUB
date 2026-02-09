@@ -24,35 +24,6 @@ public class MyTunoScalingConfiguration
     public MyTunoUpgrades Upgrades { get; set; } = new();
     public BattleRewards BattleRewards { get; set; } = new();
     public CombatConfig Combat { get; set; } = new();
-    public ItemConfig Items { get; set; } = new();
-    public MatchmakingConfig Matchmaking { get; set; } = new();
-
-    /// <summary>
-    /// Chance of beer drop after winning a battle (0.0 to 1.0)
-    /// Default is 0.5 (50% chance)
-    /// </summary>
-    public double BeerDropChance { get; set; } = 0.5;
-
-    /// <summary>
-    /// Defense constant K for damage mitigation formula: mult = K / (K + defense)
-    /// Higher K means defense is less effective (more damage taken)
-    /// Default is 50
-    /// </summary>
-    public double DefenseK { get; set; } = 50;
-
-    /// <summary>
-    /// Minimum damage that can be dealt after defense mitigation
-    /// Default is 1
-    /// </summary>
-    public int MinDamage { get; set; } = 1;
-
-    /// <summary>
-    /// Enemy speed scaling rate relative to StatMultiplierPerLevel.
-    /// Controls how fast enemies' speed grows per stage.
-    /// A value of 0.073 with StatMultiplierPerLevel=0.15 makes enemies reach 1.0s action time around stage 900.
-    /// Default is 0.5 (original half-rate scaling).
-    /// </summary>
-    public double EnemySpeedScalingRate { get; set; } = 0.5;
 
     public StageModeConfig StageMode { get; set; } = new();
 
@@ -85,21 +56,28 @@ public class BattleRewards
     /// <summary>
     /// Unified level-difference scaling for both XP and Fidelis arena rewards.
     /// Formula: rewardMultiplier = clamp(1.0 + (defenderLevel - attackerLevel) * LevelDiffScale, Min, Max)
-    /// Beating higher level = bonus, beating lower level = penalty, 20+ levels above = zero.
-    /// Default 0.05 = 5% per level difference.
+    /// Beating higher level = bonus, beating lower level = penalty.
+    /// Default 0.02 = 2% per level difference. Zero threshold at 45 levels above.
     /// </summary>
-    public double LevelDiffScale { get; set; } = 0.05;
+    public double LevelDiffScale { get; set; } = 0.02;
 
     /// <summary>
-    /// Minimum reward multiplier. 0.0 means beating someone 20+ levels below gives nothing.
+    /// Minimum reward multiplier floor. 0.1 = always earn at least 10% of base rewards.
     /// </summary>
-    public double MinRewardMultiplier { get; set; } = 0.0;
+    public double MinRewardMultiplier { get; set; } = 0.1;
 
     /// <summary>
     /// Maximum reward multiplier (cap for beating much stronger opponents).
     /// Default 3.0 = max 300% rewards.
     /// </summary>
     public double MaxRewardMultiplier { get; set; } = 3.0;
+
+    /// <summary>
+    /// Level-based scaling exponent for arena rewards.
+    /// Rewards scale with attacker level: base × level^LevelScalePower.
+    /// 0.5 = sqrt scaling (level 381 → 19.5× base). 0 = no level scaling.
+    /// </summary>
+    public double LevelScalePower { get; set; } = 0.7;
 
     /// <summary>
     /// Cost in Fidelis to revive a defeated character
@@ -112,6 +90,11 @@ public class BattleRewards
     /// Default is 50 Fidelis
     /// </summary>
     public decimal RestoreHPCost { get; set; } = 50m;
+
+    /// <summary>
+    /// Chance of beer drop after winning an arena battle (0.0 to 1.0)
+    /// </summary>
+    public double BeerDropChance { get; set; } = 0.05;
 }
 
 public class MyTunoBaseStats
@@ -127,6 +110,11 @@ public class MyTunoBaseStats
 
 public class MyTunoLevelScaling
 {
+    /// <summary>
+    /// Maximum player level. After this, XP still accumulates but no more level-ups.
+    /// </summary>
+    public int MaxLevel { get; set; } = 1000;
+
     public double StatMultiplierPerLevel { get; set; } = 0.1;
     public double StatGrowthExponent { get; set; } = 0.0;
     public int XpPerLevelBase { get; set; } = 100;
@@ -143,11 +131,14 @@ public class MyTunoUpgrades
 
 public class MyTunoUpgradeStat
 {
-    public int InitialBought { get; set; }
     public double MultiplierPerUpgrade { get; set; }
     public decimal BaseCost { get; set; }
     public double CostExponent { get; set; } = 1.5;
-    public int MaxUpgrades { get; set; } = 50;
+    /// <summary>
+    /// Maximum upgrades allowed. 0 = unlimited (HP/Power/Defense are unlimited).
+    /// Only Speed (40) and CriticalChance (100) have hard caps.
+    /// </summary>
+    public int MaxUpgrades { get; set; } = 0;
 }
 
 /// <summary>
@@ -156,32 +147,23 @@ public class MyTunoUpgradeStat
 public class StageModeConfig
 {
     /// <summary>
-    /// Base XP reward for clearing a stage (legacy, used as fallback)
-    /// </summary>
-    public int BaseStageXP { get; set; } = 60;
-
-    /// <summary>
     /// XP base per enemy level. XP = xpPerEnemyLevel × enemyLevel^enemyLevelXPPower × enemyCount × levelDiffMult.
-    /// Enemy level = stage number. Higher-level enemies give more XP.
     /// </summary>
     public double XpPerEnemyLevel { get; set; } = 12;
 
     /// <summary>
     /// Power applied to enemy level for XP scaling.
-    /// 0.5 = sqrt (stage 100 gives 10× stage 1), 1.0 = linear (stage 100 gives 100× stage 1).
+    /// 0.5 = sqrt (stage 100 gives 10× stage 1), 1.0 = linear.
     /// </summary>
     public double EnemyLevelXPPower { get; set; } = 0.5;
 
     /// <summary>
-    /// XP penalty rate per level above enemy. When playerLevel > stageNumber,
-    /// XP is multiplied by max(MinXPLevelMultiplier, 1.0 - (playerLevel - stageNumber) × XpLevelPenaltyRate).
-    /// 0.015 means 1.5% reduction per level above enemy.
+    /// XP penalty rate per level above enemy.
     /// </summary>
     public double XpLevelPenaltyRate { get; set; } = 0.015;
 
     /// <summary>
     /// Minimum XP multiplier floor when player is much higher level than enemies.
-    /// 0.05 = enemies always give at least 5% XP regardless of level difference.
     /// </summary>
     public double MinXPLevelMultiplier { get; set; } = 0.05;
 
@@ -191,38 +173,20 @@ public class StageModeConfig
     public int BossXPMultiplier { get; set; } = 8;
 
     /// <summary>
-    /// Stage reward scaling rate for diminishing returns curve.
-    /// Formula: stageScaling = 1.0 + (MaxStageRewardMultiplier - 1) * (1 - e^(-stageNumber * StageRewardScalingFactor))
-    /// Default 0.005 gives a smooth curve approaching MaxStageRewardMultiplier.
+    /// Boss stat multiplier applied to all enemy stats when the enemy is a boss.
     /// </summary>
-    public double StageRewardScalingFactor { get; set; } = 0.005;
+    public double BossMultiplier { get; set; } = 1.2;
 
     /// <summary>
-    /// Maximum reward multiplier from stage progression (asymptotic cap).
-    /// The diminishing returns curve approaches this value but never exceeds it.
-    /// Default 8.0 means rewards plateau at ~8x base at very high stages.
+    /// Unified difficulty curve for ALL enemy stats.
+    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
     /// </summary>
-    public double MaxStageRewardMultiplier { get; set; } = 8.0;
+    public DifficultyCurveConfig DifficultyCurve { get; set; } = new();
 
     /// <summary>
-    /// Per-level Fidelis multiplier for stage rewards.
-    /// Formula: levelMultiplier = min(1 + (level-1) * FidelisLevelMultiplier, FidelisLevelMultiplierCap)
-    /// Default 0.04 = 4% per level.
+    /// Unified reward curve for Fidelis scaling.
     /// </summary>
-    public double FidelisLevelMultiplier { get; set; } = 0.04;
-
-    /// <summary>
-    /// Maximum Fidelis level multiplier cap.
-    /// Limits the effect of character level on Fidelis rewards.
-    /// Formula: levelMultiplier = min(1 + (level-1) * FidelisLevelMultiplier, FidelisLevelMultiplierCap)
-    /// Default 5.0 caps at 5x regardless of level.
-    /// </summary>
-    public double FidelisLevelMultiplierCap { get; set; } = 5.0;
-
-    /// <summary>
-    /// Enemy stat scaling per stage
-    /// </summary>
-    public EnemyScaling EnemyScaling { get; set; } = new();
+    public RewardCurveConfig RewardCurve { get; set; } = new();
 
     /// <summary>
     /// Base enemy stats by type
@@ -262,6 +226,18 @@ public class StageModeConfig
     public DiscardValuesConfig DiscardValues { get; set; } = new();
 
     /// <summary>
+    /// Per-level scaling factor for equipment stat bonuses.
+    /// Formula: equipStat × (1 + level × EquipmentLevelScale).
+    /// </summary>
+    public double EquipmentLevelScale { get; set; } = 0.002;
+
+    /// <summary>
+    /// Per-level scaling factor for equipment discard Fidelis.
+    /// Formula: discardValue × (1 + level × DiscardLevelScale).
+    /// </summary>
+    public double DiscardLevelScale { get; set; } = 0.002;
+
+    /// <summary>
     /// Forging configuration (cast time, etc.)
     /// </summary>
     public ForgingConfig Forging { get; set; } = new();
@@ -275,42 +251,6 @@ public class StageModeConfig
     /// Encounter rules for stage progression
     /// </summary>
     public EncounterRulesConfig EncounterRules { get; set; } = new();
-
-    /// <summary>
-    /// Stat scaling configuration
-    /// </summary>
-    public StageScalingConfig Scaling { get; set; } = new();
-}
-
-/// <summary>
-/// Enemy stat scaling per stage
-/// </summary>
-public class EnemyScaling
-{
-    /// <summary>
-    /// HP increase per stage as a percentage (0.08 = 8%)
-    /// </summary>
-    public double HpPerStage { get; set; } = 0.08;
-
-    /// <summary>
-    /// Power increase per stage as a percentage
-    /// </summary>
-    public double PowerPerStage { get; set; } = 0.05;
-
-    /// <summary>
-    /// Speed increase per stage as a percentage
-    /// </summary>
-    public double SpeedPerStage { get; set; } = 0.03;
-
-    /// <summary>
-    /// Defense increase per stage as a percentage
-    /// </summary>
-    public double DefensePerStage { get; set; } = 0.04;
-
-    /// <summary>
-    /// Critical chance increase per stage
-    /// </summary>
-    public double CriticalChancePerStage { get; set; } = 0.002;
 }
 
 /// <summary>
@@ -353,17 +293,6 @@ public class StageDropRates
     public double InstrumentPartDropChance { get; set; } = 0.005;
     public double EquipmentDropChance { get; set; } = 0.008;
     public double BossDropMultiplier { get; set; } = 3.0;
-    public List<EquipmentDropConfig> EquipmentDrops { get; set; } = new();
-}
-
-/// <summary>
-/// Per-slot configuration for equipment drops, including optional custom sprite.
-/// </summary>
-public class EquipmentDropConfig
-{
-    public string Slot { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string? SpritePath { get; set; }
 }
 
 /// <summary>
@@ -473,11 +402,66 @@ public class BiomeConfig
     public string BossSpritePrefix { get; set; } = "boss_";
 
     /// <summary>
-    /// Difficulty multiplier applied to all enemy stats in this biome.
-    /// 1.0 = default (Forest), higher values make enemies tougher.
-    /// Applied on top of the per-stage scaling.
+    /// Overall difficulty multiplier for this biome.
+    /// Range 1.0–1.5 (biome = flavor, not major power change).
+    /// Applied on top of the per-stage scaling curve.
     /// </summary>
     public double DifficultyMultiplier { get; set; } = 1.0;
+
+    /// <summary>
+    /// Fidelis/reward multiplier for this biome. Range: 1.0–2.5.
+    /// Harder/deeper biomes reward more Fidelis.
+    /// </summary>
+    public double RewardMultiplier { get; set; } = 1.0;
+}
+
+/// <summary>
+/// Unified difficulty curve configuration.
+/// Single polynomial: 1 + scalingRate × (stage - 1) ^ growthExponent.
+/// Replaces the old multi-layer system (enemyScaling + scaling + biome integer multipliers).
+/// </summary>
+public class DifficultyCurveConfig
+{
+    /// <summary>
+    /// Coefficient for the difficulty polynomial. Controls the magnitude of scaling.
+    /// Higher = enemies get stronger faster per stage.
+    /// </summary>
+    public double ScalingRate { get; set; } = 0.12;
+
+    /// <summary>
+    /// Exponent for the difficulty polynomial. Controls the shape of the curve.
+    /// 1.0 = linear, >1.0 = polynomial (accelerating), <1.0 = sublinear (decelerating).
+    /// </summary>
+    public double GrowthExponent { get; set; } = 1.15;
+}
+
+/// <summary>
+/// Unified reward curve configuration.
+/// Single polynomial: 1 + scalingRate × (stage - 1) ^ growthExponent.
+/// Replaces stageRewardScalingFactor + maxStageRewardMultiplier + fidelisLevelMultiplier stacking.
+/// </summary>
+public class RewardCurveConfig
+{
+    /// <summary>
+    /// Coefficient for the reward polynomial.
+    /// </summary>
+    public double ScalingRate { get; set; } = 0.08;
+
+    /// <summary>
+    /// Exponent for the reward polynomial.
+    /// </summary>
+    public double GrowthExponent { get; set; } = 1.10;
+
+    /// <summary>
+    /// Per-level Fidelis multiplier bonus. Rewards increase with player level.
+    /// Formula: min(1 + (level-1) × LevelBonusPerLevel, LevelBonusCap)
+    /// </summary>
+    public double LevelBonusPerLevel { get; set; } = 0.04;
+
+    /// <summary>
+    /// Maximum level bonus cap.
+    /// </summary>
+    public double LevelBonusCap { get; set; } = 1.8;
 }
 
 /// <summary>
@@ -519,32 +503,6 @@ public class EnemyCountRule
 }
 
 /// <summary>
-/// Stat scaling configuration for infinite stage progression
-/// </summary>
-public class StageScalingConfig
-{
-    /// <summary>
-    /// HP growth rate per stage (0.06 = 6% per stage)
-    /// </summary>
-    public double HpGrowthPerStage { get; set; } = 0.06;
-
-    /// <summary>
-    /// Damage growth rate per stage (0.05 = 5% per stage)
-    /// </summary>
-    public double DamageGrowthPerStage { get; set; } = 0.05;
-
-    /// <summary>
-    /// Armor growth rate per stage (0.03 = 3% per stage)
-    /// </summary>
-    public double ArmorGrowthPerStage { get; set; } = 0.03;
-
-    /// <summary>
-    /// Boss stat multiplier (2.5 = boss has 2.5x stats of normal enemy)
-    /// </summary>
-    public double BossMultiplier { get; set; } = 2.5;
-}
-
-/// <summary>
 /// Combat engine configuration for battle simulation
 /// </summary>
 public class CombatConfig
@@ -553,64 +511,22 @@ public class CombatConfig
     /// Maximum critical chance cap for enemies (0.5 = 50%)
     /// </summary>
     public double CriticalChanceCap { get; set; } = 0.5;
-}
 
-/// <summary>
-/// Configuration for consumable items (beer, shots)
-/// </summary>
-public class ItemConfig
-{
     /// <summary>
-    /// Shot buff stat multiplier (1.20 = 20% boost to all combat stats)
+    /// Defense mitigation constant K. Formula: multiplier = K / (K + defense).
+    /// Higher K = defense matters less.
+    /// </summary>
+    public double DefenseK { get; set; } = 50;
+
+    /// <summary>
+    /// Minimum damage floor after defense mitigation.
+    /// </summary>
+    public int MinDamage { get; set; } = 1;
+
+    /// <summary>
+    /// Stat multiplier when a shot buff is active (1.20 = 20% boost).
     /// </summary>
     public double ShotBuffMultiplier { get; set; } = 1.20;
-}
-
-/// <summary>
-/// Matchmaking configuration for arena battles
-/// </summary>
-public class MatchmakingConfig
-{
-    /// <summary>
-    /// Cooldown in minutes before fighting the same opponent again
-    /// </summary>
-    public int CooldownMinutes { get; set; } = 60;
-
-    /// <summary>
-    /// Initial power range lower bound (0.7 = 70% of player power)
-    /// </summary>
-    public double InitialPowerRangeMin { get; set; } = 0.7;
-
-    /// <summary>
-    /// Initial power range upper bound (1.3 = 130% of player power)
-    /// </summary>
-    public double InitialPowerRangeMax { get; set; } = 1.3;
-
-    /// <summary>
-    /// Expanded power range lower bound when initial search fails (0.5 = 50%)
-    /// </summary>
-    public double ExpandedPowerRangeMin { get; set; } = 0.5;
-
-    /// <summary>
-    /// Expanded power range upper bound when initial search fails (1.5 = 150%)
-    /// </summary>
-    public double ExpandedPowerRangeMax { get; set; } = 1.5;
-
-    /// <summary>
-    /// Weights for power rating calculation
-    /// </summary>
-    public PowerRatingWeights PowerRatingWeights { get; set; } = new();
-}
-
-/// <summary>
-/// Weights for the power rating calculation formula
-/// Formula: (HP * HpWeight) + (Power * PowerWeight) + (Speed * SpeedWeight)
-/// </summary>
-public class PowerRatingWeights
-{
-    public double Hp { get; set; } = 0.5;
-    public double Power { get; set; } = 2.0;
-    public double Speed { get; set; } = 1.5;
 }
 
 /// <summary>

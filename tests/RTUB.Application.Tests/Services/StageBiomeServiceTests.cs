@@ -135,13 +135,20 @@ public class StageBiomeServiceTests
                         new EnemyCountRule { From = 9, To = 9, Count = 5 }
                     }
                 },
-                Scaling = new StageScalingConfig
+
+                DifficultyCurve = new DifficultyCurveConfig
                 {
-                    HpGrowthPerStage = 0.06,
-                    DamageGrowthPerStage = 0.05,
-                    ArmorGrowthPerStage = 0.03,
-                    BossMultiplier = 2.5
-                }
+                    ScalingRate = 0.12,
+                    GrowthExponent = 1.15
+                },
+                RewardCurve = new RewardCurveConfig
+                {
+                    ScalingRate = 0.08,
+                    GrowthExponent = 1.10,
+                    LevelBonusPerLevel = 0.04,
+                    LevelBonusCap = 1.8
+                },
+                BossMultiplier = 1.2
             }
         };
 
@@ -436,8 +443,7 @@ public class StageBiomeServiceTests
     [Fact]
     public void CalculateScaledStats_Stage2_ReturnsScaledStats()
     {
-        // With 6% HP growth and 5% damage growth
-        // Stage 2: HP = 100 * (1.06)^1 = 106, Damage = 10 * (1.05)^1 = 10.5 = 10
+        // Unified scaling: curve = 1 + 0.12 * (2-1)^1.15 = 1.12
         // Act
         var (hp, damage) = _service.CalculateScaledStats(2, 100, 10, isBoss: false);
 
@@ -449,7 +455,7 @@ public class StageBiomeServiceTests
     [Fact]
     public void CalculateScaledStats_Stage10_Boss_AppliesBossMultiplier()
     {
-        // Boss multiplier should be applied (2.5x)
+        // Boss multiplier (1.2x) should be applied on top of difficulty curve
         // Act
         var (hp, damage) = _service.CalculateScaledStats(10, 100, 10, isBoss: true);
 
@@ -535,6 +541,92 @@ public class StageBiomeServiceTests
 
         // Assert
         Assert.Equal(1, count); // Should return default of 1
+    }
+
+    #endregion
+
+    #region Unified Scaling Tests
+
+    [Fact]
+    public void GetUnifiedDifficultyCurve_Stage1_Returns1()
+    {
+        var curve = _service.GetUnifiedDifficultyCurve(1);
+        Assert.Equal(1.0, curve);
+    }
+
+    [Fact]
+    public void GetUnifiedDifficultyCurve_Stage10_ReturnsPolynomialValue()
+    {
+        // curve = 1 + 0.12 * (10 - 1)^1.15
+        var curve = _service.GetUnifiedDifficultyCurve(10);
+        Assert.True(curve > 1.0, "Curve should be > 1.0 at stage 10");
+        Assert.True(curve < 5.0, $"Curve should be < 5.0 at stage 10, got {curve}");
+    }
+
+    [Fact]
+    public void GetUnifiedDifficultyCurve_IsMonotonicallyIncreasing()
+    {
+        var curve10 = _service.GetUnifiedDifficultyCurve(10);
+        var curve50 = _service.GetUnifiedDifficultyCurve(50);
+        var curve100 = _service.GetUnifiedDifficultyCurve(100);
+        var curve500 = _service.GetUnifiedDifficultyCurve(500);
+
+        Assert.True(curve10 < curve50, "Curve should increase from stage 10 to 50");
+        Assert.True(curve50 < curve100, "Curve should increase from stage 50 to 100");
+        Assert.True(curve100 < curve500, "Curve should increase from stage 100 to 500");
+    }
+
+    [Fact]
+    public void GetUnifiedRewardCurve_Stage1_Returns1()
+    {
+        var curve = _service.GetUnifiedRewardCurve(1);
+        Assert.Equal(1.0, curve);
+    }
+
+    [Fact]
+    public void GetUnifiedRewardCurve_IsMonotonicallyIncreasing()
+    {
+        var curve10 = _service.GetUnifiedRewardCurve(10);
+        var curve100 = _service.GetUnifiedRewardCurve(100);
+
+        Assert.True(curve10 > 1.0, "Reward curve should be > 1 at stage 10");
+        Assert.True(curve100 > curve10, "Reward curve should increase from stage 10 to 100");
+    }
+
+    [Fact]
+    public void GetRewardMultiplierForStage_ReturnsDefaultMultiplier()
+    {
+        // Forest biome has default reward multiplier (1.0)
+        var mult = _service.GetRewardMultiplierForStage(1);
+        Assert.Equal(1.0, mult);
+    }
+
+    [Fact]
+    public void CalculateScaledStats_Unified_Stage1_ReturnsBaseStats()
+    {
+        var (hp, damage) = _service.CalculateScaledStats(1, 100, 10, isBoss: false);
+
+        Assert.Equal(100, hp);
+        Assert.Equal(10, damage);
+    }
+
+    [Fact]
+    public void CalculateScaledStats_Unified_Stage50_ShowsGrowth()
+    {
+        var (hp1, _) = _service.CalculateScaledStats(1, 100, 10, isBoss: false);
+        var (hp50, _) = _service.CalculateScaledStats(50, 100, 10, isBoss: false);
+
+        Assert.True(hp50 > hp1 * 3, $"Stage 50 HP ({hp50}) should be > 3x stage 1 HP ({hp1})");
+    }
+
+    [Fact]
+    public void CalculateScaledStats_Unified_Boss_AppliesBossMultiplier()
+    {
+        var (hpNormal, _) = _service.CalculateScaledStats(10, 100, 10, isBoss: false);
+        var (hpBoss, _) = _service.CalculateScaledStats(10, 100, 10, isBoss: true);
+
+        // Boss should have bossMultiplier (1.2) applied
+        Assert.True(hpBoss > hpNormal, $"Boss HP ({hpBoss}) should be > normal HP ({hpNormal})");
     }
 
     #endregion

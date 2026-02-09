@@ -76,11 +76,11 @@ public class Character : BaseEntity
     private const int MinHP = 0;
 
     // Upgrade Counts (for cost calculation)
-    public int HpUpgrades { get; set; } = MyTunoScaling.InitialHpUpgrades;
-    public int PowerUpgrades { get; set; } = MyTunoScaling.InitialPowerUpgrades;
-    public int SpeedUpgrades { get; set; } = MyTunoScaling.InitialSpeedUpgrades;
-    public int CriticalUpgrades { get; set; } = MyTunoScaling.InitialCriticalUpgrades;
-    public int DefenseUpgrades { get; set; } = MyTunoScaling.InitialDefenseUpgrades;
+    public int HpUpgrades { get; set; }
+    public int PowerUpgrades { get; set; }
+    public int SpeedUpgrades { get; set; }
+    public int CriticalUpgrades { get; set; }
+    public int DefenseUpgrades { get; set; }
 
     // ── Equipped Items (null = empty slot) ──
 
@@ -151,7 +151,7 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(EffectiveDefense * LevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
+    public int TotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
@@ -164,7 +164,7 @@ public class Character : BaseEntity
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalDefense => (int)(EffectiveDefense * LevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
+    public int NextTotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -187,6 +187,12 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Defense uses sqrt of the main scale factor so it grows much slower
+    /// than offensive stats, preventing late-game damage stalemates.
+    /// </summary>
+    private double DefenseLevelScaleFactor() => Math.Sqrt(LevelScaleFactor());
+
+    /// <summary>
     /// Base action time in seconds (how long before a character can attack)
     /// </summary>
     public const double BaseActionTime = 5.0;
@@ -198,10 +204,9 @@ public class Character : BaseEntity
     
     /// <summary>
     /// Time reduction per speed upgrade in seconds.
-    /// At 40 upgrades: 40 × 0.075 = 3.0s reduction from upgrades alone.
-    /// Combined with TotalSpeed scaling, reaches 1.0s minimum at max upgrades.
+    /// At 40 upgrades: 40 × 0.1 = 4.0s reduction, reaching 1.0s minimum.
     /// </summary>
-    public const double ActionTimeReductionPerUpgrade = 0.075;
+    public const double ActionTimeReductionPerUpgrade = 0.1;
 
     /// <summary>
     /// Seconds of action time reduced per point of TotalSpeed.
@@ -258,11 +263,11 @@ public class Character : BaseEntity
             Speed = MyTunoScaling.BaseSpeed,
             Defense = MyTunoScaling.BaseDefense,
             CriticalChance = MyTunoScaling.BaseCriticalChance,
-            HpUpgrades = MyTunoScaling.InitialHpUpgrades,
-            PowerUpgrades = MyTunoScaling.InitialPowerUpgrades,
-            SpeedUpgrades = MyTunoScaling.InitialSpeedUpgrades,
-            CriticalUpgrades = MyTunoScaling.InitialCriticalUpgrades,
-            DefenseUpgrades = MyTunoScaling.InitialDefenseUpgrades,
+            HpUpgrades = 0,
+            PowerUpgrades = 0,
+            SpeedUpgrades = 0,
+            CriticalUpgrades = 0,
+            DefenseUpgrades = 0,
             // No equipment equipped by default
             EquippedHead = null,
             EquippedShoulders = null,
@@ -378,7 +383,7 @@ public class Character : BaseEntity
         if (source == null)
             throw new ArgumentNullException(nameof(source));
 
-        const double buffMultiplier = 1.20; // 20% boost
+        var buffMultiplier = MyTunoScaling.ShotBuffMultiplier;
 
         // Simple approach: multiply the base HP stat by 1.2
         // This makes TotalHP automatically scale up (though not exactly 1.2x due to upgrades)
@@ -440,11 +445,9 @@ public class Character : BaseEntity
 
         XP += amount;
 
-        // Level up logic: Each level requires (Level * 100) XP to reach the next level
-        // Level 1 needs 100 XP to become Level 2
-        // Level 2 needs 200 XP to become Level 3
-        // Level 3 needs 300 XP to become Level 4, etc.
-        while (XP >= Level * MyTunoScaling.XpPerLevelBase)
+        // Level up logic: Each level requires (Level * XpPerLevelBase) XP
+        // Max level cap prevents infinite leveling
+        while (Level < MyTunoScaling.MaxLevel && XP >= Level * MyTunoScaling.XpPerLevelBase)
         {
             XP -= Level * MyTunoScaling.XpPerLevelBase;
             Level++;

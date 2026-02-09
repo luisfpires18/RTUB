@@ -1,6 +1,6 @@
 {
   "myTuno": {
-    "version": "1.2.1",
+    "version": "2.0.0",
     "description": "Luta contra inimigos e melhora o teu personagem através de combates! Jogo irá estar em constante mudança",
     "nextFeatures": "Novos modos de jogo, equipamento personalizável, gráficos melhorados.",
 
@@ -13,136 +13,78 @@
       "defense": 5,
       "criticalChance": 0.0
     },
+
     "levelScaling": {
+      "maxLevel": 1000,
       "statMultiplierPerLevel": 0.15,
       "statGrowthExponent": 0.20,
       "xpPerLevelBase": 50
     },
+
     "upgrades": {
-      "hp": {
-        "initialBought": 0,
-        "multiplierPerUpgrade": 0.03,
-        "baseCost": 5,
-        "costExponent": 1.5,
-        "maxUpgrades": 1000000
-      },
-      "power": {
-        "initialBought": 0,
-        "multiplierPerUpgrade": 0.30,
-        "baseCost": 8,
-        "costExponent": 1.5,
-        "maxUpgrades": 1000000
-      },
-      "speed": {
-        "initialBought": 0,
-        "multiplierPerUpgrade": 1.5,
-        "baseCost": 10,
-        "costExponent": 1.5,
-        "maxUpgrades": 40
-      },
-      "criticalChance": {
-        "initialBought": 0,
-        "multiplierPerUpgrade": 0.007,
-        "baseCost": 15,
-        "costExponent": 1.6,
-        "maxUpgrades": 100
-      },
-      "defense": {
-        "initialBought": 0,
-        "multiplierPerUpgrade": 0.40,
-        "baseCost": 10,
-        "costExponent": 1.5,
-        "maxUpgrades": 1000000
-      }
+      "hp":            { "multiplierPerUpgrade": 0.03, "baseCost": 20,  "costExponent": 2.0 },
+      "power":         { "multiplierPerUpgrade": 0.30, "baseCost": 25,  "costExponent": 2.0 },
+      "speed":         { "multiplierPerUpgrade": 1.5,  "baseCost": 30,  "costExponent": 2.0, "maxUpgrades": 40 },
+      "criticalChance":{ "multiplierPerUpgrade": 0.005,"baseCost": 50,  "costExponent": 2.2, "maxUpgrades": 100 },
+      "defense":       { "multiplierPerUpgrade": 0.15, "baseCost": 25,  "costExponent": 2.0 }
     },
-    "defenseK": 50,
-    "minDamage": 1,
-    "enemySpeedScalingRate": 0.05,
 
     "combat": {
-      "criticalChanceCap": 0.5
-    },
-
-    "items": {
+      "defenseK": 500,
+      "minDamage": 1,
+      "criticalChanceCap": 0.5,
       "shotBuffMultiplier": 1.20
     },
 
-    "beerDropChance": 0.05,
-
     "battleRewards": {
-      "winReward": 15,
-      "drawReward": 7.5,
-      "baseWinXP": 50,
-      "baseDrawXP": 30,
-      "levelDiffScale": 0.05,
-      "minRewardMultiplier": 0.0,
+      "winReward": 90,
+      "drawReward": 15,
+      "baseWinXP": 100,
+      "baseDrawXP": 50,
+      "levelDiffScale": 0.002,
+      "levelScalePower": 0.7,
+      "minRewardMultiplier": 0.25,
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
-      "restoreHPCost": 20
-    },
-
-    "matchmaking": {
-      "cooldownMinutes": 60,
-      "initialPowerRangeMin": 0.7,
-      "initialPowerRangeMax": 1.3,
-      "expandedPowerRangeMin": 0.5,
-      "expandedPowerRangeMax": 1.5,
-      "powerRatingWeights": {
-        "hp": 0.5,
-        "power": 2.0,
-        "speed": 1.5
-      }
+      "restoreHPCost": 20,
+      "beerDropChance": 0.05
     },
 
     "stageMode": {
-      "baseStageXP": 60,
       "xpPerEnemyLevel": 12,
       "enemyLevelXPPower": 0.5,
       "xpLevelPenaltyRate": 0.015,
       "minXPLevelMultiplier": 0.05,
       "bossXPMultiplier": 8,
-      "stageRewardScalingFactor": 0.003,
-      "maxStageRewardMultiplier": 6.0,
-      "fidelisLevelMultiplier": 0.04,
-      "fidelisLevelMultiplierCap": 1.8,
-      "enemyScaling": {
-        "hpPerStage": 0.15,
-        "powerPerStage": 0.15,
-        "speedPerStage": 0.008,
-        "defensePerStage": 0.12,
-        "criticalChancePerStage": 0.005
+      "bossMultiplier": 1.2,
+
+      "difficultyCurve": {
+        "scalingRate": 0.12,
+        "growthExponent": 1.15
       },
+      "rewardCurve": {
+        "scalingRate": 0.08,
+        "growthExponent": 1.10,
+        "levelBonusPerLevel": 0.04,
+        "levelBonusCap": 1.8
+      },
+
       "baseEnemyStats": {
-        "normal": {
-          "hp": 40,
-          "power": 5,
-          "speed": 5,
-          "defense": 2,
-          "criticalChance": 0.04
-        },
-        "boss": {
-          "hp": 80,
-          "power": 8,
-          "speed": 3,
-          "defense": 4,
-          "criticalChance": 0.10
-        }
+        "normal": { "hp": 40, "power": 10, "speed": 5, "defense": 2, "criticalChance": 0.04 },
+        "boss":   { "hp": 80, "power": 15, "speed": 3, "defense": 4, "criticalChance": 0.10 }
       },
+
       "dropRates": {
         "beerDropChance": 0.10,
         "shotDropChance": 0.05,
         "instrumentPartDropChance": 0.005,
         "equipmentDropChance": 0.008,
-        "bossDropMultiplier": 3.0,
-        "equipmentDrops": [
-          { "slot": "Head", "name": "Cabeça", "spritePath": null },
-          { "slot": "Shoulders", "name": "Ombros", "spritePath": null },
-          { "slot": "Chest", "name": "Peito", "spritePath": null },
-          { "slot": "Gloves", "name": "Luvas", "spritePath": null },
-          { "slot": "Legs", "name": "Pernas", "spritePath": null },
-          { "slot": "Boots", "name": "Botas", "spritePath": null }
-        ]
+        "bossDropMultiplier": 3.0
       },
+
+      "equipmentLevelScale": 0.002,
+      "discardLevelScale": 0.002,
+
       "equipmentQualityMin": 0.7,
       "equipmentQualityMax": 1.3,
       "equipmentStats": {
@@ -167,10 +109,12 @@
         "instrumentQualityMin": 0.85,
         "instrumentQualityMax": 1.15
       },
+
       "fidelisRewards": {
         "normalWin": 12,
         "bossWin": 40
       },
+
       "biomes": [
         {
           "name": "Forest",
@@ -178,7 +122,8 @@
           "stageMax": 100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1
+          "difficultyMultiplier": 1.0,
+          "rewardMultiplier": 1.2
         },
         {
           "name": "Swamp",
@@ -186,7 +131,8 @@
           "stageMax": 200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2
+          "difficultyMultiplier": 1.2,
+          "rewardMultiplier": 1.4
         },
         {
           "name": "Mountains",
@@ -194,7 +140,8 @@
           "stageMax": 300,
           "enemySpritePath": "sprites/games/my-tuno/enemies/mountains",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 3
+          "difficultyMultiplier": 1.4,
+          "rewardMultiplier": 1.6
         },
         {
           "name": "Snowy",
@@ -202,7 +149,8 @@
           "stageMax": 400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 4
+          "difficultyMultiplier": 1.6,
+          "rewardMultiplier": 1.8
         },
         {
           "name": "Tropical",
@@ -210,7 +158,8 @@
           "stageMax": 500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/tropical",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 5
+          "difficultyMultiplier": 1.8,
+          "rewardMultiplier": 2.0
         },
         {
           "name": "Caverns",
@@ -218,23 +167,26 @@
           "stageMax": 600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/caverns",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 6
+          "difficultyMultiplier": 2,
+          "rewardMultiplier": 2
         },
         {
           "name": "Desert",
           "stageMin": 601,
           "stageMax": 700,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/desert",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 7
+          "difficultyMultiplier": 2.2,
+          "rewardMultiplier": 2.4
         },
         {
           "name": "Volcanic",
           "stageMin": 701,
           "stageMax": 800,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/volcanic",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 8
+          "difficultyMultiplier": 2.5,
+          "rewardMultiplier": 3.0
         },
         {
           "name": "Ruins",
@@ -242,15 +194,17 @@
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 9
+          "difficultyMultiplier": 3.0,
+          "rewardMultiplier": 4.0
         },
         {
           "name": "Dark",
           "stageMin": 901,
           "stageMax": 1000,
-          "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
+          "enemySpritePath": "sprites/games/my-tuno/enemies/dark",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 10
+          "difficultyMultiplier": 4.0,
+          "rewardMultiplier": 5.0
         },
         {
           "name": "Void",
@@ -258,9 +212,11 @@
           "stageMax": 999999999,
           "enemySpritePath": "sprites/games/my-tuno/enemies/void",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 15
+          "difficultyMultiplier": 5.0,
+          "rewardMultiplier": 6.0
         }
       ],
+
       "encounterRules": {
         "bossEveryNStages": 10,
         "enemyCountByStageOffset": [
@@ -270,101 +226,27 @@
           { "from": 7, "to": 8, "count": 4 },
           { "from": 9, "to": 9, "count": 5 }
         ]
-      },
-      "scaling": {
-        "hpGrowthPerStage": 0.10,
-        "damageGrowthPerStage": 0.10,
-        "armorGrowthPerStage": 0.40,
-        "bossMultiplier": 1.2
       }
     },
+
     "gathering": {
       "maxEnergy": 10,
       "regenIntervalSeconds": 60,
       "castTimeSeconds": 3,
       "resources": [
-        {
-          "type": "Cerveja",
-          "name": "Cerveja",
-          "energyCost": 1,
-          "icon": "bi-cup-straw",
-          "isActive": true,
-          "unlockStage": 1
-        },
-        {
-          "type": "Vinho",
-          "name": "Vinho",
-          "energyCost": 2,
-          "icon": "bi-droplet-fill",
-          "isActive": true,
-          "unlockStage": 101
-        },
-        {
-          "type": "Licor",
-          "name": "Licor",
-          "energyCost": 3,
-          "icon": "bi-cup",
-          "isActive": true,
-          "unlockStage": 201
-        },
-        {
-          "type": "Rum",
-          "name": "Rum",
-          "energyCost": 4,
-          "icon": "bi-cup-hot",
-          "isActive": true,
-          "unlockStage": 301
-        },
-        {
-          "type": "Tequilla",
-          "name": "Tequilla",
-          "energyCost": 5,
-          "icon": "bi-hurricane",
-          "isActive": true,
-          "unlockStage": 401
-        },
-        {
-          "type": "Vodka",
-          "name": "Vodka",
-          "energyCost": 6,
-          "icon": "bi-droplet",
-          "isActive": true,
-          "unlockStage": 501
-        },
-        {
-          "type": "Gin",
-          "name": "Gin",
-          "energyCost": 7,
-          "icon": "bi-moisture",
-          "isActive": true,
-          "unlockStage": 601
-        },
-        {
-          "type": "Whisky",
-          "name": "Whisky",
-          "energyCost": 8,
-          "icon": "bi-fire",
-          "isActive": true,
-          "unlockStage": 701
-        },
-        {
-          "type": "Absinto",
-          "name": "Absinto",
-          "energyCost": 9,
-          "icon": "bi-radioactive",
-          "isActive": true,
-          "unlockStage": 801
-        },
-        {
-          "type": "Aguardente",
-          "name": "Aguardente",
-          "energyCost": 10,
-          "icon": "bi-lightning-fill",
-          "isActive": true,
-          "unlockStage": 901
-        }
+        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1 },
+        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 101 },
+        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "icon": "bi-cup",             "isActive": true, "unlockStage": 201 },
+        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 301 },
+        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "icon": "bi-hurricane",       "isActive": true, "unlockStage": 401 },
+        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "icon": "bi-droplet",         "isActive": true, "unlockStage": 501 },
+        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "icon": "bi-moisture",        "isActive": true, "unlockStage": 601 },
+        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "icon": "bi-fire",            "isActive": true, "unlockStage": 701 },
+        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "icon": "bi-radioactive",     "isActive": true, "unlockStage": 801 },
+        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "icon": "bi-lightning-fill",   "isActive": true, "unlockStage": 901 }
       ]
     },
+
     "dailyReward": {
       "baseFidelis": 45,
       "perLevelFidelis": 3

@@ -467,9 +467,15 @@ public class InventoryService : IInventoryService
         if (item == null || item.Quantity <= 0)
             return (false, 0, "Não tens este item no inventário");
 
-        // Determine Fidelis value
+        // Determine Fidelis value (scales with player level)
         var discardValues = _scalingConfig.StageMode.DiscardValues;
-        var fidelisValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
+        var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
+
+        // Apply level scaling to discard value
+        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        var level = character?.Level ?? 1;
+        var discardScale = 1.0 + level * _scalingConfig.StageMode.DiscardLevelScale;
+        var fidelisValue = Math.Round(baseValue * (decimal)discardScale, 2);
 
         // Consume 1 from inventory
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
@@ -682,6 +688,7 @@ public class InventoryService : IInventoryService
         var stats = _scalingConfig.StageMode.EquipmentStats;
         var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
         var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
+        var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
         int hp = 0, power = 0, defense = 0;
 
         // Helper to get deterministic quality for this character + slot
@@ -691,12 +698,12 @@ public class InventoryService : IInventoryService
             return qualityMin + rng.NextDouble() * (qualityMax - qualityMin);
         }
 
-        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q); power += (int)Math.Round(stats.Head.Power * q); defense += (int)Math.Round(stats.Head.Defense * q); }
-        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q); power += (int)Math.Round(stats.Shoulders.Power * q); defense += (int)Math.Round(stats.Shoulders.Defense * q); }
-        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q); power += (int)Math.Round(stats.Chest.Power * q); defense += (int)Math.Round(stats.Chest.Defense * q); }
-        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q); power += (int)Math.Round(stats.Gloves.Power * q); defense += (int)Math.Round(stats.Gloves.Defense * q); }
-        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q); power += (int)Math.Round(stats.Legs.Power * q); defense += (int)Math.Round(stats.Legs.Defense * q); }
-        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q); power += (int)Math.Round(stats.Boots.Power * q); defense += (int)Math.Round(stats.Boots.Defense * q); }
+        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q * levelScale); power += (int)Math.Round(stats.Head.Power * q * levelScale); defense += (int)Math.Round(stats.Head.Defense * q * levelScale); }
+        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale); }
+        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q * levelScale); power += (int)Math.Round(stats.Chest.Power * q * levelScale); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale); }
+        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale); power += (int)Math.Round(stats.Gloves.Power * q * levelScale); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale); }
+        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q * levelScale); power += (int)Math.Round(stats.Legs.Power * q * levelScale); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale); }
+        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q * levelScale); power += (int)Math.Round(stats.Boots.Power * q * levelScale); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale); }
 
         // Add weapon bonuses from forged weapons
         var equippedWeaponIds = new HashSet<int>();

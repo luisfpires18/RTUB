@@ -1798,11 +1798,11 @@
     private int MaxCriticalUpgrades => MyTunoConfig.Value.Upgrades.CriticalChance.MaxUpgrades;
     private int MaxDefenseUpgrades => MyTunoConfig.Value.Upgrades.Defense.MaxUpgrades;
     
-    private bool IsHpMaxed => character != null && character.HpUpgrades >= MaxHpUpgrades;
-    private bool IsPowerMaxed => character != null && character.PowerUpgrades >= MaxPowerUpgrades;
-    private bool IsSpeedMaxed => character != null && (character.SpeedUpgrades >= MaxSpeedUpgrades || character.ActionTime <= Character.MinActionTime);
-    private bool IsCriticalMaxed => character != null && character.CriticalUpgrades >= MaxCriticalUpgrades;
-    private bool IsDefenseMaxed => character != null && character.DefenseUpgrades >= MaxDefenseUpgrades;
+    private bool IsHpMaxed => character != null && MaxHpUpgrades > 0 && character.HpUpgrades >= MaxHpUpgrades;
+    private bool IsPowerMaxed => character != null && MaxPowerUpgrades > 0 && character.PowerUpgrades >= MaxPowerUpgrades;
+    private bool IsSpeedMaxed => character != null && (MaxSpeedUpgrades > 0 && character.SpeedUpgrades >= MaxSpeedUpgrades || character.ActionTime <= Character.MinActionTime);
+    private bool IsCriticalMaxed => character != null && MaxCriticalUpgrades > 0 && character.CriticalUpgrades >= MaxCriticalUpgrades;
+    private bool IsDefenseMaxed => character != null && MaxDefenseUpgrades > 0 && character.DefenseUpgrades >= MaxDefenseUpgrades;
 
     /// <summary>
     /// Gets a preview of the ActionTime after one more speed upgrade

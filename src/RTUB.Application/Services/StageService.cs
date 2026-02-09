@@ -128,34 +128,39 @@ public class StageService : IStageService
         var enemySpritePaths = new List<string>();
         var enemyPlacements = new List<int>();
         
-        // Get all enemy sprites with placements at once
+        // Get all enemy sprites/templates with placements in a single DB query
+        // The returned StageEnemy objects double as stat templates, eliminating N+1 queries
+        var enemyTemplates = new List<StageEnemy?>();
+        
         if (enemyType == EnemyType.Boss)
         {
-            var (bossSprite, bossPlacement) = await _biomeService.GetBossSpriteWithPlacementAsync(stageNumber);
+            var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
             for (int i = 0; i < enemyCount; i++)
             {
-                enemySpritePaths.Add(bossSprite);
-                enemyPlacements.Add(bossPlacement);
+                enemyTemplates.Add(boss);
+                enemySpritePaths.Add(boss?.SpritePath ?? $"/sprites/games/my-tuno/enemies/{biomeName.ToLowerInvariant()}/boss_1.png");
+                enemyPlacements.Add(boss != null ? (int)boss.Placement : 0);
             }
         }
         else
         {
-            var spritesWithPlacements = await _biomeService.GetRandomEnemySpritesWithPlacementAsync(stageNumber, enemyCount);
-            foreach (var (sprite, placement) in spritesWithPlacements)
+            // Single query: GetRandomEnemiesAsync returns full StageEnemy objects
+            var randomEnemies = await _stageEnemyRepository.GetRandomEnemiesAsync(enemyType, region, enemyCount);
+            foreach (var e in randomEnemies)
             {
-                enemySpritePaths.Add(sprite);
-                enemyPlacements.Add(placement);
+                enemyTemplates.Add(e);
+                enemySpritePaths.Add(e.SpritePath ?? $"/sprites/games/my-tuno/enemies/{biomeName.ToLowerInvariant()}/wolf.png");
+                enemyPlacements.Add((int)e.Placement);
             }
         }
         
         for (int i = 0; i < enemyCount; i++)
         {
-            // Get random enemy template for variety
-            var enemyTemplate = await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
-            enemyTemplateIds.Add(enemyTemplate?.Id);
+            var template = i < enemyTemplates.Count ? enemyTemplates[i] : null;
+            enemyTemplateIds.Add(template?.Id);
             
             // Create temporary enemy character with scaled stats
-            var enemy = CreateTemporaryEnemyCharacter(enemyTemplate, stageNumber, enemyType);
+            var enemy = CreateTemporaryEnemyCharacter(template, stageNumber, enemyType);
             enemy.User = new ApplicationUser { UserName = $"{biomeName} #{i + 1}" };
             enemies.Add(enemy);
         }
@@ -338,71 +343,56 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Creates a temporary enemy character for combat simulation
-    /// Uses biome service for stat scaling and biome difficulty multiplier
+    /// Creates a temporary enemy character for combat simulation.
+    /// Uses the unified difficulty curve with biome flavor.
     /// </summary>
     private Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
     {
+        var isBoss = _biomeService.IsBossStage(stageNumber);
+        return CreateEnemyUnifiedScaling(template, stageNumber, type, isBoss);
+    }
+
+    /// <summary>
+    /// Unified scaling: ONE difficulty curve for ALL stats.
+    /// EnemyStat = baseStat × curve × difficultyMult × bossMult
+    /// </summary>
+    private Character CreateEnemyUnifiedScaling(StageEnemy? template, int stageNumber, EnemyType type, bool isBoss)
+    {
         var stageConfig = _myTunoScalingConfig.StageMode;
         var baseStats = stageConfig.BaseEnemyStats;
-        var isBoss = _biomeService.IsBossStage(stageNumber);
-        var difficultyMultiplier = _biomeService.GetDifficultyMultiplier(stageNumber);
+        var curve = _biomeService.GetUnifiedDifficultyCurve(stageNumber);
+        var diffMult = _biomeService.GetDifficultyMultiplier(stageNumber);
+        var bossMult = isBoss ? stageConfig.BossMultiplier : 1.0;
 
-        // Default stats if no template found
         int baseHP, basePower, baseSpeed, baseDefense;
         double baseCriticalChance;
         string enemyName;
 
         if (template != null)
         {
-            baseHP = (int)(template.GetScaledHP(stageNumber) * difficultyMultiplier);
-            basePower = (int)(template.GetScaledPower(stageNumber) * difficultyMultiplier);
-            baseSpeed = (int)(template.GetScaledSpeed(stageNumber) * difficultyMultiplier);
-            baseDefense = (int)(template.GetScaledDefense(stageNumber) * difficultyMultiplier);
+            // Template provides base stats; we apply unified curve on top
+            baseHP = Math.Max(1, (int)(template.BaseHP * curve * diffMult * bossMult));
+            basePower = Math.Max(1, (int)(template.BasePower * curve * diffMult * bossMult));
+            baseSpeed = Math.Max(1, (int)(template.BaseSpeed * curve * diffMult * bossMult));
+            baseDefense = Math.Max(1, (int)(template.BaseDefense * curve * diffMult * bossMult));
             baseCriticalChance = template.BaseCriticalChance;
             enemyName = template.Name;
         }
         else
         {
-            // Get base stats from config based on enemy type
             var typeStats = type switch
             {
                 EnemyType.Boss => baseStats.Boss,
                 _ => baseStats.Normal
             };
 
-            // Use biome service for stat scaling
-            var (scaledHP, scaledPower) = _biomeService.CalculateScaledStats(
-                stageNumber, 
-                typeStats.Hp, 
-                typeStats.Power, 
-                isBoss);
+            baseHP = Math.Max(1, (int)(typeStats.Hp * curve * diffMult * bossMult));
+            basePower = Math.Max(1, (int)(typeStats.Power * curve * diffMult * bossMult));
+            baseSpeed = Math.Max(1, (int)(typeStats.Speed * curve * diffMult * bossMult));
+            baseDefense = Math.Max(1, (int)(typeStats.Defense * curve * diffMult * bossMult));
 
-            baseHP = (int)(scaledHP * difficultyMultiplier);
-            basePower = (int)(scaledPower * difficultyMultiplier);
-            
-            // Speed/Defense scaling — polynomial matching player formula at half/80% rate
-            var scaling = stageConfig.EnemyScaling;
-            var stages = stageNumber - 1;
-            var mult = Core.Configuration.MyTunoScaling.StatMultiplierPerLevel;
-            var exp = Core.Configuration.MyTunoScaling.StatGrowthExponent;
-
-            double speedScaleFactor, defenseScaleFactor;
-            if (stages <= 0 || exp == 0.0)
-            {
-                speedScaleFactor = 1.0 + stages * scaling.SpeedPerStage;
-                defenseScaleFactor = 1.0 + stages * scaling.DefensePerStage;
-            }
-            else
-            {
-                speedScaleFactor = 1.0 + scaling.SpeedPerStage * Math.Pow(stages, 1.0 + exp);
-                defenseScaleFactor = 1.0 + (mult * 0.8) * Math.Pow(stages, 1.0 + exp);
-            }
-            baseSpeed = (int)(typeStats.Speed * speedScaleFactor * difficultyMultiplier);
-            baseDefense = (int)(typeStats.Defense * defenseScaleFactor * difficultyMultiplier);
-            
-            var critBonus = (stageNumber - 1) * scaling.CriticalChancePerStage;
-            baseCriticalChance = Math.Min(typeStats.CriticalChance + critBonus, _myTunoScalingConfig.Combat.CriticalChanceCap); // Cap from config
+            var critGrowth = (stageNumber - 1) * 0.003; // Gentle crit growth
+            baseCriticalChance = Math.Min(typeStats.CriticalChance + critGrowth, _myTunoScalingConfig.Combat.CriticalChanceCap);
 
             var biomeName = _biomeService.GetBiomeForStage(stageNumber);
             enemyName = type switch
@@ -451,27 +441,26 @@ public class StageService : IStageService
             _ => 1
         };
 
-        // Diminishing returns: approaches maxMultiplier asymptotically (used for Fidelis)
-        var maxMult = stageConfig.MaxStageRewardMultiplier;
-        var stageScaling = 1.0 + (maxMult - 1.0) * (1.0 - Math.Exp(-stageNumber * stageConfig.StageRewardScalingFactor));
-
-        // XP: enemy-level-based formula. Enemy level = stage number.
-        // XP = xpPerEnemyLevel × enemyLevel^power × enemyCount × levelDiffMult × bossXPMult
+        // XP: enemy-level-based formula (same for both scaling modes — already clean)
         var enemyLevel = (double)stageNumber;
         var enemyLevelFactor = Math.Pow(enemyLevel, stageConfig.EnemyLevelXPPower);
         var levelDiff = Math.Max(0, characterLevel - stageNumber);
         var levelDiffMult = Math.Max(stageConfig.MinXPLevelMultiplier, 1.0 - levelDiff * stageConfig.XpLevelPenaltyRate);
         var xpReward = (int)Math.Round(stageConfig.XpPerEnemyLevel * enemyLevelFactor * enemyCount * xpMultiplier * levelDiffMult);
 
+        // Fidelis: unified reward curve × biome reward multiplier × level bonus
         var baseFidelis = enemyType switch
         {
             EnemyType.Boss => fidelisRewardsConfig.BossWin,
             _ => fidelisRewardsConfig.NormalWin
         };
-        // Scale Fidelis with character level, capped by config
-        var rawLevelMult = 1.0 + (characterLevel - 1) * stageConfig.FidelisLevelMultiplier;
-        var levelMultiplier = Math.Min(rawLevelMult, stageConfig.FidelisLevelMultiplierCap);
-        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling * (decimal)levelMultiplier, 2);
+
+        var rewardCurve = _biomeService.GetUnifiedRewardCurve(stageNumber);
+        var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(stageNumber);
+        var rewardConfig = stageConfig.RewardCurve;
+        var rawLevelBonus = 1.0 + (characterLevel - 1) * rewardConfig.LevelBonusPerLevel;
+        var levelBonus = Math.Min(rawLevelBonus, rewardConfig.LevelBonusCap);
+        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(rewardCurve * biomeRewardMult * levelBonus), 2);
 
         var beerChance = dropRates.BeerDropChance;
         var shotChance = dropRates.ShotDropChance;

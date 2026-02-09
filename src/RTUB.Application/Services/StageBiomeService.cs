@@ -302,43 +302,66 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Calculates scaled enemy stats for a given stage
+    /// Gets the biome reward multiplier for a given stage (unified scaling).
+    /// </summary>
+    public double GetRewardMultiplierForStage(int stageNumber)
+    {
+        var biome = GetBiomeConfigForStage(stageNumber);
+        return biome?.RewardMultiplier ?? 1.0;
+    }
+
+    /// <summary>
+    /// Computes the unified difficulty curve value for a given stage.
+    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// Single curve for ALL enemy stats — the Unity way.
+    /// </summary>
+    public double GetUnifiedDifficultyCurve(int stageNumber)
+    {
+        if (stageNumber <= 1) return 1.0;
+        var curve = _config.StageMode.DifficultyCurve;
+        return 1.0 + curve.ScalingRate * Math.Pow(stageNumber - 1, curve.GrowthExponent);
+    }
+
+    /// <summary>
+    /// Computes the unified reward curve value for a given stage.
+    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// </summary>
+    public double GetUnifiedRewardCurve(int stageNumber)
+    {
+        if (stageNumber <= 1) return 1.0;
+        var curve = _config.StageMode.RewardCurve;
+        return 1.0 + curve.ScalingRate * Math.Pow(stageNumber - 1, curve.GrowthExponent);
+    }
+
+    /// <summary>
+    /// Gets the BiomeConfig for a given stage number. Returns null if no biome configured.
+    /// </summary>
+    private BiomeConfig? GetBiomeConfigForStage(int stageNumber)
+    {
+        var biomes = _config.StageMode.Biomes;
+        if (biomes == null || biomes.Count == 0)
+            return null;
+
+        foreach (var biome in biomes)
+        {
+            if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
+                return biome;
+        }
+
+        return biomes.OrderByDescending(b => b.StageMax).First();
+    }
+
+    /// <summary>
+    /// Calculates scaled enemy stats for a given stage using the unified difficulty curve.
     /// </summary>
     public (int hp, int damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
     {
-        var scaling = _config.StageMode.Scaling;
-        if (scaling == null)
-        {
-            _logger.LogWarning("No scaling configuration found, using base stats");
-            return (baseHp, baseDamage);
-        }
+        var curve = GetUnifiedDifficultyCurve(stageNumber);
+        var diffMult = GetDifficultyMultiplier(stageNumber);
+        var bossMult = isBoss ? _config.StageMode.BossMultiplier : 1.0;
 
-        // Polynomial growth matching the player level formula:
-        // factor = 1 + multiplier * (stage-1)^(1+exponent)
-        var stages = stageNumber - 1;
-        double scaleFactor;
-        if (stages <= 0)
-        {
-            scaleFactor = 1.0;
-        }
-        else
-        {
-            var mult = Core.Configuration.MyTunoScaling.StatMultiplierPerLevel;
-            var exp = Core.Configuration.MyTunoScaling.StatGrowthExponent;
-            scaleFactor = exp == 0.0
-                ? 1.0 + stages * mult
-                : 1.0 + mult * Math.Pow(stages, 1.0 + exp);
-        }
-
-        var scaledHp = (int)(baseHp * scaleFactor);
-        var scaledDamage = (int)(baseDamage * scaleFactor);
-
-        // Apply boss multiplier if applicable
-        if (isBoss)
-        {
-            scaledHp = (int)(scaledHp * scaling.BossMultiplier);
-            scaledDamage = (int)(scaledDamage * scaling.BossMultiplier);
-        }
+        var scaledHp = Math.Max(1, (int)(baseHp * curve * diffMult * bossMult));
+        var scaledDamage = Math.Max(1, (int)(baseDamage * curve * diffMult * bossMult));
 
         return (scaledHp, scaledDamage);
     }

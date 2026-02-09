@@ -373,7 +373,7 @@
             if (character != null && currentBattle == null && !battleAutoStarted)
             {
                 battleAutoStarted = true;
-                await Task.Delay(500); // Brief delay for UI to settle
+                await Task.Delay(150); // Brief delay for UI to settle
                 try
                 {
                     await FightStageEnemy();
@@ -403,10 +403,14 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
-                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    // Load character and stage progress in parallel (independent queries)
+                    var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+                    await Task.WhenAll(characterTask, stageProgressTask);
+                    character = await characterTask;
+                    stageProgress = await stageProgressTask;
                     if (character != null)
                     {
-                        stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
                         if (stageProgress != null)
                         {
                             // Handle start query parameter - persist to DB if different
@@ -499,7 +503,7 @@
                 StateHasChanged();
                 await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
                 // Wait for container to be rendered on first battle
-                await Task.Delay(100);
+                await Task.Delay(50);
             }
 
             // Execute stage battle
@@ -656,10 +660,8 @@
                 showBattleAnimation = false;
             }
 
-            // Reload character and stage progress after battle
-            var userId = currentUser.Id;
-            character = await CharacterService.GetOrCreateCharacterAsync(userId);
-            stageProgress = await StageService.GetOrCreateStageProgressAsync(userId);
+            // Character and stageProgress are already updated in-memory by ExecuteStageBattleAsync
+            // — no need to reload from DB. Just refresh local display state.
             if (stageProgress != null)
             {
                 currentStageNumber = stageProgress.CurrentStage;
@@ -1018,17 +1020,12 @@
     }
 
     /// <summary>
-    /// Gets the custom sprite path for an equipment slot from scaling config.
-    /// Returns null if no custom sprite is configured (UI will fall back to icon).
+    /// Gets the custom sprite path for an equipment slot.
+    /// Returns null (UI will fall back to icon).
     /// </summary>
     private string? GetEquipmentSpritePath(EquipmentSlot? slot)
     {
-        if (slot == null) return null;
-
-        var equipmentDrops = ScalingConfig.Value.StageMode.DropRates.EquipmentDrops;
-        var config = equipmentDrops.FirstOrDefault(e =>
-            string.Equals(e.Slot, slot.Value.ToString(), StringComparison.OrdinalIgnoreCase));
-        return config?.SpritePath;
+        return null; // Equipment sprites are driven by slot enum, no config lookup needed
     }
 
     public async ValueTask DisposeAsync()

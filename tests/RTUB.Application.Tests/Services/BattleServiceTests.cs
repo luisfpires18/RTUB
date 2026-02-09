@@ -467,9 +467,9 @@ public class BattleServiceTests : IDisposable
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
-        // Level 1 vs Level 10: levelDiff = 9, levelDiffMult = 1.0 + 9 * 0.05 = 1.45
-        // XP = round(50 * 1.45) = round(72.5) = 72 (banker's rounding, round-to-even)
-        battle.AttackerXP.Should().Be(72, "because level 1 vs level 10 should give 50 * 1.45 = 72 XP (banker's rounding)");
+        // Level 1 vs Level 10: levelDiff = 9, levelDiffMult = 1.0 + 9 * 0.02 = 1.18
+        // XP = round(50 * 1.18) = 59
+        battle.AttackerXP.Should().Be(59, "because level 1 vs level 10 should give 50 * 1.18 = 59 XP");
 
         // Verify XP was applied to character
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
@@ -517,10 +517,11 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
-        // Level 10 vs Level 1: levelDiff = -9, levelDiffMult = 1.0 + (-9) * 0.05 = 0.55
-        // XP = round(50 * 0.55) = 28 (no attacker-level scaling, much less reward for bullying)
-        battle.AttackerXP.Should().Be(28, "because level 10 vs level 1 should give 50 * 0.55 = 28 XP");
-        battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP since within 20 levels");
+        // Level 10 vs Level 1: levelDiff = -9, levelDiffMult = 1.0 + (-9) * 0.02 = 0.82
+        // levelScale = 10^0.7 = 5.012
+        // XP = round(50 * 5.012 * 0.82) = 205
+        battle.AttackerXP.Should().Be(205, "because level 10 vs level 1 should give 50 * 10^0.7 * 0.82 = 205 XP");
+        battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP since within 45 levels");
     }
 
     [Fact]
@@ -557,8 +558,8 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
-        // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
-        // XP = round(50 * 1.0) = 50 (no attacker-level scaling)
+        // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0, levelScale = 1^0.7 = 1.0
+        // XP = round(50 * 1.0 * 1.0) = 50
         battle.AttackerXP.Should().Be(50, "because fighting an equal level opponent should give base XP");
     }
 

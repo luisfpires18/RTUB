@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using RTUB.Core.Configuration;
 using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
@@ -128,77 +127,4 @@ public class StageEnemy : BaseEntity
         };
     }
 
-    /// <summary>
-    /// Computes the polynomial scale factor for a given stage.
-    /// Uses the same formula as player level scaling so that
-    /// stage N enemies match a level N player.
-    /// Formula: 1 + multiplier * (stage-1)^(1+exponent)
-    /// </summary>
-    private static double StageScaleFactor(int stageNumber)
-    {
-        var stages = stageNumber - 1;
-        if (stages <= 0) return 1.0;
-        var exponent = MyTunoScaling.StatGrowthExponent;
-        if (exponent == 0.0)
-            return 1.0 + stages * MyTunoScaling.StatMultiplierPerLevel;
-        return 1.0 + MyTunoScaling.StatMultiplierPerLevel * Math.Pow(stages, 1.0 + exponent);
-    }
-
-    /// <summary>
-    /// Calculates scaled HP based on stage number
-    /// Uses polynomial growth matching player level scaling
-    /// </summary>
-    public int GetScaledHP(int stageNumber)
-    {
-        return (int)(BaseHP * StageScaleFactor(stageNumber));
-    }
-
-    /// <summary>
-    /// Calculates scaled power based on stage number
-    /// </summary>
-    public int GetScaledPower(int stageNumber)
-    {
-        return (int)(BasePower * StageScaleFactor(stageNumber));
-    }
-
-    /// <summary>
-    /// Calculates scaled speed based on stage number
-    /// Speed scales at half the rate of other stats
-    /// </summary>
-    public int GetScaledSpeed(int stageNumber)
-    {
-        var stages = stageNumber - 1;
-        if (stages <= 0) return BaseSpeed;
-        var exponent = MyTunoScaling.StatGrowthExponent;
-        var mult = MyTunoScaling.StatMultiplierPerLevel * MyTunoScaling.EnemySpeedScalingRate;
-        var factor = exponent == 0.0
-            ? 1.0 + stages * mult
-            : 1.0 + mult * Math.Pow(stages, 1.0 + exponent);
-        return (int)(BaseSpeed * factor);
-    }
-
-    /// <summary>
-    /// Calculates scaled defense based on stage number
-    /// Defense scales at ~80% the rate of HP/Power
-    /// </summary>
-    public int GetScaledDefense(int stageNumber)
-    {
-        var stages = stageNumber - 1;
-        if (stages <= 0) return BaseDefense;
-        var exponent = MyTunoScaling.StatGrowthExponent;
-        var mult = MyTunoScaling.StatMultiplierPerLevel * 0.8;
-        var factor = exponent == 0.0
-            ? 1.0 + stages * mult
-            : 1.0 + mult * Math.Pow(stages, 1.0 + exponent);
-        return (int)(BaseDefense * factor);
-    }
-
-    /// <summary>
-    /// Calculates scaled Fidelis drop based on stage number
-    /// </summary>
-    public decimal GetScaledFidelisDrop(int stageNumber)
-    {
-        var scaleFactor = 1.0m + (stageNumber - 1) * 0.02m;
-        return Math.Round(BaseFidelisDrop * scaleFactor, 2);
-    }
 }

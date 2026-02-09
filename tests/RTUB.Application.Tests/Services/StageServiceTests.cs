@@ -71,14 +71,6 @@ public class StageServiceTests : IDisposable
                 {
                     Normal = new EnemyTypeStat { Hp = 100, Power = 10, Speed = 10, Defense = 5, CriticalChance = 0.03 },
                     Boss = new EnemyTypeStat { Hp = 500, Power = 50, Speed = 20, Defense = 25, CriticalChance = 0.10 }
-                },
-                EnemyScaling = new EnemyScaling
-                {
-                    HpPerStage = 0.1,
-                    PowerPerStage = 0.08,
-                    SpeedPerStage = 0.02,
-                    DefensePerStage = 0.04,
-                    CriticalChancePerStage = 0.001
                 }
             }
         };
@@ -96,8 +88,10 @@ public class StageServiceTests : IDisposable
             .ReturnsAsync((int stage, int count) => Enumerable.Repeat(("/images/enemies/default.png", 0), count).ToList());
         _biomeServiceMock.Setup(x => x.GetBossSpriteAsync(It.IsAny<int>()))
             .ReturnsAsync("/images/enemies/boss.png");
-        _biomeServiceMock.Setup(x => x.CalculateScaledStats(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()))
-            .Returns((int stage, int hp, int damage, bool isBoss) => (hp, damage));
+        _biomeServiceMock.Setup(x => x.GetDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetRewardMultiplierForStage(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetUnifiedDifficultyCurve(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetUnifiedRewardCurve(It.IsAny<int>())).Returns(1.0);
 
         _stageService = new StageService(
             _stageProgressRepository,
@@ -431,7 +425,7 @@ public class StageServiceTests : IDisposable
         // Assert - rewards are calculated but NOT applied immediately (deferred until run ends)
         // Stage 1, level 1: XP = xpPerEnemyLevel(12) * sqrt(1) * enemyCount(1) * bossXPMult(1) * levelDiffMult(1.0) = 12
         battle.XPReward.Should().Be(12);
-        battle.FidelisReward.Should().Be(10.35m); // round(NormalWin(10) * 1.035, 2) = 10.35
+        battle.FidelisReward.Should().Be(10m); // round(NormalWin(10) * rewardCurve(1.0) * biomeRewardMult(1.0) * levelBonus(1.0), 2) = 10
 
         // Verify character XP was NOT updated yet (deferred rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
@@ -449,7 +443,7 @@ public class StageServiceTests : IDisposable
         finalCharacter.CurrentHP.Should().Be(3000, "HP should be restored to the value before the stage run started");
 
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 10.35m)), Times.Once);
+            u.FidelisBalance == initialFidelis + 10m)), Times.Once);
     }
 
     [Fact]

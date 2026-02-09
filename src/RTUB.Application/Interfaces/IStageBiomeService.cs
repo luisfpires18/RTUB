@@ -1,3 +1,5 @@
+using RTUB.Application.Configuration;
+
 namespace RTUB.Application.Interfaces;
 
 /// <summary>
@@ -63,6 +65,24 @@ public interface IStageBiomeService
     /// <param name="stageNumber">The stage number</param>
     /// <returns>Difficulty multiplier (1.0 for Forest, higher for later biomes)</returns>
     double GetDifficultyMultiplier(int stageNumber);
+
+    /// <summary>
+    /// Gets the biome reward multiplier for a given stage (unified scaling).
+    /// Used to scale Fidelis rewards based on biome difficulty.
+    /// </summary>
+    double GetRewardMultiplierForStage(int stageNumber);
+
+    /// <summary>
+    /// Computes the unified difficulty curve value for a given stage.
+    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// </summary>
+    double GetUnifiedDifficultyCurve(int stageNumber);
+
+    /// <summary>
+    /// Computes the unified reward curve value for a given stage.
+    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// </summary>
+    double GetUnifiedRewardCurve(int stageNumber);
 
     /// <summary>
     /// Gets the background image path for a given stage number

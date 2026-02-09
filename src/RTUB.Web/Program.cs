@@ -130,23 +130,18 @@ public class Program
                 myTunoScaling.BaseStats.Speed,
                 myTunoScaling.BaseStats.Defense,
                 myTunoScaling.BaseStats.CriticalChance,
+                myTunoScaling.LevelScaling.MaxLevel,
                 myTunoScaling.LevelScaling.StatMultiplierPerLevel,
                 myTunoScaling.LevelScaling.StatGrowthExponent,
                 myTunoScaling.LevelScaling.XpPerLevelBase,
-                myTunoScaling.Upgrades.HP.InitialBought,
-                myTunoScaling.Upgrades.Power.InitialBought,
-                myTunoScaling.Upgrades.Speed.InitialBought,
-                myTunoScaling.Upgrades.CriticalChance.InitialBought,
-                myTunoScaling.Upgrades.Defense.InitialBought,
                 myTunoScaling.Upgrades.HP.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.Power.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.Speed.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.CriticalChance.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.Defense.MultiplierPerUpgrade,
-                myTunoScaling.DefenseK,
-                myTunoScaling.MinDamage,
-                beerDropChance: myTunoScaling.BeerDropChance,
-                enemySpeedScalingRate: myTunoScaling.EnemySpeedScalingRate);
+                myTunoScaling.Combat.DefenseK,
+                myTunoScaling.Combat.MinDamage,
+                myTunoScaling.Combat.ShotBuffMultiplier);
         }
 
         // ---------- DB: SQLite only ----------

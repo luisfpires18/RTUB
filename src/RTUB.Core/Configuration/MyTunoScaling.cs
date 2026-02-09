@@ -2,6 +2,7 @@ namespace RTUB.Core.Configuration;
 
 public static class MyTunoScaling
 {
+    // ── Base stats ──
     public static int BaseLevel { get; private set; } = 1;
     public static int BaseXp { get; private set; } = 0;
     public static int BaseHp { get; private set; } = 100;
@@ -10,46 +11,34 @@ public static class MyTunoScaling
     public static int BaseDefense { get; private set; } = 5;
     public static double BaseCriticalChance { get; private set; } = 0.0;
 
+    // ── Level scaling ──
+    public static int MaxLevel { get; private set; } = 1000;
     public static double StatMultiplierPerLevel { get; private set; } = 0.1;
     public static double StatGrowthExponent { get; private set; } = 0.0;
     public static int XpPerLevelBase { get; private set; } = 100;
 
-    public static int InitialHpUpgrades { get; private set; } = 0;
-    public static int InitialPowerUpgrades { get; private set; } = 0;
-    public static int InitialSpeedUpgrades { get; private set; } = 0;
-    public static int InitialCriticalUpgrades { get; private set; } = 0;
-    public static int InitialDefenseUpgrades { get; private set; } = 0;
-
+    // ── Upgrade multipliers ──
     public static double HpUpgradeMultiplier { get; private set; } = 0.02;
     public static double PowerUpgradeMultiplier { get; private set; } = 0.02;
     public static double SpeedUpgradeMultiplier { get; private set; } = 1;
     public static double CriticalChanceUpgradeMultiplier { get; private set; } = 0.005;
     public static double DefenseUpgradeMultiplier { get; private set; } = 0.02;
 
+    // ── Combat ──
     /// <summary>
-    /// Defense constant K for damage mitigation formula: mult = K / (K + defense)
-    /// Higher K means defense is less effective (more damage taken)
+    /// Defense constant K for damage mitigation formula: mult = K / (K + defense).
     /// </summary>
     public static double DefenseK { get; private set; } = 50;
 
     /// <summary>
-    /// Minimum damage that can be dealt after defense mitigation
+    /// Minimum damage floor after defense mitigation.
     /// </summary>
     public static int MinDamage { get; private set; } = 1;
 
     /// <summary>
-    /// Enemy speed scaling rate relative to StatMultiplierPerLevel.
-    /// Controls how fast enemies' speed grows per stage in the polynomial formula.
-    /// Lower values = slower speed growth. Default 0.5 means speed grows at half the rate of HP/Power.
-    /// A value of ~0.073 makes enemies reach 1.0s action time around stage 900.
+    /// Stat multiplier when a shot buff is active (1.20 = 20% boost).
     /// </summary>
-    public static double EnemySpeedScalingRate { get; private set; } = 0.5;
-
-    /// <summary>
-    /// Chance of beer drop after winning a battle (0.0 to 1.0)
-    /// Default is 0.2 (20% chance)
-    /// </summary>
-    public static double BeerDropChance { get; private set; } = 0.2;
+    public static double ShotBuffMultiplier { get; private set; } = 1.20;
 
     public static void Configure(
         int baseLevel,
@@ -59,14 +48,10 @@ public static class MyTunoScaling
         int baseSpeed,
         int baseDefense,
         double baseCriticalChance,
+        int maxLevel,
         double statMultiplierPerLevel,
         double statGrowthExponent,
         int xpPerLevelBase,
-        int initialHpUpgrades,
-        int initialPowerUpgrades,
-        int initialSpeedUpgrades,
-        int initialCriticalUpgrades,
-        int initialDefenseUpgrades,
         double hpUpgradeMultiplier,
         double powerUpgradeMultiplier,
         double speedUpgradeMultiplier,
@@ -74,8 +59,7 @@ public static class MyTunoScaling
         double defenseUpgradeMultiplier,
         double defenseK,
         int minDamage,
-        double beerDropChance = 0.2,
-        double enemySpeedScalingRate = 0.5)
+        double shotBuffMultiplier)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -84,14 +68,10 @@ public static class MyTunoScaling
         BaseSpeed = baseSpeed;
         BaseDefense = baseDefense;
         BaseCriticalChance = baseCriticalChance;
+        MaxLevel = maxLevel;
         StatMultiplierPerLevel = statMultiplierPerLevel;
         StatGrowthExponent = statGrowthExponent;
         XpPerLevelBase = xpPerLevelBase;
-        InitialHpUpgrades = initialHpUpgrades;
-        InitialPowerUpgrades = initialPowerUpgrades;
-        InitialSpeedUpgrades = initialSpeedUpgrades;
-        InitialCriticalUpgrades = initialCriticalUpgrades;
-        InitialDefenseUpgrades = initialDefenseUpgrades;
         HpUpgradeMultiplier = hpUpgradeMultiplier;
         PowerUpgradeMultiplier = powerUpgradeMultiplier;
         SpeedUpgradeMultiplier = speedUpgradeMultiplier;
@@ -99,7 +79,6 @@ public static class MyTunoScaling
         DefenseUpgradeMultiplier = defenseUpgradeMultiplier;
         DefenseK = defenseK;
         MinDamage = minDamage;
-        BeerDropChance = beerDropChance;
-        EnemySpeedScalingRate = enemySpeedScalingRate;
+        ShotBuffMultiplier = shotBuffMultiplier;
     }
 }

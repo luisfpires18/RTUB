@@ -232,10 +232,9 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome and level difference.
-    /// Unified formula: rewardMult = clamp(1.0 + (defenderLevel - attackerLevel) * LevelDiffScale, Min, Max)
-    /// Beating higher-level opponents = big bonus, same level = normal, 20+ levels above = zero rewards.
-    /// No attacker-level scaling — only the level gap matters.
+    /// Calculates XP and Fidelis rewards based on battle outcome, level difference, and attacker level.
+    /// Rewards scale with attacker level (level^LevelScalePower) so high-level arena battles
+    /// give rewards comparable to stage mode.
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
@@ -246,15 +245,18 @@ public class BattleService : IBattleService
         var levelDiffMult = Math.Max(rewards.MinRewardMultiplier,
             Math.Min(rewards.MaxRewardMultiplier, 1.0 + levelDiff * rewards.LevelDiffScale));
 
+        // Level-based scaling: rewards grow with attacker level (like stage mode)
+        var levelScale = Math.Pow(attacker.Level, rewards.LevelScalePower);
+
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
-                (int)Math.Round(rewards.BaseWinXP * levelDiffMult),
-                (decimal)Math.Round((double)rewards.WinReward * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseWinXP * levelScale * levelDiffMult),
+                (decimal)Math.Round((double)rewards.WinReward * levelScale * levelDiffMult, 2)),
             BattleOutcome.DefenderWon => (0, 0m),
             BattleOutcome.Draw => (
-                (int)Math.Round(rewards.BaseDrawXP * levelDiffMult),
-                (decimal)Math.Round((double)rewards.DrawReward * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseDrawXP * levelScale * levelDiffMult),
+                (decimal)Math.Round((double)rewards.DrawReward * levelScale * levelDiffMult, 2)),
             _ => (0, 0m)
         };
     }
@@ -296,7 +298,7 @@ public class BattleService : IBattleService
         var random = new Random();
         var roll = random.NextDouble();
 
-        if (roll < MyTunoScaling.BeerDropChance)
+        if (roll < _myTunoScalingConfig.BattleRewards.BeerDropChance)
         {
             // Beer dropped!
             await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
