@@ -178,7 +178,7 @@
           "stageMax": 100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.1
+          "difficultyMultiplier": 1
         },
         {
           "name": "Swamp",
@@ -186,7 +186,7 @@
           "stageMax": 200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.4
+          "difficultyMultiplier": 2
         },
         {
           "name": "Mountains",
@@ -194,7 +194,7 @@
           "stageMax": 300,
           "enemySpritePath": "sprites/games/my-tuno/enemies/mountains",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.7
+          "difficultyMultiplier": 3
         },
         {
           "name": "Snowy",
@@ -202,7 +202,7 @@
           "stageMax": 400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.0
+          "difficultyMultiplier": 4
         },
         {
           "name": "Tropical",
@@ -210,7 +210,7 @@
           "stageMax": 500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/tropical",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.3
+          "difficultyMultiplier": 5
         },
         {
           "name": "Caverns",
@@ -218,7 +218,7 @@
           "stageMax": 600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/caverns",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.6
+          "difficultyMultiplier": 6
         },
         {
           "name": "Desert",
@@ -226,7 +226,7 @@
           "stageMax": 700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 3.0
+          "difficultyMultiplier": 7
         },
         {
           "name": "Volcanic",
@@ -234,7 +234,7 @@
           "stageMax": 800,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 3.5
+          "difficultyMultiplier": 8
         },
         {
           "name": "Ruins",
@@ -242,7 +242,7 @@
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 4.0
+          "difficultyMultiplier": 9
         },
         {
           "name": "Dark",
@@ -250,7 +250,7 @@
           "stageMax": 1000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 5.0
+          "difficultyMultiplier": 10
         },
         {
           "name": "Void",
@@ -258,7 +258,7 @@
           "stageMax": 999999999,
           "enemySpritePath": "sprites/games/my-tuno/enemies/void",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.5
+          "difficultyMultiplier": 15
         }
       ],
       "encounterRules": {
