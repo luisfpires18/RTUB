@@ -23,6 +23,18 @@
         return evt[field] ?? evt[field.toLowerCase()];
     };
 
+    /** Format a number with K/M/B/T abbreviation */
+    const formatNum = (n) => {
+        if (n == null) return '0';
+        const abs = Math.abs(n);
+        const sign = n < 0 ? '-' : '';
+        if (abs >= 1e12) return sign + (abs / 1e12).toFixed(abs % 1e12 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'T';
+        if (abs >= 1e9)  return sign + (abs / 1e9).toFixed(abs % 1e9 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'B';
+        if (abs >= 1e6)  return sign + (abs / 1e6).toFixed(abs % 1e6 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'M';
+        if (abs >= 1e3)  return sign + (abs / 1e3).toFixed(abs % 1e3 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'K';
+        return sign + Math.round(abs).toString();
+    };
+
     const resolveEvents = (battleData) => {
         if (!battleData) {
             return [];
@@ -541,8 +553,8 @@
                 this.stage.addChild(this.hpTexts.defender);
             }
 
-            this.hpTexts.attacker.text = `${this.currentHp.attacker} / ${this.maxHp.attacker} HP`;
-            this.hpTexts.defender.text = `${this.currentHp.defender} / ${this.maxHp.defender} HP`;
+            this.hpTexts.attacker.text = `${formatNum(this.currentHp.attacker)} / ${formatNum(this.maxHp.attacker)} HP`;
+            this.hpTexts.defender.text = `${formatNum(this.currentHp.defender)} / ${formatNum(this.maxHp.defender)} HP`;
         }
 
         drawSpeedBars() {
@@ -639,7 +651,7 @@
                 const damage = getEventField(evt, 'Damage');
                 this.playAttack(attacker, defender, damage, evt);
                 if (attacker && defender) {
-                    const damageText = damage ? `-${damage}` : '0';
+                    const damageText = damage ? `-${formatNum(damage)}` : '0';
                     const attackerName = attacker === 'Attacker' ? this.attackerName : this.defenderName;
                     const defenderName = defender === 'Defender' ? this.defenderName : this.attackerName;
                     this.addLogEntry(`${attackerName} atacou ${defenderName} (${damageText})`);
@@ -739,7 +751,7 @@
             });
 
             const damageText = new PIXI.Text({
-                text: isCritical ? `CRIT! -${damageValue}` : `-${damageValue}`,
+                text: isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`,
                 style: {
                     fontFamily: 'Arial',
                     fontSize: isCritical ? 28 : 24,
@@ -761,7 +773,7 @@
             });
 
             const attackerText = new PIXI.Text({
-                text: `+${damageValue}`,
+                text: `+${formatNum(damageValue)}`,
                 style: {
                     fontFamily: 'Arial',
                     fontSize: 18,

@@ -232,59 +232,31 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome and enemy level
-    /// XP and Fidelis scale based on opponent level - fighting stronger opponents gives more rewards
-    /// Losses award no rewards
+    /// Calculates XP and Fidelis rewards based on battle outcome and level difference.
+    /// Unified formula: rewardMult = clamp(1.0 + (defenderLevel - attackerLevel) * LevelDiffScale, Min, Max)
+    /// Beating higher-level opponents = big bonus, same level = normal, 20+ levels above = zero rewards.
+    /// No attacker-level scaling — only the level gap matters.
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
         var rewards = _myTunoScalingConfig.BattleRewards;
 
-        // Fidelis: scale by both attacker level and defender level
-        var attackerFidelisScale = 1.0 + attacker.Level * rewards.AttackerLevelFidelisScale;
-        var defenderFidelisScale = 1.0 + (defender.Level - 1) * rewards.FidelisLevelMultiplier;
-        
+        // Unified level-diff multiplier for both XP and Fidelis
+        var levelDiff = defender.Level - attacker.Level;
+        var levelDiffMult = Math.Max(rewards.MinRewardMultiplier,
+            Math.Min(rewards.MaxRewardMultiplier, 1.0 + levelDiff * rewards.LevelDiffScale));
+
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
-                ApplyLevelScaling(rewards.BaseWinXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)rewards.WinReward * attackerFidelisScale * defenderFidelisScale, 2))),
-            BattleOutcome.DefenderWon => (0, 0m), // No rewards for losing
+                (int)Math.Round(rewards.BaseWinXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.WinReward * levelDiffMult, 2)),
+            BattleOutcome.DefenderWon => (0, 0m),
             BattleOutcome.Draw => (
-                ApplyLevelScaling(rewards.BaseDrawXP, attacker.Level, defender.Level), 
-                (decimal)(Math.Round((double)rewards.DrawReward * attackerFidelisScale * defenderFidelisScale, 2))),
+                (int)Math.Round(rewards.BaseDrawXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.DrawReward * levelDiffMult, 2)),
             _ => (0, 0m)
         };
-    }
-
-    /// <summary>
-    /// Applies level-based scaling to XP rewards
-    /// Formula: XP = BaseXP * (1.0 + (defenderLevel - attackerLevel) * ScalingFactor)
-    /// Clamped between MinXpMultiplier and MaxXpMultiplier
-    /// </summary>
-    private int ApplyLevelScaling(int baseXp, int attackerLevel, int defenderLevel)
-    {
-        var config = _myTunoScalingConfig.BattleRewards;
-
-        // Scale base XP by attacker level so higher-level players earn more
-        var attackerScale = 1.0 + attackerLevel * config.AttackerLevelXpScale;
-        var effectiveBaseXp = baseXp * attackerScale;
-
-        // Calculate level-difference multiplier
-        var levelDiff = defenderLevel - attackerLevel;
-        var levelDiffMultiplier = 1.0 + (levelDiff * config.XpScalingFactor);
-
-        // Clamp level-diff multiplier to prevent extreme values
-        levelDiffMultiplier = Math.Max(config.MinXpMultiplier, Math.Min(config.MaxXpMultiplier, levelDiffMultiplier));
-
-        // Apply both multipliers
-        var scaledXp = (int)Math.Round(effectiveBaseXp * levelDiffMultiplier);
-
-        // Ensure at least 1 XP is awarded (unless baseXp is 0)
-        if (baseXp > 0 && scaledXp < 1)
-            scaledXp = 1;
-
-        return scaledXp;
     }
 
     /// <summary>

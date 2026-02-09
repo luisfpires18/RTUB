@@ -24,7 +24,8 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
-        // Seed stage enemies (runs even for existing databases if table is empty)
+        // TODO: Remove after next release (Feb 2026) — one-time truncate+re-seed to update all sprites and add Desert/Volcanic/Dark regions.
+        // After it runs once in prod, delete SeedData.StageEnemies.cs and this call.
         await SeedStageEnemiesAsync(dbContext);
 
         if (await dbContext.Users.AnyAsync())

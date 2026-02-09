@@ -70,12 +70,7 @@ public class InventoryService : IInventoryService
             ? Character.CreateShotBuffedCopy(character).TotalHP
             : character.TotalHP;
 
-        // Check if character is dead
         var currentHp = character.CurrentHP ?? maxHp;
-        if (currentHp <= 0)
-        {
-            return (false, 0, "Não podes usar cerveja num personagem morto");
-        }
 
         // Check if character needs healing
         if (currentHp >= maxHp)
@@ -539,18 +534,30 @@ public class InventoryService : IInventoryService
 
         // Calculate weapon stats from config, scaled by drink energy cost
         var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
+        var forging = _scalingConfig.StageMode.Forging;
         var drinkResource = _scalingConfig.Gathering.Resources
             .FirstOrDefault(r => r.Type == drink.ToString());
         var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
 
+        // Roll random instrument quality within configured range
+        var random = new Random();
+        var instrumentQuality = forging.InstrumentQualityMin +
+            random.NextDouble() * (forging.InstrumentQualityMax - forging.InstrumentQualityMin);
+
+        // 2H weapons get a multiplier to match dual-wielding 1H
+        var isTwoHanded = WeaponTypeHelper.IsTwoHanded(weaponType);
+        var handedMult = isTwoHanded ? forging.TwoHandedMultiplier : 1.0;
+
+        var totalMult = drinkCostMultiplier * instrumentQuality * handedMult;
+
         var weapon = ForgedWeapon.Create(
             userId, weaponName, weaponType,
             instrumentPart, drink,
-            bonusHP: weaponStats.HP * drinkCostMultiplier,
-            bonusPower: weaponStats.Power * drinkCostMultiplier,
-            bonusSpeed: weaponStats.Speed * drinkCostMultiplier,
-            bonusDefense: weaponStats.Defense * drinkCostMultiplier,
-            bonusCriticalChance: weaponStats.CriticalChance * drinkCostMultiplier);
+            bonusHP: (int)Math.Round(weaponStats.HP * totalMult),
+            bonusPower: (int)Math.Round(weaponStats.Power * totalMult),
+            bonusSpeed: (int)Math.Round(weaponStats.Speed * totalMult),
+            bonusDefense: (int)Math.Round(weaponStats.Defense * totalMult),
+            bonusCriticalChance: weaponStats.CriticalChance * drinkCostMultiplier * instrumentQuality);
 
         _dbContext.ForgedWeapons.Add(weapon);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -667,18 +674,29 @@ public class InventoryService : IInventoryService
 
     /// <summary>
     /// Recalculates all equipment stat bonuses based on currently equipped items.
+    /// Each character gets unique equipment quality per slot via deterministic seeding
+    /// (characterId × 7919 + slotIndex × 31), giving variety across players without DB changes.
     /// </summary>
     private void RecalculateEquipmentBonuses(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
+        var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
+        var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
         int hp = 0, power = 0, defense = 0;
 
-        if (character.EquippedHead.HasValue) { hp += stats.Head.HP; power += stats.Head.Power; defense += stats.Head.Defense; }
-        if (character.EquippedShoulders.HasValue) { hp += stats.Shoulders.HP; power += stats.Shoulders.Power; defense += stats.Shoulders.Defense; }
-        if (character.EquippedChest.HasValue) { hp += stats.Chest.HP; power += stats.Chest.Power; defense += stats.Chest.Defense; }
-        if (character.EquippedGloves.HasValue) { hp += stats.Gloves.HP; power += stats.Gloves.Power; defense += stats.Gloves.Defense; }
-        if (character.EquippedLegs.HasValue) { hp += stats.Legs.HP; power += stats.Legs.Power; defense += stats.Legs.Defense; }
-        if (character.EquippedBoots.HasValue) { hp += stats.Boots.HP; power += stats.Boots.Power; defense += stats.Boots.Defense; }
+        // Helper to get deterministic quality for this character + slot
+        double GetSlotQuality(int slotIndex)
+        {
+            var rng = new Random(character.Id * 7919 + slotIndex * 31);
+            return qualityMin + rng.NextDouble() * (qualityMax - qualityMin);
+        }
+
+        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q); power += (int)Math.Round(stats.Head.Power * q); defense += (int)Math.Round(stats.Head.Defense * q); }
+        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q); power += (int)Math.Round(stats.Shoulders.Power * q); defense += (int)Math.Round(stats.Shoulders.Defense * q); }
+        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q); power += (int)Math.Round(stats.Chest.Power * q); defense += (int)Math.Round(stats.Chest.Defense * q); }
+        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q); power += (int)Math.Round(stats.Gloves.Power * q); defense += (int)Math.Round(stats.Gloves.Defense * q); }
+        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q); power += (int)Math.Round(stats.Legs.Power * q); defense += (int)Math.Round(stats.Legs.Defense * q); }
+        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q); power += (int)Math.Round(stats.Boots.Power * q); defense += (int)Math.Round(stats.Boots.Defense * q); }
 
         // Add weapon bonuses from forged weapons
         var equippedWeaponIds = new HashSet<int>();
@@ -731,7 +749,8 @@ public class InventoryService : IInventoryService
         weapon.Level += 1;
 
         // Recalculate stats: increase base stats by upgrade bonus per level
-        var statBonus = _scalingConfig.StageMode.Forging.WeaponUpgradeStatBonus;
+        var forging = _scalingConfig.StageMode.Forging;
+        var statBonus = forging.WeaponUpgradeStatBonus;
         var levelMultiplier = 1.0 + (weapon.Level * statBonus);
         var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
 
@@ -740,9 +759,14 @@ public class InventoryService : IInventoryService
             .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
         var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
 
-        weapon.BonusHP = (int)(baseStats.HP * drinkCostMultiplier * levelMultiplier);
-        weapon.BonusPower = (int)(baseStats.Power * drinkCostMultiplier * levelMultiplier);
-        weapon.BonusDefense = (int)(baseStats.Defense * drinkCostMultiplier * levelMultiplier);
+        // 2H weapons get the two-handed multiplier to match dual-wielding 1H
+        var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
+
+        var totalMult = drinkCostMultiplier * levelMultiplier * handedMult;
+
+        weapon.BonusHP = (int)Math.Round(baseStats.HP * totalMult);
+        weapon.BonusPower = (int)Math.Round(baseStats.Power * totalMult);
+        weapon.BonusDefense = (int)Math.Round(baseStats.Defense * totalMult);
 
         // Recalculate equipment bonuses if weapon is equipped
         if (weapon.IsEquipped)

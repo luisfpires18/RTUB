@@ -24,9 +24,8 @@ public class StageProgress : BaseEntity
 
     /// <summary>
     /// The last checkpoint stage the player can return to
-    /// Checkpoints: every 10 stages but start after each boss (11, 21, 31...)
-    /// then every 20 stages after 100 (101, 121, 141...)
-    /// After stage 10000: no checkpoints (Infinite Land)
+    /// Checkpoints: every 10 stages, starting after each boss (1, 11, 21, 31...)
+    /// After stage 1000: no checkpoints (Void)
     /// </summary>
     public int LastCheckpoint { get; set; } = 1;
 
@@ -42,7 +41,7 @@ public class StageProgress : BaseEntity
     public int EnemiesDefeatedInCurrentStage { get; set; } = 0;
 
     /// <summary>
-    /// Whether the player has unlocked Endless mode (beat stage 10000 boss)
+    /// Whether the player has unlocked Endless mode (beat stage 1000 boss)
     /// </summary>
     public bool EndlessModeUnlocked { get; set; } = false;
 
@@ -125,8 +124,8 @@ public class StageProgress : BaseEntity
     {
         TotalBossesDefeated++;
 
-        // Check if player beat the stage 10000 boss
-        if (CurrentStage == 10000)
+        // Check if player beat the stage 1000 boss
+        if (CurrentStage == 1000)
         {
             EndlessModeUnlocked = true;
         }
@@ -144,49 +143,42 @@ public class StageProgress : BaseEntity
 
     /// <summary>
     /// Calculates the checkpoint for a given stage
-    /// - Before stage 100: checkpoint every 10 stages, starting after boss (1, 11, 21, 31...)
     /// - All stages: checkpoint every 10 stages (1, 11, 21, 31... after each boss)
-    /// - After stage 10000: no new checkpoints (Infinite Land)
+    /// - After stage 1000: no new checkpoints (Void)
     /// </summary>
     public static int CalculateCheckpoint(int stage)
     {
         if (stage <= 1) return 1;
 
-        // Infinite Land - no checkpoints after 10000
-        if (stage > 10000)
+        // Void - no checkpoints after 1000
+        if (stage > 1000)
         {
-            return 10000;
+            return 1000;
         }
 
-        // Checkpoint every 10 stages: 1, 11, 21, 31, ..., 991, 1001, ...
+        // Checkpoint every 10 stages: 1, 11, 21, 31, ...
         var checkpoint = ((stage - 1) / 10) * 10 + 1;
         return checkpoint;
     }
 
     /// <summary>
     /// Gets the region for a given stage number
-    /// Each region spans 100 stages, cycling after stage 1000
-    /// Stage 10001+ is Infinite Land
+    /// Stages 1-100: Forest, 101-200: Swamp, 201-300: Mountains,
+    /// 301-400: Snowy, 401-500: Tropical, 501-600: Caverns,
+    /// 601-700: Desert, 701-800: Volcanic, 801-900: Ruins,
+    /// 901-1000: Dark, 1001+: Void
     /// </summary>
     public static RegionType GetRegionForStage(int stage)
     {
-        if (stage > 10000) return RegionType.InfiniteLand;
+        if (stage > 1000) return RegionType.Void;
 
-        // Calculate region based on which hundred the stage is in
-        // Stages 1-100: Forest (index 0)
-        // Stages 101-200: Desert (index 1)
-        // etc.
         var regionIndex = (stage - 1) / 100;
-
-        // Cycle through first 10 regions (0-9) for stages above 1000
-        regionIndex = regionIndex % 10;
-
         return (RegionType)regionIndex;
     }
 
     /// <summary>
     /// Gets the enemy type for a given stage
-    /// - Boss stages determined by config (bossEveryNStages)
+    /// - Boss stages determined by config (bossEveryNStages = 10)
     /// - All other stages: Normal enemy
     /// </summary>
     public static EnemyType GetEnemyTypeForStage(int stage)
@@ -198,10 +190,10 @@ public class StageProgress : BaseEntity
     }
 
     /// <summary>
-    /// Checks if the current stage is in Infinite Land
+    /// Checks if the current stage is in the Void (endless)
     /// </summary>
-    public bool IsInInfiniteLand()
+    public bool IsInVoid()
     {
-        return CurrentStage > 10000;
+        return CurrentStage > 1000;
     }
 }

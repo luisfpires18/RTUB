@@ -225,8 +225,10 @@ public class Character : BaseEntity
         {
             var time = BaseActionTime;
             
-            // Speed stat provides a small per-point reduction (meaningful for enemies at higher stages)
-            time -= TotalSpeed * ActionTimeReductionPerSpeedPoint;
+            // Only speed gained above base reduces action time
+            // so level 1 players start at exactly 5.0s
+            var bonusSpeed = Math.Max(0, TotalSpeed - MyTunoScaling.BaseSpeed);
+            time -= bonusSpeed * ActionTimeReductionPerSpeedPoint;
             
             // Speed upgrades provide the main flat reduction for players
             time -= SpeedUpgrades * ActionTimeReductionPerUpgrade;

@@ -83,39 +83,23 @@ public class BattleRewards
     public int BaseDrawXP { get; set; } = 30;
 
     /// <summary>
-    /// XP scaling based on level difference between attacker and defender.
-    /// Applied after attacker level scaling.
-    /// Formula: levelDiffMultiplier = clamp(1.0 + levelDiff * XpScalingFactor, Min, Max)
+    /// Unified level-difference scaling for both XP and Fidelis arena rewards.
+    /// Formula: rewardMultiplier = clamp(1.0 + (defenderLevel - attackerLevel) * LevelDiffScale, Min, Max)
+    /// Beating higher level = bonus, beating lower level = penalty, 20+ levels above = zero.
+    /// Default 0.05 = 5% per level difference.
     /// </summary>
-    public double XpScalingFactor { get; set; } = 0.05; // 5% per level difference
+    public double LevelDiffScale { get; set; } = 0.05;
 
     /// <summary>
-    /// Minimum level-difference XP multiplier (prevents too little XP from weak opponents)
-    /// Default 0.2 means minimum 20% of level-scaled XP
+    /// Minimum reward multiplier. 0.0 means beating someone 20+ levels below gives nothing.
     /// </summary>
-    public double MinXpMultiplier { get; set; } = 0.2;
+    public double MinRewardMultiplier { get; set; } = 0.0;
 
     /// <summary>
-    /// Maximum level-difference XP multiplier (prevents too much XP from strong opponents)
-    /// Default 3.0 means maximum 300% of level-scaled XP
+    /// Maximum reward multiplier (cap for beating much stronger opponents).
+    /// Default 3.0 = max 300% rewards.
     /// </summary>
-    public double MaxXpMultiplier { get; set; } = 3.0;
-
-    /// <summary>
-    /// Attacker level scaling factor for XP rewards.
-    /// Scales base XP by attacker level so higher-level players earn proportionally more XP.
-    /// Formula: effectiveBaseXP = BaseXP * (1 + attackerLevel * AttackerLevelXpScale)
-    /// Default 0.08 means +8% per attacker level (level 100 → 9x base XP).
-    /// </summary>
-    public double AttackerLevelXpScale { get; set; } = 0.08;
-
-    /// <summary>
-    /// Attacker level scaling factor for Fidelis rewards.
-    /// Scales base Fidelis by attacker level so higher-level players earn proportionally more.
-    /// Formula: effectiveBaseFidelis = BaseFidelis * (1 + attackerLevel * AttackerLevelFidelisScale)
-    /// Default 0.06 means +6% per attacker level (level 100 → 7x base Fidelis).
-    /// </summary>
-    public double AttackerLevelFidelisScale { get; set; } = 0.06;
+    public double MaxRewardMultiplier { get; set; } = 3.0;
 
     /// <summary>
     /// Cost in Fidelis to revive a defeated character
@@ -128,12 +112,6 @@ public class BattleRewards
     /// Default is 50 Fidelis
     /// </summary>
     public decimal RestoreHPCost { get; set; } = 50m;
-
-    /// <summary>
-    /// Fidelis reward multiplier per enemy level above 1
-    /// Formula: fidelis = baseFidelis * (1.0 + (level - 1) * FidelisLevelMultiplier)
-    /// </summary>
-    public double FidelisLevelMultiplier { get; set; } = 0.1;
 }
 
 public class MyTunoBaseStats
@@ -144,7 +122,7 @@ public class MyTunoBaseStats
     public int Power { get; set; } = 10;
     public int Speed { get; set; } = 10;
     public int Defense { get; set; } = 5;
-    public double CriticalChance { get; set; } = 0.01;
+    public double CriticalChance { get; set; } = 0.0;
 }
 
 public class MyTunoLevelScaling
@@ -178,14 +156,39 @@ public class MyTunoUpgradeStat
 public class StageModeConfig
 {
     /// <summary>
-    /// Base XP reward for clearing a stage
+    /// Base XP reward for clearing a stage (legacy, used as fallback)
     /// </summary>
-    public int BaseStageXP { get; set; } = 30;
+    public int BaseStageXP { get; set; } = 60;
+
+    /// <summary>
+    /// XP base per enemy level. XP = xpPerEnemyLevel × enemyLevel^enemyLevelXPPower × enemyCount × levelDiffMult.
+    /// Enemy level = stage number. Higher-level enemies give more XP.
+    /// </summary>
+    public double XpPerEnemyLevel { get; set; } = 12;
+
+    /// <summary>
+    /// Power applied to enemy level for XP scaling.
+    /// 0.5 = sqrt (stage 100 gives 10× stage 1), 1.0 = linear (stage 100 gives 100× stage 1).
+    /// </summary>
+    public double EnemyLevelXPPower { get; set; } = 0.5;
+
+    /// <summary>
+    /// XP penalty rate per level above enemy. When playerLevel > stageNumber,
+    /// XP is multiplied by max(MinXPLevelMultiplier, 1.0 - (playerLevel - stageNumber) × XpLevelPenaltyRate).
+    /// 0.015 means 1.5% reduction per level above enemy.
+    /// </summary>
+    public double XpLevelPenaltyRate { get; set; } = 0.015;
+
+    /// <summary>
+    /// Minimum XP multiplier floor when player is much higher level than enemies.
+    /// 0.05 = enemies always give at least 5% XP regardless of level difference.
+    /// </summary>
+    public double MinXPLevelMultiplier { get; set; } = 0.05;
 
     /// <summary>
     /// XP multiplier for boss stages
     /// </summary>
-    public int BossXPMultiplier { get; set; } = 10;
+    public int BossXPMultiplier { get; set; } = 8;
 
     /// <summary>
     /// Stage reward scaling rate for diminishing returns curve.
@@ -200,6 +203,13 @@ public class StageModeConfig
     /// Default 8.0 means rewards plateau at ~8x base at very high stages.
     /// </summary>
     public double MaxStageRewardMultiplier { get; set; } = 8.0;
+
+    /// <summary>
+    /// Per-level Fidelis multiplier for stage rewards.
+    /// Formula: levelMultiplier = min(1 + (level-1) * FidelisLevelMultiplier, FidelisLevelMultiplierCap)
+    /// Default 0.04 = 4% per level.
+    /// </summary>
+    public double FidelisLevelMultiplier { get; set; } = 0.04;
 
     /// <summary>
     /// Maximum Fidelis level multiplier cap.
@@ -228,6 +238,18 @@ public class StageModeConfig
     /// Drop rates for items
     /// </summary>
     public StageDropRates DropRates { get; set; } = new();
+
+    /// <summary>
+    /// Minimum quality multiplier for equipment pieces (randomized per character per slot).
+    /// Default 0.7 = worst quality gets 70% of base stats.
+    /// </summary>
+    public double EquipmentQualityMin { get; set; } = 0.7;
+
+    /// <summary>
+    /// Maximum quality multiplier for equipment pieces (randomized per character per slot).
+    /// Default 1.3 = best quality gets 130% of base stats.
+    /// </summary>
+    public double EquipmentQualityMax { get; set; } = 1.3;
 
     /// <summary>
     /// Stat bonuses for equipped items (equipment + instruments)
@@ -396,8 +418,28 @@ public class ForgingConfig
     /// <summary>Cost multiplier per level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
     public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.5m;
 
-    /// <summary>Stat increase percentage per weapon level (0.10 = +10% per level).</summary>
-    public double WeaponUpgradeStatBonus { get; set; } = 0.10;
+    /// <summary>Stat increase percentage per weapon level (0.15 = +15% per level).</summary>
+    public double WeaponUpgradeStatBonus { get; set; } = 0.15;
+
+    /// <summary>
+    /// Stat multiplier for two-handed weapons. Since 2H occupies both weapon slots,
+    /// they get this multiplier on all stats to match dual-wielding 1H weapons.
+    /// Default 2.0 = same total power as equipping two 1H weapons.
+    /// </summary>
+    public double TwoHandedMultiplier { get; set; } = 2.0;
+
+    /// <summary>
+    /// Minimum quality multiplier for instrument-based weapons.
+    /// Randomized between min/max at forge time for stat variety.
+    /// Default 0.85 = worst quality gets 85% of base stats.
+    /// </summary>
+    public double InstrumentQualityMin { get; set; } = 0.85;
+
+    /// <summary>
+    /// Maximum quality multiplier for instrument-based weapons.
+    /// Default 1.15 = best quality gets 115% of base stats.
+    /// </summary>
+    public double InstrumentQualityMax { get; set; } = 1.15;
 }
 
 /// <summary>

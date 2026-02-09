@@ -1,4 +1,8 @@
 -- =============================================================
+-- DEPRECATED: SeedData.StageEnemies.cs now handles upsert on startup.
+-- No need to run this SQL manually — bosses are auto-migrated to
+-- new 1000-stage-per-biome intervals by the seed code.
+-- =============================================================
 -- Stage Enemies: New Forest Normals + Full Swamp Region
 -- SQLite compatible - Run via DB razor page tool
 -- EnemyType: Normal=0, Boss=2
@@ -56,34 +60,34 @@ VALUES ('Stalker', 0, 1, 60, 13, 10, 4, 0.05, '/sprites/games/my-tuno/enemies/sw
 -- =====================
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Frog King', 2, 1, 600, 24, 5, 18, 0.10, '/sprites/games/my-tuno/enemies/swamp/boss_1_frog.png', '60', 0.5, 0.2, datetime('now'), 110, 0);
+VALUES ('Frog King', 2, 1, 170, 24, 5, 18, 0.10, '/sprites/games/my-tuno/enemies/swamp/boss_1_frog.png', '60', 0.5, 0.2, datetime('now'), 110, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Pelican', 2, 1, 700, 28, 7, 20, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_2_pelican.png', '70', 0.5, 0.2, datetime('now'), 120, 1);
+VALUES ('Pelican', 2, 1, 185, 28, 7, 20, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_2_pelican.png', '70', 0.5, 0.2, datetime('now'), 120, 1);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Leech Lord', 2, 1, 650, 34, 10, 15, 0.15, '/sprites/games/my-tuno/enemies/swamp/boss_3_leech.png', '80', 0.5, 0.2, datetime('now'), 130, 0);
+VALUES ('Leech Lord', 2, 1, 175, 34, 10, 15, 0.15, '/sprites/games/my-tuno/enemies/swamp/boss_3_leech.png', '80', 0.5, 0.2, datetime('now'), 130, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Hydra', 2, 1, 680, 32, 12, 16, 0.14, '/sprites/games/my-tuno/enemies/swamp/boss_4_hydra.png', '90', 0.5, 0.2, datetime('now'), 140, 0);
+VALUES ('Hydra', 2, 1, 180, 32, 12, 16, 0.14, '/sprites/games/my-tuno/enemies/swamp/boss_4_hydra.png', '90', 0.5, 0.2, datetime('now'), 140, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Anaconda', 2, 1, 800, 26, 6, 24, 0.08, '/sprites/games/my-tuno/enemies/swamp/boss_5_anaconda.png', '100', 0.5, 0.2, datetime('now'), 150, 0);
+VALUES ('Anaconda', 2, 1, 215, 26, 6, 24, 0.08, '/sprites/games/my-tuno/enemies/swamp/boss_5_anaconda.png', '100', 0.5, 0.2, datetime('now'), 150, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Crayfish', 2, 1, 750, 36, 8, 20, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_6_crayfish.png', '110', 0.5, 0.2, datetime('now'), 160, 0);
+VALUES ('Crayfish', 2, 1, 200, 36, 8, 20, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_6_crayfish.png', '110', 0.5, 0.2, datetime('now'), 160, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Darner', 2, 1, 850, 30, 9, 26, 0.10, '/sprites/games/my-tuno/enemies/swamp/boss_7_darner.png', '120', 0.5, 0.2, datetime('now'), 170, 0);
+VALUES ('Darner', 2, 1, 230, 30, 9, 26, 0.10, '/sprites/games/my-tuno/enemies/swamp/boss_7_darner.png', '120', 0.5, 0.2, datetime('now'), 170, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Hippopotamus', 2, 1, 780, 40, 11, 22, 0.18, '/sprites/games/my-tuno/enemies/swamp/boss_8_hippopotamus.png', '130', 0.5, 0.2, datetime('now'), 180, 0);
+VALUES ('Hippopotamus', 2, 1, 210, 40, 11, 22, 0.18, '/sprites/games/my-tuno/enemies/swamp/boss_8_hippopotamus.png', '130', 0.5, 0.2, datetime('now'), 180, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Troll', 2, 1, 1000, 34, 6, 28, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_9_troll.png', '140', 0.5, 0.2, datetime('now'), 190, 0);
+VALUES ('Troll', 2, 1, 260, 34, 6, 28, 0.12, '/sprites/games/my-tuno/enemies/swamp/boss_9_troll.png', '140', 0.5, 0.2, datetime('now'), 190, 0);
 
 INSERT INTO "StageEnemies" ("Name", "Type", "Region", "BaseHP", "BasePower", "BaseSpeed", "BaseDefense", "BaseCriticalChance", "SpritePath", "BaseFidelisDrop", "BeerDropChance", "ShotDropChance", "CreatedAt", "BossStageNumber", "Placement")
-VALUES ('Aligator', 2, 1, 1400, 45, 10, 35, 0.20, '/sprites/games/my-tuno/enemies/swamp/boss_10_aligator.png', '250', 0.8, 0.4, datetime('now'), 200, 0);
+VALUES ('Aligator', 2, 1, 320, 45, 10, 35, 0.20, '/sprites/games/my-tuno/enemies/swamp/boss_10_aligator.png', '250', 0.8, 0.4, datetime('now'), 200, 0);
 
 -- =====================
 -- FIX: Update bosses 4-9 that already exist with NULL sprites and old names

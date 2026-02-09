@@ -202,6 +202,7 @@ public class StageBiomeService : IStageBiomeService
             "desert" => RegionType.Desert,
             "volcanic" => RegionType.Volcanic,
             "dark" => RegionType.Dark,
+            "void" => RegionType.Void,
             _ => RegionType.Forest
         };
     }
@@ -393,7 +394,9 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Loads sprite files from a folder with filtering
+    /// Loads sprite files from a folder with filtering.
+    /// For the Void biome the search includes all sub-directories so that
+    /// enemies / bosses organised in themed folders are aggregated.
     /// </summary>
     private async Task<List<string>> LoadSpritesFromFolderAsync(string relativePath, string bossPrefix, bool excludeBoss)
     {
@@ -407,6 +410,12 @@ public class StageBiomeService : IStageBiomeService
             return new List<string>();
         }
 
+        // Void biome searches all sub-directories; other biomes stay top-level
+        var isVoid = normalizedRelativePath.Contains("/void", StringComparison.OrdinalIgnoreCase)
+                  || normalizedRelativePath.Contains("\\void", StringComparison.OrdinalIgnoreCase)
+                  || normalizedRelativePath.EndsWith("void", StringComparison.OrdinalIgnoreCase);
+        var searchOption = isVoid ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+
         // Load all image files
         var extensions = new[] { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.svg" };
         var allFiles = new List<string>();
@@ -415,20 +424,24 @@ public class StageBiomeService : IStageBiomeService
         {
             foreach (var extension in extensions)
             {
-                allFiles.AddRange(Directory.GetFiles(fullPath, extension, SearchOption.TopDirectoryOnly));
+                allFiles.AddRange(Directory.GetFiles(fullPath, extension, searchOption));
             }
         });
 
         // Filter based on boss prefix
         var sprites = allFiles
-            .Select(f => Path.GetFileName(f))
-            .Where(filename =>
+            .Select(f =>
             {
-                var isBoss = filename.StartsWith(bossPrefix, StringComparison.OrdinalIgnoreCase);
+                var relPath = Path.GetRelativePath(fullPath, f).Replace("\\", "/");
+                return (FileName: Path.GetFileName(f), WebPath: $"{webPath}/{relPath}");
+            })
+            .Where(item =>
+            {
+                var isBoss = item.FileName.StartsWith(bossPrefix, StringComparison.OrdinalIgnoreCase);
                 return excludeBoss ? !isBoss : isBoss;
             })
-            .OrderBy(filename => ExtractBossNumber(filename, bossPrefix))
-            .Select(filename => $"{webPath}/{filename}")
+            .OrderBy(item => ExtractBossNumber(item.FileName, bossPrefix))
+            .Select(item => item.WebPath)
             .ToList();
 
         return sprites;

@@ -2,7 +2,7 @@ namespace RTUB.Core.Enums;
 
 /// <summary>
 /// Represents the biome/region in Stage Mode
-/// Each region spans 100 stages
+/// 10 biomes × 100 stages each (1-1000), Void is 1001+ (endless)
 /// </summary>
 public enum RegionType
 {
@@ -11,54 +11,36 @@ public enum RegionType
     /// </summary>
     Forest = 0,
 
-    /// <summary>
-    /// Stages 101-200: Swamp region
-    /// </summary>
+    /// <summary>Stages 101-200: Swamp region</summary>
     Swamp = 1,
 
-    /// <summary>
-    /// Stages 201-300: Mountains region
-    /// </summary>
+    /// <summary>Stages 201-300: Mountains region</summary>
     Mountains = 2,
 
-    /// <summary>
-    /// Stages 301-400: Snowy region
-    /// </summary>
+    /// <summary>Stages 301-400: Snowy region</summary>
     Snowy = 3,
 
-    /// <summary>
-    /// Stages 401-500: Tropical region
-    /// </summary>
+    /// <summary>Stages 401-500: Tropical region</summary>
     Tropical = 4,
 
-    /// <summary>
-    /// Stages 501-600: Caverns region
-    /// </summary>
+    /// <summary>Stages 501-600: Caverns region</summary>
     Caverns = 5,
 
-    /// <summary>
-    /// Stages 601-700: Desert region
-    /// </summary>
+    /// <summary>Stages 601-700: Desert region</summary>
     Desert = 6,
 
-    /// <summary>
-    /// Stages 701-800: Volcanic region
-    /// </summary>
+    /// <summary>Stages 701-800: Volcanic region</summary>
     Volcanic = 7,
 
-    /// <summary>
-    /// Stages 801-900: Ruins region
-    /// </summary>
+    /// <summary>Stages 801-900: Ruins region</summary>
     Ruins = 8,
 
-    /// <summary>
-    /// Stages 901-1000: Dark region
-    /// </summary>
+    /// <summary>Stages 901-1000: Dark region</summary>
     Dark = 9,
 
     /// <summary>
-    /// Stages 10001+: Infinite Land (Endless mode)
-    /// No checkpoints
+    /// Stages 1001+: The Void (Endless mode)
+    /// Enemies and bosses are drawn randomly across all void sub-folders
     /// </summary>
-    InfiniteLand = 99
+    Void = 99
 }

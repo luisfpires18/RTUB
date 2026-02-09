@@ -11,53 +11,53 @@
       "power": 10,
       "speed": 10,
       "defense": 5,
-      "criticalChance": 0.01
+      "criticalChance": 0.0
     },
     "levelScaling": {
       "statMultiplierPerLevel": 0.15,
-      "statGrowthExponent": 0.15,
-      "xpPerLevelBase": 120
+      "statGrowthExponent": 0.20,
+      "xpPerLevelBase": 50
     },
     "upgrades": {
       "hp": {
         "initialBought": 0,
-        "multiplierPerUpgrade": 0.02,
+        "multiplierPerUpgrade": 0.03,
         "baseCost": 5,
         "costExponent": 1.5,
-        "maxUpgrades": 3000
+        "maxUpgrades": 1000000
       },
       "power": {
         "initialBought": 0,
-        "multiplierPerUpgrade": 0.02,
-        "baseCost": 10,
+        "multiplierPerUpgrade": 0.30,
+        "baseCost": 8,
         "costExponent": 1.5,
-        "maxUpgrades": 3000
+        "maxUpgrades": 1000000
       },
       "speed": {
         "initialBought": 0,
-        "multiplierPerUpgrade": 1,
-        "baseCost": 15,
-        "costExponent": 1.8,
+        "multiplierPerUpgrade": 1.5,
+        "baseCost": 10,
+        "costExponent": 1.5,
         "maxUpgrades": 40
       },
       "criticalChance": {
         "initialBought": 0,
-        "multiplierPerUpgrade": 0.005,
-        "baseCost": 20,
+        "multiplierPerUpgrade": 0.007,
+        "baseCost": 15,
         "costExponent": 1.6,
         "maxUpgrades": 100
       },
       "defense": {
         "initialBought": 0,
-        "multiplierPerUpgrade": 0.02,
-        "baseCost": 12,
+        "multiplierPerUpgrade": 0.40,
+        "baseCost": 10,
         "costExponent": 1.5,
-        "maxUpgrades": 3000
+        "maxUpgrades": 1000000
       }
     },
     "defenseK": 50,
     "minDamage": 1,
-    "enemySpeedScalingRate": 0.073,
+    "enemySpeedScalingRate": 0.05,
 
     "combat": {
       "criticalChanceCap": 0.5
@@ -74,14 +74,11 @@
       "drawReward": 7.5,
       "baseWinXP": 50,
       "baseDrawXP": 30,
-      "xpScalingFactor": 0.08,
-      "minXpMultiplier": 0.2,
-      "maxXpMultiplier": 3.0,
-      "attackerLevelXpScale": 0.08,
-      "attackerLevelFidelisScale": 0.06,
+      "levelDiffScale": 0.05,
+      "minRewardMultiplier": 0.0,
+      "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
-      "restoreHPCost": 20,
-      "fidelisLevelMultiplier": 0.1
+      "restoreHPCost": 20
     },
 
     "matchmaking": {
@@ -98,32 +95,37 @@
     },
 
     "stageMode": {
-      "baseStageXP": 30,
-      "bossXPMultiplier": 10,
-      "stageRewardScalingFactor": 0.005,
-      "maxStageRewardMultiplier": 3.0,
-      "fidelisLevelMultiplierCap": 1.3,
+      "baseStageXP": 60,
+      "xpPerEnemyLevel": 12,
+      "enemyLevelXPPower": 0.5,
+      "xpLevelPenaltyRate": 0.015,
+      "minXPLevelMultiplier": 0.05,
+      "bossXPMultiplier": 8,
+      "stageRewardScalingFactor": 0.003,
+      "maxStageRewardMultiplier": 6.0,
+      "fidelisLevelMultiplier": 0.04,
+      "fidelisLevelMultiplierCap": 1.8,
       "enemyScaling": {
-        "hpPerStage": 0.66,
-        "powerPerStage": 0.66,
-        "speedPerStage": 0.011,
-        "defensePerStage": 0.33,
-        "criticalChancePerStage": 0.007
+        "hpPerStage": 0.15,
+        "powerPerStage": 0.15,
+        "speedPerStage": 0.008,
+        "defensePerStage": 0.12,
+        "criticalChancePerStage": 0.005
       },
       "baseEnemyStats": {
         "normal": {
-          "hp": 150,
-          "power": 15,
+          "hp": 40,
+          "power": 5,
           "speed": 5,
-          "defense": 8,
-          "criticalChance": 0.06
+          "defense": 2,
+          "criticalChance": 0.04
         },
         "boss": {
-          "hp": 350,
-          "power": 20,
-          "speed": 4,
-          "defense": 10,
-          "criticalChance": 0.15
+          "hp": 80,
+          "power": 8,
+          "speed": 3,
+          "defense": 4,
+          "criticalChance": 0.10
         }
       },
       "dropRates": {
@@ -141,14 +143,16 @@
           { "slot": "Boots", "name": "Botas", "spritePath": null }
         ]
       },
+      "equipmentQualityMin": 0.7,
+      "equipmentQualityMax": 1.3,
       "equipmentStats": {
-        "head":       { "hp": 15, "power": 0, "defense": 3 },
-        "shoulders":  { "hp": 10, "power": 0, "defense": 5 },
-        "chest":      { "hp": 25, "power": 0, "defense": 8 },
-        "gloves":     { "hp": 0,  "power": 5, "defense": 0 },
-        "legs":       { "hp": 15, "power": 0, "defense": 3 },
-        "boots":      { "hp": 5,  "power": 0, "defense": 2 },
-        "instrument": { "hp": 0,  "power": 8, "defense": 0 }
+        "head":       { "hp": 20, "power": 0, "defense": 5 },
+        "shoulders":  { "hp": 15, "power": 0, "defense": 7 },
+        "chest":      { "hp": 35, "power": 0, "defense": 12 },
+        "gloves":     { "hp": 0,  "power": 8, "defense": 0 },
+        "legs":       { "hp": 20, "power": 0, "defense": 5 },
+        "boots":      { "hp": 10, "power": 0, "defense": 4 },
+        "instrument": { "hp": 0,  "power": 12, "defense": 0 }
       },
       "discardValues": {
         "equipment": 25,
@@ -156,13 +160,16 @@
       },
       "forging": {
         "castTimeSeconds": 5,
-        "weaponUpgradeBaseCost": 50,
+        "weaponUpgradeBaseCost": 40,
         "weaponUpgradeCostMultiplier": 1.5,
-        "weaponUpgradeStatBonus": 0.10
+        "weaponUpgradeStatBonus": 0.15,
+        "twoHandedMultiplier": 2.0,
+        "instrumentQualityMin": 0.85,
+        "instrumentQualityMax": 1.15
       },
       "fidelisRewards": {
-        "normalWin": 10,
-        "bossWin": 25
+        "normalWin": 12,
+        "bossWin": 40
       },
       "biomes": [
         {
@@ -195,7 +202,7 @@
           "stageMax": 400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2
+          "difficultyMultiplier": 2.0
         },
         {
           "name": "Tropical",
@@ -219,7 +226,7 @@
           "stageMax": 700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 3
+          "difficultyMultiplier": 3.0
         },
         {
           "name": "Volcanic",
@@ -235,7 +242,7 @@
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 4
+          "difficultyMultiplier": 4.0
         },
         {
           "name": "Dark",
@@ -243,7 +250,15 @@
           "stageMax": 1000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 5
+          "difficultyMultiplier": 5.0
+        },
+        {
+          "name": "Void",
+          "stageMin": 1001,
+          "stageMax": 999999999,
+          "enemySpritePath": "sprites/games/my-tuno/enemies/void",
+          "bossSpritePrefix": "boss_",
+          "difficultyMultiplier": 1.5
         }
       ],
       "encounterRules": {
@@ -257,10 +272,10 @@
         ]
       },
       "scaling": {
-        "hpGrowthPerStage": 0.15,
-        "damageGrowthPerStage": 0.15,
-        "armorGrowthPerStage": 0.6,
-        "bossMultiplier": 2.5
+        "hpGrowthPerStage": 0.10,
+        "damageGrowthPerStage": 0.10,
+        "armorGrowthPerStage": 0.40,
+        "bossMultiplier": 1.2
       }
     },
     "gathering": {

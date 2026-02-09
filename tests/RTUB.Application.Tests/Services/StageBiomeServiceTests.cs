@@ -44,10 +44,82 @@ public class StageBiomeServiceTests
                     },
                     new BiomeConfig
                     {
-                        Name = "Desert",
+                        Name = "Swamp",
                         StageMin = 101,
                         StageMax = 200,
-                        EnemySpritePath = "sprites/games/my-tuno/enemies/desert",
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/swamp",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Mountains",
+                        StageMin = 201,
+                        StageMax = 300,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/mountains",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Snowy",
+                        StageMin = 301,
+                        StageMax = 400,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/snowy",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Tropical",
+                        StageMin = 401,
+                        StageMax = 500,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/tropical",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Caverns",
+                        StageMin = 501,
+                        StageMax = 600,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/caverns",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Desert",
+                        StageMin = 601,
+                        StageMax = 700,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/forest",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Volcanic",
+                        StageMin = 701,
+                        StageMax = 800,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/forest",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Ruins",
+                        StageMin = 801,
+                        StageMax = 900,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/ruins",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Dark",
+                        StageMin = 901,
+                        StageMax = 1000,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/forest",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Void",
+                        StageMin = 1001,
+                        StageMax = 999999999,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/void",
                         BossSpritePrefix = "boss_"
                     }
                 },
@@ -112,33 +184,73 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void GetBiomeForStage_Stage101_ReturnsDesert()
+    public void GetBiomeForStage_Stage101_ReturnsSwamp()
     {
         // Act
         var biome = _service.GetBiomeForStage(101);
 
         // Assert
-        Assert.Equal("Desert", biome);
+        Assert.Equal("Swamp", biome);
     }
 
     [Fact]
-    public void GetBiomeForStage_Stage200_ReturnsDesert()
+    public void GetBiomeForStage_Stage200_ReturnsSwamp()
     {
         // Act
         var biome = _service.GetBiomeForStage(200);
 
         // Assert
-        Assert.Equal("Desert", biome);
+        Assert.Equal("Swamp", biome);
     }
 
     [Fact]
-    public void GetBiomeForStage_Stage999_ReturnsLastBiome()
+    public void GetBiomeForStage_Stage901_ReturnsDark()
     {
         // Act
-        var biome = _service.GetBiomeForStage(999);
+        var biome = _service.GetBiomeForStage(901);
 
         // Assert
-        Assert.Equal("Desert", biome); // Should return last configured biome
+        Assert.Equal("Dark", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage1000_ReturnsDark()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(1000);
+
+        // Assert
+        Assert.Equal("Dark", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage1001_ReturnsVoid()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(1001);
+
+        // Assert
+        Assert.Equal("Void", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage1500_ReturnsVoid()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(1500);
+
+        // Assert
+        Assert.Equal("Void", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage99999_ReturnsVoid()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(99999);
+
+        // Assert
+        Assert.Equal("Void", biome);
     }
 
     #endregion
@@ -168,6 +280,7 @@ public class StageBiomeServiceTests
     [Fact]
     public void GetEnemyCountForStage_Stage3_Returns2()
     {
+        // Offset in block: 3 % 10 = 3, rule 3-4 → count 2
         // Act
         var count = _service.GetEnemyCountForStage(3);
 
@@ -176,18 +289,9 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void GetEnemyCountForStage_Stage4_Returns2()
-    {
-        // Act
-        var count = _service.GetEnemyCountForStage(4);
-
-        // Assert
-        Assert.Equal(2, count);
-    }
-
-    [Fact]
     public void GetEnemyCountForStage_Stage5_Returns3()
     {
+        // Offset: 5 % 10 = 5, rule 5-6 → count 3
         // Act
         var count = _service.GetEnemyCountForStage(5);
 
@@ -196,8 +300,20 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
+    public void GetEnemyCountForStage_Stage7_Returns4()
+    {
+        // Offset: 7 % 10 = 7, rule 7-8 → count 4
+        // Act
+        var count = _service.GetEnemyCountForStage(7);
+
+        // Assert
+        Assert.Equal(4, count);
+    }
+
+    [Fact]
     public void GetEnemyCountForStage_Stage9_Returns5()
     {
+        // Offset: 9 % 10 = 9, rule 9-9 → count 5
         // Act
         var count = _service.GetEnemyCountForStage(9);
 
@@ -208,7 +324,7 @@ public class StageBiomeServiceTests
     [Fact]
     public void GetEnemyCountForStage_Stage11_Returns1()
     {
-        // Offset in second "decade": 11 % 10 = 1, offset = 1
+        // Offset in second block: 11 % 10 = 1, offset = 1 → count 1
         // Act
         var count = _service.GetEnemyCountForStage(11);
 
@@ -219,7 +335,7 @@ public class StageBiomeServiceTests
     [Fact]
     public void GetEnemyCountForStage_Stage19_Returns5()
     {
-        // Offset in second "decade": 19 % 10 = 9, offset = 9
+        // Offset in second block: 19 % 10 = 9, rule 9-9 → count 5
         // Act
         var count = _service.GetEnemyCountForStage(19);
 
@@ -256,6 +372,16 @@ public class StageBiomeServiceTests
     {
         // Act
         var isBoss = _service.IsBossStage(100);
+
+        // Assert
+        Assert.True(isBoss);
+    }
+
+    [Fact]
+    public void IsBossStage_Stage1000_ReturnsTrue()
+    {
+        // Act
+        var isBoss = _service.IsBossStage(1000);
 
         // Assert
         Assert.True(isBoss);

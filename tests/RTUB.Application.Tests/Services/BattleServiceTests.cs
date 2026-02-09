@@ -192,12 +192,11 @@ public class BattleServiceTests : IDisposable
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
-        // Level 1 vs Level 1: attackerScale = 1 + 1*0.08 = 1.08
-        // XP = round(50 * 1.08 * 1.0) = 54
-        battle.AttackerXP.Should().Be(54);
-        // Fidelis: attackerFidelisScale = 1 + 1*0.06 = 1.06, defenderScale = 1.0
-        // Fidelis = round(10 * 1.06 * 1.0, 2) = 10.60
-        battle.AttackerFidelis.Should().Be(10.60m);
+        // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
+        // XP = round(50 * 1.0) = 50
+        battle.AttackerXP.Should().Be(50);
+        // Fidelis = round(10 * 1.0, 2) = 10.00
+        battle.AttackerFidelis.Should().Be(10.00m);
 
         // Verify character XP was updated
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
@@ -205,7 +204,7 @@ public class BattleServiceTests : IDisposable
 
         // Verify user Fidelis was updated
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 10.60m)), Times.Once);
+            u.FidelisBalance == initialFidelis + 10.00m)), Times.Once);
     }
 
     [Fact]
@@ -296,12 +295,11 @@ public class BattleServiceTests : IDisposable
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
-        // Level 1 vs Level 1: attackerScale = 1 + 1*0.08 = 1.08
-        // XP = round(30 * 1.08 * 1.0) = 32
-        battle.AttackerXP.Should().Be(32);
-        // Fidelis: attackerFidelisScale = 1 + 1*0.06 = 1.06, defenderScale = 1.0
-        // Fidelis = round(7.5 * 1.06 * 1.0, 2) = 7.95
-        battle.AttackerFidelis.Should().Be(7.95m);
+        // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
+        // XP = round(30 * 1.0) = 30
+        battle.AttackerXP.Should().Be(30);
+        // Fidelis = round(7.5 * 1.0, 2) = 7.50
+        battle.AttackerFidelis.Should().Be(7.50m);
 
         // Verify character XP was updated
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
@@ -309,7 +307,7 @@ public class BattleServiceTests : IDisposable
 
         // Verify user Fidelis was updated
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 7.95m)), Times.Once);
+            u.FidelisBalance == initialFidelis + 7.50m)), Times.Once);
     }
 
     [Fact]
@@ -469,12 +467,9 @@ public class BattleServiceTests : IDisposable
         await _battleService.FinalizeAndApplyRewardsAsync(battle);
 
         // Assert
-        // With attacker level 1: attackerScale = 1 + 1*0.08 = 1.08
-        // effectiveBaseXP = 50 * 1.08 = 54
-        // Level difference of 9 (defender 10 - attacker 1)
-        // levelDiffMultiplier = 1.0 + (9 * 0.05) = 1.45
-        // Expected XP = round(54 * 1.45) = 78
-        battle.AttackerXP.Should().BeInRange(76, 80, "because level 1 vs level 10 with attacker scaling should give ~78 XP");
+        // Level 1 vs Level 10: levelDiff = 9, levelDiffMult = 1.0 + 9 * 0.05 = 1.45
+        // XP = round(50 * 1.45) = round(72.5) = 72 (banker's rounding, round-to-even)
+        battle.AttackerXP.Should().Be(72, "because level 1 vs level 10 should give 50 * 1.45 = 72 XP (banker's rounding)");
 
         // Verify XP was applied to character
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
@@ -522,13 +517,10 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
-        // With attacker level 10: attackerScale = 1 + 10*0.08 = 1.8
-        // effectiveBaseXP = 50 * 1.8 = 90
-        // Level difference of -9 (defender 1 - attacker 10)
-        // levelDiffMultiplier = 1.0 + (-9 * 0.05) = 0.55
-        // Expected XP = round(90 * 0.55) = 50
-        battle.AttackerXP.Should().BeInRange(48, 52, "because level 10 vs level 1 with attacker scaling should give ~50 XP");
-        battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP");
+        // Level 10 vs Level 1: levelDiff = -9, levelDiffMult = 1.0 + (-9) * 0.05 = 0.55
+        // XP = round(50 * 0.55) = 28 (no attacker-level scaling, much less reward for bullying)
+        battle.AttackerXP.Should().Be(28, "because level 10 vs level 1 should give 50 * 0.55 = 28 XP");
+        battle.AttackerXP.Should().BeGreaterThan(0, "but should still give some XP since within 20 levels");
     }
 
     [Fact]
@@ -565,9 +557,9 @@ public class BattleServiceTests : IDisposable
         var battle = await _battleService.CreateBattleVsOpponentAsync(playerCharacter.Id, opponent.Id);
 
         // Assert
-        // Level 1 vs Level 1: attackerScale = 1 + 1*0.08 = 1.08, levelDiffMultiplier = 1.0
-        // XP = round(50 * 1.08) = 54
-        battle.AttackerXP.Should().Be(54, "because fighting an equal level 1 opponent should give attacker-scaled base XP");
+        // Level 1 vs Level 1: levelDiff = 0, levelDiffMult = 1.0
+        // XP = round(50 * 1.0) = 50 (no attacker-level scaling)
+        battle.AttackerXP.Should().Be(50, "because fighting an equal level opponent should give base XP");
     }
 
     public void Dispose()

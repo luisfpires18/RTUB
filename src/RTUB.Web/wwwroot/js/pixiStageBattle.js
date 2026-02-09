@@ -48,6 +48,18 @@
         return battleData.events ?? battleData.Events ?? [];
     };
 
+    /** Format a number with K/M/B/T abbreviation */
+    const formatNum = (n) => {
+        if (n == null) return '0';
+        const abs = Math.abs(n);
+        const sign = n < 0 ? '-' : '';
+        if (abs >= 1e12) return sign + (abs / 1e12).toFixed(abs % 1e12 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'T';
+        if (abs >= 1e9)  return sign + (abs / 1e9).toFixed(abs % 1e9 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'B';
+        if (abs >= 1e6)  return sign + (abs / 1e6).toFixed(abs % 1e6 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'M';
+        if (abs >= 1e3)  return sign + (abs / 1e3).toFixed(abs % 1e3 === 0 ? 0 : 2).replace(/\.?0+$/, '') + 'K';
+        return sign + Math.round(abs).toString();
+    };
+
     class StageBattleScene {
         constructor(container, data) {
             this.container = container;
@@ -302,7 +314,7 @@
                     this.playerHpBar.bar.width = this.playerHpBar.maxWidth * ratio;
                 }
                 if (this.playerHpBar?.text) {
-                    this.playerHpBar.text.text = `${hp}/${maxHP}`;
+                    this.playerHpBar.text.text = `${formatNum(hp)}/${formatNum(maxHP)}`;
                 }
             } else if (character.startsWith('Enemy')) {
                 const enemyIndex = parseInt(character.replace('Enemy', ''));
@@ -313,7 +325,7 @@
                     const hpBarData = this.enemyHpBars[enemyIndex];
                     if (hpBarData && hpBarData.text) {
                         hpBarData.bar.width = hpBarData.maxWidth;
-                        hpBarData.text.text = `${hp}/${maxHP}`;
+                        hpBarData.text.text = `${formatNum(hp)}/${formatNum(maxHP)}`;
                         hpBarData.text.visible = true;
                     }
                 }
@@ -325,7 +337,7 @@
                 const hpBarData = this.enemyHpBars[enemyIndex];
                 if (hpBarData && hpBarData.text) {
                     hpBarData.bar.width = hpBarData.maxWidth;
-                    hpBarData.text.text = `${hp}/${maxHP}`;
+                    hpBarData.text.text = `${formatNum(hp)}/${formatNum(maxHP)}`;
                     hpBarData.text.visible = true;
                 }
             }
@@ -504,7 +516,8 @@
                 this.stage.addChild(enemy);
                 this.enemySprites.push(enemy);
                 
-                const hpBarY = pos.y - enemy.height * finalScale - 5;
+                // enemy.height is already scaled after scale.set(), no need to multiply again
+                const hpBarY = pos.y - enemy.height - 5;
                 const hpBarWidth = isMobile ? 35 : 60;
                 const hpBarHeight = isMobile ? 4 : 8;
                 
@@ -996,7 +1009,7 @@
             const maxWidth = this.playerHpBar.maxWidth || 200;
             
             this.animateTo(this.playerHpBar.bar, { width: maxWidth * ratio }, 200);
-            this.playerHpBar.text.text = `${Math.max(0, this.playerCurrentHp)}/${this.playerMaxHp}`;
+            this.playerHpBar.text.text = `${formatNum(Math.max(0, this.playerCurrentHp))}/${formatNum(this.playerMaxHp)}`;
         }
 
         updateIndividualEnemyHPBar(enemyIndex) {
@@ -1010,7 +1023,7 @@
             
             const newWidth = hpBarData.maxWidth * ratio;
             this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
-            hpBarData.text.text = `${Math.max(0, Math.round(enemyHP.current))}/${Math.round(enemyHP.max)}`;
+            hpBarData.text.text = `${formatNum(Math.max(0, Math.round(enemyHP.current)))}/${formatNum(Math.round(enemyHP.max))}`;
         }
 
         updateEnemyHPBar() {
@@ -1019,7 +1032,7 @@
             this.enemyHpBars.forEach(hpBarData => {
                 const newWidth = hpBarData.maxWidth * ratio;
                 this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
-                hpBarData.text.text = `${Math.max(0, Math.round(this.enemyCurrentHp / this.enemyCount))}/${Math.round(this.enemyMaxHp / this.enemyCount)}`;
+                hpBarData.text.text = `${formatNum(Math.max(0, Math.round(this.enemyCurrentHp / this.enemyCount)))}/${formatNum(Math.round(this.enemyMaxHp / this.enemyCount))}`;
             });
         }
 
@@ -1050,7 +1063,7 @@
 
             const attackerName = attacker === 'Attacker' || attacker === 'Player' ? this.playerName : this.enemyName;
             const critText = isCritical ? ' (CRIT!)' : '';
-            this.addLogEntry(`${attackerName}: ${damage} dmg${critText}`);
+            this.addLogEntry(`${attackerName}: ${formatNum(damage)} dmg${critText}`);
         }
 
         animatePlayerAttack() {

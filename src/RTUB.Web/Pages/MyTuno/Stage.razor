@@ -101,6 +101,9 @@
                         <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
+                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="Acabar Stage">
+                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        </button>
                     </div>
                 </div>
                 <div class="card-body p-0 d-flex justify-content-center">
@@ -116,24 +119,24 @@
                         <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>@stagesCleared Stages
+                                <i class="bi bi-check-circle me-1"></i>@Fmt(stagesCleared) Stages
                             </span>
                             <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill me-1"></i>+@totalXPEarned XP
+                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
                             </span>
                             <span class="badge bg-info text-dark">
-                                <i class="bi bi-coin me-1"></i>+@totalFidelisEarned.ToString("F0") Fidelis
+                                <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
                             </span>
                             @if (totalBeersDropped > 0)
                             {
                                 <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@totalBeersDropped Cerveja
+                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalBeersDropped) Cerveja
                                 </span>
                             }
                             @if (totalShotsDropped > 0)
                             {
                                 <span class="badge bg-danger">
-                                    <i class="bi bi-cup me-1"></i>+@totalShotsDropped Shot
+                                    <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
                                 </span>
                             }
                             @foreach (var (partType, qty) in totalInstrumentPartsDropped)
@@ -188,13 +191,13 @@
                                 <small class="fw-bold d-block mb-1">@enemy.Name</small>
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="badge bg-danger">
-                                        <i class="bi bi-heart-fill me-1"></i>@enemy.HP HP
+                                        <i class="bi bi-heart-fill me-1"></i>@Fmt(enemy.HP) HP
                                     </span>
                                     <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-lightning-fill me-1"></i>@enemy.Power Poder
+                                        <i class="bi bi-lightning-fill me-1"></i>@Fmt(enemy.Power) Poder
                                     </span>
                                     <span class="badge bg-info text-dark">
-                                        <i class="bi bi-shield-fill me-1"></i>@enemy.Defense Defesa
+                                        <i class="bi bi-shield-fill me-1"></i>@Fmt(enemy.Defense) Defesa
                                     </span>
                                     <span class="badge bg-secondary">
                                         <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
@@ -214,27 +217,27 @@
                     <div class="defeat-banner">
                         <span>STAGE LIMPA</span>
                     </div>
-                    <div class="defeat-stage">Stage @defeatedAtStage</div>
+                    <div class="defeat-stage">Stage @Fmt(defeatedAtStage)</div>
                     @if (stagesCleared > 0)
                     {
                         <div class="defeat-rewards">
                             <div class="defeat-reward-row">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>@stagesCleared Stages</span>
+                                <span>@Fmt(stagesCleared) Stages</span>
                             </div>
                             <div class="defeat-reward-row">
                                 <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@totalXPEarned XP</span>
+                                <span>+@Fmt(totalXPEarned) XP</span>
                             </div>
                             <div class="defeat-reward-row">
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
-                                <span>+@totalFidelisEarned.ToString("F0") Fidelis</span>
+                                <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
                             @if (totalBeersDropped > 0)
                             {
                                 <div class="defeat-reward-row">
                                     <i class="bi bi-cup-straw text-warning"></i>
-                                    <span>+@totalBeersDropped Cerveja</span>
+                                    <span>+@Fmt(totalBeersDropped) Cerveja</span>
                                 </div>
                             }
                             @if (totalShotsDropped > 0)
@@ -867,6 +870,9 @@
         }
     }
 
+    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(decimal value) => NumberFormatter.Compact(value);
+
     private void ResetRunTotals()
     {
         totalXPEarned = 0;
@@ -884,6 +890,82 @@
         showDefeatSummary = false;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
+    }
+
+    private async Task EndRunEarly()
+    {
+        if (_disposed) return;
+
+        try
+        {
+            // Destroy JS battle animation
+            if (hasRendered)
+            {
+                try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+                catch { /* JS interop may fail */ }
+            }
+
+            // Cancel the timeout since we're ending manually
+            battleTimeoutCts?.Cancel();
+
+            // Save defeated-at stage before applying rewards
+            defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
+
+            // Apply accumulated rewards from the run
+            if (character != null && stagesCleared > 0)
+            {
+                try
+                {
+                    await StageService.ApplyRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, runStartingHp,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error applying run rewards on early end");
+                }
+            }
+            else if (character != null && runStartingHp.HasValue)
+            {
+                // No stages cleared — restore HP to pre-run value
+                await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles);
+            }
+
+            // Clear run state
+            runInProgress = false;
+            runStartingHp = null;
+            runStartingStage = null;
+            pendingDefeatRewards = false;
+
+            // Return to checkpoint
+            if (currentUser != null && stageProgress != null)
+            {
+                try
+                {
+                    stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
+                    currentStageNumber = stageProgress.CurrentStage;
+                    checkpointStage = stageProgress.LastCheckpoint;
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error returning to checkpoint on early end");
+                }
+            }
+
+            // Show reward summary
+            showBattleAnimation = false;
+            showDefeatSummary = true;
+            currentEnemyStats.Clear();
+            currentBattle = null;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error ending run early");
+        }
     }
 
     /// <summary>

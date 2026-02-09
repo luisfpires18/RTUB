@@ -8,7 +8,7 @@ public static class MyTunoScaling
     public static int BasePower { get; private set; } = 10;
     public static int BaseSpeed { get; private set; } = 10;
     public static int BaseDefense { get; private set; } = 5;
-    public static double BaseCriticalChance { get; private set; } = 0.01;
+    public static double BaseCriticalChance { get; private set; } = 0.0;
 
     public static double StatMultiplierPerLevel { get; private set; } = 0.1;
     public static double StatGrowthExponent { get; private set; } = 0.0;

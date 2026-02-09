@@ -70,7 +70,7 @@
                     </div>
                     <div class="fidelis-bar__info">
                         <span class="fidelis-bar__label">Fidelis</span>
-                        <span class="fidelis-bar__value">@currentUser.FidelisBalance.ToString("F2")</span>
+                        <span class="fidelis-bar__value">@Fmt(currentUser.FidelisBalance)</span>
                     </div>
                     <div class="ms-auto">
                         @if (CanClaimDailyReward)
@@ -139,8 +139,8 @@
                                 <!-- Consumables: Beer, Shot -->
                                 <div class="item-grid">
                                     <div class="item-card item-card--beer" @onclick="UseBeer" 
-                                         style="cursor: @(usingBeer || beerQuantity == 0 || character == null || isCharacterDead || isFullHp ? "not-allowed" : "pointer")">
-                                        <div class="item-card__qty">@beerQuantity</div>
+                                         style="cursor: @(usingBeer || beerQuantity == 0 || character == null || isFullHp ? "not-allowed" : "pointer")">
+                                        <div class="item-card__qty">@Fmt(beerQuantity)</div>
                                         <div class="item-card__icon">
                                             @if (usingBeer)
                                             {
@@ -157,7 +157,7 @@
 
                                     <div class="item-card item-card--shot" @onclick="UseShot"
                                          style="cursor: @(usingShot || shotQuantity == 0 || character == null || isCharacterDead || character.ShotBuffBattlesRemaining > 0 ? "not-allowed" : "pointer")">
-                                        <div class="item-card__qty">@shotQuantity</div>
+                                        <div class="item-card__qty">@Fmt(shotQuantity)</div>
                                         <div class="item-card__icon">
                                             @if (usingShot)
                                             {
@@ -236,49 +236,80 @@
                             }
                             else
                             {
-                                <!-- Equipable: Equipment pieces + Forged Weapons -->
-                                <div class="item-grid">
-                                    @foreach (var weapon in forgedWeapons.Where(w => !w.IsEquipped))
+                                // Equipable: Equipment pieces (unstacked) + Forged Weapons
+                                // Build flat list: each equipment unit as a separate entry
+                                var equipableItems = new List<(string Type, string Name, string Icon, InventoryItemType? ItemType, ForgedWeapon? Weapon)>();
+                                foreach (var weapon in forgedWeapons.Where(w => !w.IsEquipped))
+                                {
+                                    var wTitle = weapon.Level > 0 ? weapon.Name + " +" + weapon.Level : weapon.Name;
+                                    var wIcon = WeaponTypeHelper.GetIcon(weapon.WeaponType);
+                                    equipableItems.Add(("weapon", wTitle, wIcon, null, weapon));
+                                }
+                                foreach (var kvp in equipmentItems)
+                                {
+                                    var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
+                                    var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
+                                    var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
+                                    // Expand: one card per unit instead of stacking
+                                    for (int i = 0; i < kvp.Value; i++)
                                     {
-                                        var wLocal = weapon;
-                                        var wTitle = wLocal.Level > 0 ? wLocal.Name + " +" + wLocal.Level : wLocal.Name;
-                                        <div class="item-card item-card--equipment item-card--clickable" 
-                                             title="@wTitle" 
-                                             @onclick="() => OnForgedWeaponClick(wLocal)" style="cursor: pointer;">
-                                            @if (wLocal.Level > 0)
-                                            {
-                                                <div class="item-card__qty">+@wLocal.Level</div>
-                                            }
-                                            <div class="item-card__icon">
-                                                <i class="bi @WeaponTypeHelper.GetIcon(wLocal.WeaponType)" style="color: var(--bs-warning);"></i>
-                                            </div>
-                                            <div class="item-card__name" style="font-size: 0.5rem;">@wLocal.Name</div>
-                                        </div>
+                                        equipableItems.Add(("equipment", eqName, eqIcon, kvp.Key, null));
                                     }
-
-                                    @foreach (var kvp in equipmentItems)
+                                }
+                                var totalEquipablePages = Math.Max(1, (int)Math.Ceiling(equipableItems.Count / (double)EquipablePageSize));
+                                if (equipablePage > totalEquipablePages) equipablePage = totalEquipablePages;
+                                var pagedItems = equipableItems.Skip((equipablePage - 1) * EquipablePageSize).Take(EquipablePageSize).ToList();
+                                <div class="item-grid">
+                                    @foreach (var item in pagedItems)
                                     {
-                                        var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
-                                        var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
-                                        var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
-                                        var eqItemKey = kvp.Key;
-                                        <div class="item-card item-card--equipment item-card--clickable" title="@eqName" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
-                                            <div class="item-card__qty">@kvp.Value</div>
-                                            <div class="item-card__icon">
-                                                <i class="bi @eqIcon"></i>
+                                        if (item.Type == "weapon" && item.Weapon != null)
+                                        {
+                                            var wLocal = item.Weapon;
+                                            <div class="item-card item-card--equipment item-card--clickable" 
+                                                 title="@item.Name" 
+                                                 @onclick="() => OnForgedWeaponClick(wLocal)" style="cursor: pointer;">
+                                                @if (wLocal.Level > 0)
+                                                {
+                                                    <div class="item-card__qty">+@wLocal.Level</div>
+                                                }
+                                                <div class="item-card__icon">
+                                                    <i class="bi @item.Icon" style="color: var(--bs-warning);"></i>
+                                                </div>
+                                                <div class="item-card__name" style="font-size: 0.5rem;">@item.Name</div>
                                             </div>
-                                            <div class="item-card__name" style="font-size: 0.55rem;">@eqName</div>
-                                        </div>
+                                        }
+                                        else if (item.ItemType.HasValue)
+                                        {
+                                            var eqItemKey = item.ItemType.Value;
+                                            <div class="item-card item-card--equipment item-card--clickable" title="@item.Name" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
+                                                <div class="item-card__icon">
+                                                    <i class="bi @item.Icon"></i>
+                                                </div>
+                                                <div class="item-card__name" style="font-size: 0.55rem;">@item.Name</div>
+                                            </div>
+                                        }
                                     }
 
                                     @{
-                                        var equipEmpty = Math.Max(0, 8 - forgedWeapons.Count(w => !w.IsEquipped) - equipmentItems.Count);
+                                        var equipEmpty = Math.Max(0, EquipablePageSize - pagedItems.Count);
                                         for (var i = 0; i < equipEmpty; i++)
                                         {
                                             <div class="item-card item-card--empty"></div>
                                         }
                                     }
                                 </div>
+                                @if (totalEquipablePages > 1)
+                                {
+                                    <div class="d-flex justify-content-center align-items-center gap-2 mt-2" style="font-size: 0.75rem;">
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-1" disabled="@(equipablePage <= 1)" @onclick="() => equipablePage--">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <span>@equipablePage / @totalEquipablePages</span>
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-1" disabled="@(equipablePage >= totalEquipablePages)" @onclick="() => equipablePage++">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                }
                             }
                         }
                     </div>
@@ -309,9 +340,9 @@
                                 </div>
                             </div>
                             <div class="xp-bar-text">
-                                <span class="xp-current">HP: @currentHP</span>
+                                <span class="xp-current">HP: @Fmt(currentHP)</span>
                                 <span class="xp-separator">/</span>
-                                <span class="xp-max">@displayMaxHP</span>
+                                <span class="xp-max">@Fmt(displayMaxHP)</span>
                             </div>
                         </div>
                         
@@ -326,7 +357,7 @@
                         <div class="mb-3">
                             <h4 class="text-center mb-3">Nível @character.Level</h4>
                             @{
-                                var xpForNextLevel = character.Level * 100;
+                                var xpForNextLevel = character.Level * RTUB.Core.Configuration.MyTunoScaling.XpPerLevelBase;
                                 var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
                             }
                             <!-- XP Bar matching Profile.razor style -->
@@ -341,9 +372,9 @@
                                     </div>
                                 </div>
                                 <div class="xp-bar-text">
-                                    <span class="xp-current">@character.XP XP</span>
+                                    <span class="xp-current">@Fmt(character.XP) XP</span>
                                     <span class="xp-separator">/</span>
-                                    <span class="xp-max">@xpForNextLevel XP</span>
+                                    <span class="xp-max">@Fmt(xpForNextLevel) XP</span>
                                 </div>
                             </div>
                         </div>
@@ -366,35 +397,10 @@
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
                                     }
                                 </span>
-                                <strong class="@hpColorClass">@currentHP / @displayMaxHP</strong>
+                                <strong class="@hpColorClass">@Fmt(currentHP) / @Fmt(displayMaxHP)</strong>
                             </div>
                             
-                            <!-- Restore HP Button (appears when HP < Max and character is alive) -->
-                            @if (currentHP > 0 && currentHP < displayMaxHP)
-                            {
-                                <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" 
-                                     style="background-color: #1e1e1e;">
-                                    <span class="d-flex align-items-center">
-                                        <i class="bi bi-heart-pulse text-success me-2"></i>
-                                        <span>Restaurar HP</span>
-                                    </span>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <strong class="text-success">@GetRestoreCost() <i class="bi bi-coin text-warning"></i></strong>
-                                        <button class="btn btn-sm btn-success" 
-                                                @onclick="RestoreHP"
-                                                disabled="@(restoringHP || currentUser == null || currentUser.FidelisBalance < GetRestoreCost())">
-                                            @if (restoringHP)
-                                            {
-                                                <span class="spinner-border spinner-border-sm"></span>
-                                            }
-                                            else
-                                            {
-                                                <text>Restaurar</text>
-                                            }
-                                        </button>
-                                    </div>
-                                </div>
-                            }
+
                             
                             @{
                                 var hasEnhancement = character.ShotBuffBattlesRemaining > 0;
@@ -414,7 +420,7 @@
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
                                     }
                                 </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "text-success")">@character.TotalPower</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "text-success")">@Fmt(character.TotalPower)</strong>
                             </div>
                             
                             <!-- Speed Stat Box -->
@@ -453,7 +459,7 @@
                                         <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
                                     }
                                 </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "")" style="color: @(hasEnhancement ? "" : "white")">@character.TotalDefense</strong>
+                                <strong class="@(hasEnhancement ? "text-info" : "")" style="color: @(hasEnhancement ? "" : "white")">@Fmt(character.TotalDefense)</strong>
                             </div>
                         </div>
                         
@@ -477,32 +483,10 @@
                         
                         @if (currentHP <= 0)
                         {
-                            var reviveCost = GetReviveCost();
-                            var canAffordRevive = currentUser?.FidelisBalance >= reviveCost;
-                            
-                            <div class="alert alert-danger mt-3 mb-3" role="alert">
+                            <div class="alert alert-warning mt-3 mb-3" role="alert">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>Personagem derrotado!</strong> Precisa de reviver para lutar.
+                                <strong>Personagem derrotado!</strong> Usa cervejas <i class="bi bi-cup-straw"></i> para recuperar HP.
                             </div>
-                            <button class="btn btn-success w-100 mb-2" @onclick="ReviveCharacter" disabled="@(reviving || !canAffordRevive)">
-                                @if (reviving)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                    <text>A reviver...</text>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-heart-fill me-2"></i>
-                                    <text>Reviver (@reviveCost.ToString("F2") Fidelis)</text>
-                                }
-                            </button>
-                            @if (currentUser != null && !canAffordRevive)
-                            {
-                                <small class="text-danger d-block mt-2 text-center">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>
-                                    Saldo insuficiente
-                                </small>
-                            }
                         }
                         
                         <hr />
@@ -659,11 +643,11 @@
                                 <div class="enhance-row__stat">
                                     @if (IsHpMaxed)
                                     {
-                                        <text>@character.TotalHP</text>
+                                        <text>@Fmt(character.TotalHP)</text>
                                     }
                                     else
                                     {
-                                        <text>@character.TotalHP → @character.NextTotalHP</text>
+                                        <text>@Fmt(character.TotalHP) → @Fmt(character.NextTotalHP)</text>
                                     }
                                 </div>
                             </div>
@@ -708,11 +692,11 @@
                                 <div class="enhance-row__stat">
                                     @if (IsPowerMaxed)
                                     {
-                                        <text>@character.TotalPower</text>
+                                        <text>@Fmt(character.TotalPower)</text>
                                     }
                                     else
                                     {
-                                        <text>@character.TotalPower → @character.NextTotalPower</text>
+                                        <text>@Fmt(character.TotalPower) → @Fmt(character.NextTotalPower)</text>
                                     }
                                 </div>
                             </div>
@@ -855,11 +839,11 @@
                                 <div class="enhance-row__stat">
                                     @if (IsDefenseMaxed)
                                     {
-                                        <text>@character.TotalDefense</text>
+                                        <text>@Fmt(character.TotalDefense)</text>
                                     }
                                     else
                                     {
-                                        <text>@character.TotalDefense → @character.NextTotalDefense</text>
+                                        <text>@Fmt(character.TotalDefense) → @Fmt(character.NextTotalDefense)</text>
                                     }
                                 </div>
                             </div>
@@ -1016,9 +1000,9 @@
                             <div class="equip-stats-summary mt-2 px-2">
                                 <small class="text-muted d-block mb-1" style="font-size: 0.65rem;"><i class="bi bi-plus-circle me-1"></i>Bónus de Equipamento:</small>
                                 <div class="d-flex flex-wrap gap-1" style="font-size: 0.65rem;">
-                                    @if (character.EquipmentHPBonus > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@character.EquipmentHPBonus HP</span> }
-                                    @if (character.EquipmentPowerBonus > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@character.EquipmentPowerBonus Poder</span> }
-                                    @if (character.EquipmentDefenseBonus > 0) { <span class="badge bg-secondary bg-opacity-25">+@character.EquipmentDefenseBonus Def</span> }
+                                    @if (character.EquipmentHPBonus > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(character.EquipmentHPBonus) HP</span> }
+                                    @if (character.EquipmentPowerBonus > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(character.EquipmentPowerBonus) Poder</span> }
+                                    @if (character.EquipmentDefenseBonus > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(character.EquipmentDefenseBonus) Def</span> }
                                 </div>
                             </div>
                         }
@@ -1082,7 +1066,7 @@
                                 var cssModifier = res.Type.ToLower();
                                 var isLocked = res.UnlockStage > highestStageReached;
                                 var isDisabled = isLocked || currentEnergy < res.EnergyCost || gathering != null;
-                                var unlockBiome = isLocked ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin == res.UnlockStage) : null;
+                                var unlockBiome = isLocked ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= res.UnlockStage && b.StageMax >= res.UnlockStage) : null;
                                 <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "") @(isLocked ? "gather-node--locked" : "")"
                                      @onclick="async () => { if (!isLocked) await GatherResource(resType); }"
                                      title="@(isLocked ? $"{res.Name} — Desbloqueia no Stage {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
@@ -1329,10 +1313,10 @@
                     <div class="equip-confirm-stats mt-3">
                         <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
                         <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            @if (lastForgedWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@lastForgedWeapon.BonusHP HP</span> }
-                            @if (lastForgedWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@lastForgedWeapon.BonusPower Poder</span> }
-                            @if (lastForgedWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@lastForgedWeapon.BonusSpeed Vel</span> }
-                            @if (lastForgedWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@lastForgedWeapon.BonusDefense Def</span> }
+                            @if (lastForgedWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(lastForgedWeapon.BonusHP) HP</span> }
+                            @if (lastForgedWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(lastForgedWeapon.BonusPower) Poder</span> }
+                            @if (lastForgedWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@Fmt(lastForgedWeapon.BonusSpeed) Vel</span> }
+                            @if (lastForgedWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(lastForgedWeapon.BonusDefense) Def</span> }
                             @if (lastForgedWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{lastForgedWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
                         </div>
                     </div>
@@ -1373,9 +1357,9 @@
                 <div class="equip-confirm-stats mb-3">
                     <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
-                        @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@pendingWeapon.BonusHP HP</span> }
-                        @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@pendingWeapon.BonusPower Poder</span> }
-                        @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@pendingWeapon.BonusDefense Def</span> }
+                        @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(pendingWeapon.BonusHP) HP</span> }
+                        @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(pendingWeapon.BonusPower) Poder</span> }
+                        @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(pendingWeapon.BonusDefense) Def</span> }
                     </div>
                 </div>
             </BodyContent>
@@ -1387,7 +1371,7 @@
                     }
                     <button class="btn btn-warning btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
-                        <small class="opacity-75">(@upgradeCost.ToString("F0") <i class="bi bi-coin"></i>)</small>
+                        <small class="opacity-75">(@Fmt(upgradeCost) <i class="bi bi-coin"></i>)</small>
                     </button>
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
@@ -1450,9 +1434,9 @@
                                     <div class="stats-card-subtitle" style="font-size: 0.75rem; color: #aaa;">
                                         @WeaponTypeHelper.GetDisplayName(weapon.WeaponType)
                                         <span class="ms-2">
-                                            @if (weapon.BonusHP > 0) { <span class="text-danger">+@weapon.BonusHP HP</span> }
-                                            @if (weapon.BonusPower > 0) { <span class="text-success ms-1">+@weapon.BonusPower Pow</span> }
-                                            @if (weapon.BonusDefense > 0) { <span class="text-secondary ms-1">+@weapon.BonusDefense Def</span> }
+                                            @if (weapon.BonusHP > 0) { <span class="text-danger">+@Fmt(weapon.BonusHP) HP</span> }
+                                            @if (weapon.BonusPower > 0) { <span class="text-success ms-1">+@Fmt(weapon.BonusPower) Pow</span> }
+                                            @if (weapon.BonusDefense > 0) { <span class="text-secondary ms-1">+@Fmt(weapon.BonusDefense) Def</span> }
                                         </span>
                                     </div>
                                 </div>
@@ -1490,7 +1474,7 @@
             <BodyContent>
                 <p>Tens a certeza que queres comprar um upgrade de <strong>@purchasingStat</strong>?</p>
                 <p class="mb-0">
-                    <strong>Custo:</strong> @SelectedUpgradeCost.ToString("F2") Fidelis
+                    <strong>Custo:</strong> @Fmt(SelectedUpgradeCost) Fidelis
                 </p>
             </BodyContent>
             <FooterContent>
@@ -1543,15 +1527,15 @@
                     <div class="equip-confirm-stats mb-3">
                         <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
                         <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            @if (actionItemStats.HP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@actionItemStats.HP HP</span> }
-                            @if (actionItemStats.Power > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@actionItemStats.Power Poder</span> }
-                            @if (actionItemStats.Defense > 0) { <span class="badge bg-secondary bg-opacity-25">+@actionItemStats.Defense Def</span> }
+                            @if (actionItemStats.HP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(actionItemStats.HP) HP</span> }
+                            @if (actionItemStats.Power > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(actionItemStats.Power) Poder</span> }
+                            @if (actionItemStats.Defense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(actionItemStats.Defense) Def</span> }
                         </div>
                     </div>
                 }
                 <div class="discard-fidelis-reward">
                     <i class="bi bi-coin text-warning me-1"></i>
-                    <span class="text-warning">Descartar: <strong>+@actionFidelisValue.ToString("F2") Fidelis</strong></span>
+                    <span class="text-warning">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
                 </div>
             </BodyContent>
             <FooterContent>
@@ -1675,8 +1659,7 @@
     private StageProgress? stageProgress;
     private bool loading = true;
     private bool leaderboardLoading = false;
-    private bool reviving = false;
-    private bool restoringHP = false;
+
     private int beerQuantity = 0;
     private int shotQuantity = 0;
     private bool usingBeer = false;
@@ -1703,6 +1686,8 @@
     private Dictionary<InstrumentType, string?> instrumentImages = new();
     private bool equipping = false;
     private int inventoryTab = 0;
+    private int equipablePage = 1;
+    private const int EquipablePageSize = 8;
     
     // Unified item action modal state (equip / discard from inventory)
     private bool showItemActionModal = false;
@@ -1874,14 +1859,10 @@
         }
     }
 
-    private string FormatCost(decimal cost)
-    {
-        if (cost >= 1_000_000_000_000m) return $"{cost / 1_000_000_000_000m:F2}T";
-        if (cost >= 1_000_000_000m) return $"{cost / 1_000_000_000m:F2}B";
-        if (cost >= 1_000_000m) return $"{cost / 1_000_000m:F2}M";
-        if (cost >= 1_000m) return $"{cost / 1_000m:F2}K";
-        return cost.ToString("F2");
-    }
+    private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
+    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(int? value) => NumberFormatter.Compact(value ?? 0);
+    private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     protected override async Task OnInitializedAsync()
     {
@@ -2161,144 +2142,7 @@
         showInfoModal = false;
     }
 
-    private decimal GetReviveCost()
-    {
-        // Base cost with gentle level scaling: 15 base * sqrt(level)
-        var baseCost = MyTunoConfig.Value.BattleRewards.ReviveCost;
-        var level = character?.Level ?? 1;
-        return Math.Round(baseCost * (decimal)Math.Sqrt(level), 2);
-    }
 
-    private decimal GetRestoreCost()
-    {
-        // Cost scales with both level AND how much HP is missing
-        // Formula: baseCost × sqrt(level) × (missingHP / totalHP)
-        // Restoring 10% HP costs ~10% of full restore price
-        var baseCost = MyTunoConfig.Value.BattleRewards.RestoreHPCost;
-        var level = character?.Level ?? 1;
-        var maxHP = GetDisplayMaxHP(character);
-        var currentHP = character?.CurrentHP ?? maxHP;
-        var missingHP = maxHP - currentHP;
-        if (missingHP <= 0 || maxHP <= 0) return 0;
-        var hpRatio = (decimal)missingHP / (decimal)maxHP;
-        return Math.Round(baseCost * (decimal)Math.Sqrt(level) * hpRatio, 2);
-    }
-
-    private async Task ReviveCharacter()
-    {
-        if (character == null || currentUser == null) return;
-
-        try
-        {
-            reviving = true;
-            var cost = GetReviveCost();
-
-            if (currentUser.FidelisBalance < cost)
-            {
-                // Error message now shown inline under button
-                return;
-            }
-
-            // Deduct Fidelis
-            currentUser.FidelisBalance -= cost;
-            await UserManager.UpdateAsync(currentUser);
-
-            // Restore HP to max (considering shot buff if active)
-            var maxHP = GetDisplayMaxHP(character);
-            character.CurrentHP = maxHP;
-            await CharacterService.UpdateCharacterAsync(character);
-
-            // Reload data
-            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
-            if (updatedUser != null)
-            {
-                currentUser = updatedUser;
-                character = await CharacterService.GetCharacterAsync(currentUser.Id);
-            }
-
-            toastMessage = "Personagem revivido com sucesso!";
-            toastIsError = false;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error reviving character");
-            toastMessage = "Erro ao reviver personagem.";
-            toastIsError = true;
-        }
-        finally
-        {
-            reviving = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task RestoreHP()
-    {
-        if (character == null || currentUser == null) return;
-        
-        try
-        {
-            restoringHP = true;
-            var restoreCost = GetRestoreCost();
-            
-            // Check if user has enough Fidelis
-            if (currentUser.FidelisBalance < restoreCost)
-            {
-                toastMessage = $"Precisas de {restoreCost} Fidelis para restaurar HP completo!";
-                toastIsError = true;
-                return;
-            }
-            
-            // Check if character is alive
-            if (character.CurrentHP <= 0)
-            {
-                toastMessage = "Usa Reviver em vez de Restaurar!";
-                toastIsError = true;
-                return;
-            }
-            
-            // Check if already at full HP
-            var displayMaxHPForRestore = GetDisplayMaxHP(character);
-            if (character.CurrentHP >= displayMaxHPForRestore)
-            {
-                toastMessage = "HP já está cheio!";
-                toastIsError = false;
-                return;
-            }
-            
-            // Restore HP to full
-            character.RestoreHP();
-            
-            // Deduct Fidelis
-            currentUser.FidelisBalance -= restoreCost;
-            await UserManager.UpdateAsync(currentUser);
-            
-            // Save character
-            await CharacterService.UpdateCharacterAsync(character);
-            
-            // Reload data
-            var updatedUser = await UserManager.FindByIdAsync(currentUser.Id);
-            if (updatedUser != null)
-            {
-                currentUser = updatedUser;
-                character = await CharacterService.GetCharacterAsync(currentUser.Id);
-            }
-            
-            toastMessage = $"HP restaurado! (-{restoreCost} Fidelis)";
-            toastIsError = false;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error restoring HP for character {CharacterId}", character?.Id);
-            toastMessage = "Erro ao restaurar HP";
-            toastIsError = true;
-        }
-        finally
-        {
-            restoringHP = false;
-            StateHasChanged();
-        }
-    }
 
     private async Task LoadCharacterAsync()
     {

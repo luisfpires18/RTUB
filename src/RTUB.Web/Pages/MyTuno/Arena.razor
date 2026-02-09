@@ -10,6 +10,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Core.Helpers
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.Cards
@@ -103,11 +104,11 @@
                     <div class="result-rewards">
                         <div class="result-reward-row">
                             <i class="bi bi-star-fill text-warning"></i>
-                            <span>+@currentBattle.AttackerXP XP</span>
+                            <span>+@Fmt(currentBattle.AttackerXP) XP</span>
                         </div>
                         <div class="result-reward-row">
                             <i class="bi bi-coin" style="color: #7c4dff;"></i>
-                            <span>+@currentBattle.AttackerFidelis.ToString("F0") Fidelis</span>
+                            <span>+@Fmt(currentBattle.AttackerFidelis) Fidelis</span>
                         </div>
                     </div>
                     @if (character?.ShotBuffBattlesRemaining > 0)
@@ -136,11 +137,11 @@
         {
             <div class="d-flex justify-content-center gap-3 mb-4">
                 <div class="stat-box-square">
-                    <span class="badge bg-success fs-5">@character.ArenaWins</span>
+                    <span class="badge bg-success fs-5">@Fmt(character.ArenaWins)</span>
                     <p class="mb-0 small text-muted">Vitórias</p>
                 </div>
                 <div class="stat-box-square">
-                    <span class="badge bg-danger fs-5">@character.ArenaLosses</span>
+                    <span class="badge bg-danger fs-5">@Fmt(character.ArenaLosses)</span>
                     <p class="mb-0 small text-muted">Derrotas</p>
                 </div>
             </div>
@@ -208,6 +209,9 @@
 </div>
 
 @code {
+    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(decimal value) => NumberFormatter.Compact(value);
+
     private Character? character;
     private ApplicationUser? currentUser;
     private List<Character>? allOpponentCharacters;

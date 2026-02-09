@@ -451,10 +451,17 @@ public class StageService : IStageService
             _ => 1
         };
 
-        // Diminishing returns: approaches maxMultiplier asymptotically
+        // Diminishing returns: approaches maxMultiplier asymptotically (used for Fidelis)
         var maxMult = stageConfig.MaxStageRewardMultiplier;
         var stageScaling = 1.0 + (maxMult - 1.0) * (1.0 - Math.Exp(-stageNumber * stageConfig.StageRewardScalingFactor));
-        var xpReward = (int)Math.Round(stageConfig.BaseStageXP * xpMultiplier * enemyCount * stageScaling);
+
+        // XP: enemy-level-based formula. Enemy level = stage number.
+        // XP = xpPerEnemyLevel × enemyLevel^power × enemyCount × levelDiffMult × bossXPMult
+        var enemyLevel = (double)stageNumber;
+        var enemyLevelFactor = Math.Pow(enemyLevel, stageConfig.EnemyLevelXPPower);
+        var levelDiff = Math.Max(0, characterLevel - stageNumber);
+        var levelDiffMult = Math.Max(stageConfig.MinXPLevelMultiplier, 1.0 - levelDiff * stageConfig.XpLevelPenaltyRate);
+        var xpReward = (int)Math.Round(stageConfig.XpPerEnemyLevel * enemyLevelFactor * enemyCount * xpMultiplier * levelDiffMult);
 
         var baseFidelis = enemyType switch
         {
@@ -462,7 +469,7 @@ public class StageService : IStageService
             _ => fidelisRewardsConfig.NormalWin
         };
         // Scale Fidelis with character level, capped by config
-        var rawLevelMult = 1.0 + (characterLevel - 1) * _myTunoScalingConfig.BattleRewards.FidelisLevelMultiplier;
+        var rawLevelMult = 1.0 + (characterLevel - 1) * stageConfig.FidelisLevelMultiplier;
         var levelMultiplier = Math.Min(rawLevelMult, stageConfig.FidelisLevelMultiplierCap);
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)stageScaling * (decimal)levelMultiplier, 2);
 
@@ -595,7 +602,7 @@ public class StageService : IStageService
     /// On defeat: restores HP to full (no death in stage mode).
     /// Only persists StageProgress when there's a new record:
     /// - HighestStage increased (player beat their previous best)
-    /// - EndlessModeUnlocked changed (beat stage 10000)
+    /// - EndlessModeUnlocked changed (beat stage 1000)
     /// Handles concurrency exceptions by reloading entities and retrying.
     /// </summary>
     private async Task UpdateCharacterAndProgressAsync(
