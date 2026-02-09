@@ -80,6 +80,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStageProgressRepository, StageProgressRepository>();
         services.AddScoped<IStageEnemyRepository, StageEnemyRepository>();
 
+        // Boss Mode repositories
+        services.AddScoped<IBossModeProgressRepository, BossModeProgressRepository>();
+
         return services;
     }
 
@@ -134,6 +137,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStageService, StageService>();
         services.AddScoped<IStageBiomeService, StageBiomeService>();
         services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
+        services.AddScoped<IBossModeService, BossModeService>();
 
         return services;
     }

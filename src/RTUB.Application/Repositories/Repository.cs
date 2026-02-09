@@ -190,6 +190,15 @@ public class Repository<T> : IRepository<T> where T : class
         return await _context.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Reloads an entity from the database, refreshing all property values
+    /// and resetting the change tracker entry to Unchanged.
+    /// </summary>
+    public virtual async Task ReloadAsync(T entity)
+    {
+        await _context.Entry(entity).ReloadAsync().ConfigureAwait(false);
+    }
+
     private void DetachLocalDuplicate(T entity)
     {
         var entityType = _context.Model.FindEntityType(typeof(T));

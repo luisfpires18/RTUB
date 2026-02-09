@@ -28,6 +28,11 @@ public class MyTunoScalingConfiguration
     public StageModeConfig StageMode { get; set; } = new();
 
     /// <summary>
+    /// Configuration for Boss Mode - endless boss-only mode requiring FITAB to enter
+    /// </summary>
+    public BossModeConfig BossMode { get; set; } = new();
+
+    /// <summary>
     /// Configuration for the Destilaria (resource gathering) system
     /// </summary>
     public GatheringConfig Gathering { get; set; } = new();
@@ -609,4 +614,110 @@ public class DailyRewardConfig
 
     /// <summary>Additional Fidelis per character level.</summary>
     public decimal PerLevelFidelis { get; set; } = 2m;
+}
+
+/// <summary>
+/// Configuration for Boss Mode — endless boss-only mode.
+/// Boss stage 1 starts at stage mode 500+ difficulty scale.
+/// Requires 1 FITAB to enter.
+/// </summary>
+public class BossModeConfig
+{
+    /// <summary>
+    /// Stage offset that maps boss stage 1 to this equivalent stage mode difficulty.
+    /// Boss stage N has difficulty of stage (StageOffset + N - 1).
+    /// Default 500 means boss stage 1 ≈ stage mode 500 difficulty.
+    /// </summary>
+    public int StageOffset { get; set; } = 500;
+
+    /// <summary>
+    /// XP base per boss level.
+    /// </summary>
+    public double XpPerBossLevel { get; set; } = 25;
+
+    /// <summary>
+    /// Power applied to boss level for XP scaling.
+    /// </summary>
+    public double BossLevelXPPower { get; set; } = 0.6;
+
+    /// <summary>
+    /// XP penalty rate per level above boss.
+    /// </summary>
+    public double XpLevelPenaltyRate { get; set; } = 0.01;
+
+    /// <summary>
+    /// Minimum XP multiplier floor.
+    /// </summary>
+    public double MinXPLevelMultiplier { get; set; } = 0.1;
+
+    /// <summary>
+    /// Difficulty curve for boss stat scaling.
+    /// </summary>
+    public DifficultyCurveConfig DifficultyCurve { get; set; } = new();
+
+    /// <summary>
+    /// Reward curve for Fidelis scaling.
+    /// </summary>
+    public RewardCurveConfig RewardCurve { get; set; } = new();
+
+    /// <summary>
+    /// Base boss stats (all bosses use these as the starting point).
+    /// </summary>
+    public EnemyTypeStat BaseBossStats { get; set; } = new() { Hp = 80, Power = 15, Speed = 3, Defense = 4, CriticalChance = 0.10 };
+
+    /// <summary>
+    /// Additional multiplier applied on top of the difficulty curve for boss fights.
+    /// </summary>
+    public double BossStatMultiplier { get; set; } = 1.5;
+
+    /// <summary>
+    /// Drop rates for boss mode rewards.
+    /// </summary>
+    public BossModeDropRates DropRates { get; set; } = new();
+
+    /// <summary>
+    /// Fidelis reward per boss defeated.
+    /// </summary>
+    public BossModeFidelisRewards FidelisRewards { get; set; } = new();
+
+    /// <summary>
+    /// FITAB drop chance in stage mode (per enemy killed).
+    /// Very low chance — FITAB is a rare drop.
+    /// </summary>
+    public double FitabDropChanceStage { get; set; } = 0.002;
+
+    /// <summary>
+    /// FITAB drop chance in arena/battle mode (per battle won).
+    /// </summary>
+    public double FitabDropChanceBattle { get; set; } = 0.001;
+
+    /// <summary>
+    /// Path to boss enemy sprites (relative to wwwroot).
+    /// </summary>
+    public string EnemySpritePath { get; set; } = "sprites/games/my-tuno/enemies/jeans";
+
+    /// <summary>
+    /// Path to the boss mode background image.
+    /// </summary>
+    public string BackgroundPath { get; set; } = "/sprites/games/my-tuno/backgrounds/jeans.png";
+}
+
+/// <summary>
+/// Drop rates for Boss Mode.
+/// </summary>
+public class BossModeDropRates
+{
+    public double BeerDropChance { get; set; } = 0.20;
+    public double ShotDropChance { get; set; } = 0.10;
+    public double InstrumentPartDropChance { get; set; } = 0.02;
+    public double EquipmentDropChance { get; set; } = 0.015;
+    public double FitabDropChance { get; set; } = 0.003;
+}
+
+/// <summary>
+/// Fidelis reward config for Boss Mode.
+/// </summary>
+public class BossModeFidelisRewards
+{
+    public decimal BossWin { get; set; } = 80m;
 }

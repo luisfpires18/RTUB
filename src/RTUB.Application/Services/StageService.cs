@@ -210,7 +210,7 @@ public class StageService : IStageService
         });
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped) =
+        var (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
@@ -233,6 +233,7 @@ public class StageService : IStageService
             ShotsDropped = shotsDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
             EquipmentDropped = equipmentDropped,
+            FitabDropped = fitabDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP
         };
@@ -355,6 +356,7 @@ public class StageService : IStageService
     /// <summary>
     /// Unified scaling: ONE difficulty curve for ALL stats.
     /// EnemyStat = baseStat × curve × difficultyMult × bossMult
+    /// Action time is determined by stage tier (every 100 stages = 0.5s faster, min 1.0s)
     /// </summary>
     private Character CreateEnemyUnifiedScaling(StageEnemy? template, int stageNumber, EnemyType type, bool isBoss)
     {
@@ -402,7 +404,20 @@ public class StageService : IStageService
             };
         }
 
-        return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseDefense, baseCriticalChance, enemyName);
+        var actionTime = GetEnemyActionTimeForStage(stageNumber);
+        return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseDefense, baseCriticalChance, enemyName, actionTime);
+    }
+
+    /// <summary>
+    /// Returns the enemy action time (in seconds) based on stage tier.
+    /// Every 100 stages reduces action time by 0.5s, minimum 1.0s.
+    /// Stage 1-100: 5.0s, 101-200: 4.5s, ..., 801+: 1.0s
+    /// </summary>
+    private static double GetEnemyActionTimeForStage(int stageNumber)
+    {
+        var tier = (stageNumber - 1) / 100; // 0 for 1-100, 1 for 101-200, etc.
+        var actionTime = 5.0 - (tier * 0.5);
+        return Math.Max(1.0, actionTime);
     }
 
     /// <summary>
@@ -414,7 +429,7 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int beers, int shots, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int beers, int shots, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment, int fitab) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
@@ -422,12 +437,13 @@ public class StageService : IStageService
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>());
+            return (0, 0m, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>(), 0);
         }
 
         var random = Random.Shared;
         var beersDropped = 0;
         var shotsDropped = 0;
+        var fitabDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
         var equipmentDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
@@ -499,9 +515,16 @@ public class StageService : IStageService
                 var randomSlot = (EquipmentSlot)equipmentSlots.GetValue(random.Next(equipmentSlots.Length))!;
                 equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
             }
+
+            // Roll for FITAB drop (very rare — currency for Boss Mode entry)
+            var fitabChance = _myTunoScalingConfig.BossMode.FitabDropChanceStage;
+            if (enemyType == EnemyType.Boss)
+                fitabChance *= dropRates.BossDropMultiplier;
+            if (random.NextDouble() < fitabChance)
+                fitabDropped++;
         }
 
-        return (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped);
+        return (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped, fitabDropped);
     }
 
     /// <summary>
@@ -509,7 +532,7 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;
@@ -544,11 +567,12 @@ public class StageService : IStageService
             await _characterRepository.UpdateAsync(character);
         }
 
-        // Apply Fidelis
+        // Apply Fidelis and FITAB
         var user = await _userManager.FindByIdAsync(character.UserId);
-        if (fidelis > 0 && user != null)
+        if (user != null && (fidelis > 0 || fitab > 0))
         {
-            user.FidelisBalance += fidelis;
+            if (fidelis > 0) user.FidelisBalance += fidelis;
+            if (fitab > 0) user.FitabBalance += fitab;
             await _userManager.UpdateAsync(user);
         }
 
@@ -581,8 +605,8 @@ public class StageService : IStageService
         }
 
         _logger.LogInformation(
-            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
-            user?.UserName ?? "Unknown", characterId, xp, fidelis, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
+            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
     }
 
     /// <summary>

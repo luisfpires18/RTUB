@@ -1,0 +1,772 @@
+@page "/my-tuno/boss-mode"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Application.DTOs
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.UI
+@using System.Text.Json
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
+@attribute [Authorize]
+@inject IBossModeService BossModeService
+@inject ICharacterService CharacterService
+@inject INaipeService NaipeService
+@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<BossMode> Logger
+@inject IAuditLogService AuditLogService
+@implements IAsyncDisposable
+
+<PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
+
+<div class="stage-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="flex-grow-1 text-center">
+                <h1 class="mb-2"><i class="bi bi-lightning-fill text-warning"></i> Boss Mode</h1>
+            </div>
+            <div style="width: 48px;"></div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (character == null)
+    {
+        <EmptyState Title="Personagem não encontrado"
+                    Message="Ocorreu um erro ao carregar o teu personagem."
+                    Icon="bi-person-x" />
+    }
+    else if (errorMessage != string.Empty)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        </div>
+    }
+    else
+    {
+        @if (showBattleAnimation)
+        {
+            <div class="card mb-4 battle-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning-fill text-warning me-2"></i>
+                        @if (currentBattle != null)
+                        {
+                            <text>Boss #@currentBattle.BossStage</text>
+                        }
+                        else
+                        {
+                            <text>A carregar batalha...</text>
+                        }
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")"
+                                @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")"
+                                @onclick="() => SetBattleSpeed(2.0)">2x</button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")"
+                                @onclick="() => SetBattleSpeed(3.0)">3x</button>
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
+                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 d-flex justify-content-center">
+                    <div id="phaserBattleContainer"></div>
+                </div>
+            </div>
+
+            @if (bossesCleared > 0)
+            {
+                <div class="card mb-4 rewards-card">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>@Fmt(bossesCleared) Bosses
+                            </span>
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
+                            </span>
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
+                            </span>
+                            @if (totalBeersDropped > 0)
+                            {
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalBeersDropped) Cerveja
+                                </span>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (currentEnemyStats.Count > 0)
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="mb-2"><i class="bi bi-lightning-fill text-warning me-2"></i>Boss Stats</h6>
+                        @foreach (var enemy in currentEnemyStats)
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <span class="badge bg-light text-dark fw-bold">@enemy.Name</span>
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-heart-fill me-1"></i>
+                                    @if (enemy.MaxHP > 0 && enemy.HP < enemy.MaxHP)
+                                    {
+                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP) HP</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@Fmt(enemy.HP) HP</text>
+                                    }
+                                </span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-lightning-fill me-1"></i>@Fmt(enemy.Power) Poder
+                                </span>
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-shield-fill me-1"></i>@Fmt(enemy.Defense) Defesa
+                                </span>
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @if (showDefeatSummary)
+        {
+            <div class="defeat-overlay">
+                <div class="defeat-panel">
+                    <div class="defeat-banner">
+                        <span>BOSS MODE</span>
+                    </div>
+                    <div class="defeat-stage">Boss @Fmt(defeatedAtBossStage)</div>
+                    @if (bossesCleared > 0)
+                    {
+                        <div class="defeat-rewards">
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-lightning-fill text-warning"></i>
+                                <span>@Fmt(bossesCleared) Bosses Derrotados</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <span>+@Fmt(totalXPEarned) XP</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <span>+@Fmt(totalFidelisEarned) Fidelis</span>
+                            </div>
+                            @if (totalBeersDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@Fmt(totalBeersDropped) Cerveja</span>
+                                </div>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup text-danger"></i>
+                                    <span>+@totalShotsDropped Shot</span>
+                                </div>
+                            }
+                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
+                            {
+                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    <span>+@qty @instrumentName</span>
+                                </div>
+                            }
+                            @foreach (var (equipType, qty) in totalEquipmentDropped)
+                            {
+                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
+                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
+                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
+                                <div class="defeat-reward-row">
+                                    <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
+                                    <span>+@qty @equipName</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="defeat-no-rewards">Nenhum boss derrotado.</p>
+                    }
+                    <button class="defeat-btn" @onclick="DefeatGoBack">
+                        IR MY TUNO
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private Character? character;
+    private ApplicationUser? currentUser;
+    private BossModeProgress? bossModeProgress;
+    private BossModeBattleResult? currentBattle;
+    private bool loading = true;
+    private bool fighting = false;
+    private bool showBattleAnimation = false;
+    private string errorMessage = string.Empty;
+    private DotNetObjectReference<BossMode>? objRef;
+    private bool hasRendered = false;
+    private bool battleAutoStarted = false;
+
+    // Battle controls
+    private double battleSpeed = 1.0;
+    private bool audioEnabled = true;
+    private CancellationTokenSource? battleTimeoutCts;
+
+    // Accumulated loot tracker
+    private int totalXPEarned = 0;
+    private decimal totalFidelisEarned = 0;
+    private int totalBeersDropped = 0;
+    private int totalShotsDropped = 0;
+    private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
+    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
+    private int bossesCleared = 0;
+
+    // Run state tracking
+    private int? runStartingHp;
+    private int runStartingShotBuffBattles = 0;
+    private bool runInProgress = false;
+    private bool pendingDefeatRewards = false;
+    private bool _disposed = false;
+    private bool _runAlreadyStarted = false;
+
+    // Defeat summary
+    private bool showDefeatSummary = false;
+    private int defeatedAtBossStage = 0;
+    private int? defeatRestoreHp;
+
+    private readonly SemaphoreSlim _bossLock = new(1, 1);
+    private List<EnemyStatsInfo> currentEnemyStats = new();
+
+    private record EnemyStatsInfo(string Name, int HP, int MaxHP, int Power, int Defense, double ActionTime);
+
+    protected override async Task OnInitializedAsync()
+    {
+        showBattleAnimation = false;
+        fighting = false;
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            hasRendered = true;
+
+            // Start the boss run here (not in OnInitializedAsync/LoadDataAsync)
+            // because OnAfterRenderAsync NEVER fires during prerender.
+            // OnInitializedAsync fires twice in InteractiveServer mode (prerender + circuit),
+            // which would cause double FITAB deduction.
+            if (character != null && currentUser != null && bossModeProgress != null
+                && bossModeProgress.CurrentBossStage <= 0 && !_runAlreadyStarted)
+            {
+                try
+                {
+                    _runAlreadyStarted = true;
+                    bossModeProgress = await BossModeService.StartBossModeRunAsync(currentUser.Id);
+                    StateHasChanged();
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
+                {
+                    errorMessage = ex.Message.Contains("Level")
+                        ? "Precisas de Level 100 para aceder ao Boss Mode."
+                        : "Não tens FITAB suficiente para entrar no Boss Mode.";
+                    Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
+                    StateHasChanged();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error starting boss mode run");
+                    errorMessage = "Erro ao iniciar Boss Mode.";
+                    StateHasChanged();
+                    return;
+                }
+            }
+
+            if (character != null && currentBattle == null && !battleAutoStarted)
+            {
+                battleAutoStarted = true;
+                await Task.Delay(150);
+                try
+                {
+                    await FightBoss();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Auto-start boss battle failed");
+                    errorMessage = "Failed to start battle. Please try again.";
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            loading = true;
+            errorMessage = string.Empty;
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    bossModeProgress = await BossModeService.GetOrCreateBossModeProgressAsync(currentUser.Id);
+
+                    if (character != null && bossModeProgress != null)
+                    {
+                        // Level gate: must be level 100+
+                        if (character.Level < 100)
+                        {
+                            errorMessage = "Precisas de Level 100 para aceder ao Boss Mode.";
+                            return;
+                        }
+
+                        // Run is started in OnAfterRenderAsync to avoid double FITAB
+                        // deduction from prerender. Just load the data here.
+                    }
+                }
+            }
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
+        {
+            errorMessage = ex.Message.Contains("Level")
+                ? "Precisas de Level 100 para aceder ao Boss Mode."
+                : "Não tens FITAB suficiente para entrar no Boss Mode.";
+            Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
+        }
+        catch (NavigationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading boss mode data");
+            errorMessage = "Erro ao carregar dados do Boss Mode.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task FightBoss()
+    {
+        if (_disposed) return;
+        if (character == null || currentUser == null || bossModeProgress == null) return;
+        if (fighting) return;
+        if (!await _bossLock.WaitAsync(0)) return;
+
+        try
+        {
+            fighting = true;
+            var wasAlreadyAnimating = showBattleAnimation;
+            showBattleAnimation = true;
+            errorMessage = string.Empty;
+
+            if (!runInProgress)
+            {
+                runStartingHp = character.CurrentHP;
+                runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
+                runInProgress = true;
+                Logger.LogInformation("Boss Mode run started by {UserName} at boss stage {Stage}",
+                    currentUser.UserName, bossModeProgress.CurrentBossStage);
+            }
+
+            if (!wasAlreadyAnimating)
+            {
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+                await Task.Delay(50);
+            }
+
+            currentBattle = await BossModeService.ExecuteBossBattleAsync(character.Id);
+
+            if (currentBattle.Outcome != BattleOutcome.AttackerWon)
+            {
+                defeatRestoreHp = runStartingHp;
+                runInProgress = false;
+                runStartingHp = null;
+                pendingDefeatRewards = true;
+            }
+
+            if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
+            {
+                try
+                {
+                    objRef ??= DotNetObjectReference.Create(this);
+
+                    var replayData = JsonSerializer.Deserialize<JsonElement>(currentBattle.ReplayJson);
+                    var eventsJson = replayData.TryGetProperty("Events", out var eventsProp) ? eventsProp.GetRawText() : currentBattle.ReplayJson;
+
+                    List<string> enemySpritePaths = new();
+                    if (replayData.TryGetProperty("EnemySprites", out var spritesProp) && spritesProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var sprite in spritesProp.EnumerateArray())
+                            enemySpritePaths.Add(sprite.GetString() ?? "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png");
+                    }
+                    if (enemySpritePaths.Count == 0)
+                        enemySpritePaths.Add("/sprites/games/my-tuno/enemies/forest/boss_1_bear.png");
+
+                    currentEnemyStats.Clear();
+                    if (replayData.TryGetProperty("EnemyStats", out var statsProp) && statsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var stat in statsProp.EnumerateArray())
+                        {
+                            var name = stat.TryGetProperty("Name", out var np) ? np.GetString() ?? "Boss" : "Boss";
+                            var hp = stat.TryGetProperty("HP", out var hpP) ? hpP.GetInt32() : 0;
+                            var maxHp = stat.TryGetProperty("MaxHP", out var mhpP) ? mhpP.GetInt32() : hp;
+                            var power = stat.TryGetProperty("Power", out var ppP) ? ppP.GetInt32() : 0;
+                            var defense = stat.TryGetProperty("Defense", out var dp) ? dp.GetInt32() : 0;
+                            var actionTime = stat.TryGetProperty("ActionTime", out var atp) ? atp.GetDouble() : 5.0;
+                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, maxHp, power, defense, actionTime));
+                        }
+                    }
+
+                    var battleData = new
+                    {
+                        EventsJson = eventsJson,
+                        DotNetRef = objRef,
+                        StageNumber = currentBattle.BossStage,
+                        EnemyType = "boss",
+                        EnemyCount = 1,
+                        PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
+                        EnemyName = currentBattle.BossName,
+                        BackgroundPath = BossModeService.GetBackgroundPath(),
+                        PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        EnemySprites = enemySpritePaths,
+                        EnemyPlacements = new List<int> { 0 },
+                        BattleSpeed = battleSpeed,
+                        HasShotBuff = character.ShotBuffBattlesRemaining > 0
+                    };
+
+                    await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
+
+                    battleTimeoutCts?.Cancel();
+                    battleTimeoutCts = new CancellationTokenSource();
+                    var timeoutToken = battleTimeoutCts.Token;
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(TimeSpan.FromMinutes(2), timeoutToken);
+                            if (!timeoutToken.IsCancellationRequested)
+                            {
+                                await InvokeAsync(() =>
+                                {
+                                    fighting = false;
+                                    StateHasChanged();
+                                });
+                            }
+                        }
+                        catch (TaskCanceledException) { }
+                    }, timeoutToken);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error starting boss battle animation");
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing boss battle");
+            errorMessage = "Erro ao executar batalha de boss.";
+            showBattleAnimation = false;
+            StateHasChanged();
+        }
+        finally
+        {
+            fighting = false;
+            _bossLock.Release();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnBattleFinished()
+    {
+        if (_disposed) return;
+        if (currentBattle == null) return;
+
+        battleTimeoutCts?.Cancel();
+
+        if (currentBattle.Outcome == BattleOutcome.AttackerWon)
+        {
+            // Accumulate rewards
+            totalXPEarned += currentBattle.XPReward;
+            totalFidelisEarned += currentBattle.FidelisReward;
+            totalBeersDropped += currentBattle.BeersDropped;
+            totalShotsDropped += currentBattle.ShotsDropped;
+            bossesCleared++;
+
+            foreach (var part in currentBattle.InstrumentPartsDropped)
+            {
+                if (totalInstrumentPartsDropped.ContainsKey(part))
+                    totalInstrumentPartsDropped[part]++;
+                else
+                    totalInstrumentPartsDropped[part] = 1;
+            }
+
+            foreach (var equip in currentBattle.EquipmentDropped)
+            {
+                if (totalEquipmentDropped.ContainsKey(equip))
+                    totalEquipmentDropped[equip]++;
+                else
+                    totalEquipmentDropped[equip] = 1;
+            }
+
+            // Reload character to get updated HP
+            if (currentUser != null)
+            {
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
+            }
+
+            StateHasChanged();
+
+            // Auto-start next boss fight
+            await Task.Delay(200);
+            await FightBoss();
+        }
+        else
+        {
+            // Defeated — apply rewards and show summary
+            defeatedAtBossStage = currentBattle.BossStage;
+
+            if (character != null && bossesCleared > 0)
+            {
+                try
+                {
+                    await BossModeService.ApplyBossRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        defeatRestoreHp,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error applying boss run rewards on defeat");
+                }
+            }
+
+            pendingDefeatRewards = false;
+            showBattleAnimation = false;
+            showDefeatSummary = true;
+            currentEnemyStats.Clear();
+            currentBattle = null;
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetBattleSpeed(double speed)
+    {
+        battleSpeed = speed;
+        if (hasRendered)
+        {
+            try { await JSRuntime.InvokeVoidAsync("stageBattleGame.setSpeed", speed); }
+            catch { }
+        }
+    }
+
+    private async Task ToggleAudio()
+    {
+        audioEnabled = !audioEnabled;
+        if (hasRendered)
+        {
+            try { await JSRuntime.InvokeVoidAsync("stageBattleGame.setAudioEnabled", audioEnabled); }
+            catch { }
+        }
+    }
+
+    private async Task EndRunEarly()
+    {
+        if (_disposed) return;
+
+        try
+        {
+            if (hasRendered)
+            {
+                try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+                catch { }
+            }
+
+            battleTimeoutCts?.Cancel();
+            defeatedAtBossStage = currentBattle?.BossStage ?? bossModeProgress?.CurrentBossStage ?? 0;
+
+            if (character != null && bossesCleared > 0)
+            {
+                try
+                {
+                    await BossModeService.ApplyBossRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        runStartingHp,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error applying boss run rewards on early end");
+                }
+            }
+            else if (character != null && runStartingHp.HasValue)
+            {
+                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles);
+            }
+
+            runInProgress = false;
+            runStartingHp = null;
+            pendingDefeatRewards = false;
+
+            // End boss mode run in progress
+            if (currentUser != null)
+            {
+                bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
+                if (bossModeProgress != null && bossModeProgress.CurrentBossStage > 0)
+                {
+                    bossModeProgress.EndRun();
+                    // Progress is updated via service
+                }
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            }
+
+            showBattleAnimation = false;
+            showDefeatSummary = true;
+            currentEnemyStats.Clear();
+            currentBattle = null;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error ending boss run early");
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void DefeatGoBack()
+    {
+        showDefeatSummary = false;
+        ResetRunTotals();
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void ResetRunTotals()
+    {
+        totalXPEarned = 0;
+        totalFidelisEarned = 0;
+        totalBeersDropped = 0;
+        totalShotsDropped = 0;
+        totalInstrumentPartsDropped.Clear();
+        totalEquipmentDropped.Clear();
+        bossesCleared = 0;
+        currentEnemyStats.Clear();
+    }
+
+    private static string Fmt(int value) => value.ToString("N0");
+    private static string Fmt(decimal value) => value.ToString("N0");
+
+    private async Task CancelRunIfInProgressAsync()
+    {
+        if (runInProgress && character != null && runStartingHp.HasValue)
+        {
+            try
+            {
+                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error cancelling boss run during disposal");
+            }
+            runInProgress = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+
+        battleTimeoutCts?.Cancel();
+        battleTimeoutCts?.Dispose();
+
+        await CancelRunIfInProgressAsync();
+
+        if (pendingDefeatRewards && character != null && bossesCleared > 0)
+        {
+            try
+            {
+                await BossModeService.ApplyBossRunRewardsAsync(
+                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                    defeatRestoreHp,
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+            }
+            catch (Exception) { }
+            pendingDefeatRewards = false;
+        }
+
+        if (hasRendered)
+        {
+            try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+            catch { }
+        }
+
+        objRef?.Dispose();
+        _bossLock.Dispose();
+    }
+}

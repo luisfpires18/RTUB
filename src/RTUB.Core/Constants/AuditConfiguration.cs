@@ -51,5 +51,6 @@ public static class AuditConfiguration
         "InventoryItem",
         "Character",
         "StageProgress",
+        "BossModeProgress",
     };
 }

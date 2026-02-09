@@ -139,6 +139,12 @@
                                     <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
                                 </span>
                             }
+                            @if (totalFitabDropped > 0)
+                            {
+                                <span class="badge text-white" style="background-color: #e040fb;">
+                                    <i class="bi bi-lightning-fill me-1"></i>+@totalFitabDropped FITAB
+                                </span>
+                            }
                             @foreach (var (partType, qty) in totalInstrumentPartsDropped)
                             {
                                 var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
@@ -247,6 +253,13 @@
                                     <span>+@totalShotsDropped Shot</span>
                                 </div>
                             }
+                            @if (totalFitabDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-lightning-fill" style="color: #e040fb;"></i>
+                                    <span>+@totalFitabDropped FITAB</span>
+                                </div>
+                            }
                             @foreach (var (partType, qty) in totalInstrumentPartsDropped)
                             {
                                 var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
@@ -325,6 +338,7 @@
     private decimal totalFidelisEarned = 0;
     private int totalBeersDropped = 0;
     private int totalShotsDropped = 0;
+    private int totalFitabDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
     private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
     private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
@@ -353,7 +367,7 @@
     [SupplyParameterFromQuery(Name = "start")]
     public int? StartStage { get; set; }
 
-    private record EnemyStatsInfo(string Name, int HP, int Power, int Defense, int Speed, double ActionTime);
+    private record EnemyStatsInfo(string Name, int HP, int Power, int Defense, double ActionTime);
 
     protected override async Task OnInitializedAsync()
     {
@@ -570,9 +584,8 @@
                             var hp = stat.TryGetProperty("HP", out var hpProp) ? hpProp.GetInt32() : 0;
                             var power = stat.TryGetProperty("Power", out var powerProp) ? powerProp.GetInt32() : 0;
                             var defense = stat.TryGetProperty("Defense", out var defenseProp) ? defenseProp.GetInt32() : 0;
-                            var speed = stat.TryGetProperty("Speed", out var speedProp) ? speedProp.GetInt32() : 0;
                             var actionTime = stat.TryGetProperty("ActionTime", out var atProp) ? atProp.GetDouble() : 5.0;
-                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, power, defense, speed, actionTime));
+                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, power, defense, actionTime));
                         }
                     }
 
@@ -645,14 +658,17 @@
                     Logger.LogError(ex, "Error starting battle animation: {Message}", ex.Message);
                     errorMessage = "Error starting battle animation.";
                     showBattleAnimation = false;
-                    StateHasChanged();
+                    if (!_disposed) StateHasChanged();
                 }
+                catch (JSDisconnectedException) { throw; } // Let outer catch handle
+                catch (TaskCanceledException) { throw; }   // Let outer catch handle
+                catch (OperationCanceledException) { throw; } // Let outer catch handle
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Unexpected error starting battle animation");
                     errorMessage = "Unexpected error starting battle animation.";
                     showBattleAnimation = false;
-                    StateHasChanged();
+                    if (!_disposed) StateHasChanged();
                 }
             }
             else
@@ -671,18 +687,29 @@
         catch (JSDisconnectedException)
         {
             // Circuit disconnected - exit silently
-            return;
         }
-        catch (Exception ex) when (!_disposed)
+        catch (TaskCanceledException)
         {
-            Logger.LogError(ex, "Error starting stage battle");
-            errorMessage = $"Erro ao iniciar batalha: {ex.Message}";
-            showBattleAnimation = false;
+            // JS interop canceled (user navigated away during battle) - exit silently
+        }
+        catch (OperationCanceledException)
+        {
+            // Operation canceled during disposal - exit silently
+        }
+        catch (Exception ex)
+        {
+            // Always catch — never let exceptions escape unhandled (crashes the process)
+            if (!_disposed)
+            {
+                Logger.LogError(ex, "Error starting stage battle");
+                errorMessage = $"Erro ao iniciar batalha: {ex.Message}";
+                showBattleAnimation = false;
+            }
         }
         finally
         {
             fighting = false;
-            _stageLock.Release();
+            try { if (!_disposed) _stageLock.Release(); } catch (ObjectDisposedException) { }
             if (!_disposed)
             {
                 if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
@@ -716,6 +743,7 @@
             totalFidelisEarned += currentBattle.FidelisReward;
             totalBeersDropped += currentBattle.BeersDropped;
             totalShotsDropped += currentBattle.ShotsDropped;
+            totalFitabDropped += currentBattle.FitabDropped;
 
             // Accumulate instrument part drops
             foreach (var partType in currentBattle.InstrumentPartsDropped)
@@ -761,7 +789,7 @@
                 try
                 {
                     await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp,
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, totalFitabDropped, defeatRestoreHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
                 }
@@ -849,7 +877,7 @@
         if (runInProgress && character != null && runStartingHp.HasValue && runStartingStage.HasValue)
         {
             // Wait for any in-progress fight to complete before cancelling
-            await _stageLock.WaitAsync();
+            try { await _stageLock.WaitAsync(); } catch (ObjectDisposedException) { return; }
             try
             {
                 // Re-check after acquiring lock (fight may have finished and cleared runInProgress)
@@ -867,7 +895,7 @@
                 runInProgress = false;
                 runStartingHp = null;
                 runStartingStage = null;
-                _stageLock.Release();
+                try { _stageLock.Release(); } catch (ObjectDisposedException) { }
             }
         }
     }
@@ -881,6 +909,7 @@
         totalFidelisEarned = 0;
         totalBeersDropped = 0;
         totalShotsDropped = 0;
+        totalFitabDropped = 0;
         totalInstrumentPartsDropped.Clear();
         totalEquipmentDropped.Clear();
         stagesCleared = 0;
@@ -919,7 +948,7 @@
                 try
                 {
                     await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, runStartingHp,
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, totalFitabDropped, runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
                 }
@@ -1046,7 +1075,7 @@
             try
             {
                 await StageService.ApplyRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, defeatRestoreHp,
+                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped, totalFitabDropped, defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
             }

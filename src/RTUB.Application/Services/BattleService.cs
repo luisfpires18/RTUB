@@ -226,6 +226,7 @@ public class BattleService : IBattleService
         if (result.Outcome == BattleOutcome.AttackerWon)
         {
             await TryDropBeerAsync(playerCharacter.UserId);
+            await TryDropFitabAsync(playerCharacter.UserId);
         }
 
         return true;
@@ -302,6 +303,24 @@ public class BattleService : IBattleService
         {
             // Beer dropped!
             await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
+        }
+    }
+
+    /// <summary>
+    /// Rolls for FITAB drop (Boss Mode entry currency) after arena victory
+    /// </summary>
+    private async Task TryDropFitabAsync(string userId)
+    {
+        var roll = Random.Shared.NextDouble();
+
+        if (roll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                user.FitabBalance++;
+                await _userManager.UpdateAsync(user);
+            }
         }
     }
 }

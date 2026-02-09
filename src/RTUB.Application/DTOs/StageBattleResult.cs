@@ -81,6 +81,11 @@ public class StageBattleResult
     public List<InventoryItemType> EquipmentDropped { get; set; } = new();
 
     /// <summary>
+    /// Number of FITAB dropped (very rare currency for Boss Mode entry).
+    /// </summary>
+    public int FitabDropped { get; set; }
+
+    /// <summary>
     /// Replay JSON data for battle animation
     /// </summary>
     public string ReplayJson { get; set; } = string.Empty;

@@ -9,4 +9,5 @@ public class MyTunoLeaderboardEntry
     public int Wins { get; set; }
     public int Level { get; set; }
     public int HighestStage { get; set; }
+    public int HighestBossStage { get; set; }
 }

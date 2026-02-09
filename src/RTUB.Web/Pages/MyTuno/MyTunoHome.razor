@@ -21,6 +21,7 @@
 @inject IInventoryService InventoryService
 @inject INaipeService NaipeService
 @inject IStageService StageService
+@inject IBossModeService BossModeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -56,9 +57,9 @@
     }
     else
     {
-        var isCharacterDead = character != null && (character.CurrentHP ?? character.TotalHP) <= 0;
+        var isCharacterDead = character != null && (character.CurrentHP ?? GetDisplayMaxHP(character)) <= 0;
         var displayMaxHpForCheck = GetDisplayMaxHP(character);
-        var isFullHp = character != null && (character.CurrentHP ?? character.TotalHP) >= displayMaxHpForCheck;
+        var isFullHp = character != null && (character.CurrentHP ?? GetDisplayMaxHP(character)) >= displayMaxHpForCheck;
 
         <!-- Fidelis Balance Bar -->
         @if (currentUser != null)
@@ -71,6 +72,13 @@
                     <div class="fidelis-bar__info">
                         <span class="fidelis-bar__label">Fidelis</span>
                         <span class="fidelis-bar__value">@Fmt(currentUser.FidelisBalance)</span>
+                    </div>
+                    <div class="fidelis-bar__icon ms-3" style="color: #e040fb;">
+                        <i class="bi bi-lightning-fill"></i>
+                    </div>
+                    <div class="fidelis-bar__info">
+                        <span class="fidelis-bar__label" style="color: #e040fb;">FITAB</span>
+                        <span class="fidelis-bar__value">@currentUser.FitabBalance</span>
                     </div>
                     <div class="ms-auto">
                         @if (CanClaimDailyReward)
@@ -325,7 +333,7 @@
                     <div class="card-body">
                         <!-- HP Bar (above character sprite) -->
                         @{
-                            var currentHP = character!.CurrentHP ?? character.TotalHP;
+                            var currentHP = character!.CurrentHP ?? GetDisplayMaxHP(character);
                             var displayMaxHP = GetDisplayMaxHP(character);
                             var hpProgress = displayMaxHP > 0 ? Math.Min(100, (currentHP * 100.0 / displayMaxHP)) : 0;
                         }
@@ -498,6 +506,12 @@
                                 <i class="bi bi-layers me-2"></i>Stages
                             </button>
                         </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-warning btn-lg flex-grow-1" @onclick="OpenBossModeModal" disabled="@(currentHP <= 0)">
+                                <i class="bi bi-lightning-fill me-2"></i>Boss Mode
+                                <span class="badge bg-dark ms-1">@(currentUser?.FitabBalance ?? 0) FITAB</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -538,6 +552,11 @@
                                         <i class="bi bi-flag-fill me-1"></i>Stage
                                     </button>
                                 </li>
+                                <li class="nav-item">
+                                    <button class="nav-link @(leaderboardTab == "boss" ? "active" : "")" @onclick='() => leaderboardTab = "boss"'>
+                                        <i class="bi bi-lightning-fill me-1"></i>Boss
+                                    </button>
+                                </li>
                             </ul>
                             
                             <div class="stats-card-grid">
@@ -546,7 +565,9 @@
                                         ? leaderboardEntries.OrderByDescending(e => e.Level).ToList()
                                         : leaderboardTab == "arena"
                                             ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
-                                            : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
+                                            : leaderboardTab == "boss"
+                                                ? leaderboardEntries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
+                                                : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
                                     var paginatedItems = sortedLeaderboard.Skip((leaderboardCurrentPage - 1) * leaderboardPageSize).Take(leaderboardPageSize).ToList();
                                 }
                                 @for (int i = 0; i < paginatedItems.Count; i++)
@@ -592,6 +613,11 @@
                                             {
                                                 <i class="bi bi-trophy"></i>
                                                 <span>@entry.Wins</span>
+                                            }
+                                            else if (leaderboardTab == "boss")
+                                            {
+                                                <i class="bi bi-lightning-fill text-warning"></i>
+                                                <span>@entry.HighestBossStage</span>
                                             }
                                             else
                                             {
@@ -1606,6 +1632,73 @@
         </Modal>
     }
 
+    <!-- Boss Mode Modal -->
+    @if (showBossModeModal)
+    {
+        <Modal Show="@showBossModeModal"
+               ShowChanged="@((bool show) => { if (!show) showBossModeModal = false; })"
+               Title="Boss Mode"
+               Size="Modal.ModalSize.Default"
+               Centered="true">
+            <BodyContent>
+                <div class="text-center mb-4">
+                    <h5 class="mb-2">
+                        <i class="bi bi-lightning-fill text-warning me-2"></i>Boss Mode
+                    </h5>
+                    <p class="text-muted">Enfrenta bosses cada vez mais fortes numa batalha sem fim!</p>
+                </div>
+                
+                @if (bossModeProgress != null)
+                {
+                    <div class="text-center mb-3">
+                        <h6>
+                            Recorde: <span class="text-warning">Boss #@bossModeProgress.HighestBossStage</span>
+                        </h6>
+                        <p class="text-muted small">Total de runs: @bossModeProgress.TotalRunsAttempted</p>
+                    </div>
+                }
+
+                <div class="alert text-white" style="background-color: #7b1fa2;">
+                    <i class="bi bi-lightning-fill me-2"></i>
+                    Custa <strong>1 FITAB</strong> para entrar. Tens <strong>@(currentUser?.FitabBalance ?? 0) FITAB</strong>.
+                </div>
+
+                <div class="alert text-white" style="background-color: #9c27b0;">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Requer <strong>Level 100</strong> para entrar. O teu nível: <strong>@(character?.Level ?? 0)</strong>.
+                </div>
+
+                <div class="alert text-white" style="background-color: #6a1b9a;">
+                    <i class="bi bi-arrow-repeat me-2"></i>
+                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e stage) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
+                </div>
+                
+                @if ((character?.Level ?? 0) < 100)
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Precisas de atingir Level 100 para aceder ao Boss Mode.
+                    </div>
+                }
+                else if ((currentUser?.FitabBalance ?? 0) < 1)
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Não tens FITAB suficiente! FITAB é um drop raro nos Stages e Arena.
+                    </div>
+                }
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="CloseBossModeModal">
+                    <i class="bi bi-x-lg me-2"></i>Fechar
+                </button>
+                <button class="btn btn-warning" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 100)">
+                    <i class="bi bi-lightning-fill me-2"></i>Entrar (1 FITAB)
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
     <!-- Info Modal -->
     @if (showInfoModal)
     {
@@ -1728,10 +1821,14 @@
     // Stage modal state
     private bool showStageModal = false;
     
+    // Boss Mode modal state
+    private bool showBossModeModal = false;
+    private BossModeProgress? bossModeProgress;
+    
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
     private int leaderboardPageSize = 6;
-    private string leaderboardTab = "level"; // "level", "arena" or "stage"
+    private string leaderboardTab = "level"; // "level", "arena", "stage" or "boss"
     private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
         .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
         .Take(leaderboardPageSize)
@@ -2075,6 +2172,26 @@
     private void CloseStageModal()
     {
         showStageModal = false;
+    }
+
+    private async Task OpenBossModeModal()
+    {
+        if (currentUser != null)
+        {
+            bossModeProgress = await BossModeService.GetOrCreateBossModeProgressAsync(currentUser.Id);
+        }
+        showBossModeModal = true;
+    }
+
+    private void CloseBossModeModal()
+    {
+        showBossModeModal = false;
+    }
+
+    private void StartBossMode()
+    {
+        showBossModeModal = false;
+        Navigation.NavigateTo("/my-tuno/boss-mode");
     }
 
     private void StartFromStage(int stage)

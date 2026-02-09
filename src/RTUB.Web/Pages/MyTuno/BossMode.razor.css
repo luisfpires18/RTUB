@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════
+   Defeat Summary Panel
+   ═══════════════════════════════════════════ */
+
+.defeat-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem 0;
+}
+
+.defeat-panel {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: linear-gradient(180deg, #1a1028 0%, #0d0a14 100%);
+  border: 2px solid rgba(124, 77, 255, 0.4);
+  border-radius: 24px;
+  padding: 3.5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow:
+    0 0 40px rgba(124, 77, 255, 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: defeat-slide-in 0.4s ease-out;
+}
+
+@keyframes defeat-slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.defeat-banner {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #7c4dff, #651fff);
+  padding: 0.5rem 2.5rem;
+  border-radius: 999px;
+  box-shadow:
+    0 4px 20px rgba(124, 77, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+.defeat-banner span {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.defeat-stage {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.5px;
+}
+
+.defeat-rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.defeat-reward-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.defeat-reward-row i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.defeat-no-rewards {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.defeat-btn {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c4dff, #651fff);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(124, 77, 255, 0.35);
+}
+
+.defeat-btn:hover {
+  background: linear-gradient(135deg, #9165ff, #7c4dff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(124, 77, 255, 0.5);
+}
+
+.defeat-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .defeat-panel {
+    max-width: 340px;
+    padding: 3rem 1.5rem 1.5rem;
+  }
+
+  .defeat-stage {
+    font-size: 1.3rem;
+  }
+}

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260209192549_AddBossModeAndFitab")]
+    partial class AddBossModeAndFitab
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -724,24 +727,8 @@ namespace RTUB.Migrations
                     b.Property<int>("CurrentBossStage")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("DailyBossMaxHP")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<int?>("DailyBossRemainingHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("DailyBossStage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
                     b.Property<int>("HighestBossStage")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("LastDailyResetDate")
-                        .HasColumnType("TEXT");
 
                     b.Property<int>("TotalBossStagesCleared")
                         .HasColumnType("INTEGER");

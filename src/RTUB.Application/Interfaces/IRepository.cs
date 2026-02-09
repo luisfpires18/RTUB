@@ -95,4 +95,11 @@ public interface IRepository<T> where T : class
     /// </summary>
     /// <returns>Number of state entries written to the database</returns>
     Task<int> SaveChangesAsync();
+
+    /// <summary>
+    /// Reloads an entity from the database, overwriting any local changes
+    /// and resetting the change tracker state for this entity.
+    /// </summary>
+    /// <param name="entity">The entity to reload</param>
+    Task ReloadAsync(T entity);
 }

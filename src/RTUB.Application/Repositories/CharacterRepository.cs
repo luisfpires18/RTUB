@@ -154,6 +154,11 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .AsNoTracking()
             .ToDictionaryAsync(sp => sp.UserId, sp => sp.HighestStage);
 
+        // Get highest boss stage for each user from BossModeProgress
+        var bossModeProgressData = await _context.BossModeProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(bp => bp.UserId, bp => bp.HighestBossStage);
+
         // Combine characters with their wins and sort
         var leaderboard = characters
             .Select(c => new MyTunoLeaderboardEntry
@@ -164,7 +169,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
                 AvatarUrl = c.ImageUrl,
                 Wins = c.ArenaWins,
                 Level = c.Level,
-                HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0
+                HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0,
+                HighestBossStage = bossModeProgressData.ContainsKey(c.UserId) ? bossModeProgressData[c.UserId] : 0
             })
             .OrderByDescending(entry => entry.Wins)
             .ThenByDescending(entry => entry.Level)

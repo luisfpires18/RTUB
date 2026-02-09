@@ -47,7 +47,7 @@
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
       "restoreHPCost": 20,
-      "beerDropChance": 0.05
+      "beerDropChance": 0.1
     },
 
     "stageMode": {
@@ -75,8 +75,8 @@
       },
 
       "dropRates": {
-        "beerDropChance": 0.10,
-        "shotDropChance": 0.05,
+        "beerDropChance": 0.1,
+        "shotDropChance": 0.01,
         "instrumentPartDropChance": 0.005,
         "equipmentDropChance": 0.008,
         "bossDropMultiplier": 3.0
@@ -227,6 +227,53 @@
           { "from": 9, "to": 9, "count": 5 }
         ]
       }
+    },
+
+    "bossMode": {
+      "stageOffset": 800,
+      "xpPerBossLevel": 25,
+      "bossLevelXPPower": 0.6,
+      "xpLevelPenaltyRate": 0.01,
+      "minXPLevelMultiplier": 0.1,
+
+      "difficultyCurve": {
+        "scalingRate": 0.18,
+        "growthExponent": 1.25
+      },
+      "rewardCurve": {
+        "scalingRate": 0.10,
+        "growthExponent": 1.12,
+        "levelBonusPerLevel": 0.05,
+        "levelBonusCap": 2.0
+      },
+
+      "baseBossStats": {
+        "hp": 200,
+        "power": 40,
+        "speed": 8,
+        "defense": 12,
+        "criticalChance": 0.15
+      },
+
+      "bossStatMultiplier": 2.5,
+
+      "dropRates": {
+        "beerDropChance": 0.1,
+        "shotDropChance": 0.01,
+        "instrumentPartDropChance": 0.02,
+        "equipmentDropChance": 0.015,
+        "fitabDropChance": 0.003
+      },
+
+      "fidelisRewards": {
+        "bossWin": 100
+      },
+
+      "fitabDropChanceStage": 0.002,
+      "fitabDropChanceBattle": 0.001,
+
+      "enemySpritePath": "sprites/games/my-tuno/enemies/jeans",
+      "backgroundPath": "/sprites/games/my-tuno/backgrounds/jeans.png"
     },
 
     "gathering": {

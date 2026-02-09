@@ -145,6 +145,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<StageProgress> StageProgresses { get; set; }
     public DbSet<StageEnemy> StageEnemies { get; set; }
 
+    // Boss Mode DbSets
+    public DbSet<BossModeProgress> BossModeProgresses { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

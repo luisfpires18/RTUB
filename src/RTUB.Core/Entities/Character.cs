@@ -201,6 +201,13 @@ public class Character : BaseEntity
     /// Minimum action time in seconds (cannot go below this)
     /// </summary>
     public const double MinActionTime = 1.0;
+
+    /// <summary>
+    /// Optional override for action time (used for stage enemies with stage-based speed tiers).
+    /// When set, bypasses the normal speed-stat calculation entirely.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double? ActionTimeOverride { get; set; }
     
     /// <summary>
     /// Time reduction per speed upgrade in seconds.
@@ -228,6 +235,10 @@ public class Character : BaseEntity
     {
         get
         {
+            // Stage enemies use a direct override based on stage tier
+            if (ActionTimeOverride.HasValue)
+                return Math.Max(MinActionTime, ActionTimeOverride.Value);
+
             var time = BaseActionTime;
             
             // Only speed gained above base reduces action time
@@ -295,7 +306,7 @@ public class Character : BaseEntity
     /// <param name="criticalChance">Critical hit chance</param>
     /// <param name="enemyName">Display name for the enemy</param>
     /// <returns>A Character instance for combat simulation</returns>
-    public static Character CreateStageEnemy(int hp, int power, int speed, int defense, double criticalChance, string enemyName)
+    public static Character CreateStageEnemy(int hp, int power, int speed, int defense, double criticalChance, string enemyName, double? actionTimeOverride = null)
     {
         var character = new Character
         {
@@ -312,7 +323,8 @@ public class Character : BaseEntity
             PowerUpgrades = 0,
             SpeedUpgrades = 0,
             CriticalUpgrades = 0,
-            DefenseUpgrades = 0
+            DefenseUpgrades = 0,
+            ActionTimeOverride = actionTimeOverride
         };
 
         // Create a temporary user with the enemy name

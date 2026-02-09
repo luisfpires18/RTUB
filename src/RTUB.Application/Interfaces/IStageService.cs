@@ -79,7 +79,7 @@ public interface IStageService
     /// Not called on cancel/back — rewards are forfeited.
     /// Optionally restores the character's HP to the value they had before the run started.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
 
     /// <summary>
     /// Gets the biome name for a given stage number
