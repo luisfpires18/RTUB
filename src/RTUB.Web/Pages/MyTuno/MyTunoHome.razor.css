@@ -648,28 +648,94 @@
   margin-bottom: 0.25rem;
 }
 
-/* Stage Box Styles */
-.stage-box {
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1rem;
-  border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* ==========================================
+   Stage Biome List
+   ========================================== */
+.stage-biomes-list {
+    max-height: 460px;
+    overflow-y: auto;
+    padding: 4px;
 }
 
-.stage-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+.biome-card {
+    background: #252535;
+    border-radius: 10px;
+    border-left: 4px solid var(--bc);
+    margin-bottom: 12px;
 }
 
-.stage-boxes-container {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 0.5rem;
+.biome-card:last-child {
+    margin-bottom: 0;
+}
+
+.biome-card.biome-current {
+    background: #2a2a42;
+    outline: 1px solid var(--bc);
+    outline-offset: -1px;
+}
+
+.biome-card.biome-done {
+    background: #222232;
+}
+
+.biome-card.biome-locked {
+    opacity: 0.35;
+    background: #1c1c28;
+}
+
+.biome-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+}
+
+.biome-clickable {
+    cursor: pointer;
+}
+
+.biome-clickable:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 8px 8px 0;
+}
+
+.biome-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px 16px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.biome-cp {
+    min-width: 52px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0 6px;
+}
+
+.biome-cp:hover {
+    background: var(--bc);
+    color: #fff;
+    border-color: var(--bc);
+    transform: translateY(-1px);
+}
+
+.biome-cp-active {
+    background: var(--bc);
+    color: #fff;
+    border-color: var(--bc);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--bc) 40%, transparent);
 }
 
 /* Leaderboard tabs - purple active state */

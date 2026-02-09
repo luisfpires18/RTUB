@@ -73,7 +73,7 @@
                         <span class="fidelis-bar__label">Fidelis</span>
                         <span class="fidelis-bar__value">@Fmt(currentUser.FidelisBalance)</span>
                     </div>
-                    <div class="fidelis-bar__icon ms-3" style="color: #e040fb;">
+                    <div class="fidelis-bar__icon ms-3" style="color: #ffffff;">
                         <i class="bi bi-lightning-fill"></i>
                     </div>
                     <div class="fidelis-bar__info">
@@ -483,9 +483,6 @@
                                     </span>
                                     <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
                                 </div>
-                                <small class="text-muted d-block mt-1">
-                                    <i class="bi bi-info-circle me-1"></i>Ativo em Arena e Modo Stage
-                                </small>
                             </div>
                         }
                         
@@ -1593,27 +1590,75 @@
         <Modal Show="@showStageModal"
                ShowChanged="@((bool show) => { if (!show) showStageModal = false; })"
                Title="Stage Mode"
-               Size="Modal.ModalSize.Default"
+               Size="Modal.ModalSize.Large"
                Centered="true">
             <BodyContent>
                 @if (stageProgress != null)
                 {
-                    <div class="text-center mb-4">
-                        <h5 class="mb-2">
+                    <div class="text-center mb-3">
+                        <h5 class="mb-0">
                             <i class="bi bi-trophy text-warning me-2"></i>
                             Maior Stage Alcançado: <span class="text-success">Stage @stageProgress.HighestStage</span>
                         </h5>
                     </div>
                     
-                    <p class="text-muted text-center mb-3">Seleciona um checkpoint para começar:</p>
-                    
-                    <div class="stage-boxes-container d-flex flex-wrap justify-content-center gap-2">
-                        @foreach (var checkpoint in GetAvailableCheckpoints(stageProgress.HighestStage))
+                    <div class="stage-biomes-list">
+                        @{
+                            var biomes = MyTunoConfig.Value.StageMode.Biomes;
+                            var highestStage = stageProgress.HighestStage;
+                        }
+                        @foreach (var biome in biomes)
                         {
-                            <button class="stage-box btn @(checkpoint == 1 ? "btn-primary" : "btn-outline-primary")" 
-                                    @onclick="() => StartFromStage(checkpoint)">
-                                @checkpoint
-                            </button>
+                            var isUnlocked = highestStage >= biome.StageMin;
+                            var isCompleted = highestStage > biome.StageMax;
+                            var isCurrent = highestStage >= biome.StageMin && highestStage <= biome.StageMax;
+                            var biomeCheckpoints = GetCheckpointsForBiome(biome.StageMin, biome.StageMax, highestStage);
+                            var icon = GetBiomeIcon(biome.Name);
+                            var color = GetBiomeColor(biome.Name);
+                            var rangeText = biome.StageMax >= 999999 ? $"{biome.StageMin}+" : $"{biome.StageMin}–{biome.StageMax}";
+                            var isExpanded = expandedBiomes.Contains(biome.Name);
+
+                            <div class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
+                                 style="--bc: @color;">
+                                <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
+                                     @onclick="() => { if (isUnlocked) ToggleBiomeExpanded(biome.Name); }">
+                                    <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">@biome.Name</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Stages @rangeText</div>
+                                    </div>
+                                    @if (isCompleted)
+                                    {
+                                        <i class="bi bi-check-circle-fill" style="color: @color; font-size: 1rem;"></i>
+                                    }
+                                    else if (isCurrent)
+                                    {
+                                        <span class="badge" style="background: @color; font-size: 0.68rem;">Atual</span>
+                                    }
+                                    else if (!isUnlocked)
+                                    {
+                                        <i class="bi bi-lock-fill" style="color: rgba(255,255,255,0.2);"></i>
+                                    }
+                                    @if (isUnlocked)
+                                    {
+                                        <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down")" style="color: rgba(255,255,255,0.3);"></i>
+                                    }
+                                </div>
+                                @if (isUnlocked && isExpanded && biomeCheckpoints.Count > 0)
+                                {
+                                    <div class="biome-grid">
+                                        @foreach (var cp in biomeCheckpoints)
+                                        {
+                                            var isHighest = cp >= highestStage - 9 && cp <= highestStage;
+                                            <button class="biome-cp @(isHighest ? "biome-cp-active" : "")"
+                                                    style="--bc: @color;"
+                                                    @onclick="() => StartFromStage(cp)">
+                                                @cp
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         }
                     </div>
                 }
@@ -1820,6 +1865,7 @@
     
     // Stage modal state
     private bool showStageModal = false;
+    private HashSet<string> expandedBiomes = new();
     
     // Boss Mode modal state
     private bool showBossModeModal = false;
@@ -2166,7 +2212,22 @@
             // Load stage progress
             stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
         }
+        // Auto-expand the current biome
+        expandedBiomes.Clear();
+        if (stageProgress != null)
+        {
+            var biomes = MyTunoConfig.Value.StageMode.Biomes;
+            var current = biomes.FirstOrDefault(b => stageProgress.HighestStage >= b.StageMin && stageProgress.HighestStage <= b.StageMax);
+            if (current != null)
+                expandedBiomes.Add(current.Name);
+        }
         showStageModal = true;
+    }
+
+    private void ToggleBiomeExpanded(string biomeName)
+    {
+        if (!expandedBiomes.Remove(biomeName))
+            expandedBiomes.Add(biomeName);
     }
 
     private void CloseStageModal()
@@ -2237,6 +2298,66 @@
         
         return checkpoints;
     }
+
+    /// <summary>
+    /// Gets checkpoints that fall within a specific biome's stage range
+    /// </summary>
+    private static List<int> GetCheckpointsForBiome(int stageMin, int stageMax, int highestStage)
+    {
+        var checkpoints = new List<int>();
+        var maxReachable = Math.Min(stageMax, highestStage);
+
+        // First checkpoint: the biome's starting stage (always stage 1 for Forest, stageMin for others)
+        if (stageMin <= highestStage)
+        {
+            checkpoints.Add(stageMin);
+        }
+
+        // Add checkpoints every 10 stages after bosses
+        // Bosses are at stages 10, 20, 30... relative to global. Checkpoints at 11, 21, 31...
+        var firstCheckpointAfterBoss = stageMin == 1 ? 11 : stageMin + 10;
+        for (int stage = firstCheckpointAfterBoss; stage <= maxReachable; stage += 10)
+        {
+            if (stage >= stageMin && stage <= stageMax)
+            {
+                checkpoints.Add(stage);
+            }
+        }
+
+        return checkpoints;
+    }
+
+    private static string GetBiomeIcon(string biomeName) => biomeName switch
+    {
+        "Forest" => "bi-tree-fill",
+        "Swamp" => "bi-droplet-fill",
+        "Mountains" => "bi-triangle-fill",
+        "Snowy" => "bi-snow2",
+        "Tropical" => "bi-sun-fill",
+        "Caverns" => "bi-gem",
+        "Desert" => "bi-brightness-high-fill",
+        "Volcanic" => "bi-fire",
+        "Ruins" => "bi-building",
+        "Dark" => "bi-moon-fill",
+        "Void" => "bi-infinity",
+        _ => "bi-geo-alt-fill"
+    };
+
+    private static string GetBiomeColor(string biomeName) => biomeName switch
+    {
+        "Forest" => "#4caf50",
+        "Swamp" => "#8bc34a",
+        "Mountains" => "#78909c",
+        "Snowy" => "#81d4fa",
+        "Tropical" => "#ff9800",
+        "Caverns" => "#9c27b0",
+        "Desert" => "#ffb74d",
+        "Volcanic" => "#f44336",
+        "Ruins" => "#795548",
+        "Dark" => "#37474f",
+        "Void" => "#7c4dff",
+        _ => "#6f42c1"
+    };
 
     private void ChangeLeaderboardPage(int page)
     {
