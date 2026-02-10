@@ -6,7 +6,7 @@
 // Optimized for mobile PWA performance
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v29';
+const CACHE_VERSION = 'rtub-v30';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -340,3 +340,124 @@ self.addEventListener('message', (event) => {
         self.skipWaiting();
     }
 });
+
+// Push subscription change event - handle browser-initiated subscription rotation
+// Chrome on Android periodically rotates push endpoints for security.
+// Without this handler, the old endpoint becomes invalid (410 Gone) and
+// the user silently stops receiving notifications until they manually re-subscribe.
+self.addEventListener('pushsubscriptionchange', (event) => {
+    console.log('[Service Worker] Push subscription changed');
+    
+    const resubscribe = async () => {
+        try {
+            // Get the new subscription using the same VAPID key
+            const oldSubscription = event.oldSubscription;
+            const newSubscription = event.newSubscription;
+            
+            if (newSubscription) {
+                // Browser already created a new subscription, send it to server
+                const subJson = newSubscription.toJSON();
+                
+                const response = await fetch('/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        endpoint: subJson.endpoint,
+                        keys: {
+                            p256dh: subJson.keys.p256dh,
+                            auth: subJson.keys.auth
+                        },
+                        expirationTime: newSubscription.expirationTime
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('[Service Worker] New push subscription sent to server');
+                } else {
+                    console.error('[Service Worker] Failed to send new subscription:', response.status);
+                }
+            } else if (oldSubscription) {
+                // No new subscription provided, try to create one
+                // We need the VAPID key - fetch it from the server
+                try {
+                    const statusResponse = await fetch('/api/push/status', { credentials: 'include' });
+                    if (statusResponse.ok) {
+                        const status = await statusResponse.json();
+                        if (status.vapidPublicKey) {
+                            // Convert VAPID key and resubscribe
+                            const applicationServerKey = urlBase64ToUint8Array(status.vapidPublicKey);
+                            const subscription = await self.registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: applicationServerKey
+                            });
+                            
+                            const subJson = subscription.toJSON();
+                            await fetch('/api/push/subscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({
+                                    endpoint: subJson.endpoint,
+                                    keys: {
+                                        p256dh: subJson.keys.p256dh,
+                                        auth: subJson.keys.auth
+                                    },
+                                    expirationTime: subscription.expirationTime
+                                })
+                            });
+                            console.log('[Service Worker] Successfully re-subscribed after endpoint rotation');
+                        }
+                    }
+                } catch (resubError) {
+                    console.error('[Service Worker] Failed to re-subscribe:', resubError);
+                    // Notify clients that subscription was lost so they can show re-subscribe UI
+                    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+                    clientList.forEach((client) => {
+                        client.postMessage({ type: 'rtub:subscription-lost' });
+                    });
+                }
+            }
+
+            // Notify server to remove old subscription if we had one
+            if (oldSubscription && oldSubscription.endpoint) {
+                try {
+                    await fetch('/api/push/unsubscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ endpoint: oldSubscription.endpoint })
+                    });
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
+            }
+        } catch (error) {
+            console.error('[Service Worker] Error handling subscription change:', error);
+            // Notify clients about the failure
+            const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+            clientList.forEach((client) => {
+                client.postMessage({ type: 'rtub:subscription-lost' });
+            });
+        }
+    };
+    
+    event.waitUntil(resubscribe());
+});
+
+// Helper: Convert URL-safe base64 string to Uint8Array (for service worker context)
+function urlBase64ToUint8Array(base64String) {
+    const paddingLength = (4 - base64String.length % 4) % 4;
+    const padding = '='.repeat(paddingLength);
+    const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}

@@ -1,5 +1,6 @@
 // Push Notifications Manager
 // Handles service worker registration, permission requests, and subscription management
+// Supports PWA standalone mode and TWA (Trusted Web Activity) from the Play Store
 
 class PushNotificationsManager {
     constructor() {
@@ -178,6 +179,11 @@ class PushNotificationsManager {
 
             this.subscription = subscription;
             console.log('Successfully subscribed to push notifications');
+
+            // Clear any subscription-lost flags since we have a valid subscription now
+            if (window.pwaHelper && typeof window.pwaHelper.clearSubscriptionLost === 'function') {
+                window.pwaHelper.clearSubscriptionLost();
+            }
             
             return true;
         } catch (error) {
@@ -238,9 +244,95 @@ class PushNotificationsManager {
     }
 
     /**
+     * Validates and refreshes the push subscription if needed
+     * Handles expired/rotated subscriptions by creating a new one
+     * Returns: 'active' | 'refreshed' | 'missing' | 'error'
+     */
+    async validateAndRefreshSubscription() {
+        try {
+            if (!this.registration || !this.registration.pushManager) {
+                return 'error';
+            }
+
+            const subscription = await this.registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                // No subscription exists
+                // If permission was previously granted, the subscription was lost
+                if (Notification.permission === 'granted' && this.vapidPublicKey) {
+                    console.log('Push subscription lost, attempting to re-subscribe...');
+                    try {
+                        await this.subscribe();
+                        // Clear the subscription-lost flag
+                        if (window.pwaHelper) {
+                            window.pwaHelper.clearSubscriptionLost();
+                        }
+                        return 'refreshed';
+                    } catch (resubError) {
+                        console.error('Failed to re-subscribe:', resubError);
+                        if (window.pwaHelper) {
+                            window.pwaHelper.markSubscriptionLost();
+                        }
+                        return 'error';
+                    }
+                }
+                return 'missing';
+            }
+
+            // Check if subscription has expired
+            if (subscription.expirationTime && subscription.expirationTime < Date.now()) {
+                console.log('Push subscription expired, refreshing...');
+                // Unsubscribe the old one
+                try {
+                    await subscription.unsubscribe();
+                } catch (e) {
+                    // Ignore unsubscribe errors for expired subscriptions
+                }
+
+                // Create a new subscription
+                try {
+                    await this.subscribe();
+                    if (window.pwaHelper) {
+                        window.pwaHelper.clearSubscriptionLost();
+                    }
+                    return 'refreshed';
+                } catch (resubError) {
+                    console.error('Failed to refresh expired subscription:', resubError);
+                    if (window.pwaHelper) {
+                        window.pwaHelper.markSubscriptionLost();
+                    }
+                    return 'error';
+                }
+            }
+
+            // Subscription exists and is valid - ensure server has it
+            // This handles cases where the server lost the subscription
+            // (e.g., server received 410 Gone but client still has it)
+            try {
+                await this.sendSubscriptionToServer(subscription);
+                this.subscription = subscription;
+            } catch (syncError) {
+                console.warn('Failed to sync subscription with server:', syncError);
+                // Non-fatal - subscription may still work
+            }
+
+            return 'active';
+        } catch (error) {
+            console.error('Error validating subscription:', error);
+            return 'error';
+        }
+    }
+
+    /**
      * Sends subscription to the server
+     * Uses the subscription's toJSON() method which provides keys in proper base64url format
      */
     async sendSubscriptionToServer(subscription) {
+        // Use toJSON() which returns keys in the correct base64url encoding
+        // Manual ArrayBuffer→base64 conversion can produce standard base64 with +/= chars
+        // that cause silent push delivery failures on some Android devices
+        const subJson = subscription.toJSON();
+        
         const response = await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: {
@@ -248,10 +340,10 @@ class PushNotificationsManager {
             },
             credentials: 'include',
             body: JSON.stringify({
-                endpoint: subscription.endpoint,
+                endpoint: subJson.endpoint,
                 keys: {
-                    p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
-                    auth: this.arrayBufferToBase64(subscription.getKey('auth'))
+                    p256dh: subJson.keys.p256dh,
+                    auth: subJson.keys.auth
                 },
                 expirationTime: subscription.expirationTime
             })
@@ -334,7 +426,24 @@ class PushNotificationsManager {
     }
 
     /**
-     * Converts ArrayBuffer to base64 string
+     * Converts ArrayBuffer to base64url string (URL-safe, no padding)
+     * This is the correct encoding for Web Push subscription keys
+     */
+    arrayBufferToBase64Url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary)
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+    }
+
+    /**
+     * Converts ArrayBuffer to standard base64 string
+     * @deprecated Use arrayBufferToBase64Url or subscription.toJSON() instead
      */
     arrayBufferToBase64(buffer) {
         const bytes = new Uint8Array(buffer);

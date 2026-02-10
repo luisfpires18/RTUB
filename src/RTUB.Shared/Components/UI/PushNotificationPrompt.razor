@@ -13,9 +13,16 @@
             <div class="push-prompt-icon">
                 <i class="bi bi-bell-fill"></i>
             </div>
-            <h3 class="push-prompt-title">Ativar Notificações?</h3>
+            <h3 class="push-prompt-title">@(IsRecoveryMode ? "Reativar Notificações?" : "Ativar Notificações?")</h3>
             <p class="push-prompt-message">
-                Receba notificações sobre atuações, ensaios, mensagens e outras atualizações importantes da RTUB.
+                @if (IsRecoveryMode)
+                {
+                    <text>As suas notificações push foram desativadas. Reative para continuar a receber atualizações sobre atuações, ensaios e mensagens.</text>
+                }
+                else
+                {
+                    <text>Receba notificações sobre atuações, ensaios, mensagens e outras atualizações importantes da RTUB.</text>
+                }
             </p>
             <div class="push-prompt-buttons">
                 <button class="btn btn-primary btn-primary-purple" @onclick="HandleAllow" disabled="@IsProcessing" aria-label="Ativar notificações push">
@@ -42,6 +49,7 @@
 @code {
     private bool ShowPrompt { get; set; } = false;
     private bool IsProcessing { get; set; } = false;
+    private bool IsRecoveryMode { get; set; } = false;
     private string? ErrorMessage { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -57,7 +65,43 @@
                     return;
                 }
 
-                // Check if we should show the prompt
+                // In PWA/TWA mode, check subscription health first
+                // This handles cases where Chrome rotated the push endpoint
+                // or the subscription expired while the app was closed
+                var isPwa = await JSRuntime.InvokeAsync<bool>("pwaHelper.isPwaMode");
+                if (isPwa)
+                {
+                    var health = await JSRuntime.InvokeAsync<string>("pwaHelper.checkSubscriptionHealth");
+                    
+                    if (health == "missing" || health == "expired")
+                    {
+                        // Subscription was lost - attempt silent re-subscribe first
+                        var status = await JSRuntime.InvokeAsync<PushStatusDto?>("pwaHelper.getPushStatus");
+                        if (status != null && status.IsEnabled && status.IsConfigured)
+                        {
+                            // Try automatic recovery (only if permission was already granted)
+                            var permissionGranted = await JSRuntime.InvokeAsync<bool>("eval", 
+                                "Notification.permission === 'granted'");
+                            
+                            if (permissionGranted)
+                            {
+                                var recovered = await TrySilentResubscribe();
+                                if (recovered)
+                                {
+                                    return; // Successfully recovered, no prompt needed
+                                }
+                            }
+                            
+                            // Silent recovery failed - show the prompt in recovery mode
+                            IsRecoveryMode = true;
+                            ShowPrompt = true;
+                            StateHasChanged();
+                            return;
+                        }
+                    }
+                }
+
+                // Standard first-time prompt flow
                 var shouldShow = await JSRuntime.InvokeAsync<bool>("pwaHelper.shouldShowPushPrompt");
 
                 if (shouldShow)
@@ -76,6 +120,49 @@
             {
                 Logger.LogError(ex, "Error checking if push prompt should be shown");
             }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to silently re-subscribe to push notifications without user interaction.
+    /// This handles the case where Chrome rotated the push endpoint while the app was closed.
+    /// Returns true if the re-subscription was successful.
+    /// </summary>
+    private async Task<bool> TrySilentResubscribe()
+    {
+        try
+        {
+            // Initialize push manager
+            var initialized = await JSRuntime.InvokeAsync<bool>("pwaHelper.initializePushManager");
+            if (!initialized)
+            {
+                return false;
+            }
+
+            // Use the validate and refresh method which handles re-subscription
+            var result = await JSRuntime.InvokeAsync<string>("eval", @"
+                (async () => {
+                    if (window.rtubPushManager && typeof window.rtubPushManager.validateAndRefreshSubscription === 'function') {
+                        return await window.rtubPushManager.validateAndRefreshSubscription();
+                    }
+                    return 'error';
+                })()
+            ");
+
+            if (result == "active" || result == "refreshed")
+            {
+                Logger.LogInformation("Push subscription silently recovered: {Result}", result);
+                // Clear the subscription-lost flag
+                await JSRuntime.InvokeVoidAsync("pwaHelper.clearSubscriptionLost");
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Silent push re-subscription failed");
+            return false;
         }
     }
 

@@ -43,6 +43,15 @@
                 <i class="bi bi-check-circle"></i> @SuccessMessage
             </div>
         }
+
+        @if (ShowAndroidHint)
+        {
+            <div class="alert alert-warning alert-sm mt-2 mb-0" role="alert">
+                <i class="bi bi-phone"></i> <strong>Não recebe notificações?</strong>
+                <br/>Verifique nas definições do Android se as notificações estão ativadas para esta aplicação.
+                <br/><small class="text-muted">Definições → Aplicações → RTUB (ou Chrome) → Notificações</small>
+            </div>
+        }
     }
 </div>
 
@@ -51,6 +60,7 @@
     private bool HasAccess { get; set; } = false;
     private bool IsSubscribed { get; set; } = false;
     private bool IsProcessing { get; set; } = false;
+    private bool ShowAndroidHint { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
 
@@ -130,6 +140,20 @@
                         return false;
                     })()
                 ");
+
+                // Show Android notification hint if subscribed but on Android
+                // Android 13+ may have OS-level notification blocking even when browser permission is granted
+                if (IsSubscribed)
+                {
+                    ShowAndroidHint = await JSRuntime.InvokeAsync<bool>("eval", @"
+                        (function() {
+                            var ua = navigator.userAgent || '';
+                            var isAndroid = /Android/i.test(ua);
+                            var isPwa = window.pwaHelper && window.pwaHelper.isPwaMode();
+                            return isAndroid && isPwa;
+                        })()
+                    ");
+                }
             }
         }
         catch (Exception ex)

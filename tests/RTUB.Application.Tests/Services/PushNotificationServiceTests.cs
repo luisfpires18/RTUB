@@ -684,4 +684,43 @@ public class PushNotificationServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Theory]
+    [InlineData("abc+def/ghi=", "abc-def_ghi")]
+    [InlineData("abc-def_ghi", "abc-def_ghi")]
+    [InlineData("AQID", "AQID")]
+    [InlineData("AQ==", "AQ")]
+    [InlineData("", "")]
+    [InlineData(null, null)]
+    public void NormalizeBase64Url_ConvertsCorrectly(string? input, string? expected)
+    {
+        var result = PushNotificationService.NormalizeBase64Url(input!);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_NormalizesBase64UrlKeys()
+    {
+        // Arrange - Standard base64 keys with + and / characters
+        var subscription = new PushSubscriptionDto
+        {
+            Endpoint = "https://push.example.com/test",
+            Keys = new PushKeysDto
+            {
+                P256dh = "abc+def/ghi=",
+                Auth = "xyz+123/456=="
+            }
+        };
+
+        _mockRepository.Setup(r => r.GetByEndpointAsync(subscription.Endpoint))
+            .ReturnsAsync((PushSubscription?)null);
+
+        // Act
+        await _service.SubscribeAsync("user-1", subscription, "test-ua", "Test User");
+
+        // Assert - Keys should be normalized to base64url format
+        _mockRepository.Verify(r => r.AddAsync(It.Is<PushSubscription>(
+            s => s.P256dh == "abc-def_ghi" && s.Auth == "xyz-123_456"
+        )), Times.Once);
+    }
 }

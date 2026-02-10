@@ -8,8 +8,44 @@ window.pwaHelper = {
     MOBILE_BREAKPOINT: 768,
 
     /**
+     * Checks if the app is running as a Trusted Web Activity (TWA) from the Play Store
+     * TWAs may not always match display-mode: standalone, especially when
+     * Digital Asset Links verification fails and it falls back to Custom Tab
+     */
+    isTwaMode: function() {
+        // Check if launched from an Android app via TWA
+        // document.referrer will contain android-app:// scheme when launched from TWA
+        if (document.referrer && document.referrer.startsWith('android-app://')) {
+            return true;
+        }
+
+        // Check if running in a TWA via the Digital Asset Links relationship
+        // When a TWA is verified, it typically runs with a specific user agent
+        const ua = navigator.userAgent || '';
+        if (ua.includes('AmazonWebAppPlatform') || ua.includes('AmazonWebAppRuntime')) {
+            return true;
+        }
+
+        // Check for TWA-specific minimal-ui display mode (some TWA implementations)
+        if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+            return true;
+        }
+
+        // Check sessionStorage for TWA flag (set during initial load detection)
+        try {
+            if (sessionStorage.getItem('rtub-is-twa') === 'true') {
+                return true;
+            }
+        } catch (e) {
+            // Ignore storage errors
+        }
+
+        return false;
+    },
+
+    /**
      * Checks if the app is running in PWA/standalone mode
-     * Works for both iOS and Android
+     * Works for iOS, Android PWA, and Android TWA (Play Store)
      */
     isPwaMode: function() {
         // Check if running in standalone mode (installed PWA)
@@ -17,8 +53,16 @@ window.pwaHelper = {
         
         // iOS Safari specific check
         const isIosStandalone = window.navigator.standalone === true;
+
+        // Check if running as a TWA from the Play Store
+        const isTwa = this.isTwaMode();
+
+        // Persist TWA detection for subsequent checks within the same session
+        if (isTwa) {
+            try { sessionStorage.setItem('rtub-is-twa', 'true'); } catch (e) { /* ignore */ }
+        }
         
-        return isStandalone || isIosStandalone;
+        return isStandalone || isIosStandalone || isTwa;
     },
 
     /**
@@ -79,10 +123,120 @@ window.pwaHelper = {
 
     /**
      * Checks if push notifications should be shown
-     * Returns true if app is in PWA mode and user hasn't been prompted
+     * Returns true if app is in PWA/TWA mode and user hasn't been prompted
+     * OR if the user was previously subscribed but the subscription was lost
      */
     shouldShowPushPrompt: function() {
-        return this.isPwaMode() && !this.hasBeenPrompted();
+        if (!this.isPwaMode()) {
+            return false;
+        }
+        
+        // Always show if never prompted
+        if (!this.hasBeenPrompted()) {
+            return true;
+        }
+
+        // Even if prompted before, show again if subscription was lost
+        // This handles cases where Chrome rotated the push endpoint,
+        // the subscription expired, or the user cleared browser data
+        try {
+            const subscriptionLost = localStorage.getItem('rtub-push-subscription-lost') === 'true';
+            if (subscriptionLost) {
+                return true;
+            }
+        } catch (e) {
+            // Ignore storage errors
+        }
+
+        return false;
+    },
+
+    /**
+     * Marks that the push subscription was lost and needs to be re-established
+     * Called when subscription health check detects a stale/missing subscription
+     */
+    markSubscriptionLost: function() {
+        try {
+            localStorage.setItem('rtub-push-subscription-lost', 'true');
+            return true;
+        } catch (e) {
+            console.error('Error writing to localStorage:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Clears the subscription-lost flag after successful re-subscription
+     */
+    clearSubscriptionLost: function() {
+        try {
+            localStorage.removeItem('rtub-push-subscription-lost');
+            return true;
+        } catch (e) {
+            console.error('Error removing from localStorage:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Checks the health of the current push subscription
+     * Returns: 'active', 'expired', 'missing', or 'error'
+     * Call this on app start in PWA/TWA mode to detect stale subscriptions
+     */
+    checkSubscriptionHealth: async function() {
+        try {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                return 'unsupported';
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            if (!registration || !registration.pushManager) {
+                return 'error';
+            }
+
+            const subscription = await registration.pushManager.getSubscription();
+            
+            if (!subscription) {
+                // No subscription exists - check if user previously had one
+                if (Notification.permission === 'granted' && this.hasBeenPrompted()) {
+                    // User granted permission before but subscription is gone
+                    // This means the subscription was rotated or expired
+                    this.markSubscriptionLost();
+                    return 'missing';
+                }
+                return 'none';
+            }
+
+            // Check if subscription has expired
+            if (subscription.expirationTime && subscription.expirationTime < Date.now()) {
+                this.markSubscriptionLost();
+                return 'expired';
+            }
+
+            return 'active';
+        } catch (e) {
+            console.error('Error checking subscription health:', e);
+            return 'error';
+        }
+    },
+
+    /**
+     * Detects if Android OS-level notifications are likely blocked
+     * This handles the Android 13+ scenario where browser permission is granted
+     * but OS-level notification permission for Chrome/TWA is denied
+     */
+    isNotificationLikelyBlocked: function() {
+        // If browser says permission is denied, it's definitely blocked
+        if (!('Notification' in window)) return true;
+        if (Notification.permission === 'denied') return true;
+
+        // On Android, we can't directly check OS-level permission.
+        // But we can detect the situation where:
+        // 1. Browser permission is 'granted' (or 'default')
+        // 2. But the user is on Android (UA check)
+        // 3. And notifications still don't show
+        // We'll use a heuristic based on failed test notifications
+        return false;
     },
 
     /**

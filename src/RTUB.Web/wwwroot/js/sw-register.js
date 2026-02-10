@@ -19,6 +19,16 @@
             // This works for both regular and PWA mode
             window.location.href = event.data.url;
         }
+
+        // Handle subscription-lost events from service worker
+        // This fires when Chrome rotates the push endpoint and re-subscription fails
+        if (event.data && event.data.type === 'rtub:subscription-lost') {
+            console.warn('[SW Register] Push subscription was lost');
+            // Mark subscription as lost so the UI can prompt re-subscription
+            if (window.pwaHelper && typeof window.pwaHelper.markSubscriptionLost === 'function') {
+                window.pwaHelper.markSubscriptionLost();
+            }
+        }
     });
 
     // Register service worker immediately (not waiting for load event)

@@ -71,6 +71,12 @@ public class PushNotificationService : IPushNotificationService
 
         var displayName = string.IsNullOrWhiteSpace(userName) ? "Unknown user" : userName;
 
+        // Normalize keys: the WebPush library accepts both base64 and base64url,
+        // but some Android browsers send base64url while others send standard base64.
+        // Normalize to base64url (URL-safe, no padding) for consistent storage.
+        var p256dh = NormalizeBase64Url(subscription.Keys.P256dh);
+        var auth = NormalizeBase64Url(subscription.Keys.Auth);
+
         // Check if subscription already exists
         var existingSubscription = await _subscriptionRepository.GetByEndpointAsync(subscription.Endpoint);
 
@@ -78,8 +84,8 @@ public class PushNotificationService : IPushNotificationService
         {
             // Update existing subscription
             existingSubscription.UserId = userId;
-            existingSubscription.P256dh = subscription.Keys.P256dh;
-            existingSubscription.Auth = subscription.Keys.Auth;
+            existingSubscription.P256dh = p256dh;
+            existingSubscription.Auth = auth;
             existingSubscription.UserAgent = userAgent;
             existingSubscription.ExpirationTime = subscription.ExpirationTime;
             existingSubscription.UpdatedAt = DateTime.UtcNow;
@@ -93,8 +99,8 @@ public class PushNotificationService : IPushNotificationService
             {
                 UserId = userId,
                 Endpoint = subscription.Endpoint,
-                P256dh = subscription.Keys.P256dh,
-                Auth = subscription.Keys.Auth,
+                P256dh = p256dh,
+                Auth = auth,
                 UserAgent = userAgent,
                 ExpirationTime = subscription.ExpirationTime
             };
@@ -283,6 +289,25 @@ public class PushNotificationService : IPushNotificationService
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Normalizes a base64 or base64url string to base64url format (URL-safe, no padding).
+    /// Different browsers/devices may send keys in standard base64 (with +/=) or base64url (with -/_).
+    /// The WebPush library handles both, but consistent storage prevents duplicate subscriptions.
+    /// </summary>
+    internal static string NormalizeBase64Url(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
+
+        // Convert standard base64 characters to base64url
+        var result = input
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+
+        return result;
     }
 
     /// <summary>

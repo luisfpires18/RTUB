@@ -25,6 +25,9 @@ public class PushNotificationPromptTests : TestContext
 
         // Setup JSInterop for component
         JSInterop.SetupVoid("pwaHelper.markAsPrompted", _ => true);
+        // Default: not in PWA mode (skips subscription health check path)
+        JSInterop.Setup<bool>("pwaHelper.isPwaMode", _ => true)
+            .SetResult(false);
     }
 
     [Fact]
