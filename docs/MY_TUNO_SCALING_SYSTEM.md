@@ -23,7 +23,7 @@ The scaling system is configured via `scaling.config.json` and defined in `MyTun
   "power": 10,
   "speed": 10,
   "defense": 5,
-  "criticalChance": 0.01
+  "criticalChance": 0.0
 }
 ```
 

@@ -54,21 +54,39 @@ public class SurviveModeService : ISurviveModeService
     private const int ViewportHeight = 500;
     private const int MaxLevel = 11;                       // Void is the final level
 
-    // Per-level difficulty scaling: [levelIndex] = (spawnMult, speedMult)
-    // Level 1 = base, scaling ~+15% spawn and ~+12% speed per level
+    // All levels start the same — difficulty ramps over TIME within each level,
+    // not across levels. The per-biome time-ramp rates below control how fast
+    // spawns and enemy speed increase every minute during a level.
     private static readonly (double spawnMult, double speedMult)[] LevelScaling = new[]
     {
         (1.00, 1.00), // Level 1  - Forest
-        (1.15, 1.12), // Level 2  - Swamp
-        (1.32, 1.25), // Level 3  - Mountains
-        (1.52, 1.40), // Level 4  - Snowy
-        (1.75, 1.57), // Level 5  - Tropical
-        (2.01, 1.76), // Level 6  - Caverns
-        (2.31, 1.97), // Level 7  - Desert
-        (2.66, 2.20), // Level 8  - Volcanic
-        (3.06, 2.46), // Level 9  - Ruins
-        (3.52, 2.76), // Level 10 - Dark
-        (4.05, 3.09), // Level 11 - Void (final)
+        (1.00, 1.00), // Level 2  - Swamp
+        (1.00, 1.00), // Level 3  - Mountains
+        (1.00, 1.00), // Level 4  - Snowy
+        (1.00, 1.00), // Level 5  - Tropical
+        (1.00, 1.00), // Level 6  - Caverns
+        (1.00, 1.00), // Level 7  - Desert
+        (1.00, 1.00), // Level 8  - Volcanic
+        (1.00, 1.00), // Level 9  - Ruins
+        (1.00, 1.00), // Level 10 - Dark
+        (1.00, 1.00), // Level 11 - Void (final)
+    };
+
+    // Per-biome time-based ramp: (spawnRampPerMinute, speedRampPerMinute)
+    // Each minute within a level, spawns get X% faster and enemies move Y% faster.
+    private static readonly (double spawnRamp, double speedRamp)[] BiomeTimeRamp = new[]
+    {
+        (0.20, 0.10), // Level 1  - Forest:    +20% spawn / +10% speed per min
+        (0.25, 0.15), // Level 2  - Swamp:     +25% spawn / +15% speed per min
+        (0.30, 0.20), // Level 3  - Mountains: +30% spawn / +20% speed per min
+        (0.35, 0.25), // Level 4  - Snowy:     +35% spawn / +25% speed per min
+        (0.40, 0.30), // Level 5  - Tropical:  +40% spawn / +30% speed per min
+        (0.45, 0.35), // Level 6  - Caverns:   +45% spawn / +35% speed per min
+        (0.50, 0.40), // Level 7  - Desert:    +50% spawn / +40% speed per min
+        (0.55, 0.45), // Level 8  - Volcanic:  +55% spawn / +45% speed per min
+        (0.60, 0.50), // Level 9  - Ruins:     +60% spawn / +50% speed per min
+        (0.65, 0.55), // Level 10 - Dark:      +65% spawn / +55% speed per min
+        (0.70, 0.60), // Level 11 - Void:      +70% spawn / +60% speed per min
     };
 
     // Reward constants
@@ -208,6 +226,10 @@ public class SurviveModeService : ISurviveModeService
         // Void (level 11) is the final level — no bosses, timer expiry = win
         var isFinalLevel = level >= MaxLevel;
 
+        // Per-biome time ramp rates
+        var rampIdx = Math.Clamp(level - 1, 0, BiomeTimeRamp.Length - 1);
+        var (spawnRampPerMin, speedRampPerMin) = BiomeTimeRamp[rampIdx];
+
         return new SurviveModeLevelConfig
         {
             Level = level,
@@ -230,7 +252,9 @@ public class SurviveModeService : ISurviveModeService
             MapHeight = MapHeight,
             ViewportWidth = ViewportWidth,
             ViewportHeight = ViewportHeight,
-            IsFinalLevel = isFinalLevel
+            IsFinalLevel = isFinalLevel,
+            SpawnRampPerMinute = spawnRampPerMin,
+            SpeedRampPerMinute = speedRampPerMin
         };
     }
 

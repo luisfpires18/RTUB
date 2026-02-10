@@ -89,13 +89,13 @@ public class CritChanceDebugTests
         var character = Character.Create("user1");
         
         // Test various scenarios
-        character.CriticalChance = 0.01; // 1% base
-        character.CriticalUpgrades = 7;  // 7 * 0.005 = 0.035 = 3.5%
+        character.CriticalChance = 0.0; // 0% base (default)
+        character.CriticalUpgrades = 9;  // 9 * 0.005 = 0.045 = 4.5%
         
         // Act
         var total = character.TotalCriticalChance;
         
-        // Assert - Should be 1% + 3.5% = 4.5%
+        // Assert - Should be 0% + 4.5% = 4.5%
         total.Should().BeApproximately(0.045, 0.001, 
             $"Expected 0.045 (4.5%), got {total} ({total * 100:F1}%)");
     }

@@ -367,12 +367,12 @@ public class CharacterTests
     {
         // Arrange
         var character = Character.Create("user-123");
-        character.CriticalChance = 0.01; // 1% base
+        character.CriticalChance = 0.0; // 0% base (default)
         character.CriticalUpgrades = 10; // Each gives 0.5% bonus
 
         // Act & Assert
-        // Total = 0.01 + (10 * 0.005) = 0.01 + 0.05 = 0.06 (6%)
-        character.TotalCriticalChance.Should().BeApproximately(0.06, 0.001);
+        // Total = 0.0 + (10 * 0.005) = 0.05 (5%)
+        character.TotalCriticalChance.Should().BeApproximately(0.05, 0.001);
     }
 
     [Fact]

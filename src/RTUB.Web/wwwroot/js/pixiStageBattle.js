@@ -18,6 +18,7 @@
     let globalSfxVolume = 0.5;
     let backgroundMusic = null;
     let backgroundMusicGainNode = null;
+    let currentMusicType = null; // 'stage' or 'boss' — tracks which track is playing
 
     const defaultSprites = {
         player: '/sprites/games/my-tuno/default_tuno.png',
@@ -156,6 +157,15 @@
                     this.audioContext = new webkitAudioContext();
                 }
                 
+                // Determine correct music track based on enemy type
+                const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+                const neededType = isBoss ? 'boss' : 'stage';
+
+                // If music is playing but for the wrong mode, stop it
+                if (backgroundMusic && currentMusicType !== neededType) {
+                    StageBattleScene.stopBackgroundMusic();
+                }
+
                 // Start background music if not already playing
                 if (this.audioContext && !backgroundMusic) {
                     this.loadBackgroundMusic();
@@ -168,7 +178,12 @@
         
         async loadBackgroundMusic() {
             try {
-                const response = await fetch('/sound/stage_battle.mp3');
+                // Pick the right track: boss gets boss_battle.mp3, everything else gets stage_battle.mp3
+                const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+                const musicFile = isBoss ? '/sound/boss_battle.mp3' : '/sound/stage_battle.mp3';
+                currentMusicType = isBoss ? 'boss' : 'stage';
+
+                const response = await fetch(musicFile);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
                 
@@ -1580,6 +1595,7 @@
                 backgroundMusic = null;
             }
             backgroundMusicGainNode = null;
+            currentMusicType = null;
         }
     }
 

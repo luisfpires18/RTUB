@@ -191,4 +191,14 @@ public class SurviveModeLevelConfig
     /// Whether this is the final level (Void). No bosses, timer expiry = win.
     /// </summary>
     public bool IsFinalLevel { get; set; }
+
+    /// <summary>
+    /// Per-minute spawn ramp rate for this biome (e.g., 0.20 = +20% more spawns per minute).
+    /// </summary>
+    public double SpawnRampPerMinute { get; set; }
+
+    /// <summary>
+    /// Per-minute enemy speed ramp rate for this biome (e.g., 0.10 = +10% faster per minute).
+    /// </summary>
+    public double SpeedRampPerMinute { get; set; }
 }

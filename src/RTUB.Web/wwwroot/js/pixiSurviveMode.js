@@ -167,6 +167,8 @@
             this.playerSpritePath = levelData.playerSpritePath;
             this.bossSprites = levelData.bossSprites || [];
             this.isFinalLevel = levelData.isFinalLevel || false;
+            this.spawnRampPerMinute = levelData.spawnRampPerMinute || 0.20;
+            this.speedRampPerMinute = levelData.speedRampPerMinute || 0.10;
 
             // Runtime state
             this.timeRemaining = this.timerDuration;
@@ -1053,12 +1055,12 @@
             }
             this.spawnTimer += dt;
 
-            // Per-minute difficulty ramp: every 60s, permanently boost spawn count and speed
+            // Per-minute difficulty ramp: biome-specific spawn & speed scaling
             const currentMinute = Math.floor(this.timeElapsed / 60);
             if (currentMinute > this.lastMinuteRamp) {
                 const newMinutes = currentMinute - this.lastMinuteRamp;
-                this.spawnRampBonus += newMinutes * 4;   // +4 extra spawns per minute
-                this.speedRampBonus += newMinutes * 0.15; // +15% speed per minute
+                this.spawnRampBonus += newMinutes * this.spawnRampPerMinute;
+                this.speedRampBonus += newMinutes * this.speedRampPerMinute;
                 this.lastMinuteRamp = currentMinute;
             }
 
@@ -1127,11 +1129,13 @@
             // Camera follow
             this.updateCamera();
 
-            // Spawn enemies (more as time passes)
+            // Spawn enemies (more as time passes, biome-specific scaling)
             if (this.spawnTimer >= this.spawnInterval) {
                 this.spawnTimer = 0;
-                // Ramp up spawns: starts at 3, scales fast with time elapsed
-                const baseSpawn = 3 + Math.floor(this.timeElapsed / 5) + this.spawnRampBonus;
+                // Ramp up spawns: starts at 3, scales with time and biome ramp
+                const timeScale = Math.floor(this.timeElapsed / 5);
+                const rampMult = 1 + this.spawnRampBonus; // multiplicative: 1 + accumulated ramp
+                const baseSpawn = Math.ceil((3 + timeScale) * rampMult);
                 // Additional burst every 35s
                 const burstBonus = Math.floor(this.timeElapsed / 35) * 5;
                 const toSpawn = Math.min(baseSpawn + burstBonus, 30);
@@ -1911,18 +1915,11 @@
                     bgMusic.play().catch(() => { });
                     return;
                 }
-                // Try loading biome-specific music
-                const musicPath = `/audio/games/my-tuno/survive/${this.biomeName.toLowerCase()}.mp3`;
-                bgMusic = new Audio(musicPath);
+                // Use the dedicated survival music track
+                bgMusic = new Audio('/sound/survival_battle.mp3');
                 bgMusic.loop = true;
                 bgMusic.volume = 0.3;
-                bgMusic.play().catch(() => {
-                    // Fallback: try generic path
-                    bgMusic = new Audio('/audio/games/my-tuno/survive/bg.mp3');
-                    bgMusic.loop = true;
-                    bgMusic.volume = 0.3;
-                    bgMusic.play().catch(() => { });
-                });
+                bgMusic.play().catch(() => { });
                 bgMusicLoaded = true;
             } catch (_) { }
         }

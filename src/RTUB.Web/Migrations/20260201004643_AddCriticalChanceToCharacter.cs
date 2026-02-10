@@ -15,7 +15,7 @@ public partial class AddCriticalChanceToCharacter : Migration
             table: "Characters",
             type: "REAL",
             nullable: false,
-            defaultValue: 0.01);
+            defaultValue: 0.0);
 
         migrationBuilder.AddColumn<int>(
             name: "CriticalUpgrades",
