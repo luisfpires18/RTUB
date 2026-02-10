@@ -188,7 +188,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
         return leaderboard;
     }
 
-    public async Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId, int minGames = 5)
+    public async Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId)
     {
         // Get all member user IDs
         var memberUserIds = await _context.Users
@@ -199,13 +199,12 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .Select(u => u.Id)
             .ToListAsync();
 
-        // Get all eligible opponents with at least minGames total arena games
+        // Get all member opponents ordered by level (no minimum games filter)
         return await _context.Characters
             .AsNoTracking()
             .Include(c => c.User)
             .Where(c => memberUserIds.Contains(c.UserId)
-                     && c.Id != excludeCharacterId
-                     && (c.ArenaWins + c.ArenaLosses) >= minGames)
+                     && c.Id != excludeCharacterId)
             .OrderByDescending(c => c.Level)
             .ThenByDescending(c => c.ArenaWins)
             .ToListAsync();

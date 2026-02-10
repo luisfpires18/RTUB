@@ -35,4 +35,11 @@ public interface ICharacterService
     /// </summary>
     /// <returns>List of all characters with User navigation loaded</returns>
     Task<List<Character>> GetAllCharactersOrderedByLevelAsync();
+
+    /// <summary>
+    /// Heals all characters to full HP (sets CurrentHP to null).
+    /// Owner-only operation for immediate full heal.
+    /// </summary>
+    /// <returns>The number of characters healed</returns>
+    Task<int> HealAllCharactersAsync();
 }

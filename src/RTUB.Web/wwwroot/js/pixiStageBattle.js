@@ -267,12 +267,14 @@
             overlay.rect(0, 0, width, height);
             overlay.fill({ color: 0x000000, alpha: 0.3 });
             this.stage.addChild(overlay);
+            this._overlay = overlay;
 
             const groundHeight = 50;
             const ground = new PIXI.Graphics();
             ground.rect(0, height - groundHeight, width, groundHeight);
             ground.fill(0x2a2a2a);
             this.stage.addChild(ground);
+            this._ground = ground;
 
             this.createPlayer(width, height);
             this.createEnemies(width, height);
@@ -1220,8 +1222,23 @@
                     }
                 }
             } else {
-                this.enemySprites.forEach(enemy => {
+                this.enemySprites.forEach((enemy, idx) => {
                     this.animateTo(enemy, { alpha: 0, y: enemy.y - 50 }, 500);
+                    
+                    // Hide HP bar
+                    const hpBarData = this.enemyHpBars[idx];
+                    if (hpBarData) {
+                        this.animateTo(hpBarData.bar, { alpha: 0 }, 300);
+                        this.animateTo(hpBarData.barBg, { alpha: 0 }, 300);
+                        this.animateTo(hpBarData.text, { alpha: 0 }, 300);
+                    }
+                    
+                    // Hide Speed bar
+                    const speedBarData = this.enemySpeedBars[idx];
+                    if (speedBarData) {
+                        this.animateTo(speedBarData.bar, { alpha: 0 }, 300);
+                        this.animateTo(speedBarData.barBg, { alpha: 0 }, 300);
+                    }
                 });
                 this.addLogEntry(`${this.enemyName} defeated!`);
             }
@@ -1249,26 +1266,32 @@
                 this.addLogEntry('💀 DEFEAT');
             }
 
-            const resultText = new PIXI.Text({
-                text: isPlayerWin ? 'VICTORY!' : 'DEFEAT',
-                style: {
-                    fontSize: 48,
-                    fontFamily: 'Arial, sans-serif',
-                    fontWeight: 'bold',
-                    fill: isPlayerWin ? 0x44ff44 : 0xff4444,
-                    stroke: { color: 0x000000, width: 6 }
-                }
-            });
-            resultText.anchor.set(0.5);
-            resultText.x = this.app.screen.width / 2;
-            resultText.y = this.app.screen.height / 2;
-            resultText.scale.set(0);
-            this.stage.addChild(resultText);
+            // Only show big VICTORY/DEFEAT text on boss stages (every 10th) or on defeat
+            const isBossStage = this.enemyType === 'boss' || (this.stageNumber % 10 === 0);
+            if (isBossStage || !isPlayerWin) {
+                const resultText = new PIXI.Text({
+                    text: isPlayerWin ? 'VICTORY!' : 'DEFEAT',
+                    style: {
+                        fontSize: 48,
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 'bold',
+                        fill: isPlayerWin ? 0x44ff44 : 0xff4444,
+                        stroke: { color: 0x000000, width: 6 }
+                    }
+                });
+                resultText.anchor.set(0.5);
+                resultText.x = this.app.screen.width / 2;
+                resultText.y = this.app.screen.height / 2;
+                resultText.scale.set(0);
+                this.stage.addChild(resultText);
 
-            this.animateTo(resultText, { scale: 1 }, 500);
+                this.animateTo(resultText, { scale: 1 }, 500);
+            }
 
             // Delay finishBattle to allow victory animation to show
-            setTimeout(() => this.finishBattle(), 800 / this.battleSpeed);
+            // Shorter delay for non-boss wins since there's no big text to show
+            const finishDelay = (isBossStage || !isPlayerWin) ? 800 : 400;
+            setTimeout(() => this.finishBattle(), finishDelay / this.battleSpeed);
         }
 
         handleDraw() {
@@ -1404,9 +1427,12 @@
         }
 
         setSpeed(speed) {
-            this.playbackSpeed = speed;
+            // Only allow valid speeds (1, 2, 3) to prevent console exploits
+            const allowedSpeeds = [1, 2, 3];
+            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(3, Math.max(1, Math.round(speed)));
+            this.playbackSpeed = validSpeed;
             // Convert playback speed to battle speed (1x = 1.0, 2x = 2.0, 3x = 3.0)
-            this.battleSpeed = speed;
+            this.battleSpeed = validSpeed;
         }
 
         setAudioEnabled(enabled) {
@@ -1503,7 +1529,7 @@
             this.stage = null;
         }
         
-        // Reset scene for next battle without destroying the app - much faster!
+        // Reset scene for next battle — smooth transition, player persists, no flash!
         async resetForNextBattle(data) {
             // Stop current battle processing
             this.isPlaying = false;
@@ -1525,46 +1551,93 @@
             
             console.log('resetForNextBattle - Stage:', this.stageNumber, 'Received placements:', data?.enemyPlacements, 'Set placements:', this.enemyPlacements);
             
+            // PRE-LOAD new textures while old scene is still fully visible (no flash)
+            await this.loadAssets();
+            
             // Reset battle state
             this.currentEventIndex = 0;
             this.battleFinished = false;
             this.logEntries = [];
             this.playerMaxHp = 100;
             this.playerCurrentHp = 100;
+            this.playerActionTime = 3.5;
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             this.idleAnimationTime = 0;
             this.enemyIdleOffsets = [];
             
-            // Clear all sprites from stage except background
-            const childrenToRemove = [];
-            for (let i = this.stage.children.length - 1; i >= 0; i--) {
-                const child = this.stage.children[i];
-                if (child !== this.backgroundSprite) {
-                    childrenToRemove.push(child);
+            // Build set of persistent display objects (player + scene base)
+            const persistent = new Set();
+            persistent.add(this.backgroundSprite);
+            if (this._overlay) persistent.add(this._overlay);
+            if (this._ground) persistent.add(this._ground);
+            if (this.playerSprite) persistent.add(this.playerSprite);
+            if (this.playerAura) persistent.add(this.playerAura);
+            if (this.playerHpBar) {
+                persistent.add(this.playerHpBar.bar);
+                persistent.add(this.playerHpBar.barBg);
+                persistent.add(this.playerHpBar.text);
+            }
+            if (this.playerSpeedBar) {
+                persistent.add(this.playerSpeedBar.bar);
+                persistent.add(this.playerSpeedBar.barBg);
+            }
+            
+            // Remove ONLY non-persistent children (enemies, log, result text, floating text)
+            const toRemove = [];
+            for (const child of [...this.stage.children]) {
+                if (!persistent.has(child)) {
+                    toRemove.push(child);
                 }
             }
-            childrenToRemove.forEach(child => {
+            for (const child of toRemove) {
                 this.stage.removeChild(child);
                 if (child.destroy) {
-                    try {
-                        child.destroy({ children: true, texture: false, baseTexture: false });
-                    } catch (e) {}
+                    try { child.destroy({ children: true, texture: false, baseTexture: false }); } catch (e) {}
                 }
-            });
+            }
             
-            // Reset arrays
-            this.enemySprites = [];
-            this.enemyHpBars = [];
-            this.enemySpeedBars = [];
-            this.enemySpeedBarTimers = [];
-            this.enemyActionTimes = [];
-            this.playerSprite = null;
-            this.playerIdleOffset = null;
+            // Reset player visual state (undo KO rotation/fade, attack tint)
+            if (this.playerSprite) {
+                this.playerSprite.alpha = 1;
+                this.playerSprite.rotation = 0;
+                this.playerSprite.tint = 0xffffff;
+                // Snap back to idle base position in case animation was mid-flight
+                if (this.playerIdleOffset) {
+                    this.playerSprite.x = this.playerIdleOffset.baseX;
+                    this.playerSprite.y = this.playerIdleOffset.baseY;
+                }
+            }
             
-            // Load new enemy textures
-            await this.loadAssets();
+            // Reset player HP bar
+            if (this.playerHpBar) {
+                this.playerHpBar.bar.width = this.playerHpBar.maxWidth;
+                this.playerHpBar.text.text = '100/100';
+            }
             
-            // Update background if it changed
+            // Reset player speed bar
+            if (this.playerSpeedBar) {
+                this.playerSpeedBar.bar.width = this.playerSpeedBar.maxWidth;
+            }
+            
+            // Handle shot buff aura changes between stages
+            if (this.hasShotBuff && !this.playerAura) {
+                // Buff gained mid-run — create aura behind player
+                const auraSize = this.playerDisplayHeight * 0.7;
+                this.playerAura = new PIXI.Graphics();
+                this.playerAura.circle(0, 0, auraSize);
+                this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+                this.playerAura.x = this.playerSprite.x;
+                this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+                const playerIdx = this.stage.getChildIndex(this.playerSprite);
+                this.stage.addChildAt(this.playerAura, playerIdx);
+            } else if (!this.hasShotBuff && this.playerAura) {
+                this.playerAura.visible = false;
+            } else if (this.hasShotBuff && this.playerAura) {
+                this.playerAura.visible = true;
+                this.playerAura.alpha = 0.35;
+            }
+            
+            // Update background texture if it changed (new biome)
             if (this.backgroundSprite) {
                 const newBgTexture = PIXI.Assets.get(this.bgAlias);
                 if (newBgTexture && this.backgroundSprite.texture !== newBgTexture) {
@@ -1572,13 +1645,49 @@
                 }
             }
             
-            // Rebuild scene
+            // Reset enemy arrays (player arrays kept intact)
+            this.enemySprites = [];
+            this.enemyHpBars = [];
+            this.enemySpeedBars = [];
+            this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
+            this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
+            
+            // Create new enemies and battle log (player persists — no recreation)
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            
-            this.createPlayer(width, height);
             this.createEnemies(width, height);
             this.createBattleLog(width, height);
+            
+            // Fade in new enemies for a smooth transition
+            for (const enemy of this.enemySprites) {
+                if (enemy) {
+                    enemy.alpha = 0;
+                    this.animateTo(enemy, { alpha: 1 }, 250);
+                }
+            }
+            for (const hpBar of this.enemyHpBars) {
+                if (hpBar) {
+                    if (hpBar.bar) { hpBar.bar.alpha = 0; this.animateTo(hpBar.bar, { alpha: 1 }, 250); }
+                    if (hpBar.barBg) { hpBar.barBg.alpha = 0; this.animateTo(hpBar.barBg, { alpha: 1 }, 250); }
+                    if (hpBar.text) { hpBar.text.alpha = 0; this.animateTo(hpBar.text, { alpha: 1 }, 250); }
+                }
+            }
+            for (const speedBar of this.enemySpeedBars) {
+                if (speedBar) {
+                    if (speedBar.bar) { speedBar.bar.alpha = 0; this.animateTo(speedBar.bar, { alpha: 1 }, 250); }
+                    if (speedBar.barBg) { speedBar.barBg.alpha = 0; this.animateTo(speedBar.barBg, { alpha: 1 }, 250); }
+                }
+            }
+            
+            // Handle music switch if enemy type changed (normal <-> boss)
+            const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+            const neededType = isBoss ? 'boss' : 'stage';
+            if (currentMusicType && currentMusicType !== neededType) {
+                StageBattleScene.stopBackgroundMusic();
+                if (this.audioContext) {
+                    this.loadBackgroundMusic();
+                }
+            }
             
             // Restart battle
             this.preprocessInitialEvents();

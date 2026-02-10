@@ -70,4 +70,27 @@ public class CharacterService : ICharacterService
         return await _characterRepository.GetAllOrderedByLevelAsync();
     }
 
+    /// <summary>
+    /// Heals all characters to full HP (sets CurrentHP to null).
+    /// Owner-only operation for immediate full heal.
+    /// </summary>
+    public async Task<int> HealAllCharactersAsync()
+    {
+        var damagedCharacters = (await _characterRepository
+            .FindAsync(c => c.CurrentHP != null))
+            .ToList();
+
+        foreach (var character in damagedCharacters)
+        {
+            character.CurrentHP = null; // null = full HP
+        }
+
+        if (damagedCharacters.Count > 0)
+        {
+            await _characterRepository.SaveChangesAsync();
+        }
+
+        return damagedCharacters.Count;
+    }
+
 }

@@ -314,9 +314,10 @@
 
     private readonly SemaphoreSlim _gameLock = new(1, 1);
 
-    // Query parameter for starting level
-    [SupplyParameterFromQuery(Name = "level")]
-    public int? StartLevelParam { get; set; }
+    // Query parameter for starting level — REMOVED to prevent URL exploit
+    // Players always start at their current progress level
+    // [SupplyParameterFromQuery(Name = "level")]
+    // public int? StartLevelParam { get; set; }
 
     // ─── Lifecycle ────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
@@ -343,10 +344,8 @@
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
 
-            // Use query param level or current progress level
-            currentLevel = StartLevelParam.HasValue && StartLevelParam.Value >= 1
-                ? StartLevelParam.Value
-                : surviveProgress.CurrentLevel;
+            // Always use the player's actual progress level — no URL override allowed
+            currentLevel = surviveProgress.CurrentLevel;
 
             currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
 
@@ -389,9 +388,8 @@
         try
         {
             surviveProgress = await SurviveModeService.StartRunAsync(character.Id);
-            currentLevel = StartLevelParam.HasValue && StartLevelParam.Value >= 1
-                ? StartLevelParam.Value
-                : surviveProgress.CurrentLevel;
+            // Always use the player's actual progress level
+            currentLevel = surviveProgress.CurrentLevel;
             currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
             runInProgress = true;
             showGame = true;

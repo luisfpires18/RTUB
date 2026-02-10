@@ -29,7 +29,7 @@
     <div class="stage-enemy-card-sprite">
         @if (!string.IsNullOrEmpty(Enemy.SpritePath))
         {
-            <img src="@Enemy.SpritePath" alt="@Enemy.Name" loading="lazy" />
+            <img src="@CacheBuster.Bust(Enemy.SpritePath)" alt="@Enemy.Name" loading="lazy" />
         }
         else
         {

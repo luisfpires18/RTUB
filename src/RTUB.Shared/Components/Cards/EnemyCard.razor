@@ -24,7 +24,7 @@
             <div class="text-center mb-3">
                 <!-- Avatar Image Wrapper (reusing AvatarCard pattern) -->
                 <div class="avatar-card-image-wrapper d-inline-block mb-2" style="width: 80px; height: 80px;">
-                    <img src="@(Character.User.ImageUrl ?? "/images/default-avatar.webp")" 
+                    <img src="@CacheBuster.Bust(Character.User.ImageUrl ?? "/images/default-avatar.webp")" 
                          alt="Avatar" 
                          class="avatar-card-image rounded-circle" 
                          onerror="this.onerror=null; this.src='/images/default-avatar.webp';"
@@ -116,7 +116,7 @@
         
         <!-- Character Sprite -->
         <div class="text-center mb-3">
-            <img src="/sprites/games/my-tuno/default_tuno.png" 
+            <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
                  alt="Enemy Character" 
                  class="character-sprite img-fluid"
                  style="max-height: 150px; max-width: 100%; object-fit: contain;" />

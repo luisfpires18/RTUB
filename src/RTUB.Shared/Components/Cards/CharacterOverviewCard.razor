@@ -5,7 +5,7 @@
     <div class="character-overview-card-avatar">
         @if (Character?.User != null && !string.IsNullOrEmpty(Character.User.ProfilePictureSrc))
         {
-            <img src="@Character.User.ProfilePictureSrc"
+            <img src="@CacheBuster.Bust(Character.User.ProfilePictureSrc)"
                  alt="@GetDisplayName()"
                  class="character-overview-card-image"
                  loading="lazy" />

@@ -202,7 +202,7 @@
                                 <span class="badge bg-purple text-white instrument-drop-badge">
                                     @if (!string.IsNullOrEmpty(imageUrl))
                                     {
-                                        <img src="@imageUrl" alt="@instrumentName" class="instrument-drop-icon me-1" />
+                                        <img src="@CacheBuster.Bust(imageUrl)" alt="@instrumentName" class="instrument-drop-icon me-1" />
                                     }
                                     else
                                     {
@@ -220,7 +220,7 @@
                                 <span class="badge bg-equipment text-white equipment-drop-badge">
                                     @if (!string.IsNullOrEmpty(equipSprite))
                                     {
-                                        <img src="@equipSprite" alt="@equipName" class="equipment-drop-icon me-1" />
+                                        <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon me-1" />
                                     }
                                     else
                                     {
@@ -345,7 +345,7 @@
                                 <div class="defeat-reward-row instrument-part-reward">
                                     @if (!string.IsNullOrEmpty(imageUrl))
                                     {
-                                        <img src="@imageUrl" alt="@instrumentName" class="instrument-drop-icon" />
+                                        <img src="@CacheBuster.Bust(imageUrl)" alt="@instrumentName" class="instrument-drop-icon" />
                                     }
                                     else
                                     {
@@ -363,7 +363,7 @@
                                 <div class="defeat-reward-row equipment-reward">
                                     @if (!string.IsNullOrEmpty(equipSprite))
                                     {
-                                        <img src="@equipSprite" alt="@equipName" class="equipment-drop-icon" />
+                                        <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon" />
                                     }
                                     else
                                     {
@@ -1018,79 +1018,102 @@
         Navigation.NavigateTo("/my-tuno");
     }
 
+    private bool _endingRun = false;
+
     private async Task EndRunEarly()
     {
-        if (_disposed) return;
+        if (_disposed || _endingRun) return;
+        _endingRun = true;
 
         try
         {
-            // Destroy JS battle animation
-            if (hasRendered)
+            // Wait for the lock — if FightStageEnemy is in progress, wait up to 5s for it to finish
+            if (!await _stageLock.WaitAsync(5000))
             {
-                try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
-                catch { /* JS interop may fail */ }
+                Logger.LogWarning("EndRunEarly: could not acquire lock after 5s, forcing end");
             }
 
-            // Cancel the timeout since we're ending manually
-            battleTimeoutCts?.Cancel();
-
-            // Save defeated-at stage before applying rewards
-            defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
-
-            // Apply accumulated rewards from the run
-            if (character != null && stagesCleared > 0)
+            try
             {
-                try
+                // Stop any in-progress fight from continuing
+                fighting = false;
+
+                // Destroy JS battle animation
+                if (hasRendered)
                 {
-                    await StageService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+                    catch { /* JS interop may fail */ }
                 }
-                catch (Exception ex)
+
+                // Cancel the timeout since we're ending manually
+                battleTimeoutCts?.Cancel();
+
+                // Save defeated-at stage before applying rewards
+                defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
+
+                // Apply accumulated rewards from the run
+                if (character != null && stagesCleared > 0)
                 {
-                    Logger.LogError(ex, "Error applying run rewards on early end");
+                    try
+                    {
+                        await StageService.ApplyRunRewardsAsync(
+                            character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
+                            totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                            totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error applying run rewards on early end");
+                    }
                 }
+                else if (character != null && runStartingHp.HasValue)
+                {
+                    // No stages cleared — restore HP to pre-run value
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                }
+
+                // Clear run state
+                runInProgress = false;
+                runStartingHp = null;
+                runStartingStage = null;
+                pendingDefeatRewards = false;
+
+                // Return to checkpoint
+                if (currentUser != null && stageProgress != null)
+                {
+                    try
+                    {
+                        stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
+                        currentStageNumber = stageProgress.CurrentStage;
+                        checkpointStage = stageProgress.LastCheckpoint;
+                        character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error returning to checkpoint on early end");
+                    }
+                }
+
+                // Show reward summary
+                showBattleAnimation = false;
+                showDefeatSummary = true;
+                currentEnemyStats.Clear();
+                currentBattle = null;
+
+                StateHasChanged();
             }
-            else if (character != null && runStartingHp.HasValue)
+            finally
             {
-                // No stages cleared — restore HP to pre-run value
-                await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                try { _stageLock.Release(); } catch (ObjectDisposedException) { }
             }
-
-            // Clear run state
-            runInProgress = false;
-            runStartingHp = null;
-            runStartingStage = null;
-            pendingDefeatRewards = false;
-
-            // Return to checkpoint
-            if (currentUser != null && stageProgress != null)
-            {
-                try
-                {
-                    stageProgress = await StageService.ReturnToCheckpointAsync(currentUser.Id);
-                    currentStageNumber = stageProgress.CurrentStage;
-                    checkpointStage = stageProgress.LastCheckpoint;
-                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error returning to checkpoint on early end");
-                }
-            }
-
-            // Show reward summary
-            showBattleAnimation = false;
-            showDefeatSummary = true;
-            currentEnemyStats.Clear();
-            currentBattle = null;
-
-            StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error ending run early");
+        }
+        finally
+        {
+            _endingRun = false;
         }
     }
 

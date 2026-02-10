@@ -29,6 +29,17 @@
             </div>
 
             <div class="page-header-actions justify-content-lg-end">
+                <button type="button" class="btn btn-success" @onclick="HealAllCharacters" disabled="@healingAll">
+                    @if (healingAll)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-heart-pulse me-1"></i>
+                    }
+                    Curar Todos
+                </button>
                 <a href="/my-tuno" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Voltar ao My Tuno
                 </a>
@@ -300,6 +311,7 @@
 
 @code {
     private bool loading = true;
+    private bool healingAll = false;
     private Character? selectedCharacter;
     private bool showDetailsModal = false;
     private Dictionary<string, int> stageMap = new();
@@ -371,5 +383,28 @@
         return !string.IsNullOrEmpty(character.User.Nickname)
             ? character.User.Nickname
             : "Personagem";
+    }
+
+    private async Task HealAllCharacters()
+    {
+        if (healingAll) return;
+        healingAll = true;
+
+        try
+        {
+            var healed = await CharacterService.HealAllCharactersAsync();
+            Logger.LogInformation("Owner healed all characters: {Count} characters healed", healed);
+
+            // Reload the list so HP values update immediately
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error healing all characters");
+        }
+        finally
+        {
+            healingAll = false;
+        }
     }
 }

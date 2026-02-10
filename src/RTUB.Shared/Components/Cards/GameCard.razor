@@ -4,7 +4,7 @@
     <div class="position-relative">
         @if (!string.IsNullOrEmpty(ImageUrl))
         {
-            <img src="@ImageUrl" class="card-img-top game-image" alt="@Title" loading="lazy">
+            <img src="@CacheBuster.Bust(ImageUrl)" class="card-img-top game-image" alt="@Title" loading="lazy">
         }
         else
         {

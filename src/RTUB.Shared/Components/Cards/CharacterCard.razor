@@ -9,7 +9,7 @@
         <div class="character-card-avatar mb-3">
             @if (Character?.User != null)
             {
-                <img src="@Character.User.ProfilePictureSrc" 
+                <img src="@CacheBuster.Bust(Character.User.ProfilePictureSrc)" 
                      alt="@Character.User.Nickname" 
                      class="character-card-image rounded-circle" />
             }

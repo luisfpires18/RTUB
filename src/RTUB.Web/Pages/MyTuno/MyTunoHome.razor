@@ -209,7 +209,7 @@
                                                 }
                                                 else if (GetDrinkPictureUrl(c.ItemType) is string imgUrl)
                                                 {
-                                                    <img src="@imgUrl" alt="@c.Name" class="gather-sprite" />
+                                                    <img src="@CacheBuster.Bust(imgUrl)" alt="@c.Name" class="gather-sprite" />
                                                 }
                                                 else
                                                 {
@@ -247,11 +247,11 @@
                                             <div class="item-card__icon">
                                                 @if (GetDrinkPictureUrl(res.Type) is string craftDrinkImg)
                                                 {
-                                                    <img src="@craftDrinkImg" alt="@res.Name" class="gather-sprite" />
+                                                    <img src="@CacheBuster.Bust(craftDrinkImg)" alt="@res.Name" class="gather-sprite" />
                                                 }
                                                 else if (!string.IsNullOrEmpty(res.SpritePath))
                                                 {
-                                                    <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                                    <img src="@CacheBuster.Bust(res.SpritePath)" alt="@res.Name" class="gather-sprite" />
                                                 }
                                                 else
                                                 {
@@ -274,7 +274,7 @@
                                             <div class="item-card__icon">
                                                 @if (!string.IsNullOrEmpty(invImgUrl))
                                                 {
-                                                    <img src="@invImgUrl" alt="@invInstrName" class="gather-sprite" />
+                                                    <img src="@CacheBuster.Bust(invImgUrl)" alt="@invInstrName" class="gather-sprite" />
                                                 }
                                                 else
                                                 {
@@ -335,7 +335,7 @@
                                                 <div class="item-card__icon">
                                                     @if (GetForgedWeaponPictureUrl(wLocal) is string eqWpnImg)
                                                     {
-                                                        <img src="@eqWpnImg" alt="@item.Name" class="gather-sprite" style="filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                                        <img src="@CacheBuster.Bust(eqWpnImg)" alt="@item.Name" class="gather-sprite" style="filter: drop-shadow(0 0 2px var(--bs-warning));" />
                                                     }
                                                     else
                                                     {
@@ -352,7 +352,7 @@
                                                 <div class="item-card__icon">
                                                     @if (GetEquipmentPictureUrl(eqItemKey) is string eqImg)
                                                     {
-                                                        <img src="@eqImg" alt="@item.Name" class="gather-sprite" />
+                                                        <img src="@CacheBuster.Bust(eqImg)" alt="@item.Name" class="gather-sprite" />
                                                     }
                                                     else
                                                     {
@@ -422,7 +422,7 @@
                         
                         <!-- Character Sprite -->
                         <div class="text-center mb-3">
-                            <img src="/sprites/games/my-tuno/default_tuno.png" 
+                            <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
                                  alt="My Tuno Character" 
                                  class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
                                  style="max-height: 200px; max-width: 100%; object-fit: contain;" />
@@ -701,7 +701,7 @@
                                                 }
                                             </div>
                                         }
-                                        <img src="@(entry.AvatarUrl ?? "/images/default-avatar.webp")"
+                                        <img src="@CacheBuster.Bust(entry.AvatarUrl ?? "/images/default-avatar.webp")"
                                              alt="@entry.DisplayName"
                                              class="stats-avatar"
                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
@@ -1060,7 +1060,7 @@
                                      style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
                                     @if (headItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
                                     {
-                                        <img src="@headImg" alt="Head" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(headImg)" alt="Head" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1075,7 +1075,7 @@
                                      style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
                                     @if (shouldersItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
                                     {
-                                        <img src="@shouldersImg" alt="Shoulders" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(shouldersImg)" alt="Shoulders" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1090,7 +1090,7 @@
                                      style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
                                     @if (chestItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
                                     {
-                                        <img src="@chestImg" alt="Chest" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(chestImg)" alt="Chest" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1102,7 +1102,7 @@
 
                             <!-- Center character -->
                             <div class="equip-layout__center">
-                                <img src="/sprites/games/my-tuno/default_tuno.png" 
+                                <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
                                      alt="Equipment Preview" 
                                      class="equip-layout__sprite" />
                             </div>
@@ -1115,7 +1115,7 @@
                                      style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
                                     @if (glovesItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
                                     {
-                                        <img src="@glovesImg" alt="Gloves" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(glovesImg)" alt="Gloves" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1130,7 +1130,7 @@
                                      style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
                                     @if (legsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
                                     {
-                                        <img src="@legsImg" alt="Legs" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(legsImg)" alt="Legs" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1145,7 +1145,7 @@
                                      style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
                                     @if (bootsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
                                     {
-                                        <img src="@bootsImg" alt="Boots" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(bootsImg)" alt="Boots" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1173,7 +1173,7 @@
                                 {
                                     if (GetForgedWeaponPictureUrl(weapon1) is string w1Img)
                                     {
-                                        <img src="@w1Img" alt="@weapon1.Name" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(w1Img)" alt="@weapon1.Name" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1196,7 +1196,7 @@
                                     {
                                         if (GetForgedWeaponPictureUrl(weapon2) is string w2Img)
                                         {
-                                            <img src="@w2Img" alt="@weapon2.Name" class="gather-sprite" />
+                                            <img src="@CacheBuster.Bust(w2Img)" alt="@weapon2.Name" class="gather-sprite" />
                                         }
                                         else
                                         {
@@ -1311,11 +1311,11 @@
                                         {
                                             if (GetDrinkPictureUrl(res.Type) is string gatherDrinkImg)
                                             {
-                                                <img src="@gatherDrinkImg" alt="@res.Name" class="gather-sprite" />
+                                                <img src="@CacheBuster.Bust(gatherDrinkImg)" alt="@res.Name" class="gather-sprite" />
                                             }
                                             else if (!string.IsNullOrEmpty(res.SpritePath))
                                             {
-                                                <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                                <img src="@CacheBuster.Bust(res.SpritePath)" alt="@res.Name" class="gather-sprite" />
                                             }
                                             else
                                             {
@@ -1364,7 +1364,7 @@
                                     var fInstrImg = fInstrType.HasValue && instrumentImages.TryGetValue(fInstrType.Value, out var fUrl) ? fUrl : null;
                                     @if (!string.IsNullOrEmpty(fInstrImg))
                                     {
-                                        <img src="@fInstrImg" alt="Instrumento" class="forge-slot__img" />
+                                        <img src="@CacheBuster.Bust(fInstrImg)" alt="Instrumento" class="forge-slot__img" />
                                     }
                                     else
                                     {
@@ -1390,7 +1390,7 @@
                                     var drinkRes = activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString());
                                     if (GetDrinkPictureUrl(forgeDrink.Value) is string forgeDrinkImg)
                                     {
-                                        <img src="@forgeDrinkImg" alt="@GetResourceName(forgeDrink.Value)" class="gather-sprite" />
+                                        <img src="@CacheBuster.Bust(forgeDrinkImg)" alt="@GetResourceName(forgeDrink.Value)" class="gather-sprite" />
                                     }
                                     else
                                     {
@@ -1440,7 +1440,7 @@
                                             @onclick="() => SelectForgeDrink(resType)">
                                         @if (GetDrinkPictureUrl(res.Type) is string pickerDrinkImg)
                                         {
-                                            <img src="@pickerDrinkImg" alt="@res.Name" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                            <img src="@CacheBuster.Bust(pickerDrinkImg)" alt="@res.Name" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
                                         }
                                         else
                                         {
@@ -1514,7 +1514,7 @@
                                     @onclick="() => SelectForgeWeaponType(wtLocal)">
                                 @if (GetWeaponPictureUrl(wtLocal) is string forgeWtImg)
                                 {
-                                    <img src="@forgeWtImg" alt="@WeaponTypeHelper.GetDisplayName(wtLocal)" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                    <img src="@CacheBuster.Bust(forgeWtImg)" alt="@WeaponTypeHelper.GetDisplayName(wtLocal)" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
                                 }
                                 else
                                 {
@@ -1554,7 +1554,7 @@
                     <div class="forge-result-icon mb-3">
                         @if (GetForgedWeaponPictureUrl(lastForgedWeapon) is string forgeResultImg)
                         {
-                            <img src="@forgeResultImg" alt="@lastForgedWeapon.Name" style="width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                            <img src="@CacheBuster.Bust(forgeResultImg)" alt="@lastForgedWeapon.Name" style="width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
                         }
                         else
                         {
@@ -1598,7 +1598,7 @@
                     <div class="equip-confirm-icon">
                         @if (GetForgedWeaponPictureUrl(pendingWeapon) is string pendingWpnImg)
                         {
-                            <img src="@pendingWpnImg" alt="@pendingWeapon.Name" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                            <img src="@CacheBuster.Bust(pendingWpnImg)" alt="@pendingWeapon.Name" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
                         }
                         else
                         {
@@ -1685,7 +1685,7 @@
                                 <div class="stats-card-position" style="width: 40px;">
                                     @if (GetForgedWeaponPictureUrl(weapon) is string listWpnImg)
                                     {
-                                        <img src="@listWpnImg" alt="@weapon.Name" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                        <img src="@CacheBuster.Bust(listWpnImg)" alt="@weapon.Name" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 2px var(--bs-warning));" />
                                     }
                                     else
                                     {
@@ -1753,7 +1753,7 @@
                     <div class="equip-confirm-icon">
                         @if (!string.IsNullOrEmpty(actionItemImgUrl))
                         {
-                            <img src="@actionItemImgUrl" alt="@actionItemName" style="width: 56px; height: 56px; object-fit: contain;" />
+                            <img src="@CacheBuster.Bust(actionItemImgUrl)" alt="@actionItemName" style="width: 56px; height: 56px; object-fit: contain;" />
                         }
                         else
                         {
@@ -2057,7 +2057,7 @@
                       ShowChanged="@((bool show) => showInfoModal = show)"
                       Title="Sobre My Tuno"
                       HeaderTitle="My Tuno"
-                      ImageUrl="/sprites/games/my-tuno/default_tuno.png"
+                      ImageUrl="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")"
                       UseRectangularImage="false"
                       OnClose="CloseInfoModal">
             <BadgesContent>

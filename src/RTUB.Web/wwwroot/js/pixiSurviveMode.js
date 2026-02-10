@@ -44,34 +44,36 @@
     const ENEMY_HP_PER_LEVEL = 1.0;     // extra HP per level
 
     // Boss constants
-    const BOSS_HP_MULT = 50;            // boss HP = base enemy HP * this
+    const BOSS_HP_MULT = 80;            // boss HP = base enemy HP * this
     const BOSS_SCALE = 2.5;             // bosses are much bigger than normal enemies
-    const BOSS_SPEED_MULT = 0.6;        // bosses are slower
-    const BOSS_DAMAGE = 30;             // boss contact damage
-    const BOSS_HIT_RADIUS = 48;         // big hitbox
+    const BOSS_SPEED_MULT = 0.75;       // bosses are slower but not too slow
+    const BOSS_DAMAGE = 50;             // boss contact damage
+    const BOSS_HIT_RADIUS = 56;         // big hitbox
 
     // ─── Upgrade System ───────────────────────────────────────────
-    const COINS_PER_UPGRADE = 8;         // every 8 coins → upgrade popup
+    // Dynamic coin thresholds: 5, 10, 15, 30, 45, then +15 each
+    const UPGRADE_THRESHOLDS = [5, 10, 15, 30, 45];
+    const UPGRADE_THRESHOLD_STEP = 15; // after predefined thresholds, +15 each
     const UPGRADE_DEFS = [
         {
             id: 'moveSpeed',
             icon: '🏃',
-            title: 'Swift Feet',
-            desc: 'Move 15% faster',
+            title: 'Pés Rápidos',
+            desc: '+15% velocidade de movimento',
             apply: (scene) => { scene.playerSpeed *= 1.15; }
         },
         {
             id: 'atkSpeed',
             icon: '⚡',
-            title: 'Rapid Fire',
-            desc: 'Attack 20% faster',
+            title: 'Fogo Rápido',
+            desc: '+20% velocidade de ataque',
             apply: (scene) => { scene.attackCooldownMult *= 0.80; }
         },
         {
             id: 'hp',
             icon: '❤️',
-            title: 'Vitality',
-            desc: '+10 Max HP & heal 5',
+            title: 'Vitalidade',
+            desc: '+10 HP Máximo e cura 5',
             apply: (scene) => {
                 scene.maxHP += 10;
                 scene.playerHP = Math.min(scene.playerHP + 5, scene.maxHP);
@@ -80,37 +82,38 @@
         {
             id: 'damage',
             icon: '⚔️',
-            title: 'Power Shot',
-            desc: '2x attack damage',
+            title: 'Tiro Potente',
+            desc: '2x dano de ataque',
             apply: (scene) => { scene.attackDamage *= 2; }
         },
         {
             id: 'coinRate',
             icon: '🪙',
-            title: 'Gold Rush',
-            desc: '2x coin drops',
+            title: 'Febre do Ouro',
+            desc: '2x moedas por inimigo',
+            maxPicks: 3,
             apply: (scene) => { scene.coinDropMult *= 2; }
         },
         {
             id: 'atkRange',
             icon: '🎯',
-            title: 'Eagle Eye',
-            desc: '+10% attack range',
+            title: 'Olho de Águia',
+            desc: '+10% alcance de ataque',
             apply: (scene) => { scene.attackRange *= 1.10; }
         },
         {
             id: 'magnet',
             icon: '🧲',
-            title: 'Coin Magnet',
-            desc: 'Coins fly to you from far away',
+            title: 'Íman de Moedas',
+            desc: 'Moedas voam para ti de longe',
             unique: true,
             apply: (scene) => { scene.magnetRadius += 150; }
         },
         {
             id: 'companion',
             icon: '🐷',
-            title: 'Piggy Pal',
-            desc: 'A pig companion attacks nearby enemies',
+            title: 'Leitão',
+            desc: 'Um leitão pronto a ser praxado e atacar inimigos próximos',
             unique: true,
             apply: (scene) => { scene.spawnCompanion(); }
         }
@@ -137,6 +140,31 @@
         const m = Math.floor(s / 60);
         const sec = Math.floor(s % 60);
         return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    // ─── Object Pool ──────────────────────────────────────────────
+    // Generic pool to reuse PIXI display objects and avoid GC pressure.
+    class ObjectPool {
+        constructor(factory, reset, initialSize = 0) {
+            this._factory = factory; // () => new object
+            this._reset = reset;     // (obj) => reset object for reuse
+            this._pool = [];
+            for (let i = 0; i < initialSize; i++) {
+                this._pool.push(this._factory());
+            }
+        }
+        get() {
+            if (this._pool.length > 0) {
+                const obj = this._pool.pop();
+                return obj;
+            }
+            return this._factory();
+        }
+        release(obj) {
+            this._reset(obj);
+            this._pool.push(obj);
+        }
+        get size() { return this._pool.length; }
     }
 
     // ─── SurviveScene ─────────────────────────────────────────────
@@ -190,6 +218,11 @@
             this.particles = [];
             this.projectiles = [];
 
+            // Object pools (initialised in init() once worldContainer exists)
+            this._projectilePool = null;
+            this._orbPool = null;
+            this._particlePool = null;
+
             // Auto-attack state
             this.attackCooldown = 0;
             this.attackDamage = BASE_ATTACK_DAMAGE;
@@ -202,9 +235,11 @@
             this.invulnTimer = 0;
 
             // Upgrade system state
-            this.nextUpgradeAt = COINS_PER_UPGRADE;
+            this.upgradeIndex = 0; // index into UPGRADE_THRESHOLDS
+            this.nextUpgradeAt = UPGRADE_THRESHOLDS[0];
             this.upgradesPicked = 0;
             this.pickedUpgradeIds = new Set(); // track unique upgrades already picked
+            this.upgradePickCounts = {};       // track pick count per upgrade id
             this.coinDropMult = 1;    // how many coins per kill
             this.magnetRadius = XP_PICKUP_RADIUS; // base magnet radius
             this.companions = [];     // companion PIG entities
@@ -280,6 +315,9 @@
             // UI container (fixed to viewport)
             this.uiContainer = new PIXI.Container();
             app.stage.addChild(this.uiContainer);
+
+            // Initialise object pools
+            this._initPools();
 
             // Set initial camera position so the first frame is centered on the player
             this.worldContainer.position.set(-this.camX, -this.camY);
@@ -618,8 +656,16 @@
             mmBg.stroke();
             this.uiContainer.addChild(mmBg);
 
+            // Persistent minimap graphics — redrawn each frame, never destroyed
+            this._mmPlayerDot = new PIXI.Graphics();
+            this._mmEnemyDots = new PIXI.Graphics();
+            this._mmVpRect = new PIXI.Graphics();
+
             this.minimapContainer = new PIXI.Container();
             this.minimapContainer.position.set(x, y);
+            this.minimapContainer.addChild(this._mmEnemyDots);
+            this.minimapContainer.addChild(this._mmPlayerDot);
+            this.minimapContainer.addChild(this._mmVpRect);
             this.uiContainer.addChild(this.minimapContainer);
 
             this.mmX = x;
@@ -902,7 +948,8 @@
             bossContainer.position.set(bx, by);
             this.worldContainer.addChild(bossContainer);
 
-            const bossHP = Math.ceil((BASE_ENEMY_HP + this.level * ENEMY_HP_PER_LEVEL) * BOSS_HP_MULT * (isFinal ? 1.5 : 1));
+            const minuteBonus = 1 + Math.floor(this.timeElapsed / 60) * 0.20; // +20% HP per minute survived
+            const bossHP = Math.ceil((BASE_ENEMY_HP + this.level * ENEMY_HP_PER_LEVEL) * BOSS_HP_MULT * minuteBonus * (isFinal ? 2.0 : 1));
 
             const boss = {
                 container: bossContainer,
@@ -1008,16 +1055,107 @@
             return `⚔ DMG ${this.attackDamage}  ⚡ SPD x${atkSpd}\n🎯 RNG ${Math.round(this.attackRange)}  🏃 MOV ${Math.round(this.playerSpeed)}\n🪙 DROP x${this.coinDropMult}  ❤ HP ${this.maxHP}`;
         }
 
-        spawnXPOrb(x, y) {
-            const gfx = new PIXI.Graphics();
-            // Gold coin shape
+        // ─── Object Pools ─────────────────────────────────────────
+        _initPools() {
+            // Projectile pool: reuse Graphics for player/companion projectiles
+            this._projectilePool = new ObjectPool(
+                () => {
+                    const gfx = new PIXI.Graphics();
+                    return gfx;
+                },
+                (gfx) => {
+                    gfx.clear();
+                    gfx.alpha = 1;
+                    gfx.visible = false;
+                },
+                30 // pre-allocate
+            );
+
+            // XP orb pool
+            this._orbPool = new ObjectPool(
+                () => {
+                    const gfx = new PIXI.Graphics();
+                    return gfx;
+                },
+                (gfx) => {
+                    gfx.clear();
+                    gfx.alpha = 1;
+                    gfx.visible = false;
+                },
+                40
+            );
+
+            // Particle pool
+            this._particlePool = new ObjectPool(
+                () => {
+                    const gfx = new PIXI.Graphics();
+                    return gfx;
+                },
+                (gfx) => {
+                    gfx.clear();
+                    gfx.alpha = 1;
+                    gfx.visible = false;
+                },
+                50
+            );
+        }
+
+        _getProjectileGfx(color, radius) {
+            const gfx = this._projectilePool.get();
+            gfx.clear();
+            gfx.circle(0, 0, radius);
+            gfx.fill(color);
+            gfx.circle(0, 0, radius + 2);
+            gfx.fill({ color: color, alpha: 0.3 });
+            gfx.visible = true;
+            gfx.alpha = 1;
+            return gfx;
+        }
+
+        _releaseProjectileGfx(gfx) {
+            gfx.visible = false;
+            if (gfx.parent) gfx.parent.removeChild(gfx);
+            this._projectilePool.release(gfx);
+        }
+
+        _getOrbGfx() {
+            const gfx = this._orbPool.get();
+            gfx.clear();
             gfx.circle(0, 0, XP_ORB_RADIUS + 1);
             gfx.fill(0xffd700);
             gfx.circle(0, 0, XP_ORB_RADIUS - 1);
             gfx.fill(0xffb300);
-            // Inner $ mark via a small dot
             gfx.circle(0, 0, 2);
             gfx.fill(0xffd700);
+            gfx.visible = true;
+            gfx.alpha = 1;
+            return gfx;
+        }
+
+        _releaseOrbGfx(gfx) {
+            gfx.visible = false;
+            if (gfx.parent) gfx.parent.removeChild(gfx);
+            this._orbPool.release(gfx);
+        }
+
+        _getParticleGfx(color) {
+            const gfx = this._particlePool.get();
+            gfx.clear();
+            gfx.circle(0, 0, 2 + Math.random() * 3);
+            gfx.fill(color || 0xff4444);
+            gfx.visible = true;
+            gfx.alpha = 1;
+            return gfx;
+        }
+
+        _releaseParticleGfx(gfx) {
+            gfx.visible = false;
+            if (gfx.parent) gfx.parent.removeChild(gfx);
+            this._particlePool.release(gfx);
+        }
+
+        spawnXPOrb(x, y) {
+            const gfx = this._getOrbGfx();
             gfx.position.set(x, y);
             this.worldContainer.addChild(gfx);
             this.xpOrbs.push({ gfx, x, y, lifetime: 8.0 });
@@ -1027,11 +1165,8 @@
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI * 2 / 6) * i + Math.random() * 0.5;
                 const speed = 40 + Math.random() * 60;
-                const gfx = new PIXI.Graphics();
-                gfx.circle(0, 0, 2 + Math.random() * 3);
-                gfx.fill(color || 0xff4444);
+                const gfx = this._getParticleGfx(color);
                 gfx.position.set(x, y);
-                gfx.alpha = 1;
                 this.worldContainer.addChild(gfx);
                 this.particles.push({
                     gfx,
@@ -1239,6 +1374,12 @@
         }
 
         updateEnemies(dt) {
+            const cullMargin = 200; // hide enemies well outside viewport
+            const camLeft = this.camX - cullMargin;
+            const camRight = this.camX + this.vpWidth + cullMargin;
+            const camTop = this.camY - cullMargin;
+            const camBottom = this.camY + this.vpHeight + cullMargin;
+
             for (const enemy of this.enemies) {
                 if (!enemy.alive) continue;
 
@@ -1268,6 +1409,11 @@
                     // Face player
                     enemy.container.scale.x = dx > 0 ? Math.abs(enemy.container.scale.x) : -Math.abs(enemy.container.scale.x);
                 }
+
+                // Visibility culling: hide containers outside viewport to skip rendering
+                const visible = enemy.x >= camLeft && enemy.x <= camRight &&
+                                enemy.y >= camTop && enemy.y <= camBottom;
+                enemy.container.visible = visible;
             }
         }
 
@@ -1290,7 +1436,7 @@
 
                     // Picked up
                     if (d < PLAYER_RADIUS) {
-                        this.worldContainer.removeChild(orb.gfx);
+                        this._releaseOrbGfx(orb.gfx);
                         this.xpOrbs.splice(i, 1);
                         this.xpOrbsCollected++;
                         // Check upgrade threshold
@@ -1303,7 +1449,7 @@
 
                 // Expire
                 if (orb.lifetime <= 0) {
-                    this.worldContainer.removeChild(orb.gfx);
+                    this._releaseOrbGfx(orb.gfx);
                     this.xpOrbs.splice(i, 1);
                     continue;
                 }
@@ -1324,7 +1470,7 @@
                 p.gfx.alpha = 1 - (p.age / p.lifetime);
 
                 if (p.age >= p.lifetime) {
-                    this.worldContainer.removeChild(p.gfx);
+                    this._releaseParticleGfx(p.gfx);
                     this.particles.splice(i, 1);
                 }
             }
@@ -1358,12 +1504,7 @@
             const vx = (dx / d) * PROJECTILE_SPEED;
             const vy = (dy / d) * PROJECTILE_SPEED;
 
-            const gfx = new PIXI.Graphics();
-            gfx.circle(0, 0, PROJECTILE_RADIUS);
-            gfx.fill(0x4fc3f7);
-            // Outer glow
-            gfx.circle(0, 0, PROJECTILE_RADIUS + 2);
-            gfx.fill({ color: 0x4fc3f7, alpha: 0.3 });
+            const gfx = this._getProjectileGfx(0x4fc3f7, PROJECTILE_RADIUS);
             gfx.position.set(this.playerX, this.playerY);
             this.worldContainer.addChild(gfx);
 
@@ -1396,7 +1537,7 @@
                 if (proj.age >= proj.lifetime ||
                     proj.x < -50 || proj.x > this.mapWidth + 50 ||
                     proj.y < -50 || proj.y > this.mapHeight + 50) {
-                    this.worldContainer.removeChild(proj.gfx);
+                    this._releaseProjectileGfx(proj.gfx);
                     this.projectiles.splice(i, 1);
                     continue;
                 }
@@ -1529,38 +1670,28 @@
         updateMinimap() {
             if (!this.minimapContainer) return;
 
-            // Clear old minimap elements
-            while (this.minimapContainer.children.length > 0) {
-                this.minimapContainer.removeChildAt(0);
-            }
-
             const scaleX = MINIMAP_SIZE / this.mapWidth;
             const scaleY = MINIMAP_SIZE / this.mapHeight;
 
-            // Player dot (blue)
-            const playerDot = new PIXI.Graphics();
-            playerDot.circle(this.playerX * scaleX, this.playerY * scaleY, 3);
-            playerDot.fill(0x4fc3f7);
-            this.minimapContainer.addChild(playerDot);
+            // Redraw player dot (blue)
+            this._mmPlayerDot.clear();
+            this._mmPlayerDot.circle(this.playerX * scaleX, this.playerY * scaleY, 3);
+            this._mmPlayerDot.fill(0x4fc3f7);
 
-            // Enemy dots (red) — only show nearby ones for performance
-            const enemyDots = new PIXI.Graphics();
+            // Redraw enemy dots (red) — batch into single draw call
+            this._mmEnemyDots.clear();
             for (const enemy of this.enemies) {
                 if (!enemy.alive) continue;
-                const ex = enemy.x * scaleX;
-                const ey = enemy.y * scaleY;
-                enemyDots.circle(ex, ey, enemy.isElite ? 2 : 1);
+                this._mmEnemyDots.circle(enemy.x * scaleX, enemy.y * scaleY, enemy.isElite ? 2 : 1);
             }
-            enemyDots.fill(0xe53935);
-            this.minimapContainer.addChild(enemyDots);
+            this._mmEnemyDots.fill(0xe53935);
 
-            // Viewport rect
-            const vpRect = new PIXI.Graphics();
-            vpRect.rect(this.camX * scaleX, this.camY * scaleY,
+            // Redraw viewport rect
+            this._mmVpRect.clear();
+            this._mmVpRect.rect(this.camX * scaleX, this.camY * scaleY,
                 this.vpWidth * scaleX, this.vpHeight * scaleY);
-            vpRect.setStrokeStyle({ width: 1, color: 0xffffff, alpha: 0.5 });
-            vpRect.stroke();
-            this.minimapContainer.addChild(vpRect);
+            this._mmVpRect.setStrokeStyle({ width: 1, color: 0xffffff, alpha: 0.5 });
+            this._mmVpRect.stroke();
         }
 
         // ─── Companion PIG System ─────────────────────────────────
@@ -1661,11 +1792,7 @@
                         const vy = (pdy / pd) * PROJECTILE_SPEED;
 
                         // Pink projectile
-                        const gfx = new PIXI.Graphics();
-                        gfx.circle(0, 0, 3);
-                        gfx.fill(0xff69b4);
-                        gfx.circle(0, 0, 5);
-                        gfx.fill({ color: 0xff69b4, alpha: 0.25 });
+                        const gfx = this._getProjectileGfx(0xff69b4, 3);
                         gfx.position.set(comp.x, comp.y);
                         this.worldContainer.addChild(gfx);
 
@@ -1688,10 +1815,21 @@
             if (this.upgradePaused) return; // already showing
 
             this.upgradePaused = true;
-            this.nextUpgradeAt += COINS_PER_UPGRADE + this.upgradesPicked * 2; // escalating threshold
 
-            // Pick 3 random upgrades, excluding already-picked unique ones
-            const available = UPGRADE_DEFS.filter(u => !u.unique || !this.pickedUpgradeIds.has(u.id));
+            // Advance to next threshold
+            this.upgradeIndex++;
+            if (this.upgradeIndex < UPGRADE_THRESHOLDS.length) {
+                this.nextUpgradeAt = UPGRADE_THRESHOLDS[this.upgradeIndex];
+            } else {
+                this.nextUpgradeAt += UPGRADE_THRESHOLD_STEP;
+            }
+
+            // Pick 3 random upgrades, excluding unique already picked and those at maxPicks
+            const available = UPGRADE_DEFS.filter(u => {
+                if (u.unique && this.pickedUpgradeIds.has(u.id)) return false;
+                if (u.maxPicks && (this.upgradePickCounts[u.id] || 0) >= u.maxPicks) return false;
+                return true;
+            });
             const shuffled = [...available].sort(() => Math.random() - 0.5);
             const choices = shuffled.slice(0, 3);
 
@@ -1710,7 +1848,7 @@
 
             // Title
             const title = new PIXI.Text({
-                text: 'CHOOSE AN UPGRADE',
+                text: 'ESCOLHE UM UPGRADE',
                 style: {
                     fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold',
                     fill: 0xffd700, align: 'center',
@@ -1816,6 +1954,7 @@
         applyUpgrade(upg) {
             upg.apply(this);
             this.upgradesPicked++;
+            this.upgradePickCounts[upg.id] = (this.upgradePickCounts[upg.id] || 0) + 1;
             if (upg.unique) this.pickedUpgradeIds.add(upg.id);
 
             // Brief flash effect to confirm selection
@@ -1953,6 +2092,17 @@
                 try { app.ticker.remove(this.update, this); } catch (_) { }
             }
 
+            // Release pooled objects still active
+            for (const proj of this.projectiles) {
+                if (proj.gfx) { proj.gfx.visible = false; if (proj.gfx.parent) proj.gfx.parent.removeChild(proj.gfx); }
+            }
+            for (const orb of this.xpOrbs) {
+                if (orb.gfx) { orb.gfx.visible = false; if (orb.gfx.parent) orb.gfx.parent.removeChild(orb.gfx); }
+            }
+            for (const p of this.particles) {
+                if (p.gfx) { p.gfx.visible = false; if (p.gfx.parent) p.gfx.parent.removeChild(p.gfx); }
+            }
+
             // Clear containers
             if (this.worldContainer) {
                 try { this.worldContainer.removeChildren(); } catch (_) { }
@@ -1966,6 +2116,11 @@
             this.particles = [];
             this.projectiles = [];
             this.keys = {};
+
+            // Pools are discarded on cleanup since graphics belong to the old stage
+            this._projectilePool = null;
+            this._orbPool = null;
+            this._particlePool = null;
         }
 
         destroy() {

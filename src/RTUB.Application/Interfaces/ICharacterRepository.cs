@@ -39,13 +39,12 @@ public interface ICharacterRepository : IRepository<Character>
     Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8);
 
     /// <summary>
-    /// Gets all arena-eligible opponents with at least a minimum number of total games (wins + losses)
+    /// Gets all arena opponents (all member characters except the specified one)
     /// Ordered by level descending. Excludes the specified character.
     /// </summary>
     /// <param name="excludeCharacterId">Character ID to exclude from results</param>
-    /// <param name="minGames">Minimum total arena games (wins + losses) required</param>
-    /// <returns>List of eligible opponents ordered by level</returns>
-    Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId, int minGames = 5);
+    /// <returns>List of opponents ordered by level</returns>
+    Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId);
 
     /// <summary>
     /// Gets top leaderboard entries ranked by wins, then level

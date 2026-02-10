@@ -339,8 +339,8 @@
 
         try
         {
-            // Get all opponents with at least 5 arena games
-            allOpponentCharacters = await CharacterRepository.GetArenaOpponentsAsync(character.Id, 5);
+            // Get all opponents ordered by level
+            allOpponentCharacters = await CharacterRepository.GetArenaOpponentsAsync(character.Id);
             
             // Opponents always fight as CPU snapshots at full HP
             // Clear their HP and buff state so EnemyCard displays 100% HP

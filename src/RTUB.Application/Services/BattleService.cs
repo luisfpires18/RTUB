@@ -20,7 +20,6 @@ namespace RTUB.Application.Services;
 public class BattleService : IBattleService
 {
     private readonly ICharacterRepository _characterRepository;
-    private readonly IMatchmakingService _matchmakingService;
     private readonly ICombatEngine _combatEngine;
     private readonly IInventoryRepository _inventoryRepository;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -31,7 +30,6 @@ public class BattleService : IBattleService
 
     public BattleService(
         ICharacterRepository characterRepository,
-        IMatchmakingService matchmakingService,
         ICombatEngine combatEngine,
         IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
@@ -41,7 +39,6 @@ public class BattleService : IBattleService
         IStageProgressRepository stageProgressRepository)
     {
         _characterRepository = characterRepository;
-        _matchmakingService = matchmakingService;
         _combatEngine = combatEngine;
         _inventoryRepository = inventoryRepository;
         _userManager = userManager;
@@ -239,7 +236,22 @@ public class BattleService : IBattleService
         // Apply rewards
         await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
 
-        // Arena battles do NOT restore HP — if you die, you stay dead until revived
+        // If player died and has no Fino to heal, auto-heal to full HP
+        // This prevents softlock where player has no healing items
+        if (!playerCharacter.IsAlive())
+        {
+            var finoItem = await _inventoryRepository.GetItemAsync(playerCharacter.UserId, InventoryItemType.Fino);
+            var canecaItem = await _inventoryRepository.GetItemAsync(playerCharacter.UserId, InventoryItemType.Caneca);
+            var hasHealingItems = (finoItem?.Quantity ?? 0) > 0 || (canecaItem?.Quantity ?? 0) > 0;
+
+            if (!hasHealingItems)
+            {
+                playerCharacter.RestoreHP();
+                _logger.LogInformation(
+                    "Auto-healed character {CharacterId} after arena death (no healing items available)",
+                    playerCharacter.Id);
+            }
+        }
 
         await _characterRepository.UpdateAsync(playerCharacter);
 

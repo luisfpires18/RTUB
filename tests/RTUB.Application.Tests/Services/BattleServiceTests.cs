@@ -25,7 +25,6 @@ public class BattleServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly ICharacterRepository _characterRepository;
-    private readonly Mock<IMatchmakingService> _matchmakingServiceMock;
     private readonly Mock<ICombatEngine> _combatEngineMock;
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<BattleService>> _loggerMock;
@@ -49,7 +48,6 @@ public class BattleServiceTests : IDisposable
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _characterRepository = new CharacterRepository(_context);
-        _matchmakingServiceMock = new Mock<IMatchmakingService>();
         _combatEngineMock = new Mock<ICombatEngine>();
         _inventoryRepositoryMock = new Mock<IInventoryRepository>();
         _loggerMock = new Mock<ILogger<BattleService>>();
@@ -69,7 +67,6 @@ public class BattleServiceTests : IDisposable
 
         _battleService = new BattleService(
             _characterRepository,
-            _matchmakingServiceMock.Object,
             _combatEngineMock.Object,
             _inventoryRepositoryMock.Object,
             _userManagerMock.Object,
