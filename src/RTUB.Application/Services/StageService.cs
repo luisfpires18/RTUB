@@ -267,6 +267,28 @@ public class StageService : IStageService
     }
 
     /// <summary>
+    /// Sets the current stage for a user (checkpoint selection).
+    /// Validates that the target stage is within the user's reached range.
+    /// </summary>
+    public async Task<StageProgress> SetStartStageAsync(string userId, int targetStage)
+    {
+        var stageProgress = await GetOrCreateStageProgressAsync(userId);
+
+        // Clamp to valid range: [1, HighestStage]
+        var validStage = Math.Clamp(targetStage, 1, stageProgress.HighestStage);
+
+        if (validStage != stageProgress.CurrentStage)
+        {
+            stageProgress.CurrentStage = validStage;
+            stageProgress.CurrentRegion = StageProgress.GetRegionForStage(validStage);
+            stageProgress.EnemiesDefeatedInCurrentStage = 0;
+            await _stageProgressRepository.UpdateAsync(stageProgress);
+        }
+
+        return stageProgress;
+    }
+
+    /// <summary>
     /// Returns the player to their last checkpoint after defeat
     /// </summary>
     public async Task<StageProgress> ReturnToCheckpointAsync(string userId)

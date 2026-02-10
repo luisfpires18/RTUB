@@ -2012,7 +2012,7 @@
                             <div class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
                                  style="--bc: @color;">
                                 <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
-                                     @onclick="() => { if (isUnlocked) StartSurviveLevel(level); }">
+                                     @onclick="async () => { if (isUnlocked) await StartSurviveLevel(level); }">
                                     <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
                                     <div style="flex: 1; min-width: 0;">
                                         <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">Level @level — @name</div>
@@ -2567,10 +2567,23 @@
         showSurviveModeModal = false;
     }
 
-    private void StartSurviveLevel(int level)
+    private async Task StartSurviveLevel(int level)
     {
+        // Update current level in DB before navigating
+        if (currentUser != null)
+        {
+            try
+            {
+                await SurviveModeService.SetStartLevelAsync(currentUser.Id, level);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error setting survive start level to {Level}", level);
+            }
+        }
+
         showSurviveModeModal = false;
-        Navigation.NavigateTo($"/my-tuno/survive?level={level}");
+        Navigation.NavigateTo("/my-tuno/survive");
     }
 
     private static string GetSurviveBiomeIcon(string name) => name switch
@@ -2639,7 +2652,7 @@
         Navigation.NavigateTo("/my-tuno/boss-mode");
     }
 
-    private void StartFromStage(int stage)
+    private async Task StartFromStage(int stage)
     {
         // Validate stage number
         if (stage < 1)
@@ -2653,9 +2666,22 @@
             Logger.LogWarning("Stage {Stage} exceeds highest reached {Highest}. Using highest.", stage, stageProgress.HighestStage);
             stage = stageProgress.HighestStage;
         }
-        
+
+        // Update current stage in DB before navigating — avoids fragile query parameter handling
+        if (currentUser != null)
+        {
+            try
+            {
+                await StageService.SetStartStageAsync(currentUser.Id, stage);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error setting start stage to {Stage}", stage);
+            }
+        }
+
         showStageModal = false;
-        Navigation.NavigateTo($"/my-tuno/stages?start={stage}");
+        Navigation.NavigateTo("/my-tuno/stages");
     }
 
     private void NavigateToUpgrade()

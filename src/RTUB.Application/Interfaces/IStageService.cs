@@ -101,4 +101,13 @@ public interface IStageService
     /// <param name="stageNumber">The stage number</param>
     /// <returns>True if boss stage, false otherwise</returns>
     bool IsBossStage(int stageNumber);
+
+    /// <summary>
+    /// Sets the current stage for a user (checkpoint selection).
+    /// Validates that the target stage is within the user's reached range.
+    /// </summary>
+    /// <param name="userId">The user's ID</param>
+    /// <param name="targetStage">The stage to start from</param>
+    /// <returns>Updated stage progress</returns>
+    Task<StageProgress> SetStartStageAsync(string userId, int targetStage);
 }

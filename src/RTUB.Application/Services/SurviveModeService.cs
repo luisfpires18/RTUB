@@ -183,6 +183,24 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
+    public async Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel)
+    {
+        var progress = await GetOrCreateProgressAsync(userId);
+
+        // Clamp to valid range: [1, HighestLevel]
+        var validLevel = Math.Clamp(targetLevel, 1, progress.HighestLevel);
+
+        if (validLevel != progress.CurrentLevel)
+        {
+            progress.CurrentLevel = validLevel;
+            progress.CurrentRegion = SurviveModeProgress.GetRegionForLevel(validLevel);
+            await _progressRepository.UpdateAsync(progress);
+        }
+
+        return progress;
+    }
+
+    /// <inheritdoc />
     public SurviveModeLevelConfig GetLevelConfig(int level, int characterLevel)
     {
         var region = SurviveModeProgress.GetRegionForLevel(level);

@@ -74,6 +74,15 @@ public interface ISurviveModeService
     /// Returns up to <paramref name="count"/> randomly selected boss sprites.
     /// </summary>
     Task<List<string>> GetBossSpritesAsync(int level, int count);
+
+    /// <summary>
+    /// Sets the current level for a user (level selection).
+    /// Validates that the target level is within the user's reached range.
+    /// </summary>
+    /// <param name="userId">The user's ID</param>
+    /// <param name="targetLevel">The level to start from</param>
+    /// <returns>Updated survive mode progress</returns>
+    Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel);
 }
 
 /// <summary>

@@ -314,10 +314,8 @@
 
     private readonly SemaphoreSlim _gameLock = new(1, 1);
 
-    // Query parameter for starting level — REMOVED to prevent URL exploit
-    // Players always start at their current progress level
-    // [SupplyParameterFromQuery(Name = "level")]
-    // public int? StartLevelParam { get; set; }
+    // Start level is now set in the DB before navigation (from MyTunoHome level selection)
+    // No query parameter needed — eliminates prerender/redirect race conditions
 
     // ─── Lifecycle ────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()

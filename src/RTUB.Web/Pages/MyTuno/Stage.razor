@@ -21,7 +21,6 @@
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
 @inject IOptions<MyTunoScalingConfiguration> ScalingConfig
-@inject IStageProgressRepository StageProgressRepository
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -447,9 +446,8 @@
     // Current battle enemy stats
     private List<EnemyStatsInfo> currentEnemyStats = new();
 
-    // Query parameter for starting stage
-    [SupplyParameterFromQuery(Name = "start")]
-    public int? StartStage { get; set; }
+    // Start stage is now set in the DB before navigation (from MyTunoHome checkpoint selection)
+    // No query parameter needed — eliminates prerender/redirect race conditions
 
     private record EnemyStatsInfo(string Name, int HP, int Power, int Defense, double ActionTime);
 
@@ -511,30 +509,7 @@
                     {
                         if (stageProgress != null)
                         {
-                            // Handle start query parameter - persist to DB if different
-                            if (StartStage.HasValue && StartStage.Value > 0)
-                            {
-                                // Validate start stage: can go to any previously reached stage, not beyond
-                                var targetStage = Math.Clamp(StartStage.Value, 1, stageProgress.HighestStage);
-                                
-                                // Update DB if different from current
-                                if (targetStage != stageProgress.CurrentStage)
-                                {
-                                    stageProgress.CurrentStage = targetStage;
-                                    stageProgress.CurrentRegion = StageProgress.GetRegionForStage(targetStage);
-                                    await StageProgressRepository.UpdateAsync(stageProgress);
-                                }
-                                
-                                currentStageNumber = targetStage;
-                                
-                                // Clean URL to prevent reuse/tampering
-                                Navigation.NavigateTo("/my-tuno/stages", replace: true);
-                            }
-                            else
-                            {
-                                currentStageNumber = stageProgress.CurrentStage;
-                            }
-                            
+                            currentStageNumber = stageProgress.CurrentStage;
                             checkpointStage = stageProgress.LastCheckpoint;
                         }
                     }
