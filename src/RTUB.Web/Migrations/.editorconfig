@@ -1,0 +1,4 @@
+# Auto-generated EF Core migration files use block-scoped namespaces.
+# Suppress IDE0161 to allow both styles in this folder.
+[*.cs]
+csharp_style_namespace_declarations = block_scoped:silent

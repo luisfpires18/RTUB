@@ -10,4 +10,5 @@ public class MyTunoLeaderboardEntry
     public int Level { get; set; }
     public int HighestStage { get; set; }
     public int HighestBossStage { get; set; }
+    public int HighestSurviveLevel { get; set; }
 }

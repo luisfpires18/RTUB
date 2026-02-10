@@ -83,6 +83,9 @@ public static class ServiceCollectionExtensions
 
         // Boss Mode repositories
         services.AddScoped<IBossModeProgressRepository, BossModeProgressRepository>();
+
+        // Survive Mode repositories
+        services.AddScoped<ISurviveModeProgressRepository, SurviveModeProgressRepository>();
         services.AddScoped<IItemTypeConfigRepository, ItemTypeConfigRepository>();
         services.AddScoped<IForgeComboConfigRepository, ForgeComboConfigRepository>();
 
@@ -143,6 +146,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStageBiomeService, StageBiomeService>();
         services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
         services.AddScoped<IBossModeService, BossModeService>();
+        services.AddScoped<ISurviveModeService, SurviveModeService>();
 
         return services;
     }

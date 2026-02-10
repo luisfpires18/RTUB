@@ -1,0 +1,658 @@
+@page "/my-tuno/survive"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Application.DTOs
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@using RTUB.Shared.Components.UI
+@using System.Text.Json
+@using RTUB.Application.Configuration
+@using Microsoft.Extensions.Options
+@attribute [Authorize]
+@inject ISurviveModeService SurviveModeService
+@inject ICharacterService CharacterService
+@inject INaipeService NaipeService
+@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<SurviveMode> Logger
+@inject IAuditLogService AuditLogService
+@implements IAsyncDisposable
+
+<PageTitle>Survive Mode - My Tuno - RTUB</PageTitle>
+
+<div class="stage-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="flex-grow-1 text-center">
+                <h1 class="mb-2"><i class="bi bi-bullseye text-danger"></i> Survive Mode</h1>
+            </div>
+            <div style="width: 48px;"></div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (character == null)
+    {
+        <EmptyState Title="Personagem não encontrado"
+                    Message="Ocorreu um erro ao carregar o teu personagem."
+                    Icon="bi-person-x" />
+    }
+    else if (errorMessage != string.Empty)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        </div>
+    }
+    else
+    {
+        @* ─── Active Game ─── *@
+        @if (showGame)
+        {
+            <div class="card mb-4 battle-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bullseye text-danger me-2"></i>
+                        Level @currentLevel — @currentBiomeName
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
+                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 d-flex justify-content-center">
+                    <div id="surviveGameContainer" style="width: 100%; max-width: 800px; aspect-ratio: 8/5;"></div>
+                </div>
+            </div>
+
+            @* ─── Run Rewards Accumulator ─── *@
+            @if (levelsCompleted > 0)
+            {
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">
+                        <i class="bi bi-gift me-2"></i>Recompensas Acumuladas (Nível @levelsCompleted completados)
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-3 flex-wrap">
+                            <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i>@Fmt(totalXPEarned) XP</span>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-coin me-1"></i>@Fmt(totalFidelisEarned) Fidelis</span>
+                            @if (totalBeersDropped > 0)
+                            {
+                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalBeersDropped Cervejas</span>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-lightning me-1"></i>@totalShotsDropped Shots</span>
+                            }
+                            @if (totalEnemiesKilled > 0)
+                            {
+                                <span class="badge bg-secondary"><i class="bi bi-crosshair me-1"></i>@totalEnemiesKilled Inimigos</span>
+                            }
+                            @if (totalCoinsCollected > 0)
+                            {
+                                <span class="badge bg-warning text-dark">🪙 @totalCoinsCollected Moedas</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        @* ─── End Summary (mirrors Stage defeat-overlay) ─── *@
+        @if (showDefeatSummary)
+        {
+            <div class="defeat-overlay">
+                <div class="defeat-panel">
+                    <div class="defeat-banner">
+                        <span>SURVIVAL ENDED</span>
+                    </div>
+                    <div class="defeat-stage">Level @Fmt(defeatedAtLevel)</div>
+                    @if (levelsCompleted > 0 || totalEnemiesKilled > 0)
+                    {
+                        <div class="defeat-rewards">
+                            @if (levelsCompleted > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>@Fmt(levelsCompleted) Levels</span>
+                                </div>
+                            }
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-crosshair text-info"></i>
+                                <span>@Fmt(totalEnemiesKilled) Inimigos</span>
+                            </div>
+                            @if (totalCoinsCollected > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-coin text-warning"></i>
+                                    <span>🪙 @Fmt(totalCoinsCollected) Moedas (+@((int)(totalCoinsCollected * 0.5))% bônus)</span>
+                                </div>
+                            }
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <span>+@Fmt(totalXPEarned) XP</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <span>+@Fmt(totalFidelisEarned) Fidelis</span>
+                            </div>
+                            @if (totalBeersDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@Fmt(totalBeersDropped) Cerveja</span>
+                                </div>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup text-danger"></i>
+                                    <span>+@totalShotsDropped Shot</span>
+                                </div>
+                            }
+                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
+                            {
+                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    <span>+@qty @instrumentName</span>
+                                </div>
+                            }
+                            @foreach (var (equipType, qty) in totalEquipmentDropped)
+                            {
+                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
+                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
+                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
+                                <div class="defeat-reward-row">
+                                    <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
+                                    <span>+@qty @equipName</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="defeat-no-rewards">Nenhum nível completado.</p>
+                    }
+                    <button class="defeat-btn" @onclick="DefeatGoBack">
+                        IR MY TUNO
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    // ─── State ────────────────────────────────────────────────────
+    private bool loading = true;
+    private bool hasRendered = false;
+    private bool _disposed = false;
+    private string errorMessage = string.Empty;
+
+    private Character? character;
+    private ApplicationUser? currentUser;
+    private SurviveModeProgress? surviveProgress;
+    private DotNetObjectReference<SurviveMode>? objRef;
+
+    // Game state
+    private bool showGame = false;
+    private bool showDefeatSummary = false;
+    private bool runInProgress = false;
+    private bool audioEnabled = true;
+    private int currentLevel = 1;
+    private string currentBiomeName = "Forest";
+
+    // Run totals
+    private int levelsCompleted = 0;
+    private int totalXPEarned = 0;
+    private decimal totalFidelisEarned = 0;
+    private int totalBeersDropped = 0;
+    private int totalShotsDropped = 0;
+    private int totalEnemiesKilled = 0;
+    private int totalCoinsCollected = 0;
+    private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
+    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
+    private SurviveModeLevelResult? lastResult;
+
+    // Defeat summary
+    private int defeatedAtLevel = 1;
+
+    private readonly SemaphoreSlim _gameLock = new(1, 1);
+
+    // Query parameter for starting level
+    [SupplyParameterFromQuery(Name = "level")]
+    public int? StartLevelParam { get; set; }
+
+    // ─── Lifecycle ────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            currentUser = await UserManager.GetUserAsync(user);
+            if (currentUser == null)
+            {
+                errorMessage = "Utilizador não encontrado.";
+                loading = false;
+                return;
+            }
+
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
+
+            // Use query param level or current progress level
+            currentLevel = StartLevelParam.HasValue && StartLevelParam.Value >= 1
+                ? StartLevelParam.Value
+                : surviveProgress.CurrentLevel;
+
+            currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
+
+            // Cancel any stale runs
+            if (surviveProgress.IsRunActive)
+            {
+                Logger.LogWarning("Found stale survive run for user {UserId}, cancelling.", currentUser.Id);
+                await SurviveModeService.CancelRunAsync(character.Id);
+                surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading Survive Mode");
+            errorMessage = "Erro ao carregar o modo Survive.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && character != null && !_disposed)
+        {
+            hasRendered = true;
+            objRef = DotNetObjectReference.Create(this);
+
+            // Auto-start the game (like Stage mode)
+            await AutoStartRun();
+        }
+    }
+
+    // ─── Game Flow ────────────────────────────────────────────────
+    private async Task AutoStartRun()
+    {
+        if (character == null || currentUser == null) return;
+
+        try
+        {
+            surviveProgress = await SurviveModeService.StartRunAsync(character.Id);
+            currentLevel = StartLevelParam.HasValue && StartLevelParam.Value >= 1
+                ? StartLevelParam.Value
+                : surviveProgress.CurrentLevel;
+            currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
+            runInProgress = true;
+            showGame = true;
+            showDefeatSummary = false;
+            ResetRunTotals();
+            StateHasChanged();
+
+            // Wait for the DOM to render the container
+            await Task.Delay(100);
+            await StartLevelGame();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error auto-starting survive run");
+            errorMessage = "Erro ao iniciar a run.";
+            showGame = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartLevelGame()
+    {
+        if (_disposed || character == null) return;
+
+        try
+        {
+            var config = SurviveModeService.GetLevelConfig(currentLevel, character.Level);
+            var enemySprites = await SurviveModeService.GetEnemySpritesAsync(currentLevel, 6);
+            var bossSprites = await SurviveModeService.GetBossSpritesAsync(currentLevel, 4);
+            var backgroundPath = SurviveModeService.GetBackgroundPath(currentLevel);
+
+            // Get player sprite path
+            var playerSpritePath = "/sprites/games/my-tuno/default_tuno.png";
+
+            var levelData = new
+            {
+                config.Level,
+                config.BiomeName,
+                config.TimerDurationSeconds,
+                config.BaseEnemyCount,
+                config.MaxEnemyCount,
+                config.SpawnIntervalSeconds,
+                config.EnemySpeed,
+                config.MaxEnemySpeed,
+                config.PlayerSpeed,
+                config.EnemyScale,
+                config.HasEliteEnemies,
+                config.EliteSpawnChance,
+                config.MapWidth,
+                config.MapHeight,
+                config.ViewportWidth,
+                config.ViewportHeight,
+                config.IsFinalLevel,
+                BackgroundPath = backgroundPath,
+                EnemySprites = enemySprites.ToArray(),
+                BossSprites = bossSprites.ToArray(),
+                PlayerSpritePath = playerSpritePath
+            };
+
+            if (levelsCompleted == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("surviveModeGame.start", "surviveGameContainer", levelData, objRef);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("surviveModeGame.nextLevel", levelData);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting survive level {Level}", currentLevel);
+            errorMessage = $"Erro ao carregar o nível {currentLevel}.";
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnLevelComplete(int enemiesKilled, double survivalTime, int coinsCollected = 0)
+    {
+        if (_disposed || character == null) return;
+
+        if (!await _gameLock.WaitAsync(0))
+        {
+            Logger.LogWarning("OnLevelComplete called while locked");
+            return;
+        }
+
+        try
+        {
+            var result = await SurviveModeService.CompleteLevelAsync(character.Id, enemiesKilled, survivalTime);
+
+            // Coin bonus: every 10 coins = +5% XP/Fidelis
+            var coinBonus = 1.0 + coinsCollected * 0.005;
+            result.XPReward = (int)(result.XPReward * coinBonus);
+            result.FidelisReward = Math.Round(result.FidelisReward * (decimal)coinBonus, 2);
+
+            AccumulateRewards(result);
+            lastResult = result;
+            levelsCompleted++;
+            totalEnemiesKilled += enemiesKilled;
+            totalCoinsCollected += coinsCollected;
+
+            // Advance to next level (increment locally — don't re-read from DB
+            // as progress.CurrentLevel may differ if StartLevelParam was used)
+            currentLevel++;
+            currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
+
+            StateHasChanged();
+
+            // Auto-start next level after brief delay
+            await Task.Delay(2500);
+            await StartLevelGame();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error completing survive level");
+            errorMessage = "Erro ao processar conclusão do nível.";
+            StateHasChanged();
+        }
+        finally
+        {
+            _gameLock.Release();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPlayerDeath(int enemiesKilled, double survivalTime, int coinsCollected = 0)
+    {
+        if (_disposed || character == null) return;
+
+        if (!await _gameLock.WaitAsync(0))
+        {
+            Logger.LogWarning("OnPlayerDeath called while locked");
+            return;
+        }
+
+        try
+        {
+            var result = await SurviveModeService.EndRunAsync(character.Id, enemiesKilled, survivalTime);
+
+            // Coin bonus: every 10 coins = +5% XP/Fidelis
+            var coinBonus = 1.0 + coinsCollected * 0.005;
+            result.XPReward = (int)(result.XPReward * coinBonus);
+            result.FidelisReward = Math.Round(result.FidelisReward * (decimal)coinBonus, 2);
+
+            AccumulateRewards(result);
+            lastResult = result;
+            totalEnemiesKilled += enemiesKilled;
+            totalCoinsCollected += coinsCollected;
+            defeatedAtLevel = currentLevel;
+
+            // Apply accumulated rewards
+            if (totalXPEarned > 0 || totalFidelisEarned > 0)
+            {
+                await SurviveModeService.ApplyRunRewardsAsync(
+                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+            }
+
+            // Destroy JS game
+            try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
+            catch { }
+
+            // Refresh data
+            character = await CharacterService.GetOrCreateCharacterAsync(currentUser!.Id);
+            currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser!.Id);
+
+            showGame = false;
+            showDefeatSummary = true;
+            runInProgress = false;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing survive death");
+            errorMessage = "Erro ao processar derrota.";
+            StateHasChanged();
+        }
+        finally
+        {
+            _gameLock.Release();
+        }
+    }
+
+    private async Task EndRunEarly()
+    {
+        if (_disposed) return;
+
+        try
+        {
+            // Destroy JS game
+            try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
+            catch { }
+
+            defeatedAtLevel = currentLevel;
+
+            // Apply accumulated rewards
+            if (character != null && (totalXPEarned > 0 || totalFidelisEarned > 0))
+            {
+                try
+                {
+                    await SurviveModeService.ApplyRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error applying rewards on early end");
+                }
+            }
+
+            // Cancel the run
+            if (character != null)
+            {
+                await SurviveModeService.CancelRunAsync(character.Id);
+            }
+
+            // Refresh data
+            if (currentUser != null)
+            {
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser!.Id);
+            }
+
+            showGame = false;
+            showDefeatSummary = true;
+            runInProgress = false;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error ending survive run early");
+        }
+    }
+
+    private async Task ToggleAudio()
+    {
+        audioEnabled = !audioEnabled;
+        if (hasRendered)
+        {
+            try { await JSRuntime.InvokeVoidAsync("surviveModeGame.setAudioEnabled", audioEnabled); }
+            catch { }
+        }
+    }
+
+    private void DefeatGoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+    private void AccumulateRewards(SurviveModeLevelResult result)
+    {
+        totalXPEarned += result.XPReward;
+        totalFidelisEarned += result.FidelisReward;
+        totalBeersDropped += result.BeersDropped;
+        totalShotsDropped += result.ShotsDropped;
+
+        foreach (var part in result.InstrumentPartsDropped)
+        {
+            if (totalInstrumentPartsDropped.ContainsKey(part))
+                totalInstrumentPartsDropped[part]++;
+            else
+                totalInstrumentPartsDropped[part] = 1;
+        }
+
+        foreach (var equip in result.EquipmentDropped)
+        {
+            if (totalEquipmentDropped.ContainsKey(equip))
+                totalEquipmentDropped[equip]++;
+            else
+                totalEquipmentDropped[equip] = 1;
+        }
+    }
+
+    private void ResetRunTotals()
+    {
+        levelsCompleted = 0;
+        totalXPEarned = 0;
+        totalFidelisEarned = 0;
+        totalBeersDropped = 0;
+        totalShotsDropped = 0;
+        totalEnemiesKilled = 0;
+        totalCoinsCollected = 0;
+        totalInstrumentPartsDropped.Clear();
+        totalEquipmentDropped.Clear();
+        lastResult = null;
+    }
+
+    private static string Fmt(int value) => value.ToString("N0");
+    private static string Fmt(decimal value) => value.ToString("N0");
+
+    // ─── Dispose ──────────────────────────────────────────────────
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+
+        // Cancel active run and apply accumulated rewards
+        if (runInProgress && character != null)
+        {
+            try
+            {
+                if (totalXPEarned > 0 || totalFidelisEarned > 0)
+                {
+                    await SurviveModeService.ApplyRunRewardsAsync(
+                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                }
+                await SurviveModeService.CancelRunAsync(character.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error during survive mode disposal");
+            }
+        }
+
+        if (hasRendered)
+        {
+            try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
+            catch { }
+        }
+
+        objRef?.Dispose();
+        _gameLock.Dispose();
+    }
+}

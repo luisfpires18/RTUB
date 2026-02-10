@@ -160,6 +160,11 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .AsNoTracking()
             .ToDictionaryAsync(bp => bp.UserId, bp => bp.HighestBossStage);
 
+        // Get highest survive level for each user from SurviveModeProgress
+        var surviveProgressData = await _context.SurviveModeProgresses
+            .AsNoTracking()
+            .ToDictionaryAsync(sp => sp.UserId, sp => sp.HighestLevel);
+
         // Combine characters with their wins and sort
         var leaderboard = characters
             .Select(c => new MyTunoLeaderboardEntry
@@ -171,7 +176,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
                 Wins = c.ArenaWins,
                 Level = c.Level,
                 HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0,
-                HighestBossStage = bossModeProgressData.ContainsKey(c.UserId) ? bossModeProgressData[c.UserId] : 0
+                HighestBossStage = bossModeProgressData.ContainsKey(c.UserId) ? bossModeProgressData[c.UserId] : 0,
+                HighestSurviveLevel = surviveProgressData.ContainsKey(c.UserId) ? surviveProgressData[c.UserId] : 0
             })
             .OrderByDescending(entry => entry.Wins)
             .ThenByDescending(entry => entry.Level)

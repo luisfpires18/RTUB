@@ -191,6 +191,7 @@ public class AuditLogAppender : IAuditLogAppender
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
             "LastLoginDate", // Exclude login tracking - already logged separately
             "FidelisBalance", // High-frequency balance updates - not business-critical
+            "FitabBalance", // High-frequency balance updates - not business-critical
             "LastDailyRewardClaim" // Daily reward tracking - not business-critical
         };
 

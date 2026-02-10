@@ -22,6 +22,7 @@
 @inject INaipeService NaipeService
 @inject IStageService StageService
 @inject IBossModeService BossModeService
+@inject ISurviveModeService SurviveModeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -538,17 +539,19 @@
                         
                         <hr />
                         <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-lg flex-grow-1" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
+                            <button class="btn btn-primary btn-lg flex-fill" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
                                 <i class="bi bi-sword me-2"></i>Arena
                             </button>
-                            <button class="btn btn-success btn-lg flex-grow-1" @onclick="OpenStageModal" disabled="@(currentHP <= 0)">
+                            <button class="btn btn-success btn-lg flex-fill" @onclick="OpenStageModal" disabled="@(currentHP <= 0)">
                                 <i class="bi bi-layers me-2"></i>Stages
                             </button>
                         </div>
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-warning btn-lg flex-grow-1" @onclick="OpenBossModeModal" disabled="@(currentHP <= 0)">
+                            <button class="btn btn-warning btn-lg flex-fill" @onclick="OpenBossModeModal" disabled="@(currentHP <= 0)">
                                 <i class="bi bi-lightning-fill me-2"></i>Boss Mode
-                                <span class="badge bg-dark ms-1">@(currentUser?.FitabBalance ?? 0) FITAB</span>
+                            </button>
+                            <button class="btn btn-danger btn-lg flex-fill" @onclick="OpenSurviveModeModal" disabled="@(currentHP <= 0)">
+                                <i class="bi bi-bullseye me-2"></i>Survive
                             </button>
                         </div>
                     </div>
@@ -596,6 +599,11 @@
                                         <i class="bi bi-lightning-fill me-1"></i>Boss
                                     </button>
                                 </li>
+                                <li class="nav-item">
+                                    <button class="nav-link @(leaderboardTab == "survive" ? "active" : "")" @onclick='() => leaderboardTab = "survive"'>
+                                        <i class="bi bi-bullseye me-1"></i>Survive
+                                    </button>
+                                </li>
                             </ul>
                             
                             <div class="stats-card-grid">
@@ -606,7 +614,9 @@
                                             ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
                                             : leaderboardTab == "boss"
                                                 ? leaderboardEntries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
-                                                : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
+                                                : leaderboardTab == "survive"
+                                                    ? leaderboardEntries.OrderByDescending(e => e.HighestSurviveLevel).ThenByDescending(e => e.Level).ToList()
+                                                    : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
                                     var paginatedItems = sortedLeaderboard.Skip((leaderboardCurrentPage - 1) * leaderboardPageSize).Take(leaderboardPageSize).ToList();
                                 }
                                 @for (int i = 0; i < paginatedItems.Count; i++)
@@ -657,6 +667,11 @@
                                             {
                                                 <i class="bi bi-lightning-fill text-warning"></i>
                                                 <span>@entry.HighestBossStage</span>
+                                            }
+                                            else if (leaderboardTab == "survive")
+                                            {
+                                                <i class="bi bi-bullseye text-danger"></i>
+                                                <span>Lv.@entry.HighestSurviveLevel</span>
                                             }
                                             else
                                             {
@@ -1893,6 +1908,91 @@
         </Modal>
     }
 
+    <!-- Survive Mode Modal -->
+    @if (showSurviveModeModal)
+    {
+        <Modal Show="@showSurviveModeModal"
+               ShowChanged="@((bool show) => { if (!show) showSurviveModeModal = false; })"
+               Title="Survive Mode"
+               Size="Modal.ModalSize.Large"
+               Centered="true">
+            <BodyContent>
+                @if (surviveProgress != null)
+                {
+                    <div class="text-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="bi bi-trophy text-warning me-2"></i>
+                            Maior Nível: <span class="text-success">@surviveProgress.HighestLevel</span>
+                            <small class="text-muted ms-2">(@SurviveModeProgress.GetBiomeName(surviveProgress.HighestLevel))</small>
+                        </h5>
+                        <div class="d-flex gap-3 justify-content-center mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-crosshair me-1"></i>@surviveProgress.TotalEnemiesKilled inimigos
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-arrow-repeat me-1"></i>@surviveProgress.TotalRunsAttempted runs
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="stage-biomes-list">
+                        @{
+                            var surviveNames = new[] { "Forest", "Swamp", "Mountains", "Snowy", "Tropical", "Caverns", "Desert", "Volcanic", "Ruins", "Dark", "Void" };
+                            var highestSurvive = surviveProgress.HighestLevel;
+                        }
+                        @foreach (var (name, idx) in surviveNames.Select((n, i) => (n, i)))
+                        {
+                            var level = idx + 1;
+                            var isUnlocked = highestSurvive >= level;
+                            var isCompleted = highestSurvive > level;
+                            var isCurrent = surviveProgress.CurrentLevel == level;
+                            var icon = GetSurviveBiomeIcon(name);
+                            var color = GetSurviveBiomeColor(name);
+                            var config = SurviveModeService.GetLevelConfig(level, character?.Level ?? 1);
+                            var timer = config.TimerDurationSeconds;
+                            var timerStr = timer >= 60 ? $"{(int)(timer / 60)}:{((int)(timer % 60)):D2}" : $"0:{(int)timer:D2}";
+
+                            <div class="biome-card @(isCurrent ? "biome-current" : "") @(isCompleted ? "biome-done" : "") @(!isUnlocked ? "biome-locked" : "")"
+                                 style="--bc: @color;">
+                                <div class="biome-row @(isUnlocked ? "biome-clickable" : "")"
+                                     @onclick="() => { if (isUnlocked) StartSurviveLevel(level); }">
+                                    <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">Level @level — @name</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Sobreviver @timerStr</div>
+                                    </div>
+                                    @if (isCompleted)
+                                    {
+                                        <i class="bi bi-check-circle-fill" style="color: @color; font-size: 1rem;"></i>
+                                    }
+                                    else if (isCurrent)
+                                    {
+                                        <span class="badge" style="background: @color; font-size: 0.68rem;">Próximo</span>
+                                    }
+                                    else if (!isUnlocked)
+                                    {
+                                        <i class="bi bi-lock-fill" style="color: rgba(255,255,255,0.2);"></i>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center">
+                        <LoadingSpinner Message="A carregar progresso..." />
+                    </div>
+                }
+            </BodyContent>
+            <FooterContent>
+                <button class="btn btn-secondary" @onclick="CloseSurviveModeModal">
+                    <i class="bi bi-x-lg me-2"></i>Fechar
+                </button>
+            </FooterContent>
+        </Modal>
+    }
+
     <!-- Info Modal -->
     @if (showInfoModal)
     {
@@ -2054,6 +2154,8 @@
     // Boss Mode modal state
     private bool showBossModeModal = false;
     private BossModeProgress? bossModeProgress;
+    private bool showSurviveModeModal = false;
+    private SurviveModeProgress? surviveProgress;
     
     // Leaderboard pagination
     private int leaderboardCurrentPage = 1;
@@ -2397,6 +2499,42 @@
     {
         Navigation.NavigateTo("/my-tuno/arena");
     }
+
+    private async Task OpenSurviveModeModal()
+    {
+        if (currentUser != null)
+        {
+            surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
+        }
+        showSurviveModeModal = true;
+    }
+
+    private void CloseSurviveModeModal()
+    {
+        showSurviveModeModal = false;
+    }
+
+    private void StartSurviveLevel(int level)
+    {
+        showSurviveModeModal = false;
+        Navigation.NavigateTo($"/my-tuno/survive?level={level}");
+    }
+
+    private static string GetSurviveBiomeIcon(string name) => name switch
+    {
+        "Forest" => "bi-tree-fill", "Swamp" => "bi-droplet-fill", "Mountains" => "bi-triangle-fill",
+        "Snowy" => "bi-snow2", "Tropical" => "bi-sun-fill", "Caverns" => "bi-gem",
+        "Desert" => "bi-thermometer-sun", "Volcanic" => "bi-fire", "Ruins" => "bi-building",
+        "Dark" => "bi-moon-fill", "Void" => "bi-radioactive", _ => "bi-question-circle"
+    };
+
+    private static string GetSurviveBiomeColor(string name) => name switch
+    {
+        "Forest" => "#43a047", "Swamp" => "#689f38", "Mountains" => "#78909c",
+        "Snowy" => "#90caf9", "Tropical" => "#e6a200", "Caverns" => "#7e57c2",
+        "Desert" => "#ff8f00", "Volcanic" => "#e53935", "Ruins" => "#8d6e63",
+        "Dark" => "#9575cd", "Void" => "#e040fb", _ => "#888"
+    };
 
     private async Task OpenStageModal()
     {

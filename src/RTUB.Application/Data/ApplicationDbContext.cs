@@ -148,6 +148,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Boss Mode DbSets
     public DbSet<BossModeProgress> BossModeProgresses { get; set; }
 
+    // Survive Mode DbSets
+    public DbSet<SurviveModeProgress> SurviveModeProgresses { get; set; }
+
     // Item Type Config DbSets
     public DbSet<ItemTypeConfig> ItemTypeConfigs { get; set; }
     public DbSet<ForgeComboConfig> ForgeComboConfigs { get; set; }

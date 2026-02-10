@@ -210,20 +210,23 @@
         }
 
         async loadAssets() {
-            // Use unique alias for background to avoid PIXI cache returning old texture
-            this.bgAlias = `stageBg_${this.stageNumber}`;
+            // Use unique alias + cache busting to avoid stale textures
+            const ts = Date.now();
+            const cacheBust = `?v=${ts}`;
+            this.bgAlias = `stageBg_${this.stageNumber}_${ts}`;
             const assets = [
-                { alias: this.bgAlias, src: this.backgroundPath },
-                { alias: 'stagePlayer', src: this.playerSpritePath }
+                { alias: this.bgAlias, src: this.backgroundPath + cacheBust },
+                { alias: `stagePlayer_${ts}`, src: this.playerSpritePath + cacheBust }
             ];
+            this._playerAlias = `stagePlayer_${ts}`;
 
             // Store the actual paths for creating sprites later
             this.enemySpriteAliases = [];
             if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
                 for (let i = 0; i < this.enemySpritePaths.length; i++) {
                     // Use unique alias combining index and path to avoid caching issues
-                    const alias = `stageEnemy${i}_${this.stageNumber}`;
-                    assets.push({ alias: alias, src: this.enemySpritePaths[i] });
+                    const alias = `stageEnemy${i}_${this.stageNumber}_${ts}`;
+                    assets.push({ alias: alias, src: this.enemySpritePaths[i] + cacheBust });
                     this.enemySpriteAliases.push(alias);
                 }
             }
@@ -348,7 +351,7 @@
             const playerX = width * 0.25;
             const playerY = height - groundOffset;
             
-            this.playerSprite = PIXI.Sprite.from('stagePlayer');
+            this.playerSprite = PIXI.Sprite.from(this._playerAlias || 'stagePlayer');
             this.playerSprite.anchor.set(0.5, 1);
             this.playerSprite.x = playerX;
             this.playerSprite.y = playerY;

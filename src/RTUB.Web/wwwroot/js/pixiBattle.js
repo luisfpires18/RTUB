@@ -283,10 +283,11 @@
         }
 
         async loadAssets() {
+            const cacheBust = `?v=${Date.now()}`;
             await PIXI.Assets.load([
-                { alias: 'attackerSprite', src: spritePaths.attacker },
-                { alias: 'defenderSprite', src: spritePaths.defender },
-                { alias: 'arenaBg', src: spritePaths.background }
+                { alias: 'attackerSprite', src: spritePaths.attacker + cacheBust },
+                { alias: 'defenderSprite', src: spritePaths.defender + cacheBust },
+                { alias: 'arenaBg', src: spritePaths.background + cacheBust }
             ]);
         }
 

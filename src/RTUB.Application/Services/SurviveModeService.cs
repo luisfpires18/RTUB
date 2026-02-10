@@ -1,0 +1,563 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
+using RTUB.Application.Data;
+using RTUB.Application.DTOs;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+using RTUB.Core.Enums;
+
+namespace RTUB.Application.Services;
+
+/// <summary>
+/// Service for Survive Mode — a survivor.io-inspired game.
+/// Player spawns center-map, enemies swarm from edges, dodge to survive the timer.
+/// Each level = 1 biome. Harder waves, faster enemies, longer timer per level.
+/// </summary>
+public class SurviveModeService : ISurviveModeService
+{
+    private readonly ISurviveModeProgressRepository _progressRepository;
+    private readonly ICharacterRepository _characterRepository;
+    private readonly IInventoryRepository _inventoryRepository;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<SurviveModeService> _logger;
+    private readonly MyTunoScalingConfiguration _config;
+    private readonly IStageBiomeService _biomeService;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ApplicationDbContext _context;
+    private readonly Random _random = new();
+
+    // Survive mode constants
+    private const double BaseTimerSeconds = 480.0;         // Level 1 timer (8 minutes)
+    private const double TimerIncreasePerLevel = 60.0;     // +1 min per level
+    private const double MaxTimerSeconds = 1200.0;         // Cap at 20 minutes
+    private const int BaseEnemyCount = 5;                  // Starting enemies
+    private const int EnemyCountIncreasePerLevel = 3;      // +3 max enemies per level
+    private const int MaxEnemyCountCap = 50;               // Cap alive enemies
+    private const double BaseEnemySpeed = 72.0;            // Pixels per second
+    private const double MaxEnemySpeedCap = 234.0;         // Speed cap
+    private const double BasePlayerSpeed = 120.0;          // Player is faster than enemies
+    private const double PlayerSpeedDecayPerLevel = 2.0;   // Gets slightly slower each level
+    private const double MinPlayerSpeed = 80.0;            // Never slower than this
+    private const double BaseSpawnInterval = 3.0;          // Seconds between waves
+    private const double MinSpawnInterval = 0.5;           // Fastest spawn rate
+    private const double BaseEnemyScale = 0.6;             // Smaller enemies = harder
+    private const double EnemyScaleDecreasePerLevel = 0.02;
+    private const double MinEnemyScale = 0.3;
+    private const int MapWidth = 2400;                     // Scrollable map
+    private const int MapHeight = 2400;
+    private const int ViewportWidth = 800;                 // Visible area
+    private const int ViewportHeight = 500;
+    private const int MaxLevel = 11;                       // Void is the final level
+
+    // Per-level difficulty scaling: [levelIndex] = (spawnMult, speedMult)
+    // Level 1 = base, scaling ~+15% spawn and ~+12% speed per level
+    private static readonly (double spawnMult, double speedMult)[] LevelScaling = new[]
+    {
+        (1.00, 1.00), // Level 1  - Forest
+        (1.15, 1.12), // Level 2  - Swamp
+        (1.32, 1.25), // Level 3  - Mountains
+        (1.52, 1.40), // Level 4  - Snowy
+        (1.75, 1.57), // Level 5  - Tropical
+        (2.01, 1.76), // Level 6  - Caverns
+        (2.31, 1.97), // Level 7  - Desert
+        (2.66, 2.20), // Level 8  - Volcanic
+        (3.06, 2.46), // Level 9  - Ruins
+        (3.52, 2.76), // Level 10 - Dark
+        (4.05, 3.09), // Level 11 - Void (final)
+    };
+
+    // Reward constants
+    private const int BaseXPPerLevel = 20;
+    private const decimal BaseFidelisPerLevel = 15;
+    private const double XPPerEnemyKill = 2.0;
+    private const double FidelisPerEnemyKill = 0.5;
+
+    public SurviveModeService(
+        ISurviveModeProgressRepository progressRepository,
+        ICharacterRepository characterRepository,
+        IInventoryRepository inventoryRepository,
+        UserManager<ApplicationUser> userManager,
+        ILogger<SurviveModeService> logger,
+        IOptions<MyTunoScalingConfiguration> config,
+        IStageBiomeService biomeService,
+        IWebHostEnvironment environment,
+        ApplicationDbContext context)
+    {
+        _progressRepository = progressRepository;
+        _characterRepository = characterRepository;
+        _inventoryRepository = inventoryRepository;
+        _userManager = userManager;
+        _logger = logger;
+        _config = config.Value;
+        _biomeService = biomeService;
+        _environment = environment;
+        _context = context;
+    }
+
+    /// <summary>
+    /// Resets stale ApplicationUser entries in the change tracker.
+    /// </summary>
+    private void ResetStaleUserEntries()
+    {
+        foreach (var entry in _context.ChangeTracker.Entries<ApplicationUser>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.State = EntityState.Unchanged;
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        var progress = await _progressRepository.GetByUserIdAsync(userId);
+        if (progress != null)
+            return progress;
+
+        progress = SurviveModeProgress.Create(userId);
+        await _progressRepository.AddAsync(progress);
+        return progress;
+    }
+
+    /// <inheritdoc />
+    public async Task<SurviveModeProgress?> GetProgressAsync(string userId)
+    {
+        return await _progressRepository.GetByUserIdAsync(userId);
+    }
+
+    /// <inheritdoc />
+    public async Task<SurviveModeProgress> StartRunAsync(int characterId)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        if ((character.CurrentHP ?? character.HP) <= 0)
+            throw new InvalidOperationException("Character is dead — cannot start a survive run");
+
+        var progress = await GetOrCreateProgressAsync(character.UserId);
+
+        if (progress.IsRunActive)
+        {
+            _logger.LogWarning("User {UserId} tried to start survive run while one is active. Cancelling old run.",
+                character.UserId);
+            progress.CancelRun();
+        }
+
+        progress.StartRun();
+        ResetStaleUserEntries();
+        await _progressRepository.UpdateAsync(progress);
+
+        var user = await _userManager.FindByIdAsync(character.UserId);
+        _logger.LogInformation("Survive Mode initiated by {UserName}", user?.UserName ?? character.UserId);
+
+        return progress;
+    }
+
+    /// <inheritdoc />
+    public SurviveModeLevelConfig GetLevelConfig(int level, int characterLevel)
+    {
+        var region = SurviveModeProgress.GetRegionForLevel(level);
+        var biomeName = SurviveModeProgress.GetBiomeName(level);
+
+        // Get biome difficulty/reward multipliers from stage mode config
+        var biomeConfig = _config.StageMode?.Biomes?.FirstOrDefault(b =>
+            string.Equals(b.Name, biomeName, StringComparison.OrdinalIgnoreCase));
+
+        var difficultyMult = biomeConfig?.DifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
+        var rewardMult = biomeConfig?.RewardMultiplier ?? 1.0 + (level - 1) * 0.2;
+
+        // Per-level scaling from the LevelScaling table (clamped to array bounds)
+        var scaleIdx = Math.Clamp(level - 1, 0, LevelScaling.Length - 1);
+        var (spawnMult, speedMult) = LevelScaling[scaleIdx];
+
+        // Timer: 8 min base + 1 min per level, caps at MaxTimerSeconds
+        var timer = Math.Min(BaseTimerSeconds + (level - 1) * TimerIncreasePerLevel, MaxTimerSeconds);
+
+        // Enemy count: scales with level and spawn multiplier
+        var baseCount = Math.Min((int)(BaseEnemyCount + (level - 1) * 2 * spawnMult), MaxEnemyCountCap / 2);
+        var maxCount = Math.Min((int)((BaseEnemyCount + (level - 1) * EnemyCountIncreasePerLevel) * spawnMult), MaxEnemyCountCap);
+
+        // Enemy speed scales with level, difficulty, and speed multiplier
+        var enemySpeed = Math.Min(BaseEnemySpeed * speedMult * difficultyMult, MaxEnemySpeedCap);
+        var maxEnemySpeed = Math.Min(enemySpeed * 1.5, MaxEnemySpeedCap * 1.2);
+
+        // Player speed: starts high, slowly decreases (still faster than enemies)
+        var playerSpeed = Math.Max(BasePlayerSpeed - (level - 1) * PlayerSpeedDecayPerLevel, MinPlayerSpeed);
+
+        // Spawn interval: gets faster each level, scaled by spawnMult
+        var spawnInterval = Math.Max(BaseSpawnInterval / spawnMult, MinSpawnInterval);
+
+        // Enemy scale: gets smaller each level (harder to see, more can fit)
+        var enemyScale = Math.Max(BaseEnemyScale - (level - 1) * EnemyScaleDecreasePerLevel, MinEnemyScale);
+
+        // Elite enemies appear from level 3+
+        var hasElites = level >= 3;
+        var eliteChance = hasElites ? Math.Min(0.05 + (level - 3) * 0.03, 0.30) : 0.0;
+
+        // Void (level 11) is the final level — no bosses, timer expiry = win
+        var isFinalLevel = level >= MaxLevel;
+
+        return new SurviveModeLevelConfig
+        {
+            Level = level,
+            BiomeName = biomeName,
+            Region = region,
+            TimerDurationSeconds = timer,
+            BaseEnemyCount = baseCount,
+            MaxEnemyCount = maxCount,
+            SpawnIntervalSeconds = spawnInterval,
+            EnemySpeed = enemySpeed,
+            MaxEnemySpeed = maxEnemySpeed,
+            PlayerSpeed = playerSpeed,
+            EnemyScale = enemyScale,
+            DifficultyMultiplier = difficultyMult,
+            RewardMultiplier = rewardMult,
+            EnemySpriteVariants = 4,
+            HasEliteEnemies = hasElites,
+            EliteSpawnChance = eliteChance,
+            MapWidth = MapWidth,
+            MapHeight = MapHeight,
+            ViewportWidth = ViewportWidth,
+            ViewportHeight = ViewportHeight,
+            IsFinalLevel = isFinalLevel
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        var progress = await GetOrCreateProgressAsync(character.UserId);
+
+        if (!progress.IsRunActive)
+            throw new InvalidOperationException("No active survive run");
+
+        var level = progress.CurrentLevel;
+        var config = GetLevelConfig(level, character.Level);
+
+        // Server-side timing validation (allow 2s grace for network latency)
+        if (progress.RunStartedAt.HasValue)
+        {
+            var elapsed = (DateTime.UtcNow - progress.RunStartedAt.Value).TotalSeconds;
+            if (survivalTimeSeconds > elapsed + 2.0)
+            {
+                _logger.LogWarning("Survive mode timing validation failed for user {UserId}. " +
+                    "Claimed {ClaimedTime}s but only {ElapsedTime}s elapsed.",
+                    character.UserId, survivalTimeSeconds, elapsed);
+                survivalTimeSeconds = elapsed;
+            }
+        }
+
+        // Calculate rewards
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, true);
+        result.CharacterId = characterId;
+
+        // Update progress
+        progress.CompleteLevel(survivalTimeSeconds, enemiesKilled);
+        progress.RunStartedAt = DateTime.UtcNow; // Reset timer for next level
+        ResetStaleUserEntries();
+        await _progressRepository.UpdateAsync(progress);
+
+        var completedUser = await _userManager.FindByIdAsync(character.UserId);
+        _logger.LogInformation("Survive Mode ended on level {Level} by {UserName} - rewards: {XP} XP, {Fidelis} Fidelis",
+            level, completedUser?.UserName ?? character.UserId, result.XPReward, result.FidelisReward);
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        var progress = await GetOrCreateProgressAsync(character.UserId);
+
+        if (!progress.IsRunActive)
+            throw new InvalidOperationException("No active survive run");
+
+        var level = progress.CurrentLevel;
+        var config = GetLevelConfig(level, character.Level);
+
+        // Calculate partial rewards (didn't survive full timer)
+        var survivalRatio = Math.Min(survivalTimeSeconds / config.TimerDurationSeconds, 1.0);
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, false);
+        result.CharacterId = characterId;
+
+        // Scale rewards by survival ratio (died early = less rewards)
+        result.XPReward = (int)(result.XPReward * survivalRatio);
+        result.FidelisReward = Math.Round(result.FidelisReward * (decimal)survivalRatio, 2);
+
+        // Update progress
+        progress.EndRun(survivalTimeSeconds, enemiesKilled);
+        ResetStaleUserEntries();
+        await _progressRepository.UpdateAsync(progress);
+
+        var diedUser = await _userManager.FindByIdAsync(character.UserId);
+        _logger.LogInformation("Survive Mode ended on level {Level} by {UserName} - rewards: {XP} XP, {Fidelis} Fidelis",
+            level, diedUser?.UserName ?? character.UserId, result.XPReward, result.FidelisReward);
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots,
+        Dictionary<InventoryItemType, int>? instrumentParts = null,
+        Dictionary<InventoryItemType, int>? equipment = null)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        var user = await _userManager.FindByIdAsync(character.UserId)
+            ?? throw new InvalidOperationException("User not found");
+
+        // Apply XP
+        if (xp > 0)
+        {
+            character.AddXP(xp);
+        }
+
+        // Apply Fidelis
+        if (fidelis > 0)
+        {
+            user.FidelisBalance += fidelis;
+        }
+
+        // Apply drops
+        if (beers > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beers);
+        }
+
+        if (shots > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
+        }
+
+        // Apply instrument parts
+        if (instrumentParts != null)
+        {
+            foreach (var (partType, quantity) in instrumentParts)
+            {
+                await _inventoryRepository.AddItemAsync(character.UserId, partType, quantity);
+            }
+        }
+
+        // Apply equipment
+        if (equipment != null)
+        {
+            foreach (var (equipType, quantity) in equipment)
+            {
+                await _inventoryRepository.AddItemAsync(character.UserId, equipType, quantity);
+            }
+        }
+
+        ResetStaleUserEntries();
+        await _characterRepository.UpdateAsync(character);
+        await _userManager.UpdateAsync(user);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> CancelRunAsync(int characterId)
+    {
+        var character = await _characterRepository.GetByIdAsync(characterId)
+            ?? throw new InvalidOperationException("Character not found");
+
+        var progress = await GetOrCreateProgressAsync(character.UserId);
+
+        if (!progress.IsRunActive)
+            return false;
+
+        progress.CancelRun();
+        ResetStaleUserEntries();
+        await _progressRepository.UpdateAsync(progress);
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public string GetBackgroundPath(int level)
+    {
+        var biomeName = SurviveModeProgress.GetBiomeName(level).ToLowerInvariant();
+        return $"/sprites/games/my-tuno/backgrounds/{biomeName}.png";
+    }
+
+    /// <inheritdoc />
+    public async Task<List<string>> GetEnemySpritesAsync(int level, int count)
+    {
+        var biomeName = SurviveModeProgress.GetBiomeName(level).ToLowerInvariant();
+        var spritePath = $"sprites/games/my-tuno/enemies/{biomeName}";
+
+        // Look for sprite files on disk
+        var webRootPath = _environment.WebRootPath;
+        var fullPath = Path.Combine(webRootPath, spritePath.Replace('/', Path.DirectorySeparatorChar));
+
+        var sprites = new List<string>();
+
+        if (Directory.Exists(fullPath))
+        {
+            var files = Directory.GetFiles(fullPath, "*.png")
+                .Where(f => !Path.GetFileName(f).StartsWith("boss_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (files.Count > 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var file = files[_random.Next(files.Count)];
+                    var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
+                    sprites.Add(relativePath);
+                }
+                return sprites;
+            }
+        }
+
+        // Fallback: try to find enemies from the stage enemy DB
+        var region = SurviveModeProgress.GetRegionForLevel(level);
+        var enemies = await _context.StageEnemies
+            .Where(e => e.Region == region && e.Type == EnemyType.Normal && e.SpritePath != null)
+            .Select(e => e.SpritePath!)
+            .ToListAsync();
+
+        if (enemies.Count > 0)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                sprites.Add(enemies[_random.Next(enemies.Count)]);
+            }
+            return sprites;
+        }
+
+        // Last resort: placeholder sprites
+        for (int i = 0; i < count; i++)
+        {
+            sprites.Add($"/sprites/games/my-tuno/enemies/forest/enemy_{(i % 4) + 1}.png");
+        }
+        return sprites;
+    }
+
+    /// <inheritdoc />
+    public Task<List<string>> GetBossSpritesAsync(int level, int count)
+    {
+        var biomeName = SurviveModeProgress.GetBiomeName(level).ToLowerInvariant();
+        var spritePath = $"sprites/games/my-tuno/enemies/{biomeName}";
+        var webRootPath = _environment.WebRootPath;
+        var fullPath = Path.Combine(webRootPath, spritePath.Replace('/', Path.DirectorySeparatorChar));
+
+        var sprites = new List<string>();
+
+        if (Directory.Exists(fullPath))
+        {
+            var bossFiles = Directory.GetFiles(fullPath, "boss_*.png").ToList();
+
+            if (bossFiles.Count > 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    var file = bossFiles[_random.Next(bossFiles.Count)];
+                    var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
+                    sprites.Add(relativePath);
+                }
+            }
+        }
+
+        return Task.FromResult(sprites);
+    }
+
+    /// <summary>
+    /// Calculates rewards for a survive level attempt.
+    /// </summary>
+    private SurviveModeLevelResult CalculateRewards(int level, SurviveModeLevelConfig config,
+        int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived)
+    {
+        var diffMult = config.DifficultyMultiplier;
+        var rewardMult = config.RewardMultiplier;
+
+        // Base XP from level completion + kill bonus
+        var baseXP = (int)(BaseXPPerLevel * level * diffMult);
+        var killXP = (int)(enemiesKilled * XPPerEnemyKill * Math.Sqrt(level));
+        var xpReward = survived ? baseXP + killXP : killXP; // Only full XP on survival
+
+        // Fidelis reward
+        var baseFidelis = BaseFidelisPerLevel * level * (decimal)rewardMult;
+        var killFidelis = (int)(enemiesKilled * FidelisPerEnemyKill);
+        var fidelisReward = survived ? baseFidelis + killFidelis : killFidelis;
+
+        // Level bonus (higher character level = slightly more rewards)
+        var levelBonus = 1.0 + Math.Min(characterLevel * 0.005, 0.5);
+        xpReward = (int)(xpReward * levelBonus);
+        fidelisReward = Math.Round(fidelisReward * (decimal)levelBonus, 2);
+
+        // Drop calculations
+        var dropRates = _config.StageMode?.DropRates;
+        var beerChance = dropRates?.BeerDropChance ?? 0.1;
+        var shotChance = dropRates?.ShotDropChance ?? 0.01;
+        var instrChance = dropRates?.InstrumentPartDropChance ?? 0.005;
+        var equipChance = dropRates?.EquipmentDropChance ?? 0.008;
+
+        // More kills = more drop rolls, scaled by level difficulty
+        var dropRolls = enemiesKilled;
+        var beers = 0;
+        var shots = 0;
+        var fitab = 0;
+        var instrParts = new List<InventoryItemType>();
+        var equipPieces = new List<InventoryItemType>();
+
+        var instrPartTypes = new[]
+        {
+            InventoryItemType.GuitarraPart, InventoryItemType.BaixoPart,
+            InventoryItemType.CavaquinhoPart, InventoryItemType.AcordeaoPart,
+            InventoryItemType.ViolinoPart, InventoryItemType.PercussaoPart,
+            InventoryItemType.FlautaPart, InventoryItemType.SaxofonePart
+        };
+
+        var equipSlotTypes = new[]
+        {
+            InventoryItemType.EquipmentHead, InventoryItemType.EquipmentShoulders,
+            InventoryItemType.EquipmentChest, InventoryItemType.EquipmentGloves,
+            InventoryItemType.EquipmentLegs, InventoryItemType.EquipmentBoots
+        };
+
+        for (int i = 0; i < dropRolls; i++)
+        {
+            if (_random.NextDouble() < beerChance * rewardMult)
+                beers++;
+            if (_random.NextDouble() < shotChance * rewardMult)
+                shots++;
+            if (_random.NextDouble() < instrChance * rewardMult)
+                instrParts.Add(instrPartTypes[_random.Next(instrPartTypes.Length)]);
+            if (_random.NextDouble() < equipChance * rewardMult)
+                equipPieces.Add(equipSlotTypes[_random.Next(equipSlotTypes.Length)]);
+            if (_random.NextDouble() < 0.002 * rewardMult)
+                fitab++;
+        }
+
+        return new SurviveModeLevelResult
+        {
+            Level = level,
+            Region = config.Region,
+            BiomeName = config.BiomeName,
+            Survived = survived,
+            SurvivalTimeSeconds = survivalTimeSeconds,
+            RequiredTimeSeconds = config.TimerDurationSeconds,
+            EnemiesKilled = enemiesKilled,
+            XPReward = xpReward,
+            FidelisReward = fidelisReward,
+            BeersDropped = beers,
+            ShotsDropped = shots,
+            InstrumentPartsDropped = instrParts,
+            EquipmentDropped = equipPieces,
+            FitabDropped = fitab
+        };
+    }
+}
