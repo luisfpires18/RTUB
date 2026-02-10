@@ -1,0 +1,703 @@
+@page "/owner/weapon-drink-config"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@attribute [Authorize(Roles = "Owner")]
+@inject IItemTypeConfigService ConfigService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Configuração Items - RTUB</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-sliders"></i> Configuração de Items</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">Gerir imagens de armas, bebidas, equipamento e combinações forjadas.</p>
+            </div>
+
+            <div class="page-header-actions justify-content-lg-end">
+                <a href="/my-tuno" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar ao My Tuno
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="A carregar configurações..." />
+    }
+    else
+    {
+        <!-- Tab navigation -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "weapons" ? "active" : "")"
+                        @onclick='() => activeTab = "weapons"'
+                        type="button" role="tab">
+                    <i class="bi bi-slash-lg me-1"></i> Armas (@weaponConfigs.Count)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "drinks" ? "active" : "")"
+                        @onclick='() => activeTab = "drinks"'
+                        type="button" role="tab">
+                    <i class="bi bi-cup-straw me-1"></i> Bebidas (@drinkConfigs.Count)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "equipment" ? "active" : "")"
+                        @onclick='() => activeTab = "equipment"'
+                        type="button" role="tab">
+                    <i class="bi bi-shield-shaded me-1"></i> Equipamento (@equipmentConfigs.Count)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "forge" ? "active" : "")"
+                        @onclick='() => activeTab = "forge"'
+                        type="button" role="tab">
+                    <i class="bi bi-hammer me-1"></i> Combinações Forjadas
+                </button>
+            </li>
+        </ul>
+
+        @if (activeTab != "forge")
+        {
+            <div class="alert alert-info identity-alert-info mb-4">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Dica:</strong> Carrega uma imagem para personalizar cada tipo.
+            </div>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-6 g-3">
+                @foreach (var config in GetActiveTabConfigs())
+                {
+                    <div class="col" @key="config.Id">
+                        <div class="item-type-card">
+                            <!-- Edit button -->
+                            <button class="btn btn-sm admin-btn-edit item-type-edit-btn"
+                                    @onclick="() => OpenEditModal(config)"
+                                    title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <!-- Image/Icon -->
+                            <div class="item-type-image-wrapper">
+                                @if (!string.IsNullOrEmpty(config.PictureUrl))
+                                {
+                                    <img src="@ConfigService.GetImageUrl(config.PictureUrl, imageRefreshTrigger)" alt="@config.DisplayName" class="item-type-image" />
+                                }
+                                else
+                                {
+                                    <div class="item-type-placeholder">
+                                        <i class="bi @config.IconClass"></i>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Name -->
+                            <div class="item-type-name">@config.DisplayName</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Forge Combos Tab -->
+            <div class="alert alert-info identity-alert-info mb-4">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Dica:</strong> Selecione um tipo de arma e um instrumento para ver todas as combinações de bebida possíveis.
+                Imagens específicas de combinação têm prioridade sobre a imagem genérica do tipo de arma.
+            </div>
+
+            <!-- Filters -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label text-light-theme">Tipo de Arma</label>
+                    <select class="form-select" @bind="selectedForgeWeaponType">
+                        @foreach (var wt in Enum.GetValues<WeaponType>())
+                        {
+                            <option value="@wt">@WeaponTypeHelper.GetDisplayName(wt)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-light-theme">Instrumento</label>
+                    <select class="form-select" @bind="selectedForgeInstrument">
+                        @foreach (var inst in InstrumentTypeHelper.AllInstrumentPartTypes)
+                        {
+                            var instType = InstrumentTypeHelper.FromInventoryPartType(inst);
+                            if (instType.HasValue)
+                            {
+                                <option value="@inst">@InstrumentTypeHelper.GetDisplayName(instType.Value)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <span class="badge bg-info bg-opacity-25 text-info p-2">
+                        <i class="bi bi-grid-3x3 me-1"></i>
+                        @forgeComboPictures.Count combinações com imagem
+                    </span>
+                </div>
+            </div>
+
+            <!-- Combo grid: one card per drink for the selected weapon+instrument -->
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">
+                @foreach (var drink in DrinkTypes)
+                {
+                    var comboKey = $"{selectedForgeWeaponType}_{selectedForgeInstrument}_{drink}";
+                    var hasPicture = forgeComboPictures.ContainsKey(comboKey);
+                    var pictureUrl = hasPicture ? forgeComboPictures[comboKey] : null;
+                    var drinkName = GetDrinkDisplayName(drink);
+                    var instrumentName = InstrumentTypeHelper.FromInventoryPartType(selectedForgeInstrument) is InstrumentType it
+                        ? InstrumentTypeHelper.GetDisplayName(it) : selectedForgeInstrument.ToString();
+
+                    <div class="col" @key="comboKey">
+                        <div class="item-type-card @(hasPicture ? "" : "is-hidden")">
+                            <button class="btn btn-sm admin-btn-edit item-type-edit-btn"
+                                    @onclick="() => OpenForgeEditModal(comboKey, drinkName, instrumentName)"
+                                    title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <div class="item-type-image-wrapper">
+                                @if (hasPicture)
+                                {
+                                    <img src="@ConfigService.GetImageUrl(pictureUrl, imageRefreshTrigger)" alt="@comboKey" class="item-type-image" />
+                                }
+                                else
+                                {
+                                    <div class="item-type-placeholder">
+                                        <i class="bi bi-hammer"></i>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="item-type-name" style="font-size: 0.85rem;">@drinkName</div>
+                            <div class="item-type-badges">
+                                @if (hasPicture)
+                                {
+                                    <span class="badge bg-success">Com imagem</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Sem imagem</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<!-- Edit Modal (Weapons / Drinks / Equipment) -->
+<Modal Show="@modals.IsOpen(ModalType.Edit)" ShowChanged="@((bool show) => modals.Toggle(ModalType.Edit, show))" Title="@($"Editar {editingConfig?.DisplayName}")">
+    <BodyContent>
+        @if (editingConfig != null)
+        {
+            <!-- Current Image Preview -->
+            <div class="mb-4 text-center">
+                @if (!string.IsNullOrEmpty(editingConfig.PictureUrl))
+                {
+                    <img src="@ConfigService.GetImageUrl(editingConfig.PictureUrl, imageRefreshTrigger)" alt="@editingConfig.DisplayName"
+                         class="rounded-circle mb-2 config-avatar" />
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveCurrentImage">
+                            <i class="bi bi-trash me-1"></i>Remover Imagem
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2 icon-container">
+                        <i class="bi @editingConfig.IconClass text-white icon-container-large"></i>
+                    </div>
+                }
+            </div>
+
+            <!-- Image Upload -->
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                <div class="localized-file-picker">
+                    <InputFile id="@imageInputId"
+                               @key="imageUploadKey"
+                               class="d-none"
+                               OnChange="HandleImageSelected"
+                               accept="image/*" />
+                    <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
+                        <i class="bi bi-upload me-2"></i>Escolher imagem
+                    </label>
+                    <span class="localized-file-name">@(selectedFileName ?? "Nenhuma imagem selecionada")</span>
+                </div>
+                <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle me-1"></i>Formatos suportados: JPG, PNG, WebP. Tamanho máximo: 5MB
+                </small>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="button" class="btn btn-purple" @onclick="SaveEdit" disabled="@saving">
+            @if (saving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                <span>A guardar...</span>
+            }
+            else
+            {
+                <i class="bi bi-check-lg me-1"></i>
+                <span>Guardar</span>
+            }
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Forge Combo Edit Modal -->
+<Modal Show="@modals.IsOpen(ModalType.ForgeEdit)" ShowChanged="@((bool show) => modals.Toggle(ModalType.ForgeEdit, show))" Title="@($"Imagem: {editingForgeLabel}")">
+    <BodyContent>
+        <div class="mb-4 text-center">
+            @if (editingForgeKey != null && forgeComboPictures.TryGetValue(editingForgeKey, out var forgeUrl))
+            {
+                <img src="@ConfigService.GetImageUrl(forgeUrl, imageRefreshTrigger)" alt="@editingForgeLabel"
+                     class="rounded-circle mb-2 config-avatar" />
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="RemoveForgeImage">
+                        <i class="bi bi-trash me-1"></i>Remover Imagem
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2 icon-container">
+                    <i class="bi bi-hammer text-white icon-container-large"></i>
+                </div>
+            }
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Imagem da Combinação</label>
+            <div class="localized-file-picker">
+                <InputFile id="@forgeImageInputId"
+                           @key="forgeImageUploadKey"
+                           class="d-none"
+                           OnChange="HandleForgeImageSelected"
+                           accept="image/*" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@forgeImageInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher imagem
+                </label>
+                <span class="localized-file-name">@(selectedForgeFileName ?? "Nenhuma imagem selecionada")</span>
+            </div>
+            <small class="text-muted d-block mt-1">
+                <i class="bi bi-info-circle me-1"></i>Formatos suportados: JPG, PNG, WebP. Tamanho máximo: 5MB
+            </small>
+        </div>
+
+        <div class="mb-3">
+            <small class="text-muted">
+                <strong>Chave:</strong> <code>@editingForgeKey</code>
+            </small>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseForgeEditModal">Cancelar</button>
+        <button type="button" class="btn btn-purple" @onclick="SaveForgeEdit" disabled="@saving">
+            @if (saving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                <span>A guardar...</span>
+            }
+            else
+            {
+                <i class="bi bi-check-lg me-1"></i>
+                <span>Guardar</span>
+            }
+        </button>
+    </FooterContent>
+</Modal>
+
+<style>
+    .item-type-card {
+        background-color: #151516;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        position: relative;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .item-type-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--bs-primary);
+    }
+
+    .item-type-card.is-hidden {
+        opacity: 0.5;
+    }
+
+    .item-type-edit-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 10;
+    }
+
+    .item-type-image-wrapper {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 0.75rem;
+    }
+
+    .item-type-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--bs-primary);
+    }
+
+    .item-type-placeholder {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: var(--bs-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .item-type-placeholder i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    .item-type-name {
+        font-weight: 600;
+        font-size: 1.125rem;
+        margin-bottom: 0.5rem;
+        color: #e2e2e2;
+    }
+
+    .item-type-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .item-type-badges .badge {
+        font-size: 0.7rem;
+    }
+
+    @@media (max-width: 576px) {
+        .item-type-card {
+            padding: 0.75rem;
+        }
+
+        .item-type-image-wrapper {
+            width: 60px;
+            height: 60px;
+        }
+
+        .item-type-placeholder i {
+            font-size: 1.5rem;
+        }
+
+        .item-type-name {
+            font-size: 1rem;
+        }
+
+        .item-type-badges .badge {
+            font-size: 0.625rem;
+        }
+    }
+</style>
+
+@code {
+    private bool loading = true;
+    private string activeTab = "weapons";
+    private List<ItemTypeConfigDto> weaponConfigs = new();
+    private List<ItemTypeConfigDto> drinkConfigs = new();
+    private List<ItemTypeConfigDto> equipmentConfigs = new();
+
+    // Forge combo state
+    private WeaponType selectedForgeWeaponType = WeaponType.SwordOneHand;
+    private InventoryItemType selectedForgeInstrument = InventoryItemType.GuitarraPart;
+    private Dictionary<string, string> forgeComboPictures = new();
+
+    private static readonly InventoryItemType[] DrinkTypes =
+    [
+        InventoryItemType.Cerveja, InventoryItemType.Vinho, InventoryItemType.Licor,
+        InventoryItemType.Rum, InventoryItemType.Tequilla, InventoryItemType.Vodka,
+        InventoryItemType.Gin, InventoryItemType.Whisky, InventoryItemType.Absinto,
+        InventoryItemType.Aguardente
+    ];
+
+    // Edit modal state
+    private enum ModalType { Edit, ForgeEdit }
+    private readonly MultiModalState<ModalType> modals = new();
+    private ItemTypeConfigDto? editingConfig;
+    private bool saving = false;
+
+    // Image upload state
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private Guid imageUploadKey = Guid.NewGuid();
+    private string imageInputId = $"item-type-image-{Guid.NewGuid():N}";
+    private int imageRefreshTrigger = 0;
+
+    // Forge combo edit state
+    private string? editingForgeKey;
+    private string editingForgeLabel = "";
+    private IBrowserFile? selectedForgeFile;
+    private string? selectedForgeFileName;
+    private Guid forgeImageUploadKey = Guid.NewGuid();
+    private string forgeImageInputId = $"forge-image-{Guid.NewGuid():N}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConfigs();
+    }
+
+    private async Task LoadConfigs()
+    {
+        loading = true;
+        try
+        {
+            weaponConfigs = await ConfigService.GetWeaponTypeConfigsAsync();
+            drinkConfigs = await ConfigService.GetDrinkTypeConfigsAsync();
+            equipmentConfigs = await ConfigService.GetEquipmentTypeConfigsAsync();
+            forgeComboPictures = await ConfigService.GetAllForgeComboPicturesAsync();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private List<ItemTypeConfigDto> GetActiveTabConfigs() => activeTab switch
+    {
+        "weapons" => weaponConfigs,
+        "drinks" => drinkConfigs,
+        "equipment" => equipmentConfigs,
+        _ => weaponConfigs
+    };
+
+    private static string GetDrinkDisplayName(InventoryItemType type) => type switch
+    {
+        InventoryItemType.Cerveja => "Cerveja",
+        InventoryItemType.Vinho => "Vinho",
+        InventoryItemType.Licor => "Licor",
+        InventoryItemType.Rum => "Rum",
+        InventoryItemType.Tequilla => "Tequilla",
+        InventoryItemType.Vodka => "Vodka",
+        InventoryItemType.Gin => "Gin",
+        InventoryItemType.Whisky => "Whisky",
+        InventoryItemType.Absinto => "Absinto",
+        InventoryItemType.Aguardente => "Aguardente",
+        _ => type.ToString()
+    };
+
+    // ── Standard item modal methods ──
+
+    private void OpenEditModal(ItemTypeConfigDto config)
+    {
+        editingConfig = config;
+        selectedFile = null;
+        selectedFileName = null;
+        imageUploadKey = Guid.NewGuid();
+        modals.Open(ModalType.Edit);
+    }
+
+    private void CloseEditModal()
+    {
+        modals.Close(ModalType.Edit);
+        editingConfig = null;
+        selectedFile = null;
+        selectedFileName = null;
+    }
+
+    private void HandleImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var maxFileSize = 5 * 1024 * 1024; // 5MB
+
+        if (file.Size > maxFileSize)
+        {
+            selectedFile = null;
+            selectedFileName = null;
+            return;
+        }
+
+        selectedFile = file;
+        selectedFileName = file.Name;
+        StateHasChanged();
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editingConfig == null) return;
+
+        saving = true;
+        try
+        {
+            string? newPictureUrl = editingConfig.PictureUrl;
+
+            if (selectedFile != null)
+            {
+                var maxFileSize = 5 * 1024 * 1024L;
+                using var browserStream = selectedFile.OpenReadStream(maxFileSize);
+                using var memoryStream = new MemoryStream();
+                await browserStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                newPictureUrl = await ConfigService.UploadConfigPictureAsync(
+                    editingConfig.Id,
+                    memoryStream,
+                    selectedFile.Name,
+                    selectedFile.ContentType
+                );
+
+                imageRefreshTrigger++;
+            }
+
+            await ConfigService.UpdateConfigAsync(editingConfig.Id, newPictureUrl);
+
+            editingConfig.PictureUrl = newPictureUrl;
+
+            CloseEditModal();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao guardar: {ex.Message}");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task RemoveCurrentImage()
+    {
+        if (editingConfig == null) return;
+
+        try
+        {
+            await ConfigService.RemoveConfigPictureAsync(editingConfig.Id);
+            editingConfig.PictureUrl = null;
+            imageRefreshTrigger++;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao remover imagem: {ex.Message}");
+        }
+    }
+
+    // ── Forge combo modal methods ──
+
+    private void OpenForgeEditModal(string comboKey, string drinkName, string instrumentName)
+    {
+        editingForgeKey = comboKey;
+        editingForgeLabel = $"{WeaponTypeHelper.GetDisplayName(selectedForgeWeaponType)} + {instrumentName} + {drinkName}";
+        selectedForgeFile = null;
+        selectedForgeFileName = null;
+        forgeImageUploadKey = Guid.NewGuid();
+        modals.Open(ModalType.ForgeEdit);
+    }
+
+    private void CloseForgeEditModal()
+    {
+        modals.Close(ModalType.ForgeEdit);
+        editingForgeKey = null;
+        selectedForgeFile = null;
+        selectedForgeFileName = null;
+    }
+
+    private void HandleForgeImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var maxFileSize = 5 * 1024 * 1024;
+
+        if (file.Size > maxFileSize)
+        {
+            selectedForgeFile = null;
+            selectedForgeFileName = null;
+            return;
+        }
+
+        selectedForgeFile = file;
+        selectedForgeFileName = file.Name;
+        StateHasChanged();
+    }
+
+    private async Task SaveForgeEdit()
+    {
+        if (editingForgeKey == null) return;
+
+        saving = true;
+        try
+        {
+            if (selectedForgeFile != null)
+            {
+                var maxFileSize = 5 * 1024 * 1024L;
+                using var browserStream = selectedForgeFile.OpenReadStream(maxFileSize);
+                using var memoryStream = new MemoryStream();
+                await browserStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                var url = await ConfigService.UploadForgeComboPictureAsync(
+                    editingForgeKey,
+                    memoryStream,
+                    selectedForgeFile.Name,
+                    selectedForgeFile.ContentType
+                );
+
+                if (url != null)
+                {
+                    forgeComboPictures[editingForgeKey] = url;
+                }
+
+                imageRefreshTrigger++;
+            }
+
+            CloseForgeEditModal();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao guardar: {ex.Message}");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task RemoveForgeImage()
+    {
+        if (editingForgeKey == null) return;
+
+        try
+        {
+            await ConfigService.RemoveForgeComboPictureAsync(editingForgeKey);
+            forgeComboPictures.Remove(editingForgeKey);
+            imageRefreshTrigger++;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erro ao remover imagem: {ex.Message}");
+        }
+    }
+}

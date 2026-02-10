@@ -1036,10 +1036,22 @@
 
 /* Sprite images for drinks */
 .gather-sprite {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+/* Uploaded images in item cards fill the icon area */
+.item-card__icon .gather-sprite {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+/* Uploaded images in equip slots */
+.equip-slot .gather-sprite {
   width: 2rem;
   height: 2rem;
-  object-fit: contain;
-  image-rendering: pixelated;
+  filter: drop-shadow(0 0 3px rgba(111, 66, 193, 0.5));
 }
 
 /* Name */

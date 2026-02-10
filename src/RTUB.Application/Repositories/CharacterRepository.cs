@@ -24,6 +24,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
     public async Task<List<Character>> GetAllOrderedByLevelAsync()
     {
         return await _context.Characters
+            .Include(c => c.User)
             .OrderByDescending(c => c.Level)
             .ThenByDescending(c => c.XP)
             .ToListAsync();

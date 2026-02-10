@@ -52,5 +52,7 @@ public static class AuditConfiguration
         "Character",
         "StageProgress",
         "BossModeProgress",
+        "ItemTypeConfig",
+        "ForgeComboConfig",
     };
 }

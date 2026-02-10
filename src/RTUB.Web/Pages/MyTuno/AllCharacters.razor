@@ -1,0 +1,375 @@
+@page "/owner/all-characters"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Application.Data
+@using RTUB.Shared
+@using RTUB.Shared.Base
+@attribute [Authorize(Roles = "Owner")]
+@inherits CrudTablePageBase<Character>
+@inject ICharacterService CharacterService
+@inject ApplicationDbContext DbContext
+@inject ILogger<AllCharacters> Logger
+
+<PageTitle>Todos os Personagens - RTUB</PageTitle>
+
+<div class="all-characters-page container-fluid">
+    <div class="d-flex flex-column gap-3 mb-4">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-people"></i> Todos os Personagens</h1>
+                <p class="lead page-header-subtitle mb-0 text-light-theme">
+                    Visualizar todos os personagens ordenados por nível.
+                </p>
+            </div>
+
+            <div class="page-header-actions justify-content-lg-end">
+                <a href="/my-tuno" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar ao My Tuno
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (AllItems == null || AllItems.Count == 0)
+    {
+        <EmptyState Title="Nenhum personagem encontrado"
+                    Message="Ainda não existem personagens criados."
+                    Icon="bi-person-x" />
+    }
+    else
+    {
+        <!-- Search -->
+        <div class="mb-4">
+            <SearchBar Placeholder="Pesquisar por nome..."
+                       Value="@SearchTerm"
+                       OnSearch="UpdateSearch" />
+        </div>
+
+        <!-- Stats -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="badge bg-primary fs-6 py-2 px-3">
+                <i class="bi bi-people me-1"></i> Total: @FilteredItems.Count
+            </div>
+            @if (AllItems.Count > 0)
+            {
+                <div class="badge bg-success fs-6 py-2 px-3">
+                    <i class="bi bi-trophy me-1"></i> Nível Máximo: @AllItems.Max(c => c.Level)
+                </div>
+                <div class="badge bg-info fs-6 py-2 px-3">
+                    <i class="bi bi-bar-chart me-1"></i> Nível Médio: @AllItems.Average(c => c.Level).ToString("F1")
+                </div>
+            }
+        </div>
+
+        <!-- Character Grid -->
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 mb-4">
+            @foreach (var character in PaginatedItems)
+            {
+                <div class="col" @key="character.Id">
+                    <CharacterOverviewCard Character="@character"
+                                           StageInfo="@(stageMap.TryGetValue(character.UserId, out var sp) ? sp : null)"
+                                           OnViewDetails="OpenDetailsModal" />
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <TablePagination CurrentPage="@PaginationHelper.CurrentPage"
+                         PageSize="@PaginationHelper.PageSize"
+                         TotalItems="@FilteredItems.Count"
+                         ItemLabel="personagens"
+                         OnPageChanged="ChangePage"
+                         OnPageSizeChanged="ChangePageSize"
+                         PageSizeOptions="@(new[] { 20, 50, 100 })" />
+    }
+</div>
+
+<!-- Details Modal -->
+@if (selectedCharacter != null)
+{
+    <DetailsModal Show="@showDetailsModal"
+                  ShowChanged="@((bool show) => { showDetailsModal = show; if (!show) selectedCharacter = null; })"
+                  Title="Detalhes do Personagem"
+                  HeaderTitle="@GetCharacterDisplayName(selectedCharacter)"
+                  ImageUrl="@(selectedCharacter.User?.ProfilePictureSrc)"
+                  IconClass="bi-person"
+                  OnClose="CloseDetailsModal">
+        <BadgesContent>
+            <span class="badge bg-primary">Nível @selectedCharacter.Level</span>
+            <span class="badge bg-info">XP: @selectedCharacter.XP</span>
+            @if (stageMap.TryGetValue(selectedCharacter.UserId, out var detailStage))
+            {
+                <span class="badge bg-warning text-dark">
+                    <i class="bi bi-layers me-1"></i>Stage @detailStage
+                </span>
+            }
+            @if (selectedCharacter.ArenaWins + selectedCharacter.ArenaLosses > 0)
+            {
+                <span class="badge bg-warning text-dark">
+                    Arena: @selectedCharacter.ArenaWins W / @selectedCharacter.ArenaLosses L
+                </span>
+            }
+        </BadgesContent>
+        <Sections>
+            <!-- Base Stats Section -->
+            <div class="mb-4">
+                <h6 class="text-muted mb-3"><i class="bi bi-bar-chart-fill me-2"></i>Estatísticas</h6>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-danger"><i class="bi bi-heart-fill me-1"></i>HP Total</span>
+                            <strong>@selectedCharacter.TotalHP</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-warning"><i class="bi bi-lightning-fill me-1"></i>Poder</span>
+                            <strong>@selectedCharacter.TotalPower</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-info"><i class="bi bi-speedometer2 me-1"></i>Velocidade</span>
+                            <strong>@(selectedCharacter.ActionTime.ToString("F1"))s</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-success"><i class="bi bi-shield-fill me-1"></i>Defesa</span>
+                            <strong>@selectedCharacter.TotalDefense</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-primary"><i class="bi bi-bullseye me-1"></i>Crítico</span>
+                            <strong>@selectedCharacter.TotalCriticalChance%</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span><i class="bi bi-heart-pulse me-1"></i>HP Atual</span>
+                            <strong>@(selectedCharacter.CurrentHP ?? selectedCharacter.TotalHP) / @selectedCharacter.TotalHP</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upgrades Section -->
+            <div class="mb-4">
+                <h6 class="text-muted mb-3"><i class="bi bi-arrow-up-circle-fill me-2"></i>Upgrades</h6>
+                <div class="row g-2">
+                    <div class="col-4 col-md-2">
+                        <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <small class="text-muted d-block">HP</small>
+                            <strong>@selectedCharacter.HpUpgrades</strong>
+                        </div>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <small class="text-muted d-block">Poder</small>
+                            <strong>@selectedCharacter.PowerUpgrades</strong>
+                        </div>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <small class="text-muted d-block">Vel.</small>
+                            <strong>@selectedCharacter.SpeedUpgrades</strong>
+                        </div>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <small class="text-muted d-block">Def.</small>
+                            <strong>@selectedCharacter.DefenseUpgrades</strong>
+                        </div>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <small class="text-muted d-block">Crit.</small>
+                            <strong>@selectedCharacter.CriticalUpgrades</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arena Section -->
+            @if (selectedCharacter.ArenaWins + selectedCharacter.ArenaLosses + selectedCharacter.ArenaDraws > 0)
+            {
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3"><i class="bi bi-trophy-fill me-2"></i>Arena</h6>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                                <small class="text-success d-block">Vitórias</small>
+                                <strong class="text-success">@selectedCharacter.ArenaWins</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                                <small class="text-danger d-block">Derrotas</small>
+                                <strong class="text-danger">@selectedCharacter.ArenaLosses</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                                <small class="text-muted d-block">Empates</small>
+                                <strong>@selectedCharacter.ArenaDraws</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Equipment Section -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-3"><i class="bi bi-gem me-2"></i>Equipamento</h6>
+                <div class="row g-2">
+                    @{
+                        var equipmentSlots = new (string Label, InventoryItemType? Item)[]
+                        {
+                            ("Cabeça", selectedCharacter.EquippedHead),
+                            ("Ombros", selectedCharacter.EquippedShoulders),
+                            ("Peito", selectedCharacter.EquippedChest),
+                            ("Luvas", selectedCharacter.EquippedGloves),
+                            ("Pernas", selectedCharacter.EquippedLegs),
+                            ("Botas", selectedCharacter.EquippedBoots)
+                        };
+                    }
+                    @foreach (var (label, item) in equipmentSlots)
+                    {
+                        <div class="col-6 col-md-4">
+                            <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                                <span class="text-muted">@label</span>
+                                @if (item.HasValue)
+                                {
+                                    <span class="badge bg-success">Equipado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Vazio</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    <div class="col-6 col-md-4">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-muted">Arma 1</span>
+                            @if (selectedCharacter.EquippedWeapon1.HasValue)
+                            {
+                                <span class="badge bg-success">Equipada</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Vazio</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                            <span class="text-muted">Arma 2</span>
+                            @if (selectedCharacter.EquippedWeapon2.HasValue)
+                            {
+                                <span class="badge bg-success">Equipada</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Vazio</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Sections>
+    </DetailsModal>
+}
+
+<style>
+    .all-characters-page .badge.fs-6 {
+        font-weight: 500;
+    }
+</style>
+
+@code {
+    private bool loading = true;
+    private Character? selectedCharacter;
+    private bool showDetailsModal = false;
+    private Dictionary<string, int> stageMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItemsAsync();
+        loading = false;
+    }
+
+    protected override async Task LoadItemsAsync()
+    {
+        try
+        {
+            AllItems = await CharacterService.GetAllCharactersOrderedByLevelAsync();
+
+            // Load stage progress for all characters
+            stageMap = await DbContext.StageProgresses
+                .AsNoTracking()
+                .ToDictionaryAsync(s => s.UserId, s => s.CurrentStage);
+
+            ApplyFiltersAndPagination();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading characters");
+            AllItems = new();
+        }
+    }
+
+    protected override Dictionary<string, Func<Character, IComparable>> GetSortColumnSelectors()
+    {
+        return new Dictionary<string, Func<Character, IComparable>>
+        {
+            ["level"] = c => c.Level,
+            ["hp"] = c => c.TotalHP,
+            ["power"] = c => c.TotalPower,
+            ["speed"] = c => c.TotalSpeed,
+            ["name"] = c => c.User?.Nickname ?? ""
+        };
+    }
+
+    protected override List<Func<Character, string>> GetSearchSelectors()
+    {
+        return new List<Func<Character, string>>
+        {
+            c => c.User?.Nickname ?? "",
+
+            c => $"Nível {c.Level}"
+        };
+    }
+
+    private void OpenDetailsModal(Character character)
+    {
+        selectedCharacter = character;
+        showDetailsModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedCharacter = null;
+    }
+
+    private static string GetCharacterDisplayName(Character character)
+    {
+        if (character.User == null) return "Personagem";
+        return !string.IsNullOrEmpty(character.User.Nickname)
+            ? character.User.Nickname
+            : "Personagem";
+    }
+}

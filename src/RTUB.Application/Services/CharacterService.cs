@@ -62,4 +62,12 @@ public class CharacterService : ICharacterService
         await _characterRepository.UpdateAsync(character);
     }
 
+    /// <summary>
+    /// Gets all characters ordered by level descending, including User data.
+    /// </summary>
+    public async Task<List<Character>> GetAllCharactersOrderedByLevelAsync()
+    {
+        return await _characterRepository.GetAllOrderedByLevelAsync();
+    }
+
 }

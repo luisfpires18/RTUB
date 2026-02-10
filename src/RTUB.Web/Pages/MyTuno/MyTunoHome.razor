@@ -27,6 +27,7 @@
 @inject NavigationManager Navigation
 @inject ILogger<MyTunoHome> Logger
 @inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
+@inject IItemTypeConfigService ItemTypeConfigService
 
 <PageTitle>My Tuno - RTUB</PageTitle>
 
@@ -39,9 +40,24 @@
                     Luta contra oponentes AI e melhora o teu personagem.
                 </p>
             </div>
-            <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
-                <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
-            </button>
+            <div class="page-header-actions justify-content-lg-end">
+                <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
+                    <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
+                </button>
+                <AuthorizeView Roles="Owner">
+                    <Authorized>
+                        <a href="/owner/stage-enemies" class="btn btn-outline-warning">
+                            <i class="bi bi-bug me-1"></i>Stage Enemies
+                        </a>
+                        <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
+                            <i class="bi bi-sliders me-1"></i>Config Armas/Bebidas
+                        </a>
+                        <a href="/owner/all-characters" class="btn btn-outline-warning">
+                            <i class="bi bi-people me-1"></i>Todos Personagens
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
         </div>
     </div>
 
@@ -154,6 +170,10 @@
                                             {
                                                 <span class="spinner-border spinner-border-sm text-warning"></span>
                                             }
+                                            else if (GetDrinkPictureUrl(InventoryItemType.Beer) is string beerImg)
+                                            {
+                                                <img src="@beerImg" alt="Cerveja" class="gather-sprite" />
+                                            }
                                             else
                                             {
                                                 <i class="bi bi-cup-straw"></i>
@@ -170,6 +190,10 @@
                                             @if (usingShot)
                                             {
                                                 <span class="spinner-border spinner-border-sm text-info"></span>
+                                            }
+                                            else if (GetDrinkPictureUrl(InventoryItemType.Shot) is string shotImg)
+                                            {
+                                                <img src="@shotImg" alt="Shot" class="gather-sprite" />
                                             }
                                             else
                                             {
@@ -197,7 +221,11 @@
                                         <div class="item-card item-card--@cssModifier" title="@res.Name — Recurso de craft">
                                             <div class="item-card__qty">@GetResourceQuantity(resType)</div>
                                             <div class="item-card__icon">
-                                                @if (!string.IsNullOrEmpty(res.SpritePath))
+                                                @if (GetDrinkPictureUrl(res.Type) is string craftDrinkImg)
+                                                {
+                                                    <img src="@craftDrinkImg" alt="@res.Name" class="gather-sprite" />
+                                                }
+                                                else if (!string.IsNullOrEmpty(res.SpritePath))
                                                 {
                                                     <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
                                                 }
@@ -281,7 +309,14 @@
                                                     <div class="item-card__qty">+@wLocal.Level</div>
                                                 }
                                                 <div class="item-card__icon">
-                                                    <i class="bi @item.Icon" style="color: var(--bs-warning);"></i>
+                                                    @if (GetForgedWeaponPictureUrl(wLocal) is string eqWpnImg)
+                                                    {
+                                                        <img src="@eqWpnImg" alt="@item.Name" class="gather-sprite" style="filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi @item.Icon" style="color: var(--bs-warning);"></i>
+                                                    }
                                                 </div>
                                                 <div class="item-card__name" style="font-size: 0.5rem;">@item.Name</div>
                                             </div>
@@ -291,7 +326,14 @@
                                             var eqItemKey = item.ItemType.Value;
                                             <div class="item-card item-card--equipment item-card--clickable" title="@item.Name" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
                                                 <div class="item-card__icon">
-                                                    <i class="bi @item.Icon"></i>
+                                                    @if (GetEquipmentPictureUrl(eqItemKey) is string eqImg)
+                                                    {
+                                                        <img src="@eqImg" alt="@item.Name" class="gather-sprite" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi @item.Icon"></i>
+                                                    }
                                                 </div>
                                                 <div class="item-card__name" style="font-size: 0.55rem;">@item.Name</div>
                                             </div>
@@ -919,7 +961,14 @@
                                 <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
                                      @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
                                      style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
-                                    <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-cap-front")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
+                                    {
+                                        <img src="@headImg" alt="Head" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-cap-front")"></i>
+                                    }
                                     <span class="equip-slot__label">HEAD</span>
                                 </div>
 
@@ -927,7 +976,14 @@
                                 <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
                                      @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
                                      style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
-                                    <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-chevron-bar-expand")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
+                                    {
+                                        <img src="@shouldersImg" alt="Shoulders" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-chevron-bar-expand")"></i>
+                                    }
                                     <span class="equip-slot__label">SHOULDERS</span>
                                 </div>
 
@@ -935,7 +991,14 @@
                                 <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
                                      @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
                                      style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
-                                    <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-shield-fill")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
+                                    {
+                                        <img src="@chestImg" alt="Chest" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-shield-fill")"></i>
+                                    }
                                     <span class="equip-slot__label">CHEST</span>
                                 </div>
                             </div>
@@ -953,7 +1016,14 @@
                                 <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
                                      @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
                                      style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
-                                    <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-hand-index-fill")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
+                                    {
+                                        <img src="@glovesImg" alt="Gloves" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-hand-index-fill")"></i>
+                                    }
                                     <span class="equip-slot__label">GLOVES</span>
                                 </div>
 
@@ -961,7 +1031,14 @@
                                 <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
                                      @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
                                      style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
-                                    <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-signpost-split-fill")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
+                                    {
+                                        <img src="@legsImg" alt="Legs" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-signpost-split-fill")"></i>
+                                    }
                                     <span class="equip-slot__label">LEGS</span>
                                 </div>
 
@@ -969,7 +1046,14 @@
                                 <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
                                      @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
                                      style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
-                                    <i class="bi @(bootsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
+                                    {
+                                        <img src="@bootsImg" alt="Boots" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(bootsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                    }
                                     <span class="equip-slot__label">BOOTS</span>
                                 </div>
                             </div>
@@ -990,7 +1074,14 @@
                                  style="cursor: @(weapon1 != null ? "pointer" : "default")">
                                 @if (weapon1 != null)
                                 {
-                                    <i class="bi @WeaponTypeHelper.GetIcon(weapon1.WeaponType)"></i>
+                                    if (GetForgedWeaponPictureUrl(weapon1) is string w1Img)
+                                    {
+                                        <img src="@w1Img" alt="@weapon1.Name" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon1.WeaponType)"></i>
+                                    }
                                 }
                                 else
                                 {
@@ -1006,7 +1097,14 @@
                                      style="cursor: @(weapon2 != null ? "pointer" : "default")">
                                     @if (weapon2 != null)
                                     {
-                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon2.WeaponType)"></i>
+                                        if (GetForgedWeaponPictureUrl(weapon2) is string w2Img)
+                                        {
+                                            <img src="@w2Img" alt="@weapon2.Name" class="gather-sprite" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi @WeaponTypeHelper.GetIcon(weapon2.WeaponType)"></i>
+                                        }
                                     }
                                     else
                                     {
@@ -1112,13 +1210,20 @@
                                         {
                                             <span class="spinner-border spinner-border-sm"></span>
                                         }
-                                        else if (!string.IsNullOrEmpty(res.SpritePath))
-                                        {
-                                            <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
-                                        }
                                         else
                                         {
-                                            <i class="bi @res.Icon"></i>
+                                            if (GetDrinkPictureUrl(res.Type) is string gatherDrinkImg)
+                                            {
+                                                <img src="@gatherDrinkImg" alt="@res.Name" class="gather-sprite" />
+                                            }
+                                            else if (!string.IsNullOrEmpty(res.SpritePath))
+                                            {
+                                                <img src="@res.SpritePath" alt="@res.Name" class="gather-sprite" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi @res.Icon"></i>
+                                            }
                                         }
                                     </div>
                                     <div class="gather-node__name">@res.Name</div>
@@ -1186,7 +1291,14 @@
                                 @if (forgeDrink.HasValue)
                                 {
                                     var drinkRes = activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString());
-                                    <i class="bi @(drinkRes?.Icon ?? "bi-droplet")"></i>
+                                    if (GetDrinkPictureUrl(forgeDrink.Value) is string forgeDrinkImg)
+                                    {
+                                        <img src="@forgeDrinkImg" alt="@GetResourceName(forgeDrink.Value)" class="gather-sprite" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @(drinkRes?.Icon ?? "bi-droplet")"></i>
+                                    }
                                     <span class="forge-slot__label" style="font-size: 0.55rem;">@GetResourceName(forgeDrink.Value)</span>
                                 }
                                 else
@@ -1229,7 +1341,15 @@
                                     if (resQty <= 0) continue;
                                     <button class="forge-picker__item @(forgeDrink == resType ? "forge-picker__item--selected" : "")"
                                             @onclick="() => SelectForgeDrink(resType)">
-                                        <i class="bi @res.Icon me-1"></i>@res.Name <span class="badge bg-dark">@resQty</span>
+                                        @if (GetDrinkPictureUrl(res.Type) is string pickerDrinkImg)
+                                        {
+                                            <img src="@pickerDrinkImg" alt="@res.Name" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi @res.Icon me-1"></i>
+                                        }
+                                        @res.Name <span class="badge bg-dark">@resQty</span>
                                     </button>
                                 }
                                 @if (!activeResources.Any(r => GetResourceQuantity(Enum.Parse<InventoryItemType>(r.Type)) > 0))
@@ -1295,7 +1415,15 @@
                             var wtLocal = wt;
                             <button class="btn btn-sm @(selectedForgeWeaponType == wtLocal ? "btn-primary" : "btn-outline-secondary")"
                                     @onclick="() => SelectForgeWeaponType(wtLocal)">
-                                <i class="bi @WeaponTypeHelper.GetIcon(wtLocal) me-1"></i>@WeaponTypeHelper.GetDisplayName(wtLocal)
+                                @if (GetWeaponPictureUrl(wtLocal) is string forgeWtImg)
+                                {
+                                    <img src="@forgeWtImg" alt="@WeaponTypeHelper.GetDisplayName(wtLocal)" class="gather-sprite" style="width: 16px; height: 16px; vertical-align: middle;" />
+                                }
+                                else
+                                {
+                                    <i class="bi @WeaponTypeHelper.GetIcon(wtLocal) me-1"></i>
+                                }
+                                @WeaponTypeHelper.GetDisplayName(wtLocal)
                             </button>
                         }
                     </div>
@@ -1327,7 +1455,14 @@
             <BodyContent>
                 <div class="text-center">
                     <div class="forge-result-icon mb-3">
-                        <i class="bi @WeaponTypeHelper.GetIcon(lastForgedWeapon.WeaponType)" style="font-size: 3rem; color: var(--bs-warning);"></i>
+                        @if (GetForgedWeaponPictureUrl(lastForgedWeapon) is string forgeResultImg)
+                        {
+                            <img src="@forgeResultImg" alt="@lastForgedWeapon.Name" style="width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                        }
+                        else
+                        {
+                            <i class="bi @WeaponTypeHelper.GetIcon(lastForgedWeapon.WeaponType)" style="font-size: 3rem; color: var(--bs-warning);"></i>
+                        }
                     </div>
                     <h4 class="text-warning mb-2">@lastForgedWeapon.Name</h4>
                     <span class="badge bg-info bg-opacity-25 text-info mb-3">
@@ -1364,7 +1499,14 @@
             <BodyContent>
                 <div class="text-center mb-3">
                     <div class="equip-confirm-icon">
-                        <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
+                        @if (GetForgedWeaponPictureUrl(pendingWeapon) is string pendingWpnImg)
+                        {
+                            <img src="@pendingWpnImg" alt="@pendingWeapon.Name" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 4px var(--bs-warning));" />
+                        }
+                        else
+                        {
+                            <i class="bi @WeaponTypeHelper.GetIcon(pendingWeapon.WeaponType)" style="font-size: 2.5rem; color: var(--bs-warning);"></i>
+                        }
                     </div>
                     <h5 class="mt-2 mb-1" style="color: #e2e2e2;">
                         @pendingWeapon.Name
@@ -1444,7 +1586,14 @@
                             var isEquippedW = weapon.IsEquipped;
                             <div class="stats-card @(isEquippedW ? "border-success" : "")" style="cursor: pointer;" @onclick="() => { showWeaponsListModal = false; OnForgedWeaponClick(weapon); }">
                                 <div class="stats-card-position" style="width: 40px;">
-                                    <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType)" style="font-size: 1.5rem; color: var(--bs-warning);"></i>
+                                    @if (GetForgedWeaponPictureUrl(weapon) is string listWpnImg)
+                                    {
+                                        <img src="@listWpnImg" alt="@weapon.Name" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 2px var(--bs-warning));" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi @WeaponTypeHelper.GetIcon(weapon.WeaponType)" style="font-size: 1.5rem; color: var(--bs-warning);"></i>
+                                    }
                                 </div>
                                 <div class="stats-card-content">
                                     <div class="stats-card-title">
@@ -1777,6 +1926,39 @@
     private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
     
     /// <summary>
+    /// Gets the uploaded image URL for a weapon type, or null if none uploaded.
+    /// Reads from pre-loaded itemTypePictures dictionary.
+    /// </summary>
+    private string? GetWeaponPictureUrl(WeaponType wt) => itemTypePictures.GetValueOrDefault(wt.ToString());
+
+    /// <summary>
+    /// Gets the uploaded image URL for a drink/resource InventoryItemType, or null if none uploaded.
+    /// </summary>
+    private string? GetDrinkPictureUrl(InventoryItemType dt) => itemTypePictures.GetValueOrDefault(dt.ToString());
+
+    /// <summary>
+    /// Gets the uploaded image URL for a resource by its GatheringResourceConfig type key, or null if none uploaded.
+    /// </summary>
+    private string? GetDrinkPictureUrl(string typeKey) => itemTypePictures.GetValueOrDefault(typeKey);
+
+    /// <summary>
+    /// Gets the uploaded image URL for an equipment slot type, or null if none uploaded.
+    /// </summary>
+    private string? GetEquipmentPictureUrl(InventoryItemType eqType) => itemTypePictures.GetValueOrDefault(eqType.ToString());
+
+    /// <summary>
+    /// Gets the best available image URL for a forged weapon.
+    /// Priority: 1) Specific forge combo image, 2) Weapon type image, 3) null (fall back to icon).
+    /// </summary>
+    private string? GetForgedWeaponPictureUrl(ForgedWeapon fw)
+    {
+        var comboKey = $"{fw.WeaponType}_{fw.SourceInstrument}_{fw.SourceDrink}";
+        if (forgeComboPictures.TryGetValue(comboKey, out var comboUrl))
+            return comboUrl;
+        return GetWeaponPictureUrl(fw.WeaponType);
+    }
+    
+    /// <summary>
     /// Gets the display max HP for the character, accounting for shot buff.
     /// Uses CreateShotBuffedCopy to get the exact same value used in arena battles.
     /// </summary>
@@ -1822,6 +2004,8 @@
     private Dictionary<InventoryItemType, int> instrumentParts = new();
     private Dictionary<InventoryItemType, int> equipmentItems = new();
     private Dictionary<InstrumentType, string?> instrumentImages = new();
+    private Dictionary<string, string> itemTypePictures = new();
+    private Dictionary<string, string> forgeComboPictures = new();
     private bool equipping = false;
     private int inventoryTab = 0;
     private int equipablePage = 1;
@@ -2071,6 +2255,15 @@
                         {
                             instrumentImages[config.InstrumentType] = config.PictureUrl;
                         }
+                        
+                        // Load item type pictures (weapons, drinks, equipment)
+                        var allItemConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
+                        itemTypePictures = allItemConfigs
+                            .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
+                            .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
+                        
+                        // Load forge combo pictures
+                        forgeComboPictures = await ItemTypeConfigService.GetAllForgeComboPicturesAsync();
                         
                         // Load forged weapons
                         forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);

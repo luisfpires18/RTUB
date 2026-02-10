@@ -4,6 +4,7 @@ using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Services.Retirement;
+using RTUB.Web.Services;
 
 namespace RTUB.Web.Extensions;
 
@@ -82,6 +83,8 @@ public static class ServiceCollectionExtensions
 
         // Boss Mode repositories
         services.AddScoped<IBossModeProgressRepository, BossModeProgressRepository>();
+        services.AddScoped<IItemTypeConfigRepository, ItemTypeConfigRepository>();
+        services.AddScoped<IForgeComboConfigRepository, ForgeComboConfigRepository>();
 
         return services;
     }
@@ -129,6 +132,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INaipeContentFilterService, NaipeContentFilterService>();
         services.AddScoped<INaipeAuthorizationService, NaipeAuthorizationService>();
         services.AddScoped<INaipeConfigService, NaipeConfigService>();
+        services.AddScoped<IItemTypeConfigService, ItemTypeConfigService>();
+        services.AddSingleton<ItemTypeConfigInitializer>();
         services.AddScoped<ICharacterService, CharacterService>();
         services.AddScoped<IUpgradeService, UpgradeService>();
         services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
@@ -329,6 +334,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
         services.AddScoped<IReceiptStorageService, CloudflareReceiptStorageService>();
         services.AddScoped<INaipeMediaStorageService, CloudflareNaipeMediaStorageService>();
+        services.AddScoped<IItemTypeMediaStorageService, CloudflareItemTypeMediaStorageService>();
 
         return services;
     }

@@ -153,15 +153,13 @@
                                 <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
 
-                                <li><hr class="dropdown-divider" /></li>
-                
                                 <AuthorizeView Roles="Owner">
                                     <Authorized Context="ownerAuth">
+                                        <li><hr class="dropdown-divider" /></li>
                                         <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people"></i> Funções</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database"></i> Database</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/owner/testers"><i class="bi bi-phone"></i> Android Testers</NavLink></li>
-                                        <li><NavLink class="dropdown-item" href="/owner/stage-enemies"><i class="bi bi-bug"></i> Stage Enemies</NavLink></li>
                                     </Authorized>
                                 </AuthorizeView>
                             </ul>

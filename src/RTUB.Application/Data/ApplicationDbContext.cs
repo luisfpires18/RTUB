@@ -148,6 +148,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Boss Mode DbSets
     public DbSet<BossModeProgress> BossModeProgresses { get; set; }
 
+    // Item Type Config DbSets
+    public DbSet<ItemTypeConfig> ItemTypeConfigs { get; set; }
+    public DbSet<ForgeComboConfig> ForgeComboConfigs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

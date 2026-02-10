@@ -28,4 +28,11 @@ public interface ICharacterService
     /// </summary>
     /// <param name="character">The character to update</param>
     Task UpdateCharacterAsync(Character character);
+
+    /// <summary>
+    /// Gets all characters ordered by level descending, including User data.
+    /// Used for the owner All Characters overview page.
+    /// </summary>
+    /// <returns>List of all characters with User navigation loaded</returns>
+    Task<List<Character>> GetAllCharactersOrderedByLevelAsync();
 }

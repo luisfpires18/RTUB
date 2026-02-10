@@ -606,6 +606,10 @@ public class Program
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
 
+                    // Seed item type configs (weapons, drinks, equipment)
+                    var itemTypeConfigInitializer = sp.GetRequiredService<ItemTypeConfigInitializer>();
+                    await itemTypeConfigInitializer.InitializeAsync();
+
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
