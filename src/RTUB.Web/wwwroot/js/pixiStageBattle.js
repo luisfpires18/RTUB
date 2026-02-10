@@ -20,6 +20,12 @@
     let backgroundMusicGainNode = null;
     let currentMusicType = null; // 'stage' or 'boss' — tracks which track is playing
 
+    // Session-level cache bust — set once per page load so the browser
+    // can reuse HTTP-cached sprites across stage transitions.
+    const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+    // Track which asset paths are already loaded in PIXI.Assets to skip re-fetches
+    const loadedAssetAliases = new Set();
+
     const defaultSprites = {
         player: '/sprites/games/my-tuno/default_tuno.png',
         background: '/sprites/games/my-tuno/backgrounds/forest.png',
@@ -225,28 +231,39 @@
         }
 
         async loadAssets() {
-            // Use unique alias + cache busting to avoid stale textures
-            const ts = Date.now();
-            const cacheBust = `?v=${ts}`;
-            this.bgAlias = `stageBg_${this.stageNumber}_${ts}`;
-            const assets = [
-                { alias: this.bgAlias, src: this.backgroundPath + cacheBust },
-                { alias: `stagePlayer_${ts}`, src: this.playerSpritePath + cacheBust }
-            ];
-            this._playerAlias = `stagePlayer_${ts}`;
+            // Use path-based aliases so the same sprite is loaded only once per session.
+            // SESSION_CACHE_BUST is set once at page load — the browser HTTP-caches
+            // responses across stage transitions, eliminating redundant network fetches.
+            this.bgAlias = `bg_${this.backgroundPath}`;
+            this._playerAlias = `player_${this.playerSpritePath}`;
+
+            const toLoad = [];
+
+            if (!loadedAssetAliases.has(this.bgAlias)) {
+                toLoad.push({ alias: this.bgAlias, src: this.backgroundPath + SESSION_CACHE_BUST });
+            }
+            if (!loadedAssetAliases.has(this._playerAlias)) {
+                toLoad.push({ alias: this._playerAlias, src: this.playerSpritePath + SESSION_CACHE_BUST });
+            }
 
             // Store the actual paths for creating sprites later
             this.enemySpriteAliases = [];
             if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
                 for (let i = 0; i < this.enemySpritePaths.length; i++) {
-                    // Use unique alias combining index and path to avoid caching issues
-                    const alias = `stageEnemy${i}_${this.stageNumber}_${ts}`;
-                    assets.push({ alias: alias, src: this.enemySpritePaths[i] + cacheBust });
+                    const alias = `enemy_${this.enemySpritePaths[i]}`;
                     this.enemySpriteAliases.push(alias);
+                    if (!loadedAssetAliases.has(alias)) {
+                        toLoad.push({ alias: alias, src: this.enemySpritePaths[i] + SESSION_CACHE_BUST });
+                    }
                 }
             }
 
-            await PIXI.Assets.load(assets);
+            if (toLoad.length > 0) {
+                await PIXI.Assets.load(toLoad);
+                for (const a of toLoad) {
+                    loadedAssetAliases.add(a.alias);
+                }
+            }
         }
 
         create() {
@@ -368,7 +385,7 @@
             const playerX = width * 0.25;
             const playerY = height - groundOffset;
             
-            this.playerSprite = PIXI.Sprite.from(this._playerAlias || 'stagePlayer');
+            this.playerSprite = PIXI.Sprite.from(this._playerAlias);
             this.playerSprite.anchor.set(0.5, 1);
             this.playerSprite.x = playerX;
             this.playerSprite.y = playerY;
@@ -515,10 +532,10 @@
                     swayAmplitude: isAerial ? 4 : 2
                 });
                 
-                // Use the stage-specific alias stored during loadAssets
+                // Use the path-based alias stored during loadAssets
                 const alias = this.enemySpriteAliases && this.enemySpriteAliases[i] 
                     ? this.enemySpriteAliases[i] 
-                    : `stageEnemy${i}_${this.stageNumber}`;
+                    : `enemy_${this.enemySpritePaths[i]}`;
                 const enemy = PIXI.Sprite.from(alias);
                 enemy.anchor.set(0.5, 1);
                 enemy.x = pos.x;
