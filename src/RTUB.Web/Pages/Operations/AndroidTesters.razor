@@ -268,26 +268,38 @@
                             var today = DateTime.UtcNow.Date;
                             var isCurrentDay = dayDate == today;
                             var isFutureDay = dayDate > today;
-                            var loginRecord = selectedTesterLoginRecords?.FirstOrDefault(l => l.LoginDate == dayDate);
+                            var loginRecords = selectedTesterLoginRecords?.Where(l => l.LoginDate == dayDate).ToList() ?? new();
                             var dayNumber = i + 1;
 
                             <tr class="@(isCurrentDay ? "table-active fw-semibold" : "")">
                                 <td>Day @dayNumber.ToString("00")</td>
                                 <td>
-                                    @dayDate.ToString("dd/MM/yyyy")
+                                    @if (loginRecords.Any())
+                                    {
+                                        @loginRecords.First().CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        @dayDate.ToString("dd/MM/yyyy")
+                                    }
                                     @if (isCurrentDay)
                                     {
                                         <span class="badge bg-purple ms-1">TODAY</span>
                                     }
                                 </td>
-                                <td class="text-truncate" style="max-width: 300px;" title="@(loginRecord?.UserAgent ?? "")">
+                                <td class="text-truncate" style="max-width: 300px;" title="@(string.Join(", ", loginRecords.Where(l => !string.IsNullOrWhiteSpace(l.UserAgent)).Select(l => l.UserAgent!).Distinct()))">
                                     @if (isFutureDay)
                                     {
                                         <span class="text-muted fst-italic">—</span>
                                     }
-                                    else if (loginRecord != null && !string.IsNullOrWhiteSpace(loginRecord.UserAgent))
+                                    else if (loginRecords.Any(l => !string.IsNullOrWhiteSpace(l.UserAgent)))
                                     {
-                                        <span class="small">@GetShortUserAgent(loginRecord.UserAgent)</span>
+                                        var distinctAgents = loginRecords
+                                            .Where(l => !string.IsNullOrWhiteSpace(l.UserAgent))
+                                            .Select(l => GetShortUserAgent(l.UserAgent))
+                                            .Distinct()
+                                            .ToList();
+                                        <span class="small">@string.Join(", ", distinctAgents)</span>
                                     }
                                     else
                                     {
@@ -299,7 +311,7 @@
                                     {
                                         <span class="text-muted">—</span>
                                     }
-                                    else if (loginRecord != null)
+                                    else if (loginRecords.Any())
                                     {
                                         <i class="bi bi-check-circle-fill text-success"></i>
                                     }
@@ -675,28 +687,8 @@
         showDetailsModal = true;
     }
 
-    private string GetShortUserAgent(string? userAgent)
-    {
-        if (string.IsNullOrWhiteSpace(userAgent))
-            return "—";
-        var ua = userAgent.ToLowerInvariant();
-        if (ua.Contains("android"))
-            return "Android";
-        if (ua.Contains("iphone"))
-            return "iPhone";
-        if (ua.Contains("ipad"))
-            return "iPad";
-        if (ua.Contains("mobile"))
-            return "Mobile";
-        if (ua.Contains("windows"))
-            return "Windows";
-        if (ua.Contains("macintosh") || ua.Contains("mac os"))
-            return "macOS";
-        if (ua.Contains("linux"))
-            return "Linux";
-        // Truncate if too long
-        return userAgent.Length > 30 ? userAgent[..30] + "…" : userAgent;
-    }
+    private static string GetShortUserAgent(string? userAgent)
+        => UserAgentHelper.GetShortUserAgent(userAgent);
 
     private class TesterLoginInfo
     {

@@ -19,6 +19,8 @@
     let backgroundMusic = null;
     let backgroundMusicGainNode = null;
     let currentMusicType = null; // 'stage' or 'boss' — tracks which track is playing
+    // Cache decoded AudioBuffers so music files are only fetched/decoded once per session
+    const audioBufferCache = {};
 
     // Session-level cache bust — set once per page load so the browser
     // can reuse HTTP-cached sprites across stage transitions.
@@ -189,9 +191,14 @@
                 const musicFile = isBoss ? '/sound/boss_battle.mp3' : '/sound/stage_battle.mp3';
                 currentMusicType = isBoss ? 'boss' : 'stage';
 
-                const response = await fetch(musicFile);
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                // Use cached AudioBuffer if available, otherwise fetch and decode once
+                let audioBuffer = audioBufferCache[musicFile];
+                if (!audioBuffer) {
+                    const response = await fetch(musicFile);
+                    const arrayBuffer = await response.arrayBuffer();
+                    audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    audioBufferCache[musicFile] = audioBuffer;
+                }
                 
                 // Create gain node for volume control
                 backgroundMusicGainNode = this.audioContext.createGain();

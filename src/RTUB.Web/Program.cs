@@ -11,6 +11,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Services.Geocoding;
 using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
+using RTUB.Core.Helpers;
 using RTUB.Web.Extensions;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
@@ -278,6 +279,7 @@ public class Program
                     }
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
+                    var cookieUserAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
 
                     // Log user authentication once per session (cache for 1 hour to avoid duplicate logs)
                     // The cache key includes issuedUtc.Ticks to ensure each new login session is logged once
@@ -286,9 +288,10 @@ public class Program
                     if (!cache.TryGetValue(logCacheKey, out _))
                     {
                         logger.LogInformation(
-                            "User {UserName} authenticated via cookie validation at {LoginTime}",
+                            "User {UserName} authenticated via cookie validation at {LoginTime} ({Device})",
                             userName,
-                            DateTime.UtcNow);
+                            DateTime.UtcNow,
+                            UserAgentHelper.GetShortUserAgent(cookieUserAgent));
 
                         loginMade = true;
 
@@ -325,7 +328,7 @@ public class Program
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
 
-                        // Track Android Tester login (first login of the day)
+                        // Track Android Tester login (once per user-agent per day)
                         // Only for users with IsAndroidTester = true
                         var today = now.Date;
                         var isAndroidTester = await db.Users
@@ -334,22 +337,22 @@ public class Program
 
                         if (isAndroidTester)
                         {
+                            var sanitizedUserAgent = string.IsNullOrWhiteSpace(cookieUserAgent) ? null : cookieUserAgent.Length > 512 ? cookieUserAgent[..512] : cookieUserAgent;
                             var existingLogin = await db.AndroidTesterLogins
-                                .AnyAsync(l => l.UserId == userId && l.LoginDate == today);
+                                .AnyAsync(l => l.UserId == userId && l.LoginDate == today && l.UserAgent == sanitizedUserAgent);
 
                             if (!existingLogin)
                             {
-                                var userAgent = context.HttpContext?.Request?.Headers["User-Agent"].ToString();
                                 db.AndroidTesterLogins.Add(new AndroidTesterLogin
                                 {
                                     UserId = userId,
                                     LoginDate = today,
                                     CreatedAt = now,
-                                    UserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Length > 512 ? userAgent[..512] : userAgent
+                                    UserAgent = sanitizedUserAgent
                                 });
                                 await db.SaveChangesAsync();
-                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",
-                                    userId, today);
+                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date} ({Device})",
+                                    userId, today, UserAgentHelper.GetShortUserAgent(sanitizedUserAgent));
                             }
                         }
                     }
@@ -801,26 +804,27 @@ public class Program
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                // Track Android Tester login (first login of the day)
+                // Track Android Tester login (once per user-agent per day)
                 if (user.IsAndroidTester)
                 {
                     var today = DateTime.UtcNow.Date;
+                    var loginUserAgent = http.Request.Headers["User-Agent"].ToString();
+                    var sanitizedLoginUserAgent = string.IsNullOrWhiteSpace(loginUserAgent) ? null : loginUserAgent.Length > 512 ? loginUserAgent[..512] : loginUserAgent;
                     var existingLogin = await db.AndroidTesterLogins
-                        .AnyAsync(l => l.UserId == user.Id && l.LoginDate == today);
+                        .AnyAsync(l => l.UserId == user.Id && l.LoginDate == today && l.UserAgent == sanitizedLoginUserAgent);
 
                     if (!existingLogin)
                     {
-                        var userAgent = http.Request.Headers["User-Agent"].ToString();
                         db.AndroidTesterLogins.Add(new AndroidTesterLogin
                         {
                             UserId = user.Id,
                             LoginDate = today,
                             CreatedAt = DateTime.UtcNow,
-                            UserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Length > 512 ? userAgent[..512] : userAgent
+                            UserAgent = sanitizedLoginUserAgent
                         });
                         await db.SaveChangesAsync();
-                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date}",
-                            user.Id, today);
+                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date} ({Device})",
+                            user.Id, today, UserAgentHelper.GetShortUserAgent(sanitizedLoginUserAgent));
                     }
                 }
             }

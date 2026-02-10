@@ -4,7 +4,7 @@ namespace RTUB.Core.Entities;
 
 /// <summary>
 /// Tracks daily login activity for Android testers.
-/// Records the first login of each day for users with IsAndroidTester = true.
+/// Records one login per unique user-agent per day for users with IsAndroidTester = true.
 /// </summary>
 public class AndroidTesterLogin : BaseEntity
 {
