@@ -24,9 +24,6 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
-        // TODO: Remove after next release — one-time fix for characters seeded with 0.01 base crit instead of 0.0
-        await FixCriticalChanceDefaultAsync(dbContext);
-
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding
@@ -65,26 +62,5 @@ public static partial class SeedData
         await SeedRehearsalsAsync(dbContext, userManager);
 
         await SeedMusicAsync(dbContext);
-    }
-
-    /// <summary>
-    /// Fixes characters that were created with a 0.01 (1%) base critical chance
-    /// due to a wrong defaultValue in the AddCriticalChanceToCharacter migration.
-    /// Sets them to the correct 0.0 (0%) base so that 100 upgrades × 0.005 = 50% cap exactly.
-    /// </summary>
-    /// <remarks>
-    /// TODO: Remove this method and its call in InitializeAsync after the next release,
-    /// once all environments have been patched.
-    /// </remarks>
-    private static async Task FixCriticalChanceDefaultAsync(ApplicationDbContext dbContext)
-    {
-        var affected = await dbContext.Characters
-            .Where(c => c.CriticalChance == 0.01)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.CriticalChance, 0.0));
-
-        if (affected > 0)
-        {
-            Console.WriteLine($"[SeedData] Fixed CriticalChance for {affected} character(s): 0.01 → 0.0");
-        }
     }
 }
