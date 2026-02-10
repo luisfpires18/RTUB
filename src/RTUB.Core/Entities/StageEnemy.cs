@@ -69,9 +69,9 @@ public class StageEnemy : BaseEntity
     public decimal BaseFidelisDrop { get; set; } = 1.0m;
 
     /// <summary>
-    /// Chance to drop beer (0.0 to 1.0)
+    /// Chance to drop fino (0.0 to 1.0)
     /// </summary>
-    public double BeerDropChance { get; set; } = 0.1;
+    public double FinoDropChance { get; set; } = 0.1;
 
     /// <summary>
     /// Chance to drop shot (0.0 to 1.0)
@@ -99,7 +99,7 @@ public class StageEnemy : BaseEntity
         int baseDefense = 3,
         double baseCriticalChance = 0.05,
         decimal baseFidelisDrop = 1.0m,
-        double beerDropChance = 0.1,
+        double finoDropChance = 0.1,
         double shotDropChance = 0.05,
         string? spritePath = null,
         int? bossStageNumber = null,
@@ -119,7 +119,7 @@ public class StageEnemy : BaseEntity
             BaseDefense = baseDefense,
             BaseCriticalChance = baseCriticalChance,
             BaseFidelisDrop = baseFidelisDrop,
-            BeerDropChance = beerDropChance,
+            FinoDropChance = finoDropChance,
             ShotDropChance = shotDropChance,
             SpritePath = spritePath,
             BossStageNumber = bossStageNumber,

@@ -61,6 +61,13 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "consumables" ? "active" : "")"
+                        @onclick='() => activeTab = "consumables"'
+                        type="button" role="tab">
+                    <i class="bi bi-bag me-1"></i> Consumíveis (@consumableConfigs.Count)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link @(activeTab == "forge" ? "active" : "")"
                         @onclick='() => activeTab = "forge"'
                         type="button" role="tab">
@@ -430,6 +437,7 @@
     private List<ItemTypeConfigDto> weaponConfigs = new();
     private List<ItemTypeConfigDto> drinkConfigs = new();
     private List<ItemTypeConfigDto> equipmentConfigs = new();
+    private List<ItemTypeConfigDto> consumableConfigs = new();
 
     // Forge combo state
     private WeaponType selectedForgeWeaponType = WeaponType.SwordOneHand;
@@ -478,6 +486,7 @@
             weaponConfigs = await ConfigService.GetWeaponTypeConfigsAsync();
             drinkConfigs = await ConfigService.GetDrinkTypeConfigsAsync();
             equipmentConfigs = await ConfigService.GetEquipmentTypeConfigsAsync();
+            consumableConfigs = await ConfigService.GetConsumableTypeConfigsAsync();
             forgeComboPictures = await ConfigService.GetAllForgeComboPicturesAsync();
         }
         finally
@@ -491,6 +500,7 @@
         "weapons" => weaponConfigs,
         "drinks" => drinkConfigs,
         "equipment" => equipmentConfigs,
+        "consumables" => consumableConfigs,
         _ => weaponConfigs
     };
 

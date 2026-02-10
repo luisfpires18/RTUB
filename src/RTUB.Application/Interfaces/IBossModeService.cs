@@ -38,12 +38,12 @@ public interface IBossModeService
     /// <summary>
     /// Applies accumulated boss mode run rewards when the run ends.
     /// </summary>
-    Task ApplyBossRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
+    Task ApplyBossRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
 
     /// <summary>
     /// Cancels a boss mode run, restoring character state.
     /// </summary>
-    Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0);
+    Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0);
 
     /// <summary>
     /// Gets a random boss sprite path for the current boss stage.

@@ -242,6 +242,15 @@
                         osc.stop(startTime + 0.3);
                     });
                     break;
+                    
+                case 'block':
+                    oscillator.frequency.value = 150;
+                    oscillator.type = 'triangle';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.4, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.15);
+                    break;
             }
         }
 
@@ -650,12 +659,19 @@
                 const attacker = getEventField(evt, 'Attacker');
                 const defender = getEventField(evt, 'Defender');
                 const damage = getEventField(evt, 'Damage');
+                const isBlocked = getEventField(evt, 'IsBlocked') ?? false;
+                const isBoosted = getEventField(evt, 'IsBoosted') ?? false;
                 this.playAttack(attacker, defender, damage, evt);
                 if (attacker && defender) {
-                    const damageText = damage ? `-${formatNum(damage)}` : '0';
                     const attackerName = attacker === 'Attacker' ? this.attackerName : this.defenderName;
                     const defenderName = defender === 'Defender' ? this.defenderName : this.attackerName;
-                    this.addLogEntry(`${attackerName} atacou ${defenderName} (${damageText})`);
+                    if (isBlocked) {
+                        this.addLogEntry(`${attackerName} atacou ${defenderName} (BLOCKED)`);
+                    } else {
+                        const damageText = damage ? `-${formatNum(damage)}` : '0';
+                        const extra = isBoosted ? ' EXTRA' : '';
+                        this.addLogEntry(`${attackerName} atacou ${defenderName} (${damageText}${extra})`);
+                    }
                 }
                 return;
             }
@@ -696,8 +712,10 @@
 
             const damageValue = damage ?? 0;
             const isCritical = evt?.isCritical === true || evt?.IsCritical === true;
+            const isBlocked = evt?.isBlocked === true || evt?.IsBlocked === true;
+            const isBoosted = evt?.isBoosted === true || evt?.IsBoosted === true;
 
-            this.playSound(isCritical ? 'critical' : 'attack');
+            this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
 
             const lungeDuration = isCritical ? 150 : 200;
             this.animateTo(attacker.sprite, { 
@@ -712,24 +730,32 @@
                 }, 240);
             });
 
-            const defenderTintColor = isCritical ? 0xff0000 : 0xff5555;
-            defender.sprite.tint = defenderTintColor;
-            setTimeout(() => defender.sprite.tint = 0xffffff, 200 / this.battleSpeed);
+            if (isBlocked) {
+                // Blocked: cyan shield flash instead of red damage tint
+                defender.sprite.tint = 0x00e5ff;
+                setTimeout(() => defender.sprite.tint = 0xffffff, 300 / this.battleSpeed);
+            } else {
+                const defenderTintColor = isCritical ? 0xff0000 : 0xff5555;
+                defender.sprite.tint = defenderTintColor;
+                setTimeout(() => defender.sprite.tint = 0xffffff, 200 / this.battleSpeed);
+            }
 
             this.playSound('hit');
 
-            const defenderStartX = defender.sprite.x;
-            const recoilDistance = isCritical ? 30 : 20;
-            this.animateTo(defender.sprite, { 
-                x: defenderStartX + direction * recoilDistance 
-            }, isCritical ? 100 : 120, () => {
-                this.animateTo(defender.sprite, { x: defenderStartX }, 100);
-            });
+            if (!isBlocked) {
+                const defenderStartX = defender.sprite.x;
+                const recoilDistance = isCritical ? 30 : 20;
+                this.animateTo(defender.sprite, { 
+                    x: defenderStartX + direction * recoilDistance 
+                }, isCritical ? 100 : 120, () => {
+                    this.animateTo(defender.sprite, { x: defenderStartX }, 100);
+                });
+            }
 
             const impactX = defender.sprite.x;
             const impactY = defender.sprite.y - defender.sprite.height * 0.4;
             
-            const impactColor = isCritical ? 0xffff00 : 0xffd54f;
+            const impactColor = isBlocked ? 0x00e5ff : (isCritical ? 0xffff00 : 0xffd54f);
             const impactSize = isCritical ? 25 : 18;
             const impact = new PIXI.Graphics();
             impact.circle(impactX, impactY, impactSize);
@@ -740,59 +766,113 @@
                 this.stage.removeChild(impact);
             });
 
-            const slash = new PIXI.Graphics();
-            const slashColor = isCritical ? 0xffff00 : 0xffffff;
-            slash.moveTo(attacker.sprite.x, attacker.sprite.y - attacker.sprite.height * 0.5);
-            slash.lineTo(defender.sprite.x, defender.sprite.y - defender.sprite.height * 0.5);
-            slash.stroke({ width: isCritical ? 6 : 4, color: slashColor, alpha: 0.9 });
-            this.stage.addChild(slash);
+            if (!isBlocked) {
+                const slash = new PIXI.Graphics();
+                const slashColor = isCritical ? 0xffff00 : 0xffffff;
+                slash.moveTo(attacker.sprite.x, attacker.sprite.y - attacker.sprite.height * 0.5);
+                slash.lineTo(defender.sprite.x, defender.sprite.y - defender.sprite.height * 0.5);
+                slash.stroke({ width: isCritical ? 6 : 4, color: slashColor, alpha: 0.9 });
+                this.stage.addChild(slash);
+                
+                this.fadeOut(slash, isCritical ? 250 : 200, () => {
+                    this.stage.removeChild(slash);
+                });
+            }
+
+            // Floating text on defender
+            if (isBlocked) {
+                const blockedText = new PIXI.Text({
+                    text: 'BLOCKED',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 28,
+                        fontWeight: 'bold',
+                        fill: 0x00e5ff,
+                        stroke: { color: 0x000000, width: 4 }
+                    }
+                });
+                blockedText.anchor.set(0.5);
+                blockedText.x = defender.sprite.x;
+                blockedText.y = defender.sprite.y - defender.sprite.height * 0.6;
+                this.stage.addChild(blockedText);
+
+                this.animateTo(blockedText, {
+                    y: blockedText.y - 70,
+                    alpha: 0
+                }, 900, () => {
+                    this.stage.removeChild(blockedText);
+                });
+            } else {
+                const damageText = new PIXI.Text({
+                    text: isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`,
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: isCritical ? 28 : 24,
+                        fontWeight: 'bold',
+                        fill: isCritical ? 0xffff00 : 0xff4444,
+                        stroke: { color: 0x000000, width: 3 }
+                    }
+                });
+                damageText.anchor.set(0.5);
+                damageText.x = defender.sprite.x;
+                damageText.y = defender.sprite.y - defender.sprite.height * 0.6;
+                this.stage.addChild(damageText);
+
+                this.animateTo(damageText, { 
+                    y: damageText.y - (isCritical ? 80 : 60),
+                    alpha: 0
+                }, isCritical ? 1000 : 800, () => {
+                    this.stage.removeChild(damageText);
+                });
+            }
+
+            // Floating text on attacker side
+            if (isBoosted) {
+                const extraText = new PIXI.Text({
+                    text: 'EXTRA',
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 26,
+                        fontWeight: 'bold',
+                        fill: 0xff9800,
+                        stroke: { color: 0x000000, width: 4 }
+                    }
+                });
+                extraText.anchor.set(0.5);
+                extraText.x = attacker.sprite.x;
+                extraText.y = attacker.sprite.y - attacker.sprite.height * 0.8;
+                this.stage.addChild(extraText);
+
+                this.animateTo(extraText, {
+                    y: extraText.y - 50,
+                    alpha: 0
+                }, 800, () => {
+                    this.stage.removeChild(extraText);
+                });
+            }
             
-            this.fadeOut(slash, isCritical ? 250 : 200, () => {
-                this.stage.removeChild(slash);
-            });
+            if (!isBlocked) {
+                const attackerText = new PIXI.Text({
+                    text: `+${formatNum(damageValue)}`,
+                    style: {
+                        fontFamily: 'Arial',
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        fill: 0x4caf50
+                    }
+                });
+                attackerText.anchor.set(0.5);
+                attackerText.x = attacker.sprite.x;
+                attackerText.y = attacker.sprite.y - attacker.sprite.height * 0.6;
+                this.stage.addChild(attackerText);
 
-            const damageText = new PIXI.Text({
-                text: isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`,
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: isCritical ? 28 : 24,
-                    fontWeight: 'bold',
-                    fill: isCritical ? 0xffff00 : 0xff4444,
-                    stroke: { color: 0x000000, width: 3 }
-                }
-            });
-            damageText.anchor.set(0.5);
-            damageText.x = defender.sprite.x;
-            damageText.y = defender.sprite.y - defender.sprite.height * 0.6;
-            this.stage.addChild(damageText);
-
-            this.animateTo(damageText, { 
-                y: damageText.y - (isCritical ? 80 : 60),
-                alpha: 0
-            }, isCritical ? 1000 : 800, () => {
-                this.stage.removeChild(damageText);
-            });
-
-            const attackerText = new PIXI.Text({
-                text: `+${formatNum(damageValue)}`,
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fill: 0x4caf50
-                }
-            });
-            attackerText.anchor.set(0.5);
-            attackerText.x = attacker.sprite.x;
-            attackerText.y = attacker.sprite.y - attacker.sprite.height * 0.6;
-            this.stage.addChild(attackerText);
-
-            this.animateTo(attackerText, { 
-                y: attackerText.y - 20,
-                alpha: 0
-            }, 700, () => {
-                this.stage.removeChild(attackerText);
-            });
+                this.animateTo(attackerText, { 
+                    y: attackerText.y - 20,
+                    alpha: 0
+                }, 700, () => {
+                    this.stage.removeChild(attackerText);
+                });
+            }
         }
 
         playKo(character) {

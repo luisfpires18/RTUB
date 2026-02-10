@@ -161,51 +161,74 @@
 
                             @if (inventoryTab == 0)
                             {
-                                <!-- Consumables: Beer, Shot -->
+                                <!-- Consumables: Fino, Caneca, Cigarro, Canhão, Shot -->
                                 <div class="item-grid">
-                                    <div class="item-card item-card--beer" @onclick="UseBeer" 
-                                         style="cursor: @(usingBeer || beerQuantity == 0 || character == null || isFullHp ? "not-allowed" : "pointer")">
-                                        <div class="item-card__qty">@Fmt(beerQuantity)</div>
-                                        <div class="item-card__icon">
-                                            @if (usingBeer)
+                                    @{
+                                        var consumableHighestStage = stageProgress?.HighestStage ?? 1;
+                                        var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
+                                        {
+                                            ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, character == null || isFullHp),
+                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
+                                            ("Cigarro", "bi-cloud", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                            ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 501, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
+                                            ("Canhão", "bi-bullseye", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "0.5s + 100% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                        };
+                                    }
+
+                                    @foreach (var c in consumableUnlocks)
+                                    {
+                                        var isConsumableLocked = c.UnlockStage > consumableHighestStage;
+                                        var unlockBiomeName = isConsumableLocked
+                                            ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= c.UnlockStage && b.StageMax >= c.UnlockStage)?.Name ?? $"Stage {c.UnlockStage}"
+                                            : "";
+                                        var isActionDisabled = isConsumableLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
+
+                                        <div class="item-card item-card--@c.CssVariant @(isConsumableLocked ? "item-card--locked" : "")"
+                                             @onclick="async () => { if (!isConsumableLocked) await c.UseAction(); }"
+                                             style="cursor: @(isActionDisabled ? "not-allowed" : "pointer")"
+                                             title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Stage {c.UnlockStage} ({unlockBiomeName})" : c.Name)">
+                                            <div class="item-card__qty">
+                                                @if (isConsumableLocked)
+                                                {
+                                                    <i class="bi bi-lock-fill"></i>
+                                                }
+                                                else
+                                                {
+                                                    @Fmt(c.Qty)
+                                                }
+                                            </div>
+                                            <div class="item-card__icon">
+                                                @if (isConsumableLocked)
+                                                {
+                                                    <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                                }
+                                                else if (c.Using)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm @(c.CssVariant == "beer" ? "text-warning" : "text-info")"></span>
+                                                }
+                                                else if (GetDrinkPictureUrl(c.ItemType) is string imgUrl)
+                                                {
+                                                    <img src="@imgUrl" alt="@c.Name" class="gather-sprite" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi @c.FallbackIcon"></i>
+                                                }
+                                            </div>
+                                            <div class="item-card__name">@c.Name</div>
+                                            @if (isConsumableLocked)
                                             {
-                                                <span class="spinner-border spinner-border-sm text-warning"></span>
-                                            }
-                                            else if (GetDrinkPictureUrl(InventoryItemType.Beer) is string beerImg)
-                                            {
-                                                <img src="@beerImg" alt="Cerveja" class="gather-sprite" />
+                                                <div class="item-card__desc" style="font-size: 0.55rem; opacity: 0.6;">@unlockBiomeName</div>
                                             }
                                             else
                                             {
-                                                <i class="bi bi-cup-straw"></i>
+                                                <div class="item-card__desc">@c.Desc</div>
                                             }
                                         </div>
-                                        <div class="item-card__name">Cerveja</div>
-                                        <div class="item-card__desc">Cura HP</div>
-                                    </div>
+                                    }
 
-                                    <div class="item-card item-card--shot" @onclick="UseShot"
-                                         style="cursor: @(usingShot || shotQuantity == 0 || character == null || isCharacterDead || character.ShotBuffBattlesRemaining > 0 ? "not-allowed" : "pointer")">
-                                        <div class="item-card__qty">@Fmt(shotQuantity)</div>
-                                        <div class="item-card__icon">
-                                            @if (usingShot)
-                                            {
-                                                <span class="spinner-border spinner-border-sm text-info"></span>
-                                            }
-                                            else if (GetDrinkPictureUrl(InventoryItemType.Shot) is string shotImg)
-                                            {
-                                                <img src="@shotImg" alt="Shot" class="gather-sprite" />
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-droplet-fill"></i>
-                                            }
-                                        </div>
-                                        <div class="item-card__name">Shot</div>
-                                        <div class="item-card__desc">+20% Stats</div>
-                                    </div>
-
-                                    @for (var i = 0; i < 6; i++)
+                                    @for (var i = 0; i < 1; i++)
                                     {
                                         <div class="item-card item-card--empty"></div>
                                     }
@@ -515,17 +538,50 @@
                         </div>
                         
                         <!-- Active Enhancements Section -->
-                        @if (character.ShotBuffBattlesRemaining > 0)
+                        @if (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0)
                         {
                             <div class="mt-3">
                                 <h6 class="text-info mb-2"><i class="bi bi-magic me-2"></i>Melhorias Ativas</h6>
-                                <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                    <span class="d-flex align-items-center">
-                                        <i class="bi bi-droplet-fill text-info me-2"></i>
-                                        <span>Shot (+20% stats)</span>
-                                    </span>
-                                    <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
-                                </div>
+                                @if (character.ShotBuffBattlesRemaining > 0)
+                                {
+                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                        <span class="d-flex align-items-center">
+                                            <i class="bi bi-droplet-fill text-info me-2"></i>
+                                            <span>Shot (+20% stats)</span>
+                                        </span>
+                                        <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
+                                    </div>
+                                }
+                                @if (character.CigarroShieldHitsRemaining > 0)
+                                {
+                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                        <span class="d-flex align-items-center">
+                                            <i class="bi bi-shield-fill text-info me-2"></i>
+                                            <span>Cigarro (Escudo)</span>
+                                        </span>
+                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining/3 ataques por bloquear</span>
+                                    </div>
+                                }
+                                @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                                {
+                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                        <span class="d-flex align-items-center">
+                                            <i class="bi bi-bullseye text-info me-2"></i>
+                                            <span>Canhão (+30% Dano)</span>
+                                        </span>
+                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano</span>
+                                    </div>
+                                }
+                                @if (character.PenaltyBuffActive > 0)
+                                {
+                                    <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                        <span class="d-flex align-items-center">
+                                            <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+                                            <span>Penalty (0.5s + 100% Crit)</span>
+                                        </span>
+                                        <span class="badge bg-warning text-dark">Ativo</span>
+                                    </div>
+                                }
                             </div>
                         }
                         
@@ -810,6 +866,55 @@
                             </div>
                         </div>
 
+                        <!-- Defense Upgrade Row -->
+                        <div class="enhance-row @(IsDefenseMaxed ? "enhance-row--maxed" : "")">
+                            <div class="enhance-row__icon enhance-row__icon--defense">
+                                <i class="bi bi-shield-fill"></i>
+                            </div>
+                            <div class="enhance-row__info">
+                                <div class="enhance-row__title">Defesa <span class="enhance-row__level">Lv@(character.DefenseUpgrades)</span></div>
+                                <div class="enhance-row__desc">Aumentar defesa</div>
+                                <div class="enhance-row__stat">
+                                    @if (IsDefenseMaxed)
+                                    {
+                                        <text>@Fmt(character.TotalDefense)</text>
+                                    }
+                                    else
+                                    {
+                                        <text>@Fmt(character.TotalDefense) → @Fmt(character.NextTotalDefense)</text>
+                                    }
+                                </div>
+                            </div>
+                            <div class="enhance-row__action">
+                                <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
+                                        @onclick="() => PurchaseUpgrade(StatType.Defense)"
+                                        disabled="@(purchasing || defenseCostLoading || IsDefenseMaxed || (currentUser?.FidelisBalance ?? 0) < defenseCost)">
+                                    @if (purchasing && purchasingStat == StatType.Defense)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>Aumentar</text>
+                                    }
+                                </button>
+                                <div class="enhance-row__cost">
+                                    @if (IsDefenseMaxed)
+                                    {
+                                        <i class="bi bi-coin"></i> <span>Max</span>
+                                    }
+                                    else if (defenseCostLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Speed Upgrade Row -->
                         <div class="enhance-row @(IsSpeedMaxed ? "enhance-row--maxed" : "")">
                             <div class="enhance-row__icon enhance-row__icon--speed">
@@ -907,55 +1012,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Defense Upgrade Row -->
-                        <div class="enhance-row @(IsDefenseMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--defense">
-                                <i class="bi bi-shield-fill"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">Defesa <span class="enhance-row__level">Lv@(character.DefenseUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar defesa</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsDefenseMaxed)
-                                    {
-                                        <text>@Fmt(character.TotalDefense)</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@Fmt(character.TotalDefense) → @Fmt(character.NextTotalDefense)</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.Defense)"
-                                        disabled="@(purchasing || defenseCostLoading || IsDefenseMaxed || (currentUser?.FidelisBalance ?? 0) < defenseCost)">
-                                    @if (purchasing && purchasingStat == StatType.Defense)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsDefenseMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (defenseCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                 </div>
@@ -976,13 +1032,13 @@
                                 <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
                                      @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
                                      style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
+                                    @if (headItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
                                     {
                                         <img src="@headImg" alt="Head" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-cap-front")"></i>
+                                        <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
                                     }
                                     <span class="equip-slot__label">HEAD</span>
                                 </div>
@@ -991,13 +1047,13 @@
                                 <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
                                      @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
                                      style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
+                                    @if (shouldersItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
                                     {
                                         <img src="@shouldersImg" alt="Shoulders" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-chevron-bar-expand")"></i>
+                                        <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
                                     }
                                     <span class="equip-slot__label">SHOULDERS</span>
                                 </div>
@@ -1006,13 +1062,13 @@
                                 <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
                                      @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
                                      style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
+                                    @if (chestItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
                                     {
                                         <img src="@chestImg" alt="Chest" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-shield-fill")"></i>
+                                        <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
                                     }
                                     <span class="equip-slot__label">CHEST</span>
                                 </div>
@@ -1031,13 +1087,13 @@
                                 <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
                                      @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
                                      style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
+                                    @if (glovesItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
                                     {
                                         <img src="@glovesImg" alt="Gloves" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-hand-index-fill")"></i>
+                                        <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
                                     }
                                     <span class="equip-slot__label">GLOVES</span>
                                 </div>
@@ -1046,13 +1102,13 @@
                                 <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
                                      @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
                                      style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
+                                    @if (legsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
                                     {
                                         <img src="@legsImg" alt="Legs" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-signpost-split-fill")"></i>
+                                        <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
                                     }
                                     <span class="equip-slot__label">LEGS</span>
                                 </div>
@@ -1061,7 +1117,7 @@
                                 <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
                                      @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
                                      style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
-                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
+                                    @if (bootsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
                                     {
                                         <img src="@bootsImg" alt="Boots" class="gather-sprite" />
                                     }
@@ -1407,6 +1463,35 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Row 2: Poderes + Melhorias -->
+        <div class="row g-4 mt-2">
+            <!-- Poderes Section -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-stars me-2"></i>Poderes</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                        <i class="bi bi-stars" style="font-size: 3rem; opacity: 0.15;"></i>
+                        <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">Em breve</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Melhorias Section -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-gem me-2"></i>Melhorias</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                        <i class="bi bi-gem" style="font-size: 3rem; opacity: 0.15;"></i>
+                        <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">Em breve</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
 
     <!-- Forge Weapon Type & Name Modal -->
@@ -1645,31 +1730,6 @@
             <FooterContent>
                 <button class="btn btn-secondary" @onclick="() => showWeaponsListModal = false">
                     <i class="bi bi-x-lg me-2"></i>Fechar
-                </button>
-            </FooterContent>
-        </Modal>
-    }
-
-    <!-- Purchase Confirmation Modal -->
-    @if (showConfirmModal)
-    {
-        <Modal Show="@showConfirmModal"
-               ShowChanged="@((bool show) => { if (!show) showConfirmModal = false; })"
-               Title="Confirmar Compra"
-               Size="Modal.ModalSize.Default"
-               Centered="true">
-            <BodyContent>
-                <p>Tens a certeza que queres comprar um upgrade de <strong>@purchasingStat</strong>?</p>
-                <p class="mb-0">
-                    <strong>Custo:</strong> @Fmt(SelectedUpgradeCost) Fidelis
-                </p>
-            </BodyContent>
-            <FooterContent>
-                <button class="btn btn-secondary" @onclick="() => showConfirmModal = false">
-                    <i class="bi bi-x-lg me-2"></i>Cancelar
-                </button>
-                <button class="btn btn-primary" @onclick="ConfirmPurchase">
-                    <i class="bi bi-check-lg me-2"></i>Confirmar
                 </button>
             </FooterContent>
         </Modal>
@@ -2080,10 +2140,18 @@
     private bool loading = true;
     private bool leaderboardLoading = false;
 
-    private int beerQuantity = 0;
+    private int finoQuantity = 0;
+    private int canecaQuantity = 0;
+    private int cigarroQuantity = 0;
+    private int canhaoQuantity = 0;
     private int shotQuantity = 0;
-    private bool usingBeer = false;
+    private int penaltyQuantity = 0;
+    private bool usingFino = false;
+    private bool usingCaneca = false;
+    private bool usingCigarro = false;
+    private bool usingCanhao = false;
     private bool usingShot = false;
+    private bool usingPenalty = false;
     
     // Gathering (Destilaria) state
     private int currentEnergy = 10;
@@ -2169,7 +2237,6 @@
     // Upgrade shop state
     private bool purchasing = false;
     private StatType? purchasingStat = null;
-    private bool showConfirmModal = false;
     private decimal hpCost = 0;
     private decimal powerCost = 0;
     private decimal speedCost = 0;
@@ -2210,15 +2277,6 @@
         var level = character?.Level ?? 1;
         return DailyRewardBase + (level * DailyRewardPerLevel);
     }
-    private decimal SelectedUpgradeCost => purchasingStat switch
-    {
-        StatType.HP => hpCost,
-        StatType.Power => powerCost,
-        StatType.Speed => speedCost,
-        StatType.CriticalChance => criticalCost,
-        StatType.Defense => defenseCost,
-        _ => 0
-    };
     
     // Max upgrades from config
     private int MaxHpUpgrades => MyTunoConfig.Value.Upgrades.HP.MaxUpgrades;
@@ -2322,8 +2380,12 @@
                     if (character != null)
                     {
                         await LoadUpgradeCosts();
-                        beerQuantity = await InventoryService.GetBeerQuantityAsync(currentUser.Id);
+                        finoQuantity = await InventoryService.GetFinoQuantityAsync(currentUser.Id);
+                        canecaQuantity = await InventoryService.GetCanecaQuantityAsync(currentUser.Id);
+                        cigarroQuantity = await InventoryService.GetCigarroQuantityAsync(currentUser.Id);
+                        canhaoQuantity = await InventoryService.GetCanhaoQuantityAsync(currentUser.Id);
                         shotQuantity = await InventoryService.GetShotQuantityAsync(currentUser.Id);
+                        penaltyQuantity = await InventoryService.GetPenaltyQuantityAsync(currentUser.Id);
                         
                         // Load stage progress for unlock checks
                         stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
@@ -2444,17 +2506,11 @@
         }
     }
 
-    private void PurchaseUpgrade(StatType statType)
+    private async Task PurchaseUpgrade(StatType statType)
     {
+        if (currentUser == null) return;
+
         purchasingStat = statType;
-        showConfirmModal = true;
-    }
-
-    private async Task ConfirmPurchase()
-    {
-        if (currentUser == null || purchasingStat == null) return;
-
-        showConfirmModal = false;
         purchasing = true;
         StateHasChanged();
 
@@ -2729,11 +2785,11 @@
         }
     }
 
-    private async Task UseBeer()
+    private async Task UseFino()
     {
         try
         {
-            usingBeer = true;
+            usingFino = true;
             StateHasChanged();
 
             if (currentUser == null)
@@ -2743,17 +2799,15 @@
                 return;
             }
 
-            var (success, healedAmount, message) = await InventoryService.UseBeerAsync(currentUser.Id);
+            var (success, healedAmount, message) = await InventoryService.UseFinoAsync(currentUser.Id);
             
             if (success)
             {
-                // Update beer quantity
-                beerQuantity--;
+                finoQuantity--;
                 
                 // Reload character to get updated HP
                 await LoadCharacterAsync();
                 
-                // Show success message
                 toastMessage = $"Recuperaste {healedAmount} HP!";
                 toastIsError = false;
             }
@@ -2765,13 +2819,181 @@
         }
         catch (Exception ex)
         {
-            toastMessage = "Erro ao usar cerveja";
+            toastMessage = "Erro ao usar fino";
             toastIsError = true;
-            Logger.LogError(ex, "Error using beer for user");
+            Logger.LogError(ex, "Error using fino for user");
         }
         finally
         {
-            usingBeer = false;
+            usingFino = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCaneca()
+    {
+        try
+        {
+            usingCaneca = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, healedAmount, message) = await InventoryService.UseCanecaAsync(currentUser.Id);
+            
+            if (success)
+            {
+                canecaQuantity--;
+                await LoadCharacterAsync();
+                toastMessage = $"Recuperaste {healedAmount} HP!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar caneca";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using caneca for user");
+        }
+        finally
+        {
+            usingCaneca = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCigarro()
+    {
+        try
+        {
+            usingCigarro = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, message) = await InventoryService.UseCigarroAsync(currentUser.Id);
+            
+            if (success)
+            {
+                cigarroQuantity--;
+                await LoadCharacterAsync();
+                toastMessage = "Cigarro ativado! Os próximos 3 hits não causam dano.";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar cigarro";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using cigarro for user");
+        }
+        finally
+        {
+            usingCigarro = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCanhao()
+    {
+        try
+        {
+            usingCanhao = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, message) = await InventoryService.UseCanhaoAsync(currentUser.Id);
+            
+            if (success)
+            {
+                canhaoQuantity--;
+                await LoadCharacterAsync();
+                toastMessage = "Canhão ativado! Os próximos 3 ataques causam +30% dano.";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar canhão";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using canhao for user");
+        }
+        finally
+        {
+            usingCanhao = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UsePenalty()
+    {
+        try
+        {
+            usingPenalty = true;
+            StateHasChanged();
+
+            if (currentUser == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var (success, message) = await InventoryService.UsePenaltyAsync(currentUser.Id);
+            
+            if (success)
+            {
+                penaltyQuantity--;
+                await LoadCharacterAsync();
+                toastMessage = "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha.";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao usar penalty";
+            toastIsError = true;
+            Logger.LogError(ex, "Error using penalty for user");
+        }
+        finally
+        {
+            usingPenalty = false;
             StateHasChanged();
         }
     }

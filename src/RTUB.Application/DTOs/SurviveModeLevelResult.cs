@@ -64,14 +64,34 @@ public class SurviveModeLevelResult
     public decimal FidelisReward { get; set; }
 
     /// <summary>
-    /// Number of beers dropped.
+    /// Number of finos dropped.
     /// </summary>
-    public int BeersDropped { get; set; }
+    public int FinosDropped { get; set; }
+
+    /// <summary>
+    /// Number of canecas dropped.
+    /// </summary>
+    public int CanecasDropped { get; set; }
+
+    /// <summary>
+    /// Number of cigarros dropped.
+    /// </summary>
+    public int CigarrosDropped { get; set; }
+
+    /// <summary>
+    /// Number of canhões dropped.
+    /// </summary>
+    public int CanhaosDropped { get; set; }
 
     /// <summary>
     /// Number of shots dropped.
     /// </summary>
     public int ShotsDropped { get; set; }
+
+    /// <summary>
+    /// Number of penalties dropped.
+    /// </summary>
+    public int PenaltiesDropped { get; set; }
 
     /// <summary>
     /// Instrument parts dropped.

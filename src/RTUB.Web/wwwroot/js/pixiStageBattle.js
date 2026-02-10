@@ -1044,29 +1044,74 @@
             const defender = getEventField(evt, 'Defender');
             const damage = getEventField(evt, 'Damage') ?? 0;
             const isCritical = getEventField(evt, 'IsCritical') ?? false;
+            const isBlocked = getEventField(evt, 'IsBlocked') ?? false;
+            const isBoosted = getEventField(evt, 'IsBoosted') ?? false;
 
             if (attacker === 'Attacker' || attacker === 'Player') {
                 this.animatePlayerAttack();
                 if (defender && defender.startsWith('Enemy')) {
                     const enemyIndex = parseInt(defender.replace('Enemy', ''));
                     this.flashEnemy(enemyIndex);
+                    if (isBoosted) {
+                        const enemy = this.enemySprites[enemyIndex];
+                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0xff9800);
+                    }
                 } else {
                     this.flashEnemies();
+                    if (isBoosted && this.enemySprites.length > 0) {
+                        const enemy = this.enemySprites[0];
+                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0xff9800);
+                    }
                 }
             } else if (attacker.startsWith('Enemy')) {
                 const enemyIndex = parseInt(attacker.replace('Enemy', ''));
                 this.animateSingleEnemyAttack(enemyIndex);
-                this.flashPlayer();
+                if (isBlocked) {
+                    this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
+                } else {
+                    this.flashPlayer();
+                }
             } else {
                 this.animateEnemyAttack();
-                this.flashPlayer();
+                if (isBlocked) {
+                    this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
+                } else {
+                    this.flashPlayer();
+                }
             }
 
-            this.playSound(isCritical ? 'critical' : 'attack');
+            this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
 
             const attackerName = attacker === 'Attacker' || attacker === 'Player' ? this.playerName : this.enemyName;
             const critText = isCritical ? ' (CRIT!)' : '';
-            this.addLogEntry(`${attackerName}: ${formatNum(damage)} dmg${critText}`);
+            const blockedText = isBlocked ? ' BLOCKED' : '';
+            const boostedText = isBoosted ? ' EXTRA' : '';
+            this.addLogEntry(`${attackerName}: ${formatNum(damage)} dmg${critText}${blockedText}${boostedText}`);
+        }
+
+        showFloatingText(text, x, y, color) {
+            if (!this.stage) return;
+            const floatText = new PIXI.Text({
+                text: text,
+                style: {
+                    fontFamily: 'Arial',
+                    fontSize: 26,
+                    fontWeight: 'bold',
+                    fill: color,
+                    stroke: { color: 0x000000, width: 4 }
+                }
+            });
+            floatText.anchor.set(0.5);
+            floatText.x = x;
+            floatText.y = y;
+            this.stage.addChild(floatText);
+
+            this.animateTo(floatText, {
+                y: floatText.y - 70,
+                alpha: 0
+            }, 900, () => {
+                this.stage.removeChild(floatText);
+            });
         }
 
         animatePlayerAttack() {
@@ -1331,6 +1376,14 @@
                     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
                     oscillator.start(ctx.currentTime);
                     oscillator.stop(ctx.currentTime + 0.6);
+                    break;
+                case 'block':
+                    oscillator.frequency.value = 150;
+                    oscillator.type = 'triangle';
+                    gainNode.gain.setValueAtTime(this.sfxVolume * 0.4, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.15);
                     break;
             }
         }

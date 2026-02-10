@@ -381,7 +381,7 @@ public class CharacterTests
         // Arrange
         var character = Character.Create("user-123");
         character.CriticalChance = 0.50; // 50% base
-        character.CriticalUpgrades = 200; // Would add 100%
+        character.CriticalUpgrades = 200; // Would add 200%
 
         // Act & Assert - Should be capped at 0.5 (50%)
         character.TotalCriticalChance.Should().Be(0.5);

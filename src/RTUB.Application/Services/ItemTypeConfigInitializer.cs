@@ -24,6 +24,15 @@ public class ItemTypeConfigInitializer
         InventoryItemType.Aguardente
     ];
 
+    private static readonly (InventoryItemType Type, string Label, string Icon)[] ConsumableTypes =
+    [
+        (InventoryItemType.Fino, "Fino", "bi-cup-straw"),
+        (InventoryItemType.Caneca, "Caneca", "bi-cup-hot"),
+        (InventoryItemType.Cigarro, "Cigarro", "bi-cloud"),
+        (InventoryItemType.Canhao, "Canhão", "bi-bullseye"),
+        (InventoryItemType.Shot, "Shot", "bi-droplet-fill")
+    ];
+
     private static readonly (InventoryItemType Type, string Label, string Icon)[] EquipmentSlots =
     [
         (InventoryItemType.EquipmentHead, "Cabeça", "bi-cap-front"),
@@ -98,6 +107,22 @@ public class ItemTypeConfigInitializer
                     label,
                     icon,
                     "Equipment");
+                await repository.AddAsync(config);
+                added++;
+            }
+        }
+
+        // Seed consumables
+        foreach (var (conType, label, icon) in ConsumableTypes)
+        {
+            var typeKey = conType.ToString();
+            if (!existingKeys.Contains(typeKey))
+            {
+                var config = ItemTypeConfig.Create(
+                    typeKey,
+                    label,
+                    icon,
+                    "Consumable");
                 await repository.AddAsync(config);
                 added++;
             }

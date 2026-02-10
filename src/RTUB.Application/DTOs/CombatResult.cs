@@ -27,6 +27,16 @@ public class CombatResult
     /// Final HP of the defender after the battle
     /// </summary>
     public int DefenderFinalHP { get; set; }
+
+    /// <summary>
+    /// Remaining Cigarro shield hits for the attacker after the battle
+    /// </summary>
+    public int AttackerCigarroShieldRemaining { get; set; }
+
+    /// <summary>
+    /// Remaining Canhão damage boost hits for the attacker after the battle
+    /// </summary>
+    public int AttackerCanhaoBoostRemaining { get; set; }
 }
 
 /// <summary>
@@ -64,6 +74,16 @@ public class CombatEvent
     /// Whether the attack was a critical hit (for Attack events)
     /// </summary>
     public bool? IsCritical { get; set; }
+
+    /// <summary>
+    /// Whether this attack was blocked by a Cigarro shield (damage absorbed)
+    /// </summary>
+    public bool? IsBlocked { get; set; }
+
+    /// <summary>
+    /// Whether this attack was boosted by a Canhão damage buff (+30%)
+    /// </summary>
+    public bool? IsBoosted { get; set; }
 
     /// <summary>
     /// Character identifier (for HPUpdate, KO events)

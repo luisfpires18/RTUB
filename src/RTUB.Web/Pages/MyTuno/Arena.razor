@@ -120,6 +120,33 @@
                             </span>
                         </div>
                     }
+                    @if (character?.CigarroShieldHitsRemaining > 0)
+                    {
+                        <div class="result-buff-row">
+                            <i class="bi bi-shield-fill text-info"></i>
+                            <span>
+                                @character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                            </span>
+                        </div>
+                    }
+                    @if (character?.CanhaoDamageBoostHitsRemaining > 0)
+                    {
+                        <div class="result-buff-row">
+                            <i class="bi bi-bullseye text-info"></i>
+                            <span>
+                                @character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                            </span>
+                        </div>
+                    }
+                    @if (character?.PenaltyBuffActive > 0)
+                    {
+                        <div class="result-buff-row">
+                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                            <span>
+                                Penalty (0.5s + 100% Crit)
+                            </span>
+                        </div>
+                    }
                     <div class="d-flex flex-column gap-2 mt-2 w-100">
                         <button class="result-btn" @onclick="ResultFightAgain">
                             <i class="bi bi-sword me-2"></i>LUTAR

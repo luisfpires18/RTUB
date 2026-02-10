@@ -50,7 +50,7 @@ public interface ISurviveModeService
     /// Applies accumulated survive mode run rewards (XP, Fidelis, drops).
     /// Called when a run ends (either by death or voluntary exit).
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots,
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         Dictionary<InventoryItemType, int>? equipment = null);
 

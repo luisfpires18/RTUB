@@ -24,6 +24,11 @@ public interface IItemTypeConfigService
     Task<List<ItemTypeConfigDto>> GetEquipmentTypeConfigsAsync();
 
     /// <summary>
+    /// Gets all consumable type configurations ordered by sort order.
+    /// </summary>
+    Task<List<ItemTypeConfigDto>> GetConsumableTypeConfigsAsync();
+
+    /// <summary>
     /// Gets all configurations (all categories) as a list.
     /// </summary>
     Task<List<ItemTypeConfigDto>> GetAllConfigsAsync();

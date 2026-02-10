@@ -108,9 +108,12 @@ public class StageService : IStageService
         
         // Check if shot buff is active - in stage mode, buff lasts until death
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
+        var hasPenaltyBuff = character.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(character) 
             : character;
+        if (hasPenaltyBuff)
+            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
         
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
@@ -210,8 +213,8 @@ public class StageService : IStageService
         });
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
-            CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount);
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
+            CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage);
 
         // Update character HP and stage progress (entire stage complete after beating all enemies)
         await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
@@ -229,8 +232,12 @@ public class StageService : IStageService
             Outcome = combatResult.Outcome,
             XPReward = xpReward,
             FidelisReward = fidelisReward,
-            BeersDropped = beersDropped,
+            FinosDropped = finosDropped,
+            CanecasDropped = canecasDropped,
+            CigarrosDropped = cigarrosDropped,
+            CanhaosDropped = canhaosDropped,
             ShotsDropped = shotsDropped,
+            PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
             EquipmentDropped = equipmentDropped,
             FitabDropped = fitabDropped,
@@ -279,7 +286,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0)
+    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -300,9 +307,12 @@ public class StageService : IStageService
                     return false;
                 }
 
-                // Restore character HP and shot buff state
+                // Restore character HP and buff state
                 character.CurrentHP = restoreHp;
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
+                character.CigarroShieldHitsRemaining = restoreCigarroShield;
+                character.CanhaoDamageBoostHitsRemaining = restoreCanhaoBoost;
+                character.PenaltyBuffActive = restorePenaltyBuff;
                 await _characterRepository.UpdateAsync(character);
 
                 // Reset stage progress to the restore point
@@ -429,20 +439,25 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int beers, int shots, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment, int fitab) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment, int fitab) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
-        int enemyCount = 1)
+        int enemyCount = 1,
+        int highestStage = 1)
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>(), 0);
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>(), 0);
         }
 
         var random = Random.Shared;
-        var beersDropped = 0;
+        var finosDropped = 0;
+        var canecasDropped = 0;
+        var cigarrosDropped = 0;
+        var canhaosDropped = 0;
         var shotsDropped = 0;
+        var penaltiesDropped = 0;
         var fitabDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
         var equipmentDropped = new List<InventoryItemType>();
@@ -478,14 +493,24 @@ public class StageService : IStageService
         var levelBonus = Math.Min(rawLevelBonus, rewardConfig.LevelBonusCap);
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(rewardCurve * biomeRewardMult * levelBonus), 2);
 
-        var beerChance = dropRates.BeerDropChance;
-        var shotChance = dropRates.ShotDropChance;
+        // Gate consumable drops behind biome progression
+        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        var finoChance = highestStage >= 1 ? dropRates.FinoDropChance : 0;
+        var canecaChance = highestStage >= 501 ? dropRates.CanecaDropChance : 0;
+        var cigarroChance = highestStage >= 301 ? dropRates.CigarroDropChance : 0;
+        var canhaoChance = highestStage >= 701 ? dropRates.CanhaoDropChance : 0;
+        var shotChance = highestStage >= 101 ? dropRates.ShotDropChance : 0;
+        var penaltyChance = highestStage >= 901 ? dropRates.PenaltyDropChance : 0;
         var instrumentPartChance = dropRates.InstrumentPartDropChance;
         var equipmentChance = dropRates.EquipmentDropChance;
         if (enemyType == EnemyType.Boss)
         {
-            beerChance *= dropRates.BossDropMultiplier;
+            finoChance *= dropRates.BossDropMultiplier;
+            canecaChance *= dropRates.BossDropMultiplier;
+            cigarroChance *= dropRates.BossDropMultiplier;
+            canhaoChance *= dropRates.BossDropMultiplier;
             shotChance *= dropRates.BossDropMultiplier;
+            penaltyChance *= dropRates.BossDropMultiplier;
             instrumentPartChance *= dropRates.BossDropMultiplier;
             equipmentChance *= dropRates.BossDropMultiplier;
         }
@@ -498,8 +523,12 @@ public class StageService : IStageService
 
         for (int i = 0; i < enemyCount; i++)
         {
-            if (random.NextDouble() < beerChance) beersDropped++;
+            if (random.NextDouble() < finoChance) finosDropped++;
+            if (random.NextDouble() < canecaChance) canecasDropped++;
+            if (random.NextDouble() < cigarroChance) cigarrosDropped++;
+            if (random.NextDouble() < canhaoChance) canhaosDropped++;
             if (random.NextDouble() < shotChance) shotsDropped++;
+            if (random.NextDouble() < penaltyChance) penaltiesDropped++;
 
             // Roll for instrument part drop (very rare)
             if (random.NextDouble() < instrumentPartChance)
@@ -524,7 +553,7 @@ public class StageService : IStageService
                 fitabDropped++;
         }
 
-        return (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped, fitabDropped);
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped);
     }
 
     /// <summary>
@@ -532,7 +561,7 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;
@@ -554,10 +583,16 @@ public class StageService : IStageService
         {
             character.ExpireShotBuff();
         }
+
+        // Consume penalty buff if it was active during this run
+        if (character.PenaltyBuffActive > 0)
+        {
+            character.ExpirePenaltyBuff();
+        }
         
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0 && !hasInstrumentParts && !hasEquipment)
+        if (xp <= 0 && fidelis <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts && !hasEquipment)
             return;
 
         // Apply XP
@@ -576,14 +611,30 @@ public class StageService : IStageService
             await _userManager.UpdateAsync(user);
         }
 
-        // Apply item drops
-        if (beers > 0)
+        // Apply consumable drops
+        if (finos > 0)
         {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beers);
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fino, finos);
+        }
+        if (canecas > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Caneca, canecas);
+        }
+        if (cigarros > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Cigarro, cigarros);
+        }
+        if (canhaos > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Canhao, canhaos);
         }
         if (shots > 0)
         {
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
+        }
+        if (penalties > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Penalty, penalties);
         }
 
         // Apply instrument part drops
@@ -605,8 +656,8 @@ public class StageService : IStageService
         }
 
         _logger.LogInformation(
-            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Beers} beers, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
-            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, beers, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
+            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
     }
 
     /// <summary>
@@ -716,6 +767,10 @@ public class StageService : IStageService
         {
             character.CurrentHP = null; // Defeated — restore to full on next run
         }
+
+        // Write back consumable buff remaining counts from combat
+        character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
+        character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
         
         await _characterRepository.UpdateAsync(character);
 

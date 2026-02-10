@@ -6,14 +6,34 @@ namespace RTUB.Core.Enums;
 public enum InventoryItemType
 {
     /// <summary>
-    /// Beer item - used for healing characters
+    /// Fino item - heals 25% HP
     /// </summary>
-    Beer = 1,
+    Fino = 1,
 
     /// <summary>
     /// Shot item - dropped by stage enemies, used for special abilities
     /// </summary>
     Shot = 2,
+
+    /// <summary>
+    /// Caneca item - heals 50% HP (rarer than Fino)
+    /// </summary>
+    Caneca = 13,
+
+    /// <summary>
+    /// Cigarro item - next 3 hits you take deal no damage (shield buff)
+    /// </summary>
+    Cigarro = 14,
+
+    /// <summary>
+    /// Canhão item - next 3 hits you deal do 30% more damage (attack buff)
+    /// </summary>
+    Canhao = 15,
+
+    /// <summary>
+    /// Penalty item - 0.5s attack speed + 100% crit for 1 stage run / 1 boss or arena battle
+    /// </summary>
+    Penalty = 16,
 
     /// <summary>
     /// Cerveja - gathered resource, used for crafting (costs 1 energy)

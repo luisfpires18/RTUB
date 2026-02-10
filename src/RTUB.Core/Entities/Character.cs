@@ -30,6 +30,15 @@ public class Character : BaseEntity
     // Shot buff - number of battles remaining with empowerment
     public int ShotBuffBattlesRemaining { get; set; } = 0;
 
+    // Cigarro buff - number of hits remaining where damage is absorbed
+    public int CigarroShieldHitsRemaining { get; set; } = 0;
+
+    // Canhão buff - number of hits remaining where damage is boosted by 30%
+    public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
+
+    // Penalty buff - 0.5s attack speed + 100% crit for 1 run/battle
+    public int PenaltyBuffActive { get; set; } = 0;
+
     // Arena Statistics
     /// <summary>
     /// Total number of arena wins
@@ -441,7 +450,60 @@ public class Character : BaseEntity
             User = source.User,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt,
-            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining
+            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
+            CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
+            CanhaoDamageBoostHitsRemaining = source.CanhaoDamageBoostHitsRemaining,
+            PenaltyBuffActive = source.PenaltyBuffActive
+        };
+    }
+
+    /// <summary>
+    /// Creates a copy of the character with Penalty buff applied.
+    /// Overrides action time to 0.5s and critical chance to 100%.
+    /// </summary>
+    public static Character CreatePenaltyBuffedCopy(Character source)
+    {
+        if (source == null)
+            throw new ArgumentNullException(nameof(source));
+
+        return new Character
+        {
+            Id = source.Id,
+            UserId = source.UserId,
+            Level = source.Level,
+            XP = source.XP,
+            HP = source.HP,
+            Power = source.Power,
+            Speed = source.Speed,
+            Defense = source.Defense,
+            CriticalChance = 1.0, // 100% crit
+            HpUpgrades = source.HpUpgrades,
+            PowerUpgrades = source.PowerUpgrades,
+            SpeedUpgrades = source.SpeedUpgrades,
+            CriticalUpgrades = source.CriticalUpgrades,
+            DefenseUpgrades = source.DefenseUpgrades,
+            EquippedHead = source.EquippedHead,
+            EquippedShoulders = source.EquippedShoulders,
+            EquippedChest = source.EquippedChest,
+            EquippedGloves = source.EquippedGloves,
+            EquippedLegs = source.EquippedLegs,
+            EquippedBoots = source.EquippedBoots,
+            EquippedWeapon1 = source.EquippedWeapon1,
+            EquippedWeapon2 = source.EquippedWeapon2,
+            EquipmentHPBonus = source.EquipmentHPBonus,
+            EquipmentPowerBonus = source.EquipmentPowerBonus,
+            EquipmentSpeedBonus = source.EquipmentSpeedBonus,
+            EquipmentDefenseBonus = source.EquipmentDefenseBonus,
+            EquipmentCriticalBonus = source.EquipmentCriticalBonus,
+            ActionTimeOverride = 0.5, // 0.5s attack speed
+            CurrentHP = source.CurrentHP,
+            User = source.User,
+            CreatedAt = source.CreatedAt,
+            UpdatedAt = source.UpdatedAt,
+            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
+            CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
+            CanhaoDamageBoostHitsRemaining = source.CanhaoDamageBoostHitsRemaining,
+            PenaltyBuffActive = source.PenaltyBuffActive
         };
     }
 
@@ -558,6 +620,15 @@ public class Character : BaseEntity
             ? CreateShotBuffedCopy(this).TotalHP 
             : TotalHP;
         CurrentHP = maxHP;
+    }
+
+    /// <summary>
+    /// Expires the penalty buff (sets PenaltyBuffActive to 0).
+    /// No HP scaling needed — penalty only affects speed and crit.
+    /// </summary>
+    public void ExpirePenaltyBuff()
+    {
+        PenaltyBuffActive = 0;
     }
 
     /// <summary>

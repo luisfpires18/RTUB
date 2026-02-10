@@ -231,9 +231,9 @@
                         <div class="row mb-2">
                             <div class="col-6">
                                 <label class="form-label text-white-full small">
-                                    <i class="bi bi-cup-straw text-warning me-1"></i>Beer Drop %
+                                    <i class="bi bi-cup-straw text-warning me-1"></i>Fino Drop %
                                 </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BeerDropChance" step="0.01" />
+                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.FinoDropChance" step="0.01" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label text-white-full small">
@@ -396,7 +396,7 @@
             BaseDefense = enemy.BaseDefense,
             BaseCriticalChance = enemy.BaseCriticalChance,
             BaseFidelisDrop = enemy.BaseFidelisDrop,
-            BeerDropChance = enemy.BeerDropChance,
+            FinoDropChance = enemy.FinoDropChance,
             ShotDropChance = enemy.ShotDropChance,
             SpritePath = enemy.SpritePath,
             BossStageNumber = enemy.BossStageNumber,
@@ -423,7 +423,7 @@
                     formModel.BaseDefense,
                     formModel.BaseCriticalChance,
                     formModel.BaseFidelisDrop,
-                    formModel.BeerDropChance,
+                    formModel.FinoDropChance,
                     formModel.ShotDropChance,
                     formModel.SpritePath,
                     formModel.BossStageNumber,
@@ -442,7 +442,7 @@
                     formModel.BaseDefense,
                     formModel.BaseCriticalChance,
                     formModel.BaseFidelisDrop,
-                    formModel.BeerDropChance,
+                    formModel.FinoDropChance,
                     formModel.ShotDropChance,
                     formModel.SpritePath,
                     formModel.BossStageNumber,
@@ -517,7 +517,7 @@
         public int BaseDefense { get; set; } = 3;
         public double BaseCriticalChance { get; set; } = 0.05;
         public decimal BaseFidelisDrop { get; set; } = 1.0m;
-        public double BeerDropChance { get; set; } = 0.1;
+        public double FinoDropChance { get; set; } = 0.1;
         public double ShotDropChance { get; set; } = 0.05;
 
         [StringLength(500)]

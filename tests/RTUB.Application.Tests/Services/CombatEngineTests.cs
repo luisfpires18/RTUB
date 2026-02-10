@@ -457,7 +457,7 @@ public class CombatEngineTests
     }
 
     /// <summary>
-    /// Verifies that TotalCriticalChance is capped at 1.0 (100%)
+    /// Verifies that TotalCriticalChance is capped at 0.5 (50%)
     /// </summary>
     [Fact]
     public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToFiftyPercent()

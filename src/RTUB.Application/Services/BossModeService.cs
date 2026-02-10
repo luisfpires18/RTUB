@@ -29,6 +29,7 @@ public class BossModeService : IBossModeService
     private readonly ILogger<BossModeService> _logger;
     private readonly MyTunoScalingConfiguration _config;
     private readonly IStageBiomeService _biomeService;
+    private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
     private readonly ApplicationDbContext _context;
     private readonly Random _random = new();
@@ -42,6 +43,7 @@ public class BossModeService : IBossModeService
         ILogger<BossModeService> logger,
         IOptions<MyTunoScalingConfiguration> config,
         IStageBiomeService biomeService,
+        IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
         ApplicationDbContext context)
     {
@@ -53,6 +55,7 @@ public class BossModeService : IBossModeService
         _logger = logger;
         _config = config.Value;
         _biomeService = biomeService;
+        _stageProgressRepository = stageProgressRepository;
         _environment = environment;
         _context = context;
     }
@@ -187,9 +190,12 @@ public class BossModeService : IBossModeService
 
         // Check if shot buff is active
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
+        var hasPenaltyBuff = character.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff
             ? Character.CreateShotBuffedCopy(character)
             : character;
+        if (hasPenaltyBuff)
+            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Get boss sprite
         var bossSprite = await GetBossSpriteAsync(bossStage);
@@ -240,11 +246,14 @@ public class BossModeService : IBossModeService
             WriteIndented = false
         });
 
-        var (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped) =
-            CalculateBossRewards(combatResult, bossStage, character.Level);
+        var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+        var highestStage = stageProgress?.HighestStage ?? 1;
+
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped) =
+            CalculateBossRewards(combatResult, bossStage, character.Level, highestStage);
 
         // Update progress (pass hasShotBuff so we can decrement the buff per battle, matching normal gameplay)
-        await UpdateProgressAfterBattle(character, progress, combatResult, bossFullHP, hasShotBuff);
+        await UpdateProgressAfterBattle(character, progress, combatResult, bossFullHP, hasShotBuff, hasPenaltyBuff);
 
         return new BossModeBattleResult
         {
@@ -256,8 +265,12 @@ public class BossModeService : IBossModeService
             Outcome = combatResult.Outcome,
             XPReward = xpReward,
             FidelisReward = fidelisReward,
-            BeersDropped = beersDropped,
+            FinosDropped = finosDropped,
+            CanecasDropped = canecasDropped,
+            CigarrosDropped = cigarrosDropped,
+            CanhaosDropped = canhaosDropped,
             ShotsDropped = shotsDropped,
+            PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
             EquipmentDropped = equipmentDropped,
             ReplayJson = replayJson,
@@ -267,7 +280,7 @@ public class BossModeService : IBossModeService
 
     /// <inheritdoc />
     public async Task ApplyBossRunRewardsAsync(
-        int characterId, int xp, decimal fidelis, int beers, int shots,
+        int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         int? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         Dictionary<InventoryItemType, int>? equipment = null)
@@ -288,7 +301,7 @@ public class BossModeService : IBossModeService
 
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && beers <= 0 && shots <= 0 &&
+        if (xp <= 0 && fidelis <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 &&
             (instrumentParts == null || instrumentParts.Count == 0) &&
             (equipment == null || equipment.Count == 0))
             return;
@@ -316,10 +329,18 @@ public class BossModeService : IBossModeService
         // Ensure no stale user entries poison subsequent saves
         ResetStaleUserEntries();
 
-        if (beers > 0)
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beers);
+        if (finos > 0)
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fino, finos);
+        if (canecas > 0)
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Caneca, canecas);
+        if (cigarros > 0)
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Cigarro, cigarros);
+        if (canhaos > 0)
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Canhao, canhaos);
         if (shots > 0)
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
+        if (penalties > 0)
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Penalty, penalties);
 
         if (instrumentParts != null)
         {
@@ -334,12 +355,12 @@ public class BossModeService : IBossModeService
         }
 
         _logger.LogInformation(
-            "Applied boss run rewards for {UserName}: +{XP} XP, +{Fidelis} Fidelis, +{Beers} beers, +{Shots} shots",
-            user?.UserName ?? "unknown", xp, fidelis, beers, shots);
+            "Applied boss run rewards for {UserName}: +{XP} XP, +{Fidelis} Fidelis, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots",
+            user?.UserName ?? "unknown", xp, fidelis, finos, canecas, cigarros, canhaos, shots);
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0)
+    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0)
     {
         const int maxRetries = 3;
         // Pre-fetch character for logging (available in catch blocks)
@@ -364,6 +385,9 @@ public class BossModeService : IBossModeService
                 // Restore character state
                 character.CurrentHP = restoreHp;
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
+                character.CigarroShieldHitsRemaining = restoreCigarroShield;
+                character.CanhaoDamageBoostHitsRemaining = restoreCanhaoBoost;
+                character.PenaltyBuffActive = restorePenaltyBuff;
                 await _characterRepository.UpdateAsync(character);
 
                 // End the run
@@ -470,11 +494,11 @@ public class BossModeService : IBossModeService
     /// <summary>
     /// Calculates rewards for defeating a boss in Boss Mode.
     /// </summary>
-    private (int xp, decimal fidelis, int beers, int shots, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment) CalculateBossRewards(
-        CombatResult combatResult, int bossStage, int characterLevel)
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment) CalculateBossRewards(
+        CombatResult combatResult, int bossStage, int characterLevel, int highestStage = 1)
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
-            return (0, 0m, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>());
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>());
 
         var random = Random.Shared;
         var bossConfig = _config.BossMode;
@@ -497,13 +521,23 @@ public class BossModeService : IBossModeService
         var fidelisReward = Math.Round(baseFidelis * (decimal)(rewardCurve * biomeRewardMult * levelBonus), 2);
 
         // Drop rolls
-        var beersDropped = 0;
+        var finosDropped = 0;
+        var canecasDropped = 0;
+        var cigarrosDropped = 0;
+        var canhaosDropped = 0;
         var shotsDropped = 0;
+        var penaltiesDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
         var equipmentDropped = new List<InventoryItemType>();
 
-        if (random.NextDouble() < dropRates.BeerDropChance) beersDropped++;
-        if (random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
+        // Gate consumable drops behind biome progression
+        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        if (highestStage >= 1 && random.NextDouble() < dropRates.FinoDropChance) finosDropped++;
+        if (highestStage >= 501 && random.NextDouble() < dropRates.CanecaDropChance) canecasDropped++;
+        if (highestStage >= 301 && random.NextDouble() < dropRates.CigarroDropChance) cigarrosDropped++;
+        if (highestStage >= 701 && random.NextDouble() < dropRates.CanhaoDropChance) canhaosDropped++;
+        if (highestStage >= 101 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
+        if (highestStage >= 901 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
         var instrumentTypes = Enum.GetValues(typeof(InstrumentType))
             .Cast<InstrumentType>()
@@ -523,7 +557,7 @@ public class BossModeService : IBossModeService
             equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
         }
 
-        return (xpReward, fidelisReward, beersDropped, shotsDropped, instrumentPartsDropped, equipmentDropped);
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped);
     }
 
     /// <summary>
@@ -533,7 +567,7 @@ public class BossModeService : IBossModeService
     /// On defeat, saves the boss's remaining HP so the next run continues where this one left off.
     /// </summary>
     private async Task UpdateProgressAfterBattle(
-        Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP, bool shotBuffUsed = false)
+        Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP, bool shotBuffUsed = false, bool penaltyBuffUsed = false)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -551,12 +585,22 @@ public class BossModeService : IBossModeService
                 else
                     character.CurrentHP = null;
 
+                // Write back consumable buff remaining counts from combat
+                character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
+                character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
+
                 // Decrement shot buff per battle, matching normal gameplay (BattleService).
                 // ExpireShotBuff() decrements ShotBuffBattlesRemaining and, when it reaches 0,
                 // scales CurrentHP proportionally from buffed max to unbuffed max.
                 if (shotBuffUsed && character.ShotBuffBattlesRemaining > 0)
                 {
                     character.ExpireShotBuff();
+                }
+
+                // Expire penalty buff per battle (consumed after 1 boss battle)
+                if (penaltyBuffUsed && character.PenaltyBuffActive > 0)
+                {
+                    character.ExpirePenaltyBuff();
                 }
 
                 // Update boss progress (only on first attempt — retries already applied these)

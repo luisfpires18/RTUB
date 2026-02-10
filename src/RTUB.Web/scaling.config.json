@@ -47,7 +47,11 @@
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
       "restoreHPCost": 20,
-      "beerDropChance": 0.1
+      "finoDropChance": 0.1,
+      "canecaDropChance": 0.04,
+      "cigarroDropChance": 0.05,
+      "canhaoDropChance": 0.07,
+      "penaltyDropChance": 0.003
     },
 
     "stageMode": {
@@ -75,8 +79,12 @@
       },
 
       "dropRates": {
-        "beerDropChance": 0.1,
+        "finoDropChance": 0.1,
+        "canecaDropChance": 0.04,
+        "cigarroDropChance": 0.05,
+        "canhaoDropChance": 0.07,
         "shotDropChance": 0.01,
+        "penaltyDropChance": 0.003,
         "instrumentPartDropChance": 0.005,
         "equipmentDropChance": 0.008,
         "bossDropMultiplier": 3.0
@@ -258,8 +266,12 @@
       "bossStatMultiplier": 2.5,
 
       "dropRates": {
-        "beerDropChance": 0.1,
+        "finoDropChance": 0.1,
+        "canecaDropChance": 0.04,
+        "cigarroDropChance": 0.05,
+        "canhaoDropChance": 0.07,
         "shotDropChance": 0.01,
+        "penaltyDropChance": 0.005,
         "instrumentPartDropChance": 0.02,
         "equipmentDropChance": 0.015,
         "fitabDropChance": 0.003

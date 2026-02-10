@@ -58,7 +58,7 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         int baseDefense,
         double baseCriticalChance,
         decimal baseFidelisDrop,
-        double beerDropChance,
+        double finoDropChance,
         double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
@@ -68,7 +68,7 @@ public class StageEnemyManagementService : IStageEnemyManagementService
             name, type, region,
             baseHP, basePower, baseSpeed, baseDefense,
             baseCriticalChance, baseFidelisDrop,
-            beerDropChance, shotDropChance,
+            finoDropChance, shotDropChance,
             spritePath, bossStageNumber, placement);
 
         var created = await _repository.AddAsync(enemy);
@@ -90,7 +90,7 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         int baseDefense,
         double baseCriticalChance,
         decimal baseFidelisDrop,
-        double beerDropChance,
+        double finoDropChance,
         double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
@@ -107,7 +107,7 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         enemy.BaseDefense = baseDefense;
         enemy.BaseCriticalChance = baseCriticalChance;
         enemy.BaseFidelisDrop = baseFidelisDrop;
-        enemy.BeerDropChance = beerDropChance;
+        enemy.FinoDropChance = finoDropChance;
         enemy.ShotDropChance = shotDropChance;
         enemy.SpritePath = spritePath;
         enemy.BossStageNumber = bossStageNumber;

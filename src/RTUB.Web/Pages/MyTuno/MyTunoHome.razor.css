@@ -82,6 +82,38 @@
   color: #0dcaf0;
 }
 
+/* Penalty card - fiery gold/orange */
+.item-card--penalty {
+  border-color: rgba(255, 152, 0, 0.5);
+  background: linear-gradient(180deg, #2e1a0f 0%, #1a0f08 100%);
+}
+
+.item-card--penalty:hover {
+  border-color: #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.item-card--penalty .item-card__icon {
+  color: #ff9800;
+}
+
+/* Locked consumable - mirrors gather-node--locked */
+.item-card--locked {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+  filter: grayscale(0.7);
+  pointer-events: none;
+}
+
+.item-card--locked .item-card__name {
+  color: #888;
+}
+
+.item-card--locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Empty/locked slot */
 .item-card--empty {
   border-color: rgba(255, 255, 255, 0.06);

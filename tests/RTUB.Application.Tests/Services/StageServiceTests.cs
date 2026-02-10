@@ -435,7 +435,7 @@ public class StageServiceTests : IDisposable
         _userManagerMock.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
 
         // Act - now apply deferred rewards (restore HP to pre-run value of 3000)
-        await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0, restoreHp: 3000);
+        await _stageService.ApplyRunRewardsAsync(character.Id, battle.XPReward, battle.FidelisReward, 0, 0, 0, 0, 0, restoreHp: 3000);
 
         // Assert - rewards are now applied and HP is restored to pre-run value
         var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
@@ -528,7 +528,7 @@ public class StageServiceTests : IDisposable
         // Stage mode gives no rewards on defeat
         battle.XPReward.Should().Be(0);
         battle.FidelisReward.Should().Be(0m);
-        battle.BeersDropped.Should().Be(0);
+        battle.FinosDropped.Should().Be(0);
         battle.ShotsDropped.Should().Be(0);
 
         // Verify character XP was NOT updated (no consolation rewards)

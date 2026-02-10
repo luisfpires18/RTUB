@@ -43,7 +43,7 @@ public class StageEnemyConfiguration : IEntityTypeConfiguration<StageEnemy>
             .HasPrecision(18, 2)
             .IsRequired();
 
-        builder.Property(se => se.BeerDropChance)
+        builder.Property(se => se.FinoDropChance)
             .IsRequired();
 
         builder.Property(se => se.ShotDropChance)

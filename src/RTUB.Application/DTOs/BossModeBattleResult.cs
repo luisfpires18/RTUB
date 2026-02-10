@@ -16,8 +16,12 @@ public class BossModeBattleResult
     public BattleOutcome Outcome { get; set; }
     public int XPReward { get; set; }
     public decimal FidelisReward { get; set; }
-    public int BeersDropped { get; set; }
+    public int FinosDropped { get; set; }
+    public int CanecasDropped { get; set; }
+    public int CigarrosDropped { get; set; }
+    public int CanhaosDropped { get; set; }
     public int ShotsDropped { get; set; }
+    public int PenaltiesDropped { get; set; }
     public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
     public List<InventoryItemType> EquipmentDropped { get; set; } = new();
     public string ReplayJson { get; set; } = string.Empty;

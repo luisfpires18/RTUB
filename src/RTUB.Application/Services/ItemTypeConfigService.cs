@@ -48,6 +48,12 @@ public class ItemTypeConfigService : IItemTypeConfigService
         return configs.Select(MapToDto).ToList();
     }
 
+    public async Task<List<ItemTypeConfigDto>> GetConsumableTypeConfigsAsync()
+    {
+        var configs = await _configRepository.GetByCategoryOrderedAsync("Consumable");
+        return configs.Select(MapToDto).ToList();
+    }
+
     public async Task<List<ItemTypeConfigDto>> GetAllConfigsAsync()
     {
         var configs = await _configRepository.GetAllOrderedAsync();

@@ -10,20 +10,54 @@ namespace RTUB.Application.Interfaces;
 public interface IInventoryService
 {
     /// <summary>
-    /// Uses a beer to heal the user's character
+    /// Uses a Fino to heal the user's character (25% HP)
     /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Tuple containing success status, healed amount, and message</returns>
-    Task<(bool Success, int HealedAmount, string Message)> UseBeerAsync(string userId, CancellationToken cancellationToken = default);
+    Task<(bool Success, int HealedAmount, string Message)> UseFinoAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the quantity of beer in the user's inventory
+    /// Uses a Caneca to heal the user's character (50% HP)
     /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The quantity of beer, or 0 if none</returns>
-    Task<int> GetBeerQuantityAsync(string userId, CancellationToken cancellationToken = default);
+    Task<(bool Success, int HealedAmount, string Message)> UseCanecaAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uses a Cigarro — shields the next 3 incoming hits (no damage taken)
+    /// </summary>
+    Task<(bool Success, string Message)> UseCigarroAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uses a Canhão — next 3 outgoing hits deal 30% more damage
+    /// </summary>
+    Task<(bool Success, string Message)> UseCanhaoAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uses a Penalty — 0.5s attack speed + 100% crit for 1 run/battle
+    /// </summary>
+    Task<(bool Success, string Message)> UsePenaltyAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of Fino in the user's inventory
+    /// </summary>
+    Task<int> GetFinoQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of Caneca in the user's inventory
+    /// </summary>
+    Task<int> GetCanecaQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of Cigarro in the user's inventory
+    /// </summary>
+    Task<int> GetCigarroQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of Canhão in the user's inventory
+    /// </summary>
+    Task<int> GetCanhaoQuantityAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the quantity of Penalty in the user's inventory
+    /// </summary>
+    Task<int> GetPenaltyQuantityAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the quantity of shots in the user's inventory

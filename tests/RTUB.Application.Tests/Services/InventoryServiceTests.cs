@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +16,7 @@ namespace RTUB.Application.Tests.Services;
 
 /// <summary>
 /// Unit tests for InventoryService
-/// Tests beer inventory management and healing functionality
+/// Tests fino inventory management and healing functionality
 /// </summary>
 public class InventoryServiceTests : IDisposable
 {
@@ -60,7 +60,7 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithValidInput_ShouldRestoreHP()
+    public async Task UseFinoAsync_WithValidInput_ShouldRestoreHP()
     {
         // Arrange
         var userId = "user1";
@@ -70,11 +70,11 @@ public class InventoryServiceTests : IDisposable
         // Default base HP is 100, so TotalHP should be 100 at level 1
         character.TakeDamage(40); // CurrentHP = 60
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
@@ -85,7 +85,7 @@ public class InventoryServiceTests : IDisposable
             .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Expected heal amount: 25% of TotalHP (100) = 25 HP
@@ -93,7 +93,7 @@ public class InventoryServiceTests : IDisposable
         var expectedNewHP = 85; // 60 + 25 = 85
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeTrue();
@@ -105,7 +105,7 @@ public class InventoryServiceTests : IDisposable
 
         // Verify repository methods were called correctly
         _inventoryRepositoryMock.Verify(
-            r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
+            r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()),
             Times.Once);
 
         _characterRepositoryMock.Verify(
@@ -117,33 +117,33 @@ public class InventoryServiceTests : IDisposable
             Times.Once);
 
         _inventoryRepositoryMock.Verify(
-            r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()),
+            r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithNoBeer_ShouldReturnFailure()
+    public async Task UseFinoAsync_WithNoFino_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 0);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 0);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         var initialHP = character.CurrentHP;
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Não tens cervejas no inventário");
+        result.Message.Should().Be("NÃ£o tens cervejas no inventÃ¡rio");
 
         character.CurrentHP.Should().Be(initialHP); // HP should not change
 
@@ -162,22 +162,22 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithNullBeerItem_ShouldReturnFailure()
+    public async Task UseFinoAsync_WithNullfinoItem_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((InventoryItem?)null); // No beer item exists
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InventoryItem?)null); // No fino item exists
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Não tens cervejas no inventário");
+        result.Message.Should().Be("NÃ£o tens cervejas no inventÃ¡rio");
 
         // Verify character repository was never called
         _characterRepositoryMock.Verify(
@@ -194,36 +194,36 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithFullHP_ShouldReturnFailure()
+    public async Task UseFinoAsync_WithFullHP_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
         // Character at full HP (CurrentHP is null, meaning full HP)
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(character);
 
-        var initialQuantity = beerItem.Quantity;
+        var initialQuantity = finoItem.Quantity;
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("O personagem já está com HP máximo");
+        result.Message.Should().Be("O personagem jÃ¡ estÃ¡ com HP mÃ¡ximo");
 
-        beerItem.Quantity.Should().Be(initialQuantity); // Beer should not be consumed
+        finoItem.Quantity.Should().Be(initialQuantity); // Fino should not be consumed
 
-        // Verify character was not updated and beer was not consumed
+        // Verify character was not updated and fino was not consumed
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
@@ -234,32 +234,32 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithCurrentHPEqualsToTotalHP_ShouldReturnFailure()
+    public async Task UseFinoAsync_WithCurrentHPEqualsToTotalHP_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
         character.RestoreHP(); // Explicitly set CurrentHP to TotalHP
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(character);
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("O personagem já está com HP máximo");
+        result.Message.Should().Be("O personagem jÃ¡ estÃ¡ com HP mÃ¡ximo");
 
-        // Verify character was not updated and beer was not consumed
+        // Verify character was not updated and fino was not consumed
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
@@ -270,30 +270,30 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithNoCharacter_ShouldReturnFailure()
+    public async Task UseFinoAsync_WithNoCharacter_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync((Character?)null); // No character exists
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Personagem não encontrado");
+        result.Message.Should().Be("Personagem nÃ£o encontrado");
 
-        // Verify character was not updated and beer was not consumed
+        // Verify character was not updated and fino was not consumed
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
@@ -304,18 +304,18 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WhenConsumeItemFails_ShouldReturnFailure()
+    public async Task UseFinoAsync_WhenConsumeItemFails_ShouldReturnFailure()
     {
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
@@ -326,16 +326,16 @@ public class InventoryServiceTests : IDisposable
             .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false); // Consume operation fails
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Erro ao consumir cerveja");
+        result.Message.Should().Be("Erro ao consumir Fino");
 
         // Verify character was updated (healing happened before consume check)
         _characterRepositoryMock.Verify(
@@ -344,7 +344,7 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithHealingOverflowToMax_ShouldCapAtMaxHP()
+    public async Task UseFinoAsync_WithHealingOverflowToMax_ShouldCapAtMaxHP()
     {
         // Arrange
         var userId = "user1";
@@ -354,11 +354,11 @@ public class InventoryServiceTests : IDisposable
         // When healed by 25 HP, should cap at 100 (not 120)
         character.TakeDamage(5); // CurrentHP = 95
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 1);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 1);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
@@ -369,14 +369,14 @@ public class InventoryServiceTests : IDisposable
             .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var expectedHealAmount = 25;
         var expectedNewHP = character.TotalHP; // Should cap at max HP (100)
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeTrue();
@@ -386,7 +386,7 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseBeerAsync_WithLeveledCharacter_ShouldHealBasedOnScaledHP()
+    public async Task UseFinoAsync_WithLeveledCharacter_ShouldHealBasedOnScaledHP()
     {
         // Arrange
         var userId = "user1";
@@ -399,11 +399,11 @@ public class InventoryServiceTests : IDisposable
         var damageAmount = totalHP / 2; // Half HP
         character.TakeDamage(damageAmount);
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 1);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 1);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
@@ -414,14 +414,14 @@ public class InventoryServiceTests : IDisposable
             .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Expected heal amount: 25% of TotalHP (scaled with level)
         var expectedHealAmount = (int)Math.Round(totalHP * 0.25);
 
         // Act
-        var result = await _inventoryService.UseBeerAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         result.Success.Should().BeTrue();
@@ -430,116 +430,116 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetBeerQuantityAsync_WithBeer_ShouldReturnQuantity()
+    public async Task GetFinoQuantityAsync_WithBeer_ShouldReturnQuantity()
     {
         // Arrange
         var userId = "user1";
         var expectedQuantity = 7;
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, expectedQuantity);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, expectedQuantity);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         // Act
-        var quantity = await _inventoryService.GetBeerQuantityAsync(userId);
+        var quantity = await _inventoryService.GetFinoQuantityAsync(userId);
 
         // Assert
         quantity.Should().Be(expectedQuantity);
 
         _inventoryRepositoryMock.Verify(
-            r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
+            r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task GetBeerQuantityAsync_WithNoBeer_ShouldReturnZero()
+    public async Task GetFinoQuantityAsync_WithNoFino_ShouldReturnZero()
     {
         // Arrange
         var userId = "user1";
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((InventoryItem?)null); // No beer item exists
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InventoryItem?)null); // No fino item exists
 
         // Act
-        var quantity = await _inventoryService.GetBeerQuantityAsync(userId);
+        var quantity = await _inventoryService.GetFinoQuantityAsync(userId);
 
         // Assert
         quantity.Should().Be(0);
 
         _inventoryRepositoryMock.Verify(
-            r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
+            r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task GetBeerQuantityAsync_WithZeroQuantityBeer_ShouldReturnZero()
+    public async Task GetFinoQuantityAsync_WithZeroQuantityFino_ShouldReturnZero()
     {
         // Arrange
         var userId = "user1";
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 0);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 0);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         // Act
-        var quantity = await _inventoryService.GetBeerQuantityAsync(userId);
+        var quantity = await _inventoryService.GetFinoQuantityAsync(userId);
 
         // Assert
         quantity.Should().Be(0);
 
         _inventoryRepositoryMock.Verify(
-            r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()),
+            r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task UseBeerAsync_ShouldLogWarning_WhenNoCharacter()
+    public async Task UseFinoAsync_ShouldLogWarning_WhenNoCharacter()
     {
         // Arrange
         var userId = "user1";
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync((Character?)null);
 
         // Act
-        await _inventoryService.UseBeerAsync(userId);
+        await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"User {userId} attempted to use beer but has no character")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"User {userId} attempted to use Fino but has no character")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task UseBeerAsync_ShouldLogError_WhenConsumeItemFails()
+    public async Task UseFinoAsync_ShouldLogError_WhenConsumeItemFails()
     {
         // Arrange
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40);
 
-        var beerItem = InventoryItem.Create(userId, InventoryItemType.Beer, 5);
+        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Beer, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(beerItem);
+            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(finoItem);
 
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
@@ -550,18 +550,18 @@ public class InventoryServiceTests : IDisposable
             .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
-            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         // Act
-        await _inventoryService.UseBeerAsync(userId);
+        await _inventoryService.UseFinoAsync(userId);
 
         // Assert
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume beer for user {userId} even though quantity was checked")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume Fino for user {userId} even though quantity was checked")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

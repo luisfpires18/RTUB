@@ -19,6 +19,7 @@ public class DeterministicCombatEngine : ICombatEngine
     private const double DamageVarianceMin = 0.8;
     private const double DamageVarianceMax = 1.2;
     private const double TimeStepMs = 10; // Simulation time step in milliseconds
+    private const double CanhaoDamageMultiplier = 1.30; // +30% damage
 
     /// <summary>
     /// Simulates a battle between two characters using time-based combat
@@ -37,6 +38,10 @@ public class DeterministicCombatEngine : ICombatEngine
         // Initialize HP - use CurrentHP if available (persistent HP system), otherwise use TotalHP
         var attackerHP = attacker.CurrentHP ?? attacker.TotalHP;
         var defenderHP = defender.CurrentHP ?? defender.TotalHP;
+
+        // Initialize consumable buff counters for attacker
+        var attackerShieldHits = attacker.CigarroShieldHitsRemaining;
+        var attackerDamageBoostHits = attacker.CanhaoDamageBoostHitsRemaining;
 
         // Get action times (in seconds, convert to ms)
         var attackerActionTimeMs = attacker.ActionTime * 1000;
@@ -95,7 +100,17 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process attacker action if timer reached 0
             if (attackerTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
+                var isBoosted = false;
                 var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, defender.TotalDefense, rng);
+
+                // Apply Canhão damage boost (+30%) if active
+                if (attackerDamageBoostHits > 0)
+                {
+                    damage = (int)Math.Round(damage * CanhaoDamageMultiplier);
+                    attackerDamageBoostHits--;
+                    isBoosted = true;
+                }
+
                 defenderHP = Math.Max(0, defenderHP - damage);
 
                 events.Add(new CombatEvent
@@ -105,6 +120,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Defender",
                     Damage = damage,
                     IsCritical = isCritical,
+                    IsBoosted = isBoosted ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
@@ -145,7 +161,17 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process defender action if timer reached 0
             if (defenderTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
+                var isBlocked = false;
                 var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
+
+                // Apply Cigarro shield — absorb hit if active
+                if (attackerShieldHits > 0)
+                {
+                    damage = 0;
+                    attackerShieldHits--;
+                    isBlocked = true;
+                }
+
                 attackerHP = Math.Max(0, attackerHP - damage);
 
                 events.Add(new CombatEvent
@@ -155,6 +181,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Attacker",
                     Damage = damage,
                     IsCritical = isCritical,
+                    IsBlocked = isBlocked ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
@@ -235,7 +262,9 @@ public class DeterministicCombatEngine : ICombatEngine
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = attackerHP,
-            DefenderFinalHP = defenderHP
+            DefenderFinalHP = defenderHP,
+            AttackerCigarroShieldRemaining = attackerShieldHits,
+            AttackerCanhaoBoostRemaining = attackerDamageBoostHits
         };
     }
 
@@ -260,6 +289,10 @@ public class DeterministicCombatEngine : ICombatEngine
         var playerMaxHP = player.TotalHP;
         var playerActionTimeMs = player.ActionTime * 1000;
         var playerTimer = playerActionTimeMs;
+
+        // Initialize consumable buff counters for player
+        var playerShieldHits = player.CigarroShieldHitsRemaining;
+        var playerDamageBoostHits = player.CanhaoDamageBoostHitsRemaining;
 
         // Initialize all enemy states with HP and action timers
         var enemyStates = enemies.Select((enemy, index) => new EnemyState
@@ -367,7 +400,17 @@ public class DeterministicCombatEngine : ICombatEngine
                 var target = enemyStates[currentTargetIndex];
                 if (target.HP > 0)
                 {
+                    var isBoosted = false;
                     var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
+
+                    // Apply Canhão damage boost (+30%) if active
+                    if (playerDamageBoostHits > 0)
+                    {
+                        damage = (int)Math.Round(damage * CanhaoDamageMultiplier);
+                        playerDamageBoostHits--;
+                        isBoosted = true;
+                    }
+
                     target.HP = Math.Max(0, target.HP - damage);
 
                     events.Add(new CombatEvent
@@ -377,6 +420,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Defender = $"Enemy{target.Index}",
                         Damage = damage,
                         IsCritical = isCritical,
+                        IsBoosted = isBoosted ? true : null,
                         SimTime = currentTime,
                         Timestamp = eventIndex++
                     });
@@ -411,7 +455,17 @@ public class DeterministicCombatEngine : ICombatEngine
             {
                 if (playerHP <= 0) break;
 
+                var isBlocked = false;
                 var (damage, isCritical) = CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
+
+                // Apply Cigarro shield — absorb hit if active
+                if (playerShieldHits > 0)
+                {
+                    damage = 0;
+                    playerShieldHits--;
+                    isBlocked = true;
+                }
+
                 playerHP = Math.Max(0, playerHP - damage);
 
                 events.Add(new CombatEvent
@@ -421,6 +475,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Player",
                     Damage = damage,
                     IsCritical = isCritical,
+                    IsBlocked = isBlocked ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
@@ -494,7 +549,9 @@ public class DeterministicCombatEngine : ICombatEngine
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = playerHP,
-            DefenderFinalHP = enemyStates.Sum(e => e.HP)
+            DefenderFinalHP = enemyStates.Sum(e => e.HP),
+            AttackerCigarroShieldRemaining = playerShieldHits,
+            AttackerCanhaoBoostRemaining = playerDamageBoostHits
         };
     }
 

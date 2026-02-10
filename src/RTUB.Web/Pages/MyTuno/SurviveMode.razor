@@ -85,6 +85,31 @@
                 </div>
             </div>
 
+            @* ─── Active Buff Indicators ─── *@
+            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+            {
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    @if (character.CigarroShieldHitsRemaining > 0)
+                    {
+                        <span class="badge bg-info fs-6">
+                            <i class="bi bi-shield-fill me-1"></i>@character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                        </span>
+                    }
+                    @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                    {
+                        <span class="badge bg-info fs-6">
+                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                        </span>
+                    }
+                    @if (character.PenaltyBuffActive > 0)
+                    {
+                        <span class="badge bg-warning text-dark fs-6">
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty (0.5s + 100% Crit)
+                        </span>
+                    }
+                </div>
+            }
+
             @* ─── Run Rewards Accumulator ─── *@
             @if (levelsCompleted > 0)
             {
@@ -96,13 +121,29 @@
                         <div class="d-flex gap-3 flex-wrap">
                             <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i>@Fmt(totalXPEarned) XP</span>
                             <span class="badge bg-warning text-dark"><i class="bi bi-coin me-1"></i>@Fmt(totalFidelisEarned) Fidelis</span>
-                            @if (totalBeersDropped > 0)
+                            @if (totalFinosDropped > 0)
                             {
-                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalBeersDropped Cervejas</span>
+                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalFinosDropped Fino</span>
+                            }
+                            @if (totalCanecasDropped > 0)
+                            {
+                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalCanecasDropped Caneca</span>
+                            }
+                            @if (totalCigarrosDropped > 0)
+                            {
+                                <span class="badge bg-secondary"><i class="bi bi-cloud me-1"></i>@totalCigarrosDropped Cigarro</span>
+                            }
+                            @if (totalCanhaosDropped > 0)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-bullseye me-1"></i>@totalCanhaosDropped Canhão</span>
                             }
                             @if (totalShotsDropped > 0)
                             {
                                 <span class="badge bg-danger"><i class="bi bi-lightning me-1"></i>@totalShotsDropped Shots</span>
+                            }
+                            @if (totalPenaltiesDropped > 0)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-lightning-charge-fill me-1"></i>@totalPenaltiesDropped Penalty</span>
                             }
                             @if (totalEnemiesKilled > 0)
                             {
@@ -156,11 +197,32 @@
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
-                            @if (totalBeersDropped > 0)
+                            @if (totalFinosDropped > 0)
                             {
                                 <div class="defeat-reward-row">
                                     <i class="bi bi-cup-straw text-warning"></i>
-                                    <span>+@Fmt(totalBeersDropped) Cerveja</span>
+                                    <span>+@Fmt(totalFinosDropped) Fino</span>
+                                </div>
+                            }
+                            @if (totalCanecasDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@Fmt(totalCanecasDropped) Caneca</span>
+                                </div>
+                            }
+                            @if (totalCigarrosDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cloud text-secondary"></i>
+                                    <span>+@Fmt(totalCigarrosDropped) Cigarro</span>
+                                </div>
+                            }
+                            @if (totalCanhaosDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-bullseye text-danger"></i>
+                                    <span>+@Fmt(totalCanhaosDropped) Canhão</span>
                                 </div>
                             }
                             @if (totalShotsDropped > 0)
@@ -168,6 +230,13 @@
                                 <div class="defeat-reward-row">
                                     <i class="bi bi-cup text-danger"></i>
                                     <span>+@totalShotsDropped Shot</span>
+                                </div>
+                            }
+                            @if (totalPenaltiesDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
+                                    <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
                             @foreach (var (partType, qty) in totalInstrumentPartsDropped)
@@ -228,8 +297,12 @@
     private int levelsCompleted = 0;
     private int totalXPEarned = 0;
     private decimal totalFidelisEarned = 0;
-    private int totalBeersDropped = 0;
+    private int totalFinosDropped = 0;
+    private int totalCanecasDropped = 0;
+    private int totalCigarrosDropped = 0;
+    private int totalCanhaosDropped = 0;
     private int totalShotsDropped = 0;
+    private int totalPenaltiesDropped = 0;
     private int totalEnemiesKilled = 0;
     private int totalCoinsCollected = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
@@ -473,7 +546,7 @@
             if (totalXPEarned > 0 || totalFidelisEarned > 0)
             {
                 await SurviveModeService.ApplyRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
             }
@@ -523,7 +596,7 @@
                 try
                 {
                     await SurviveModeService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
                 }
@@ -584,8 +657,12 @@
     {
         totalXPEarned += result.XPReward;
         totalFidelisEarned += result.FidelisReward;
-        totalBeersDropped += result.BeersDropped;
+        totalFinosDropped += result.FinosDropped;
+        totalCanecasDropped += result.CanecasDropped;
+        totalCigarrosDropped += result.CigarrosDropped;
+        totalCanhaosDropped += result.CanhaosDropped;
         totalShotsDropped += result.ShotsDropped;
+        totalPenaltiesDropped += result.PenaltiesDropped;
 
         foreach (var part in result.InstrumentPartsDropped)
         {
@@ -609,8 +686,12 @@
         levelsCompleted = 0;
         totalXPEarned = 0;
         totalFidelisEarned = 0;
-        totalBeersDropped = 0;
+        totalFinosDropped = 0;
+        totalCanecasDropped = 0;
+        totalCigarrosDropped = 0;
+        totalCanhaosDropped = 0;
         totalShotsDropped = 0;
+        totalPenaltiesDropped = 0;
         totalEnemiesKilled = 0;
         totalCoinsCollected = 0;
         totalInstrumentPartsDropped.Clear();
@@ -634,7 +715,7 @@
                 if (totalXPEarned > 0 || totalFidelisEarned > 0)
                 {
                     await SurviveModeService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalBeersDropped, totalShotsDropped,
+                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
                 }

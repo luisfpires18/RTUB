@@ -25,8 +25,14 @@ public class InventoryService : IInventoryService
     private readonly MyTunoScalingConfiguration _scalingConfig;
     private readonly ApplicationDbContext _dbContext;
 
-    // Beer heals 25% of total HP
-    private const double BeerHealPercentage = 0.25;
+    // Fino heals 25% of total HP
+    private const double FinoHealPercentage = 0.25;
+    // Caneca heals 50% of total HP
+    private const double CanecaHealPercentage = 0.50;
+    // Cigarro shields next 3 incoming hits
+    private const int CigarroShieldHits = 3;
+    // Canhão boosts next 3 outgoing hits by 30%
+    private const int CanhaoDamageBoostHits = 3;
 
     public InventoryService(
         IInventoryRepository inventoryRepository,
@@ -46,63 +52,236 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
-    /// Uses a beer to heal the user's character
+    /// Uses a Fino to heal the user's character (25% HP)
     /// </summary>
-    public async Task<(bool Success, int HealedAmount, string Message)> UseBeerAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, int HealedAmount, string Message)> UseFinoAsync(string userId, CancellationToken cancellationToken = default)
     {
-        // Check if user has beer
-        var beerItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Beer, cancellationToken);
-        if (beerItem == null || beerItem.Quantity <= 0)
+        return await UseHealingItemAsync(userId, InventoryItemType.Fino, FinoHealPercentage, "Fino", cancellationToken);
+    }
+
+    /// <summary>
+    /// Uses a Caneca to heal the user's character (50% HP)
+    /// </summary>
+    public async Task<(bool Success, int HealedAmount, string Message)> UseCanecaAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        return await UseHealingItemAsync(userId, InventoryItemType.Caneca, CanecaHealPercentage, "Caneca", cancellationToken);
+    }
+
+    /// <summary>
+    /// Shared healing logic for Fino/Caneca
+    /// </summary>
+    private async Task<(bool Success, int HealedAmount, string Message)> UseHealingItemAsync(
+        string userId, InventoryItemType itemType, double healPercentage, string itemName,
+        CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, itemType, cancellationToken);
+        if (item == null || item.Quantity <= 0)
         {
-            return (false, 0, "Não tens cervejas no inventário");
+            return (false, 0, $"Não tens {itemName} no inventário");
         }
 
-        // Get user's character
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
-            _logger.LogWarning("User {UserId} attempted to use beer but has no character", userId);
+            _logger.LogWarning("User {UserId} attempted to use {Item} but has no character", userId, itemName);
             return (false, 0, "Personagem não encontrado");
         }
 
-        // Calculate max HP (accounting for shot buff if active)
         var maxHp = character.ShotBuffBattlesRemaining > 0
             ? Character.CreateShotBuffedCopy(character).TotalHP
             : character.TotalHP;
 
         var currentHp = character.CurrentHP ?? maxHp;
 
-        // Check if character needs healing
         if (currentHp >= maxHp)
         {
             return (false, 0, "O personagem já está com HP máximo");
         }
 
-        // Calculate heal amount (25% of maxHP, rounded)
-        var healAmount = (int)Math.Round(maxHp * BeerHealPercentage);
+        var healAmount = (int)Math.Round(maxHp * healPercentage);
 
-        // Heal the character
         character.Heal(healAmount);
         await _characterRepository.UpdateAsync(character);
 
-        // Consume 1 beer
-        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Beer, 1, cancellationToken);
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
         if (!consumed)
         {
-            _logger.LogError("Failed to consume beer for user {UserId} even though quantity was checked", userId);
-            return (false, 0, "Erro ao consumir cerveja");
+            _logger.LogError("Failed to consume {Item} for user {UserId}", itemName, userId);
+            return (false, 0, $"Erro ao consumir {itemName}");
         }
 
         return (true, healAmount, $"Personagem curado! +{healAmount} HP");
     }
 
     /// <summary>
-    /// Gets the quantity of beer in the user's inventory
+    /// Uses a Cigarro — shields the next 3 incoming hits (no damage taken)
     /// </summary>
-    public async Task<int> GetBeerQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string Message)> UseCigarroAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var beerItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Beer, cancellationToken);
-        return beerItem?.Quantity ?? 0;
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Cigarro, cancellationToken);
+        if (item == null || item.Quantity <= 0)
+        {
+            return (false, "Não tens cigarros no inventário");
+        }
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+        {
+            _logger.LogWarning("User {UserId} attempted to use cigarro but has no character", userId);
+            return (false, "Personagem não encontrado");
+        }
+
+        var currentHp = character.CurrentHP ?? character.TotalHP;
+        if (currentHp <= 0)
+        {
+            return (false, "Não podes usar cigarro num personagem morto");
+        }
+
+        if (character.CigarroShieldHitsRemaining > 0)
+        {
+            return (false, "Já tens um escudo de cigarro ativo");
+        }
+
+        character.CigarroShieldHitsRemaining = CigarroShieldHits;
+        await _characterRepository.UpdateAsync(character);
+
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Cigarro, 1, cancellationToken);
+        if (!consumed)
+        {
+            _logger.LogError("Failed to consume cigarro for user {UserId}", userId);
+            return (false, "Erro ao consumir cigarro");
+        }
+
+        return (true, $"Cigarro ativado! Próximos {CigarroShieldHits} hits não causam dano");
+    }
+
+    /// <summary>
+    /// Uses a Canhão — next 3 outgoing hits deal 30% more damage
+    /// </summary>
+    public async Task<(bool Success, string Message)> UseCanhaoAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Canhao, cancellationToken);
+        if (item == null || item.Quantity <= 0)
+        {
+            return (false, "Não tens canhões no inventário");
+        }
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+        {
+            _logger.LogWarning("User {UserId} attempted to use canhão but has no character", userId);
+            return (false, "Personagem não encontrado");
+        }
+
+        var currentHp = character.CurrentHP ?? character.TotalHP;
+        if (currentHp <= 0)
+        {
+            return (false, "Não podes usar canhão num personagem morto");
+        }
+
+        if (character.CanhaoDamageBoostHitsRemaining > 0)
+        {
+            return (false, "Já tens um boost de canhão ativo");
+        }
+
+        character.CanhaoDamageBoostHitsRemaining = CanhaoDamageBoostHits;
+        await _characterRepository.UpdateAsync(character);
+
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Canhao, 1, cancellationToken);
+        if (!consumed)
+        {
+            _logger.LogError("Failed to consume canhão for user {UserId}", userId);
+            return (false, "Erro ao consumir canhão");
+        }
+
+        return (true, $"Canhão ativado! Próximos {CanhaoDamageBoostHits} ataques causam +30% dano");
+    }
+
+    /// <summary>
+    /// Uses a Penalty — 0.5s attack speed + 100% crit for 1 run/battle
+    /// </summary>
+    public async Task<(bool Success, string Message)> UsePenaltyAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Penalty, cancellationToken);
+        if (item == null || item.Quantity <= 0)
+        {
+            return (false, "Não tens penalties no inventário");
+        }
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null)
+        {
+            _logger.LogWarning("User {UserId} attempted to use penalty but has no character", userId);
+            return (false, "Personagem não encontrado");
+        }
+
+        var currentHp = character.CurrentHP ?? character.TotalHP;
+        if (currentHp <= 0)
+        {
+            return (false, "Não podes usar penalty num personagem morto");
+        }
+
+        if (character.PenaltyBuffActive > 0)
+        {
+            return (false, "Já tens um penalty ativo");
+        }
+
+        character.PenaltyBuffActive = 1;
+        await _characterRepository.UpdateAsync(character);
+
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Penalty, 1, cancellationToken);
+        if (!consumed)
+        {
+            _logger.LogError("Failed to consume penalty for user {UserId}", userId);
+            return (false, "Erro ao consumir penalty");
+        }
+
+        return (true, "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha");
+    }
+
+    /// <summary>
+    /// Gets the quantity of Fino in the user's inventory
+    /// </summary>
+    public async Task<int> GetFinoQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Fino, cancellationToken);
+        return item?.Quantity ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the quantity of Caneca in the user's inventory
+    /// </summary>
+    public async Task<int> GetCanecaQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Caneca, cancellationToken);
+        return item?.Quantity ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the quantity of Cigarro in the user's inventory
+    /// </summary>
+    public async Task<int> GetCigarroQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Cigarro, cancellationToken);
+        return item?.Quantity ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the quantity of Canhão in the user's inventory
+    /// </summary>
+    public async Task<int> GetCanhaoQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Canhao, cancellationToken);
+        return item?.Quantity ?? 0;
+    }
+
+    /// <summary>
+    /// Gets the quantity of Penalty in the user's inventory
+    /// </summary>
+    public async Task<int> GetPenaltyQuantityAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Penalty, cancellationToken);
+        return item?.Quantity ?? 0;
     }
 
     /// <summary>

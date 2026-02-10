@@ -26,6 +26,7 @@ public class SurviveModeService : ISurviveModeService
     private readonly ILogger<SurviveModeService> _logger;
     private readonly MyTunoScalingConfiguration _config;
     private readonly IStageBiomeService _biomeService;
+    private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
     private readonly ApplicationDbContext _context;
     private readonly Random _random = new();
@@ -84,6 +85,7 @@ public class SurviveModeService : ISurviveModeService
         ILogger<SurviveModeService> logger,
         IOptions<MyTunoScalingConfiguration> config,
         IStageBiomeService biomeService,
+        IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
         ApplicationDbContext context)
     {
@@ -94,6 +96,7 @@ public class SurviveModeService : ISurviveModeService
         _logger = logger;
         _config = config.Value;
         _biomeService = biomeService;
+        _stageProgressRepository = stageProgressRepository;
         _environment = environment;
         _context = context;
     }
@@ -258,8 +261,10 @@ public class SurviveModeService : ISurviveModeService
             }
         }
 
-        // Calculate rewards
-        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, true);
+        // Calculate rewards (gate consumable drops behind biome progression)
+        var stageProgressForDrops = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+        var highestStageForDrops = stageProgressForDrops?.HighestStage ?? 1;
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, true, highestStageForDrops);
         result.CharacterId = characterId;
 
         // Update progress
@@ -290,8 +295,10 @@ public class SurviveModeService : ISurviveModeService
         var config = GetLevelConfig(level, character.Level);
 
         // Calculate partial rewards (didn't survive full timer)
+        var stageProgressForDrops = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
+        var highestStageForDrops = stageProgressForDrops?.HighestStage ?? 1;
         var survivalRatio = Math.Min(survivalTimeSeconds / config.TimerDurationSeconds, 1.0);
-        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, false);
+        var result = CalculateRewards(level, config, character.Level, enemiesKilled, survivalTimeSeconds, false, highestStageForDrops);
         result.CharacterId = characterId;
 
         // Scale rewards by survival ratio (died early = less rewards)
@@ -311,7 +318,7 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int beers, int shots,
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         Dictionary<InventoryItemType, int>? equipment = null)
     {
@@ -334,14 +341,34 @@ public class SurviveModeService : ISurviveModeService
         }
 
         // Apply drops
-        if (beers > 0)
+        if (finos > 0)
         {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Beer, beers);
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fino, finos);
+        }
+
+        if (canecas > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Caneca, canecas);
+        }
+
+        if (cigarros > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Cigarro, cigarros);
+        }
+
+        if (canhaos > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Canhao, canhaos);
         }
 
         if (shots > 0)
         {
             await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
+        }
+
+        if (penalties > 0)
+        {
+            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Penalty, penalties);
         }
 
         // Apply instrument parts
@@ -478,7 +505,7 @@ public class SurviveModeService : ISurviveModeService
     /// Calculates rewards for a survive level attempt.
     /// </summary>
     private SurviveModeLevelResult CalculateRewards(int level, SurviveModeLevelConfig config,
-        int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived)
+        int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived, int highestStage = 1)
     {
         var diffMult = config.DifficultyMultiplier;
         var rewardMult = config.RewardMultiplier;
@@ -500,15 +527,25 @@ public class SurviveModeService : ISurviveModeService
 
         // Drop calculations
         var dropRates = _config.StageMode?.DropRates;
-        var beerChance = dropRates?.BeerDropChance ?? 0.1;
-        var shotChance = dropRates?.ShotDropChance ?? 0.01;
+        // Gate consumable drops behind biome progression
+        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        var finoChance = highestStage >= 1 ? (dropRates?.FinoDropChance ?? 0.1) : 0;
+        var canecaChance = highestStage >= 501 ? (dropRates?.CanecaDropChance ?? 0.04) : 0;
+        var cigarroChance = highestStage >= 301 ? (dropRates?.CigarroDropChance ?? 0.05) : 0;
+        var canhaoChance = highestStage >= 701 ? (dropRates?.CanhaoDropChance ?? 0.05) : 0;
+        var shotChance = highestStage >= 101 ? (dropRates?.ShotDropChance ?? 0.01) : 0;
+        var penaltyChance = highestStage >= 901 ? (dropRates?.PenaltyDropChance ?? 0.003) : 0;
         var instrChance = dropRates?.InstrumentPartDropChance ?? 0.005;
         var equipChance = dropRates?.EquipmentDropChance ?? 0.008;
 
         // More kills = more drop rolls, scaled by level difficulty
         var dropRolls = enemiesKilled;
-        var beers = 0;
+        var finos = 0;
+        var canecas = 0;
+        var cigarros = 0;
+        var canhaos = 0;
         var shots = 0;
+        var penalties = 0;
         var fitab = 0;
         var instrParts = new List<InventoryItemType>();
         var equipPieces = new List<InventoryItemType>();
@@ -530,10 +567,18 @@ public class SurviveModeService : ISurviveModeService
 
         for (int i = 0; i < dropRolls; i++)
         {
-            if (_random.NextDouble() < beerChance * rewardMult)
-                beers++;
+            if (_random.NextDouble() < finoChance * rewardMult)
+                finos++;
+            if (_random.NextDouble() < canecaChance * rewardMult)
+                canecas++;
+            if (_random.NextDouble() < cigarroChance * rewardMult)
+                cigarros++;
+            if (_random.NextDouble() < canhaoChance * rewardMult)
+                canhaos++;
             if (_random.NextDouble() < shotChance * rewardMult)
                 shots++;
+            if (_random.NextDouble() < penaltyChance * rewardMult)
+                penalties++;
             if (_random.NextDouble() < instrChance * rewardMult)
                 instrParts.Add(instrPartTypes[_random.Next(instrPartTypes.Length)]);
             if (_random.NextDouble() < equipChance * rewardMult)
@@ -553,8 +598,12 @@ public class SurviveModeService : ISurviveModeService
             EnemiesKilled = enemiesKilled,
             XPReward = xpReward,
             FidelisReward = fidelisReward,
-            BeersDropped = beers,
+            FinosDropped = finos,
+            CanecasDropped = canecas,
+            CigarrosDropped = cigarros,
+            CanhaosDropped = canhaos,
             ShotsDropped = shots,
+            PenaltiesDropped = penalties,
             InstrumentPartsDropped = instrParts,
             EquipmentDropped = equipPieces,
             FitabDropped = fitab

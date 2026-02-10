@@ -27,6 +27,7 @@ public class BattleService : IBattleService
     private readonly ILogger<BattleService> _logger;
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
     private readonly IAuditLogService _auditLogService;
+    private readonly IStageProgressRepository _stageProgressRepository;
 
     public BattleService(
         ICharacterRepository characterRepository,
@@ -36,7 +37,8 @@ public class BattleService : IBattleService
         UserManager<ApplicationUser> userManager,
         ILogger<BattleService> logger,
         IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IStageProgressRepository stageProgressRepository)
     {
         _characterRepository = characterRepository;
         _matchmakingService = matchmakingService;
@@ -46,6 +48,7 @@ public class BattleService : IBattleService
         _logger = logger;
         _myTunoScalingConfig = myTunoScalingConfig.Value;
         _auditLogService = auditLogService;
+        _stageProgressRepository = stageProgressRepository;
     }
 
     /// <summary>
@@ -93,9 +96,12 @@ public class BattleService : IBattleService
 
         // Check if shot buff is active and create buffed copy for combat
         var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
+        var hasPenaltyBuff = playerCharacter.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(playerCharacter) 
             : playerCharacter;
+        if (hasPenaltyBuff)
+            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
@@ -115,6 +121,7 @@ public class BattleService : IBattleService
         // Calculate shot buff state after this battle
         var shotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1;
         var shotBuffRemaining = hasShotBuff ? playerCharacter.ShotBuffBattlesRemaining - 1 : 0;
+        var penaltyBuffExpired = hasPenaltyBuff;
 
         // Create and return battle result (not persisted)
         return new BattleResult
@@ -130,7 +137,11 @@ public class BattleService : IBattleService
             AttackerFinalHP = combatResult.AttackerFinalHP,
             ShotBuffUsed = hasShotBuff,
             ShotBuffExpired = shotBuffExpired,
-            ShotBuffBattlesRemaining = shotBuffRemaining
+            ShotBuffBattlesRemaining = shotBuffRemaining,
+            AttackerCigarroShieldRemaining = combatResult.AttackerCigarroShieldRemaining,
+            AttackerCanhaoBoostRemaining = combatResult.AttackerCanhaoBoostRemaining,
+            PenaltyBuffUsed = hasPenaltyBuff,
+            PenaltyBuffExpired = penaltyBuffExpired
         };
     }
 
@@ -191,10 +202,20 @@ public class BattleService : IBattleService
         // AttackerFinalHP is in buffed scale if buff was active; ExpireShotBuff will scale it down
         playerCharacter.CurrentHP = result.AttackerFinalHP > 0 ? result.AttackerFinalHP : 0;
 
+        // Write back consumable buff remaining counts from combat
+        playerCharacter.CigarroShieldHitsRemaining = result.AttackerCigarroShieldRemaining;
+        playerCharacter.CanhaoDamageBoostHitsRemaining = result.AttackerCanhaoBoostRemaining;
+
         // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
         if (result.ShotBuffUsed)
         {
             playerCharacter.ExpireShotBuff();
+        }
+
+        // Expire penalty buff (consumed after 1 arena battle)
+        if (result.PenaltyBuffUsed)
+        {
+            playerCharacter.ExpirePenaltyBuff();
         }
 
         // Update arena statistics
@@ -222,10 +243,10 @@ public class BattleService : IBattleService
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
-        // Roll for beer drop if player won
+        // Roll for consumable drops if player won
         if (result.Outcome == BattleOutcome.AttackerWon)
         {
-            await TryDropBeerAsync(playerCharacter.UserId);
+            await TryDropConsumablesAsync(playerCharacter.UserId);
             await TryDropFitabAsync(playerCharacter.UserId);
         }
 
@@ -292,18 +313,32 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Rolls for beer drop and adds to player's inventory if successful
+    /// Rolls for consumable drops (Fino, Caneca, Cigarro, Canhão) and adds to player's inventory if successful
     /// </summary>
-    private async Task TryDropBeerAsync(string userId)
+    private async Task TryDropConsumablesAsync(string userId)
     {
         var random = new Random();
-        var roll = random.NextDouble();
+        var rewards = _myTunoScalingConfig.BattleRewards;
 
-        if (roll < _myTunoScalingConfig.BattleRewards.BeerDropChance)
-        {
-            // Beer dropped!
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Beer, 1);
-        }
+        // Gate consumable drops behind biome progression
+        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
+        var highestStage = stageProgress?.HighestStage ?? 1;
+
+        if (highestStage >= 1 && random.NextDouble() < rewards.FinoDropChance)
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Fino, 1);
+
+        if (highestStage >= 501 && random.NextDouble() < rewards.CanecaDropChance)
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Caneca, 1);
+
+        if (highestStage >= 301 && random.NextDouble() < rewards.CigarroDropChance)
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Cigarro, 1);
+
+        if (highestStage >= 701 && random.NextDouble() < rewards.CanhaoDropChance)
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Canhao, 1);
+
+        if (highestStage >= 901 && random.NextDouble() < rewards.PenaltyDropChance)
+            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Penalty, 1);
     }
 
     /// <summary>
