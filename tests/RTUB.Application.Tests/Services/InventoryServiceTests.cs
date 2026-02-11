@@ -104,10 +104,6 @@ public class InventoryServiceTests : IDisposable
         character.CurrentHP.Should().Be(expectedNewHP);
 
         // Verify repository methods were called correctly
-        _inventoryRepositoryMock.Verify(
-            r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()),
-            Times.Once);
-
         _characterRepositoryMock.Verify(
             r => r.GetByUserIdAsync(userId),
             Times.Once);
@@ -129,11 +125,13 @@ public class InventoryServiceTests : IDisposable
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
 
-        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 0);
+        _characterRepositoryMock
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(character);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(finoItem);
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false); // No items to consume
 
         var initialHP = character.CurrentHP;
 
@@ -147,18 +145,18 @@ public class InventoryServiceTests : IDisposable
 
         character.CurrentHP.Should().Be(initialHP); // HP should not change
 
-        // Verify character repository was never called
+        // Verify character was loaded but never updated (consume failed before effects)
         _characterRepositoryMock.Verify(
-            r => r.GetByUserIdAsync(It.IsAny<string>()),
-            Times.Never);
+            r => r.GetByUserIdAsync(userId),
+            Times.Once);
 
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
 
         _inventoryRepositoryMock.Verify(
-            r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -166,10 +164,16 @@ public class InventoryServiceTests : IDisposable
     {
         // Arrange
         var userId = "user1";
+        var character = Character.Create(userId);
+        character.TakeDamage(40); // CurrentHP = 60
+
+        _characterRepositoryMock
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(character);
 
         _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((InventoryItem?)null); // No fino item exists
+            .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false); // Atomic consume returns false (no inventory row)
 
         // Act
         var result = await _inventoryService.UseFinoAsync(userId);
@@ -179,18 +183,18 @@ public class InventoryServiceTests : IDisposable
         result.HealedAmount.Should().Be(0);
         result.Message.Should().Be("Não tens Fino no inventário");
 
-        // Verify character repository was never called
+        // Verify character was loaded but never updated
         _characterRepositoryMock.Verify(
-            r => r.GetByUserIdAsync(It.IsAny<string>()),
-            Times.Never);
+            r => r.GetByUserIdAsync(userId),
+            Times.Once);
 
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
             Times.Never);
 
         _inventoryRepositoryMock.Verify(
-            r => r.ConsumeItemAsync(It.IsAny<string>(), It.IsAny<InventoryItemType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -311,23 +315,13 @@ public class InventoryServiceTests : IDisposable
         var character = Character.Create(userId);
         character.TakeDamage(40); // CurrentHP = 60
 
-        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
-
-        _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(finoItem);
-
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(character);
 
-        _characterRepositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Character>()))
-            .Returns(Task.FromResult(character));
-
         _inventoryRepositoryMock
             .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false); // Consume operation fails
+            .ReturnsAsync(false); // Atomic consume fails (race condition or no stock)
 
         // Act
         var result = await _inventoryService.UseFinoAsync(userId);
@@ -335,12 +329,12 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Erro ao consumir Fino");
+        result.Message.Should().Be("Não tens Fino no inventário");
 
-        // Verify character was updated (healing happened before consume check)
+        // Verify character was NOT updated (consume happens before effects now)
         _characterRepositoryMock.Verify(
             r => r.UpdateAsync(It.IsAny<Character>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Fact]
@@ -528,42 +522,36 @@ public class InventoryServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UseFinoAsync_ShouldLogError_WhenConsumeItemFails()
+    public async Task UseFinoAsync_WhenConsumeItemFails_ShouldNotLogError()
     {
-        // Arrange
+        // Arrange — with atomic consume, failure is a normal user-facing scenario
+        // (insufficient stock), not an unexpected error worth logging
         var userId = "user1";
         var character = Character.Create(userId);
         character.TakeDamage(40);
 
-        var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
-
-        _inventoryRepositoryMock
-            .Setup(r => r.GetItemAsync(userId, InventoryItemType.Fino, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(finoItem);
-
         _characterRepositoryMock
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(character);
-
-        _characterRepositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Character>()))
-            .Returns(Task.FromResult(character));
 
         _inventoryRepositoryMock
             .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         // Act
-        await _inventoryService.UseFinoAsync(userId);
+        var result = await _inventoryService.UseFinoAsync(userId);
 
-        // Assert
+        // Assert — no error logged, just a user-friendly failure message
+        result.Success.Should().BeFalse();
+        result.Message.Should().Be("Não tens Fino no inventário");
+
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume Fino for user {userId}")),
+                It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+            Times.Never);
     }
 }

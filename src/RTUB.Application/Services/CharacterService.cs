@@ -21,7 +21,7 @@ public class CharacterService : ICharacterService
     /// Gets or creates a character for a user
     /// Creates a new character if one doesn't exist for the user
     /// </summary>
-    public async Task<Character> GetOrCreateCharacterAsync(string userId)
+    public async Task<Character> GetOrCreateCharacterAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -43,7 +43,7 @@ public class CharacterService : ICharacterService
     /// <summary>
     /// Gets a character by user ID
     /// </summary>
-    public async Task<Character?> GetCharacterAsync(string userId)
+    public async Task<Character?> GetCharacterAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -54,7 +54,7 @@ public class CharacterService : ICharacterService
     /// <summary>
     /// Updates a character
     /// </summary>
-    public async Task UpdateCharacterAsync(Character character)
+    public async Task UpdateCharacterAsync(Character character, CancellationToken cancellationToken = default)
     {
         if (character == null)
             throw new ArgumentNullException(nameof(character));
@@ -65,7 +65,7 @@ public class CharacterService : ICharacterService
     /// <summary>
     /// Gets all characters ordered by level descending, including User data.
     /// </summary>
-    public async Task<List<Character>> GetAllCharactersOrderedByLevelAsync()
+    public async Task<List<Character>> GetAllCharactersOrderedByLevelAsync(CancellationToken cancellationToken = default)
     {
         return await _characterRepository.GetAllOrderedByLevelAsync();
     }
@@ -74,7 +74,7 @@ public class CharacterService : ICharacterService
     /// Heals all characters to full HP (sets CurrentHP to null).
     /// Owner-only operation for immediate full heal.
     /// </summary>
-    public async Task<int> HealAllCharactersAsync()
+    public async Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default)
     {
         var damagedCharacters = (await _characterRepository
             .FindAsync(c => c.CurrentHP != null))

@@ -74,12 +74,7 @@ public class InventoryService : IInventoryService
         string userId, InventoryItemType itemType, double healPercentage, string itemName,
         CancellationToken cancellationToken = default)
     {
-        var item = await _inventoryRepository.GetItemAsync(userId, itemType, cancellationToken);
-        if (item == null || item.Quantity <= 0)
-        {
-            return (false, 0, $"Não tens {itemName} no inventário");
-        }
-
+        // 1. Validate character (read-only checks)
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
@@ -98,17 +93,18 @@ public class InventoryService : IInventoryService
             return (false, 0, "O personagem já está com HP máximo");
         }
 
+        // 2. Atomically consume item (prevents TOCTOU race — single SQL with WHERE Quantity >= 1)
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
+        if (!consumed)
+        {
+            return (false, 0, $"Não tens {itemName} no inventário");
+        }
+
+        // 3. Apply heal effect (only after successful consume)
         var healAmount = (int)Math.Round(maxHp * healPercentage);
 
         character.Heal(healAmount);
         await _characterRepository.UpdateAsync(character);
-
-        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
-        if (!consumed)
-        {
-            _logger.LogError("Failed to consume {Item} for user {UserId}", itemName, userId);
-            return (false, 0, $"Erro ao consumir {itemName}");
-        }
 
         return (true, healAmount, $"Personagem curado! +{healAmount} HP");
     }
@@ -118,12 +114,7 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, string Message)> UseCigarroAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Cigarro, cancellationToken);
-        if (item == null || item.Quantity <= 0)
-        {
-            return (false, "Não tens cigarros no inventário");
-        }
-
+        // 1. Validate character (read-only checks)
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
@@ -142,15 +133,16 @@ public class InventoryService : IInventoryService
             return (false, "Já tens um escudo de cigarro ativo");
         }
 
-        character.CigarroShieldHitsRemaining = CigarroShieldHits;
-        await _characterRepository.UpdateAsync(character);
-
+        // 2. Atomically consume item (prevents TOCTOU race)
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Cigarro, 1, cancellationToken);
         if (!consumed)
         {
-            _logger.LogError("Failed to consume cigarro for user {UserId}", userId);
-            return (false, "Erro ao consumir cigarro");
+            return (false, "Não tens cigarros no inventário");
         }
+
+        // 3. Apply effect (only after successful consume)
+        character.CigarroShieldHitsRemaining = CigarroShieldHits;
+        await _characterRepository.UpdateAsync(character);
 
         return (true, $"Cigarro ativado! Próximos {CigarroShieldHits} hits não causam dano");
     }
@@ -160,12 +152,7 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, string Message)> UseCanhaoAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Canhao, cancellationToken);
-        if (item == null || item.Quantity <= 0)
-        {
-            return (false, "Não tens canhões no inventário");
-        }
-
+        // 1. Validate character (read-only checks)
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
@@ -184,15 +171,16 @@ public class InventoryService : IInventoryService
             return (false, "Já tens um boost de canhão ativo");
         }
 
-        character.CanhaoDamageBoostHitsRemaining = CanhaoDamageBoostHits;
-        await _characterRepository.UpdateAsync(character);
-
+        // 2. Atomically consume item (prevents TOCTOU race)
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Canhao, 1, cancellationToken);
         if (!consumed)
         {
-            _logger.LogError("Failed to consume canhão for user {UserId}", userId);
-            return (false, "Erro ao consumir canhão");
+            return (false, "Não tens canhões no inventário");
         }
+
+        // 3. Apply effect (only after successful consume)
+        character.CanhaoDamageBoostHitsRemaining = CanhaoDamageBoostHits;
+        await _characterRepository.UpdateAsync(character);
 
         return (true, $"Canhão ativado! Próximos {CanhaoDamageBoostHits} ataques causam +30% dano");
     }
@@ -202,12 +190,7 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, string Message)> UsePenaltyAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var item = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Penalty, cancellationToken);
-        if (item == null || item.Quantity <= 0)
-        {
-            return (false, "Não tens penalties no inventário");
-        }
-
+        // 1. Validate character (read-only checks)
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
@@ -226,15 +209,16 @@ public class InventoryService : IInventoryService
             return (false, "Já tens um penalty ativo");
         }
 
-        character.PenaltyBuffActive = 1;
-        await _characterRepository.UpdateAsync(character);
-
+        // 2. Atomically consume item (prevents TOCTOU race)
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Penalty, 1, cancellationToken);
         if (!consumed)
         {
-            _logger.LogError("Failed to consume penalty for user {UserId}", userId);
-            return (false, "Erro ao consumir penalty");
+            return (false, "Não tens penalties no inventário");
         }
+
+        // 3. Apply effect (only after successful consume)
+        character.PenaltyBuffActive = 1;
+        await _characterRepository.UpdateAsync(character);
 
         return (true, "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha");
     }
@@ -304,14 +288,7 @@ public class InventoryService : IInventoryService
     /// </summary>
     public async Task<(bool Success, int BattlesEmpowered, string Message)> UseShotAsync(string userId, CancellationToken cancellationToken = default)
     {
-        // Check if user has shot
-        var shotItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Shot, cancellationToken);
-        if (shotItem == null || shotItem.Quantity <= 0)
-        {
-            return (false, 0, "Não tens shots no inventário");
-        }
-
-        // Get user's character
+        // 1. Validate character (read-only checks)
         var character = await _characterRepository.GetByUserIdAsync(userId);
         if (character == null)
         {
@@ -319,20 +296,25 @@ public class InventoryService : IInventoryService
             return (false, 0, "Personagem não encontrado");
         }
 
-        // Check if character is dead
         var currentHp = character.CurrentHP ?? character.TotalHP;
         if (currentHp <= 0)
         {
             return (false, 0, "Não podes usar shot num personagem morto");
         }
 
-        // Check if already has active buff
         if (character.ShotBuffBattlesRemaining > 0)
         {
             return (false, 0, "Já tens um buff ativo");
         }
 
-        // Apply the buff
+        // 2. Atomically consume item (prevents TOCTOU race)
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Shot, 1, cancellationToken);
+        if (!consumed)
+        {
+            return (false, 0, "Não tens shots no inventário");
+        }
+
+        // 3. Apply buff effect (only after successful consume)
         character.ShotBuffBattlesRemaining = ShotBuffBattles;
         
         // Scale up CurrentHP proportionally to the new buffed max HP
@@ -347,14 +329,6 @@ public class InventoryService : IInventoryService
         character.CurrentHP = (int)Math.Round(hpRatio * buffedMaxHp);
         
         await _characterRepository.UpdateAsync(character);
-
-        // Consume 1 shot
-        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Shot, 1, cancellationToken);
-        if (!consumed)
-        {
-            _logger.LogError("Failed to consume shot for user {UserId} even though quantity was checked", userId);
-            return (false, 0, "Erro ao consumir shot");
-        }
 
         return (true, ShotBuffBattles, "Shot ativado! +20% stats na próxima batalha");
     }
@@ -400,7 +374,6 @@ public class InventoryService : IInventoryService
             return (0, 10, 0);
 
         ApplyEnergyRegen(character);
-        await _characterRepository.UpdateAsync(character);
 
         var secondsUntilNext = 0;
         if (character.Energy < character.MaxEnergy)
@@ -427,7 +400,6 @@ public class InventoryService : IInventoryService
         }
 
         ApplyEnergyRegen(character);
-        await _characterRepository.UpdateAsync(character);
 
         // Calculate seconds until next regen tick
         var secondsUntilNext = 0;
@@ -603,7 +575,7 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, "Erro ao consumir item do inventário");
 
-        RecalculateEquipmentBonuses(character);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
 
         await _characterRepository.UpdateAsync(character);
 
@@ -658,7 +630,7 @@ public class InventoryService : IInventoryService
         // Return to inventory
         await _inventoryRepository.AddItemAsync(userId, itemType, 1, cancellationToken);
 
-        RecalculateEquipmentBonuses(character);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
 
         await _characterRepository.UpdateAsync(character);
 
@@ -762,9 +734,8 @@ public class InventoryService : IInventoryService
         var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
 
         // Roll random instrument quality within configured range
-        var random = new Random();
         var instrumentQuality = forging.InstrumentQualityMin +
-            random.NextDouble() * (forging.InstrumentQualityMax - forging.InstrumentQualityMin);
+            Random.Shared.NextDouble() * (forging.InstrumentQualityMax - forging.InstrumentQualityMin);
 
         // 2H weapons get a multiplier to match dual-wielding 1H
         var isTwoHanded = WeaponTypeHelper.IsTwoHanded(weaponType);
@@ -839,7 +810,7 @@ public class InventoryService : IInventoryService
         }
 
         weapon.IsEquipped = true;
-        RecalculateEquipmentBonuses(character, cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
         await _characterRepository.UpdateAsync(character);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -875,7 +846,7 @@ public class InventoryService : IInventoryService
 
         if (weapon != null) weapon.IsEquipped = false;
 
-        RecalculateEquipmentBonuses(character, cancellationToken);
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
         await _characterRepository.UpdateAsync(character);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -899,7 +870,7 @@ public class InventoryService : IInventoryService
     /// Each character gets unique equipment quality per slot via deterministic seeding
     /// (characterId × 7919 + slotIndex × 31), giving variety across players without DB changes.
     /// </summary>
-    private void RecalculateEquipmentBonuses(Character character, CancellationToken cancellationToken = default)
+    private async Task RecalculateEquipmentBonusesAsync(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
         var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
@@ -928,10 +899,10 @@ public class InventoryService : IInventoryService
 
         if (equippedWeaponIds.Count > 0)
         {
-            var weapons = _dbContext.ForgedWeapons
+            var weapons = await _dbContext.ForgedWeapons
                 .AsNoTracking()
                 .Where(w => equippedWeaponIds.Contains(w.Id))
-                .ToList();
+                .ToListAsync(cancellationToken);
 
             foreach (var w in weapons)
             {
@@ -994,7 +965,7 @@ public class InventoryService : IInventoryService
         // Recalculate equipment bonuses if weapon is equipped
         if (weapon.IsEquipped)
         {
-            RecalculateEquipmentBonuses(character, cancellationToken);
+            await RecalculateEquipmentBonusesAsync(character, cancellationToken);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

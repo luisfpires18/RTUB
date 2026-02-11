@@ -28,6 +28,20 @@
     // Track which asset paths are already loaded in PIXI.Assets to skip re-fetches
     const loadedAssetAliases = new Set();
 
+    // Shared AudioContext — reused across StageBattleScene instances to avoid leaks
+    let sharedAudioContext = null;
+    function getSharedAudioContext() {
+        if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+            try {
+                sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('AudioContext not available:', e);
+                return null;
+            }
+        }
+        return sharedAudioContext;
+    }
+
     const defaultSprites = {
         player: '/sprites/games/my-tuno/default_tuno.png',
         background: '/sprites/games/my-tuno/backgrounds/forest.png',
@@ -148,26 +162,31 @@
             this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? false;
             this.playerAura = null;
             this.audioContext = null;
+            // Timer tracking for cleanup
+            this._timeoutIds = [];
+            this._rafIds = [];
+
+            // PIXI.Text pool for floating text
+            this._textPool = [];
             
             this.setupAudio();
             this.initPixi();
         }
 
         setupAudio() {
-            try {
-                if (typeof AudioContext !== 'undefined') {
-                    this.audioContext = new AudioContext();
-                } else if (typeof webkitAudioContext !== 'undefined') {
-                    this.audioContext = new webkitAudioContext();
+            this.audioContext = getSharedAudioContext();
+            
+            if (this.audioContext) {
+                // Resume if suspended (browsers require user gesture)
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume().catch(() => {});
                 }
-
                 // Start background music if not already playing
                 // Music plays continuously throughout the entire run — no switching on boss appearance
-                if (this.audioContext && !backgroundMusic) {
+                if (!backgroundMusic) {
                     this.loadBackgroundMusic();
                 }
-            } catch (e) {
-                console.warn('Audio not supported:', e);
+            } else {
                 this.audioEnabled = false;
             }
         }
@@ -1074,15 +1093,12 @@
 
         showFloatingText(text, x, y, color) {
             if (!this.stage) return;
-            const floatText = new PIXI.Text({
-                text: text,
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 26,
-                    fontWeight: 'bold',
-                    fill: color,
-                    stroke: { color: 0x000000, width: 4 }
-                }
+            const floatText = this._getPooledText(text, {
+                fontFamily: 'Arial',
+                fontSize: 26,
+                fontWeight: 'bold',
+                fill: color,
+                stroke: { color: 0x000000, width: 4 }
             });
             floatText.anchor.set(0.5);
             floatText.x = x;
@@ -1093,7 +1109,7 @@
                 y: floatText.y - 70,
                 alpha: 0
             }, 900, () => {
-                this.stage.removeChild(floatText);
+                this._releaseText(floatText);
             });
         }
 
@@ -1388,6 +1404,31 @@
             }
         }
 
+        _getPooledText(text, style) {
+            let t;
+            if (this._textPool.length > 0) {
+                t = this._textPool.pop();
+                t.text = text;
+                t.style = style;
+            } else {
+                t = new PIXI.Text({ text, style });
+            }
+            t.alpha = 1;
+            t.scale.set(1);
+            t.visible = true;
+            return t;
+        }
+
+        _releaseText(t) {
+            if (t.parent) t.parent.removeChild(t);
+            t.visible = false;
+            if (this._textPool.length < 20) {
+                this._textPool.push(t);
+            } else {
+                t.destroy();
+            }
+        }
+
         animateTo(target, properties, duration, onComplete) {
             // Adjust animation duration based on battle speed
             const adjustedDuration = duration / this.battleSpeed;
@@ -1434,6 +1475,16 @@
         }
 
         destroy() {
+            // Clear all pending timers
+            for (const id of this._timeoutIds) clearTimeout(id);
+            for (const id of this._rafIds) cancelAnimationFrame(id);
+            this._timeoutIds = [];
+            this._rafIds = [];
+
+            // Destroy pooled texts
+            for (const t of this._textPool) { try { t.destroy(); } catch (_) {} }
+            this._textPool = [];
+
             if (this.eventTimer) {
                 clearInterval(this.eventTimer);
                 this.eventTimer = null;

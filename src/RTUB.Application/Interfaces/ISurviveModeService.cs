@@ -1,3 +1,4 @@
+using System.Threading;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -16,17 +17,17 @@ public interface ISurviveModeService
     /// <summary>
     /// Gets or creates survive mode progress for a user.
     /// </summary>
-    Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId);
+    Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets survive mode progress for a user (null if not started).
     /// </summary>
-    Task<SurviveModeProgress?> GetProgressAsync(string userId);
+    Task<SurviveModeProgress?> GetProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Starts a new survive mode run. Validates character is alive.
     /// </summary>
-    Task<SurviveModeProgress> StartRunAsync(int characterId);
+    Task<SurviveModeProgress> StartRunAsync(int characterId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the level configuration data needed by the client to render the game.
@@ -38,13 +39,13 @@ public interface ISurviveModeService
     /// Completes a level — the player survived the timer. Calculates and returns rewards.
     /// Server validates survival time against the run start timestamp.
     /// </summary>
-    Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds);
+    Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ends the run — the player died before the timer expired.
     /// Calculates partial rewards based on survival time and enemies killed.
     /// </summary>
-    Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds);
+    Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated survive mode run rewards (XP, Fidelis, drops).
@@ -52,12 +53,13 @@ public interface ISurviveModeService
     /// </summary>
     Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null);
+        Dictionary<InventoryItemType, int>? equipment = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cancels an active run without applying rewards.
     /// </summary>
-    Task<bool> CancelRunAsync(int characterId);
+    Task<bool> CancelRunAsync(int characterId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the background sprite path for a given level.
@@ -67,13 +69,13 @@ public interface ISurviveModeService
     /// <summary>
     /// Gets a random set of enemy sprite paths for a given level.
     /// </summary>
-    Task<List<string>> GetEnemySpritesAsync(int level, int count);
+    Task<List<string>> GetEnemySpritesAsync(int level, int count, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets boss sprite paths for a given level's biome.
     /// Returns up to <paramref name="count"/> randomly selected boss sprites.
     /// </summary>
-    Task<List<string>> GetBossSpritesAsync(int level, int count);
+    Task<List<string>> GetBossSpritesAsync(int level, int count, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sets the current level for a user (level selection).
@@ -82,7 +84,7 @@ public interface ISurviveModeService
     /// <param name="userId">The user's ID</param>
     /// <param name="targetLevel">The level to start from</param>
     /// <returns>Updated survive mode progress</returns>
-    Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel);
+    Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

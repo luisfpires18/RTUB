@@ -20,6 +20,20 @@
     // Cache decoded AudioBuffers so music file is only fetched/decoded once per session
     const audioBufferCache = {};
 
+    // Shared AudioContext — reused across BattleScene instances to avoid leaks
+    let sharedAudioContext = null;
+    function getSharedAudioContext() {
+        if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+            try {
+                sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('AudioContext not available:', e);
+                return null;
+            }
+        }
+        return sharedAudioContext;
+    }
+
     const spritePaths = {
         attacker: '/sprites/games/my-tuno/tuno_attacking_right.png',
         defender: '/sprites/games/my-tuno/tuno_attacking_left.png',
@@ -116,6 +130,13 @@
             this.currentSimTime = 0;
             this.battleSpeed = 1.0;
             
+            // Timer tracking for cleanup
+            this._timeoutIds = [];
+            this._rafIds = [];
+
+            // PIXI.Text pool for floating damage/status text
+            this._textPool = [];
+
             // Audio system initialization
             this.audioEnabled = true;
             this.musicVolume = 0.3;
@@ -126,21 +147,18 @@
         }
 
         setupAudio() {
-            this.audioContext = null;
+            this.audioContext = getSharedAudioContext();
             
-            try {
-                if (typeof AudioContext !== 'undefined') {
-                    this.audioContext = new AudioContext();
-                } else if (typeof webkitAudioContext !== 'undefined') {
-                    this.audioContext = new webkitAudioContext();
+            if (this.audioContext) {
+                // Resume if suspended (browsers require user gesture)
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume().catch(() => {});
                 }
-                
                 // Start background music if not already playing
-                if (this.audioContext && !arenaBackgroundMusic) {
+                if (!arenaBackgroundMusic) {
                     this.loadBackgroundMusic();
                 }
-            } catch (e) {
-                console.warn('Audio not supported:', e);
+            } else {
                 this.audioEnabled = false;
             }
         }
@@ -743,15 +761,12 @@
 
             // Floating text on defender
             if (isBlocked) {
-                const blockedText = new PIXI.Text({
-                    text: 'BLOCKED',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 28,
-                        fontWeight: 'bold',
-                        fill: 0x00e5ff,
-                        stroke: { color: 0x000000, width: 4 }
-                    }
+                const blockedText = this._getPooledText('BLOCKED', {
+                    fontFamily: 'Arial',
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: 0x00e5ff,
+                    stroke: { color: 0x000000, width: 4 }
                 });
                 blockedText.anchor.set(0.5);
                 blockedText.x = defender.sprite.x;
@@ -762,19 +777,19 @@
                     y: blockedText.y - 70,
                     alpha: 0
                 }, 900, () => {
-                    this.stage.removeChild(blockedText);
+                    this._releaseText(blockedText);
                 });
             } else {
-                const damageText = new PIXI.Text({
-                    text: isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`,
-                    style: {
+                const damageText = this._getPooledText(
+                    isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`,
+                    {
                         fontFamily: 'Arial',
                         fontSize: isCritical ? 28 : 24,
                         fontWeight: 'bold',
                         fill: isCritical ? 0xffff00 : 0xff4444,
                         stroke: { color: 0x000000, width: 3 }
                     }
-                });
+                );
                 damageText.anchor.set(0.5);
                 damageText.x = defender.sprite.x;
                 damageText.y = defender.sprite.y - defender.sprite.height * 0.6;
@@ -784,21 +799,18 @@
                     y: damageText.y - (isCritical ? 80 : 60),
                     alpha: 0
                 }, isCritical ? 1000 : 800, () => {
-                    this.stage.removeChild(damageText);
+                    this._releaseText(damageText);
                 });
             }
 
             // Floating text on attacker side
             if (isBoosted) {
-                const extraText = new PIXI.Text({
-                    text: 'EXTRA',
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 26,
-                        fontWeight: 'bold',
-                        fill: 0xff9800,
-                        stroke: { color: 0x000000, width: 4 }
-                    }
+                const extraText = this._getPooledText('EXTRA', {
+                    fontFamily: 'Arial',
+                    fontSize: 26,
+                    fontWeight: 'bold',
+                    fill: 0xff9800,
+                    stroke: { color: 0x000000, width: 4 }
                 });
                 extraText.anchor.set(0.5);
                 extraText.x = attacker.sprite.x;
@@ -809,19 +821,16 @@
                     y: extraText.y - 50,
                     alpha: 0
                 }, 800, () => {
-                    this.stage.removeChild(extraText);
+                    this._releaseText(extraText);
                 });
             }
             
             if (!isBlocked) {
-                const attackerText = new PIXI.Text({
-                    text: `+${formatNum(damageValue)}`,
-                    style: {
-                        fontFamily: 'Arial',
-                        fontSize: 18,
-                        fontWeight: 'bold',
-                        fill: 0x4caf50
-                    }
+                const attackerText = this._getPooledText(`+${formatNum(damageValue)}`, {
+                    fontFamily: 'Arial',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fill: 0x4caf50
                 });
                 attackerText.anchor.set(0.5);
                 attackerText.x = attacker.sprite.x;
@@ -832,7 +841,7 @@
                     y: attackerText.y - 20,
                     alpha: 0
                 }, 700, () => {
-                    this.stage.removeChild(attackerText);
+                    this._releaseText(attackerText);
                 });
             }
         }
@@ -1072,6 +1081,31 @@
             }
         }
 
+        _getPooledText(text, style) {
+            let t;
+            if (this._textPool.length > 0) {
+                t = this._textPool.pop();
+                t.text = text;
+                t.style = style;
+            } else {
+                t = new PIXI.Text({ text, style });
+            }
+            t.alpha = 1;
+            t.scale.set(1);
+            t.visible = true;
+            return t;
+        }
+
+        _releaseText(t) {
+            if (t.parent) t.parent.removeChild(t);
+            t.visible = false;
+            if (this._textPool.length < 20) {
+                this._textPool.push(t);
+            } else {
+                t.destroy();
+            }
+        }
+
         animateTo(target, properties, duration, onComplete) {
             // Adjust animation duration based on battle speed
             const adjustedDuration = duration / this.battleSpeed;
@@ -1116,6 +1150,16 @@
         }
 
         destroy() {
+            // Clear all pending timers
+            for (const id of this._timeoutIds) clearTimeout(id);
+            for (const id of this._rafIds) cancelAnimationFrame(id);
+            this._timeoutIds = [];
+            this._rafIds = [];
+
+            // Destroy pooled texts
+            for (const t of this._textPool) { try { t.destroy(); } catch (_) {} }
+            this._textPool = [];
+
             if (this.app) {
                 // Stop ticker before destroying
                 this.app.ticker.stop();

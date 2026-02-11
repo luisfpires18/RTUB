@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +17,11 @@ public class MessagesHub : Hub<IMessagesHubClient>
     private readonly IConversationRepository _conversationRepository;
     private readonly MessagesNotificationService _notificationService;
     private readonly ILogger<MessagesHub> _logger;
+
+    // In-memory cache: conversationId → set of validated participant userIds.
+    // Populated on JoinConversation (which already does the DB check).
+    // Avoids a round-trip per typing event.
+    private static readonly ConcurrentDictionary<int, ConcurrentDictionary<string, byte>> _participantCache = new();
 
     public MessagesHub(
         IConversationRepository conversationRepository,
@@ -67,6 +73,10 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var groupName = $"conversation-{conversationId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
+        // Cache this user's membership so typing events don't need a DB lookup
+        var participants = _participantCache.GetOrAdd(conversationId, _ => new ConcurrentDictionary<string, byte>());
+        participants.TryAdd(userId, 0);
+
         _logger.LogDebug("User {UserId} joined conversation {ConversationId}", userId, conversationId);
     }
 
@@ -95,11 +105,18 @@ public class MessagesHub : Hub<IMessagesHubClient>
             return;
         }
 
-        // Validate user is a participant
-        var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        if (conversation == null || !conversation.HasParticipant(userId))
+        // Validate from cache first (populated on JoinConversation)
+        if (!_participantCache.TryGetValue(conversationId, out var participants) || !participants.ContainsKey(userId))
         {
-            return;
+            // Cache miss — fall back to DB validation
+            var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+            if (conversation == null || !conversation.HasParticipant(userId))
+            {
+                return;
+            }
+            // Populate cache for future calls
+            var p = _participantCache.GetOrAdd(conversationId, _ => new ConcurrentDictionary<string, byte>());
+            p.TryAdd(userId, 0);
         }
 
         var groupName = $"conversation-{conversationId}";

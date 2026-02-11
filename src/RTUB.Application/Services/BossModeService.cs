@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
@@ -32,7 +34,7 @@ public class BossModeService : IBossModeService
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
     private readonly ApplicationDbContext _context;
-    private readonly Random _random = new();
+    private readonly IMemoryCache _memoryCache;
 
     public BossModeService(
         IBossModeProgressRepository bossModeProgressRepository,
@@ -45,7 +47,8 @@ public class BossModeService : IBossModeService
         IStageBiomeService biomeService,
         IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        IMemoryCache memoryCache)
     {
         _bossModeProgressRepository = bossModeProgressRepository;
         _characterRepository = characterRepository;
@@ -58,6 +61,7 @@ public class BossModeService : IBossModeService
         _stageProgressRepository = stageProgressRepository;
         _environment = environment;
         _context = context;
+        _memoryCache = memoryCache;
     }
 
     /// <summary>
@@ -79,7 +83,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress> GetOrCreateBossModeProgressAsync(string userId)
+    public async Task<BossModeProgress> GetOrCreateBossModeProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -102,7 +106,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress?> GetBossModeProgressAsync(string userId)
+    public async Task<BossModeProgress?> GetBossModeProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -111,20 +115,20 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CanEnterBossModeAsync(string userId)
+    public async Task<bool> CanEnterBossModeAsync(string userId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId);
         return user != null && user.FitabBalance >= 1;
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress> StartBossModeRunAsync(string userId)
+    public async Task<BossModeProgress> StartBossModeRunAsync(string userId, CancellationToken cancellationToken = default)
     {
         // Guard: if the user already has a run in progress, return it without
         // deducting FITAB.  This prevents double-charge caused by Blazor Server
         // prerender (OnInitializedAsync fires twice — once during prerender and
         // once when the SignalR circuit connects, with a NEW component instance).
-        var existingProgress = await GetOrCreateBossModeProgressAsync(userId);
+        var existingProgress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(ApplicationUser), userId);
@@ -147,7 +151,7 @@ public class BossModeService : IBossModeService
 
         // Deduct 1 FITAB — reload user first to get fresh ConcurrencyStamp
         // (in Blazor Server the tracked entity may have a stale stamp from another circuit/tab)
-        await _context.Entry(user).ReloadAsync();
+        await _context.Entry(user).ReloadAsync(cancellationToken);
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
         user.FitabBalance -= 1;
@@ -174,13 +178,13 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<BossModeBattleResult> ExecuteBossBattleAsync(int characterId)
+    public async Task<BossModeBattleResult> ExecuteBossBattleAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(Character), characterId);
 
-        var progress = await GetOrCreateBossModeProgressAsync(character.UserId);
+        var progress = await GetOrCreateBossModeProgressAsync(character.UserId, cancellationToken);
 
         if (progress.CurrentBossStage <= 0)
             throw new InvalidOperationException("No Boss Mode run in progress. Start a run first.");
@@ -198,7 +202,7 @@ public class BossModeService : IBossModeService
             combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Get boss sprite
-        var bossSprite = await GetBossSpriteAsync(bossStage);
+        var bossSprite = await GetBossSpriteAsync(bossStage, cancellationToken);
         var bossPlacement = 0; // Terrestrial by default
 
         // Create boss enemy using equivalent stage difficulty
@@ -283,7 +287,8 @@ public class BossModeService : IBossModeService
         int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         int? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null)
+        Dictionary<InventoryItemType, int>? equipment = null,
+        CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -316,7 +321,7 @@ public class BossModeService : IBossModeService
         if (fidelis > 0 && user != null)
         {
             // Reload user to get fresh ConcurrencyStamp before updating
-            await _context.Entry(user).ReloadAsync();
+            await _context.Entry(user).ReloadAsync(cancellationToken);
             user.FidelisBalance += fidelis;
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -359,7 +364,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0)
+    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         // Pre-fetch character for logging (available in catch blocks)
@@ -416,27 +421,32 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<string> GetBossSpriteAsync(int bossStage)
+    public async Task<string> GetBossSpriteAsync(int bossStage, CancellationToken cancellationToken = default)
     {
         var spritePath = _config.BossMode.EnemySpritePath;
         var fullPath = Path.Combine(_environment.WebRootPath, spritePath);
+        var cacheKey = $"boss_sprites:{spritePath}";
 
         try
         {
-            if (Directory.Exists(fullPath))
+            if (!_memoryCache.TryGetValue(cacheKey, out List<string>? cachedFiles))
             {
-                var files = Directory.GetFiles(fullPath, "*.png")
-                    .Concat(Directory.GetFiles(fullPath, "*.webp"))
-                    .Concat(Directory.GetFiles(fullPath, "*.jpg"))
-                    .ToList();
-
-                if (files.Count > 0)
+                if (Directory.Exists(fullPath))
                 {
-                    var selectedFile = files[_random.Next(files.Count)];
-                    var relativePath = Path.GetRelativePath(_environment.WebRootPath, selectedFile)
-                        .Replace('\\', '/');
-                    return $"/{relativePath}";
+                    cachedFiles = Directory.GetFiles(fullPath, "*.png")
+                        .Concat(Directory.GetFiles(fullPath, "*.webp"))
+                        .Concat(Directory.GetFiles(fullPath, "*.jpg"))
+                        .ToList();
+                    _memoryCache.Set(cacheKey, cachedFiles, TimeSpan.FromMinutes(5));
                 }
+            }
+
+            if (cachedFiles != null && cachedFiles.Count > 0)
+            {
+                var selectedFile = cachedFiles[Random.Shared.Next(cachedFiles.Count)];
+                var relativePath = Path.GetRelativePath(_environment.WebRootPath, selectedFile)
+                    .Replace('\\', '/');
+                return $"/{relativePath}";
             }
         }
         catch (Exception ex)

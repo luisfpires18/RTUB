@@ -65,6 +65,12 @@ public class Character : BaseEntity
     /// </summary>
     public DateTime? LastBattleAt { get; set; } = null;
 
+    /// <summary>
+    /// Idempotency key — the BattleId of the last finalized arena battle.
+    /// Prevents duplicate reward application if the client calls FinalizeAndApplyRewardsAsync twice.
+    /// </summary>
+    public Guid? LastBattleId { get; set; } = null;
+
     // Energy system (for resource gathering)
     /// <summary>
     /// Current stored energy for gathering resources

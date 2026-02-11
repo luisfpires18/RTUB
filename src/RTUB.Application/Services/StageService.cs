@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Threading;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -53,7 +54,7 @@ public class StageService : IStageService
     /// <summary>
     /// Gets or creates stage progress for a user
     /// </summary>
-    public async Task<StageProgress> GetOrCreateStageProgressAsync(string userId)
+    public async Task<StageProgress> GetOrCreateStageProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -73,7 +74,7 @@ public class StageService : IStageService
     /// <summary>
     /// Gets stage progress for a user
     /// </summary>
-    public async Task<StageProgress?> GetStageProgressAsync(string userId)
+    public async Task<StageProgress?> GetStageProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -84,7 +85,7 @@ public class StageService : IStageService
     /// <summary>
     /// Gets the enemy for the current stage
     /// </summary>
-    public async Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress)
+    public async Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress, CancellationToken cancellationToken = default)
     {
         if (stageProgress == null)
             throw new ArgumentNullException(nameof(stageProgress));
@@ -98,13 +99,13 @@ public class StageService : IStageService
     /// <summary>
     /// Executes a battle on the current stage
     /// </summary>
-    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId)
+    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(Character), characterId);
 
-        var stageProgress = await GetOrCreateStageProgressAsync(character.UserId);
+        var stageProgress = await GetOrCreateStageProgressAsync(character.UserId, cancellationToken);
         
         // Check if shot buff is active - in stage mode, buff lasts until death
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
@@ -249,9 +250,9 @@ public class StageService : IStageService
     /// <summary>
     /// Gets the number of enemies remaining in the current stage
     /// </summary>
-    public async Task<int> GetRemainingEnemiesInStageAsync(string userId)
+    public async Task<int> GetRemainingEnemiesInStageAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var stageProgress = await GetOrCreateStageProgressAsync(userId);
+        var stageProgress = await GetOrCreateStageProgressAsync(userId, cancellationToken);
         var totalEnemies = _biomeService.GetEnemyCountForStage(stageProgress.CurrentStage);
         var defeated = stageProgress.EnemiesDefeatedInCurrentStage;
         return Math.Max(0, totalEnemies - defeated);
@@ -260,9 +261,9 @@ public class StageService : IStageService
     /// <summary>
     /// Checks if the current stage is complete
     /// </summary>
-    public async Task<bool> IsStageCompleteAsync(string userId)
+    public async Task<bool> IsStageCompleteAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var remaining = await GetRemainingEnemiesInStageAsync(userId);
+        var remaining = await GetRemainingEnemiesInStageAsync(userId, cancellationToken);
         return remaining == 0;
     }
 
@@ -270,9 +271,9 @@ public class StageService : IStageService
     /// Sets the current stage for a user (checkpoint selection).
     /// Validates that the target stage is within the user's reached range.
     /// </summary>
-    public async Task<StageProgress> SetStartStageAsync(string userId, int targetStage)
+    public async Task<StageProgress> SetStartStageAsync(string userId, int targetStage, CancellationToken cancellationToken = default)
     {
-        var stageProgress = await GetOrCreateStageProgressAsync(userId);
+        var stageProgress = await GetOrCreateStageProgressAsync(userId, cancellationToken);
 
         // Clamp to valid range: [1, HighestStage]
         var validStage = Math.Clamp(targetStage, 1, stageProgress.HighestStage);
@@ -291,7 +292,7 @@ public class StageService : IStageService
     /// <summary>
     /// Returns the player to their last checkpoint after defeat
     /// </summary>
-    public async Task<StageProgress> ReturnToCheckpointAsync(string userId)
+    public async Task<StageProgress> ReturnToCheckpointAsync(string userId, CancellationToken cancellationToken = default)
     {
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
         if (stageProgress == null)
@@ -308,7 +309,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0)
+    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -358,7 +359,7 @@ public class StageService : IStageService
                         attempt + 1,
                         maxRetries);
                     // Brief delay to let the concurrent operation finish
-                    await Task.Delay(100 * (attempt + 1));
+                    await Task.Delay(100 * (attempt + 1), cancellationToken);
                     continue;
                 }
 
@@ -583,7 +584,7 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, CancellationToken cancellationToken = default)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;
@@ -655,7 +656,7 @@ public class StageService : IStageService
         }
 
         if (allDrops.Count > 0)
-            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
+            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
         _logger.LogInformation(
             "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",

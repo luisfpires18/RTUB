@@ -36,7 +36,13 @@ public class SqliteConnectionInterceptor : DbConnectionInterceptor
             // WAL allows readers and writers to operate simultaneously without blocking each other.
             // This setting persists in the database file, but we set it on each connection to ensure it's active.
             using var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA journal_mode = WAL;";
+            command.CommandText = @"
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+                PRAGMA temp_store = MEMORY;
+                PRAGMA mmap_size = 268435456;
+                PRAGMA cache_size = -64000;
+            ";
             command.ExecuteNonQuery();
         }
         catch

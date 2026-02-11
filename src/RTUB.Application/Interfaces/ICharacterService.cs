@@ -1,3 +1,4 @@
+using System.Threading;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Interfaces;
@@ -14,32 +15,32 @@ public interface ICharacterService
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>The character (existing or newly created)</returns>
-    Task<Character> GetOrCreateCharacterAsync(string userId);
+    Task<Character> GetOrCreateCharacterAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a character by user ID
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>The character if found, otherwise null</returns>
-    Task<Character?> GetCharacterAsync(string userId);
+    Task<Character?> GetCharacterAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates a character
     /// </summary>
     /// <param name="character">The character to update</param>
-    Task UpdateCharacterAsync(Character character);
+    Task UpdateCharacterAsync(Character character, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all characters ordered by level descending, including User data.
     /// Used for the owner All Characters overview page.
     /// </summary>
     /// <returns>List of all characters with User navigation loaded</returns>
-    Task<List<Character>> GetAllCharactersOrderedByLevelAsync();
+    Task<List<Character>> GetAllCharactersOrderedByLevelAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Heals all characters to full HP (sets CurrentHP to null).
     /// Owner-only operation for immediate full heal.
     /// </summary>
     /// <returns>The number of characters healed</returns>
-    Task<int> HealAllCharactersAsync();
+    Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default);
 }

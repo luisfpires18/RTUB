@@ -1,3 +1,4 @@
+using System.Threading;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -16,28 +17,28 @@ public interface IStageService
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>The user's stage progress</returns>
-    Task<StageProgress> GetOrCreateStageProgressAsync(string userId);
+    Task<StageProgress> GetOrCreateStageProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets stage progress for a user
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>The user's stage progress, or null if not found</returns>
-    Task<StageProgress?> GetStageProgressAsync(string userId);
+    Task<StageProgress?> GetStageProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the enemy for the current stage
     /// </summary>
     /// <param name="stageProgress">The player's stage progress</param>
     /// <returns>The enemy for the current stage</returns>
-    Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress);
+    Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Executes a battle on the current stage
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
     /// <returns>The stage battle result</returns>
-    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId);
+    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the number of enemies remaining in the current stage
@@ -45,21 +46,21 @@ public interface IStageService
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>Number of enemies remaining to fight in current stage</returns>
-    Task<int> GetRemainingEnemiesInStageAsync(string userId);
+    Task<int> GetRemainingEnemiesInStageAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if the current stage is complete (all enemies defeated)
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>True if stage is complete, false if more enemies remain</returns>
-    Task<bool> IsStageCompleteAsync(string userId);
+    Task<bool> IsStageCompleteAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the player to their last checkpoint after defeat
     /// </summary>
     /// <param name="userId">The user's ID</param>
     /// <returns>Updated stage progress</returns>
-    Task<StageProgress> ReturnToCheckpointAsync(string userId);
+    Task<StageProgress> ReturnToCheckpointAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cancels a stage run in progress.
@@ -71,7 +72,7 @@ public interface IStageService
     /// <param name="restoreStage">The stage number to restore to</param>
     /// <param name="restoreShotBuffBattles">The shot buff battles remaining to restore</param>
     /// <returns>True if cancelled successfully</returns>
-    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0);
+    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
@@ -79,7 +80,7 @@ public interface IStageService
     /// Not called on cancel/back — rewards are forfeited.
     /// Optionally restores the character's HP to the value they had before the run started.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the biome name for a given stage number
@@ -109,5 +110,5 @@ public interface IStageService
     /// <param name="userId">The user's ID</param>
     /// <param name="targetStage">The stage to start from</param>
     /// <returns>Updated stage progress</returns>
-    Task<StageProgress> SetStartStageAsync(string userId, int targetStage);
+    Task<StageProgress> SetStartStageAsync(string userId, int targetStage, CancellationToken cancellationToken = default);
 }
