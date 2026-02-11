@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -10,6 +11,7 @@ namespace RTUB.Application.Services;
 /// Uses IItemTypeConfigRepository for item configs and IForgeComboConfigRepository for forge combos.
 /// Image uploads are stored in Cloudflare R2 via IItemTypeMediaStorageService.
 /// Seed data is created on first use by ItemTypeConfigInitializer.
+/// Caches GetAllConfigsAsync and GetAllForgeComboPicturesAsync results since these rarely change.
 /// </summary>
 public class ItemTypeConfigService : IItemTypeConfigService
 {
@@ -17,17 +19,24 @@ public class ItemTypeConfigService : IItemTypeConfigService
     private readonly IForgeComboConfigRepository _forgeComboRepository;
     private readonly IItemTypeMediaStorageService _mediaStorageService;
     private readonly ILogger<ItemTypeConfigService> _logger;
+    private readonly IMemoryCache _cache;
+
+    private const string AllConfigsCacheKey = "ItemTypeConfig_All";
+    private const string ForgeComboPicturesCacheKey = "ForgeCombo_Pictures";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
 
     public ItemTypeConfigService(
         IItemTypeConfigRepository configRepository,
         IForgeComboConfigRepository forgeComboRepository,
         IItemTypeMediaStorageService mediaStorageService,
-        ILogger<ItemTypeConfigService> logger)
+        ILogger<ItemTypeConfigService> logger,
+        IMemoryCache cache)
     {
         _configRepository = configRepository;
         _forgeComboRepository = forgeComboRepository;
         _mediaStorageService = mediaStorageService;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<List<ItemTypeConfigDto>> GetWeaponTypeConfigsAsync()
@@ -56,8 +65,12 @@ public class ItemTypeConfigService : IItemTypeConfigService
 
     public async Task<List<ItemTypeConfigDto>> GetAllConfigsAsync()
     {
-        var configs = await _configRepository.GetAllOrderedAsync();
-        return configs.Select(MapToDto).ToList();
+        return await _cache.GetOrCreateAsync(AllConfigsCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            var configs = await _configRepository.GetAllOrderedAsync();
+            return configs.Select(MapToDto).ToList();
+        }) ?? new List<ItemTypeConfigDto>();
     }
 
     public async Task UpdateConfigAsync(int id, string? pictureUrl)
@@ -71,6 +84,7 @@ public class ItemTypeConfigService : IItemTypeConfigService
 
         config.Update(pictureUrl);
         await _configRepository.UpdateAsync(config);
+        _cache.Remove(AllConfigsCacheKey);
     }
 
     public async Task<string?> UploadConfigPictureAsync(int id, Stream imageStream, string fileName, string contentType)
@@ -91,6 +105,7 @@ public class ItemTypeConfigService : IItemTypeConfigService
         var url = await _mediaStorageService.UploadImageAsync(imageStream, fileName, contentType, config.TypeKey);
         config.Update(url);
         await _configRepository.UpdateAsync(config);
+        _cache.Remove(AllConfigsCacheKey);
         return url;
     }
 
@@ -104,6 +119,7 @@ public class ItemTypeConfigService : IItemTypeConfigService
             await _mediaStorageService.DeleteImageAsync(config.PictureUrl);
             config.Update(null);
             await _configRepository.UpdateAsync(config);
+            _cache.Remove(AllConfigsCacheKey);
         }
     }
 
@@ -117,8 +133,12 @@ public class ItemTypeConfigService : IItemTypeConfigService
 
     public async Task<Dictionary<string, string>> GetAllForgeComboPicturesAsync()
     {
-        var combos = await _forgeComboRepository.GetAllWithPicturesAsync();
-        return combos.ToDictionary(c => c.ComboKey, c => c.PictureUrl!);
+        return await _cache.GetOrCreateAsync(ForgeComboPicturesCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            var combos = await _forgeComboRepository.GetAllWithPicturesAsync();
+            return combos.ToDictionary(c => c.ComboKey, c => c.PictureUrl!);
+        }) ?? new Dictionary<string, string>();
     }
 
     public async Task<string?> UploadForgeComboPictureAsync(string comboKey, Stream imageStream, string fileName, string contentType)
@@ -144,6 +164,7 @@ public class ItemTypeConfigService : IItemTypeConfigService
             await _forgeComboRepository.UpdateAsync(config);
         }
 
+        _cache.Remove(ForgeComboPicturesCacheKey);
         return url;
     }
 
@@ -157,6 +178,7 @@ public class ItemTypeConfigService : IItemTypeConfigService
             await _mediaStorageService.DeleteImageAsync(config.PictureUrl);
             config.UpdatePicture(null);
             await _forgeComboRepository.UpdateAsync(config);
+            _cache.Remove(ForgeComboPicturesCacheKey);
         }
     }
 

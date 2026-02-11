@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Extensions;
@@ -30,6 +31,10 @@ public class NaipeService : INaipeService
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IMemoryCache _cache;
+
+    private const string AllTypeConfigsCacheKey = "NaipeTypeConfig_All";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
 
     public NaipeService(
         INaipeContentRepository naipeContentRepository,
@@ -41,7 +46,8 @@ public class NaipeService : INaipeService
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         AuditContext auditContext,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IMemoryCache cache)
     {
         _naipeContentRepository = naipeContentRepository;
         _naipeCommentRepository = naipeCommentRepository;
@@ -53,6 +59,7 @@ public class NaipeService : INaipeService
         _context = context;
         _auditContext = auditContext;
         _httpContextAccessor = httpContextAccessor;
+        _cache = cache;
     }
 
     public async Task<List<NaipeContentDto>> GetContentByInstrumentTypeAsync(InstrumentType type)
@@ -359,8 +366,12 @@ public class NaipeService : INaipeService
 
     public async Task<List<NaipeTypeConfigDto>> GetAllTypeConfigsAsync()
     {
-        var configs = await _naipeTypeConfigRepository.GetAllOrderedAsync();
-        return configs.Select(MapTypeConfigToDto).ToList();
+        return await _cache.GetOrCreateAsync(AllTypeConfigsCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            var configs = await _naipeTypeConfigRepository.GetAllOrderedAsync();
+            return configs.Select(MapTypeConfigToDto).ToList();
+        }) ?? new List<NaipeTypeConfigDto>();
     }
 
     public async Task<List<NaipeTypeConfigDto>> GetVisibleTypeConfigsAsync()
@@ -395,6 +406,7 @@ public class NaipeService : INaipeService
 
         config.Update(pictureUrl, isVisible, sortOrder);
         await _naipeTypeConfigRepository.UpdateAsync(config);
+        _cache.Remove(AllTypeConfigsCacheKey);
     }
 
     public async Task<string> UploadTypeConfigPictureAsync(int id, Stream fileStream, string fileName, string contentType)
@@ -412,6 +424,7 @@ public class NaipeService : INaipeService
 
         config.Update(url, config.IsVisible, config.SortOrder);
         await _naipeTypeConfigRepository.UpdateAsync(config);
+        _cache.Remove(AllTypeConfigsCacheKey);
 
         return url;
     }

@@ -85,6 +85,18 @@ public interface IInventoryService
     Task<int> GetResourceQuantityAsync(string userId, InventoryItemType type, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all inventory item quantities for a user in a single query.
+    /// Returns a dictionary of item type to quantity, including consumables, resources, parts, and equipment.
+    /// </summary>
+    Task<Dictionary<InventoryItemType, int>> GetUserInventorySummaryAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the current energy for an already-loaded character, applying passive regen since last check.
+    /// Avoids a redundant character load when the caller already has the character.
+    /// </summary>
+    Task<(int CurrentEnergy, int MaxEnergy, int SecondsUntilNextRegen)> GetCurrentEnergyForCharacterAsync(Character character, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the current energy for a character, including passive regeneration
     /// </summary>
     /// <param name="userId">The user ID</param>

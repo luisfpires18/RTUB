@@ -1,4 +1,5 @@
 using RTUB.Application.DTOs;
+using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
@@ -16,6 +17,14 @@ public interface IUpgradeService
     /// <param name="statType">The stat type to upgrade (HP, Power, Speed, or Critical Chance)</param>
     /// <returns>The cost in Fidelis for the next upgrade</returns>
     Task<decimal> GetUpgradeCostAsync(string userId, StatType statType);
+
+    /// <summary>
+    /// Calculates all upgrade costs at once from a pre-loaded character.
+    /// Avoids 5 separate DB round-trips by reusing the same character data.
+    /// </summary>
+    /// <param name="character">The already-loaded character entity</param>
+    /// <returns>Dictionary of stat type to cost in Fidelis</returns>
+    Dictionary<StatType, decimal> GetAllUpgradeCosts(Character character);
 
     /// <summary>
     /// Purchases a stat upgrade for the user's character

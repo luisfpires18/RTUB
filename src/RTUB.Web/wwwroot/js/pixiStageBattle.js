@@ -164,17 +164,9 @@
                 } else if (typeof webkitAudioContext !== 'undefined') {
                     this.audioContext = new webkitAudioContext();
                 }
-                
-                // Determine correct music track based on enemy type
-                const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
-                const neededType = isBoss ? 'boss' : 'stage';
-
-                // If music is playing but for the wrong mode, stop it
-                if (backgroundMusic && currentMusicType !== neededType) {
-                    StageBattleScene.stopBackgroundMusic();
-                }
 
                 // Start background music if not already playing
+                // Music plays continuously throughout the entire run — no switching on boss appearance
                 if (this.audioContext && !backgroundMusic) {
                     this.loadBackgroundMusic();
                 }
@@ -1703,15 +1695,7 @@
                 }
             }
             
-            // Handle music switch if enemy type changed (normal <-> boss)
-            const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
-            const neededType = isBoss ? 'boss' : 'stage';
-            if (currentMusicType && currentMusicType !== neededType) {
-                StageBattleScene.stopBackgroundMusic();
-                if (this.audioContext) {
-                    this.loadBackgroundMusic();
-                }
-            }
+            // Music continues playing across battles — no stop/restart on boss transitions
             
             // Restart battle
             this.preprocessInitialEvents();

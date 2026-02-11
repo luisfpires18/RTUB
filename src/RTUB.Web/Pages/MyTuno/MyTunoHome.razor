@@ -2376,66 +2376,93 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
-                        await LoadUpgradeCosts();
-                        finoQuantity = await InventoryService.GetFinoQuantityAsync(currentUser.Id);
-                        canecaQuantity = await InventoryService.GetCanecaQuantityAsync(currentUser.Id);
-                        cigarroQuantity = await InventoryService.GetCigarroQuantityAsync(currentUser.Id);
-                        canhaoQuantity = await InventoryService.GetCanhaoQuantityAsync(currentUser.Id);
-                        shotQuantity = await InventoryService.GetShotQuantityAsync(currentUser.Id);
-                        penaltyQuantity = await InventoryService.GetPenaltyQuantityAsync(currentUser.Id);
-                        
-                        // Load stage progress for unlock checks
-                        stageProgress = await StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+                        // Compute all 5 upgrade costs from the already-loaded character (0 DB queries)
+                        LoadUpgradeCostsFromCharacter();
+
+                        // Batch: single inventory query replaces ~13 individual calls
+                        var inventorySummaryTask = InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                        // These are independent of inventory — run in parallel
+                        var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+                        var naipeConfigsTask = NaipeService.GetAllTypeConfigsAsync();
+                        var itemConfigsTask = ItemTypeConfigService.GetAllConfigsAsync();
+                        var forgeComboPicturesTask = ItemTypeConfigService.GetAllForgeComboPicturesAsync();
+                        var forgedWeaponsTask = InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                        var leaderboardTask = CharacterRepository.GetTopLeaderboardAsync(50);
+
+                        await Task.WhenAll(
+                            inventorySummaryTask,
+                            stageProgressTask,
+                            naipeConfigsTask,
+                            itemConfigsTask,
+                            forgeComboPicturesTask,
+                            forgedWeaponsTask,
+                            leaderboardTask);
+
+                        // Extract inventory quantities from the single summary
+                        var inventorySummary = inventorySummaryTask.Result;
+                        finoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Fino);
+                        canecaQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Caneca);
+                        cigarroQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Cigarro);
+                        canhaoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Canhao);
+                        shotQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Shot);
+                        penaltyQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Penalty);
+
+                        // Extract instrument parts and equipment from the same summary
+                        instrumentParts = inventorySummary
+                            .Where(kv => Core.Helpers.InstrumentTypeHelper.IsInstrumentPart(kv.Key) && kv.Value > 0)
+                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+                        equipmentItems = inventorySummary
+                            .Where(kv => Core.Helpers.EquipmentDropHelper.IsEquipment(kv.Key) && kv.Value > 0)
+                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+                        // Stage progress
+                        stageProgress = stageProgressTask.Result;
                         var highestStage = stageProgress?.HighestStage ?? 1;
-                        
-                        // Load gathering config and resources (filtered by stage unlock)
+
+                        // Resource quantities from the same inventory summary
                         gatheringConfig = MyTunoConfig.Value.Gathering;
                         activeResources = gatheringConfig.Resources.Where(r => r.IsActive && r.UnlockStage <= highestStage).ToList();
-                        
                         foreach (var res in activeResources)
                         {
                             if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
                             {
-                                var qty = await InventoryService.GetResourceQuantityAsync(currentUser.Id, itemType);
-                                resourceQuantities[itemType] = qty;
+                                resourceQuantities[itemType] = inventorySummary.GetValueOrDefault(itemType);
                             }
                         }
                         
-                        // Load energy
-                        var (energy, max, secondsUntilNext) = await InventoryService.GetCurrentEnergyAsync(currentUser.Id);
+                        // Energy from already-loaded character (0 extra DB queries for load)
+                        var (energy, max, secondsUntilNext) = await InventoryService.GetCurrentEnergyForCharacterAsync(character);
                         currentEnergy = energy;
                         maxEnergy = max;
-                        
-                        // Load instrument parts and equipment
-                        instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
-                        equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
-                        
-                        // Load instrument images from naipe type configs
-                        var naipeConfigs = await NaipeService.GetAllTypeConfigsAsync();
+
+                        // Config data (already awaited above)
+                        var naipeConfigs = naipeConfigsTask.Result;
                         foreach (var config in naipeConfigs)
                         {
                             instrumentImages[config.InstrumentType] = config.PictureUrl;
                         }
                         
-                        // Load item type pictures (weapons, drinks, equipment)
-                        var allItemConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
+                        var allItemConfigs = itemConfigsTask.Result;
                         itemTypePictures = allItemConfigs
                             .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
                             .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
                         
-                        // Load forge combo pictures
-                        forgeComboPictures = await ItemTypeConfigService.GetAllForgeComboPicturesAsync();
-                        
-                        // Load forged weapons
-                        forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                        forgeComboPictures = forgeComboPicturesTask.Result;
+                        forgedWeapons = forgedWeaponsTask.Result;
+
+                        // Leaderboard (already awaited above)
+                        leaderboardEntries = leaderboardTask.Result;
+                        leaderboardLoading = false;
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
                     }
                 }
             }
-
-            await LoadLeaderboardAsync();
+            else
+            {
+                await LoadLeaderboardAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -2464,6 +2491,31 @@
         finally
         {
             leaderboardLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Computes all 5 upgrade costs from the already-loaded character (0 DB queries).
+    /// Falls back to async per-stat loading if character is null.
+    /// </summary>
+    private void LoadUpgradeCostsFromCharacter()
+    {
+        if (character == null) return;
+
+        try
+        {
+            var costs = UpgradeService.GetAllUpgradeCosts(character);
+            hpCost = costs.GetValueOrDefault(StatType.HP);
+            powerCost = costs.GetValueOrDefault(StatType.Power);
+            speedCost = costs.GetValueOrDefault(StatType.Speed);
+            criticalCost = costs.GetValueOrDefault(StatType.CriticalChance);
+            defenseCost = costs.GetValueOrDefault(StatType.Defense);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading upgrade costs");
+            toastMessage = "Erro ao carregar os custos dos upgrades.";
+            toastIsError = true;
         }
     }
 
@@ -2523,7 +2575,7 @@
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
                 }
-                await LoadUpgradeCosts();
+                LoadUpgradeCostsFromCharacter();
 
                 toastMessage = $"Upgrade de {purchasingStat} comprado com sucesso!";
                 toastIsError = false;

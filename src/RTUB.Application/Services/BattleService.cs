@@ -236,13 +236,14 @@ public class BattleService : IBattleService
         // Apply rewards
         await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
 
-        // If player died and has no Fino to heal, auto-heal to full HP
-        // This prevents softlock where player has no healing items
+        // If player died and has no Fino/Caneca to heal, auto-heal to full HP
+        // Use a single inventory query to check relevant quantities
         if (!playerCharacter.IsAlive())
         {
-            var finoItem = await _inventoryRepository.GetItemAsync(playerCharacter.UserId, InventoryItemType.Fino);
-            var canecaItem = await _inventoryRepository.GetItemAsync(playerCharacter.UserId, InventoryItemType.Caneca);
-            var hasHealingItems = (finoItem?.Quantity ?? 0) > 0 || (canecaItem?.Quantity ?? 0) > 0;
+            var inventory = await _inventoryRepository.GetUserInventoryAsync(playerCharacter.UserId);
+            var finoQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Fino)?.Quantity ?? 0;
+            var canecaQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Caneca)?.Quantity ?? 0;
+            var hasHealingItems = finoQty > 0 || canecaQty > 0;
 
             if (!hasHealingItems)
             {
@@ -255,11 +256,10 @@ public class BattleService : IBattleService
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
-        // Roll for consumable drops if player won
+        // Roll for consumable drops and FITAB if player won
         if (result.Outcome == BattleOutcome.AttackerWon)
         {
             await TryDropConsumablesAsync(playerCharacter.UserId);
-            await TryDropFitabAsync(playerCharacter.UserId);
         }
 
         return true;
@@ -303,10 +303,8 @@ public class BattleService : IBattleService
     {
         // Add XP to character (handles level-ups)
         character.AddXP(xp);
-
-        // Update character
-        await _characterRepository.UpdateAsync(character);
-
+        // NOTE: do not save the character here to avoid duplicate saves when caller
+        // performs a consolidated update. Caller must persist the character.
         // Add Fidelis to user
         var user = await _userManager.FindByIdAsync(character.UserId);
         if (user != null)
@@ -337,30 +335,29 @@ public class BattleService : IBattleService
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
         var highestStage = stageProgress?.HighestStage ?? 1;
 
+        var drops = new Dictionary<InventoryItemType, int>();
+
         if (highestStage >= 1 && random.NextDouble() < rewards.FinoDropChance)
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Fino, 1);
+            drops[InventoryItemType.Fino] = 1;
 
         if (highestStage >= 501 && random.NextDouble() < rewards.CanecaDropChance)
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Caneca, 1);
+            drops[InventoryItemType.Caneca] = 1;
 
         if (highestStage >= 301 && random.NextDouble() < rewards.CigarroDropChance)
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Cigarro, 1);
+            drops[InventoryItemType.Cigarro] = 1;
 
         if (highestStage >= 701 && random.NextDouble() < rewards.CanhaoDropChance)
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Canhao, 1);
+            drops[InventoryItemType.Canhao] = 1;
 
         if (highestStage >= 901 && random.NextDouble() < rewards.PenaltyDropChance)
-            await _inventoryRepository.AddItemAsync(userId, InventoryItemType.Penalty, 1);
-    }
+            drops[InventoryItemType.Penalty] = 1;
 
-    /// <summary>
-    /// Rolls for FITAB drop (Boss Mode entry currency) after arena victory
-    /// </summary>
-    private async Task TryDropFitabAsync(string userId)
-    {
-        var roll = Random.Shared.NextDouble();
+        if (drops.Count > 0)
+            await _inventoryRepository.AddItemsAsync(userId, drops);
 
-        if (roll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
+        // Roll for FITAB drop after handling consumable drops
+        var fitabRoll = Random.Shared.NextDouble();
+        if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null)
@@ -370,4 +367,5 @@ public class BattleService : IBattleService
             }
         }
     }
+    
 }

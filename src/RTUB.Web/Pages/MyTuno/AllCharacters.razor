@@ -326,12 +326,15 @@
     {
         try
         {
-            AllItems = await CharacterService.GetAllCharactersOrderedByLevelAsync();
-
-            // Load stage progress for all characters
-            stageMap = await DbContext.StageProgresses
+            var charsTask = CharacterService.GetAllCharactersOrderedByLevelAsync();
+            var stageTask = DbContext.StageProgresses
                 .AsNoTracking()
                 .ToDictionaryAsync(s => s.UserId, s => s.CurrentStage);
+            await Task.WhenAll(charsTask, stageTask);
+            AllItems = charsTask.Result;
+
+            // Stage progress for all characters (loaded in parallel above)
+            stageMap = stageTask.Result;
 
             ApplyFiltersAndPagination();
         }

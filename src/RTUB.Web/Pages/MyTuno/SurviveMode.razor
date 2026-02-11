@@ -339,8 +339,11 @@
                 return;
             }
 
-            character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-            surviveProgress = await SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
+            var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            var progressTask = SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
+            await Task.WhenAll(characterTask, progressTask);
+            character = characterTask.Result;
+            surviveProgress = progressTask.Result;
 
             // Always use the player's actual progress level — no URL override allowed
             currentLevel = surviveProgress.CurrentLevel;

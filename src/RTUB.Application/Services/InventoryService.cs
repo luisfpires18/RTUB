@@ -379,6 +379,43 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
+    /// Gets all inventory item quantities for a user in a single query.
+    /// Returns a dictionary of item type to quantity, replacing multiple individual Get*QuantityAsync calls.
+    /// </summary>
+    public async Task<Dictionary<InventoryItemType, int>> GetUserInventorySummaryAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var allItems = await _inventoryRepository.GetUserInventoryAsync(userId, cancellationToken);
+        return allItems
+            .Where(i => i.Quantity > 0)
+            .ToDictionary(i => i.Type, i => i.Quantity);
+    }
+
+    /// <summary>
+    /// Gets the current energy for an already-loaded character, applying passive regen since last check.
+    /// Avoids a redundant character load when the caller already has the character.
+    /// </summary>
+    public async Task<(int CurrentEnergy, int MaxEnergy, int SecondsUntilNextRegen)> GetCurrentEnergyForCharacterAsync(Character character, CancellationToken cancellationToken = default)
+    {
+        if (character == null)
+            return (0, 10, 0);
+
+        ApplyEnergyRegen(character);
+        await _characterRepository.UpdateAsync(character);
+
+        var secondsUntilNext = 0;
+        if (character.Energy < character.MaxEnergy)
+        {
+            var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+            if (regenInterval <= 0) regenInterval = 60;
+            var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;
+            var elapsed = (DateTime.UtcNow - lastRegen).TotalSeconds;
+            secondsUntilNext = Math.Max(1, regenInterval - (int)elapsed);
+        }
+
+        return (character.Energy, character.MaxEnergy, secondsUntilNext);
+    }
+
+    /// <summary>
     /// Gets the current energy for a character, applying passive regen since last check
     /// </summary>
     public async Task<(int CurrentEnergy, int MaxEnergy, int SecondsUntilNextRegen)> GetCurrentEnergyAsync(string userId, CancellationToken cancellationToken = default)

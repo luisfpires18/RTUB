@@ -44,4 +44,13 @@ public interface IInventoryRepository : IRepository<InventoryItem>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of inventory items for the user</returns>
     Task<List<InventoryItem>> GetUserInventoryAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Batch-adds multiple item types to inventory in a single DB round-trip.
+    /// Loads all affected items at once, modifies in memory, and saves once.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="items">Dictionary of item type to quantity to add</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task AddItemsAsync(string userId, Dictionary<InventoryItemType, int> items, CancellationToken cancellationToken = default);
 }

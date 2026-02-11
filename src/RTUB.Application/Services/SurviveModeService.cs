@@ -382,54 +382,29 @@ public class SurviveModeService : ISurviveModeService
             user.FidelisBalance += fidelis;
         }
 
-        // Apply drops
-        if (finos > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fino, finos);
-        }
+        // Batch all inventory drops into a single DB round-trip
+        var allDrops = new Dictionary<InventoryItemType, int>();
+        if (finos > 0) allDrops[InventoryItemType.Fino] = finos;
+        if (canecas > 0) allDrops[InventoryItemType.Caneca] = canecas;
+        if (cigarros > 0) allDrops[InventoryItemType.Cigarro] = cigarros;
+        if (canhaos > 0) allDrops[InventoryItemType.Canhao] = canhaos;
+        if (shots > 0) allDrops[InventoryItemType.Shot] = shots;
+        if (penalties > 0) allDrops[InventoryItemType.Penalty] = penalties;
 
-        if (canecas > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Caneca, canecas);
-        }
-
-        if (cigarros > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Cigarro, cigarros);
-        }
-
-        if (canhaos > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Canhao, canhaos);
-        }
-
-        if (shots > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
-        }
-
-        if (penalties > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Penalty, penalties);
-        }
-
-        // Apply instrument parts
         if (instrumentParts != null)
         {
             foreach (var (partType, quantity) in instrumentParts)
-            {
-                await _inventoryRepository.AddItemAsync(character.UserId, partType, quantity);
-            }
+                allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
-        // Apply equipment
         if (equipment != null)
         {
             foreach (var (equipType, quantity) in equipment)
-            {
-                await _inventoryRepository.AddItemAsync(character.UserId, equipType, quantity);
-            }
+                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
         }
+
+        if (allDrops.Count > 0)
+            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
 
         ResetStaleUserEntries();
         await _characterRepository.UpdateAsync(character);

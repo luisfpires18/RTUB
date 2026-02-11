@@ -633,49 +633,29 @@ public class StageService : IStageService
             await _userManager.UpdateAsync(user);
         }
 
-        // Apply consumable drops
-        if (finos > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Fino, finos);
-        }
-        if (canecas > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Caneca, canecas);
-        }
-        if (cigarros > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Cigarro, cigarros);
-        }
-        if (canhaos > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Canhao, canhaos);
-        }
-        if (shots > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Shot, shots);
-        }
-        if (penalties > 0)
-        {
-            await _inventoryRepository.AddItemAsync(character.UserId, InventoryItemType.Penalty, penalties);
-        }
+        // Batch all inventory drops into a single DB round-trip
+        var allDrops = new Dictionary<InventoryItemType, int>();
+        if (finos > 0) allDrops[InventoryItemType.Fino] = finos;
+        if (canecas > 0) allDrops[InventoryItemType.Caneca] = canecas;
+        if (cigarros > 0) allDrops[InventoryItemType.Cigarro] = cigarros;
+        if (canhaos > 0) allDrops[InventoryItemType.Canhao] = canhaos;
+        if (shots > 0) allDrops[InventoryItemType.Shot] = shots;
+        if (penalties > 0) allDrops[InventoryItemType.Penalty] = penalties;
 
-        // Apply instrument part drops
         if (hasInstrumentParts)
         {
             foreach (var (partType, quantity) in instrumentParts!)
-            {
-                await _inventoryRepository.AddItemAsync(character.UserId, partType, quantity);
-            }
+                allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
-        // Apply equipment drops
         if (hasEquipment)
         {
             foreach (var (equipType, quantity) in equipment!)
-            {
-                await _inventoryRepository.AddItemAsync(character.UserId, equipType, quantity);
-            }
+                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
         }
+
+        if (allDrops.Count > 0)
+            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
 
         _logger.LogInformation(
             "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",

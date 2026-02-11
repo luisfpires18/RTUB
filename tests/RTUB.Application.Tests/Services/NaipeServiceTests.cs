@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
@@ -63,6 +64,8 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var auditContext = new AuditContext();
         var auditLogAppender = new AuditLogAppender();
 
+        var cache = new MemoryCache(new MemoryCacheOptions());
+
         _naipeService = new NaipeService(
             _naipeContentRepository,
             _naipeCommentRepository,
@@ -73,7 +76,8 @@ public class NaipeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _mockUserManager.Object,
             _context,
             auditContext,
-            _mockHttpContextAccessor.Object);
+            _mockHttpContextAccessor.Object,
+            cache);
 
         // Create test users (only if they don't exist for shared database)
         var userId1 = "naipe-test-user-1";

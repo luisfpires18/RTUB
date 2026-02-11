@@ -69,6 +69,35 @@ public class UpgradeService : IUpgradeService
     }
 
     /// <summary>
+    /// Calculates all upgrade costs at once from a pre-loaded character.
+    /// Avoids 5 separate DB round-trips by reusing the same character data.
+    /// </summary>
+    public Dictionary<StatType, decimal> GetAllUpgradeCosts(Character character)
+    {
+        var statTypes = new[] { StatType.HP, StatType.Power, StatType.Speed, StatType.CriticalChance, StatType.Defense };
+        var result = new Dictionary<StatType, decimal>();
+
+        foreach (var statType in statTypes)
+        {
+            var upgradeCount = statType switch
+            {
+                StatType.HP => character.HpUpgrades,
+                StatType.Power => character.PowerUpgrades,
+                StatType.Speed => character.SpeedUpgrades,
+                StatType.CriticalChance => character.CriticalUpgrades,
+                StatType.Defense => character.DefenseUpgrades,
+                _ => 0
+            };
+
+            var upgradeStat = GetUpgradeStatConfig(statType);
+            var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, upgradeStat.CostExponent);
+            result[statType] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Purchases a stat upgrade with concurrency-safe transaction
     /// </summary>
     public async Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType)

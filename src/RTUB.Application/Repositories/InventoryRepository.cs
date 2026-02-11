@@ -86,4 +86,47 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
             .OrderBy(i => i.Type)
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Batch-adds multiple item types to inventory in a single DB round-trip.
+    /// Loads all affected items at once, modifies in memory, and saves once.
+    /// Replaces N sequential AddItemAsync calls (each doing query + reload + save).
+    /// </summary>
+    public async Task AddItemsAsync(string userId, Dictionary<InventoryItemType, int> items, CancellationToken cancellationToken = default)
+    {
+        if (items == null || items.Count == 0) return;
+
+        var itemTypes = items.Keys.ToList();
+
+        // Single query: load all relevant items at once (with tracking for update)
+        var existingItems = await _context.InventoryItems
+            .Where(i => i.UserId == userId && itemTypes.Contains(i.Type))
+            .ToListAsync(cancellationToken);
+
+        // Reload all tracked entities to ensure fresh values (Blazor Server long-lived DbContext)
+        foreach (var item in existingItems)
+        {
+            await _context.Entry(item).ReloadAsync(cancellationToken);
+        }
+
+        var existingDict = existingItems.ToDictionary(i => i.Type);
+
+        foreach (var (type, quantity) in items)
+        {
+            if (quantity <= 0) continue;
+
+            if (existingDict.TryGetValue(type, out var existing))
+            {
+                existing.AddQuantity(quantity);
+            }
+            else
+            {
+                var newItem = InventoryItem.Create(userId, type, quantity);
+                await _context.InventoryItems.AddAsync(newItem, cancellationToken);
+            }
+        }
+
+        // Single SaveChangesAsync for all modifications
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

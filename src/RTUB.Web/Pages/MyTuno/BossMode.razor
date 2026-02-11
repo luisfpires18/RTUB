@@ -442,8 +442,11 @@
                 currentUser = await UserManager.GetUserAsync(user);
                 if (currentUser != null)
                 {
-                    character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                    bossModeProgress = await BossModeService.GetOrCreateBossModeProgressAsync(currentUser.Id);
+                    var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                    var progressTask = BossModeService.GetOrCreateBossModeProgressAsync(currentUser.Id);
+                    await Task.WhenAll(characterTask, progressTask);
+                    character = characterTask.Result;
+                    bossModeProgress = progressTask.Result;
 
                     if (character != null && bossModeProgress != null)
                     {
