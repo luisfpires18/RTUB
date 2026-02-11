@@ -239,7 +239,7 @@
 
     "bossMode": {
       "stageOffset": 800,
-      "xpPerBossLevel": 25,
+      "xpPerBossLevel": 75,
       "bossLevelXPPower": 0.6,
       "xpLevelPenaltyRate": 0.01,
       "minXPLevelMultiplier": 0.1,
@@ -251,8 +251,8 @@
       "rewardCurve": {
         "scalingRate": 0.10,
         "growthExponent": 1.12,
-        "levelBonusPerLevel": 0.05,
-        "levelBonusCap": 2.0
+        "levelBonusPerLevel": 0.06,
+        "levelBonusCap": 2.5
       },
 
       "baseBossStats": {
@@ -278,7 +278,7 @@
       },
 
       "fidelisRewards": {
-        "bossWin": 100
+        "bossWin": 250
       },
 
       "fitabDropChanceStage": 0.002,
@@ -307,8 +307,8 @@
     },
 
     "dailyReward": {
-      "baseFidelis": 90,
-      "perLevelFidelis": 3
+      "baseFidelis": 900,
+      "perLevelFidelis": 30
     }
   }
 }
