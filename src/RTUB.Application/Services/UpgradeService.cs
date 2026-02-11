@@ -44,13 +44,13 @@ public class UpgradeService : IUpgradeService
     /// Calculates the cost for upgrading a specific stat
     /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
     /// </summary>
-    public async Task<decimal> GetUpgradeCostAsync(string userId, StatType statType)
+    public async Task<decimal> GetUpgradeCostAsync(string userId, StatType statType, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
         // Get character (don't create if it doesn't exist - just return base cost)
-        var character = await _characterService.GetCharacterAsync(userId);
+        var character = await _characterService.GetCharacterAsync(userId, cancellationToken);
         var upgradeCount = character != null ? statType switch
         {
             StatType.HP => character.HpUpgrades,
@@ -100,7 +100,7 @@ public class UpgradeService : IUpgradeService
     /// <summary>
     /// Purchases a stat upgrade with concurrency-safe transaction
     /// </summary>
-    public async Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType)
+    public async Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -111,7 +111,7 @@ public class UpgradeService : IUpgradeService
         if (!supportsTransactions)
         {
             // For in-memory database (testing), use fallback method without transactions
-            return await PurchaseUpgradeWithoutTransactionAsync(userId, statType);
+            return await PurchaseUpgradeWithoutTransactionAsync(userId, statType, cancellationToken);
         }
 
         // Retry logic for concurrency conflicts (production database with transactions)
@@ -120,7 +120,7 @@ public class UpgradeService : IUpgradeService
             try
             {
                 // Use database transaction for atomicity
-                await using var transaction = await _context.Database.BeginTransactionAsync();
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
                 try
                 {
@@ -133,11 +133,11 @@ public class UpgradeService : IUpgradeService
                     }
 
                     // Get or create character (reload within transaction to ensure latest data)
-                    var character = await _characterService.GetOrCreateCharacterAsync(userId);
+                    var character = await _characterService.GetOrCreateCharacterAsync(userId, cancellationToken);
 
                     // Reload character from database within transaction to ensure we have latest upgrade counts
                     character = await _context.Characters
-                        .FirstOrDefaultAsync(c => c.UserId == userId);
+                        .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
                     if (character == null)
                     {
@@ -209,11 +209,11 @@ public class UpgradeService : IUpgradeService
 
                     // Save changes atomically
                     await _userManager.UpdateAsync(user);
-                    await _characterService.UpdateCharacterAsync(character);
-                    await _context.SaveChangesAsync();
+                    await _characterService.UpdateCharacterAsync(character, cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken);
 
                     // Commit transaction
-                    await transaction.CommitAsync();
+                    await transaction.CommitAsync(cancellationToken);
 
                     var newUpgradeCount = statType switch
                     {
@@ -238,7 +238,7 @@ public class UpgradeService : IUpgradeService
                     }
 
                     // Wait a bit before retry (exponential backoff)
-                    await Task.Delay(50 * attempt);
+                    await Task.Delay(50 * attempt, cancellationToken);
                     continue;
                 }
                 catch (Exception ex)
@@ -280,7 +280,7 @@ public class UpgradeService : IUpgradeService
     /// <summary>
     /// Fallback method for in-memory database that doesn't support transactions
     /// </summary>
-    private async Task<UpgradeResult> PurchaseUpgradeWithoutTransactionAsync(string userId, StatType statType)
+    private async Task<UpgradeResult> PurchaseUpgradeWithoutTransactionAsync(string userId, StatType statType, CancellationToken cancellationToken)
     {
         try
         {
@@ -290,7 +290,7 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Utilizador não encontrado");
             }
 
-            var character = await _characterService.GetOrCreateCharacterAsync(userId);
+            var character = await _characterService.GetOrCreateCharacterAsync(userId, cancellationToken);
             if (character == null)
             {
                 return UpgradeResult.CreateFailure("Personagem não encontrado");
@@ -352,8 +352,8 @@ public class UpgradeService : IUpgradeService
             }
 
             await _userManager.UpdateAsync(user);
-            await _characterService.UpdateCharacterAsync(character);
-            await _context.SaveChangesAsync();
+            await _characterService.UpdateCharacterAsync(character, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
             var newUpgradeCount = statType switch
             {

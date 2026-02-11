@@ -1,3 +1,4 @@
+using System.Threading;
 using RTUB.Application.DTOs;
 
 namespace RTUB.Application.Interfaces;
@@ -16,7 +17,7 @@ public interface IBattleService
     /// <param name="playerCharacterId">The player's character ID</param>
     /// <param name="opponentCharacterId">The opponent character ID</param>
     /// <returns>The battle result with replay data</returns>
-    Task<BattleResult> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId);
+    Task<BattleResult> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Finalizes a battle and applies rewards
@@ -24,5 +25,5 @@ public interface IBattleService
     /// </summary>
     /// <param name="result">The battle result to finalize</param>
     /// <returns>True if rewards were applied successfully</returns>
-    Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result);
+    Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result, CancellationToken cancellationToken = default);
 }

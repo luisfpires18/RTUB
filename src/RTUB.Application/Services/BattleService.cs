@@ -1,8 +1,11 @@
 using System.Text.Json;
+using System.Threading;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Configuration;
@@ -27,6 +30,7 @@ public class BattleService : IBattleService
     private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
     private readonly IAuditLogService _auditLogService;
     private readonly IStageProgressRepository _stageProgressRepository;
+    private readonly ApplicationDbContext _dbContext;
 
     public BattleService(
         ICharacterRepository characterRepository,
@@ -36,7 +40,8 @@ public class BattleService : IBattleService
         ILogger<BattleService> logger,
         IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
         IAuditLogService auditLogService,
-        IStageProgressRepository stageProgressRepository)
+        IStageProgressRepository stageProgressRepository,
+        ApplicationDbContext dbContext)
     {
         _characterRepository = characterRepository;
         _combatEngine = combatEngine;
@@ -46,13 +51,14 @@ public class BattleService : IBattleService
         _myTunoScalingConfig = myTunoScalingConfig.Value;
         _auditLogService = auditLogService;
         _stageProgressRepository = stageProgressRepository;
+        _dbContext = dbContext;
     }
 
     /// <summary>
     /// Creates and executes a battle vs a specific opponent character
     /// Rewards are NOT applied until FinalizeAndApplyRewardsAsync is called
     /// </summary>
-    public async Task<BattleResult> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId)
+    public async Task<BattleResult> CreateBattleVsOpponentAsync(int playerCharacterId, int opponentCharacterId, CancellationToken cancellationToken = default)
     {
         // Load player character
         var playerCharacter = await _characterRepository.GetByIdAsync(playerCharacterId);
@@ -137,14 +143,14 @@ public class BattleService : IBattleService
     /// Should be called after the battle animation finishes
     /// Handles concurrency exceptions by reloading and retrying once
     /// </summary>
-    public async Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result)
+    public async Task<bool> FinalizeAndApplyRewardsAsync(BattleResult result, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 1;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                return await ApplyBattleRewardsAsync(result);
+                return await ApplyBattleRewardsAsync(result, cancellationToken);
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
             {
@@ -175,7 +181,7 @@ public class BattleService : IBattleService
     /// Internal method that applies battle rewards
     /// Separated to allow retry logic in FinalizeAndApplyRewardsAsync
     /// </summary>
-    private async Task<bool> ApplyBattleRewardsAsync(BattleResult result)
+    private async Task<bool> ApplyBattleRewardsAsync(BattleResult result, CancellationToken cancellationToken = default)
     {
         // Load the attacker character
         var playerCharacter = await _characterRepository.GetByIdAsync(result.AttackerCharacterId);
@@ -183,6 +189,13 @@ public class BattleService : IBattleService
         {
             _logger.LogError("Player character {CharacterId} not found for battle finalization", result.AttackerCharacterId);
             return false;
+        }
+
+        // Idempotency check — if this battle was already finalized, return cached success
+        if (playerCharacter.LastBattleId.HasValue && playerCharacter.LastBattleId.Value == result.BattleId)
+        {
+            _logger.LogWarning("Duplicate finalization for BattleId {BattleId}, skipping", result.BattleId);
+            return true;
         }
 
         // Apply battle HP result — arena battles use persistent HP
@@ -222,15 +235,21 @@ public class BattleService : IBattleService
         // Update cooldown tracking
         playerCharacter.LastOpponentId = result.DefenderCharacterId;
         playerCharacter.LastBattleAt = DateTime.UtcNow;
+        playerCharacter.LastBattleId = result.BattleId;
 
-        // Apply rewards
-        await ApplyRewardsAsync(playerCharacter, result.AttackerXP, result.AttackerFidelis);
+        // Apply rewards — modify user entity directly (no intermediate save)
+        var user = await _dbContext.Users.FindAsync(new object[] { playerCharacter.UserId }, cancellationToken);
+        if (user != null)
+        {
+            user.FidelisBalance += result.AttackerFidelis;
+        }
+        playerCharacter.AddXP(result.AttackerXP);
 
         // If player died and has no Fino/Caneca to heal, auto-heal to full HP
         // Use a single inventory query to check relevant quantities
         if (!playerCharacter.IsAlive())
         {
-            var inventory = await _inventoryRepository.GetUserInventoryAsync(playerCharacter.UserId);
+            var inventory = await _inventoryRepository.GetUserInventoryAsync(playerCharacter.UserId, cancellationToken);
             var finoQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Fino)?.Quantity ?? 0;
             var canecaQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Caneca)?.Quantity ?? 0;
             var hasHealingItems = finoQty > 0 || canecaQty > 0;
@@ -247,9 +266,11 @@ public class BattleService : IBattleService
         await _characterRepository.UpdateAsync(playerCharacter);
 
         // Roll for consumable drops and FITAB if player won
+        // (drops are saved by AddItemsAsync — acceptable extra round-trip since
+        // it does upsert logic; we already batched user + character into one save)
         if (result.Outcome == BattleOutcome.AttackerWon)
         {
-            await TryDropConsumablesAsync(playerCharacter.UserId);
+            await TryDropConsumablesAsync(playerCharacter.UserId, user, cancellationToken);
         }
 
         return true;
@@ -286,38 +307,19 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Applies XP and Fidelis rewards to the player
-    /// Note: AI opponents do not receive rewards
-    /// </summary>
-    private async Task ApplyRewardsAsync(Character character, int xp, decimal fidelis)
-    {
-        // Add XP to character (handles level-ups)
-        character.AddXP(xp);
-        // NOTE: do not save the character here to avoid duplicate saves when caller
-        // performs a consolidated update. Caller must persist the character.
-        // Add Fidelis to user
-        var user = await _userManager.FindByIdAsync(character.UserId);
-        if (user != null)
-        {
-            user.FidelisBalance += fidelis;
-            await _userManager.UpdateAsync(user);
-        }
-    }
-
-    /// <summary>
     /// Generates a random seed for combat simulation
     /// </summary>
     private static int GenerateSeed()
     {
-        return new Random().Next(int.MinValue, int.MaxValue);
+        return Random.Shared.Next(int.MinValue, int.MaxValue);
     }
 
     /// <summary>
-    /// Rolls for consumable drops (Fino, Caneca, Cigarro, Canhão) and adds to player's inventory if successful
+    /// Rolls for consumable drops (Fino, Caneca, Cigarro, Canhão) and adds to player's inventory if successful.
+    /// Accepts an already-loaded user entity to batch FITAB changes without an extra round-trip.
     /// </summary>
-    private async Task TryDropConsumablesAsync(string userId)
+    private async Task TryDropConsumablesAsync(string userId, ApplicationUser? user, CancellationToken cancellationToken = default)
     {
-        var random = new Random();
         var rewards = _myTunoScalingConfig.BattleRewards;
 
         // Gate consumable drops behind biome progression
@@ -327,34 +329,30 @@ public class BattleService : IBattleService
 
         var drops = new Dictionary<InventoryItemType, int>();
 
-        if (highestStage >= 1 && random.NextDouble() < rewards.FinoDropChance)
+        if (highestStage >= 1 && Random.Shared.NextDouble() < rewards.FinoDropChance)
             drops[InventoryItemType.Fino] = 1;
 
-        if (highestStage >= 501 && random.NextDouble() < rewards.CanecaDropChance)
+        if (highestStage >= 501 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
             drops[InventoryItemType.Caneca] = 1;
 
-        if (highestStage >= 301 && random.NextDouble() < rewards.CigarroDropChance)
+        if (highestStage >= 301 && Random.Shared.NextDouble() < rewards.CigarroDropChance)
             drops[InventoryItemType.Cigarro] = 1;
 
-        if (highestStage >= 701 && random.NextDouble() < rewards.CanhaoDropChance)
+        if (highestStage >= 701 && Random.Shared.NextDouble() < rewards.CanhaoDropChance)
             drops[InventoryItemType.Canhao] = 1;
 
-        if (highestStage >= 901 && random.NextDouble() < rewards.PenaltyDropChance)
+        if (highestStage >= 901 && Random.Shared.NextDouble() < rewards.PenaltyDropChance)
             drops[InventoryItemType.Penalty] = 1;
 
         if (drops.Count > 0)
-            await _inventoryRepository.AddItemsAsync(userId, drops);
+            await _inventoryRepository.AddItemsAsync(userId, drops, cancellationToken);
 
-        // Roll for FITAB drop after handling consumable drops
+        // Roll for FITAB drop — use the already-tracked user entity to avoid extra load + save
         var fitabRoll = Random.Shared.NextDouble();
-        if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle)
+        if (fitabRoll < _myTunoScalingConfig.BossMode.FitabDropChanceBattle && user != null)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user != null)
-            {
-                user.FitabBalance++;
-                await _userManager.UpdateAsync(user);
-            }
+            user.FitabBalance++;
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
     

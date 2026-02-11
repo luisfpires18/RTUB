@@ -51,28 +51,20 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     }
 
     /// <summary>
-    /// Consumes quantity from an inventory item
+    /// Atomically consumes quantity from an inventory item using a single SQL UPDATE
+    /// with a WHERE guard (Quantity >= requested). Prevents TOCTOU race conditions
+    /// where two concurrent requests could both see sufficient stock and both consume.
     /// </summary>
     public async Task<bool> ConsumeItemAsync(string userId, InventoryItemType type, int quantity, CancellationToken cancellationToken = default)
     {
-        // Find existing item (with tracking for update)
-        var existingItem = await _context.InventoryItems
-            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == type, cancellationToken);
+        // Atomic: decrement only if sufficient stock exists in a single DB round-trip.
+        // The WHERE clause "Quantity >= {quantity}" makes the check-and-update atomic —
+        // if two requests race, only one will match and decrement.
+        var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE InventoryItems SET Quantity = Quantity - {quantity} WHERE UserId = {userId} AND Type = {(int)type} AND Quantity >= {quantity}",
+            cancellationToken);
 
-        if (existingItem == null)
-            return false;
-
-        // Ensure we have the latest DB value (Blazor Server DbContext is long-lived)
-        await _context.Entry(existingItem).ReloadAsync(cancellationToken);
-
-        // Try to consume quantity
-        var success = existingItem.ConsumeQuantity(quantity);
-        if (!success)
-            return false;
-
-        // Save changes
-        await _context.SaveChangesAsync(cancellationToken);
-        return true;
+        return rowsAffected > 0;
     }
 
     /// <summary>

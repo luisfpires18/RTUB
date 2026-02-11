@@ -119,10 +119,49 @@
         }
     ];
 
+    // Session-level cache bust — set once per page load so the browser
+    // can reuse HTTP-cached sprites across level transitions.
+    const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+
     // Audio
     let bgMusic = null;
     let bgMusicLoaded = false;
     let audioEnabled = true;
+
+    // SFX audio pool — reuses Audio elements to avoid GC pressure from creating
+    // a new Audio() on every hit, death, or win sound effect.
+    const sfxPool = {};
+    const SFX_POOL_SIZE = 4;
+    const SFX_MAP = {
+        win: '/audio/games/my-tuno/survive/win.mp3',
+        death: '/audio/games/my-tuno/survive/death.mp3',
+        hit: '/audio/games/my-tuno/survive/hit.mp3'
+    };
+    // Cache-bust version — refreshes audio once per page session
+    const audioCacheBuster = `?v=${Date.now()}`;
+    function getPooledAudio(type) {
+        const src = SFX_MAP[type];
+        if (!src) return null;
+        if (!sfxPool[type]) {
+            sfxPool[type] = [];
+            for (let i = 0; i < SFX_POOL_SIZE; i++) {
+                const a = new Audio(src + audioCacheBuster);
+                a.volume = 0.5;
+                sfxPool[type].push(a);
+            }
+        }
+        // Find an audio element that's finished or hasn't started
+        for (const a of sfxPool[type]) {
+            if (a.paused || a.ended) {
+                a.currentTime = 0;
+                return a;
+            }
+        }
+        // All busy — reuse the first one
+        const a = sfxPool[type][0];
+        a.currentTime = 0;
+        return a;
+    }
 
     // ─── Game State ───────────────────────────────────────────────
     let app = null;
@@ -165,6 +204,41 @@
             this._pool.push(obj);
         }
         get size() { return this._pool.length; }
+    }
+
+    // ─── Spatial Hash Grid ────────────────────────────────────────
+    // Partition entities into grid cells for O(n·k) collision lookups
+    // instead of brute-force O(n²).
+    class SpatialGrid {
+        constructor(cellSize) {
+            this.cellSize = cellSize;
+            this.cells = new Map();
+        }
+        _key(cx, cy) { return `${cx},${cy}`; }
+        clear() { this.cells.clear(); }
+        insert(entity) {
+            const cx = Math.floor(entity.x / this.cellSize);
+            const cy = Math.floor(entity.y / this.cellSize);
+            const key = this._key(cx, cy);
+            let cell = this.cells.get(key);
+            if (!cell) { cell = []; this.cells.set(key, cell); }
+            cell.push(entity);
+        }
+        /** Return all entities in the same cell and 8 neighbours. */
+        query(x, y) {
+            const cx = Math.floor(x / this.cellSize);
+            const cy = Math.floor(y / this.cellSize);
+            const result = [];
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const cell = this.cells.get(this._key(cx + dx, cy + dy));
+                    if (cell) {
+                        for (let i = 0; i < cell.length; i++) result.push(cell[i]);
+                    }
+                }
+            }
+            return result;
+        }
     }
 
     // ─── SurviveScene ─────────────────────────────────────────────
@@ -214,6 +288,8 @@
             this.worldContainer = null;
             this.uiContainer = null;
             this.enemies = [];
+            this._enemyContainerPool = [];
+            this._spatialGrid = new SpatialGrid(128);
             this.xpOrbs = [];
             this.particles = [];
             this.projectiles = [];
@@ -340,26 +416,27 @@
 
         async loadAssets() {
             const assets = [];
-            // Cache-busting timestamp so updated sprites are always fetched fresh
-            const ts = Date.now();
-            const cacheBust = `?v=${ts}`;
+            // Use a session-level cache bust (set once per page load) so the browser
+            // can reuse HTTP-cached sprites across level transitions.
+            // Aliases are path-based (stable) to avoid VRAM leaks from unique timestamps.
+            const cacheBust = SESSION_CACHE_BUST;
 
             // Background
             if (this.backgroundPath) {
-                this._bgAlias = `surviveBg_${this.level}_${ts}`;
+                this._bgAlias = `surviveBg_${this.backgroundPath}`;
                 assets.push({ alias: this._bgAlias, src: this.backgroundPath + cacheBust });
             }
 
             // Player sprite
             if (this.playerSpritePath) {
-                this._playerAlias = `survivePlayer_${ts}`;
+                this._playerAlias = `survivePlayer_${this.playerSpritePath}`;
                 assets.push({ alias: this._playerAlias, src: this.playerSpritePath + cacheBust });
             }
 
             // Enemy sprites
             this.enemySpriteAliases = [];
             for (let i = 0; i < this.enemySprites.length; i++) {
-                const alias = `surviveEnemy_${i}_${this.level}_${ts}`;
+                const alias = `surviveEnemy_${i}_${this.enemySprites[i]}`;
                 assets.push({ alias, src: this.enemySprites[i] + cacheBust });
                 this.enemySpriteAliases.push(alias);
             }
@@ -367,7 +444,7 @@
             // Boss sprites
             this.bossSpriteAliases = [];
             for (let i = 0; i < this.bossSprites.length; i++) {
-                const alias = `surviveBoss_${i}_${this.level}_${ts}`;
+                const alias = `surviveBoss_${i}_${this.bossSprites[i]}`;
                 assets.push({ alias, src: this.bossSprites[i] + cacheBust });
                 this.bossSpriteAliases.push(alias);
             }
@@ -782,6 +859,35 @@
             }
         }
 
+        _getEnemyContainer() {
+            if (this._enemyContainerPool.length > 0) {
+                const c = this._enemyContainerPool.pop();
+                c.visible = true;
+                c.alpha = 1;
+                return c;
+            }
+            return new PIXI.Container();
+        }
+
+        _releaseEnemyContainer(container) {
+            if (!container) return;
+            if (container.parent) container.parent.removeChild(container);
+            // Remove all children (sprite, glow, crown etc.) — textures are kept in PIXI.Assets cache
+            while (container.children.length > 0) {
+                const child = container.children[0];
+                container.removeChild(child);
+                if (child.destroy) {
+                    try { child.destroy({ children: false, texture: false, baseTexture: false }); } catch (_) {}
+                }
+            }
+            container.visible = false;
+            if (this._enemyContainerPool.length < 50) {
+                this._enemyContainerPool.push(container);
+            } else {
+                try { container.destroy({ children: true }); } catch (_) {}
+            }
+        }
+
         spawnEnemy() {
             if (this.enemies.length >= this.maxEnemyCount) return;
 
@@ -815,7 +921,7 @@
                 ? this.currentEnemySpeed * ELITE_SPEED_MULT
                 : this.currentEnemySpeed * (0.8 + Math.random() * 0.4);
 
-            const enemyContainer = new PIXI.Container();
+            const enemyContainer = this._getEnemyContainer();
             let sprite = null;
 
             // Try to use enemy sprite texture
@@ -889,13 +995,13 @@
             // Clear all existing enemies before boss spawns
             for (const enemy of this.enemies) {
                 if (enemy.container) {
-                    try { this.worldContainer.removeChild(enemy.container); } catch (_) { }
+                    this._releaseEnemyContainer(enemy.container);
                 }
             }
             this.enemies = [];
 
             // Pick a random boss sprite
-            const bossContainer = new PIXI.Container();
+            const bossContainer = this._getEnemyContainer();
             let sprite = null;
 
             if (this.bossSpriteAliases && this.bossSpriteAliases.length > 0) {
@@ -1299,6 +1405,7 @@
             this.updateParticles(dt);
 
             // Collision detection
+            this.rebuildSpatialGrid();
             this.checkCollisions();
 
             // Update minimap
@@ -1574,7 +1681,7 @@
                                 const oy = (c === 0) ? 0 : (Math.random() - 0.5) * 30;
                                 this.spawnXPOrb(enemy.x + ox, enemy.y + oy);
                             }
-                            this.worldContainer.removeChild(enemy.container);
+                            this._releaseEnemyContainer(enemy.container);
                             this.enemies.splice(j, 1);
                             this.enemiesKilled++;
                             this.playSFX('hit');
@@ -1602,10 +1709,20 @@
             }
         }
 
+        rebuildSpatialGrid() {
+            this._spatialGrid.clear();
+            for (let i = 0; i < this.enemies.length; i++) {
+                const e = this.enemies[i];
+                if (e.alive) this._spatialGrid.insert(e);
+            }
+        }
+
         checkCollisions() {
             if (this.invulnTimer > 0) return; // invulnerable, skip
 
-            for (const enemy of this.enemies) {
+            const nearby = this._spatialGrid.query(this.playerX, this.playerY);
+            for (let i = 0; i < nearby.length; i++) {
+                const enemy = nearby[i];
                 if (!enemy.alive) continue;
 
                 const d = dist({ x: this.playerX, y: this.playerY }, { x: enemy.x, y: enemy.y });
@@ -2061,7 +2178,7 @@
                     return;
                 }
                 // Use the dedicated survival music track
-                bgMusic = new Audio('/sound/survival_battle.mp3');
+                bgMusic = new Audio('/sound/survival_battle.mp3' + audioCacheBuster);
                 bgMusic.loop = true;
                 bgMusic.volume = 0.3;
                 bgMusic.play().catch(() => { });
@@ -2072,14 +2189,8 @@
         playSFX(type) {
             if (!audioEnabled) return;
             try {
-                const sfxMap = {
-                    win: '/audio/games/my-tuno/survive/win.mp3',
-                    death: '/audio/games/my-tuno/survive/death.mp3',
-                    hit: '/audio/games/my-tuno/survive/hit.mp3'
-                };
-                const audio = new Audio(sfxMap[type] || '');
-                audio.volume = 0.5;
-                audio.play().catch(() => { });
+                const audio = getPooledAudio(type);
+                if (audio) audio.play().catch(() => { });
             } catch (_) { }
         }
 
@@ -2118,6 +2229,11 @@
             }
 
             this.enemies = [];
+            // Drain enemy container pool
+            for (const c of this._enemyContainerPool) {
+                try { c.destroy({ children: true }); } catch (_) {}
+            }
+            this._enemyContainerPool = [];
             this.xpOrbs = [];
             this.particles = [];
             this.projectiles = [];

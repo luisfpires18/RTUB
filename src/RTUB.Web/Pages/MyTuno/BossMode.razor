@@ -27,6 +27,8 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<BossMode> Logger
 @inject IAuditLogService AuditLogService
+@inject IInventoryService InventoryService
+@inject IStageService StageService
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
@@ -189,9 +191,9 @@
                                 <span class="badge bg-light text-dark fw-bold">@enemy.Name</span>
                                 <span class="badge bg-danger">
                                     <i class="bi bi-heart-fill me-1"></i>
-                                    @if (enemy.MaxHP > 0 && enemy.HP < enemy.MaxHP)
+                                    @if (enemy.MaxHP is > 0 && enemy.HP < enemy.MaxHP)
                                     {
-                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP) HP</text>
+                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP.Value) HP</text>
                                     }
                                     else
                                     {
@@ -212,6 +214,138 @@
                     </div>
                 </div>
             }
+        }
+
+        @if (showBuffScreen)
+        {
+            <div class="defeat-overlay">
+                <div class="defeat-panel buff-panel">
+                    <div class="defeat-banner">
+                        <span>DERROTADO</span>
+                    </div>
+                    <div class="defeat-stage">Boss @Fmt(defeatedAtBossStage)</div>
+
+                    @* Current Buffs Section *@
+                    <div class="buff-section">
+                        <h6 class="buff-section-title"><i class="bi bi-shield-check me-1"></i>Buffs Ativos</h6>
+                        @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+                        {
+                            <div class="buff-active-list">
+                                @if (character.ShotBuffBattlesRemaining > 0)
+                                {
+                                    <span class="badge bg-info buff-badge">
+                                        <i class="bi bi-droplet-fill me-1"></i>Shot (@character.ShotBuffBattlesRemaining batalhas)
+                                    </span>
+                                }
+                                @if (character.CigarroShieldHitsRemaining > 0)
+                                {
+                                    <span class="badge bg-info buff-badge">
+                                        <i class="bi bi-shield-fill me-1"></i>Cigarro (@character.CigarroShieldHitsRemaining/3 hits)
+                                    </span>
+                                }
+                                @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                                {
+                                    <span class="badge bg-danger buff-badge">
+                                        <i class="bi bi-bullseye me-1"></i>Canhão (@character.CanhaoDamageBoostHitsRemaining/3 hits)
+                                    </span>
+                                }
+                                @if (character.PenaltyBuffActive > 0)
+                                {
+                                    <span class="badge bg-warning text-dark buff-badge">
+                                        <i class="bi bi-lightning-charge-fill me-1"></i>Penalty Ativo
+                                    </span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="buff-none">Nenhum buff ativo</p>
+                        }
+                    </div>
+
+                    @* FITAB Balance *@
+                    <div class="buff-fitab">
+                        <i class="bi bi-ticket-perforated-fill me-1"></i>
+                        <span>@Fmt(fitabBalance) FITAB</span>
+                        <span class="buff-fitab__cost">(1 FITAB por tentativa)</span>
+                    </div>
+
+                    @* Toast message *@
+                    @if (!string.IsNullOrEmpty(buffToastMessage))
+                    {
+                        <div class="buff-toast @(buffToastIsError ? "buff-toast--error" : "buff-toast--success")">
+                            <i class="bi @(buffToastIsError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-1"></i>
+                            @buffToastMessage
+                        </div>
+                    }
+
+                    @* Consumables Grid *@
+                    <div class="buff-section">
+                        <h6 class="buff-section-title"><i class="bi bi-cup-straw me-1"></i>Consumíveis</h6>
+                        <div class="buff-item-grid">
+                            @{
+                                var isCharacterDead = character?.CurrentHP == null || character.CurrentHP <= 0;
+                                var isFullHp = character != null && character.CurrentHP >= character.TotalHP;
+                                var buffConsumables = new (string Name, string Icon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
+                                {
+                                    ("Shot", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
+                                    ("Cigarro", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                    ("Canhão", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
+                                    ("Penalty", "bi-lightning-charge-fill", "0.5s + 100% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
+                                };
+                            }
+
+                            @foreach (var c in buffConsumables)
+                            {
+                                var isLocked = c.UnlockStage > consumableHighestStage;
+                                var isDisabled = isLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
+
+                                <div class="buff-item-card buff-item-card--@c.CssVariant @(isLocked ? "buff-item-card--locked" : "") @(isDisabled && !isLocked ? "buff-item-card--disabled" : "")"
+                                     @onclick="async () => { if (!isDisabled) await c.UseAction(); }"
+                                     style="cursor: @(isDisabled ? "not-allowed" : "pointer")"
+                                     title="@(isLocked ? $"Desbloqueia no Stage {c.UnlockStage}" : c.Desc)">
+                                    <div class="buff-item-card__qty">
+                                        @if (isLocked)
+                                        {
+                                            <i class="bi bi-lock-fill"></i>
+                                        }
+                                        else
+                                        {
+                                            @Fmt(c.Qty)
+                                        }
+                                    </div>
+                                    <div class="buff-item-card__icon">
+                                        @if (isLocked)
+                                        {
+                                            <i class="bi bi-lock-fill" style="opacity: 0.4;"></i>
+                                        }
+                                        else if (c.Using)
+                                        {
+                                            <span class="spinner-border spinner-border-sm text-info"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi @c.Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="buff-item-card__name">@c.Name</div>
+                                    <div class="buff-item-card__desc">@c.Desc</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @* Action Buttons *@
+                    <div class="buff-actions">
+                        <button class="defeat-btn buff-btn--retry" @onclick="TryAgainBoss" disabled="@(fighting || isCharacterDead)">
+                            <i class="bi bi-arrow-clockwise me-1"></i>TENTAR DE NOVO
+                        </button>
+                        <button class="defeat-btn buff-btn--end" @onclick="EndRunFromBuffScreen">
+                            IR MY TUNO
+                        </button>
+                    </div>
+                </div>
+            </div>
         }
 
         @if (showDefeatSummary)
@@ -360,10 +494,17 @@
     private int defeatedAtBossStage = 0;
     private int? defeatRestoreHp;
 
+    // Consumable state (post-defeat buff screen)
+    private bool showBuffScreen = false;
+    private int cigarroQuantity, canhaoQuantity, shotQuantity, penaltyQuantity;
+    private bool usingCigarro, usingCanhao, usingShot, usingPenalty;
+    private string? buffToastMessage;
+    private bool buffToastIsError;
+    private int consumableHighestStage = 1;
+    private int fitabBalance = 0;
+
     private readonly SemaphoreSlim _bossLock = new(1, 1);
     private List<EnemyStatsInfo> currentEnemyStats = new();
-
-    private record EnemyStatsInfo(string Name, int HP, int MaxHP, int Power, int Defense, double ActionTime);
 
     protected override async Task OnInitializedAsync()
     {
@@ -412,7 +553,7 @@
             if (character != null && currentBattle == null && !battleAutoStarted)
             {
                 battleAutoStarted = true;
-                await Task.Delay(150);
+                await Task.Delay(50);
                 try
                 {
                     await FightBoss();
@@ -675,30 +816,34 @@
         }
         else
         {
-            // Defeated — apply rewards and show summary
+            // Defeated — show buff screen (use consumables & try again)
             defeatedAtBossStage = currentBattle.BossStage;
 
-            if (character != null && bossesCleared > 0)
+            // Destroy the Phaser game so canvas doesn't block interactions
+            if (hasRendered)
             {
-                try
+                try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+                catch { }
+            }
+
+            // Reload character and restore HP so buffs can be used
+            if (currentUser != null)
+            {
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                if (character != null && (character.CurrentHP == null || character.CurrentHP <= 0))
                 {
-                    await BossModeService.ApplyBossRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
-                        defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error applying boss run rewards on defeat");
+                    character.CurrentHP = runStartingHp ?? character.TotalHP;
+                    await CharacterService.UpdateCharacterAsync(character);
                 }
             }
 
-            pendingDefeatRewards = false;
+            // Load consumable quantities for buff screen
+            await LoadConsumableQuantitiesAsync();
+
             showBattleAnimation = false;
-            showDefeatSummary = true;
+            showBuffScreen = true;
+            buffToastMessage = null;
             currentEnemyStats.Clear();
-            currentBattle = null;
 
             StateHasChanged();
         }
@@ -798,6 +943,256 @@
         showDefeatSummary = false;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
+    }
+
+    private async Task LoadConsumableQuantitiesAsync()
+    {
+        if (currentUser == null) return;
+        try
+        {
+            var inventorySummary = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+            shotQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Shot);
+            cigarroQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Cigarro);
+            canhaoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Canhao);
+            penaltyQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Penalty);
+
+            var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+            var userTask = UserManager.FindByIdAsync(currentUser.Id);
+            await Task.WhenAll(stageProgressTask, userTask);
+            var stageProgress = stageProgressTask.Result;
+            consumableHighestStage = stageProgress?.HighestStage ?? 1;
+            var freshUser = userTask.Result;
+            fitabBalance = freshUser?.FitabBalance ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading consumable quantities");
+        }
+    }
+
+    private async Task TryAgainBoss()
+    {
+        if (_disposed || character == null || currentUser == null) return;
+        if (fighting) return;
+
+        showBuffScreen = false;
+        buffToastMessage = null;
+
+        // Reload character to get updated buff state
+        character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+
+        // Start a new boss run (costs 1 FITAB)
+        try
+        {
+            bossModeProgress = await BossModeService.StartBossModeRunAsync(currentUser.Id);
+            fitabBalance = Math.Max(0, fitabBalance - 1);
+        }
+        catch (InvalidOperationException ex)
+        {
+            buffToastMessage = ex.Message.Contains("FITAB")
+                ? "Não tens FITAB suficiente para tentar de novo."
+                : ex.Message;
+            buffToastIsError = true;
+            showBuffScreen = true;
+            StateHasChanged();
+            return;
+        }
+
+        // Re-store run starting state with current buffs
+        runStartingHp = character.CurrentHP;
+        runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
+        runStartingCigarroShield = character.CigarroShieldHitsRemaining;
+        runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+        runStartingPenaltyBuff = character.PenaltyBuffActive;
+        runInProgress = true;
+        pendingDefeatRewards = true;
+        currentBattle = null;
+
+        StateHasChanged();
+        await Task.Delay(150);
+        await FightBoss();
+    }
+
+    private async Task EndRunFromBuffScreen()
+    {
+        if (_disposed) return;
+
+        // Apply accumulated rewards
+        if (character != null && bossesCleared > 0)
+        {
+            try
+            {
+                await BossModeService.ApplyBossRunRewardsAsync(
+                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                    defeatRestoreHp,
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error applying boss run rewards from buff screen");
+            }
+        }
+        else if (character != null && runStartingHp.HasValue)
+        {
+            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+        }
+
+        pendingDefeatRewards = false;
+        runInProgress = false;
+        runStartingHp = null;
+        showBuffScreen = false;
+        currentBattle = null;
+
+        // End boss mode run
+        if (currentUser != null)
+        {
+            bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
+            if (bossModeProgress != null && bossModeProgress.CurrentBossStage > 0)
+            {
+                bossModeProgress.EndRun();
+            }
+        }
+
+        // Navigate directly to My Tuno
+        ResetRunTotals();
+        Navigation.NavigateTo("/my-tuno");
+    }
+
+    private async Task UseShotBoss()
+    {
+        if (currentUser == null) return;
+        usingShot = true;
+        StateHasChanged();
+        try
+        {
+            var (success, battlesEmpowered, message) = await InventoryService.UseShotAsync(currentUser.Id);
+            if (success)
+            {
+                shotQuantity--;
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                buffToastMessage = message;
+                buffToastIsError = false;
+            }
+            else
+            {
+                buffToastMessage = message;
+                buffToastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error using shot in boss mode");
+            buffToastMessage = "Erro ao usar Shot.";
+            buffToastIsError = true;
+        }
+        finally
+        {
+            usingShot = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCigarroBoss()
+    {
+        if (currentUser == null) return;
+        usingCigarro = true;
+        StateHasChanged();
+        try
+        {
+            var (success, message) = await InventoryService.UseCigarroAsync(currentUser.Id);
+            if (success)
+            {
+                cigarroQuantity--;
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                buffToastMessage = "Cigarro ativado! Os próximos 3 hits não causam dano.";
+                buffToastIsError = false;
+            }
+            else
+            {
+                buffToastMessage = message;
+                buffToastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error using cigarro in boss mode");
+            buffToastMessage = "Erro ao usar Cigarro.";
+            buffToastIsError = true;
+        }
+        finally
+        {
+            usingCigarro = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UseCanhaoBoss()
+    {
+        if (currentUser == null) return;
+        usingCanhao = true;
+        StateHasChanged();
+        try
+        {
+            var (success, message) = await InventoryService.UseCanhaoAsync(currentUser.Id);
+            if (success)
+            {
+                canhaoQuantity--;
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                buffToastMessage = "Canhão ativado! Os próximos 3 ataques causam +30% dano.";
+                buffToastIsError = false;
+            }
+            else
+            {
+                buffToastMessage = message;
+                buffToastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error using canhao in boss mode");
+            buffToastMessage = "Erro ao usar Canhão.";
+            buffToastIsError = true;
+        }
+        finally
+        {
+            usingCanhao = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UsePenaltyBoss()
+    {
+        if (currentUser == null) return;
+        usingPenalty = true;
+        StateHasChanged();
+        try
+        {
+            var (success, message) = await InventoryService.UsePenaltyAsync(currentUser.Id);
+            if (success)
+            {
+                penaltyQuantity--;
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+                buffToastMessage = "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha.";
+                buffToastIsError = false;
+            }
+            else
+            {
+                buffToastMessage = message;
+                buffToastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error using penalty in boss mode");
+            buffToastMessage = "Erro ao usar Penalty.";
+            buffToastIsError = true;
+        }
+        finally
+        {
+            usingPenalty = false;
+            StateHasChanged();
+        }
     }
 
     private void ResetRunTotals()

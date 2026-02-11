@@ -17,7 +17,6 @@ public class StageBiomeService : IStageBiomeService
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<StageBiomeService> _logger;
     private readonly IStageEnemyRepository _stageEnemyRepository;
-    private readonly Random _random = new();
     private readonly Dictionary<string, List<string>> _spriteCache = new();
     private readonly object _cacheLock = new();
 
@@ -138,7 +137,7 @@ public class StageBiomeService : IStageBiomeService
 
         for (int i = 0; i < count && availableSprites.Count > 0; i++)
         {
-            var index = _random.Next(availableSprites.Count);
+            var index = Random.Shared.Next(availableSprites.Count);
             selectedSprites.Add(availableSprites[index]);
             
             // Remove selected sprite to prevent duplicates

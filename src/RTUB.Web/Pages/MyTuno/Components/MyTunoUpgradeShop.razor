@@ -1,0 +1,332 @@
+@using RTUB.Application.Configuration
+@using RTUB.Application.Interfaces
+@using Microsoft.Extensions.Options
+@inject IUpgradeService UpgradeService
+@inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
+
+<div class="card h-100">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
+    </div>
+    <div class="card-body p-2">
+        <div class="d-flex flex-column gap-2">
+        <!-- HP Upgrade Row -->
+        <div class="enhance-row @(IsHpMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--hp">
+                <i class="bi bi-heart-fill"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">HP <span class="enhance-row__level">Lv@(Character.HpUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar vida</div>
+                <div class="enhance-row__stat">
+                    @if (IsHpMaxed)
+                    {
+                        <text>@Fmt(Character.TotalHP)</text>
+                    }
+                    else
+                    {
+                        <text>@Fmt(Character.TotalHP) → @Fmt(Character.NextTotalHP)</text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsHpMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(StatType.HP)"
+                        disabled="@(Purchasing || hpCostLoading || IsHpMaxed || FidelisBalance < hpCost)">
+                    @if (Purchasing && PurchasingStat == StatType.HP)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsHpMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (hpCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(hpCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Power Upgrade Row -->
+        <div class="enhance-row @(IsPowerMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--power">
+                <i class="bi bi-lightning-fill"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Poder <span class="enhance-row__level">Lv@(Character.PowerUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar ataque</div>
+                <div class="enhance-row__stat">
+                    @if (IsPowerMaxed)
+                    {
+                        <text>@Fmt(Character.TotalPower)</text>
+                    }
+                    else
+                    {
+                        <text>@Fmt(Character.TotalPower) → @Fmt(Character.NextTotalPower)</text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsPowerMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(StatType.Power)"
+                        disabled="@(Purchasing || powerCostLoading || IsPowerMaxed || FidelisBalance < powerCost)">
+                    @if (Purchasing && PurchasingStat == StatType.Power)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsPowerMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (powerCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(powerCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Defense Upgrade Row -->
+        <div class="enhance-row @(IsDefenseMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--defense">
+                <i class="bi bi-shield-fill"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Defesa <span class="enhance-row__level">Lv@(Character.DefenseUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar defesa</div>
+                <div class="enhance-row__stat">
+                    @if (IsDefenseMaxed)
+                    {
+                        <text>@Fmt(Character.TotalDefense)</text>
+                    }
+                    else
+                    {
+                        <text>@Fmt(Character.TotalDefense) → @Fmt(Character.NextTotalDefense)</text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(StatType.Defense)"
+                        disabled="@(Purchasing || defenseCostLoading || IsDefenseMaxed || FidelisBalance < defenseCost)">
+                    @if (Purchasing && PurchasingStat == StatType.Defense)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsDefenseMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (defenseCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Speed Upgrade Row -->
+        <div class="enhance-row @(IsSpeedMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--speed">
+                <i class="bi bi-speedometer2"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Velocidade <span class="enhance-row__level">Lv@(Character.SpeedUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar velocidade de ataque</div>
+                <div class="enhance-row__stat">
+                    @if (IsSpeedMaxed)
+                    {
+                        <text>@Character.ActionTime.ToString("F1")s</text>
+                    }
+                    else
+                    {
+                        <text>@Character.ActionTime.ToString("F1")s → @(GetSpeedPreview())s</text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsSpeedMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(StatType.Speed)"
+                        disabled="@(Purchasing || speedCostLoading || IsSpeedMaxed || FidelisBalance < speedCost)">
+                    @if (Purchasing && PurchasingStat == StatType.Speed)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsSpeedMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (speedCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(speedCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Upgrade Row -->
+        <div class="enhance-row @(IsCriticalMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--critical">
+                <i class="bi bi-bullseye"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Crítico <span class="enhance-row__level">Lv@(Character.CriticalUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar chance de crítico</div>
+                <div class="enhance-row__stat">
+                    @if (IsCriticalMaxed)
+                    {
+                        <text>@($"{Character.TotalCriticalChance * 100:F1}%")</text>
+                    }
+                    else
+                    {
+                        <text>@($"{Character.TotalCriticalChance * 100:F1}%") → @($"{Character.NextTotalCriticalChance * 100:F1}%")</text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsCriticalMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(StatType.CriticalChance)"
+                        disabled="@(Purchasing || criticalCostLoading || IsCriticalMaxed || FidelisBalance < criticalCost)">
+                    @if (Purchasing && PurchasingStat == StatType.CriticalChance)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsCriticalMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (criticalCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(criticalCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Character Character { get; set; } = default!;
+    [Parameter] public decimal FidelisBalance { get; set; }
+    [Parameter] public bool Purchasing { get; set; }
+    [Parameter] public StatType? PurchasingStat { get; set; }
+    [Parameter] public EventCallback<StatType> OnPurchaseRequested { get; set; }
+
+    // Internal cost state
+    private decimal hpCost, powerCost, defenseCost, speedCost, criticalCost;
+    private bool hpCostLoading = true, powerCostLoading = true, defenseCostLoading = true,
+                 speedCostLoading = true, criticalCostLoading = true;
+
+    // Max upgrade config
+    private int MaxHpUpgrades => MyTunoConfig.Value.Upgrades.HP.MaxUpgrades;
+    private int MaxPowerUpgrades => MyTunoConfig.Value.Upgrades.Power.MaxUpgrades;
+    private int MaxSpeedUpgrades => MyTunoConfig.Value.Upgrades.Speed.MaxUpgrades;
+    private int MaxCriticalUpgrades => MyTunoConfig.Value.Upgrades.CriticalChance.MaxUpgrades;
+    private int MaxDefenseUpgrades => MyTunoConfig.Value.Upgrades.Defense.MaxUpgrades;
+
+    private bool IsHpMaxed => MaxHpUpgrades > 0 && Character.HpUpgrades >= MaxHpUpgrades;
+    private bool IsPowerMaxed => MaxPowerUpgrades > 0 && Character.PowerUpgrades >= MaxPowerUpgrades;
+    private bool IsSpeedMaxed => MaxSpeedUpgrades > 0 && Character.SpeedUpgrades >= MaxSpeedUpgrades;
+    private bool IsCriticalMaxed => MaxCriticalUpgrades > 0 && Character.CriticalUpgrades >= MaxCriticalUpgrades;
+    private bool IsDefenseMaxed => MaxDefenseUpgrades > 0 && Character.DefenseUpgrades >= MaxDefenseUpgrades;
+
+    protected override void OnParametersSet()
+    {
+        LoadCostsFromCharacter();
+    }
+
+    private void LoadCostsFromCharacter()
+    {
+        try
+        {
+            var costs = UpgradeService.GetAllUpgradeCosts(Character);
+            hpCost = costs.GetValueOrDefault(StatType.HP);
+            powerCost = costs.GetValueOrDefault(StatType.Power);
+            speedCost = costs.GetValueOrDefault(StatType.Speed);
+            criticalCost = costs.GetValueOrDefault(StatType.CriticalChance);
+            defenseCost = costs.GetValueOrDefault(StatType.Defense);
+        }
+        catch
+        {
+            // Costs stay at 0 — rows will show as affordable but purchase will
+            // fail gracefully on the server side.
+        }
+        finally
+        {
+            hpCostLoading = false;
+            powerCostLoading = false;
+            speedCostLoading = false;
+            criticalCostLoading = false;
+            defenseCostLoading = false;
+        }
+    }
+
+    private async Task RequestPurchase(StatType statType)
+    {
+        await OnPurchaseRequested.InvokeAsync(statType);
+    }
+
+    private string GetSpeedPreview()
+    {
+        var previewTime = Math.Max(Character.MinActionTime, Character.ActionTime - Character.ActionTimeReductionPerUpgrade);
+        return previewTime.ToString("F1");
+    }
+
+    private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
+    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(int? value) => NumberFormatter.Compact(value ?? 0);
+}

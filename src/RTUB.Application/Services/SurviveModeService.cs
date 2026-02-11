@@ -1,6 +1,8 @@
+﻿using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
@@ -13,7 +15,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for Survive Mode — a survivor.io-inspired game.
+/// Service for Survive Mode â€” a survivor.io-inspired game.
 /// Player spawns center-map, enemies swarm from edges, dodge to survive the timer.
 /// Each level = 1 biome. Harder waves, faster enemies, longer timer per level.
 /// </summary>
@@ -28,8 +30,8 @@ public class SurviveModeService : ISurviveModeService
     private readonly IStageBiomeService _biomeService;
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
-    private readonly ApplicationDbContext _context;
-    private readonly Random _random = new();
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IMemoryCache _memoryCache;
 
     // Survive mode constants
     private const double BaseTimerSeconds = 480.0;         // Level 1 timer (8 minutes)
@@ -54,7 +56,7 @@ public class SurviveModeService : ISurviveModeService
     private const int ViewportHeight = 500;
     private const int MaxLevel = 11;                       // Void is the final level
 
-    // All levels start the same — difficulty ramps over TIME within each level,
+    // All levels start the same â€” difficulty ramps over TIME within each level,
     // not across levels. The per-biome time-ramp rates below control how fast
     // spawns and enemy speed increase every minute during a level.
     private static readonly (double spawnMult, double speedMult)[] LevelScaling = new[]
@@ -105,7 +107,8 @@ public class SurviveModeService : ISurviveModeService
         IStageBiomeService biomeService,
         IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
-        ApplicationDbContext context)
+        IDbContextFactory<ApplicationDbContext> contextFactory,
+        IMemoryCache memoryCache)
     {
         _progressRepository = progressRepository;
         _characterRepository = characterRepository;
@@ -116,25 +119,12 @@ public class SurviveModeService : ISurviveModeService
         _biomeService = biomeService;
         _stageProgressRepository = stageProgressRepository;
         _environment = environment;
-        _context = context;
-    }
-
-    /// <summary>
-    /// Resets stale ApplicationUser entries in the change tracker.
-    /// </summary>
-    private void ResetStaleUserEntries()
-    {
-        foreach (var entry in _context.ChangeTracker.Entries<ApplicationUser>())
-        {
-            if (entry.State == EntityState.Modified)
-            {
-                entry.State = EntityState.Unchanged;
-            }
-        }
+        _contextFactory = contextFactory;
+        _memoryCache = memoryCache;
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId)
+    public async Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -149,21 +139,21 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeProgress?> GetProgressAsync(string userId)
+    public async Task<SurviveModeProgress?> GetProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         return await _progressRepository.GetByUserIdAsync(userId);
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeProgress> StartRunAsync(int characterId)
+    public async Task<SurviveModeProgress> StartRunAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
 
         if ((character.CurrentHP ?? character.HP) <= 0)
-            throw new InvalidOperationException("Character is dead — cannot start a survive run");
+            throw new InvalidOperationException("Character is dead â€” cannot start a survive run");
 
-        var progress = await GetOrCreateProgressAsync(character.UserId);
+        var progress = await GetOrCreateProgressAsync(character.UserId, cancellationToken);
 
         if (progress.IsRunActive)
         {
@@ -173,7 +163,6 @@ public class SurviveModeService : ISurviveModeService
         }
 
         progress.StartRun();
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var user = await _userManager.FindByIdAsync(character.UserId);
@@ -183,9 +172,9 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel)
+    public async Task<SurviveModeProgress> SetStartLevelAsync(string userId, int targetLevel, CancellationToken cancellationToken = default)
     {
-        var progress = await GetOrCreateProgressAsync(userId);
+        var progress = await GetOrCreateProgressAsync(userId, cancellationToken);
 
         // Clamp to valid range: [1, HighestLevel]
         var validLevel = Math.Clamp(targetLevel, 1, progress.HighestLevel);
@@ -241,7 +230,7 @@ public class SurviveModeService : ISurviveModeService
         var hasElites = level >= 3;
         var eliteChance = hasElites ? Math.Min(0.05 + (level - 3) * 0.03, 0.30) : 0.0;
 
-        // Void (level 11) is the final level — no bosses, timer expiry = win
+        // Void (level 11) is the final level â€” no bosses, timer expiry = win
         var isFinalLevel = level >= MaxLevel;
 
         // Per-biome time ramp rates
@@ -277,12 +266,12 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds)
+    public async Task<SurviveModeLevelResult> CompleteLevelAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
 
-        var progress = await GetOrCreateProgressAsync(character.UserId);
+        var progress = await GetOrCreateProgressAsync(character.UserId, cancellationToken);
 
         if (!progress.IsRunActive)
             throw new InvalidOperationException("No active survive run");
@@ -312,7 +301,6 @@ public class SurviveModeService : ISurviveModeService
         // Update progress
         progress.CompleteLevel(survivalTimeSeconds, enemiesKilled);
         progress.RunStartedAt = DateTime.UtcNow; // Reset timer for next level
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var completedUser = await _userManager.FindByIdAsync(character.UserId);
@@ -323,12 +311,12 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds)
+    public async Task<SurviveModeLevelResult> EndRunAsync(int characterId, int enemiesKilled, double survivalTimeSeconds, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
 
-        var progress = await GetOrCreateProgressAsync(character.UserId);
+        var progress = await GetOrCreateProgressAsync(character.UserId, cancellationToken);
 
         if (!progress.IsRunActive)
             throw new InvalidOperationException("No active survive run");
@@ -349,7 +337,6 @@ public class SurviveModeService : ISurviveModeService
 
         // Update progress
         progress.EndRun(survivalTimeSeconds, enemiesKilled);
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var diedUser = await _userManager.FindByIdAsync(character.UserId);
@@ -362,24 +349,16 @@ public class SurviveModeService : ISurviveModeService
     /// <inheritdoc />
     public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null)
+        Dictionary<InventoryItemType, int>? equipment = null,
+        CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
-
-        var user = await _userManager.FindByIdAsync(character.UserId)
-            ?? throw new InvalidOperationException("User not found");
 
         // Apply XP
         if (xp > 0)
         {
             character.AddXP(xp);
-        }
-
-        // Apply Fidelis
-        if (fidelis > 0)
-        {
-            user.FidelisBalance += fidelis;
         }
 
         // Batch all inventory drops into a single DB round-trip
@@ -404,26 +383,35 @@ public class SurviveModeService : ISurviveModeService
         }
 
         if (allDrops.Count > 0)
-            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
+            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
-        ResetStaleUserEntries();
         await _characterRepository.UpdateAsync(character);
-        await _userManager.UpdateAsync(user);
+
+        // Apply Fidelis in a short-lived context to avoid change tracker pollution.
+        // Using IDbContextFactory prevents stale ConcurrencyStamp issues in the
+        // long-lived scoped DbContext that Blazor Server circuits share.
+        if (fidelis > 0)
+        {
+            await using var fidelisContext = _contextFactory.CreateDbContext();
+            var user = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken)
+                ?? throw new InvalidOperationException("User not found");
+            user.FidelisBalance += fidelis;
+            await fidelisContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelRunAsync(int characterId)
+    public async Task<bool> CancelRunAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
 
-        var progress = await GetOrCreateProgressAsync(character.UserId);
+        var progress = await GetOrCreateProgressAsync(character.UserId, cancellationToken);
 
         if (!progress.IsRunActive)
             return false;
 
         progress.CancelRun();
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         return true;
@@ -437,47 +425,53 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<List<string>> GetEnemySpritesAsync(int level, int count)
+    public async Task<List<string>> GetEnemySpritesAsync(int level, int count, CancellationToken cancellationToken = default)
     {
         var biomeName = SurviveModeProgress.GetBiomeName(level).ToLowerInvariant();
         var spritePath = $"sprites/games/my-tuno/enemies/{biomeName}";
 
-        // Look for sprite files on disk
+        // Look for sprite files on disk (cached)
         var webRootPath = _environment.WebRootPath;
         var fullPath = Path.Combine(webRootPath, spritePath.Replace('/', Path.DirectorySeparatorChar));
+        var cacheKey = $"survive_enemy_sprites:{biomeName}";
 
         var sprites = new List<string>();
 
-        if (Directory.Exists(fullPath))
+        if (!_memoryCache.TryGetValue(cacheKey, out List<string>? cachedFiles))
         {
-            var files = Directory.GetFiles(fullPath, "*.png")
-                .Where(f => !Path.GetFileName(f).StartsWith("boss_", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (files.Count > 0)
+            if (Directory.Exists(fullPath))
             {
-                for (int i = 0; i < count; i++)
-                {
-                    var file = files[_random.Next(files.Count)];
-                    var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
-                    sprites.Add(relativePath);
-                }
-                return sprites;
+                cachedFiles = Directory.GetFiles(fullPath, "*.png")
+                    .Where(f => !Path.GetFileName(f).StartsWith("boss_", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                _memoryCache.Set(cacheKey, cachedFiles, TimeSpan.FromMinutes(5));
             }
+        }
+
+        if (cachedFiles != null && cachedFiles.Count > 0)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var file = cachedFiles[Random.Shared.Next(cachedFiles.Count)];
+                var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
+                sprites.Add(relativePath);
+            }
+            return sprites;
         }
 
         // Fallback: try to find enemies from the stage enemy DB
         var region = SurviveModeProgress.GetRegionForLevel(level);
-        var enemies = await _context.StageEnemies
+        await using var dbContext = _contextFactory.CreateDbContext();
+        var enemies = await dbContext.StageEnemies
             .Where(e => e.Region == region && e.Type == EnemyType.Normal && e.SpritePath != null)
             .Select(e => e.SpritePath!)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (enemies.Count > 0)
         {
             for (int i = 0; i < count; i++)
             {
-                sprites.Add(enemies[_random.Next(enemies.Count)]);
+                sprites.Add(enemies[Random.Shared.Next(enemies.Count)]);
             }
             return sprites;
         }
@@ -491,27 +485,32 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public Task<List<string>> GetBossSpritesAsync(int level, int count)
+    public Task<List<string>> GetBossSpritesAsync(int level, int count, CancellationToken cancellationToken = default)
     {
         var biomeName = SurviveModeProgress.GetBiomeName(level).ToLowerInvariant();
         var spritePath = $"sprites/games/my-tuno/enemies/{biomeName}";
         var webRootPath = _environment.WebRootPath;
         var fullPath = Path.Combine(webRootPath, spritePath.Replace('/', Path.DirectorySeparatorChar));
+        var bossCacheKey = $"survive_boss_sprites:{biomeName}";
 
         var sprites = new List<string>();
 
-        if (Directory.Exists(fullPath))
+        if (!_memoryCache.TryGetValue(bossCacheKey, out List<string>? cachedBossFiles))
         {
-            var bossFiles = Directory.GetFiles(fullPath, "boss_*.png").ToList();
-
-            if (bossFiles.Count > 0)
+            if (Directory.Exists(fullPath))
             {
-                for (int i = 0; i < count; i++)
-                {
-                    var file = bossFiles[_random.Next(bossFiles.Count)];
-                    var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
-                    sprites.Add(relativePath);
-                }
+                cachedBossFiles = Directory.GetFiles(fullPath, "boss_*.png").ToList();
+                _memoryCache.Set(bossCacheKey, cachedBossFiles, TimeSpan.FromMinutes(5));
+            }
+        }
+
+        if (cachedBossFiles != null && cachedBossFiles.Count > 0)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var file = cachedBossFiles[Random.Shared.Next(cachedBossFiles.Count)];
+                var relativePath = "/" + Path.GetRelativePath(webRootPath, file).Replace('\\', '/');
+                sprites.Add(relativePath);
             }
         }
 
@@ -545,7 +544,7 @@ public class SurviveModeService : ISurviveModeService
         // Drop calculations
         var dropRates = _config.StageMode?.DropRates;
         // Gate consumable drops behind biome progression
-        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), CanhÃ£o=701(Volcanic)
         var finoChance = highestStage >= 1 ? (dropRates?.FinoDropChance ?? 0.1) : 0;
         var canecaChance = highestStage >= 501 ? (dropRates?.CanecaDropChance ?? 0.04) : 0;
         var cigarroChance = highestStage >= 301 ? (dropRates?.CigarroDropChance ?? 0.05) : 0;
@@ -584,23 +583,23 @@ public class SurviveModeService : ISurviveModeService
 
         for (int i = 0; i < dropRolls; i++)
         {
-            if (_random.NextDouble() < finoChance * rewardMult)
+            if (Random.Shared.NextDouble() < finoChance * rewardMult)
                 finos++;
-            if (_random.NextDouble() < canecaChance * rewardMult)
+            if (Random.Shared.NextDouble() < canecaChance * rewardMult)
                 canecas++;
-            if (_random.NextDouble() < cigarroChance * rewardMult)
+            if (Random.Shared.NextDouble() < cigarroChance * rewardMult)
                 cigarros++;
-            if (_random.NextDouble() < canhaoChance * rewardMult)
+            if (Random.Shared.NextDouble() < canhaoChance * rewardMult)
                 canhaos++;
-            if (_random.NextDouble() < shotChance * rewardMult)
+            if (Random.Shared.NextDouble() < shotChance * rewardMult)
                 shots++;
-            if (_random.NextDouble() < penaltyChance * rewardMult)
+            if (Random.Shared.NextDouble() < penaltyChance * rewardMult)
                 penalties++;
-            if (_random.NextDouble() < instrChance * rewardMult)
-                instrParts.Add(instrPartTypes[_random.Next(instrPartTypes.Length)]);
-            if (_random.NextDouble() < equipChance * rewardMult)
-                equipPieces.Add(equipSlotTypes[_random.Next(equipSlotTypes.Length)]);
-            if (_random.NextDouble() < 0.002 * rewardMult)
+            if (Random.Shared.NextDouble() < instrChance * rewardMult)
+                instrParts.Add(instrPartTypes[Random.Shared.Next(instrPartTypes.Length)]);
+            if (Random.Shared.NextDouble() < equipChance * rewardMult)
+                equipPieces.Add(equipSlotTypes[Random.Shared.Next(equipSlotTypes.Length)]);
+            if (Random.Shared.NextDouble() < 0.002 * rewardMult)
                 fitab++;
         }
 

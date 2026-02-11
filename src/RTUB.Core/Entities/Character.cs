@@ -65,6 +65,12 @@ public class Character : BaseEntity
     /// </summary>
     public DateTime? LastBattleAt { get; set; } = null;
 
+    /// <summary>
+    /// Idempotency key — the BattleId of the last finalized arena battle.
+    /// Prevents duplicate reward application if the client calls FinalizeAndApplyRewardsAsync twice.
+    /// </summary>
+    public Guid? LastBattleId { get; set; } = null;
+
     // Energy system (for resource gathering)
     /// <summary>
     /// Current stored energy for gathering resources
@@ -658,6 +664,20 @@ public class Character : BaseEntity
     {
         var currentHp = CurrentHP ?? TotalHP;
         return currentHp > MinHP;
+    }
+
+    /// <summary>
+    /// Gets the display max HP for UI, accounting for shot buff.
+    /// Uses CreateShotBuffedCopy to get the exact same value used in combat.
+    /// </summary>
+    public int GetDisplayMaxHP()
+    {
+        if (ShotBuffBattlesRemaining > 0)
+        {
+            var buffedCopy = CreateShotBuffedCopy(this);
+            return buffedCopy.TotalHP;
+        }
+        return TotalHP;
     }
 
     /// <summary>

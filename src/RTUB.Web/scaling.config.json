@@ -239,7 +239,7 @@
 
     "bossMode": {
       "stageOffset": 800,
-      "xpPerBossLevel": 75,
+      "xpPerBossLevel": 150,
       "bossLevelXPPower": 0.6,
       "xpLevelPenaltyRate": 0.01,
       "minXPLevelMultiplier": 0.1,
@@ -251,8 +251,8 @@
       "rewardCurve": {
         "scalingRate": 0.10,
         "growthExponent": 1.12,
-        "levelBonusPerLevel": 0.06,
-        "levelBonusCap": 2.5
+        "levelBonusPerLevel": 0.1,
+        "levelBonusCap": 2.6
       },
 
       "baseBossStats": {

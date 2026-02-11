@@ -555,19 +555,7 @@ public class DeterministicCombatEngine : ICombatEngine
         };
     }
 
-    /// <summary>
-    /// Helper class to track enemy state during multi-enemy combat
-    /// </summary>
-    private class EnemyState
-    {
-        public Character Enemy { get; set; } = null!;
-        public int Index { get; set; }
-        public int HP { get; set; }
-        public int MaxHP { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public double ActionTimeMs { get; set; }
-        public double Timer { get; set; }
-    }
+    // EnemyState class moved to EnemyState.cs
 
     /// <summary>
     /// Calculates raw damage with variance and critical hit

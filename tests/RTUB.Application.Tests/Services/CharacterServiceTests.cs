@@ -1,7 +1,11 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -27,7 +31,18 @@ public class CharacterServiceTests
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
             .Options;
 
-        _service = new CharacterService(_mockCharacterRepository.Object);
+        var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        var mockConfig = Options.Create(new MyTunoScalingConfiguration());
+        var mockLogger = new Mock<ILogger<CharacterService>>();
+
+        _service = new CharacterService(
+            _mockCharacterRepository.Object,
+            mockUserManager.Object,
+            mockConfig,
+            mockLogger.Object);
     }
 
     #region GetOrCreateCharacterAsync Tests

@@ -1,3 +1,4 @@
+using System.Threading;
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -16,7 +17,7 @@ public interface IUpgradeService
     /// <param name="userId">The user ID</param>
     /// <param name="statType">The stat type to upgrade (HP, Power, Speed, or Critical Chance)</param>
     /// <returns>The cost in Fidelis for the next upgrade</returns>
-    Task<decimal> GetUpgradeCostAsync(string userId, StatType statType);
+    Task<decimal> GetUpgradeCostAsync(string userId, StatType statType, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Calculates all upgrade costs at once from a pre-loaded character.
@@ -34,5 +35,5 @@ public interface IUpgradeService
     /// <param name="userId">The user ID</param>
     /// <param name="statType">The stat type to upgrade (HP, Power, Speed, or Critical Chance)</param>
     /// <returns>Result indicating success or failure with updated values</returns>
-    Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType);
+    Task<UpgradeResult> PurchaseUpgradeAsync(string userId, StatType statType, CancellationToken cancellationToken = default);
 }

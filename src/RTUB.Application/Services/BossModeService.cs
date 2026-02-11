@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
@@ -31,8 +33,8 @@ public class BossModeService : IBossModeService
     private readonly IStageBiomeService _biomeService;
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
-    private readonly ApplicationDbContext _context;
-    private readonly Random _random = new();
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IMemoryCache _memoryCache;
 
     public BossModeService(
         IBossModeProgressRepository bossModeProgressRepository,
@@ -45,7 +47,8 @@ public class BossModeService : IBossModeService
         IStageBiomeService biomeService,
         IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
-        ApplicationDbContext context)
+        IDbContextFactory<ApplicationDbContext> contextFactory,
+        IMemoryCache memoryCache)
     {
         _bossModeProgressRepository = bossModeProgressRepository;
         _characterRepository = characterRepository;
@@ -57,29 +60,12 @@ public class BossModeService : IBossModeService
         _biomeService = biomeService;
         _stageProgressRepository = stageProgressRepository;
         _environment = environment;
-        _context = context;
-    }
-
-    /// <summary>
-    /// Resets any Modified ApplicationUser entries in the change tracker to Unchanged.
-    /// This prevents stale ConcurrencyStamp values from poisoning subsequent SaveChangesAsync calls.
-    /// In Blazor Server, the DbContext is long-lived (scoped per circuit), so a failed
-    /// UserManager.UpdateAsync can leave the user entity Modified with a stale ConcurrencyStamp,
-    /// causing every subsequent SaveChangesAsync to fail with DbUpdateConcurrencyException.
-    /// </summary>
-    private void ResetStaleUserEntries()
-    {
-        foreach (var entry in _context.ChangeTracker.Entries<ApplicationUser>())
-        {
-            if (entry.State == EntityState.Modified)
-            {
-                entry.State = EntityState.Unchanged;
-            }
-        }
+        _contextFactory = contextFactory;
+        _memoryCache = memoryCache;
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress> GetOrCreateBossModeProgressAsync(string userId)
+    public async Task<BossModeProgress> GetOrCreateBossModeProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -90,7 +76,6 @@ public class BossModeService : IBossModeService
             // Check and apply daily reset if a new day has started
             if (progress.CheckAndApplyDailyReset())
             {
-                ResetStaleUserEntries();
                 await _bossModeProgressRepository.UpdateAsync(progress);
             }
             return progress;
@@ -102,7 +87,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress?> GetBossModeProgressAsync(string userId)
+    public async Task<BossModeProgress?> GetBossModeProgressAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
@@ -111,20 +96,20 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CanEnterBossModeAsync(string userId)
+    public async Task<bool> CanEnterBossModeAsync(string userId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId);
         return user != null && user.FitabBalance >= 1;
     }
 
     /// <inheritdoc />
-    public async Task<BossModeProgress> StartBossModeRunAsync(string userId)
+    public async Task<BossModeProgress> StartBossModeRunAsync(string userId, CancellationToken cancellationToken = default)
     {
         // Guard: if the user already has a run in progress, return it without
         // deducting FITAB.  This prevents double-charge caused by Blazor Server
         // prerender (OnInitializedAsync fires twice — once during prerender and
         // once when the SignalR circuit connects, with a NEW component instance).
-        var existingProgress = await GetOrCreateBossModeProgressAsync(userId);
+        var existingProgress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(ApplicationUser), userId);
@@ -145,24 +130,20 @@ public class BossModeService : IBossModeService
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
 
-        // Deduct 1 FITAB — reload user first to get fresh ConcurrencyStamp
-        // (in Blazor Server the tracked entity may have a stale stamp from another circuit/tab)
-        await _context.Entry(user).ReloadAsync();
-        if (user.FitabBalance < 1)
-            throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
-        user.FitabBalance -= 1;
-        var updateResult = await _userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
+        // Deduct 1 FITAB using a short-lived context to avoid change tracker pollution.
+        // In Blazor Server, the scoped DbContext is long-lived (per circuit). Using a separate
+        // context for user balance updates prevents stale ConcurrencyStamp issues.
+        await using (var fitabContext = _contextFactory.CreateDbContext())
         {
-            _logger.LogWarning("Failed to update user FITAB balance: {Errors}",
-                string.Join(", ", updateResult.Errors.Select(e => e.Description)));
-            // Reset the stale user entry so it doesn't poison subsequent saves
-            ResetStaleUserEntries();
-            throw new InvalidOperationException("Failed to deduct FITAB. Please try again.");
+            var freshUser = await fitabContext.Users.FindAsync(new object[] { user.Id }, cancellationToken);
+            if (freshUser == null || freshUser.FitabBalance < 1)
+                throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
+            freshUser.FitabBalance -= 1;
+            await fitabContext.SaveChangesAsync(cancellationToken);
+            user.FitabBalance = freshUser.FitabBalance;
         }
 
-        // Start new run — reset stale user entries to prevent ConcurrencyStamp conflicts
-        ResetStaleUserEntries();
+        // Start new run
         existingProgress.StartRun();
         await _bossModeProgressRepository.UpdateAsync(existingProgress);
 
@@ -174,13 +155,13 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<BossModeBattleResult> ExecuteBossBattleAsync(int characterId)
+    public async Task<BossModeBattleResult> ExecuteBossBattleAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
             throw new Core.Exceptions.EntityNotFoundException(nameof(Character), characterId);
 
-        var progress = await GetOrCreateBossModeProgressAsync(character.UserId);
+        var progress = await GetOrCreateBossModeProgressAsync(character.UserId, cancellationToken);
 
         if (progress.CurrentBossStage <= 0)
             throw new InvalidOperationException("No Boss Mode run in progress. Start a run first.");
@@ -198,7 +179,7 @@ public class BossModeService : IBossModeService
             combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Get boss sprite
-        var bossSprite = await GetBossSpriteAsync(bossStage);
+        var bossSprite = await GetBossSpriteAsync(bossStage, cancellationToken);
         var bossPlacement = 0; // Terrestrial by default
 
         // Create boss enemy using equivalent stage difficulty
@@ -283,7 +264,8 @@ public class BossModeService : IBossModeService
         int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         int? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null)
+        Dictionary<InventoryItemType, int>? equipment = null,
+        CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -313,21 +295,17 @@ public class BossModeService : IBossModeService
         }
 
         var user = await _userManager.FindByIdAsync(character.UserId);
-        if (fidelis > 0 && user != null)
+        if (fidelis > 0)
         {
-            // Reload user to get fresh ConcurrencyStamp before updating
-            await _context.Entry(user).ReloadAsync();
-            user.FidelisBalance += fidelis;
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
+            // Update Fidelis in a short-lived context to avoid change tracker pollution
+            await using var fidelisContext = _contextFactory.CreateDbContext();
+            var freshUser = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken);
+            if (freshUser != null)
             {
-                _logger.LogWarning("Failed to update user Fidelis balance in boss rewards: {Errors}",
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-                ResetStaleUserEntries();
+                freshUser.FidelisBalance += fidelis;
+                await fidelisContext.SaveChangesAsync(cancellationToken);
             }
         }
-        // Ensure no stale user entries poison subsequent saves
-        ResetStaleUserEntries();
 
         // Batch all inventory drops into a single DB round-trip
         var allDrops = new Dictionary<InventoryItemType, int>();
@@ -359,7 +337,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0)
+    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         // Pre-fetch character for logging (available in catch blocks)
@@ -371,9 +349,6 @@ public class BossModeService : IBossModeService
         {
             try
             {
-                // Reset stale user entries to prevent ConcurrencyStamp conflicts
-                ResetStaleUserEntries();
-
                 // Re-fetch character to get fresh state after potential retry
                 character = await _characterRepository.GetByIdAsync(characterId);
                 if (character == null) return false;
@@ -416,27 +391,32 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<string> GetBossSpriteAsync(int bossStage)
+    public async Task<string> GetBossSpriteAsync(int bossStage, CancellationToken cancellationToken = default)
     {
         var spritePath = _config.BossMode.EnemySpritePath;
         var fullPath = Path.Combine(_environment.WebRootPath, spritePath);
+        var cacheKey = $"boss_sprites:{spritePath}";
 
         try
         {
-            if (Directory.Exists(fullPath))
+            if (!_memoryCache.TryGetValue(cacheKey, out List<string>? cachedFiles))
             {
-                var files = Directory.GetFiles(fullPath, "*.png")
-                    .Concat(Directory.GetFiles(fullPath, "*.webp"))
-                    .Concat(Directory.GetFiles(fullPath, "*.jpg"))
-                    .ToList();
-
-                if (files.Count > 0)
+                if (Directory.Exists(fullPath))
                 {
-                    var selectedFile = files[_random.Next(files.Count)];
-                    var relativePath = Path.GetRelativePath(_environment.WebRootPath, selectedFile)
-                        .Replace('\\', '/');
-                    return $"/{relativePath}";
+                    cachedFiles = Directory.GetFiles(fullPath, "*.png")
+                        .Concat(Directory.GetFiles(fullPath, "*.webp"))
+                        .Concat(Directory.GetFiles(fullPath, "*.jpg"))
+                        .ToList();
+                    _memoryCache.Set(cacheKey, cachedFiles, TimeSpan.FromMinutes(5));
                 }
+            }
+
+            if (cachedFiles != null && cachedFiles.Count > 0)
+            {
+                var selectedFile = cachedFiles[Random.Shared.Next(cachedFiles.Count)];
+                var relativePath = Path.GetRelativePath(_environment.WebRootPath, selectedFile)
+                    .Replace('\\', '/');
+                return $"/{relativePath}";
             }
         }
         catch (Exception ex)
@@ -573,11 +553,6 @@ public class BossModeService : IBossModeService
         {
             try
             {
-                // Reset any stale ApplicationUser entries in the change tracker.
-                // In Blazor Server, a failed UserManager.UpdateAsync can leave the user entity
-                // Modified with a stale ConcurrencyStamp, which poisons ALL subsequent SaveChangesAsync calls.
-                ResetStaleUserEntries();
-
                 // Update character HP (in buffed scale if buff was active)
                 if (combatResult.AttackerFinalHP > 0)
                     character.CurrentHP = combatResult.AttackerFinalHP;
@@ -634,8 +609,7 @@ public class BossModeService : IBossModeService
                     _logger.LogWarning(ex, "UpdateProgressAfterBattle: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
                     await Task.Delay(50 * (attempt + 1));
 
-                    // Reset stale user entries and reload game entities
-                    ResetStaleUserEntries();
+                    // Reload game entities for retry
                     try
                     {
                         await _characterRepository.ReloadAsync(character);
