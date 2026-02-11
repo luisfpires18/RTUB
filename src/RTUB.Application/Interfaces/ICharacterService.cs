@@ -43,4 +43,20 @@ public interface ICharacterService
     /// </summary>
     /// <returns>The number of characters healed</returns>
     Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calculates the daily reward amount based on character level.
+    /// </summary>
+    /// <param name="characterLevel">The character's current level</param>
+    /// <returns>The reward amount in Fidelis</returns>
+    decimal GetDailyRewardAmount(int characterLevel);
+
+    /// <summary>
+    /// Claims the daily reward for a user. Re-checks from DB to prevent double-claim.
+    /// </summary>
+    /// <param name="userId">The user's ID</param>
+    /// <param name="characterLevel">The character's current level (for reward calculation)</param>
+    /// <returns>Tuple of (Success, Message, RewardAmount)</returns>
+    Task<(bool Success, string Message, decimal RewardAmount)> ClaimDailyRewardAsync(
+        string userId, int characterLevel, CancellationToken cancellationToken = default);
 }

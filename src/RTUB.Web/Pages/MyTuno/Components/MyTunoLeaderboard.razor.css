@@ -1,0 +1,27 @@
+/* ==========================================
+   Leaderboard Tabs - Purple theme
+   ========================================== */
+
+/* Purple active pill */
+.nav-pills .nav-link.active {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+}
+
+/* Subtle hover on inactive pills */
+.nav-pills .nav-link:not(.active):hover {
+    background-color: rgba(111, 66, 193, 0.12);
+}
+
+/* Prevent the last tab from wrapping to a new full-width row */
+.nav-pills.nav-fill {
+    flex-wrap: nowrap;
+}
+
+.nav-pills.nav-fill .nav-link {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.4rem;
+    white-space: nowrap;
+}
+
+/* Purple card header */

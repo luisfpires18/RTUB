@@ -854,4 +854,47 @@ public class StageService : IStageService
         
         return EnemyType.Normal;
     }
+
+    /// <inheritdoc />
+    public List<int> GetAvailableCheckpoints(int highestStage)
+    {
+        var checkpoints = new List<int> { 1 }; // Always start with stage 1
+
+        if (highestStage <= 1) return checkpoints;
+
+        // Add checkpoints every 10 stages (after each boss), starting at 11
+        // Each biome has 10 bosses at stages 10, 20, 30... so checkpoints at 11, 21, 31...
+        for (int stage = 11; stage <= highestStage; stage += 10)
+        {
+            checkpoints.Add(stage);
+        }
+
+        return checkpoints;
+    }
+
+    /// <inheritdoc />
+    public List<int> GetCheckpointsForBiome(int stageMin, int stageMax, int highestStage)
+    {
+        var checkpoints = new List<int>();
+        var maxReachable = Math.Min(stageMax, highestStage);
+
+        // First checkpoint: the biome's starting stage (always stage 1 for Forest, stageMin for others)
+        if (stageMin <= highestStage)
+        {
+            checkpoints.Add(stageMin);
+        }
+
+        // Add checkpoints every 10 stages after bosses
+        // Bosses are at stages 10, 20, 30... relative to global. Checkpoints at 11, 21, 31...
+        var firstCheckpointAfterBoss = stageMin == 1 ? 11 : stageMin + 10;
+        for (int stage = firstCheckpointAfterBoss; stage <= maxReachable; stage += 10)
+        {
+            if (stage >= stageMin && stage <= stageMax)
+            {
+                checkpoints.Add(stage);
+            }
+        }
+
+        return checkpoints;
+    }
 }

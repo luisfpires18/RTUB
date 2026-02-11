@@ -19,6 +19,8 @@
     const loadedAssetAliases = new Set();
     // Cache decoded AudioBuffers so music file is only fetched/decoded once per session
     const audioBufferCache = {};
+    // Cache-bust version — refreshes audio once per page session
+    const audioCacheBuster = `?v=${Date.now()}`;
 
     // Shared AudioContext — reused across BattleScene instances to avoid leaks
     let sharedAudioContext = null;
@@ -165,7 +167,7 @@
         
         async loadBackgroundMusic() {
             try {
-                const musicFile = '/sound/arena_battle.mp3';
+                const musicFile = '/sound/arena_battle.mp3' + audioCacheBuster;
                 
                 // Use cached AudioBuffer if available, otherwise fetch and decode once
                 let audioBuffer = audioBufferCache[musicFile];

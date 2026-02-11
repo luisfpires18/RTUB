@@ -1,0 +1,161 @@
+@using RTUB.Application.DTOs
+
+<div class="card h-100">
+    <div class="card-header text-white" style="background-color: #6f42c1;">
+        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Classificação</h5>
+    </div>
+    <div class="card-body">
+        @if (Loading)
+        {
+            <LoadingSpinner Message="A carregar classificação..." />
+        }
+        else if (Entries == null || !Entries.Any())
+        {
+            <EmptyState Title="Classificação vazia"
+                        Message="Ainda não há jogadores com vitórias."
+                        Icon="bi-trophy" />
+        }
+        else
+        {
+            <!-- Leaderboard Type Tabs -->
+            <ul class="nav nav-pills nav-fill mb-3">
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "level" ? "active" : "")" @onclick='() => activeTab = "level"'>
+                        <i class="bi bi-star-fill me-1"></i>Nível
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "arena" ? "active" : "")" @onclick='() => activeTab = "arena"'>
+                        <i class="bi bi-shield-fill me-1"></i>Arena
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "stage" ? "active" : "")" @onclick='() => activeTab = "stage"'>
+                        <i class="bi bi-flag-fill me-1"></i>Stage
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "boss" ? "active" : "")" @onclick='() => activeTab = "boss"'>
+                        <i class="bi bi-lightning-fill me-1"></i>Boss
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(activeTab == "survive" ? "active" : "")" @onclick='() => activeTab = "survive"'>
+                        <i class="bi bi-bullseye me-1"></i>Survive
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="stats-card-grid">
+                @{
+                    var sortedLeaderboard = activeTab == "level"
+                        ? Entries.OrderByDescending(e => e.Level).ToList()
+                        : activeTab == "arena"
+                            ? Entries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
+                            : activeTab == "boss"
+                                ? Entries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
+                                : activeTab == "survive"
+                                    ? Entries.OrderByDescending(e => e.HighestSurviveLevel).ThenByDescending(e => e.Level).ToList()
+                                    : Entries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
+                    var paginatedItems = sortedLeaderboard.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+                }
+                @for (int i = 0; i < paginatedItems.Count; i++)
+                {
+                    var entry = paginatedItems[i];
+                    var position = ((currentPage - 1) * pageSize) + i + 1;
+                    <div class="stats-card">
+                        @if (activeTab != "level")
+                        {
+                            <div class="stats-card-position">
+                                @if (position == 1)
+                                {
+                                    <span class="stats-medal gold">🥇</span>
+                                }
+                                else if (position == 2)
+                                {
+                                    <span class="stats-medal silver">🥈</span>
+                                }
+                                else if (position == 3)
+                                {
+                                    <span class="stats-medal bronze">🥉</span>
+                                }
+                                else
+                                {
+                                    <span class="stats-position">@position</span>
+                                }
+                            </div>
+                        }
+                        <img src="@CacheBuster.Bust(entry.AvatarUrl ?? "/images/default-avatar.webp")"
+                             alt="@entry.DisplayName"
+                             class="stats-avatar"
+                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                        <div class="stats-card-content">
+                            <div class="stats-card-title">@entry.DisplayName</div>
+
+                        </div>
+                        <div class="stats-card-count">
+                            @if (activeTab == "level")
+                            {
+                                <span>@entry.Level</span>
+                            }
+                            else if (activeTab == "arena")
+                            {
+                                <i class="bi bi-trophy"></i>
+                                <span>@entry.Wins</span>
+                            }
+                            else if (activeTab == "boss")
+                            {
+                                <i class="bi bi-lightning-fill text-warning"></i>
+                                <span>@entry.HighestBossStage</span>
+                            }
+                            else if (activeTab == "survive")
+                            {
+                                <i class="bi bi-bullseye text-danger"></i>
+                                <span>Lv.@entry.HighestSurviveLevel</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-flag-fill"></i>
+                                <span>@entry.HighestStage</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            @if (Entries.Count > pageSize)
+            {
+                <div class="mt-3">
+                    <TablePagination CurrentPage="@currentPage"
+                                    PageSize="@pageSize"
+                                    TotalItems="@Entries.Count"
+                                    ItemLabel="jogadores"
+                                    OnPageChanged="ChangePage"
+                                    PageSizeOptions="@(new[] { 5, 10, 20 })"
+                                    OnPageSizeChanged="ChangePageSize"
+                                    ShowInfo="false" />
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<MyTunoLeaderboardEntry>? Entries { get; set; }
+    [Parameter] public bool Loading { get; set; }
+
+    private string activeTab = "level";
+    private int currentPage = 1;
+    private int pageSize = 6;
+
+    private void ChangePage(int page)
+    {
+        currentPage = page;
+    }
+
+    private void ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+    }
+}

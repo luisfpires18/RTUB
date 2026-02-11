@@ -30,7 +30,7 @@ public class SurviveModeService : ISurviveModeService
     private readonly IStageBiomeService _biomeService;
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly IMemoryCache _memoryCache;
 
     // Survive mode constants
@@ -107,7 +107,7 @@ public class SurviveModeService : ISurviveModeService
         IStageBiomeService biomeService,
         IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IMemoryCache memoryCache)
     {
         _progressRepository = progressRepository;
@@ -119,22 +119,8 @@ public class SurviveModeService : ISurviveModeService
         _biomeService = biomeService;
         _stageProgressRepository = stageProgressRepository;
         _environment = environment;
-        _context = context;
+        _contextFactory = contextFactory;
         _memoryCache = memoryCache;
-    }
-
-    /// <summary>
-    /// Resets stale ApplicationUser entries in the change tracker.
-    /// </summary>
-    private void ResetStaleUserEntries()
-    {
-        foreach (var entry in _context.ChangeTracker.Entries<ApplicationUser>())
-        {
-            if (entry.State == EntityState.Modified)
-            {
-                entry.State = EntityState.Unchanged;
-            }
-        }
     }
 
     /// <inheritdoc />
@@ -177,7 +163,6 @@ public class SurviveModeService : ISurviveModeService
         }
 
         progress.StartRun();
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var user = await _userManager.FindByIdAsync(character.UserId);
@@ -316,7 +301,6 @@ public class SurviveModeService : ISurviveModeService
         // Update progress
         progress.CompleteLevel(survivalTimeSeconds, enemiesKilled);
         progress.RunStartedAt = DateTime.UtcNow; // Reset timer for next level
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var completedUser = await _userManager.FindByIdAsync(character.UserId);
@@ -353,7 +337,6 @@ public class SurviveModeService : ISurviveModeService
 
         // Update progress
         progress.EndRun(survivalTimeSeconds, enemiesKilled);
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         var diedUser = await _userManager.FindByIdAsync(character.UserId);
@@ -372,19 +355,10 @@ public class SurviveModeService : ISurviveModeService
         var character = await _characterRepository.GetByIdAsync(characterId)
             ?? throw new InvalidOperationException("Character not found");
 
-        var user = await _userManager.FindByIdAsync(character.UserId)
-            ?? throw new InvalidOperationException("User not found");
-
         // Apply XP
         if (xp > 0)
         {
             character.AddXP(xp);
-        }
-
-        // Apply Fidelis
-        if (fidelis > 0)
-        {
-            user.FidelisBalance += fidelis;
         }
 
         // Batch all inventory drops into a single DB round-trip
@@ -411,9 +385,19 @@ public class SurviveModeService : ISurviveModeService
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
-        ResetStaleUserEntries();
         await _characterRepository.UpdateAsync(character);
-        await _userManager.UpdateAsync(user);
+
+        // Apply Fidelis in a short-lived context to avoid change tracker pollution.
+        // Using IDbContextFactory prevents stale ConcurrencyStamp issues in the
+        // long-lived scoped DbContext that Blazor Server circuits share.
+        if (fidelis > 0)
+        {
+            await using var fidelisContext = _contextFactory.CreateDbContext();
+            var user = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken)
+                ?? throw new InvalidOperationException("User not found");
+            user.FidelisBalance += fidelis;
+            await fidelisContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     /// <inheritdoc />
@@ -428,7 +412,6 @@ public class SurviveModeService : ISurviveModeService
             return false;
 
         progress.CancelRun();
-        ResetStaleUserEntries();
         await _progressRepository.UpdateAsync(progress);
 
         return true;
@@ -478,7 +461,8 @@ public class SurviveModeService : ISurviveModeService
 
         // Fallback: try to find enemies from the stage enemy DB
         var region = SurviveModeProgress.GetRegionForLevel(level);
-        var enemies = await _context.StageEnemies
+        await using var dbContext = _contextFactory.CreateDbContext();
+        var enemies = await dbContext.StageEnemies
             .Where(e => e.Region == region && e.Type == EnemyType.Normal && e.SpritePath != null)
             .Select(e => e.SpritePath!)
             .ToListAsync(cancellationToken);

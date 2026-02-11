@@ -191,9 +191,9 @@
                                 <span class="badge bg-light text-dark fw-bold">@enemy.Name</span>
                                 <span class="badge bg-danger">
                                     <i class="bi bi-heart-fill me-1"></i>
-                                    @if (enemy.MaxHP > 0 && enemy.HP < enemy.MaxHP)
+                                    @if (enemy.MaxHP is > 0 && enemy.HP < enemy.MaxHP)
                                     {
-                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP) HP</text>
+                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP.Value) HP</text>
                                     }
                                     else
                                     {
@@ -505,8 +505,6 @@
 
     private readonly SemaphoreSlim _bossLock = new(1, 1);
     private List<EnemyStatsInfo> currentEnemyStats = new();
-
-    private record EnemyStatsInfo(string Name, int HP, int MaxHP, int Power, int Defense, double ActionTime);
 
     protected override async Task OnInitializedAsync()
     {

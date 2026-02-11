@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -11,10 +15,20 @@ namespace RTUB.Application.Services;
 public class CharacterService : ICharacterService
 {
     private readonly ICharacterRepository _characterRepository;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IOptions<MyTunoScalingConfiguration> _myTunoConfig;
+    private readonly ILogger<CharacterService> _logger;
+
     public CharacterService(
-        ICharacterRepository characterRepository)
+        ICharacterRepository characterRepository,
+        UserManager<ApplicationUser> userManager,
+        IOptions<MyTunoScalingConfiguration> myTunoConfig,
+        ILogger<CharacterService> logger)
     {
         _characterRepository = characterRepository;
+        _userManager = userManager;
+        _myTunoConfig = myTunoConfig;
+        _logger = logger;
     }
 
     /// <summary>
@@ -91,6 +105,47 @@ public class CharacterService : ICharacterService
         }
 
         return damagedCharacters.Count;
+    }
+
+    /// <inheritdoc />
+    public decimal GetDailyRewardAmount(int characterLevel)
+    {
+        var config = _myTunoConfig.Value.DailyReward;
+        return config.BaseFidelis + (characterLevel * config.PerLevelFidelis);
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message, decimal RewardAmount)> ClaimDailyRewardAsync(
+        string userId, int characterLevel, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        try
+        {
+            // Re-check from DB to prevent double-claim
+            var freshUser = await _userManager.FindByIdAsync(userId);
+            if (freshUser == null)
+                return (false, "Utilizador não encontrado.", 0);
+
+            if (freshUser.LastDailyRewardClaim != null &&
+                freshUser.LastDailyRewardClaim.Value.Date >= DateTime.UtcNow.Date)
+            {
+                return (false, "Já recebeste o Daily Reward hoje!", 0);
+            }
+
+            var reward = GetDailyRewardAmount(characterLevel);
+            freshUser.FidelisBalance += reward;
+            freshUser.LastDailyRewardClaim = DateTime.UtcNow;
+            await _userManager.UpdateAsync(freshUser);
+
+            return (true, $"Daily Reward: +{reward:F2} Fidelis!", reward);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error claiming daily reward for user {UserId}", userId);
+            return (false, "Erro ao receber Daily Reward.", 0);
+        }
     }
 
 }

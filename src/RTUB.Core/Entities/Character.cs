@@ -667,6 +667,20 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Gets the display max HP for UI, accounting for shot buff.
+    /// Uses CreateShotBuffedCopy to get the exact same value used in combat.
+    /// </summary>
+    public int GetDisplayMaxHP()
+    {
+        if (ShotBuffBattlesRemaining > 0)
+        {
+            var buffedCopy = CreateShotBuffedCopy(this);
+            return buffedCopy.TotalHP;
+        }
+        return TotalHP;
+    }
+
+    /// <summary>
     /// Regenerates energy based on time elapsed since last regen.
     /// 1 energy per second, capped at MaxEnergy.
     /// Returns the updated energy value.

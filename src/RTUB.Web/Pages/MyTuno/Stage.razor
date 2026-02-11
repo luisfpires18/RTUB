@@ -449,8 +449,6 @@
     // Start stage is now set in the DB before navigation (from MyTunoHome checkpoint selection)
     // No query parameter needed — eliminates prerender/redirect race conditions
 
-    private record EnemyStatsInfo(string Name, int HP, int Power, int Defense, double ActionTime);
-
     protected override async Task OnInitializedAsync()
     {
         // Reset animation state on page load
@@ -637,7 +635,7 @@
                             var power = stat.TryGetProperty("Power", out var powerProp) ? powerProp.GetInt32() : 0;
                             var defense = stat.TryGetProperty("Defense", out var defenseProp) ? defenseProp.GetInt32() : 0;
                             var actionTime = stat.TryGetProperty("ActionTime", out var atProp) ? atProp.GetDouble() : 5.0;
-                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, power, defense, actionTime));
+                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, null, power, defense, actionTime));
                         }
                     }
 
@@ -786,6 +784,9 @@
     {
         // Guard: component may have been disposed while JS animation was playing
         if (_disposed) return;
+
+        // Guard: user clicked "Acabar" while JS animation was playing — don't continue
+        if (_endingRun || !runInProgress) return;
 
         // Auto-continue to next stage if victory (don't hide battle animation)
         if (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon)

@@ -111,4 +111,21 @@ public interface IStageService
     /// <param name="targetStage">The stage to start from</param>
     /// <returns>Updated stage progress</returns>
     Task<StageProgress> SetStartStageAsync(string userId, int targetStage, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all available checkpoint stages up to the highest reached stage.
+    /// Checkpoints occur every 10 stages (after each boss), starting at 11.
+    /// </summary>
+    /// <param name="highestStage">The highest stage the user has reached</param>
+    /// <returns>List of checkpoint stage numbers</returns>
+    List<int> GetAvailableCheckpoints(int highestStage);
+
+    /// <summary>
+    /// Gets checkpoints that fall within a specific biome's stage range.
+    /// </summary>
+    /// <param name="stageMin">The biome's minimum stage number</param>
+    /// <param name="stageMax">The biome's maximum stage number</param>
+    /// <param name="highestStage">The highest stage the user has reached</param>
+    /// <returns>List of checkpoint stage numbers within the biome</returns>
+    List<int> GetCheckpointsForBiome(int stageMin, int stageMax, int highestStage);
 }

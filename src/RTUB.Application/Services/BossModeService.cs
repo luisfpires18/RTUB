@@ -33,7 +33,7 @@ public class BossModeService : IBossModeService
     private readonly IStageBiomeService _biomeService;
     private readonly IStageProgressRepository _stageProgressRepository;
     private readonly IWebHostEnvironment _environment;
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
     private readonly IMemoryCache _memoryCache;
 
     public BossModeService(
@@ -47,7 +47,7 @@ public class BossModeService : IBossModeService
         IStageBiomeService biomeService,
         IStageProgressRepository stageProgressRepository,
         IWebHostEnvironment environment,
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> contextFactory,
         IMemoryCache memoryCache)
     {
         _bossModeProgressRepository = bossModeProgressRepository;
@@ -60,26 +60,8 @@ public class BossModeService : IBossModeService
         _biomeService = biomeService;
         _stageProgressRepository = stageProgressRepository;
         _environment = environment;
-        _context = context;
+        _contextFactory = contextFactory;
         _memoryCache = memoryCache;
-    }
-
-    /// <summary>
-    /// Resets any Modified ApplicationUser entries in the change tracker to Unchanged.
-    /// This prevents stale ConcurrencyStamp values from poisoning subsequent SaveChangesAsync calls.
-    /// In Blazor Server, the DbContext is long-lived (scoped per circuit), so a failed
-    /// UserManager.UpdateAsync can leave the user entity Modified with a stale ConcurrencyStamp,
-    /// causing every subsequent SaveChangesAsync to fail with DbUpdateConcurrencyException.
-    /// </summary>
-    private void ResetStaleUserEntries()
-    {
-        foreach (var entry in _context.ChangeTracker.Entries<ApplicationUser>())
-        {
-            if (entry.State == EntityState.Modified)
-            {
-                entry.State = EntityState.Unchanged;
-            }
-        }
     }
 
     /// <inheritdoc />
@@ -94,7 +76,6 @@ public class BossModeService : IBossModeService
             // Check and apply daily reset if a new day has started
             if (progress.CheckAndApplyDailyReset())
             {
-                ResetStaleUserEntries();
                 await _bossModeProgressRepository.UpdateAsync(progress);
             }
             return progress;
@@ -149,24 +130,20 @@ public class BossModeService : IBossModeService
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
 
-        // Deduct 1 FITAB — reload user first to get fresh ConcurrencyStamp
-        // (in Blazor Server the tracked entity may have a stale stamp from another circuit/tab)
-        await _context.Entry(user).ReloadAsync(cancellationToken);
-        if (user.FitabBalance < 1)
-            throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
-        user.FitabBalance -= 1;
-        var updateResult = await _userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
+        // Deduct 1 FITAB using a short-lived context to avoid change tracker pollution.
+        // In Blazor Server, the scoped DbContext is long-lived (per circuit). Using a separate
+        // context for user balance updates prevents stale ConcurrencyStamp issues.
+        await using (var fitabContext = _contextFactory.CreateDbContext())
         {
-            _logger.LogWarning("Failed to update user FITAB balance: {Errors}",
-                string.Join(", ", updateResult.Errors.Select(e => e.Description)));
-            // Reset the stale user entry so it doesn't poison subsequent saves
-            ResetStaleUserEntries();
-            throw new InvalidOperationException("Failed to deduct FITAB. Please try again.");
+            var freshUser = await fitabContext.Users.FindAsync(new object[] { user.Id }, cancellationToken);
+            if (freshUser == null || freshUser.FitabBalance < 1)
+                throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
+            freshUser.FitabBalance -= 1;
+            await fitabContext.SaveChangesAsync(cancellationToken);
+            user.FitabBalance = freshUser.FitabBalance;
         }
 
-        // Start new run — reset stale user entries to prevent ConcurrencyStamp conflicts
-        ResetStaleUserEntries();
+        // Start new run
         existingProgress.StartRun();
         await _bossModeProgressRepository.UpdateAsync(existingProgress);
 
@@ -318,21 +295,17 @@ public class BossModeService : IBossModeService
         }
 
         var user = await _userManager.FindByIdAsync(character.UserId);
-        if (fidelis > 0 && user != null)
+        if (fidelis > 0)
         {
-            // Reload user to get fresh ConcurrencyStamp before updating
-            await _context.Entry(user).ReloadAsync(cancellationToken);
-            user.FidelisBalance += fidelis;
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
+            // Update Fidelis in a short-lived context to avoid change tracker pollution
+            await using var fidelisContext = _contextFactory.CreateDbContext();
+            var freshUser = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken);
+            if (freshUser != null)
             {
-                _logger.LogWarning("Failed to update user Fidelis balance in boss rewards: {Errors}",
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-                ResetStaleUserEntries();
+                freshUser.FidelisBalance += fidelis;
+                await fidelisContext.SaveChangesAsync(cancellationToken);
             }
         }
-        // Ensure no stale user entries poison subsequent saves
-        ResetStaleUserEntries();
 
         // Batch all inventory drops into a single DB round-trip
         var allDrops = new Dictionary<InventoryItemType, int>();
@@ -376,9 +349,6 @@ public class BossModeService : IBossModeService
         {
             try
             {
-                // Reset stale user entries to prevent ConcurrencyStamp conflicts
-                ResetStaleUserEntries();
-
                 // Re-fetch character to get fresh state after potential retry
                 character = await _characterRepository.GetByIdAsync(characterId);
                 if (character == null) return false;
@@ -583,11 +553,6 @@ public class BossModeService : IBossModeService
         {
             try
             {
-                // Reset any stale ApplicationUser entries in the change tracker.
-                // In Blazor Server, a failed UserManager.UpdateAsync can leave the user entity
-                // Modified with a stale ConcurrencyStamp, which poisons ALL subsequent SaveChangesAsync calls.
-                ResetStaleUserEntries();
-
                 // Update character HP (in buffed scale if buff was active)
                 if (combatResult.AttackerFinalHP > 0)
                     character.CurrentHP = combatResult.AttackerFinalHP;
@@ -644,8 +609,7 @@ public class BossModeService : IBossModeService
                     _logger.LogWarning(ex, "UpdateProgressAfterBattle: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
                     await Task.Delay(50 * (attempt + 1));
 
-                    // Reset stale user entries and reload game entities
-                    ResetStaleUserEntries();
+                    // Reload game entities for retry
                     try
                     {
                         await _characterRepository.ReloadAsync(character);

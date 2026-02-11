@@ -137,13 +137,15 @@
         death: '/audio/games/my-tuno/survive/death.mp3',
         hit: '/audio/games/my-tuno/survive/hit.mp3'
     };
+    // Cache-bust version — refreshes audio once per page session
+    const audioCacheBuster = `?v=${Date.now()}`;
     function getPooledAudio(type) {
         const src = SFX_MAP[type];
         if (!src) return null;
         if (!sfxPool[type]) {
             sfxPool[type] = [];
             for (let i = 0; i < SFX_POOL_SIZE; i++) {
-                const a = new Audio(src);
+                const a = new Audio(src + audioCacheBuster);
                 a.volume = 0.5;
                 sfxPool[type].push(a);
             }
@@ -2176,7 +2178,7 @@
                     return;
                 }
                 // Use the dedicated survival music track
-                bgMusic = new Audio('/sound/survival_battle.mp3');
+                bgMusic = new Audio('/sound/survival_battle.mp3' + audioCacheBuster);
                 bgMusic.loop = true;
                 bgMusic.volume = 0.3;
                 bgMusic.play().catch(() => { });

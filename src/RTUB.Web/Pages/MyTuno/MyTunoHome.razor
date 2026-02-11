@@ -13,6 +13,7 @@
 @using RTUB.Application.Configuration
 @using RTUB.Core.Helpers
 @using Microsoft.Extensions.Options
+@using RTUB.Pages.MyTuno.Components
 @attribute [Authorize]
 @implements IDisposable
 @inject ICharacterService CharacterService
@@ -616,145 +617,7 @@
 
             <!-- Leaderboard -->
             <div class="col-lg-4 order-lg-1">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Classificação</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (leaderboardLoading)
-                        {
-                            <LoadingSpinner Message="A carregar classificação..." />
-                        }
-                        else if (leaderboardEntries == null || !leaderboardEntries.Any())
-                        {
-                            <EmptyState Title="Classificação vazia"
-                                        Message="Ainda não há jogadores com vitórias."
-                                        Icon="bi-trophy" />
-                        }
-                        else
-                        {
-                            <!-- Leaderboard Type Tabs -->
-                            <ul class="nav nav-pills nav-fill mb-3">
-                                <li class="nav-item">
-                                    <button class="nav-link @(leaderboardTab == "level" ? "active" : "")" @onclick='() => leaderboardTab = "level"'>
-                                        <i class="bi bi-star-fill me-1"></i>Nível
-                                    </button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link @(leaderboardTab == "arena" ? "active" : "")" @onclick='() => leaderboardTab = "arena"'>
-                                        <i class="bi bi-shield-fill me-1"></i>Arena
-                                    </button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link @(leaderboardTab == "stage" ? "active" : "")" @onclick='() => leaderboardTab = "stage"'>
-                                        <i class="bi bi-flag-fill me-1"></i>Stage
-                                    </button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link @(leaderboardTab == "boss" ? "active" : "")" @onclick='() => leaderboardTab = "boss"'>
-                                        <i class="bi bi-lightning-fill me-1"></i>Boss
-                                    </button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link @(leaderboardTab == "survive" ? "active" : "")" @onclick='() => leaderboardTab = "survive"'>
-                                        <i class="bi bi-bullseye me-1"></i>Survive
-                                    </button>
-                                </li>
-                            </ul>
-                            
-                            <div class="stats-card-grid">
-                                @{
-                                    var sortedLeaderboard = leaderboardTab == "level"
-                                        ? leaderboardEntries.OrderByDescending(e => e.Level).ToList()
-                                        : leaderboardTab == "arena"
-                                            ? leaderboardEntries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
-                                            : leaderboardTab == "boss"
-                                                ? leaderboardEntries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
-                                                : leaderboardTab == "survive"
-                                                    ? leaderboardEntries.OrderByDescending(e => e.HighestSurviveLevel).ThenByDescending(e => e.Level).ToList()
-                                                    : leaderboardEntries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
-                                    var paginatedItems = sortedLeaderboard.Skip((leaderboardCurrentPage - 1) * leaderboardPageSize).Take(leaderboardPageSize).ToList();
-                                }
-                                @for (int i = 0; i < paginatedItems.Count; i++)
-                                {
-                                    var entry = paginatedItems[i];
-                                    var position = ((leaderboardCurrentPage - 1) * leaderboardPageSize) + i + 1;
-                                    <div class="stats-card">
-                                        @if (leaderboardTab != "level")
-                                        {
-                                            <div class="stats-card-position">
-                                                @if (position == 1)
-                                                {
-                                                    <span class="stats-medal gold">🥇</span>
-                                                }
-                                                else if (position == 2)
-                                                {
-                                                    <span class="stats-medal silver">🥈</span>
-                                                }
-                                                else if (position == 3)
-                                                {
-                                                    <span class="stats-medal bronze">🥉</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="stats-position">@position</span>
-                                                }
-                                            </div>
-                                        }
-                                        <img src="@CacheBuster.Bust(entry.AvatarUrl ?? "/images/default-avatar.webp")"
-                                             alt="@entry.DisplayName"
-                                             class="stats-avatar"
-                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                        <div class="stats-card-content">
-                                            <div class="stats-card-title">@entry.DisplayName</div>
-
-                                        </div>
-                                        <div class="stats-card-count">
-                                            @if (leaderboardTab == "level")
-                                            {
-                                                <span>@entry.Level</span>
-                                            }
-                                            else if (leaderboardTab == "arena")
-                                            {
-                                                <i class="bi bi-trophy"></i>
-                                                <span>@entry.Wins</span>
-                                            }
-                                            else if (leaderboardTab == "boss")
-                                            {
-                                                <i class="bi bi-lightning-fill text-warning"></i>
-                                                <span>@entry.HighestBossStage</span>
-                                            }
-                                            else if (leaderboardTab == "survive")
-                                            {
-                                                <i class="bi bi-bullseye text-danger"></i>
-                                                <span>Lv.@entry.HighestSurviveLevel</span>
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-flag-fill"></i>
-                                                <span>@entry.HighestStage</span>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                            
-                            @if (leaderboardEntries.Count > leaderboardPageSize)
-                            {
-                                <div class="mt-3">
-                                    <TablePagination CurrentPage="@leaderboardCurrentPage"
-                                                    PageSize="@leaderboardPageSize"
-                                                    TotalItems="@leaderboardEntries.Count"
-                                                    ItemLabel="jogadores"
-                                                    OnPageChanged="ChangeLeaderboardPage"
-                                                    PageSizeOptions="@(new[] { 5, 10, 20 })"
-                                                    OnPageSizeChanged="ChangeLeaderboardPageSize"
-                                                    ShowInfo="false" />
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
+                <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
             </div>
         </div>
 
@@ -762,260 +625,11 @@
         <div class="row g-4 mt-2">
             <!-- Upgrade Shop -->
             <div class="col-lg-4 order-lg-4">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
-                    </div>
-                    <div class="card-body p-2">
-                        <div class="d-flex flex-column gap-2">
-                        <!-- HP Upgrade Row -->
-                        <div class="enhance-row @(IsHpMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--hp">
-                                <i class="bi bi-heart-fill"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">HP <span class="enhance-row__level">Lv@(character.HpUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar vida</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsHpMaxed)
-                                    {
-                                        <text>@Fmt(character.TotalHP)</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@Fmt(character.TotalHP) → @Fmt(character.NextTotalHP)</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsHpMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.HP)"
-                                        disabled="@(purchasing || hpCostLoading || IsHpMaxed || (currentUser?.FidelisBalance ?? 0) < hpCost)">
-                                    @if (purchasing && purchasingStat == StatType.HP)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsHpMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (hpCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(hpCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Power Upgrade Row -->
-                        <div class="enhance-row @(IsPowerMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--power">
-                                <i class="bi bi-lightning-fill"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">Poder <span class="enhance-row__level">Lv@(character.PowerUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar ataque</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsPowerMaxed)
-                                    {
-                                        <text>@Fmt(character.TotalPower)</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@Fmt(character.TotalPower) → @Fmt(character.NextTotalPower)</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsPowerMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.Power)"
-                                        disabled="@(purchasing || powerCostLoading || IsPowerMaxed || (currentUser?.FidelisBalance ?? 0) < powerCost)">
-                                    @if (purchasing && purchasingStat == StatType.Power)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsPowerMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (powerCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(powerCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Defense Upgrade Row -->
-                        <div class="enhance-row @(IsDefenseMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--defense">
-                                <i class="bi bi-shield-fill"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">Defesa <span class="enhance-row__level">Lv@(character.DefenseUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar defesa</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsDefenseMaxed)
-                                    {
-                                        <text>@Fmt(character.TotalDefense)</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@Fmt(character.TotalDefense) → @Fmt(character.NextTotalDefense)</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.Defense)"
-                                        disabled="@(purchasing || defenseCostLoading || IsDefenseMaxed || (currentUser?.FidelisBalance ?? 0) < defenseCost)">
-                                    @if (purchasing && purchasingStat == StatType.Defense)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsDefenseMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (defenseCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Speed Upgrade Row -->
-                        <div class="enhance-row @(IsSpeedMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--speed">
-                                <i class="bi bi-speedometer2"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">Velocidade <span class="enhance-row__level">Lv@(character.SpeedUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar velocidade de ataque</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsSpeedMaxed)
-                                    {
-                                        <text>@character.ActionTime.ToString("F1")s</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@character.ActionTime.ToString("F1")s → @(GetSpeedPreview())s</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsSpeedMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.Speed)"
-                                        disabled="@(purchasing || speedCostLoading || IsSpeedMaxed || (currentUser?.FidelisBalance ?? 0) < speedCost)">
-                                    @if (purchasing && purchasingStat == StatType.Speed)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsSpeedMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (speedCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(speedCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Critical Upgrade Row -->
-                        <div class="enhance-row @(IsCriticalMaxed ? "enhance-row--maxed" : "")">
-                            <div class="enhance-row__icon enhance-row__icon--critical">
-                                <i class="bi bi-bullseye"></i>
-                            </div>
-                            <div class="enhance-row__info">
-                                <div class="enhance-row__title">Crítico <span class="enhance-row__level">Lv@(character.CriticalUpgrades)</span></div>
-                                <div class="enhance-row__desc">Aumentar chance de crítico</div>
-                                <div class="enhance-row__stat">
-                                    @if (IsCriticalMaxed)
-                                    {
-                                        <text>@($"{character.TotalCriticalChance * 100:F1}%")</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@($"{character.TotalCriticalChance * 100:F1}%") → @($"{character.NextTotalCriticalChance * 100:F1}%")</text>
-                                    }
-                                </div>
-                            </div>
-                            <div class="enhance-row__action">
-                                <button class="btn enhance-row__btn @(IsCriticalMaxed ? "enhance-row__btn--maxed" : "")"
-                                        @onclick="() => PurchaseUpgrade(StatType.CriticalChance)"
-                                        disabled="@(purchasing || criticalCostLoading || IsCriticalMaxed || (currentUser?.FidelisBalance ?? 0) < criticalCost)">
-                                    @if (purchasing && purchasingStat == StatType.CriticalChance)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <text>Aumentar</text>
-                                    }
-                                </button>
-                                <div class="enhance-row__cost">
-                                    @if (IsCriticalMaxed)
-                                    {
-                                        <i class="bi bi-coin"></i> <span>Max</span>
-                                    }
-                                    else if (criticalCostLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-coin"></i> <span>@FormatCost(criticalCost)</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+                <MyTunoUpgradeShop Character="@character"
+                                   FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                   Purchasing="@purchasing"
+                                   PurchasingStat="@purchasingStat"
+                                   OnPurchaseRequested="PurchaseUpgrade" />
             </div>
 
             <!-- Poderes Section -->
@@ -2117,17 +1731,12 @@
     
     /// <summary>
     /// Gets the display max HP for the character, accounting for shot buff.
-    /// Uses CreateShotBuffedCopy to get the exact same value used in arena battles.
+    /// Delegates to Character.GetDisplayMaxHP().
     /// </summary>
-    private int GetDisplayMaxHP(Character? c)
+    private static int GetDisplayMaxHP(Character? c)
     {
         if (c == null) return 100;
-        if (c.ShotBuffBattlesRemaining > 0)
-        {
-            var buffedCopy = Character.CreateShotBuffedCopy(c);
-            return buffedCopy.TotalHP;
-        }
-        return c.TotalHP;
+        return c.GetDisplayMaxHP();
     }
     
     private Character? character;
@@ -2222,28 +1831,9 @@
     private bool showSurviveModeModal = false;
     private SurviveModeProgress? surviveProgress;
     
-    // Leaderboard pagination
-    private int leaderboardCurrentPage = 1;
-    private int leaderboardPageSize = 6;
-    private string leaderboardTab = "level"; // "level", "arena", "stage" or "boss"
-    private List<MyTunoLeaderboardEntry> paginatedLeaderboard => leaderboardEntries?
-        .Skip((leaderboardCurrentPage - 1) * leaderboardPageSize)
-        .Take(leaderboardPageSize)
-        .ToList() ?? new();
-    
-    // Upgrade shop state
+    // Upgrade shop state (purchasing flag passed to child component)
     private bool purchasing = false;
     private StatType? purchasingStat = null;
-    private decimal hpCost = 0;
-    private decimal powerCost = 0;
-    private decimal speedCost = 0;
-    private decimal criticalCost = 0;
-    private decimal defenseCost = 0;
-    private bool hpCostLoading = true;
-    private bool powerCostLoading = true;
-    private bool speedCostLoading = true;
-    private bool criticalCostLoading = true;
-    private bool defenseCostLoading = true;
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
     private bool claimingDailyReward = false;
@@ -2272,32 +1862,9 @@
     private decimal GetDailyRewardAmount()
     {
         var level = character?.Level ?? 1;
-        return DailyRewardBase + (level * DailyRewardPerLevel);
+        return CharacterService.GetDailyRewardAmount(level);
     }
     
-    // Max upgrades from config
-    private int MaxHpUpgrades => MyTunoConfig.Value.Upgrades.HP.MaxUpgrades;
-    private int MaxPowerUpgrades => MyTunoConfig.Value.Upgrades.Power.MaxUpgrades;
-    private int MaxSpeedUpgrades => MyTunoConfig.Value.Upgrades.Speed.MaxUpgrades;
-    private int MaxCriticalUpgrades => MyTunoConfig.Value.Upgrades.CriticalChance.MaxUpgrades;
-    private int MaxDefenseUpgrades => MyTunoConfig.Value.Upgrades.Defense.MaxUpgrades;
-    
-    private bool IsHpMaxed => character != null && MaxHpUpgrades > 0 && character.HpUpgrades >= MaxHpUpgrades;
-    private bool IsPowerMaxed => character != null && MaxPowerUpgrades > 0 && character.PowerUpgrades >= MaxPowerUpgrades;
-    private bool IsSpeedMaxed => character != null && MaxSpeedUpgrades > 0 && character.SpeedUpgrades >= MaxSpeedUpgrades;
-    private bool IsCriticalMaxed => character != null && MaxCriticalUpgrades > 0 && character.CriticalUpgrades >= MaxCriticalUpgrades;
-    private bool IsDefenseMaxed => character != null && MaxDefenseUpgrades > 0 && character.DefenseUpgrades >= MaxDefenseUpgrades;
-
-    /// <summary>
-    /// Gets a preview of the ActionTime after one more speed upgrade
-    /// </summary>
-    private string GetSpeedPreview()
-    {
-        if (character == null) return "0.0";
-        var previewTime = Math.Max(Character.MinActionTime, character.ActionTime - Character.ActionTimeReductionPerUpgrade);
-        return previewTime.ToString("F1");
-    }
-
     private async Task ClaimDailyReward()
     {
         if (currentUser == null || character == null || !CanClaimDailyReward) return;
@@ -2306,29 +1873,25 @@
         {
             claimingDailyReward = true;
 
-            // Re-check from DB to prevent double-claim
-            var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
-            if (freshUser == null) return;
+            var (success, message, reward) = await CharacterService.ClaimDailyRewardAsync(
+                currentUser.Id, character.Level);
 
-            if (freshUser.LastDailyRewardClaim != null && freshUser.LastDailyRewardClaim.Value.Date >= DateTime.UtcNow.Date)
+            toastMessage = message;
+            toastIsError = !success;
+
+            if (success)
             {
-                toastMessage = "Já recebeste o Daily Reward hoje!";
-                toastIsError = true;
-                currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
-                return;
+                // Update local state to match DB
+                currentUser.FidelisBalance += reward;
+                currentUser.LastDailyRewardClaim = DateTime.UtcNow;
             }
-
-            var reward = GetDailyRewardAmount();
-            freshUser.FidelisBalance += reward;
-            freshUser.LastDailyRewardClaim = DateTime.UtcNow;
-            await UserManager.UpdateAsync(freshUser);
-
-            // Update local state
-            currentUser.FidelisBalance = freshUser.FidelisBalance;
-            currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
-
-            toastMessage = $"Daily Reward: +{reward:F2} Fidelis!";
-            toastIsError = false;
+            else if (message == "Já recebeste o Daily Reward hoje!")
+            {
+                // Sync claim timestamp from server
+                var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (freshUser != null)
+                    currentUser.LastDailyRewardClaim = freshUser.LastDailyRewardClaim;
+            }
         }
         catch (Exception ex)
         {
@@ -2342,7 +1905,6 @@
         }
     }
 
-    private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
     private static string Fmt(int value) => NumberFormatter.Compact(value);
     private static string Fmt(int? value) => NumberFormatter.Compact(value ?? 0);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
@@ -2375,9 +1937,6 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
-                        // Compute all 5 upgrade costs from the already-loaded character (0 DB queries)
-                        LoadUpgradeCostsFromCharacter();
-
                         // Batch: single inventory query replaces ~13 individual calls
                         var inventorySummaryTask = InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                         // These are independent of inventory — run in parallel
@@ -2493,75 +2052,6 @@
         }
     }
 
-    /// <summary>
-    /// Computes all 5 upgrade costs from the already-loaded character (0 DB queries).
-    /// Falls back to async per-stat loading if character is null.
-    /// </summary>
-    private void LoadUpgradeCostsFromCharacter()
-    {
-        if (character == null) return;
-
-        try
-        {
-            var costs = UpgradeService.GetAllUpgradeCosts(character);
-            hpCost = costs.GetValueOrDefault(StatType.HP);
-            powerCost = costs.GetValueOrDefault(StatType.Power);
-            speedCost = costs.GetValueOrDefault(StatType.Speed);
-            criticalCost = costs.GetValueOrDefault(StatType.CriticalChance);
-            defenseCost = costs.GetValueOrDefault(StatType.Defense);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading upgrade costs");
-            toastMessage = "Erro ao carregar os custos dos upgrades.";
-            toastIsError = true;
-        }
-        finally
-        {
-            hpCostLoading = false;
-            powerCostLoading = false;
-            speedCostLoading = false;
-            criticalCostLoading = false;
-            defenseCostLoading = false;
-        }
-    }
-
-    private async Task LoadUpgradeCosts()
-    {
-        if (currentUser == null) return;
-
-        try
-        {
-            hpCostLoading = true;
-            powerCostLoading = true;
-            speedCostLoading = true;
-            criticalCostLoading = true;
-            defenseCostLoading = true;
-            StateHasChanged();
-
-            hpCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.HP);
-            powerCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Power);
-            speedCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Speed);
-            criticalCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.CriticalChance);
-            defenseCost = await UpgradeService.GetUpgradeCostAsync(currentUser.Id, StatType.Defense);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading upgrade costs");
-            toastMessage = "Erro ao carregar os custos dos upgrades.";
-            toastIsError = true;
-        }
-        finally
-        {
-            hpCostLoading = false;
-            powerCostLoading = false;
-            speedCostLoading = false;
-            criticalCostLoading = false;
-            defenseCostLoading = false;
-            StateHasChanged();
-        }
-    }
-
     private async Task PurchaseUpgrade(StatType statType)
     {
         if (currentUser == null) return;
@@ -2582,7 +2072,6 @@
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
                 }
-                LoadUpgradeCostsFromCharacter();
 
                 toastMessage = $"Upgrade de {purchasingStat} comprado com sucesso!";
                 toastIsError = false;
@@ -2645,21 +2134,9 @@
         Navigation.NavigateTo("/my-tuno/survive");
     }
 
-    private static string GetSurviveBiomeIcon(string name) => name switch
-    {
-        "Forest" => "bi-tree-fill", "Swamp" => "bi-droplet-fill", "Mountains" => "bi-triangle-fill",
-        "Snowy" => "bi-snow2", "Tropical" => "bi-sun-fill", "Caverns" => "bi-gem",
-        "Desert" => "bi-thermometer-sun", "Volcanic" => "bi-fire", "Ruins" => "bi-building",
-        "Dark" => "bi-moon-fill", "Void" => "bi-radioactive", _ => "bi-question-circle"
-    };
+    private static string GetSurviveBiomeIcon(string name) => BiomeDisplayHelper.GetSurviveBiomeIcon(name);
 
-    private static string GetSurviveBiomeColor(string name) => name switch
-    {
-        "Forest" => "#43a047", "Swamp" => "#689f38", "Mountains" => "#78909c",
-        "Snowy" => "#90caf9", "Tropical" => "#e6a200", "Caverns" => "#7e57c2",
-        "Desert" => "#ff8f00", "Volcanic" => "#e53935", "Ruins" => "#8d6e63",
-        "Dark" => "#9575cd", "Void" => "#e040fb", _ => "#888"
-    };
+    private static string GetSurviveBiomeColor(string name) => BiomeDisplayHelper.GetSurviveBiomeColor(name);
 
     private async Task OpenStageModal()
     {
@@ -2752,92 +2229,16 @@
     /// <summary>
     /// Gets all available checkpoint stages up to the highest reached stage
     /// </summary>
-    private static List<int> GetAvailableCheckpoints(int highestStage)
-    {
-        var checkpoints = new List<int> { 1 }; // Always start with stage 1
-        
-        if (highestStage <= 1) return checkpoints;
-        
-        // Add checkpoints every 10 stages (after each boss), starting at 11
-        // Each biome has 10 bosses at stages 10, 20, 30... so checkpoints at 11, 21, 31...
-        for (int stage = 11; stage <= highestStage; stage += 10)
-        {
-            checkpoints.Add(stage);
-        }
-        
-        return checkpoints;
-    }
+    private List<int> GetAvailableCheckpoints(int highestStage) => StageService.GetAvailableCheckpoints(highestStage);
 
     /// <summary>
     /// Gets checkpoints that fall within a specific biome's stage range
     /// </summary>
-    private static List<int> GetCheckpointsForBiome(int stageMin, int stageMax, int highestStage)
-    {
-        var checkpoints = new List<int>();
-        var maxReachable = Math.Min(stageMax, highestStage);
+    private List<int> GetCheckpointsForBiome(int stageMin, int stageMax, int highestStage) => StageService.GetCheckpointsForBiome(stageMin, stageMax, highestStage);
 
-        // First checkpoint: the biome's starting stage (always stage 1 for Forest, stageMin for others)
-        if (stageMin <= highestStage)
-        {
-            checkpoints.Add(stageMin);
-        }
+    private static string GetBiomeIcon(string biomeName) => BiomeDisplayHelper.GetBiomeIcon(biomeName);
 
-        // Add checkpoints every 10 stages after bosses
-        // Bosses are at stages 10, 20, 30... relative to global. Checkpoints at 11, 21, 31...
-        var firstCheckpointAfterBoss = stageMin == 1 ? 11 : stageMin + 10;
-        for (int stage = firstCheckpointAfterBoss; stage <= maxReachable; stage += 10)
-        {
-            if (stage >= stageMin && stage <= stageMax)
-            {
-                checkpoints.Add(stage);
-            }
-        }
-
-        return checkpoints;
-    }
-
-    private static string GetBiomeIcon(string biomeName) => biomeName switch
-    {
-        "Forest" => "bi-tree-fill",
-        "Swamp" => "bi-droplet-fill",
-        "Mountains" => "bi-triangle-fill",
-        "Snowy" => "bi-snow2",
-        "Tropical" => "bi-sun-fill",
-        "Caverns" => "bi-gem",
-        "Desert" => "bi-brightness-high-fill",
-        "Volcanic" => "bi-fire",
-        "Ruins" => "bi-building",
-        "Dark" => "bi-moon-fill",
-        "Void" => "bi-infinity",
-        _ => "bi-geo-alt-fill"
-    };
-
-    private static string GetBiomeColor(string biomeName) => biomeName switch
-    {
-        "Forest" => "#4caf50",
-        "Swamp" => "#8bc34a",
-        "Mountains" => "#78909c",
-        "Snowy" => "#81d4fa",
-        "Tropical" => "#ff9800",
-        "Caverns" => "#9c27b0",
-        "Desert" => "#ffb74d",
-        "Volcanic" => "#f44336",
-        "Ruins" => "#795548",
-        "Dark" => "#37474f",
-        "Void" => "#7c4dff",
-        _ => "#6f42c1"
-    };
-
-    private void ChangeLeaderboardPage(int page)
-    {
-        leaderboardCurrentPage = page;
-    }
-
-    private void ChangeLeaderboardPageSize(int newPageSize)
-    {
-        leaderboardPageSize = newPageSize;
-        leaderboardCurrentPage = 1; // Reset to first page when changing page size
-    }
+    private static string GetBiomeColor(string biomeName) => BiomeDisplayHelper.GetBiomeColor(biomeName);
 
     private void OpenInfoModal()
     {

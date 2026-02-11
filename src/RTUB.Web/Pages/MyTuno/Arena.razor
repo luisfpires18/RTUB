@@ -269,16 +269,11 @@
     private const int UiUpdateDelayMs = 50;
     
     // Helper method to get display max HP accounting for buff
-    // Uses CreateShotBuffedCopy to get the exact same value used in arena battles
-    private int GetDisplayMaxHP(Character? c)
+    // Delegates to Character.GetDisplayMaxHP()
+    private static int GetDisplayMaxHP(Character? c)
     {
         if (c == null) return 0;
-        if (c.ShotBuffBattlesRemaining > 0)
-        {
-            var buffedCopy = Character.CreateShotBuffedCopy(c);
-            return buffedCopy.TotalHP;
-        }
-        return c.TotalHP;
+        return c.GetDisplayMaxHP();
     }
 
     protected override async Task OnInitializedAsync()

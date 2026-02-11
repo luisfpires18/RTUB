@@ -21,6 +21,8 @@
     let currentMusicType = null; // 'stage' or 'boss' — tracks which track is playing
     // Cache decoded AudioBuffers so music files are only fetched/decoded once per session
     const audioBufferCache = {};
+    // Cache-bust version — refreshes audio once per page session
+    const audioCacheBuster = `?v=${Date.now()}`;
 
     // Session-level cache bust — set once per page load so the browser
     // can reuse HTTP-cached sprites across stage transitions.
@@ -195,7 +197,7 @@
             try {
                 // Pick the right track: boss gets boss_battle.mp3, everything else gets stage_battle.mp3
                 const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
-                const musicFile = isBoss ? '/sound/boss_battle.mp3' : '/sound/stage_battle.mp3';
+                const musicFile = isBoss ? '/sound/boss_battle.mp3' + audioCacheBuster : '/sound/stage_battle.mp3' + audioCacheBuster;
                 currentMusicType = isBoss ? 'boss' : 'stage';
 
                 // Use cached AudioBuffer if available, otherwise fetch and decode once

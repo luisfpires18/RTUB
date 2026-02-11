@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Enums;
 
 namespace RTUB.Application.Data;
 
@@ -23,11 +22,6 @@ public static partial class SeedData
 
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
-
-        // Log current speed calculations for all characters (for verification)
-        var logger = scope.ServiceProvider.GetService(typeof(Microsoft.Extensions.Logging.ILogger<>)
-            .MakeGenericType(typeof(SeedData))) as Microsoft.Extensions.Logging.ILogger;
-        await LogAllCharacterSpeedAsync(dbContext, logger);
 
         if (await dbContext.Users.AnyAsync())
         {
