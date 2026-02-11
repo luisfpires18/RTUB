@@ -220,23 +220,13 @@ public class Character : BaseEntity
     
     /// <summary>
     /// Time reduction per speed upgrade in seconds.
-    /// At 40 upgrades: 40 × 0.1 = 4.0s reduction, reaching 1.0s minimum.
+    /// At 41 upgrades: 41 × (4.0/41) = 4.0s reduction, reaching 1.0s minimum.
     /// </summary>
-    public const double ActionTimeReductionPerUpgrade = 0.1;
-
-    /// <summary>
-    /// Seconds of action time reduced per point of TotalSpeed.
-    /// Provides a small but meaningful speed scaling from the Speed stat itself,
-    /// so enemies with high scaled speed (from higher stages) attack faster.
-    /// At TotalSpeed=50 this provides 1.0s reduction.
-    /// </summary>
-    public const double ActionTimeReductionPerSpeedPoint = 0.02;
+    public const double ActionTimeReductionPerUpgrade = 4.0 / 41.0; // ~0.0976s per upgrade
 
     /// <summary>
     /// Calculates the action time in seconds.
-    /// Two sources of speed reduction:
-    /// 1) TotalSpeed stat: -0.03s per point (enemies scale this via stages, players via levels)
-    /// 2) SpeedUpgrades: -0.1s per upgrade (player-only flat reduction from shop purchases)
+    /// Based purely on SpeedUpgrades: from 5.0s (0 upgrades) to 1.0s (41 upgrades).
     /// Minimum is 1 second.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -248,18 +238,24 @@ public class Character : BaseEntity
             if (ActionTimeOverride.HasValue)
                 return Math.Max(MinActionTime, ActionTimeOverride.Value);
 
-            var time = BaseActionTime;
-            
-            // Only speed gained above base reduces action time
-            // so level 1 players start at exactly 5.0s
-            var bonusSpeed = Math.Max(0, TotalSpeed - MyTunoScaling.BaseSpeed);
-            time -= bonusSpeed * ActionTimeReductionPerSpeedPoint;
-            
-            // Speed upgrades provide the main flat reduction for players
-            time -= SpeedUpgrades * ActionTimeReductionPerUpgrade;
+            // Speed upgrades provide the flat reduction: 5.0s → 1.0s over 41 upgrades
+            var time = BaseActionTime - SpeedUpgrades * ActionTimeReductionPerUpgrade;
             
             return Math.Max(MinActionTime, time);
         }
+    }
+
+    /// <summary>
+    /// Helper method to log speed changes for a character (for debugging/verification)
+    /// </summary>
+    public string GetSpeedChangeLog(string userName)
+    {
+        var currentActionTime = ActionTime;
+        // Old formula would have been: 5.0 - (bonusSpeed * 0.02) - (SpeedUpgrades * 0.1)
+        // For reference, if character was at 1.0s in the old formula, that meant either:
+        // - SpeedUpgrades hit the old cap, or
+        // - Character level was high enough to reach minimum
+        return $"Character '{userName}' (SpeedUpgrades={SpeedUpgrades}): ActionTime = {currentActionTime:F1}s";
     }
 
     // Private constructor for EF Core

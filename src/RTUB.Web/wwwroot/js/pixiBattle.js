@@ -11,6 +11,14 @@
     // Background music for arena
     let arenaBackgroundMusic = null;
     let arenaBackgroundMusicGainNode = null;
+    
+    // Session-level cache bust — set once per page load so the browser
+    // can reuse HTTP-cached sprites across arena battles.
+    const SESSION_CACHE_BUST = `?v=${Date.now()}`;
+    // Track which asset paths are already loaded in PIXI.Assets to skip re-fetches
+    const loadedAssetAliases = new Set();
+    // Cache decoded AudioBuffers so music file is only fetched/decoded once per session
+    const audioBufferCache = {};
 
     const spritePaths = {
         attacker: '/sprites/games/my-tuno/tuno_attacking_right.png',
@@ -91,9 +99,6 @@
             this.hpGraphics = null;
             this.hpTexts = {};
             this.nameTexts = {};
-            this.logEntries = [];
-            this.logText = null;
-            this.logBackground = null;
             this.replayIndex = 0;
             this.isPlaying = false;
             this.playbackSpeed = 1;
@@ -142,9 +147,16 @@
         
         async loadBackgroundMusic() {
             try {
-                const response = await fetch('/sound/arena_battle.mp3');
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                const musicFile = '/sound/arena_battle.mp3';
+                
+                // Use cached AudioBuffer if available, otherwise fetch and decode once
+                let audioBuffer = audioBufferCache[musicFile];
+                if (!audioBuffer) {
+                    const response = await fetch(musicFile);
+                    const arrayBuffer = await response.arrayBuffer();
+                    audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    audioBufferCache[musicFile] = audioBuffer;
+                }
                 
                 // Create gain node for volume control
                 arenaBackgroundMusicGainNode = this.audioContext.createGain();
@@ -292,12 +304,24 @@
         }
 
         async loadAssets() {
-            const cacheBust = `?v=${Date.now()}`;
-            await PIXI.Assets.load([
-                { alias: 'attackerSprite', src: spritePaths.attacker + cacheBust },
-                { alias: 'defenderSprite', src: spritePaths.defender + cacheBust },
-                { alias: 'arenaBg', src: spritePaths.background + cacheBust }
-            ]);
+            const toLoad = [];
+            
+            if (!loadedAssetAliases.has('attackerSprite')) {
+                toLoad.push({ alias: 'attackerSprite', src: spritePaths.attacker + SESSION_CACHE_BUST });
+            }
+            if (!loadedAssetAliases.has('defenderSprite')) {
+                toLoad.push({ alias: 'defenderSprite', src: spritePaths.defender + SESSION_CACHE_BUST });
+            }
+            if (!loadedAssetAliases.has('arenaBg')) {
+                toLoad.push({ alias: 'arenaBg', src: spritePaths.background + SESSION_CACHE_BUST });
+            }
+            
+            if (toLoad.length > 0) {
+                await PIXI.Assets.load(toLoad);
+                for (const a of toLoad) {
+                    loadedAssetAliases.add(a.alias);
+                }
+            }
         }
 
         create() {
@@ -320,7 +344,6 @@
             this.initializeHpFromEvents();
             this.drawHpBars();
             this.drawSpeedBars();
-            this.createLogPanel(width, height);
 
             if (this.mode === 'live') {
                 this.startTimedBattle();
@@ -333,15 +356,9 @@
         }
 
         createArena(width, height) {
-            const groundHeight = 50;
-            const ground = new PIXI.Graphics();
-            ground.rect(0, height - groundHeight, width, groundHeight);
-            ground.fill(0x2a2a2a);
-            this.stage.addChild(ground);
-
             const line = new PIXI.Graphics();
             line.moveTo(width / 2, 0);
-            line.lineTo(width / 2, height - groundHeight);
+            line.lineTo(width / 2, height);
             line.stroke({ width: 2, color: 0x444444 });
             this.stage.addChild(line);
         }
@@ -434,40 +451,6 @@
                 return 0.6;
             }
             return Math.min(1, maxSpriteHeight / sprite.texture.height);
-        }
-
-        createLogPanel(width, height) {
-            const panelHeight = 80;
-            const panelY = height - panelHeight / 2 - 5;
-            
-            this.logBackground = new PIXI.Graphics();
-            this.logBackground.rect(20, panelY - panelHeight / 2, width - 40, panelHeight);
-            this.logBackground.fill({ color: 0x0f0f0f, alpha: 0.9 });
-            this.logBackground.stroke({ width: 1, color: 0x333333 });
-            this.stage.addChild(this.logBackground);
-
-            this.logText = new PIXI.Text({
-                text: '',
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 13,
-                    fill: 0xf1f1f1,
-                    wordWrap: true,
-                    wordWrapWidth: width - 60
-                }
-            });
-            this.logText.x = 30;
-            this.logText.y = panelY - panelHeight / 2 + 10;
-            this.stage.addChild(this.logText);
-        }
-
-        addLogEntry(message) {
-            if (!message) return;
-            this.logEntries.unshift(message);
-            this.logEntries = this.logEntries.slice(0, 4);
-            if (this.logText) {
-                this.logText.text = this.logEntries.join('\n');
-            }
         }
 
         initializeHpFromEvents() {
@@ -659,40 +642,19 @@
                 const attacker = getEventField(evt, 'Attacker');
                 const defender = getEventField(evt, 'Defender');
                 const damage = getEventField(evt, 'Damage');
-                const isBlocked = getEventField(evt, 'IsBlocked') ?? false;
-                const isBoosted = getEventField(evt, 'IsBoosted') ?? false;
                 this.playAttack(attacker, defender, damage, evt);
-                if (attacker && defender) {
-                    const attackerName = attacker === 'Attacker' ? this.attackerName : this.defenderName;
-                    const defenderName = defender === 'Defender' ? this.defenderName : this.attackerName;
-                    if (isBlocked) {
-                        this.addLogEntry(`${attackerName} atacou ${defenderName} (BLOCKED)`);
-                    } else {
-                        const damageText = damage ? `-${formatNum(damage)}` : '0';
-                        const extra = isBoosted ? ' EXTRA' : '';
-                        this.addLogEntry(`${attackerName} atacou ${defenderName} (${damageText}${extra})`);
-                    }
-                }
                 return;
             }
 
             if (type === 'KO') {
                 const character = getEventField(evt, 'Character');
                 this.playKo(character);
-                if (character) {
-                    const characterName = character === 'Attacker' ? this.attackerName : this.defenderName;
-                    this.addLogEntry(`${characterName} foi nocauteado`);
-                }
                 return;
             }
 
             if (type === 'Victory') {
                 const winner = getEventField(evt, 'Winner');
                 this.showVictory(winner);
-                if (winner) {
-                    const winnerName = winner === 'Attacker' ? this.attackerName : this.defenderName;
-                    this.addLogEntry(`${winnerName} venceu a batalha`);
-                }
             }
         }
 

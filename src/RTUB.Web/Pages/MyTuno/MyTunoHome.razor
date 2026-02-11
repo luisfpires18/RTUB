@@ -2284,7 +2284,7 @@
     
     private bool IsHpMaxed => character != null && MaxHpUpgrades > 0 && character.HpUpgrades >= MaxHpUpgrades;
     private bool IsPowerMaxed => character != null && MaxPowerUpgrades > 0 && character.PowerUpgrades >= MaxPowerUpgrades;
-    private bool IsSpeedMaxed => character != null && (MaxSpeedUpgrades > 0 && character.SpeedUpgrades >= MaxSpeedUpgrades || character.ActionTime <= Character.MinActionTime);
+    private bool IsSpeedMaxed => character != null && MaxSpeedUpgrades > 0 && character.SpeedUpgrades >= MaxSpeedUpgrades;
     private bool IsCriticalMaxed => character != null && MaxCriticalUpgrades > 0 && character.CriticalUpgrades >= MaxCriticalUpgrades;
     private bool IsDefenseMaxed => character != null && MaxDefenseUpgrades > 0 && character.DefenseUpgrades >= MaxDefenseUpgrades;
 
@@ -2294,8 +2294,7 @@
     private string GetSpeedPreview()
     {
         if (character == null) return "0.0";
-        var previewReduction = Character.ActionTimeReductionPerUpgrade + Character.ActionTimeReductionPerSpeedPoint;
-        var previewTime = Math.Max(Character.MinActionTime, character.ActionTime - previewReduction);
+        var previewTime = Math.Max(Character.MinActionTime, character.ActionTime - Character.ActionTimeReductionPerUpgrade);
         return previewTime.ToString("F1");
     }
 

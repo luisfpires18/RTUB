@@ -561,16 +561,6 @@
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
                 Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
-                await AuditLogService.AddAsync(new AuditLog
-                {
-                    EntityType = "StageRun",
-                    Action = "Started",
-                    UserName = currentUser.UserName,
-                    UserId = currentUser.Id,
-                    Timestamp = DateTime.UtcNow,
-                    EntityDisplayName = $"Stage {stageProgress.CurrentStage}",
-                    Changes = System.Text.Json.JsonSerializer.Serialize(new { Stage = stageProgress.CurrentStage, HP = character.CurrentHP })
-                });
             }
             
             // Only update UI if we weren't already animating (first battle)

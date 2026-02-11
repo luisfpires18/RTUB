@@ -76,16 +76,6 @@ public class BattleService : IBattleService
         var playerName = playerUser?.UserName ?? playerCharacter.UserId;
         var opponentName = opponentUser?.UserName ?? opponentCharacter.UserId;
         _logger.LogInformation("Battle started by {PlayerName} against {OpponentName}", playerName, opponentName);
-        await _auditLogService.AddAsync(new AuditLog
-        {
-            EntityType = "ArenaBattle",
-            Action = "Started",
-            UserName = playerName,
-            UserId = playerCharacter.UserId,
-            Timestamp = DateTime.UtcNow,
-            EntityDisplayName = $"{playerName} vs {opponentName}",
-            Changes = System.Text.Json.JsonSerializer.Serialize(new { Opponent = opponentName })
-        });
 
         // Create CPU snapshot of opponent with full HP
         // This ensures the opponent always starts at full health regardless of their persisted state

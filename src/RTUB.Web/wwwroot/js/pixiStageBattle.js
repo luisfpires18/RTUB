@@ -91,8 +91,6 @@
             this.playerHpBar = null;
             this.enemyHpBars = [];
             this.stageText = null;
-            this.logEntries = [];
-            this.logText = null;
             
             this.isPlaying = false;
             this.playbackSpeed = 1;
@@ -123,8 +121,6 @@
             } else {
                 this.enemyPlacements = Array(this.enemyCount).fill(0); // Default all terrestrial
             }
-            
-            console.log('StageBattleScene constructor - Stage:', this.stageNumber, 'PlacementsData:', placementsData, 'Set placements:', this.enemyPlacements);
             
             this.enemyHPs = Array(this.enemyCount).fill(null).map(() => ({ current: 100, max: 100 }));
             
@@ -285,16 +281,8 @@
             this.stage.addChild(overlay);
             this._overlay = overlay;
 
-            const groundHeight = 50;
-            const ground = new PIXI.Graphics();
-            ground.rect(0, height - groundHeight, width, groundHeight);
-            ground.fill(0x2a2a2a);
-            this.stage.addChild(ground);
-            this._ground = ground;
-
             this.createPlayer(width, height);
             this.createEnemies(width, height);
-            this.createBattleLog(width, height);
 
             this.preprocessInitialEvents();
             this.startTimedBattle();
@@ -490,13 +478,9 @@
             const enemyX = width * 0.72; // Shift left slightly to give more room
             const baseEnemyY = height - groundOffset;
             
-            console.log('createEnemies - Stage:', this.stageNumber, 'Using placements:', this.enemyPlacements);
-            
             // Pass placements to calculate positions
             const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements);
             
-            console.log('createEnemies - Calculated positions:', positions);
-
             // Determine scale factor based on enemy count
             // More enemies = smaller sprites to fit them all
             const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
@@ -773,31 +757,6 @@
             return tempPositions;
         }
 
-        createBattleLog(width, height) {
-            const panelHeight = 50;
-            const panelY = height - panelHeight / 2;
-            
-            const panel = new PIXI.Graphics();
-            panel.rect(20, panelY - panelHeight / 2, width - 40, panelHeight);
-            panel.fill({ color: 0x0f0f0f, alpha: 0.9 });
-            panel.stroke({ width: 1, color: 0x333333 });
-            this.stage.addChild(panel);
-            
-            this.logText = new PIXI.Text({
-                text: '',
-                style: {
-                    fontFamily: 'Arial',
-                    fontSize: 12,
-                    fill: 0xf1f1f1,
-                    wordWrap: true,
-                    wordWrapWidth: width - 50
-                }
-            });
-            this.logText.x = 25;
-            this.logText.y = panelY - panelHeight / 2 + 8;
-            this.stage.addChild(this.logText);
-        }
-
         startTimedBattle() {
             // Find all events and their SimTime values
             this.battleEvents = this.eventsList.map(evt => ({
@@ -997,9 +956,6 @@
                 case 'Draw':
                     this.handleDraw();
                     break;
-                case 'RoundStart':
-                    this.handleRoundStart(evt);
-                    break;
             }
         }
 
@@ -1114,12 +1070,6 @@
             }
 
             this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
-
-            const attackerName = attacker === 'Attacker' || attacker === 'Player' ? this.playerName : this.enemyName;
-            const critText = isCritical ? ' (CRIT!)' : '';
-            const blockedText = isBlocked ? ' BLOCKED' : '';
-            const boostedText = isBoosted ? ' EXTRA' : '';
-            this.addLogEntry(`${attackerName}: ${formatNum(damage)} dmg${critText}${blockedText}${boostedText}`);
         }
 
         showFloatingText(text, x, y, color) {
@@ -1214,13 +1164,11 @@
 
             if (character === 'Attacker' || character === 'Player') {
                 this.animateTo(this.playerSprite, { alpha: 0.3, rotation: Math.PI / 2 }, 500);
-                this.addLogEntry(`${this.playerName} defeated!`);
             } else if (character.startsWith('Enemy')) {
                 const enemyIndex = parseInt(character.replace('Enemy', ''));
                 if (!isNaN(enemyIndex) && enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                     const enemy = this.enemySprites[enemyIndex];
                     this.animateTo(enemy, { alpha: 0, y: enemy.y - 50 }, 500);
-                    this.addLogEntry(`Enemy ${enemyIndex + 1} defeated!`);
                     
                     // Hide HP bar
                     const hpBarData = this.enemyHpBars[enemyIndex];
@@ -1256,7 +1204,6 @@
                         this.animateTo(speedBarData.barBg, { alpha: 0 }, 300);
                     }
                 });
-                this.addLogEntry(`${this.enemyName} defeated!`);
             }
         }
 
@@ -1267,7 +1214,6 @@
             
             if (isPlayerWin) {
                 this.playSound('victory');
-                this.addLogEntry('🎉 VICTORY!');
                 
                 const originalY = this.playerSprite.y;
                 this.animateTo(this.playerSprite, { y: originalY - 20 }, 200, () => {
@@ -1279,7 +1225,6 @@
                 });
             } else {
                 this.playSound('defeat');
-                this.addLogEntry('💀 DEFEAT');
             }
 
             // Only show big VICTORY/DEFEAT text on boss stages (every 10th) or on defeat
@@ -1311,8 +1256,6 @@
         }
 
         handleDraw() {
-            this.addLogEntry('Draw!');
-            
             const drawText = new PIXI.Text({
                 text: 'DRAW',
                 style: {
@@ -1330,22 +1273,6 @@
 
             // Delay finishBattle to allow draw animation to show
             setTimeout(() => this.finishBattle(), 800 / this.battleSpeed);
-        }
-
-        handleRoundStart(evt) {
-            const round = getEventField(evt, 'Round');
-            if (round) {
-                this.addLogEntry(`--- Round ${round} ---`);
-            }
-        }
-
-        addLogEntry(text) {
-            if (!text) return;
-            this.logEntries.unshift(text);
-            this.logEntries = this.logEntries.slice(0, 4);
-            if (this.logText) {
-                this.logText.text = this.logEntries.join('\n');
-            }
         }
 
         finishBattle() {
@@ -1565,15 +1492,12 @@
             this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
             this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? this.hasShotBuff;
             
-            console.log('resetForNextBattle - Stage:', this.stageNumber, 'Received placements:', data?.enemyPlacements, 'Set placements:', this.enemyPlacements);
-            
             // PRE-LOAD new textures while old scene is still fully visible (no flash)
             await this.loadAssets();
             
             // Reset battle state
             this.currentEventIndex = 0;
             this.battleFinished = false;
-            this.logEntries = [];
             this.playerMaxHp = 100;
             this.playerCurrentHp = 100;
             this.playerActionTime = 3.5;
@@ -1668,11 +1592,10 @@
             this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
             this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
             
-            // Create new enemies and battle log (player persists — no recreation)
+            // Create new enemies (player persists — no recreation)
             const width = this.app.screen.width;
             const height = this.app.screen.height;
             this.createEnemies(width, height);
-            this.createBattleLog(width, height);
             
             // Fade in new enemies for a smooth transition
             for (const enemy of this.enemySprites) {
@@ -1718,8 +1641,6 @@
 
     window.stageBattleGame = {
         start: function (containerId, battleData) {
-            console.log('Starting stage battle game in container:', containerId);
-            
             const container = document.getElementById(containerId);
             if (!container) {
                 console.error('Stage battle container not found:', containerId);

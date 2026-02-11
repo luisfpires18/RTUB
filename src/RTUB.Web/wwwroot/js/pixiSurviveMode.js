@@ -51,9 +51,9 @@
     const BOSS_HIT_RADIUS = 56;         // big hitbox
 
     // ─── Upgrade System ───────────────────────────────────────────
-    // Dynamic coin thresholds: 5, 10, 15, 30, 45, then +15 each
-    const UPGRADE_THRESHOLDS = [5, 10, 15, 30, 45];
-    const UPGRADE_THRESHOLD_STEP = 15; // after predefined thresholds, +15 each
+    // Dynamic coin thresholds: 5, 10, 25, 65, then +45 each
+    const UPGRADE_THRESHOLDS = [5, 10, 25, 65];
+    const UPGRADE_THRESHOLD_STEP = 45; // after predefined thresholds, +45 each
     const UPGRADE_DEFS = [
         {
             id: 'moveSpeed',
@@ -238,6 +238,7 @@
             this.upgradeIndex = 0; // index into UPGRADE_THRESHOLDS
             this.nextUpgradeAt = UPGRADE_THRESHOLDS[0];
             this.upgradesPicked = 0;
+            this.maxPowerUps = Math.floor(this.timerDuration / 60); // limit powers to timer minutes (8min = 8 max powers)
             this.pickedUpgradeIds = new Set(); // track unique upgrades already picked
             this.upgradePickCounts = {};       // track pick count per upgrade id
             this.coinDropMult = 1;    // how many coins per kill
@@ -1813,6 +1814,11 @@
         // ─── Upgrade Popup System ─────────────────────────────────
         showUpgradePopup() {
             if (this.upgradePaused) return; // already showing
+
+            // Check if we've reached the power limit (mirrors timer in minutes)
+            if (this.upgradesPicked >= this.maxPowerUps) {
+                return; // no more powers allowed this level
+            }
 
             this.upgradePaused = true;
 

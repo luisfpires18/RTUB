@@ -24,6 +24,11 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
+        // Log current speed calculations for all characters (for verification)
+        var logger = scope.ServiceProvider.GetService(typeof(Microsoft.Extensions.Logging.ILogger<>)
+            .MakeGenericType(typeof(SeedData))) as Microsoft.Extensions.Logging.ILogger;
+        await LogAllCharacterSpeedAsync(dbContext, logger);
+
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

@@ -24,7 +24,7 @@
     "upgrades": {
       "hp":            { "multiplierPerUpgrade": 0.03, "baseCost": 20,  "costExponent": 2.0 },
       "power":         { "multiplierPerUpgrade": 0.30, "baseCost": 25,  "costExponent": 2.0 },
-      "speed":         { "multiplierPerUpgrade": 1.5,  "baseCost": 30,  "costExponent": 2.0, "maxUpgrades": 40 },
+      "speed":         { "multiplierPerUpgrade": 1.5,  "baseCost": 30,  "costExponent": 2.0, "maxUpgrades": 41 },
       "criticalChance":{ "multiplierPerUpgrade": 0.005,"baseCost": 50,  "costExponent": 2.2, "maxUpgrades": 100 },
       "defense":       { "multiplierPerUpgrade": 0.15, "baseCost": 25,  "costExponent": 2.0 }
     },
