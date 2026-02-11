@@ -411,10 +411,10 @@
                 .OrderByDescending(l => l.LoginDate)
                 .ToListAsync();
 
-            // Group logins by user
+            // Group logins by user (distinct dates only — one login per day regardless of user agent)
             loginsByUser = logins
                 .GroupBy(l => l.UserId)
-                .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate).ToList());
+                .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate.Date).Distinct().ToList());
 
             // Keep full login records grouped by user (for details modal)
             loginRecordsByUser = logins

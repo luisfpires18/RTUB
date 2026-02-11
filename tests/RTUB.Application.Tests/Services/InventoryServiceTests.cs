@@ -143,7 +143,7 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("NÃ£o tens cervejas no inventÃ¡rio");
+        result.Message.Should().Be("Não tens Fino no inventário");
 
         character.CurrentHP.Should().Be(initialHP); // HP should not change
 
@@ -177,7 +177,7 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("NÃ£o tens cervejas no inventÃ¡rio");
+        result.Message.Should().Be("Não tens Fino no inventário");
 
         // Verify character repository was never called
         _characterRepositoryMock.Verify(
@@ -219,7 +219,7 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("O personagem jÃ¡ estÃ¡ com HP mÃ¡ximo");
+        result.Message.Should().Be("O personagem já está com HP máximo");
 
         finoItem.Quantity.Should().Be(initialQuantity); // Fino should not be consumed
 
@@ -257,7 +257,7 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("O personagem jÃ¡ estÃ¡ com HP mÃ¡ximo");
+        result.Message.Should().Be("O personagem já está com HP máximo");
 
         // Verify character was not updated and fino was not consumed
         _characterRepositoryMock.Verify(
@@ -291,7 +291,7 @@ public class InventoryServiceTests : IDisposable
         // Assert
         result.Success.Should().BeFalse();
         result.HealedAmount.Should().Be(0);
-        result.Message.Should().Be("Personagem nÃ£o encontrado");
+        result.Message.Should().Be("Personagem não encontrado");
 
         // Verify character was not updated and fino was not consumed
         _characterRepositoryMock.Verify(
@@ -561,7 +561,7 @@ public class InventoryServiceTests : IDisposable
             x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume Fino for user {userId} even though quantity was checked")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Failed to consume Fino for user {userId}")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

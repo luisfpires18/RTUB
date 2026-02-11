@@ -65,7 +65,7 @@ public class PushNotificationFactoryTests
         Assert.Contains("Não te esqueças de confirmar a tua presença!", notification.Body);
         Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
         Assert.Equal("https://rtub.example.com/events", notification.Url);
-        Assert.Equal("event-reminder-456", notification.Tag);
+        Assert.StartsWith("event-reminder-456-", notification.Tag);
     }
 
     [Fact]
@@ -294,7 +294,7 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.NotEqual(newNotification.Tag, reminderNotification.Tag);
         Assert.Equal("event-123", newNotification.Tag);
-        Assert.Equal("event-reminder-123", reminderNotification.Tag);
+        Assert.StartsWith("event-reminder-123-", reminderNotification.Tag);
     }
 
     // Rehearsal Notification Tests

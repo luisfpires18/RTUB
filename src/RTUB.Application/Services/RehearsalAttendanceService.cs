@@ -482,11 +482,13 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     }
 
     /// <summary>
-    /// Checks if the rehearsal date is in the future (today or later)
+    /// Checks if the rehearsal date is strictly in the future (tomorrow or later).
+    /// Same-day rehearsals are excluded because attendance needs admin approval,
+    /// so broadcasting "vai ao ensaio" notifications is premature.
     /// </summary>
     private static bool IsFutureRehearsal(DateTime rehearsalDate)
     {
-        return rehearsalDate.Date >= DateTime.Today;
+        return rehearsalDate.Date > DateTime.Today;
     }
 
     private string GetBaseUrl()

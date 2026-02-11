@@ -2517,6 +2517,14 @@
             toastMessage = "Erro ao carregar os custos dos upgrades.";
             toastIsError = true;
         }
+        finally
+        {
+            hpCostLoading = false;
+            powerCostLoading = false;
+            speedCostLoading = false;
+            criticalCostLoading = false;
+            defenseCostLoading = false;
+        }
     }
 
     private async Task LoadUpgradeCosts()

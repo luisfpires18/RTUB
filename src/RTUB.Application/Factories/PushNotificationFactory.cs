@@ -45,7 +45,7 @@ public class PushNotificationFactory : IPushNotificationFactory
                 Body = $"{reminderPhrase} ({eventDateStr}) no {@event.Location}. Não te esqueças de confirmar a tua presença!",
                 Icon = "/icons/rtub-logo-192.png",
                 Url = eventUrl,
-                Tag = $"event-reminder-{@event.Id}"
+                Tag = $"event-reminder-{@event.Id}-{DateTime.UtcNow:yyyyMMdd}"
             };
         }
         else
