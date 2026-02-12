@@ -24,11 +24,25 @@ class PushNotificationsManager {
                 return false;
             }
 
+            // Detect platform for platform-specific behavior
+            this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            this.isTWA = document.referrer.includes('android-app://') ||
+                (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches && /Android/.test(navigator.userAgent));
+            this.isAndroid = /Android/.test(navigator.userAgent);
+            
+            if (this.isIOS) {
+                console.log('[Push] iOS device detected');
+            }
+            if (this.isTWA) {
+                console.log('[Push] TWA mode detected');
+            }
+
             // Check feature status from the server with timeout to prevent hanging
             const status = await Promise.race([
                 this.checkFeatureStatus(),
                 new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Feature status check timeout')), 5000)
+                    setTimeout(() => reject(new Error('Feature status check timeout')), 8000)
                 )
             ]);
             
@@ -43,6 +57,9 @@ class PushNotificationsManager {
 
             // Register service worker
             await this.registerServiceWorker();
+
+            // Start periodic subscription health check (every 30 min)
+            this._startHealthCheck();
 
             return true;
         } catch (error) {
@@ -108,6 +125,7 @@ class PushNotificationsManager {
 
     /**
      * Subscribes to push notifications
+     * Enhanced for iOS and Android TWA reliability
      */
     async subscribe() {
         try {
@@ -142,8 +160,36 @@ class PushNotificationsManager {
             console.log('Notification permission:', Notification.permission);
             console.log('Registration state:', this.registration.active ? 'active' : 'not active');
 
+            // IMPORTANT: On iOS, ensure the service worker is fully active before subscribing
+            // iOS Safari can have timing issues where the SW isn't ready yet
+            if (this.isIOS) {
+                const swReady = await navigator.serviceWorker.ready;
+                this.registration = swReady;
+                console.log('[Push] iOS: Service worker ready confirmed');
+            }
+
             // Check if already subscribed
             let subscription = await this.registration.pushManager.getSubscription();
+
+            if (subscription) {
+                // Validate existing subscription is still good
+                // On Android TWA, subscriptions can become stale after app updates
+                try {
+                    await this.sendSubscriptionToServer(subscription);
+                    this.subscription = subscription;
+                    console.log('Existing subscription synced with server');
+
+                    if (window.pwaHelper && typeof window.pwaHelper.clearSubscriptionLost === 'function') {
+                        window.pwaHelper.clearSubscriptionLost();
+                    }
+                    return true;
+                } catch (syncError) {
+                    console.warn('Existing subscription sync failed, creating new one:', syncError);
+                    // Unsubscribe the stale one and create fresh
+                    try { await subscription.unsubscribe(); } catch (e) { /* ignore */ }
+                    subscription = null;
+                }
+            }
 
             if (!subscription) {
                 // Create new subscription
@@ -157,25 +203,58 @@ class PushNotificationsManager {
                     }
                     
                     console.log('VAPID key converted. Length:', applicationServerKey.length);
-                    console.log('First few bytes:', Array.from(applicationServerKey.slice(0, 5)));
                     
-                    // CRITICAL: Create the options object inline and pass directly to subscribe
-                    // Some browsers may have issues if options are passed as a reference
-                    console.log('Calling pushManager.subscribe with userVisibleOnly: true and applicationServerKey');
+                    // Subscribe with retry for TWA/Android where timing issues can occur
+                    let retries = this.isTWA ? 3 : 1;
+                    let lastError = null;
                     
-                    subscription = await this.registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: applicationServerKey
-                    });
+                    for (let attempt = 1; attempt <= retries; attempt++) {
+                        try {
+                            subscription = await this.registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: applicationServerKey
+                            });
+                            break; // Success
+                        } catch (subError) {
+                            lastError = subError;
+                            console.warn(`[Push] Subscribe attempt ${attempt}/${retries} failed:`, subError.message);
+                            if (attempt < retries) {
+                                await new Promise(r => setTimeout(r, 1000 * attempt));
+                                // Re-acquire registration in case it went stale
+                                this.registration = await navigator.serviceWorker.ready;
+                            }
+                        }
+                    }
+                    
+                    if (!subscription) {
+                        throw new Error(`Push subscribe failed after ${retries} attempts: ${lastError?.name}: ${lastError?.message}`);
+                    }
                 } catch (subError) {
-                    // Log detailed error information for debugging
                     console.error('PUSH SUBSCRIBE ERROR', subError, subError.name, subError.message);
                     throw new Error(`Push subscribe failed: ${subError.name}: ${subError.message}`);
                 }
             }
 
-            // Send subscription to server
-            await this.sendSubscriptionToServer(subscription);
+            // Send subscription to server with retry
+            let serverSynced = false;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    await this.sendSubscriptionToServer(subscription);
+                    serverSynced = true;
+                    break;
+                } catch (serverError) {
+                    console.warn(`[Push] Server sync attempt ${attempt}/3 failed:`, serverError.message);
+                    if (attempt < 3) {
+                        await new Promise(r => setTimeout(r, 1000 * attempt));
+                    }
+                }
+            }
+            
+            if (!serverSynced) {
+                console.error('[Push] Failed to sync subscription with server after 3 attempts');
+                // Don't throw - subscription is still valid locally
+                // It will be synced on next health check
+            }
 
             this.subscription = subscription;
             console.log('Successfully subscribed to push notifications');
@@ -452,6 +531,73 @@ class PushNotificationsManager {
             binary += String.fromCharCode(bytes[i]);
         }
         return window.btoa(binary);
+    }
+
+    /**
+     * Starts a periodic health check that validates the push subscription
+     * and re-syncs with the server if needed. This catches:
+     * - Subscriptions silently revoked by the browser (common on iOS)
+     * - Endpoint rotations that the pushsubscriptionchange event missed
+     * - Server-side subscription records lost due to 410 Gone cleanup
+     * Runs every 30 minutes while the page is visible
+     */
+    _startHealthCheck() {
+        if (this._healthCheckTimer) return; // Already running
+        
+        const HEALTH_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+        
+        const runCheck = async () => {
+            try {
+                // Only check when page is visible to save battery
+                if (document.hidden) return;
+                
+                // Only check if we think we're subscribed
+                if (Notification.permission !== 'granted') return;
+                if (!this.registration || !this.registration.pushManager) return;
+                
+                const subscription = await this.registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    // Subscription was silently lost!
+                    console.warn('[Push Health] Subscription lost, attempting recovery...');
+                    if (this.vapidPublicKey) {
+                        try {
+                            await this.subscribe();
+                            console.log('[Push Health] Subscription recovered successfully');
+                        } catch (e) {
+                            console.error('[Push Health] Recovery failed:', e);
+                            if (window.pwaHelper && typeof window.pwaHelper.markSubscriptionLost === 'function') {
+                                window.pwaHelper.markSubscriptionLost();
+                            }
+                        }
+                    }
+                } else {
+                    // Subscription exists, sync with server (handles server-side cleanup)
+                    try {
+                        await this.sendSubscriptionToServer(subscription);
+                        this.subscription = subscription;
+                    } catch (e) {
+                        console.warn('[Push Health] Server sync failed:', e.message);
+                    }
+                }
+            } catch (e) {
+                console.warn('[Push Health] Check failed:', e);
+            }
+        };
+        
+        this._healthCheckTimer = setInterval(runCheck, HEALTH_CHECK_INTERVAL);
+        
+        // Also run on visibility change (when user returns to the app)
+        // This is especially important for iOS which aggressively suspends PWAs
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Small delay to let the page settle
+                setTimeout(runCheck, 2000);
+            }
+        });
+        
+        // Run initial check after a short delay
+        setTimeout(runCheck, 5000);
     }
 }
 

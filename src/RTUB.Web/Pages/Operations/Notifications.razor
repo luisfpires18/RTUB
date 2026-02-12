@@ -462,7 +462,7 @@
 
             // Send to selected users only
             var userIdsToSend = selectedUsers.Select(u => u.Id).ToList();
-            await PushNotificationService.SendToSelectedUsersAsync(userIdsToSend, notification);
+            var (sent, failed) = await PushNotificationService.SendToSelectedUsersAsync(userIdsToSend, notification);
 
             // Audit log for push notification sent
             try
@@ -502,8 +502,10 @@
                 Logger.LogError(auditEx, "Failed to create audit log for push notification sent");
             }
 
-            message = $"Notificação enviada com sucesso para {selectedUsers.Count} utilizadores!";
-            isError = false;
+            message = failed > 0
+                ? $"Notificação enviada para {selectedUsers.Count} utilizadores ({sent} push enviados, {failed} falhados). Mensagens de inbox foram entregues como backup."
+                : $"Notificação enviada com sucesso para {selectedUsers.Count} utilizadores! ({sent} push enviados)";
+            isError = sent == 0 && failed > 0;
 
             // Clear form
             ClearForm();

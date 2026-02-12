@@ -711,7 +711,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
             .Setup(x => x.CreateRehearsalNonAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -801,7 +801,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
             .Setup(x => x.CreateRehearsalAttendanceNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -894,7 +894,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         _mockPushNotificationFactory
             .Setup(x => x.CreateRehearsalCancellationNotification(It.IsAny<Rehearsal>(), It.IsAny<string>(), It.IsAny<string>()))

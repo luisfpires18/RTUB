@@ -6,7 +6,7 @@
 // Optimized for mobile PWA performance
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v31';
+const CACHE_VERSION = 'rtub-v32';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -191,8 +191,10 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Push event - handle incoming push notifications
+// CRITICAL: Must call showNotification synchronously within waitUntil
+// to prevent iOS Safari from killing the service worker before display
 self.addEventListener('push', (event) => {
-    console.log('[Service Worker] Push received');
+    console.log('[Service Worker] Push received at', new Date().toISOString());
     
     let notificationData = {
         title: 'RTUB Notification',
@@ -200,7 +202,7 @@ self.addEventListener('push', (event) => {
         icon: '/icons/rtub-logo-192.png',
         badge: '/icons/rtub-badge-96.png',
         url: '/',
-        tag: 'rtub-notification'
+        tag: null
     };
 
     if (event.data) {
@@ -212,41 +214,71 @@ self.addEventListener('push', (event) => {
                 icon: data.icon || notificationData.icon,
                 badge: data.badge || notificationData.badge,
                 url: data.url || notificationData.url,
-                tag: data.tag || notificationData.tag
+                tag: data.tag || null
             };
         } catch (e) {
             console.error('[Service Worker] Error parsing push data:', e);
-            // Use default notification data if parsing fails
-            notificationData.body = event.data.text();
+            try {
+                notificationData.body = event.data.text();
+            } catch (textError) {
+                console.error('[Service Worker] Error reading push text:', textError);
+            }
         }
     }
 
-    const notifyClients = async () => {
-        await self.registration.showNotification(
-            notificationData.title,
-            {
-                body: notificationData.body,
-                icon: notificationData.icon,
-                badge: notificationData.badge,
-                tag: notificationData.tag,
-                data: {
-                    url: notificationData.url,
-                    tag: notificationData.tag
-                },
-                requireInteraction: false,
-                renotify: true,
-                timestamp: Date.now(),
-                vibrate: [200, 100, 200]
-            }
-        );
+    // CRITICAL FIX: Generate unique tag per notification to prevent collapsing
+    // iOS and Android replace notifications with the same tag silently.
+    // Append timestamp to ensure each notification gets its own slot.
+    // Keep the base tag for grouping context (e.g., for notificationclick routing)
+    const baseTag = notificationData.tag || 'rtub-notification';
+    const uniqueTag = baseTag + '-' + Date.now();
 
-        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-        clientList.forEach((client) => {
-            client.postMessage({ type: 'rtub:push-received' });
-        });
+    // Build notification options - platform-compatible
+    const notificationOptions = {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        badge: notificationData.badge,
+        tag: uniqueTag,
+        data: {
+            url: notificationData.url,
+            baseTag: baseTag,
+            tag: uniqueTag,
+            timestamp: Date.now()
+        },
+        requireInteraction: false,
+        renotify: true,
+        timestamp: Date.now()
+        // NOTE: vibrate intentionally omitted — unsupported on iOS Safari
+        // and causes silent failures on some iOS 16.4-17.x versions
     };
 
-    event.waitUntil(notifyClients());
+    // Show notification FIRST (critical for iOS — SW gets killed quickly)
+    // Then notify open clients as a secondary action
+    const showAndNotify = self.registration.showNotification(
+        notificationData.title,
+        notificationOptions
+    ).then(() => {
+        console.log('[Service Worker] Notification displayed:', uniqueTag);
+        return clients.matchAll({ type: 'window', includeUncontrolled: true });
+    }).then((clientList) => {
+        clientList.forEach((client) => {
+            client.postMessage({
+                type: 'rtub:push-received',
+                title: notificationData.title,
+                tag: baseTag
+            });
+        });
+    }).catch((error) => {
+        console.error('[Service Worker] Error showing notification:', error);
+        // Last resort: try a minimal notification
+        return self.registration.showNotification('RTUB', {
+            body: notificationData.body || 'Nova notificação',
+            icon: '/icons/rtub-logo-192.png',
+            tag: 'rtub-fallback-' + Date.now()
+        });
+    });
+
+    event.waitUntil(showAndNotify);
 });
 
 // Notification click event - handle user clicking on notification
@@ -258,7 +290,8 @@ self.addEventListener('notificationclick', (event) => {
     // Get the URL and tag from notification data
     const notificationPayload = event.notification.data || {};
     let urlToOpen = notificationPayload.url || '/';
-    const notificationTag = notificationPayload.tag || event.notification.tag || '';
+    // Use baseTag for routing logic (without the unique timestamp suffix)
+    const notificationTag = notificationPayload.baseTag || notificationPayload.tag || event.notification.tag || '';
     
     // Fallback: if URL is missing or root, check tag to determine correct destination
     if (!urlToOpen || urlToOpen === '/') {

@@ -17,6 +17,7 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
     public async Task<IEnumerable<PushSubscription>> GetByUserIdAsync(string userId)
     {
         return await _dbSet
+            .Include(s => s.User)
             .AsNoTracking()
             .Where(s => s.UserId == userId)
             .ToListAsync();
@@ -47,6 +48,7 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
     public async Task<IEnumerable<PushSubscription>> GetAllActiveAsync()
     {
         return await _dbSet
+            .Include(s => s.User)
             .AsNoTracking()
             .ToListAsync();
     }

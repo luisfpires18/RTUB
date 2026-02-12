@@ -46,10 +46,13 @@ public interface IPushNotificationService
 
     /// <summary>
     /// Sends a push notification to specific users by their user IDs
+    /// Also creates inbox messages for each user as a delivery fallback
+    /// Returns the count of successful and failed push deliveries
     /// </summary>
     /// <param name="userIds">The list of user IDs to send notifications to</param>
     /// <param name="notification">The notification to send</param>
-    Task SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification);
+    /// <returns>Tuple of (sent count, failed count)</returns>
+    Task<(int Sent, int Failed)> SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification);
 
     /// <summary>
     /// Gets the VAPID public key for client-side subscription

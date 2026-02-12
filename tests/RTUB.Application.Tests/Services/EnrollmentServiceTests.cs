@@ -428,7 +428,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
@@ -529,7 +529,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
@@ -633,7 +633,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
@@ -713,7 +713,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory
@@ -797,7 +797,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             {
                 capturedRecipients.AddRange(recipients);
             })
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((0, 0));
 
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         mockPushNotificationFactory

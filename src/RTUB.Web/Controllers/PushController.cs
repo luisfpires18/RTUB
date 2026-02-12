@@ -81,10 +81,11 @@ public class PushController : ControllerBase
             return Unauthorized();
         }
 
+        var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
+
         try
         {
             var userAgent = Request.Headers.UserAgent.ToString();
-            var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
 
             await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
 
@@ -94,12 +95,12 @@ public class PushController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid subscription data from user {UserId}", userId);
+            _logger.LogWarning(ex, "Invalid subscription data from user {UserName}", userName);
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error subscribing user {UserId} to push notifications", userId);
+            _logger.LogError(ex, "Error subscribing user {UserName} to push notifications", userName);
             return StatusCode(500, new { error = "Failed to subscribe to push notifications" });
         }
     }
@@ -168,4 +169,58 @@ public class PushController : ControllerBase
             return StatusCode(500, new { error = "Failed to broadcast notification" });
         }
     }
+
+    /// <summary>
+    /// Sends a push notification to selected users
+    /// Returns delivery results with success/failure counts
+    /// </summary>
+    /// <param name="request">The notification and target user IDs</param>
+    [HttpPost("send-to-selected")]
+    [Authorize(Roles = "Owner,Admin")]
+    public async Task<IActionResult> SendToSelected([FromBody] SendToSelectedRequest request)
+    {
+        if (!_pushNotificationService.IsConfigured())
+        {
+            return BadRequest(new { error = "Web Push is not configured on the server" });
+        }
+
+        if (request.UserIds == null || !request.UserIds.Any())
+        {
+            return BadRequest(new { error = "No users selected" });
+        }
+
+        try
+        {
+            var (sent, failed) = await _pushNotificationService.SendToSelectedUsersAsync(
+                request.UserIds, request.Notification);
+
+            var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
+
+            _logger.LogInformation(
+                "User {userName} sent push notification to {UserCount} selected users: {Sent} sent, {Failed} failed",
+                userName, request.UserIds.Count(), sent, failed);
+
+            return Ok(new
+            {
+                message = $"Notificação enviada: {sent} com sucesso, {failed} falharam",
+                sent,
+                failed,
+                totalUsers = request.UserIds.Count()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending push notification to selected users");
+            return StatusCode(500, new { error = "Failed to send notification to selected users" });
+        }
+    }
+}
+
+/// <summary>
+/// Request model for sending to selected users via the API
+/// </summary>
+public class SendToSelectedRequest
+{
+    public IEnumerable<string> UserIds { get; set; } = Enumerable.Empty<string>();
+    public SendPushNotificationDto Notification { get; set; } = new();
 }
