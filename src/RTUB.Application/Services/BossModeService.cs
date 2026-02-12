@@ -303,16 +303,10 @@ public class BossModeService : IBossModeService
         }
 
         var user = await _userManager.FindByIdAsync(character.UserId);
-        if (fidelis > 0)
+        if (user != null && fidelis > 0)
         {
-            // Update Fidelis in a short-lived context to avoid change tracker pollution
-            await using var fidelisContext = _contextFactory.CreateDbContext();
-            var freshUser = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken);
-            if (freshUser != null)
-            {
-                freshUser.FidelisBalance += fidelis;
-                await fidelisContext.SaveChangesAsync(cancellationToken);
-            }
+            user.FidelisBalance += fidelis;
+            await _userManager.UpdateAsync(user);
         }
 
         // Batch all inventory drops into a single DB round-trip

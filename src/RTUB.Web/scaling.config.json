@@ -47,11 +47,11 @@
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
       "restoreHPCost": 20,
-      "finoDropChance": 0.1,
-      "canecaDropChance": 0.04,
-      "cigarroDropChance": 0.05,
-      "canhaoDropChance": 0.07,
-      "penaltyDropChance": 0.003
+      "finoDropChance": 0.01,
+      "cigarroDropChance": 0.004,
+      "canecaDropChance": 0.003,
+      "canhaoDropChance": 0.002,
+      "penaltyDropChance": 0.001
     },
 
     "stageMode": {
@@ -79,14 +79,14 @@
       },
 
       "dropRates": {
-        "finoDropChance": 0.1,
-        "canecaDropChance": 0.04,
-        "cigarroDropChance": 0.05,
-        "canhaoDropChance": 0.07,
-        "shotDropChance": 0.01,
-        "penaltyDropChance": 0.003,
-        "instrumentPartDropChance": 0.005,
-        "equipmentDropChance": 0.008,
+        "finoDropChance": 0.01,
+        "shotDropChance": 0.005,
+        "cigarroDropChance": 0.004,
+        "canecaDropChance": 0.003,
+        "canhaoDropChance": 0.002,
+        "penaltyDropChance": 0.001,
+        "instrumentPartDropChance": 0.003,
+        "equipmentDropChance": 0.007,
         "bossDropMultiplier": 3.0
       },
 
@@ -105,8 +105,8 @@
         "instrument": { "hp": 0,  "power": 12, "defense": 0 }
       },
       "discardValues": {
-        "equipment": 25,
-        "instrumentPart": 30
+        "equipment": 50,
+        "instrumentPart": 60
       },
       "forging": {
         "castTimeSeconds": 5,
@@ -266,12 +266,12 @@
       "bossStatMultiplier": 2.5,
 
       "dropRates": {
-        "finoDropChance": 0.1,
-        "canecaDropChance": 0.04,
-        "cigarroDropChance": 0.05,
-        "canhaoDropChance": 0.07,
-        "shotDropChance": 0.01,
-        "penaltyDropChance": 0.005,
+        "finoDropChance": 0.01,
+        "shotDropChance": 0.005,
+        "cigarroDropChance": 0.004,
+        "canecaDropChance": 0.003,
+        "canhaoDropChance": 0.002,
+        "penaltyDropChance": 0.001,
         "instrumentPartDropChance": 0.02,
         "equipmentDropChance": 0.015,
         "fitabDropChance": 0.003
@@ -307,7 +307,7 @@
     },
 
     "dailyReward": {
-      "baseFidelis": 900,
+      "baseFidelis": 3000,
       "perLevelFidelis": 30
     }
   }

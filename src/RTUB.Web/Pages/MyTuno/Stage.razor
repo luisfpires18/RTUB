@@ -786,7 +786,11 @@
         if (_disposed) return;
 
         // Guard: user clicked "Acabar" while JS animation was playing — don't continue
-        if (_endingRun || !runInProgress) return;
+        // Note: on defeat, runInProgress is set to false immediately in FightStageEnemy
+        // to prevent CancelRunIfInProgressAsync from restoring HP during the animation.
+        // So we also check pendingDefeatRewards to allow defeat processing to proceed.
+        if (_endingRun) return;
+        if (!runInProgress && !pendingDefeatRewards) return;
 
         // Auto-continue to next stage if victory (don't hide battle animation)
         if (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon)
