@@ -27,6 +27,7 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<SurviveMode> Logger
 @inject IAuditLogService AuditLogService
+@inject IStageService StageService
 @implements IAsyncDisposable
 
 <PageTitle>Survive Mode - My Tuno - RTUB</PageTitle>
@@ -253,10 +254,13 @@
                                 var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
                                 var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
                                 var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                <div class="defeat-reward-row">
-                                    <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                    <span>+@qty @equipName</span>
-                                </div>
+                                @for (var i = 0; i < qty; i++)
+                                {
+                                    <div class="defeat-reward-row">
+                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
+                                        <span>+1 @equipName</span>
+                                    </div>
+                                }
                             }
                         </div>
                     }
@@ -341,9 +345,11 @@
 
             var characterTask = CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             var progressTask = SurviveModeService.GetOrCreateProgressAsync(currentUser.Id);
-            await Task.WhenAll(characterTask, progressTask);
+            var stageProgressTask = StageService.GetOrCreateStageProgressAsync(currentUser.Id);
+            await Task.WhenAll(characterTask, progressTask, stageProgressTask);
             character = characterTask.Result;
             surviveProgress = progressTask.Result;
+            var sp = stageProgressTask.Result;
 
             // Always use the player's actual progress level — no URL override allowed
             currentLevel = surviveProgress.CurrentLevel;

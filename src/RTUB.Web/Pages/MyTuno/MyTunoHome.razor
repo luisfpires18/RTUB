@@ -349,7 +349,13 @@
                                         else if (item.ItemType.HasValue)
                                         {
                                             var eqItemKey = item.ItemType.Value;
+                                            var invSlot = EquipmentDropHelper.FromInventoryItemType(eqItemKey);
+                                            var invSlotLevel = invSlot.HasValue ? GetSlotEnhancementLevel(invSlot.Value) : 0;
                                             <div class="item-card item-card--equipment item-card--clickable" title="@item.Name" @onclick="() => OnInventoryItemClick(eqItemKey)" style="cursor: pointer;">
+                                                @if (invSlotLevel > 0)
+                                                {
+                                                    <div class="item-card__qty">+@invSlotLevel</div>
+                                                }
                                                 <div class="item-card__icon">
                                                     @if (GetEquipmentPictureUrl(eqItemKey) is string eqImg)
                                                     {
@@ -686,12 +692,44 @@
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Equipamento</h5>
-                        @if (equipmentEnhancementLevel > 0)
-                        {
-                            <span class="badge bg-warning text-dark" title="Enhancement from stage progression (every 100 stages)">+@equipmentEnhancementLevel</span>
-                        }
                     </div>
                     <div class="card-body p-2 d-flex flex-column">
+                        @* Equipment Bonus Bar — Fidelis-bar style *@
+                        @if (character!.EquipmentHPBonus > 0 || character.EquipmentPowerBonus > 0 || character.EquipmentDefenseBonus > 0)
+                        {
+                            <div class="equip-bonus-bar">
+                                <div class="equip-bonus-bar__inner">
+                                    @if (character.EquipmentHPBonus > 0)
+                                    {
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label">HP</span>
+                                            <span class="equip-bonus-bar__value text-danger">+@Fmt(character.EquipmentHPBonus)</span>
+                                        </div>
+                                    }
+                                    @if (character.EquipmentPowerBonus > 0)
+                                    {
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label">Poder</span>
+                                            <span class="equip-bonus-bar__value text-success">+@Fmt(character.EquipmentPowerBonus)</span>
+                                        </div>
+                                    }
+                                    @if (character.EquipmentDefenseBonus > 0)
+                                    {
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label">Def</span>
+                                            <span class="equip-bonus-bar__value" style="color: #adb5bd;">+@Fmt(character.EquipmentDefenseBonus)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-1">
+                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens das Stages para ganhar bónus!</small>
+                            </div>
+                        }
+
                         <div class="equip-layout">
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
@@ -699,6 +737,14 @@
                                 <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
                                      @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
                                      style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
+                                    @if (headItem.HasValue)
+                                    {
+                                        var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head);
+                                        if (headLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@headLevel</div>
+                                        }
+                                    }
                                     @if (headItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
                                     {
                                         <img src="@CacheBuster.Bust(headImg)" alt="Head" class="gather-sprite" />
@@ -714,6 +760,14 @@
                                 <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
                                      @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
                                      style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
+                                    @if (shouldersItem.HasValue)
+                                    {
+                                        var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders);
+                                        if (shouldersLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@shouldersLevel</div>
+                                        }
+                                    }
                                     @if (shouldersItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
                                     {
                                         <img src="@CacheBuster.Bust(shouldersImg)" alt="Shoulders" class="gather-sprite" />
@@ -729,6 +783,14 @@
                                 <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
                                      @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
                                      style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
+                                    @if (chestItem.HasValue)
+                                    {
+                                        var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest);
+                                        if (chestLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@chestLevel</div>
+                                        }
+                                    }
                                     @if (chestItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
                                     {
                                         <img src="@CacheBuster.Bust(chestImg)" alt="Chest" class="gather-sprite" />
@@ -754,6 +816,14 @@
                                 <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
                                      @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
                                      style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
+                                    @if (glovesItem.HasValue)
+                                    {
+                                        var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves);
+                                        if (glovesLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@glovesLevel</div>
+                                        }
+                                    }
                                     @if (glovesItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
                                     {
                                         <img src="@CacheBuster.Bust(glovesImg)" alt="Gloves" class="gather-sprite" />
@@ -769,6 +839,14 @@
                                 <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
                                      @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
                                      style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
+                                    @if (legsItem.HasValue)
+                                    {
+                                        var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs);
+                                        if (legsLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@legsLevel</div>
+                                        }
+                                    }
                                     @if (legsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
                                     {
                                         <img src="@CacheBuster.Bust(legsImg)" alt="Legs" class="gather-sprite" />
@@ -784,6 +862,14 @@
                                 <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
                                      @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
                                      style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
+                                    @if (bootsItem.HasValue)
+                                    {
+                                        var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots);
+                                        if (bootsLevel > 0)
+                                        {
+                                            <div class="equip-slot__level">+@bootsLevel</div>
+                                        }
+                                    }
                                     @if (bootsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
                                     {
                                         <img src="@CacheBuster.Bust(bootsImg)" alt="Boots" class="gather-sprite" />
@@ -853,24 +939,6 @@
                             }
                         </div>
 
-                        @* Equipment stat summary *@
-                        @if (character.EquipmentHPBonus > 0 || character.EquipmentPowerBonus > 0 || character.EquipmentDefenseBonus > 0)
-                        {
-                            <div class="equip-stats-summary mt-2 px-2">
-                                <small class="text-muted d-block mb-1" style="font-size: 0.65rem;"><i class="bi bi-plus-circle me-1"></i>Bónus de Equipamento:</small>
-                                <div class="d-flex flex-wrap gap-1" style="font-size: 0.65rem;">
-                                    @if (character.EquipmentHPBonus > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(character.EquipmentHPBonus) HP</span> }
-                                    @if (character.EquipmentPowerBonus > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(character.EquipmentPowerBonus) Poder</span> }
-                                    @if (character.EquipmentDefenseBonus > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(character.EquipmentDefenseBonus) Def</span> }
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center mt-auto pt-2">
-                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens das Stages para ganhar bónus!</small>
-                            </div>
-                        }
                     </div>
                 </div>
             </div>
@@ -1272,7 +1340,7 @@
                         var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
                         var canAffordUpgrade = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
                     }
-                    <button class="btn btn-warning btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
+                    <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
                         <small class="opacity-75">(@Fmt(upgradeCost) <i class="bi bi-coin"></i>)</small>
                     </button>
@@ -1280,18 +1348,18 @@
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
                     @if (pendingWeapon.IsEquipped)
                     {
-                        <button class="btn btn-danger" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
+                        <button class="btn btn-purple" @onclick="() => ConfirmWeaponUnequip()" disabled="@weaponActioning">
                             <i class="bi bi-box-arrow-down me-2"></i>Desequipar
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-success" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
+                        <button class="btn btn-purple" @onclick="() => ConfirmWeaponEquip(1)" disabled="@weaponActioning">
                             <i class="bi bi-box-arrow-in-up me-2"></i>Equipar Slot 1
                         </button>
                         @if (!pendingWeapon.IsTwoHanded)
                         {
-                            <button class="btn btn-outline-success" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
+                            <button class="btn btn-purple opacity-75" @onclick="() => ConfirmWeaponEquip(2)" disabled="@weaponActioning">
                                 <i class="bi bi-box-arrow-in-up me-2"></i>Slot 2
                             </button>
                         }
@@ -1301,7 +1369,7 @@
                     @{
                         var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
                     }
-                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
+                    <button class="btn btn-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
                         <i class="bi bi-trash me-1"></i>Descartar
                         <small class="opacity-75">(@Fmt(weaponDiscardValue) <i class="bi bi-coin"></i>)</small>
                     </button>
@@ -1392,7 +1460,24 @@
         var actionDiscardValues = MyTunoConfig.Value.StageMode.DiscardValues;
         var actionIsInstr = InstrumentTypeHelper.IsInstrumentPart(pendingActionItem.Value);
         var actionIsEquip = EquipmentDropHelper.IsEquipment(pendingActionItem.Value);
-        var actionFidelisValue = actionIsInstr ? actionDiscardValues.InstrumentPart : actionDiscardValues.Equipment;
+        var actionSlot = EquipmentDropHelper.FromInventoryItemType(pendingActionItem.Value);
+        var actionBaseValue = actionIsInstr ? actionDiscardValues.InstrumentPart : actionDiscardValues.Equipment;
+        var actionLevel = character?.Level ?? 1;
+        var actionDiscardScale = 1.0 + actionLevel * MyTunoConfig.Value.StageMode.DiscardLevelScale;
+        var actionSlotLevel = actionSlot.HasValue ? GetSlotEnhancementLevel(actionSlot.Value) : 0;
+        var actionEnhMult = actionIsEquip ? (1.0 + actionSlotLevel * MyTunoConfig.Value.StageMode.EquipmentEnhancementBonus) : 1.0;
+        var actionFidelisValue = Math.Round(actionBaseValue * (decimal)(actionDiscardScale * actionEnhMult), 2);
+        var actionStoredQuality = actionSlot switch
+        {
+            EquipmentSlot.Head => character?.EquippedHeadQuality ?? 0,
+            EquipmentSlot.Shoulders => character?.EquippedShouldersQuality ?? 0,
+            EquipmentSlot.Chest => character?.EquippedChestQuality ?? 0,
+            EquipmentSlot.Gloves => character?.EquippedGlovesQuality ?? 0,
+            EquipmentSlot.Legs => character?.EquippedLegsQuality ?? 0,
+            EquipmentSlot.Boots => character?.EquippedBootsQuality ?? 0,
+            _ => 0.0
+        };
+        var actionQualityPct = pendingActionIsEquipped && actionStoredQuality > 0 ? (int)Math.Round(actionStoredQuality * 100) : 0;
         <Modal Show="@showItemActionModal"
                ShowChanged="@((bool show) => { if (!show) CloseItemActionModal(); })"
                Title="@actionItemName"
@@ -1410,10 +1495,31 @@
                             <i class="bi @actionItemIcon" style="font-size: 2.5rem; color: var(--bs-primary);"></i>
                         }
                     </div>
-                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">@actionItemName</h5>
+                    <h5 class="mt-2 mb-1" style="color: #e2e2e2;">
+                        @actionItemName
+                        @if (actionIsEquip && actionSlotLevel > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">+@actionSlotLevel</span>
+                        }
+                    </h5>
                     @if (actionIsInstr)
                     {
                         <span class="badge bg-info bg-opacity-25 text-info mt-1"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
+                    }
+                    @if (actionIsEquip && actionQualityPct > 0)
+                    {
+                        var qColor = actionQualityPct >= 105 ? "text-success" : (actionQualityPct <= 95 ? "text-danger" : "text-warning");
+                        <div class="mt-1">
+                            <span class="badge bg-dark bg-opacity-75 @qColor" style="font-size: 0.7rem;">
+                                <i class="bi bi-stars me-1"></i>Qualidade: @actionQualityPct%
+                            </span>
+                        </div>
+                    }
+                    @if (actionIsEquip && !pendingActionIsEquipped)
+                    {
+                        <div class="mt-1">
+                            <small class="text-muted" style="font-size: 0.65rem;"><i class="bi bi-shuffle me-1"></i>Qualidade aleatória ao equipar (85%-115%)</small>
+                        </div>
                     }
                 </div>
                 @if (actionItemStats != null && actionIsEquip)
@@ -1428,29 +1534,44 @@
                     </div>
                 }
                 <div class="discard-fidelis-reward">
-                    <i class="bi bi-coin text-warning me-1"></i>
-                    <span class="text-warning">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
+                    <i class="bi bi-trash text-danger me-1"></i>
+                    <span class="text-danger">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
                 </div>
             </BodyContent>
             <FooterContent>
-                @if (actionIsEquip)
+                @if (actionIsEquip && actionSlot.HasValue)
                 {
+                    var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
+                    var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
+                    var canAffordEqUpgrade = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
+                    var upgradeSlot = actionSlot.Value;
+                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
+                        <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmEquipmentSlotUpgrade(upgradeSlot)" disabled="@(itemActioning || !canAffordEqUpgrade)">
+                            <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(actionSlotLevel + 1)
+                            <small class="opacity-75">(@Fmt(eqUpgradeCost) <i class="bi bi-coin"></i>)</small>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
                     @if (pendingActionIsEquipped)
                     {
-                        <button class="btn btn-warning" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
                             <i class="bi bi-box-arrow-down me-2"></i>Desequipar
                         </button>
                     }
                     else
                     {
-                        <button class="btn btn-success" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
+                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
                             <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
                         </button>
                     }
+                    </div>
                 }
-                <button class="btn btn-danger" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                    <i class="bi bi-trash me-2"></i>Descartar
-                </button>
+                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                    <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                        <i class="bi bi-trash me-1"></i>Descartar
+                        <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
+                    </button>
+                </div>
             </FooterContent>
         </Modal>
     }
@@ -1850,7 +1971,7 @@
     private bool showWeaponsListModal = false;
     private ForgedWeapon? pendingWeapon = null;
     private bool weaponActioning = false;
-    private int equipmentEnhancementLevel = 0;
+    private int highestStageForEquip = 0; // cached highest stage for per-slot level calc
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
     
@@ -2018,7 +2139,7 @@
                         // Stage progress
                         stageProgress = stageProgressTask.Result;
                         var highestStage = stageProgress?.HighestStage ?? 1;
-                        equipmentEnhancementLevel = highestStage / 100;
+                        highestStageForEquip = highestStage;
 
                         // Resource quantities from the same inventory summary
                         gatheringConfig = MyTunoConfig.Value.Gathering;
@@ -2732,6 +2853,7 @@
     private EquipmentPieceStats? GetEquipItemStats(InventoryItemType itemType)
     {
         var config = MyTunoConfig.Value.StageMode.EquipmentStats;
+        var stageConfig = MyTunoConfig.Value.StageMode;
 
         // Instrument part?
         var instrType = InstrumentTypeHelper.FromInventoryPartType(itemType);
@@ -2740,7 +2862,7 @@
 
         // Equipment piece?
         var eqSlot = EquipmentDropHelper.FromInventoryItemType(itemType);
-        return eqSlot switch
+        var baseStats = eqSlot switch
         {
             EquipmentSlot.Head => config.Head,
             EquipmentSlot.Shoulders => config.Shoulders,
@@ -2750,6 +2872,46 @@
             EquipmentSlot.Boots => config.Boots,
             _ => null
         };
+
+        if (baseStats == null || character == null) return baseStats;
+
+        // Apply same scaling as RecalculateEquipmentBonusesAsync
+        var levelScale = 1.0 + character.Level * stageConfig.EquipmentLevelScale;
+        var slotLevel = eqSlot.HasValue ? GetSlotEnhancementLevel(eqSlot.Value) : 0;
+        var enhMult = 1.0 + slotLevel * stageConfig.EquipmentEnhancementBonus;
+
+        // Use actual stored quality for equipped piece, average for inventory piece
+        var qualityAvg = (stageConfig.EquipmentQualityMin + stageConfig.EquipmentQualityMax) / 2.0;
+        var storedQuality = eqSlot switch
+        {
+            EquipmentSlot.Head => character.EquippedHeadQuality,
+            EquipmentSlot.Shoulders => character.EquippedShouldersQuality,
+            EquipmentSlot.Chest => character.EquippedChestQuality,
+            EquipmentSlot.Gloves => character.EquippedGlovesQuality,
+            EquipmentSlot.Legs => character.EquippedLegsQuality,
+            EquipmentSlot.Boots => character.EquippedBootsQuality,
+            _ => 0.0
+        };
+        var isEquipped = pendingActionIsEquipped;
+        var quality = isEquipped && storedQuality > 0 ? storedQuality : qualityAvg;
+        var totalMult = quality * levelScale * enhMult;
+
+        return new EquipmentPieceStats
+        {
+            HP = (int)Math.Round(baseStats.HP * totalMult),
+            Power = (int)Math.Round(baseStats.Power * totalMult),
+            Defense = (int)Math.Round(baseStats.Defense * totalMult),
+            Speed = (int)Math.Round(baseStats.Speed * totalMult),
+            CriticalChance = baseStats.CriticalChance * totalMult
+        };
+    }
+
+    /// <summary>Gets the enhancement level for a specific equipment slot: stageDerived + slotBonusLevel.</summary>
+    private int GetSlotEnhancementLevel(EquipmentSlot slot)
+    {
+        var stageDerived = highestStageForEquip / 100;
+        var slotBonus = character?.GetSlotBonusLevel(slot) ?? 0;
+        return stageDerived + slotBonus;
     }
 
     private bool IsItemCurrentlyEquipped(InventoryItemType itemType)
@@ -3089,6 +3251,44 @@
         finally
         {
             weaponActioning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmEquipmentSlotUpgrade(EquipmentSlot slot)
+    {
+        if (currentUser == null) return;
+
+        try
+        {
+            itemActioning = true;
+            StateHasChanged();
+
+            var (success, message) = await InventoryService.UpgradeEquipmentSlotAsync(currentUser.Id, slot);
+            if (success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
+                stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
+                highestStageForEquip = stageProgress?.HighestStage ?? 0;
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error upgrading equipment slot {Slot}", slot);
+            toastMessage = "Erro ao melhorar equipamento.";
+            toastIsError = true;
+        }
+        finally
+        {
+            itemActioning = false;
             StateHasChanged();
         }
     }

@@ -244,8 +244,8 @@
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.75rem;
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
   border-radius: 8px;
   font-size: 0.95rem;
 }
@@ -297,21 +297,22 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-width: 80px;
+  min-width: 90px;
 }
 
 .equip-layout__sprite {
-  max-height: 180px;
+  max-height: 200px;
   width: 100%;
   object-fit: contain;
   image-rendering: auto;
   filter: drop-shadow(0 3px 8px rgba(111, 66, 193, 0.4));
-  opacity: 0.6;
+  opacity: 0.65;
 }
 
 .equip-slot {
-  width: 80px;
-  height: 80px;
+  position: relative;
+  width: 96px;
+  height: 96px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -374,6 +375,26 @@
   letter-spacing: 0.3px;
 }
 
+.equip-slot__level {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 24px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(243, 156, 18, 0.5);
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* Weapon slots row below character */
 .equip-weapons {
   display: flex;
@@ -384,8 +405,8 @@
 
 .equip-slot--weapon {
   flex: 1;
-  max-width: 120px;
-  height: 64px;
+  max-width: 130px;
+  height: 68px;
   border-color: rgba(192, 57, 43, 0.35);
 }
 
@@ -398,6 +419,63 @@
   border-color: rgba(192, 57, 43, 0.6);
   color: rgba(255, 255, 255, 0.85);
   background: linear-gradient(180deg, #1e1015 0%, #140a0e 100%);
+}
+
+/* ==========================================
+   Equipment Bonus Bar (Fidelis-bar style)
+   ========================================== */
+.equip-bonus-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.equip-bonus-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 1.2rem;
+  background: linear-gradient(180deg, #1a1a2e 0%, #151525 40%, #0f0f1c 100%);
+  border: 2px solid rgba(111, 66, 193, 0.3);
+  border-radius: 50px;
+  box-shadow: 0 4px 16px rgba(111, 66, 193, 0.15), inset 0 1px 0 rgba(111, 66, 193, 0.1);
+  width: 100%;
+  justify-content: center;
+}
+
+.equip-bonus-bar__level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(243, 156, 18, 0.4);
+  flex-shrink: 0;
+}
+
+.equip-bonus-bar__stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.equip-bonus-bar__label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.equip-bonus-bar__value {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .equip-stats-summary {

@@ -553,15 +553,20 @@ public class InventoryService : IInventoryService
             _ => null
         };
 
-        // Set new item in slot
+        // Set new item in slot + roll random quality
+        var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
+        var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
+        var rng = new Random();
+        var newQuality = qualityMin + rng.NextDouble() * (qualityMax - qualityMin);
+
         switch (slot.Value)
         {
-            case EquipmentSlot.Head: character.EquippedHead = itemType; break;
-            case EquipmentSlot.Shoulders: character.EquippedShoulders = itemType; break;
-            case EquipmentSlot.Chest: character.EquippedChest = itemType; break;
-            case EquipmentSlot.Gloves: character.EquippedGloves = itemType; break;
-            case EquipmentSlot.Legs: character.EquippedLegs = itemType; break;
-            case EquipmentSlot.Boots: character.EquippedBoots = itemType; break;
+            case EquipmentSlot.Head: character.EquippedHead = itemType; character.EquippedHeadQuality = newQuality; break;
+            case EquipmentSlot.Shoulders: character.EquippedShoulders = itemType; character.EquippedShouldersQuality = newQuality; break;
+            case EquipmentSlot.Chest: character.EquippedChest = itemType; character.EquippedChestQuality = newQuality; break;
+            case EquipmentSlot.Gloves: character.EquippedGloves = itemType; character.EquippedGlovesQuality = newQuality; break;
+            case EquipmentSlot.Legs: character.EquippedLegs = itemType; character.EquippedLegsQuality = newQuality; break;
+            case EquipmentSlot.Boots: character.EquippedBoots = itemType; character.EquippedBootsQuality = newQuality; break;
         }
 
         // Return currently equipped item to inventory
@@ -616,15 +621,15 @@ public class InventoryService : IInventoryService
         if (currentlyEquipped != itemType)
             return (false, "Este item não está equipado neste slot");
 
-        // Clear slot
+        // Clear slot + quality
         switch (slot.Value)
         {
-            case EquipmentSlot.Head: character.EquippedHead = null; break;
-            case EquipmentSlot.Shoulders: character.EquippedShoulders = null; break;
-            case EquipmentSlot.Chest: character.EquippedChest = null; break;
-            case EquipmentSlot.Gloves: character.EquippedGloves = null; break;
-            case EquipmentSlot.Legs: character.EquippedLegs = null; break;
-            case EquipmentSlot.Boots: character.EquippedBoots = null; break;
+            case EquipmentSlot.Head: character.EquippedHead = null; character.EquippedHeadQuality = 0; break;
+            case EquipmentSlot.Shoulders: character.EquippedShoulders = null; character.EquippedShouldersQuality = 0; break;
+            case EquipmentSlot.Chest: character.EquippedChest = null; character.EquippedChestQuality = 0; break;
+            case EquipmentSlot.Gloves: character.EquippedGloves = null; character.EquippedGlovesQuality = 0; break;
+            case EquipmentSlot.Legs: character.EquippedLegs = null; character.EquippedLegsQuality = 0; break;
+            case EquipmentSlot.Boots: character.EquippedBoots = null; character.EquippedBootsQuality = 0; break;
         }
 
         // Return to inventory
@@ -664,12 +669,21 @@ public class InventoryService : IInventoryService
         var level = character?.Level ?? 1;
         var discardScale = 1.0 + level * _scalingConfig.StageMode.DiscardLevelScale;
 
-        // Apply enhancement multiplier for equipment
+        // Apply enhancement multiplier for equipment (per-slot level)
         var enhancementMult = 1.0;
-        if (isEquipment)
+        if (isEquipment && character != null)
         {
-            var enhancementLevel = await GetEquipmentEnhancementLevelAsync(userId, cancellationToken);
-            enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
+            if (slot.HasValue)
+            {
+                var stageProgress = await _dbContext.StageProgresses
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
+                var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
+                var slotBonus = character.GetSlotBonusLevel(slot.Value);
+                var enhancementLevel = stageDerived + slotBonus;
+                enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+            }
         }
 
         var fidelisValue = Math.Round(baseValue * (decimal)(discardScale * enhancementMult), 2);
@@ -706,9 +720,22 @@ public class InventoryService : IInventoryService
         var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
         var charLevelMult = 1.0 + charLevel * discardLevelScale;
 
-        // Enhancement multiplier for equipment
-        var enhancementLevel = await GetEquipmentEnhancementLevelAsync(userId, cancellationToken);
-        var enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+        // Per-slot enhancement multipliers for equipment
+        var stageProgress = await _dbContext.StageProgresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
+        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
+
+        double GetSlotEnhMult(InventoryItemType itemType)
+        {
+            var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
+            if (slot.HasValue && character != null)
+            {
+                var slotLevel = stageDerived + character.GetSlotBonusLevel(slot.Value);
+                return 1.0 + slotLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+            }
+            return 1.0;
+        }
 
         decimal totalFidelis = 0;
         int totalItems = 0;
@@ -725,7 +752,7 @@ public class InventoryService : IInventoryService
             if (!isEquipment && !isInstrument) continue;
 
             var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
-            var itemEnhMult = isEquipment ? enhancementMult : 1.0;
+            var itemEnhMult = isEquipment ? GetSlotEnhMult(item.Type) : 1.0;
             var perUnitValue = Math.Round(baseValue * (decimal)(charLevelMult * itemEnhMult), 2);
             var quantity = item.Quantity;
 
@@ -959,25 +986,27 @@ public class InventoryService : IInventoryService
         var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
 
-        // Enhancement level from stage progression: floor(highestStage / 100)
-        var enhancementLevel = await GetEquipmentEnhancementLevelAsync(character.UserId, cancellationToken);
-        var enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+        // Stage-derived base enhancement level (global)
+        var stageProgress = await _dbContext.StageProgresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sp => sp.UserId == character.UserId, cancellationToken);
+        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
 
         int hp = 0, power = 0, defense = 0;
 
-        // Helper to get deterministic quality for this character + slot
-        double GetSlotQuality(int slotIndex)
-        {
-            var rng = new Random(character.Id * 7919 + slotIndex * 31);
-            return qualityMin + rng.NextDouble() * (qualityMax - qualityMin);
-        }
+        // Use stored per-slot quality (randomized on equip). Fall back to average if 0 (legacy data).
+        var qualityAvg = (qualityMin + qualityMax) / 2.0;
+        double GetQ(double stored) => stored > 0 ? stored : qualityAvg;
 
-        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Head.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * enhancementMult); }
-        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * enhancementMult); }
-        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Chest.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * enhancementMult); }
-        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * enhancementMult); }
-        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Legs.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * enhancementMult); }
-        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Boots.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * enhancementMult); }
+        // Per-slot enhancement: each slot has its own bonus level
+        double SlotEnhMult(EquipmentSlot slot) => 1.0 + (stageDerived + character.GetSlotBonusLevel(slot)) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+
+        if (character.EquippedHead.HasValue) { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
+        if (character.EquippedShoulders.HasValue) { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
+        if (character.EquippedChest.HasValue) { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
+        if (character.EquippedGloves.HasValue) { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
+        if (character.EquippedLegs.HasValue) { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
+        if (character.EquippedBoots.HasValue) { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
 
         // Add weapon bonuses from forged weapons (with character level scaling)
         var weaponLevelScale = 1.0 + character.Level * _scalingConfig.StageMode.WeaponCharacterLevelScale;
@@ -1063,17 +1092,68 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
-    /// Gets the equipment enhancement level based on the player's highest stage.
-    /// Enhancement = floor(highestStage / 100), so every 100 stages = +1 enhancement.
+    /// Gets the enhancement level for a specific equipment slot.
+    /// Enhancement = floor(highestStage / 100) + slot purchased bonus level.
     /// </summary>
-    public async Task<int> GetEquipmentEnhancementLevelAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<int> GetSlotEnhancementLevelAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default)
     {
         var stageProgress = await _dbContext.StageProgresses
             .AsNoTracking()
             .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
 
-        var highestStage = stageProgress?.HighestStage ?? 0;
-        return highestStage / 100; // integer division = floor
+        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100; // integer division = floor
+
+        var character = await _dbContext.Characters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+
+        var slotBonus = character?.GetSlotBonusLevel(slot) ?? 0;
+        return stageDerived + slotBonus;
+    }
+
+    /// <summary>
+    /// Gets the Fidelis cost to upgrade equipment enhancement to the next level.
+    /// Formula: baseCost * (multiplier ^ currentBonusLevel)
+    /// </summary>
+    public decimal GetEquipmentUpgradeCost(int currentBonusLevel)
+    {
+        var forging = _scalingConfig.StageMode.Forging;
+        return Math.Round(forging.EquipmentUpgradeBaseCost * (decimal)Math.Pow((double)forging.EquipmentUpgradeCostMultiplier, currentBonusLevel), 2);
+    }
+
+    /// <summary>
+    /// Upgrades a specific equipment slot's enhancement level by 1. Costs Fidelis.
+    /// The slot bonus level is stored on the Character entity.
+    /// </summary>
+    public async Task<(bool Success, string Message)> UpgradeEquipmentSlotAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default)
+    {
+        var character = await _dbContext.Characters
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        if (character == null)
+            return (false, "Personagem não encontrado");
+
+        var currentSlotLevel = character.GetSlotBonusLevel(slot);
+        var cost = GetEquipmentUpgradeCost(currentSlotLevel);
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user == null || user.FidelisBalance < cost)
+            return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
+
+        user.FidelisBalance -= cost;
+        character.SetSlotBonusLevel(slot, currentSlotLevel + 1);
+
+        // Recalculate equipment bonuses with the new per-slot enhancement level
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var stageProgress = await _dbContext.StageProgresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
+        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
+        var newLevel = stageDerived + currentSlotLevel + 1;
+        var slotName = slot.ToString().ToUpperInvariant();
+        return (true, $"{slotName} melhorado para +{newLevel}!");
     }
 
     /// <summary>

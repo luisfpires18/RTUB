@@ -111,6 +111,37 @@ public class Character : BaseEntity
     public InventoryItemType? EquippedLegs { get; set; }
     /// <summary>Equipment piece in boots slot</summary>
     public InventoryItemType? EquippedBoots { get; set; }
+
+    // ── Per-Slot Quality (randomized on equip, range ~0.85–1.15) ──
+
+    /// <summary>Quality multiplier for equipped head piece (0 = use average)</summary>
+    public double EquippedHeadQuality { get; set; }
+    /// <summary>Quality multiplier for equipped shoulders piece</summary>
+    public double EquippedShouldersQuality { get; set; }
+    /// <summary>Quality multiplier for equipped chest piece</summary>
+    public double EquippedChestQuality { get; set; }
+    /// <summary>Quality multiplier for equipped gloves piece</summary>
+    public double EquippedGlovesQuality { get; set; }
+    /// <summary>Quality multiplier for equipped legs piece</summary>
+    public double EquippedLegsQuality { get; set; }
+    /// <summary>Quality multiplier for equipped boots piece</summary>
+    public double EquippedBootsQuality { get; set; }
+
+    // ── Per-Slot Bonus Level (purchased upgrades per equipment slot) ──
+
+    /// <summary>Purchased upgrade level for the head slot</summary>
+    public int EquippedHeadBonusLevel { get; set; }
+    /// <summary>Purchased upgrade level for the shoulders slot</summary>
+    public int EquippedShouldersBonusLevel { get; set; }
+    /// <summary>Purchased upgrade level for the chest slot</summary>
+    public int EquippedChestBonusLevel { get; set; }
+    /// <summary>Purchased upgrade level for the gloves slot</summary>
+    public int EquippedGlovesBonusLevel { get; set; }
+    /// <summary>Purchased upgrade level for the legs slot</summary>
+    public int EquippedLegsBonusLevel { get; set; }
+    /// <summary>Purchased upgrade level for the boots slot</summary>
+    public int EquippedBootsBonusLevel { get; set; }
+
     /// <summary>Forged weapon in primary weapon slot (ID of ForgedWeapon entity)</summary>
     public int? EquippedWeapon1 { get; set; }
     /// <summary>Forged weapon in secondary weapon slot (ID of ForgedWeapon entity, null if two-handed weapon in slot 1)</summary>
@@ -264,6 +295,32 @@ public class Character : BaseEntity
         return $"Character '{userName}' (SpeedUpgrades={SpeedUpgrades}): ActionTime = {currentActionTime:F1}s";
     }
 
+    /// <summary>Gets the purchased bonus level for a specific equipment slot.</summary>
+    public int GetSlotBonusLevel(Enums.EquipmentSlot slot) => slot switch
+    {
+        Enums.EquipmentSlot.Head => EquippedHeadBonusLevel,
+        Enums.EquipmentSlot.Shoulders => EquippedShouldersBonusLevel,
+        Enums.EquipmentSlot.Chest => EquippedChestBonusLevel,
+        Enums.EquipmentSlot.Gloves => EquippedGlovesBonusLevel,
+        Enums.EquipmentSlot.Legs => EquippedLegsBonusLevel,
+        Enums.EquipmentSlot.Boots => EquippedBootsBonusLevel,
+        _ => 0
+    };
+
+    /// <summary>Sets the purchased bonus level for a specific equipment slot.</summary>
+    public void SetSlotBonusLevel(Enums.EquipmentSlot slot, int level)
+    {
+        switch (slot)
+        {
+            case Enums.EquipmentSlot.Head: EquippedHeadBonusLevel = level; break;
+            case Enums.EquipmentSlot.Shoulders: EquippedShouldersBonusLevel = level; break;
+            case Enums.EquipmentSlot.Chest: EquippedChestBonusLevel = level; break;
+            case Enums.EquipmentSlot.Gloves: EquippedGlovesBonusLevel = level; break;
+            case Enums.EquipmentSlot.Legs: EquippedLegsBonusLevel = level; break;
+            case Enums.EquipmentSlot.Boots: EquippedBootsBonusLevel = level; break;
+        }
+    }
+
     // Private constructor for EF Core
     private Character() { }
 
@@ -297,6 +354,18 @@ public class Character : BaseEntity
             EquippedGloves = null,
             EquippedLegs = null,
             EquippedBoots = null,
+            EquippedHeadQuality = 0,
+            EquippedShouldersQuality = 0,
+            EquippedChestQuality = 0,
+            EquippedGlovesQuality = 0,
+            EquippedLegsQuality = 0,
+            EquippedBootsQuality = 0,
+            EquippedHeadBonusLevel = 0,
+            EquippedShouldersBonusLevel = 0,
+            EquippedChestBonusLevel = 0,
+            EquippedGlovesBonusLevel = 0,
+            EquippedLegsBonusLevel = 0,
+            EquippedBootsBonusLevel = 0,
             EquippedWeapon1 = null,
             EquippedWeapon2 = null,
             EquipmentHPBonus = 0,
@@ -379,6 +448,18 @@ public class Character : BaseEntity
             EquippedGloves = source.EquippedGloves,
             EquippedLegs = source.EquippedLegs,
             EquippedBoots = source.EquippedBoots,
+            EquippedHeadQuality = source.EquippedHeadQuality,
+            EquippedShouldersQuality = source.EquippedShouldersQuality,
+            EquippedChestQuality = source.EquippedChestQuality,
+            EquippedGlovesQuality = source.EquippedGlovesQuality,
+            EquippedLegsQuality = source.EquippedLegsQuality,
+            EquippedBootsQuality = source.EquippedBootsQuality,
+            EquippedHeadBonusLevel = source.EquippedHeadBonusLevel,
+            EquippedShouldersBonusLevel = source.EquippedShouldersBonusLevel,
+            EquippedChestBonusLevel = source.EquippedChestBonusLevel,
+            EquippedGlovesBonusLevel = source.EquippedGlovesBonusLevel,
+            EquippedLegsBonusLevel = source.EquippedLegsBonusLevel,
+            EquippedBootsBonusLevel = source.EquippedBootsBonusLevel,
             EquippedWeapon1 = source.EquippedWeapon1,
             EquippedWeapon2 = source.EquippedWeapon2,
             EquipmentHPBonus = source.EquipmentHPBonus,
@@ -440,6 +521,18 @@ public class Character : BaseEntity
             EquippedGloves = source.EquippedGloves,
             EquippedLegs = source.EquippedLegs,
             EquippedBoots = source.EquippedBoots,
+            EquippedHeadQuality = source.EquippedHeadQuality,
+            EquippedShouldersQuality = source.EquippedShouldersQuality,
+            EquippedChestQuality = source.EquippedChestQuality,
+            EquippedGlovesQuality = source.EquippedGlovesQuality,
+            EquippedLegsQuality = source.EquippedLegsQuality,
+            EquippedBootsQuality = source.EquippedBootsQuality,
+            EquippedHeadBonusLevel = source.EquippedHeadBonusLevel,
+            EquippedShouldersBonusLevel = source.EquippedShouldersBonusLevel,
+            EquippedChestBonusLevel = source.EquippedChestBonusLevel,
+            EquippedGlovesBonusLevel = source.EquippedGlovesBonusLevel,
+            EquippedLegsBonusLevel = source.EquippedLegsBonusLevel,
+            EquippedBootsBonusLevel = source.EquippedBootsBonusLevel,
             EquippedWeapon1 = source.EquippedWeapon1,
             EquippedWeapon2 = source.EquippedWeapon2,
             EquipmentHPBonus = source.EquipmentHPBonus,
@@ -490,6 +583,18 @@ public class Character : BaseEntity
             EquippedGloves = source.EquippedGloves,
             EquippedLegs = source.EquippedLegs,
             EquippedBoots = source.EquippedBoots,
+            EquippedHeadQuality = source.EquippedHeadQuality,
+            EquippedShouldersQuality = source.EquippedShouldersQuality,
+            EquippedChestQuality = source.EquippedChestQuality,
+            EquippedGlovesQuality = source.EquippedGlovesQuality,
+            EquippedLegsQuality = source.EquippedLegsQuality,
+            EquippedBootsQuality = source.EquippedBootsQuality,
+            EquippedHeadBonusLevel = source.EquippedHeadBonusLevel,
+            EquippedShouldersBonusLevel = source.EquippedShouldersBonusLevel,
+            EquippedChestBonusLevel = source.EquippedChestBonusLevel,
+            EquippedGlovesBonusLevel = source.EquippedGlovesBonusLevel,
+            EquippedLegsBonusLevel = source.EquippedLegsBonusLevel,
+            EquippedBootsBonusLevel = source.EquippedBootsBonusLevel,
             EquippedWeapon1 = source.EquippedWeapon1,
             EquippedWeapon2 = source.EquippedWeapon2,
             EquipmentHPBonus = source.EquipmentHPBonus,

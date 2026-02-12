@@ -399,6 +399,12 @@ public class ForgingConfig
     /// <summary>Stat increase percentage per weapon level (0.15 = +15% per level).</summary>
     public double WeaponUpgradeStatBonus { get; set; } = 0.15;
 
+    /// <summary>Base Fidelis cost to upgrade equipment enhancement from level 0 to 1.</summary>
+    public decimal EquipmentUpgradeBaseCost { get; set; } = 400m;
+
+    /// <summary>Cost multiplier per equipment upgrade level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
+    public decimal EquipmentUpgradeCostMultiplier { get; set; } = 1.12m;
+
     /// <summary>
     /// Stat multiplier for two-handed weapons. Since 2H occupies both weapon slots,
     /// they get this multiplier on all stats to match dual-wielding 1H weapons.

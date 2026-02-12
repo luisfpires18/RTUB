@@ -23,9 +23,6 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
-        // TODO: Remove after deployed to production and all inventories are corrected.
-        await ResetConsumableQuantitiesAsync(dbContext);
-
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

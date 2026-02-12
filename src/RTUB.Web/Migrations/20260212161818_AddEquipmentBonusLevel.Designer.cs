@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260212161818_AddEquipmentBonusLevel")]
+    partial class AddEquipmentBonusLevel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -838,56 +841,20 @@ namespace RTUB.Migrations
                     b.Property<int?>("EquippedBoots")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EquippedBootsBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedBootsQuality")
-                        .HasColumnType("REAL");
-
                     b.Property<int?>("EquippedChest")
                         .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedChestBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedChestQuality")
-                        .HasColumnType("REAL");
 
                     b.Property<int?>("EquippedGloves")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EquippedGlovesBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedGlovesQuality")
-                        .HasColumnType("REAL");
-
                     b.Property<int?>("EquippedHead")
                         .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedHeadBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedHeadQuality")
-                        .HasColumnType("REAL");
 
                     b.Property<int?>("EquippedLegs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EquippedLegsBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedLegsQuality")
-                        .HasColumnType("REAL");
-
                     b.Property<int?>("EquippedShoulders")
                         .HasColumnType("INTEGER");
-
-                    b.Property<int>("EquippedShouldersBonusLevel")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<double>("EquippedShouldersQuality")
-                        .HasColumnType("REAL");
 
                     b.Property<int?>("EquippedWeapon1")
                         .HasColumnType("INTEGER");

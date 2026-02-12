@@ -178,10 +178,19 @@ public interface IInventoryService
     decimal GetWeaponUpgradeCost(int currentLevel);
 
     /// <summary>
-    /// Gets the equipment enhancement level based on the player's highest stage.
-    /// Enhancement = floor(highestStage / 100).
+    /// Gets the enhancement level for a specific equipment slot: floor(highestStage / 100) + slot purchased bonus.
     /// </summary>
-    Task<int> GetEquipmentEnhancementLevelAsync(string userId, CancellationToken cancellationToken = default);
+    Task<int> GetSlotEnhancementLevelAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the Fidelis cost to upgrade an equipment slot to the next level.
+    /// </summary>
+    decimal GetEquipmentUpgradeCost(int currentBonusLevel);
+
+    /// <summary>
+    /// Upgrades a specific equipment slot's enhancement level by 1. Costs Fidelis.
+    /// </summary>
+    Task<(bool Success, string Message)> UpgradeEquipmentSlotAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Calculates the Fidelis value for discarding a forged weapon.
