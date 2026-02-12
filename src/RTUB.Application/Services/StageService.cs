@@ -294,14 +294,39 @@ public class StageService : IStageService
     /// </summary>
     public async Task<StageProgress> ReturnToCheckpointAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
-        if (stageProgress == null)
-            throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
+                if (stageProgress == null)
+                    throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
 
-        stageProgress.ReturnToCheckpoint();
-        await _stageProgressRepository.UpdateAsync(stageProgress);
+                stageProgress.ReturnToCheckpoint();
+                await _stageProgressRepository.UpdateAsync(stageProgress);
 
-        return stageProgress;
+                return stageProgress;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "ReturnToCheckpointAsync: Concurrency conflict for user {UserId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        userId, attempt + 1, maxRetries);
+                    await Task.Delay(100 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+
+                _logger.LogError(ex, "ReturnToCheckpointAsync: Failed after {MaxRetries} retries for user {UserId}", maxRetries, userId);
+                throw;
+            }
+        }
+
+        // Should never reach here, but satisfy compiler
+        throw new InvalidOperationException("ReturnToCheckpointAsync exhausted retries");
     }
 
     /// <summary>
@@ -585,6 +610,34 @@ public class StageService : IStageService
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
     public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, CancellationToken cancellationToken = default)
+    {
+        const int maxRetries = 3;
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, equipment, cancellationToken);
+                return;
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (attempt < maxRetries)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "ApplyRunRewardsAsync: Concurrency conflict for character {CharacterId}, retrying (attempt {Attempt}/{MaxRetries})...",
+                        characterId, attempt + 1, maxRetries);
+                    await Task.Delay(100 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+
+                _logger.LogError(ex, "ApplyRunRewardsAsync: Failed after {MaxRetries} retries for character {CharacterId}", maxRetries, characterId);
+                throw;
+            }
+        }
+    }
+
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, int? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;
