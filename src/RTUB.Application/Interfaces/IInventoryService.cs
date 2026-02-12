@@ -142,6 +142,12 @@ public interface IInventoryService
     Task<(bool Success, decimal FidelisGained, string Message)> DiscardItemAsync(string userId, InventoryItemType itemType, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Discards ALL discardable items (equipment, instrument parts, and unequipped weapons) in one batch.
+    /// Returns the total Fidelis gained and count of items discarded.
+    /// </summary>
+    Task<(bool Success, decimal TotalFidelis, int ItemsDiscarded, string Message)> DiscardAllItemsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Forges a weapon by consuming an instrument part and a drink.
     /// </summary>
     Task<(bool Success, ForgedWeapon? Weapon, string Message)> ForgeWeaponAsync(string userId, InventoryItemType instrumentPart, InventoryItemType drink, WeaponType weaponType, string weaponName, CancellationToken cancellationToken = default);
@@ -170,4 +176,21 @@ public interface IInventoryService
     /// Gets the Fidelis cost to upgrade a weapon to the next level.
     /// </summary>
     decimal GetWeaponUpgradeCost(int currentLevel);
+
+    /// <summary>
+    /// Gets the equipment enhancement level based on the player's highest stage.
+    /// Enhancement = floor(highestStage / 100).
+    /// </summary>
+    Task<int> GetEquipmentEnhancementLevelAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calculates the Fidelis value for discarding a forged weapon.
+    /// </summary>
+    decimal GetWeaponDiscardValue(ForgedWeapon weapon, int characterLevel);
+
+    /// <summary>
+    /// Discards a forged weapon in exchange for Fidelis currency.
+    /// Unequips the weapon first if it is currently equipped.
+    /// </summary>
+    Task<(bool Success, decimal FidelisGained, string Message)> DiscardWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default);
 }

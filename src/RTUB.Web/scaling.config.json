@@ -91,28 +91,31 @@
         "bossDropMultiplier": 3.0
       },
 
-      "equipmentLevelScale": 0.002,
-      "discardLevelScale": 0.002,
+      "equipmentLevelScale": 0.05,
+      "discardLevelScale": 0.01,
+      "equipmentEnhancementBonus": 0.5,
+      "weaponCharacterLevelScale": 0.02,
 
       "equipmentQualityMin": 0.7,
       "equipmentQualityMax": 1.3,
       "equipmentStats": {
-        "head":       { "hp": 20, "power": 0, "defense": 5 },
-        "shoulders":  { "hp": 15, "power": 0, "defense": 7 },
-        "chest":      { "hp": 35, "power": 0, "defense": 12 },
-        "gloves":     { "hp": 0,  "power": 8, "defense": 0 },
-        "legs":       { "hp": 20, "power": 0, "defense": 5 },
-        "boots":      { "hp": 10, "power": 0, "defense": 4 },
+        "head":       { "hp": 60, "power": 10, "defense": 15 },
+        "shoulders":  { "hp": 45, "power": 5,  "defense": 20 },
+        "chest":      { "hp": 100,"power": 15, "defense": 35 },
+        "gloves":     { "hp": 10, "power": 25, "defense": 3 },
+        "legs":       { "hp": 60, "power": 10, "defense": 15 },
+        "boots":      { "hp": 30, "power": 5,  "defense": 10 },
         "instrument": { "hp": 0,  "power": 12, "defense": 0 }
       },
       "discardValues": {
-        "equipment": 50,
-        "instrumentPart": 60
+        "equipment": 200,
+        "instrumentPart": 250,
+        "weapon": 300
       },
       "forging": {
         "castTimeSeconds": 5,
-        "weaponUpgradeBaseCost": 40,
-        "weaponUpgradeCostMultiplier": 1.5,
+        "weaponUpgradeBaseCost": 500,
+        "weaponUpgradeCostMultiplier": 1.08,
         "weaponUpgradeStatBonus": 0.15,
         "twoHandedMultiplier": 2.0,
         "instrumentQualityMin": 0.85,

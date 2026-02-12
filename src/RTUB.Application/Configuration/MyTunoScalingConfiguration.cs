@@ -259,13 +259,25 @@ public class StageModeConfig
     /// Per-level scaling factor for equipment stat bonuses.
     /// Formula: equipStat × (1 + level × EquipmentLevelScale).
     /// </summary>
-    public double EquipmentLevelScale { get; set; } = 0.002;
+    public double EquipmentLevelScale { get; set; } = 0.05;
 
     /// <summary>
     /// Per-level scaling factor for equipment discard Fidelis.
     /// Formula: discardValue × (1 + level × DiscardLevelScale).
     /// </summary>
-    public double DiscardLevelScale { get; set; } = 0.002;
+    public double DiscardLevelScale { get; set; } = 0.01;
+
+    /// <summary>
+    /// Bonus per equipment enhancement tier.
+    /// Enhancement = floor(highestStage / 100). Formula: stat × (1 + enhancement × EquipmentEnhancementBonus).
+    /// </summary>
+    public double EquipmentEnhancementBonus { get; set; } = 0.5;
+
+    /// <summary>
+    /// Per-character-level scaling factor applied to equipped weapon stat bonuses.
+    /// Formula: weaponStat × (1 + charLevel × WeaponCharacterLevelScale).
+    /// </summary>
+    public double WeaponCharacterLevelScale { get; set; } = 0.02;
 
     /// <summary>
     /// Forging configuration (cast time, etc.)
@@ -346,13 +358,13 @@ public class EquipmentPieceStats
 /// </summary>
 public class EquipmentStatsConfig
 {
-    public EquipmentPieceStats Head { get; set; } = new() { HP = 15, Defense = 3 };
-    public EquipmentPieceStats Shoulders { get; set; } = new() { HP = 10, Defense = 5 };
-    public EquipmentPieceStats Chest { get; set; } = new() { HP = 25, Defense = 8 };
-    public EquipmentPieceStats Gloves { get; set; } = new() { Power = 5 };
-    public EquipmentPieceStats Legs { get; set; } = new() { HP = 15, Defense = 3 };
-    public EquipmentPieceStats Boots { get; set; } = new() { HP = 5, Defense = 2 };
-    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 8 };
+    public EquipmentPieceStats Head { get; set; } = new() { HP = 60, Power = 10, Defense = 15 };
+    public EquipmentPieceStats Shoulders { get; set; } = new() { HP = 45, Power = 5, Defense = 20 };
+    public EquipmentPieceStats Chest { get; set; } = new() { HP = 100, Power = 15, Defense = 35 };
+    public EquipmentPieceStats Gloves { get; set; } = new() { Power = 25, HP = 10, Defense = 3 };
+    public EquipmentPieceStats Legs { get; set; } = new() { HP = 60, Power = 10, Defense = 15 };
+    public EquipmentPieceStats Boots { get; set; } = new() { HP = 30, Power = 5, Defense = 10 };
+    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 12 };
 }
 
 /// <summary>
@@ -361,10 +373,13 @@ public class EquipmentStatsConfig
 public class DiscardValuesConfig
 {
     /// <summary>Fidelis gained from discarding an equipment piece.</summary>
-    public decimal Equipment { get; set; } = 25m;
+    public decimal Equipment { get; set; } = 200m;
 
     /// <summary>Fidelis gained from discarding an instrument part.</summary>
-    public decimal InstrumentPart { get; set; } = 30m;
+    public decimal InstrumentPart { get; set; } = 250m;
+
+    /// <summary>Base Fidelis gained from discarding a forged weapon.</summary>
+    public decimal Weapon { get; set; } = 300m;
 }
 
 /// <summary>
@@ -376,10 +391,10 @@ public class ForgingConfig
     public int CastTimeSeconds { get; set; } = 5;
 
     /// <summary>Base Fidelis cost to upgrade a weapon from level 0 to 1.</summary>
-    public decimal WeaponUpgradeBaseCost { get; set; } = 50m;
+    public decimal WeaponUpgradeBaseCost { get; set; } = 500m;
 
     /// <summary>Cost multiplier per level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
-    public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.5m;
+    public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.08m;
 
     /// <summary>Stat increase percentage per weapon level (0.15 = +15% per level).</summary>
     public double WeaponUpgradeStatBonus { get; set; } = 0.15;

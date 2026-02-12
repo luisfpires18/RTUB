@@ -385,6 +385,29 @@
                                         </button>
                                     </div>
                                 }
+                                @if (equipableItems.Count > 0)
+                                {
+                                    <div class="d-flex justify-content-center mt-2">
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => showDiscardAllConfirm = true" disabled="@discardingAll">
+                                            @if (discardingAll)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                            }
+                                            <i class="bi bi-trash me-1"></i>Descartar Tudo (@equipableItems.Count itens)
+                                        </button>
+                                    </div>
+                                }
+
+                                <ConfirmDialog Show="@showDiscardAllConfirm"
+                                               ShowChanged="@((bool v) => showDiscardAllConfirm = v)"
+                                               Title="Descartar Tudo"
+                                               Message="Tens a certeza que queres descartar todos os itens equipáveis e armas não equipadas? Esta ação é irreversível."
+                                               ConfirmText="Descartar Tudo"
+                                               CancelText="Cancelar"
+                                               ConfirmButtonClass="btn-danger"
+                                               Disabled="@discardingAll"
+                                               OnConfirm="ExecuteDiscardAll"
+                                               OnCancel="() => showDiscardAllConfirm = false" />
                             }
                         }
                     </div>
@@ -661,8 +684,12 @@
             <!-- Equipment Section -->
             <div class="col-lg-4 order-lg-1">
                 <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Equipamento</h5>
+                        @if (equipmentEnhancementLevel > 0)
+                        {
+                            <span class="badge bg-warning text-dark" title="Enhancement from stage progression (every 100 stages)">+@equipmentEnhancementLevel</span>
+                        }
                     </div>
                     <div class="card-body p-2 d-flex flex-column">
                         <div class="equip-layout">
@@ -1270,6 +1297,15 @@
                         }
                     }
                 </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                    @{
+                        var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
+                    }
+                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
+                        <i class="bi bi-trash me-1"></i>Descartar
+                        <small class="opacity-75">(@Fmt(weaponDiscardValue) <i class="bi bi-coin"></i>)</small>
+                    </button>
+                </div>
             </FooterContent>
         </Modal>
     }
@@ -1783,7 +1819,7 @@
     private bool equipping = false;
     private int inventoryTab = 0;
     private int equipablePage = 1;
-    private const int EquipablePageSize = 8;
+    private const int EquipablePageSize = 16;
     
     // Unified item action modal state (equip / discard from inventory)
     private bool showItemActionModal = false;
@@ -1814,6 +1850,9 @@
     private bool showWeaponsListModal = false;
     private ForgedWeapon? pendingWeapon = null;
     private bool weaponActioning = false;
+    private int equipmentEnhancementLevel = 0;
+    private bool discardingAll = false;
+    private bool showDiscardAllConfirm = false;
     
     // Info modal state
     private bool showInfoModal = false;
@@ -1979,6 +2018,7 @@
                         // Stage progress
                         stageProgress = stageProgressTask.Result;
                         var highestStage = stageProgress?.HighestStage ?? 1;
+                        equipmentEnhancementLevel = highestStage / 100;
 
                         // Resource quantities from the same inventory summary
                         gatheringConfig = MyTunoConfig.Value.Gathering;
@@ -3049,6 +3089,82 @@
         finally
         {
             weaponActioning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmWeaponDiscard()
+    {
+        if (pendingWeapon == null || currentUser == null || weaponActioning) return;
+        weaponActioning = true;
+        try
+        {
+            var (success, fidelisGained, message) = await InventoryService.DiscardWeaponAsync(currentUser.Id, pendingWeapon.Id);
+            if (success)
+            {
+                // Refresh user balance, character, and weapons list
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                character = await CharacterService.GetOrCreateCharacterAsync(currentUser!.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                showWeaponActionModal = false;
+                pendingWeapon = null;
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error discarding weapon");
+            toastMessage = "Erro ao descartar arma.";
+            toastIsError = true;
+        }
+        finally
+        {
+            weaponActioning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteDiscardAll()
+    {
+        showDiscardAllConfirm = false;
+        if (currentUser == null || discardingAll) return;
+        discardingAll = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, totalFidelis, itemsDiscarded, message) = await InventoryService.DiscardAllItemsAsync(currentUser.Id);
+            if (success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser!.Id);
+                equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+                forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                equipablePage = 1;
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error discarding all items");
+            toastMessage = "Erro ao descartar itens.";
+            toastIsError = true;
+        }
+        finally
+        {
+            discardingAll = false;
             StateHasChanged();
         }
     }

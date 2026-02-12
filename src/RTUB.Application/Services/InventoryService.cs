@@ -655,7 +655,7 @@ public class InventoryService : IInventoryService
         if (item == null || item.Quantity <= 0)
             return (false, 0, "Não tens este item no inventário");
 
-        // Determine Fidelis value (scales with player level)
+        // Determine Fidelis value (scales with player level and enhancement)
         var discardValues = _scalingConfig.StageMode.DiscardValues;
         var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
 
@@ -663,7 +663,16 @@ public class InventoryService : IInventoryService
         var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
         var level = character?.Level ?? 1;
         var discardScale = 1.0 + level * _scalingConfig.StageMode.DiscardLevelScale;
-        var fidelisValue = Math.Round(baseValue * (decimal)discardScale, 2);
+
+        // Apply enhancement multiplier for equipment
+        var enhancementMult = 1.0;
+        if (isEquipment)
+        {
+            var enhancementLevel = await GetEquipmentEnhancementLevelAsync(userId, cancellationToken);
+            enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+        }
+
+        var fidelisValue = Math.Round(baseValue * (decimal)(discardScale * enhancementMult), 2);
 
         // Consume 1 from inventory
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, itemType, 1, cancellationToken);
@@ -683,6 +692,79 @@ public class InventoryService : IInventoryService
             : InstrumentTypeHelper.GetDisplayName(InstrumentTypeHelper.FromInventoryPartType(itemType)!.Value);
 
         return (true, fidelisValue, $"{displayName} descartado por {fidelisValue:F2} Fidelis!");
+    }
+
+    /// <summary>
+    /// Discards ALL discardable items (equipment, instrument parts, and unequipped weapons) in one batch.
+    /// Returns the total Fidelis gained and a summary of items discarded.
+    /// </summary>
+    public async Task<(bool Success, decimal TotalFidelis, int ItemsDiscarded, string Message)> DiscardAllItemsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        var charLevel = character?.Level ?? 1;
+        var discardValues = _scalingConfig.StageMode.DiscardValues;
+        var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
+        var charLevelMult = 1.0 + charLevel * discardLevelScale;
+
+        // Enhancement multiplier for equipment
+        var enhancementLevel = await GetEquipmentEnhancementLevelAsync(userId, cancellationToken);
+        var enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+
+        decimal totalFidelis = 0;
+        int totalItems = 0;
+
+        // 1. Discard all equipment items
+        var equipmentInventory = await _dbContext.InventoryItems
+            .Where(i => i.UserId == userId && i.Quantity > 0)
+            .ToListAsync(cancellationToken);
+
+        foreach (var item in equipmentInventory)
+        {
+            var isEquipment = EquipmentDropHelper.IsEquipment(item.Type);
+            var isInstrument = InstrumentTypeHelper.IsInstrumentPart(item.Type);
+            if (!isEquipment && !isInstrument) continue;
+
+            var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
+            var itemEnhMult = isEquipment ? enhancementMult : 1.0;
+            var perUnitValue = Math.Round(baseValue * (decimal)(charLevelMult * itemEnhMult), 2);
+            var quantity = item.Quantity;
+
+            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, item.Type, quantity, cancellationToken);
+            if (consumed)
+            {
+                totalFidelis += perUnitValue * quantity;
+                totalItems += quantity;
+            }
+        }
+
+        // 2. Discard all unequipped weapons
+        var unequippedWeapons = await _dbContext.ForgedWeapons
+            .Where(w => w.UserId == userId && !w.IsEquipped)
+            .ToListAsync(cancellationToken);
+
+        foreach (var weapon in unequippedWeapons)
+        {
+            var weaponValue = GetWeaponDiscardValue(weapon, charLevel);
+            _dbContext.ForgedWeapons.Remove(weapon);
+            totalFidelis += weaponValue;
+            totalItems++;
+        }
+
+        if (totalItems == 0)
+            return (false, 0, 0, "Nenhum item para descartar");
+
+        totalFidelis = Math.Round(totalFidelis, 2);
+
+        // Credit Fidelis
+        var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user != null)
+        {
+            user.FidelisBalance += totalFidelis;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, totalFidelis, totalItems, $"{totalItems} itens descartados por {totalFidelis:F2} Fidelis!");
     }
 
     // ── Forging ──
@@ -876,6 +958,11 @@ public class InventoryService : IInventoryService
         var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
         var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
+
+        // Enhancement level from stage progression: floor(highestStage / 100)
+        var enhancementLevel = await GetEquipmentEnhancementLevelAsync(character.UserId, cancellationToken);
+        var enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+
         int hp = 0, power = 0, defense = 0;
 
         // Helper to get deterministic quality for this character + slot
@@ -885,14 +972,16 @@ public class InventoryService : IInventoryService
             return qualityMin + rng.NextDouble() * (qualityMax - qualityMin);
         }
 
-        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q * levelScale); power += (int)Math.Round(stats.Head.Power * q * levelScale); defense += (int)Math.Round(stats.Head.Defense * q * levelScale); }
-        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale); }
-        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q * levelScale); power += (int)Math.Round(stats.Chest.Power * q * levelScale); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale); }
-        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale); power += (int)Math.Round(stats.Gloves.Power * q * levelScale); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale); }
-        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q * levelScale); power += (int)Math.Round(stats.Legs.Power * q * levelScale); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale); }
-        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q * levelScale); power += (int)Math.Round(stats.Boots.Power * q * levelScale); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale); }
+        if (character.EquippedHead.HasValue) { var q = GetSlotQuality(0); hp += (int)Math.Round(stats.Head.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Head.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * enhancementMult); }
+        if (character.EquippedShoulders.HasValue) { var q = GetSlotQuality(1); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * enhancementMult); }
+        if (character.EquippedChest.HasValue) { var q = GetSlotQuality(2); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Chest.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * enhancementMult); }
+        if (character.EquippedGloves.HasValue) { var q = GetSlotQuality(3); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * enhancementMult); }
+        if (character.EquippedLegs.HasValue) { var q = GetSlotQuality(4); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Legs.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * enhancementMult); }
+        if (character.EquippedBoots.HasValue) { var q = GetSlotQuality(5); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * enhancementMult); power += (int)Math.Round(stats.Boots.Power * q * levelScale * enhancementMult); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * enhancementMult); }
 
-        // Add weapon bonuses from forged weapons
+        // Add weapon bonuses from forged weapons (with character level scaling)
+        var weaponLevelScale = 1.0 + character.Level * _scalingConfig.StageMode.WeaponCharacterLevelScale;
+
         var equippedWeaponIds = new HashSet<int>();
         if (character.EquippedWeapon1.HasValue) equippedWeaponIds.Add(character.EquippedWeapon1.Value);
         if (character.EquippedWeapon2.HasValue) equippedWeaponIds.Add(character.EquippedWeapon2.Value);
@@ -906,9 +995,9 @@ public class InventoryService : IInventoryService
 
             foreach (var w in weapons)
             {
-                hp += w.BonusHP;
-                power += w.BonusPower;
-                defense += w.BonusDefense;
+                hp += (int)Math.Round(w.BonusHP * weaponLevelScale);
+                power += (int)Math.Round(w.BonusPower * weaponLevelScale);
+                defense += (int)Math.Round(w.BonusDefense * weaponLevelScale);
             }
         }
 
@@ -971,5 +1060,93 @@ public class InventoryService : IInventoryService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return (true, $"Arma melhorada para +{weapon.Level}!");
+    }
+
+    /// <summary>
+    /// Gets the equipment enhancement level based on the player's highest stage.
+    /// Enhancement = floor(highestStage / 100), so every 100 stages = +1 enhancement.
+    /// </summary>
+    public async Task<int> GetEquipmentEnhancementLevelAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var stageProgress = await _dbContext.StageProgresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
+
+        var highestStage = stageProgress?.HighestStage ?? 0;
+        return highestStage / 100; // integer division = floor
+    }
+
+    /// <summary>
+    /// Calculates the Fidelis value for discarding a forged weapon.
+    /// Formula: weaponDiscardBase × (1 + weaponLevel × 0.5) × drinkCostMultiplier × (1 + charLevel × discardLevelScale)
+    /// </summary>
+    public decimal GetWeaponDiscardValue(ForgedWeapon weapon, int characterLevel)
+    {
+        var discardBase = _scalingConfig.StageMode.DiscardValues.Weapon;
+        var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
+
+        // Scale with weapon enhancement level
+        var weaponLevelMult = 1.0 + weapon.Level * 0.5;
+
+        // Scale with drink rarity (higher tier drinks = more valuable weapons)
+        var drinkResource = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
+        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
+
+        // Scale with character level
+        var charLevelMult = 1.0 + characterLevel * (double)discardLevelScale;
+
+        return Math.Round(discardBase * (decimal)(weaponLevelMult * drinkCostMultiplier * charLevelMult), 2);
+    }
+
+    /// <summary>
+    /// Discards a forged weapon in exchange for Fidelis currency.
+    /// Unequips the weapon first if it is currently equipped.
+    /// </summary>
+    public async Task<(bool Success, decimal FidelisGained, string Message)> DiscardWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
+    {
+        var weapon = await _dbContext.ForgedWeapons
+            .FirstOrDefaultAsync(w => w.Id == weaponId && w.UserId == userId, cancellationToken);
+
+        if (weapon == null)
+            return (false, 0, "Arma não encontrada");
+
+        var character = await _dbContext.Characters
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+
+        // Unequip weapon if currently equipped
+        if (weapon.IsEquipped && character != null)
+        {
+            if (character.EquippedWeapon1 == weaponId)
+                character.EquippedWeapon1 = null;
+            if (character.EquippedWeapon2 == weaponId)
+                character.EquippedWeapon2 = null;
+        }
+
+        // Calculate discard value
+        var charLevel = character?.Level ?? 1;
+        var fidelisValue = GetWeaponDiscardValue(weapon, charLevel);
+
+        var weaponName = weapon.Name;
+
+        // Remove weapon from database
+        _dbContext.ForgedWeapons.Remove(weapon);
+
+        // Credit Fidelis to user
+        var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user != null)
+        {
+            user.FidelisBalance += fidelisValue;
+        }
+
+        // Recalculate equipment bonuses if weapon was equipped
+        if (weapon.IsEquipped && character != null)
+        {
+            await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return (true, fidelisValue, $"{weaponName} descartada por {fidelisValue:F2} Fidelis!");
     }
 }
