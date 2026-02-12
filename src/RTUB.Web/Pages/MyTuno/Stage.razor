@@ -405,9 +405,6 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
-    
-    // Cancellation token for battle animation timeout
-    private CancellationTokenSource? battleTimeoutCts;
 
     // Accumulated loot tracker for the current run
     private int totalXPEarned = 0;
@@ -674,34 +671,6 @@
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
-
-                    // Cancel any previous timeout and create new one
-                    battleTimeoutCts?.Cancel();
-                    battleTimeoutCts = new CancellationTokenSource();
-                    var timeoutToken = battleTimeoutCts.Token;
-                    
-                    // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(120000, timeoutToken); // 120 seconds max
-                            if (showBattleAnimation && !_disposed)
-                            {
-                                Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
-                                showBattleAnimation = false;
-                                await InvokeAsync(StateHasChanged);
-                            }
-                        }
-                        catch (TaskCanceledException)
-                        {
-                            // Timeout was cancelled because battle finished normally - this is expected
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            // Component was disposed while timeout was pending - expected
-                        }
-                    });
                 }
                 catch (JSException ex)
                 {
@@ -865,9 +834,6 @@
             runStartingHp = null;
             runStartingStage = null;
             pendingDefeatRewards = false;
-            
-            // Cancel the timeout since battle finished normally
-            battleTimeoutCts?.Cancel();
 
             // Return to checkpoint but do NOT auto-restart — show defeat summary instead
             if (!_disposed && currentUser != null && stageProgress != null)
@@ -1015,9 +981,6 @@
                     catch { /* JS interop may fail */ }
                 }
 
-                // Cancel the timeout since we're ending manually
-                battleTimeoutCts?.Cancel();
-
                 // Save defeated-at stage before applying rewards
                 defeatedAtStage = currentBattle?.StageNumber ?? currentStageNumber;
 
@@ -1148,10 +1111,6 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-
-        // Cancel and dispose timeout token first to prevent further callbacks
-        battleTimeoutCts?.Cancel();
-        battleTimeoutCts?.Dispose();
 
         // Cancel any run in progress (restore HP and stage) - uses lock to wait for fight to finish
         await CancelRunIfInProgressAsync();

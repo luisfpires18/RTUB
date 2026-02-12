@@ -319,6 +319,26 @@
             this.container.appendChild(this.app.canvas);
             this.stage = this.app.stage;
 
+            // Detect WebGL context loss (OS reclaims GPU when app is backgrounded)
+            this._onContextLost = (e) => {
+                console.warn('WebGL context lost — finishing battle to recover');
+                e.preventDefault();
+                this.finishBattle();
+            };
+            this.app.canvas.addEventListener('webglcontextlost', this._onContextLost);
+
+            // Detect user returning to the app after backgrounding
+            this._onVisibilityChange = () => {
+                if (document.visibilityState === 'visible' && !this.battleFinished) {
+                    const gl = this.app?.canvas?.getContext('webgl2') || this.app?.canvas?.getContext('webgl');
+                    if (!gl || gl.isContextLost()) {
+                        console.warn('App returned from background with lost GL context — finishing battle');
+                        this.finishBattle();
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', this._onVisibilityChange);
+
             await this.loadAssets();
             this.create();
         }
@@ -943,7 +963,9 @@
             this.battleFinished = true;
             
             if (this.dotNetRef?.invokeMethodAsync) {
-                this.dotNetRef.invokeMethodAsync('OnBattleFinished');
+                this.dotNetRef.invokeMethodAsync('OnBattleFinished').catch(e => {
+                    console.warn('Could not notify Blazor of battle finish:', e);
+                });
             }
         }
 
@@ -1152,6 +1174,14 @@
         }
 
         destroy() {
+            // Remove visibility/context-loss listeners
+            if (this._onContextLost && this.app?.canvas) {
+                this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);
+            }
+            if (this._onVisibilityChange) {
+                document.removeEventListener('visibilitychange', this._onVisibilityChange);
+            }
+
             // Clear all pending timers
             for (const id of this._timeoutIds) clearTimeout(id);
             for (const id of this._rafIds) cancelAnimationFrame(id);

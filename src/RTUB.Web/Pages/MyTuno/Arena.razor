@@ -262,9 +262,6 @@
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
     
-    // Cancellation token for battle animation timeout
-    private CancellationTokenSource? battleTimeoutCts;
-    
     // UI timing constant - ensures UI update completes before scrolling on mobile devices
     private const int UiUpdateDelayMs = 50;
     
@@ -474,31 +471,6 @@
 
                     await JSRuntime.InvokeVoidAsync("console.log", "Starting PixiJS battle");
                     await JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", "phaserBattleContainer", battleData);
-
-                    // Cancel any previous timeout and create new one
-                    battleTimeoutCts?.Cancel();
-                    battleTimeoutCts = new CancellationTokenSource();
-                    var timeoutToken = battleTimeoutCts.Token;
-                    
-                    // Set a timeout to reset animation state if JS doesn't call OnBattleFinished
-                    // This is a safety net in case the JS callback fails
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(120000, timeoutToken); // 120 seconds max (battles should finish faster)
-                            if (showBattleAnimation)
-                            {
-                                Logger.LogWarning("Battle animation timeout - resetting showBattleAnimation");
-                                showBattleAnimation = false;
-                                await InvokeAsync(StateHasChanged);
-                            }
-                        }
-                        catch (TaskCanceledException)
-                        {
-                            // Timeout was cancelled because battle finished normally - this is expected
-                        }
-                    });
                 }
                 catch (JSException ex)
                 {
@@ -551,9 +523,6 @@
     public async Task OnBattleFinished()
     {
         showBattleAnimation = false;
-        
-        // Cancel the timeout since battle finished normally
-        battleTimeoutCts?.Cancel();
         
         // Destroy the game (stops music and sounds)
         try
@@ -655,9 +624,5 @@
         }
         
         objRef?.Dispose();
-        
-        // Cancel and dispose timeout token
-        battleTimeoutCts?.Cancel();
-        battleTimeoutCts?.Dispose();
     }
 }

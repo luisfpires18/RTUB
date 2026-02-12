@@ -775,6 +775,19 @@
   background-color: #6f42c1 !important;
 }
 
+/* Inventory tabs - remove yellow, use purple theme */
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  border-color: #6f42c1 #6f42c1 var(--bs-border-color);
+  background-color: rgba(111, 66, 193, 0.1);
+}
+
+.nav-tabs .nav-link.active {
+  color: #6f42c1;
+  background-color: var(--bs-body-bg);
+  border-color: #6f42c1 #6f42c1 var(--bs-body-bg);
+}
+
 /* ==========================================
    Energy Bar (Destilaria)
    ========================================== */
