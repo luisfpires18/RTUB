@@ -1881,9 +1881,12 @@
 
             if (success)
             {
-                // Update local state to match DB
-                currentUser.FidelisBalance += reward;
-                currentUser.LastDailyRewardClaim = DateTime.UtcNow;
+                // Service already updated the tracked entity (same scoped DbContext),
+                // so FidelisBalance and LastDailyRewardClaim are already correct.
+                // No local update needed — just refresh from the tracked entity to be safe.
+                var freshUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (freshUser != null)
+                    currentUser = freshUser;
             }
             else if (message == "Já recebeste o Daily Reward hoje!")
             {

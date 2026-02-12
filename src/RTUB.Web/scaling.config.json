@@ -48,6 +48,7 @@
       "reviveCost": 30,
       "restoreHPCost": 20,
       "finoDropChance": 0.01,
+      "shotDropChance": 0.006,
       "cigarroDropChance": 0.004,
       "canecaDropChance": 0.003,
       "canhaoDropChance": 0.002,
@@ -80,7 +81,7 @@
 
       "dropRates": {
         "finoDropChance": 0.01,
-        "shotDropChance": 0.005,
+        "shotDropChance": 0.006,
         "cigarroDropChance": 0.004,
         "canecaDropChance": 0.003,
         "canhaoDropChance": 0.002,
@@ -267,7 +268,7 @@
 
       "dropRates": {
         "finoDropChance": 0.01,
-        "shotDropChance": 0.005,
+        "shotDropChance": 0.006,
         "cigarroDropChance": 0.004,
         "canecaDropChance": 0.003,
         "canhaoDropChance": 0.002,

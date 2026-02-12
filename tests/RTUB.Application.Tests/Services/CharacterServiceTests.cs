@@ -219,4 +219,140 @@ public class CharacterServiceTests
     }
 
     #endregion
+
+    #region GetDailyRewardAmount Tests
+
+    [Fact]
+    public void GetDailyRewardAmount_Level1_ShouldReturnBaseReward()
+    {
+        // Default config: BaseFidelis=15, PerLevelFidelis=2
+        var result = _service.GetDailyRewardAmount(1);
+        result.Should().Be(17m); // 15 + (1 * 2)
+    }
+
+    [Fact]
+    public void GetDailyRewardAmount_Level50_ShouldScaleWithLevel()
+    {
+        var result = _service.GetDailyRewardAmount(50);
+        result.Should().Be(115m); // 15 + (50 * 2)
+    }
+
+    [Fact]
+    public void GetDailyRewardAmount_Level0_ShouldReturnBase()
+    {
+        var result = _service.GetDailyRewardAmount(0);
+        result.Should().Be(15m); // 15 + (0 * 2)
+    }
+
+    #endregion
+
+    #region ClaimDailyRewardAsync Tests
+
+    [Fact]
+    public async Task ClaimDailyRewardAsync_FirstClaim_ShouldSucceed()
+    {
+        // Arrange
+        var userId = "user-123";
+        var testUser = new ApplicationUser { Id = userId, FidelisBalance = 100m, LastDailyRewardClaim = null };
+
+        var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
+        mockUserManager.Setup(m => m.UpdateAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        var service = new CharacterService(
+            _mockCharacterRepository.Object,
+            mockUserManager.Object,
+            Options.Create(new MyTunoScalingConfiguration()),
+            new Mock<ILogger<CharacterService>>().Object);
+
+        // Act
+        var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
+
+        // Assert
+        success.Should().BeTrue();
+        reward.Should().Be(35m); // 15 + (10 * 2)
+        testUser.FidelisBalance.Should().Be(135m); // 100 + 35
+        testUser.LastDailyRewardClaim.Should().NotBeNull();
+        testUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
+    }
+
+    [Fact]
+    public async Task ClaimDailyRewardAsync_AlreadyClaimedToday_ShouldFail()
+    {
+        // Arrange
+        var userId = "user-123";
+        var testUser = new ApplicationUser
+        {
+            Id = userId,
+            FidelisBalance = 100m,
+            LastDailyRewardClaim = DateTime.UtcNow // Already claimed today
+        };
+
+        var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
+
+        var service = new CharacterService(
+            _mockCharacterRepository.Object,
+            mockUserManager.Object,
+            Options.Create(new MyTunoScalingConfiguration()),
+            new Mock<ILogger<CharacterService>>().Object);
+
+        // Act
+        var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
+
+        // Assert
+        success.Should().BeFalse();
+        reward.Should().Be(0);
+        testUser.FidelisBalance.Should().Be(100m, "balance should not change on failed claim");
+        mockUserManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ClaimDailyRewardAsync_ClaimedYesterday_ShouldSucceed()
+    {
+        // Arrange
+        var userId = "user-123";
+        var testUser = new ApplicationUser
+        {
+            Id = userId,
+            FidelisBalance = 500m,
+            LastDailyRewardClaim = DateTime.UtcNow.AddDays(-1)
+        };
+
+        var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        mockUserManager.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(testUser);
+        mockUserManager.Setup(m => m.UpdateAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        var service = new CharacterService(
+            _mockCharacterRepository.Object,
+            mockUserManager.Object,
+            Options.Create(new MyTunoScalingConfiguration()),
+            new Mock<ILogger<CharacterService>>().Object);
+
+        // Act
+        var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 1);
+
+        // Assert
+        success.Should().BeTrue();
+        reward.Should().Be(17m); // 15 + (1 * 2)
+        testUser.FidelisBalance.Should().Be(517m); // 500 + 17
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task ClaimDailyRewardAsync_WithEmptyUserId_ShouldThrow(string? userId)
+    {
+        var act = async () => await _service.ClaimDailyRewardAsync(userId!, 1);
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    #endregion
 }

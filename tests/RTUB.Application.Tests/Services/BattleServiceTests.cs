@@ -157,17 +157,19 @@ public class BattleServiceTests : IDisposable
     public async Task CreateBattleVsOpponentAsync_WithWin_ShouldApplyWinRewards()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var user = new ApplicationUser
+        {
+            Id = "user1", UserName = "testuser", FidelisBalance = 100m,
+            NormalizedUserName = "TESTUSER", Email = "t@t.com", NormalizedEmail = "T@T.COM",
+            SecurityStamp = Guid.NewGuid().ToString(), ConcurrencyStamp = Guid.NewGuid().ToString(),
+            FirstName = "Test", LastName = "User", Nickname = "tester", PhoneNumber = "000000000"
+        };
         var playerCharacter = Character.Create("user1");
         var opponent = Character.Create("user2");
 
+        _context.Users.Add(user);
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-
-        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
-            .ReturnsAsync(user);
-        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -201,26 +203,28 @@ public class BattleServiceTests : IDisposable
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
         updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
 
-        // Verify user Fidelis was updated
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 10.00m)), Times.Once);
+        // Verify user Fidelis was updated via DbContext
+        var updatedUser = await _context.Users.FindAsync("user1");
+        updatedUser!.FidelisBalance.Should().Be(initialFidelis + 10.00m);
     }
 
     [Fact]
     public async Task CreateBattleVsOpponentAsync_WithLoss_ShouldNotAwardRewards()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var user = new ApplicationUser
+        {
+            Id = "user1", UserName = "testuser", FidelisBalance = 100m,
+            NormalizedUserName = "TESTUSER", Email = "t@t.com", NormalizedEmail = "T@T.COM",
+            SecurityStamp = Guid.NewGuid().ToString(), ConcurrencyStamp = Guid.NewGuid().ToString(),
+            FirstName = "Test", LastName = "User", Nickname = "tester", PhoneNumber = "000000000"
+        };
         var playerCharacter = Character.Create("user1");
         var opponent = Character.Create("user2");
 
+        _context.Users.Add(user);
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-
-        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
-            .ReturnsAsync(user);
-        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -251,26 +255,28 @@ public class BattleServiceTests : IDisposable
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
         updatedCharacter!.XP.Should().Be(initialXP, "character should not gain XP from losing");
 
-        // Verify user Fidelis was not updated (stayed the same)
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis)), Times.Once);
+        // Verify user Fidelis was not changed
+        var updatedUser = await _context.Users.FindAsync("user1");
+        updatedUser!.FidelisBalance.Should().Be(initialFidelis, "losses should not award Fidelis");
     }
 
     [Fact]
     public async Task CreateBattleVsOpponentAsync_WithDraw_ShouldApplyDrawRewards()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", FidelisBalance = 100m };
+        var user = new ApplicationUser
+        {
+            Id = "user1", UserName = "testuser", FidelisBalance = 100m,
+            NormalizedUserName = "TESTUSER", Email = "t@t.com", NormalizedEmail = "T@T.COM",
+            SecurityStamp = Guid.NewGuid().ToString(), ConcurrencyStamp = Guid.NewGuid().ToString(),
+            FirstName = "Test", LastName = "User", Nickname = "tester", PhoneNumber = "000000000"
+        };
         var playerCharacter = Character.Create("user1");
         var opponent = Character.Create("user2");
 
+        _context.Users.Add(user);
         await _context.Characters.AddRangeAsync(playerCharacter, opponent);
         await _context.SaveChangesAsync();
-
-        _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
-            .ReturnsAsync(user);
-        _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
 
         var combatResult = new Application.DTOs.CombatResult
         {
@@ -304,9 +310,9 @@ public class BattleServiceTests : IDisposable
         var updatedCharacter = await _characterRepository.GetByIdAsync(playerCharacter.Id);
         updatedCharacter!.XP.Should().BeGreaterThan(initialXP);
 
-        // Verify user Fidelis was updated
-        _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
-            u.FidelisBalance == initialFidelis + 7.50m)), Times.Once);
+        // Verify user Fidelis was updated via DbContext
+        var updatedUser = await _context.Users.FindAsync("user1");
+        updatedUser!.FidelisBalance.Should().Be(initialFidelis + 7.50m);
     }
 
     [Fact]

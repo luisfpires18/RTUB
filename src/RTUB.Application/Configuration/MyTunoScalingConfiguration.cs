@@ -99,23 +99,32 @@ public class BattleRewards
     /// <summary>
     /// Chance of Fino drop after winning an arena battle (0.0 to 1.0)
     /// </summary>
-    public double FinoDropChance { get; set; } = 0.05;
+    public double FinoDropChance { get; set; } = 0.01;
+
+    /// <summary>
+    /// Chance of Shot drop after winning an arena battle (0.0 to 1.0)
+    /// </summary>
+    public double ShotDropChance { get; set; } = 0.006;
 
     /// <summary>
     /// Chance of Caneca drop after winning an arena battle (0.0 to 1.0)
     /// </summary>
-    public double CanecaDropChance { get; set; } = 0.02;
+    public double CanecaDropChance { get; set; } = 0.003;
 
     /// <summary>
     /// Chance of Cigarro drop after winning an arena battle
     /// </summary>
-    public double CigarroDropChance { get; set; } = 0.03;
+    public double CigarroDropChance { get; set; } = 0.004;
 
     /// <summary>
     /// Chance of Canhão drop after winning an arena battle
     /// </summary>
-    public double CanhaoDropChance { get; set; } = 0.03;
-    public double PenaltyDropChance { get; set; } = 0.003;
+    public double CanhaoDropChance { get; set; } = 0.002;
+
+    /// <summary>
+    /// Chance of Penalty drop after winning an arena battle
+    /// </summary>
+    public double PenaltyDropChance { get; set; } = 0.001;
 }
 
 public class MyTunoBaseStats
@@ -309,12 +318,12 @@ public class FidelisRewards
 /// </summary>
 public class StageDropRates
 {
-    public double FinoDropChance { get; set; } = 0.10;
-    public double CanecaDropChance { get; set; } = 0.04;
-    public double CigarroDropChance { get; set; } = 0.05;
-    public double CanhaoDropChance { get; set; } = 0.05;
-    public double ShotDropChance { get; set; } = 0.05;
-    public double PenaltyDropChance { get; set; } = 0.003;
+    public double FinoDropChance { get; set; } = 0.01;
+    public double ShotDropChance { get; set; } = 0.006;
+    public double CigarroDropChance { get; set; } = 0.004;
+    public double CanecaDropChance { get; set; } = 0.003;
+    public double CanhaoDropChance { get; set; } = 0.002;
+    public double PenaltyDropChance { get; set; } = 0.001;
     public double InstrumentPartDropChance { get; set; } = 0.005;
     public double EquipmentDropChance { get; set; } = 0.008;
     public double BossDropMultiplier { get; set; } = 3.0;
@@ -727,12 +736,12 @@ public class BossModeConfig
 /// </summary>
 public class BossModeDropRates
 {
-    public double FinoDropChance { get; set; } = 0.20;
-    public double CanecaDropChance { get; set; } = 0.08;
-    public double CigarroDropChance { get; set; } = 0.10;
-    public double CanhaoDropChance { get; set; } = 0.10;
-    public double ShotDropChance { get; set; } = 0.10;
-    public double PenaltyDropChance { get; set; } = 0.005;
+    public double FinoDropChance { get; set; } = 0.01;
+    public double ShotDropChance { get; set; } = 0.006;
+    public double CigarroDropChance { get; set; } = 0.004;
+    public double CanecaDropChance { get; set; } = 0.003;
+    public double CanhaoDropChance { get; set; } = 0.002;
+    public double PenaltyDropChance { get; set; } = 0.001;
     public double InstrumentPartDropChance { get; set; } = 0.02;
     public double EquipmentDropChance { get; set; } = 0.015;
     public double FitabDropChance { get; set; } = 0.003;
