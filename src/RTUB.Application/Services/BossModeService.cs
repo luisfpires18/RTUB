@@ -265,6 +265,8 @@ public class BossModeService : IBossModeService
         int? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         Dictionary<InventoryItemType, int>? equipment = null,
+        bool expireShotBuff = false,
+        bool expirePenaltyBuff = false,
         CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
@@ -276,10 +278,16 @@ public class BossModeService : IBossModeService
 
         character.CurrentHP = restoreHp;
 
-        // Note: Shot buff is NOT expired here — it was already consumed
-        // per-battle during the run via the combat engine.
-        // Forcefully expiring it here would cause CurrentHP to be scaled
-        // to TotalHP(unbuffed), making the beer heal think HP is already full.
+        // Expire buffs once per run (not per-boss).
+        // Must happen BEFORE saving so HP scaling (when shot buff reaches 0) is persisted.
+        if (expireShotBuff && character.ShotBuffBattlesRemaining > 0)
+        {
+            character.ExpireShotBuff();
+        }
+        if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
+        {
+            character.ExpirePenaltyBuff();
+        }
 
         await _characterRepository.UpdateAsync(character);
 
@@ -413,7 +421,9 @@ public class BossModeService : IBossModeService
 
             if (cachedFiles != null && cachedFiles.Count > 0)
             {
-                var selectedFile = cachedFiles[Random.Shared.Next(cachedFiles.Count)];
+                // Use bossStage to deterministically pick a sprite so it stays
+                // consistent across retries and doesn't change mid-run.
+                var selectedFile = cachedFiles[Math.Abs(bossStage) % cachedFiles.Count];
                 var relativePath = Path.GetRelativePath(_environment.WebRootPath, selectedFile)
                     .Replace('\\', '/');
                 return $"/{relativePath}";
@@ -563,19 +573,9 @@ public class BossModeService : IBossModeService
                 character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
                 character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
 
-                // Decrement shot buff per battle, matching normal gameplay (BattleService).
-                // ExpireShotBuff() decrements ShotBuffBattlesRemaining and, when it reaches 0,
-                // scales CurrentHP proportionally from buffed max to unbuffed max.
-                if (shotBuffUsed && character.ShotBuffBattlesRemaining > 0)
-                {
-                    character.ExpireShotBuff();
-                }
-
-                // Expire penalty buff per battle (consumed after 1 boss battle)
-                if (penaltyBuffUsed && character.PenaltyBuffActive > 0)
-                {
-                    character.ExpirePenaltyBuff();
-                }
+                // In boss mode, buffs are run-scoped (1 charge per entire run),
+                // NOT per-boss. Expiry happens when the run ends via
+                // ApplyBossRunRewardsAsync, not here.
 
                 // Update boss progress (only on first attempt — retries already applied these)
                 if (attempt == 0)

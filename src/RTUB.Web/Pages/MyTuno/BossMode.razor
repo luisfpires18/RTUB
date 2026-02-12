@@ -225,6 +225,86 @@
                     </div>
                     <div class="defeat-stage">Boss @Fmt(defeatedAtBossStage)</div>
 
+                    @* Accumulated Rewards *@
+                    @if (bossesCleared > 0)
+                    {
+                        <div class="defeat-rewards">
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-lightning-fill text-warning"></i>
+                                <span>@Fmt(bossesCleared) Bosses Derrotados</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <span>+@Fmt(totalXPEarned) XP</span>
+                            </div>
+                            <div class="defeat-reward-row">
+                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
+                                <span>+@Fmt(totalFidelisEarned) Fidelis</span>
+                            </div>
+                            @if (totalFinosDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@Fmt(totalFinosDropped) Fino</span>
+                                </div>
+                            }
+                            @if (totalCanecasDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup-straw text-warning"></i>
+                                    <span>+@Fmt(totalCanecasDropped) Caneca</span>
+                                </div>
+                            }
+                            @if (totalCigarrosDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cloud text-secondary"></i>
+                                    <span>+@Fmt(totalCigarrosDropped) Cigarro</span>
+                                </div>
+                            }
+                            @if (totalCanhaosDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-bullseye text-danger"></i>
+                                    <span>+@Fmt(totalCanhaosDropped) Canhão</span>
+                                </div>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-cup text-danger"></i>
+                                    <span>+@totalShotsDropped Shot</span>
+                                </div>
+                            }
+                            @if (totalPenaltiesDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
+                                    <span>+@totalPenaltiesDropped Penalty</span>
+                                </div>
+                            }
+                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
+                            {
+                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
+                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
+                                    <span>+@qty @instrumentName</span>
+                                </div>
+                            }
+                            @foreach (var (equipType, qty) in totalEquipmentDropped)
+                            {
+                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
+                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
+                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
+                                <div class="defeat-reward-row">
+                                    <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
+                                    <span>+@qty @equipName</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
                     @* Current Buffs Section *@
                     <div class="buff-section">
                         <h6 class="buff-section-title"><i class="bi bi-shield-check me-1"></i>Buffs Ativos</h6>
@@ -892,7 +972,9 @@
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                         runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
+                        expireShotBuff: runStartingShotBuffBattles > 0,
+                        expirePenaltyBuff: runStartingPenaltyBuff > 0);
                 }
                 catch (Exception ex)
                 {
@@ -978,6 +1060,19 @@
         showBuffScreen = false;
         buffToastMessage = null;
 
+        // Consume 1 shot/penalty buff charge for the completed run before starting a new one.
+        // This ensures each run only costs 1 charge, not N charges for N bosses.
+        if (runStartingShotBuffBattles > 0 && character.ShotBuffBattlesRemaining > 0)
+        {
+            character.ExpireShotBuff();
+            await CharacterService.UpdateCharacterAsync(character);
+        }
+        if (runStartingPenaltyBuff > 0 && character.PenaltyBuffActive > 0)
+        {
+            character.ExpirePenaltyBuff();
+            await CharacterService.UpdateCharacterAsync(character);
+        }
+
         // Reload character to get updated buff state
         character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
 
@@ -1017,7 +1112,7 @@
     {
         if (_disposed) return;
 
-        // Apply accumulated rewards
+        // Apply accumulated rewards and expire run-scoped buffs
         if (character != null && bossesCleared > 0)
         {
             try
@@ -1026,7 +1121,9 @@
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
+                    expireShotBuff: runStartingShotBuffBattles > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0);
             }
             catch (Exception ex)
             {
@@ -1247,7 +1344,9 @@
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
+                    expireShotBuff: runStartingShotBuffBattles > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0);
             }
             catch (Exception) { }
             pendingDefeatRewards = false;

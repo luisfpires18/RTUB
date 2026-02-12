@@ -13,15 +13,29 @@
     background-color: rgba(111, 66, 193, 0.12);
 }
 
-/* Prevent the last tab from wrapping to a new full-width row */
+/* Compact pills so all 5 fit on one row */
 .nav-pills.nav-fill {
     flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox */
+}
+
+.nav-pills.nav-fill::-webkit-scrollbar {
+    display: none;                  /* Chrome/Safari */
+}
+
+.nav-pills.nav-fill .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .nav-pills.nav-fill .nav-link {
     font-size: 0.78rem;
-    padding: 0.35rem 0.4rem;
+    padding: 0.35rem 0.3rem;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Purple card header */
