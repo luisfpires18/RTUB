@@ -569,8 +569,9 @@ public class InventoryService : IInventoryService
             case EquipmentSlot.Boots: character.EquippedBoots = itemType; character.EquippedBootsQuality = newQuality; break;
         }
 
-        // Return currently equipped item to inventory
-        if (currentlyEquipped.HasValue)
+        // Return currently equipped item to inventory (only if it's a different type;
+        // same type is fungible so re-equipping just re-rolls quality)
+        if (currentlyEquipped.HasValue && currentlyEquipped.Value != itemType)
         {
             await _inventoryRepository.AddItemAsync(userId, currentlyEquipped.Value, 1, cancellationToken);
         }
@@ -822,24 +823,27 @@ public class InventoryService : IInventoryService
         if (instrItem == null || instrItem.Quantity <= 0)
             return (false, null, "Não tens este instrumento no inventário");
 
+        // Determine how many drinks this tier requires
+        var drinkResource = _scalingConfig.Gathering.Resources
+            .FirstOrDefault(r => r.Type == drink.ToString());
+        var forgeCost = drinkResource?.ForgeCost ?? 1;
+
         var drinkItem = await _inventoryRepository.GetItemAsync(userId, drink, cancellationToken);
-        if (drinkItem == null || drinkItem.Quantity <= 0)
-            return (false, null, "Não tens esta bebida no inventário");
+        if (drinkItem == null || drinkItem.Quantity < forgeCost)
+            return (false, null, $"Precisas de {forgeCost}x {drinkResource?.Name ?? drink.ToString()} (tens {drinkItem?.Quantity ?? 0})");
 
         // Consume both materials
         var consumedInstr = await _inventoryRepository.ConsumeItemAsync(userId, instrumentPart, 1, cancellationToken);
         if (!consumedInstr)
             return (false, null, "Erro ao consumir instrumento");
 
-        var consumedDrink = await _inventoryRepository.ConsumeItemAsync(userId, drink, 1, cancellationToken);
+        var consumedDrink = await _inventoryRepository.ConsumeItemAsync(userId, drink, forgeCost, cancellationToken);
         if (!consumedDrink)
             return (false, null, "Erro ao consumir bebida");
 
         // Calculate weapon stats from config, scaled by drink energy cost
         var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
         var forging = _scalingConfig.StageMode.Forging;
-        var drinkResource = _scalingConfig.Gathering.Resources
-            .FirstOrDefault(r => r.Type == drink.ToString());
         var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
 
         // Roll random instrument quality within configured range
@@ -852,14 +856,37 @@ public class InventoryService : IInventoryService
 
         var totalMult = drinkCostMultiplier * instrumentQuality * handedMult;
 
+        // Roll crit and speed for high-tier drinks (unique, forge-time only)
+        // 2H weapons get two independent rolls to match dual-wielding two 1H weapons
+        var rollCount = isTwoHanded ? 2 : 1;
+
+        var bonusCrit = 0.0;
+        for (int i = 0; i < rollCount; i++)
+        {
+            if (drinkCostMultiplier >= forging.CritMinDrinkCost && Random.Shared.NextDouble() < forging.CritRollChance)
+            {
+                bonusCrit += forging.CritMin + Random.Shared.NextDouble() * (forging.CritMax - forging.CritMin);
+            }
+        }
+        bonusCrit = Math.Round(bonusCrit, 3);
+
+        var bonusSpeed = 0;
+        for (int i = 0; i < rollCount; i++)
+        {
+            if (drinkCostMultiplier >= forging.SpeedMinDrinkCost && Random.Shared.NextDouble() < forging.SpeedRollChance)
+            {
+                bonusSpeed += Random.Shared.Next(forging.SpeedMin, forging.SpeedMax + 1);
+            }
+        }
+
         var weapon = ForgedWeapon.Create(
             userId, weaponName, weaponType,
             instrumentPart, drink,
             bonusHP: (int)Math.Round(weaponStats.HP * totalMult),
             bonusPower: (int)Math.Round(weaponStats.Power * totalMult),
-            bonusSpeed: (int)Math.Round(weaponStats.Speed * totalMult),
+            bonusSpeed: bonusSpeed,
             bonusDefense: (int)Math.Round(weaponStats.Defense * totalMult),
-            bonusCriticalChance: weaponStats.CriticalChance * drinkCostMultiplier * instrumentQuality);
+            bonusCriticalChance: bonusCrit);
 
         _dbContext.ForgedWeapons.Add(weapon);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -1015,6 +1042,9 @@ public class InventoryService : IInventoryService
         if (character.EquippedWeapon1.HasValue) equippedWeaponIds.Add(character.EquippedWeapon1.Value);
         if (character.EquippedWeapon2.HasValue) equippedWeaponIds.Add(character.EquippedWeapon2.Value);
 
+        int speed = 0;
+        double critChance = 0;
+
         if (equippedWeaponIds.Count > 0)
         {
             var weapons = await _dbContext.ForgedWeapons
@@ -1027,18 +1057,51 @@ public class InventoryService : IInventoryService
                 hp += (int)Math.Round(w.BonusHP * weaponLevelScale);
                 power += (int)Math.Round(w.BonusPower * weaponLevelScale);
                 defense += (int)Math.Round(w.BonusDefense * weaponLevelScale);
+                speed += w.BonusSpeed;
+                critChance += w.BonusCriticalChance;
             }
         }
 
         character.EquipmentHPBonus = hp;
         character.EquipmentPowerBonus = power;
         character.EquipmentDefenseBonus = defense;
+        character.EquipmentSpeedBonus = speed;
+        character.EquipmentCriticalBonus = critChance;
     }
 
     public decimal GetWeaponUpgradeCost(int currentLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
         return forging.WeaponUpgradeBaseCost * (decimal)Math.Pow((double)forging.WeaponUpgradeCostMultiplier, currentLevel);
+    }
+
+    /// <summary>
+    /// Ordered list of drink types from lowest to highest tier, matching gathering resource order.
+    /// </summary>
+    private static readonly InventoryItemType[] DrinkTierOrder = new[]
+    {
+        InventoryItemType.Cerveja, InventoryItemType.Vinho, InventoryItemType.Licor,
+        InventoryItemType.Rum, InventoryItemType.Tequilla, InventoryItemType.Vodka,
+        InventoryItemType.Gin, InventoryItemType.Whisky, InventoryItemType.Absinto,
+        InventoryItemType.Aguardente
+    };
+
+    /// <summary>
+    /// Calculates which drink and how many are needed for an upgrade at a given level.
+    /// Every N levels (configurable) advances to the next drink tier.
+    /// Within each tier the quantity scales from 1 up to N.
+    /// After exhausting all 10 tiers, stays at max× Aguardente.
+    /// </summary>
+    public (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel)
+    {
+        var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
+        if (perTier < 1) perTier = 5;
+        var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
+        var quantity = (currentLevel % perTier) + 1;
+        // If past last tier, cap at max× last drink
+        if (currentLevel / perTier >= DrinkTierOrder.Length)
+            quantity = perTier;
+        return (DrinkTierOrder[tierIndex], quantity);
     }
 
     public async Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
@@ -1056,6 +1119,18 @@ public class InventoryService : IInventoryService
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
+
+        // Require drinks based on current weapon level
+        var (drinkType, drinkQty) = GetUpgradeDrinkRequirement(weapon.Level);
+        var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
+        var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
+        var drinkName = drinkRes?.Name ?? drinkType.ToString();
+        if (drinkItem == null || drinkItem.Quantity < drinkQty)
+            return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
+        if (!consumed)
+            return (false, "Erro ao consumir bebida");
 
         user.FidelisBalance -= cost;
         weapon.Level += 1;
@@ -1138,6 +1213,18 @@ public class InventoryService : IInventoryService
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
+
+        // Require drinks based on current equipment slot bonus level
+        var (drinkType, drinkQty) = GetUpgradeDrinkRequirement(currentSlotLevel);
+        var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
+        var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
+        var drinkName = drinkRes?.Name ?? drinkType.ToString();
+        if (drinkItem == null || drinkItem.Quantity < drinkQty)
+            return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+
+        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
+        if (!consumed)
+            return (false, "Erro ao consumir bebida");
 
         user.FidelisBalance -= cost;
         character.SetSlotBonusLevel(slot, currentSlotLevel + 1);

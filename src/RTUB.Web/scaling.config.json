@@ -105,7 +105,7 @@
         "gloves":     { "hp": 10, "power": 25, "defense": 3 },
         "legs":       { "hp": 60, "power": 10, "defense": 15 },
         "boots":      { "hp": 30, "power": 5,  "defense": 10 },
-        "instrument": { "hp": 0,  "power": 12, "defense": 0 }
+        "instrument": { "hp": 8,  "power": 12, "defense": 5 }
       },
       "discardValues": {
         "equipment": 200,
@@ -121,7 +121,16 @@
         "equipmentUpgradeCostMultiplier": 1.12,
         "twoHandedMultiplier": 2.0,
         "instrumentQualityMin": 0.85,
-        "instrumentQualityMax": 1.15
+        "instrumentQualityMax": 1.15,
+        "critMinDrinkCost": 7,
+        "critRollChance": 0.30,
+        "critMin": 0.01,
+        "critMax": 0.10,
+        "speedMinDrinkCost": 7,
+        "speedRollChance": 0.25,
+        "speedMin": 1,
+        "speedMax": 5,
+        "upgradeLevelsPerDrinkTier": 75
       },
 
       "fidelisRewards": {
@@ -299,16 +308,16 @@
       "regenIntervalSeconds": 60,
       "castTimeSeconds": 3,
       "resources": [
-        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1 },
-        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 101 },
-        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "icon": "bi-cup",             "isActive": true, "unlockStage": 201 },
-        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 301 },
-        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "icon": "bi-hurricane",       "isActive": true, "unlockStage": 401 },
-        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "icon": "bi-droplet",         "isActive": true, "unlockStage": 501 },
-        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "icon": "bi-moisture",        "isActive": true, "unlockStage": 601 },
-        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "icon": "bi-fire",            "isActive": true, "unlockStage": 701 },
-        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "icon": "bi-radioactive",     "isActive": true, "unlockStage": 801 },
-        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "icon": "bi-lightning-fill",   "isActive": true, "unlockStage": 901 }
+        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "forgeCost": 1, "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1 },
+        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "forgeCost": 1, "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 101 },
+        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "forgeCost": 2, "icon": "bi-cup",             "isActive": true, "unlockStage": 201 },
+        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "forgeCost": 2, "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 301 },
+        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "forgeCost": 3, "icon": "bi-hurricane",       "isActive": true, "unlockStage": 401 },
+        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "forgeCost": 3, "icon": "bi-droplet",         "isActive": true, "unlockStage": 501 },
+        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "forgeCost": 4, "icon": "bi-moisture",        "isActive": true, "unlockStage": 601 },
+        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "forgeCost": 5, "icon": "bi-fire",            "isActive": true, "unlockStage": 701 },
+        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "forgeCost": 6, "icon": "bi-radioactive",     "isActive": true, "unlockStage": 801 },
+        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "forgeCost": 8, "icon": "bi-lightning-fill",   "isActive": true, "unlockStage": 901 }
       ]
     },
 

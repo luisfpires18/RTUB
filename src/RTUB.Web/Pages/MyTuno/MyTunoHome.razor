@@ -1144,8 +1144,10 @@
                                 {
                                     var resType = Enum.Parse<InventoryItemType>(res.Type);
                                     var resQty = GetResourceQuantity(resType);
+                                    var resForgeCost = res.ForgeCost > 0 ? res.ForgeCost : 1;
                                     if (resQty <= 0) continue;
-                                    <button class="forge-picker__item @(forgeDrink == resType ? "forge-picker__item--selected" : "")"
+                                    var canForgeWithThis = resQty >= resForgeCost;
+                                    <button class="forge-picker__item @(forgeDrink == resType ? "forge-picker__item--selected" : "") @(!canForgeWithThis ? "opacity-50" : "")"
                                             @onclick="() => SelectForgeDrink(resType)">
                                         @if (GetDrinkPictureUrl(res.Type) is string pickerDrinkImg)
                                         {
@@ -1156,6 +1158,7 @@
                                             <i class="bi @res.Icon me-1"></i>
                                         }
                                         @res.Name <span class="badge bg-dark">@resQty</span>
+                                        @if (resForgeCost > 1) { <span class="badge bg-info bg-opacity-50 ms-1" style="font-size: 0.6rem;">@(resForgeCost)x</span> }
                                     </button>
                                 }
                                 @if (!activeResources.Any(r => GetResourceQuantity(Enum.Parse<InventoryItemType>(r.Type)) > 0))
@@ -1180,10 +1183,22 @@
                         }
 
                         <!-- Forge Button -->
+                        @{
+                            var forgeDrinkResource = forgeDrink.HasValue
+                                ? activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString())
+                                : null;
+                            var forgeDrinkQtyNeeded = forgeDrinkResource?.ForgeCost ?? 1;
+                            var forgeDrinkQtyHave = forgeDrink.HasValue ? GetResourceQuantity(forgeDrink.Value) : 0;
+                            var forgeCanAfford = forgeDrinkQtyHave >= forgeDrinkQtyNeeded;
+                        }
                         <button class="btn btn-primary w-100 mb-3" 
                                 @onclick="StartForge"
-                                disabled="@(!forgeInstrument.HasValue || !forgeDrink.HasValue || forging)">
+                                disabled="@(!forgeInstrument.HasValue || !forgeDrink.HasValue || !forgeCanAfford || forging)">
                             <i class="bi bi-hammer me-2"></i>Forjar Arma
+                            @if (forgeDrink.HasValue && forgeDrinkQtyNeeded > 1)
+                            {
+                                <small class="opacity-75">(@forgeDrinkQtyNeeded x @(forgeDrinkResource?.Name ?? "bebida"))</small>
+                            }
                         </button>
 
                         <!-- Forged Weapons Button -->
@@ -1330,7 +1345,9 @@
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
                         @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(pendingWeapon.BonusHP) HP</span> }
                         @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(pendingWeapon.BonusPower) Poder</span> }
+                        @if (pendingWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@Fmt(pendingWeapon.BonusSpeed) Vel</span> }
                         @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(pendingWeapon.BonusDefense) Def</span> }
+                        @if (pendingWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
                     </div>
                 </div>
             </BodyContent>
@@ -1338,11 +1355,26 @@
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
                     @{
                         var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
-                        var canAffordUpgrade = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
+                        var (wpnDrinkType, wpnDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
+                        var wpnDrinkName = GetResourceName(wpnDrinkType);
+                        var wpnDrinkHave = GetResourceQuantity(wpnDrinkType);
+                        var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
+                        var canAffordUpgrade = currentUser != null && currentUser.FidelisBalance >= upgradeCost && wpnDrinkHave >= wpnDrinkQty;
                     }
                     <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
-                        <small class="opacity-75">(@Fmt(upgradeCost) <i class="bi bi-coin"></i>)</small>
+                        <small class="opacity-75 ms-1">@Fmt(upgradeCost) <i class="bi bi-coin"></i></small>
+                        <span class="ms-1 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                            + @wpnDrinkQty
+                            @if (GetDrinkPictureUrl(wpnDrinkType) is string wpnDrinkImg)
+                            {
+                                <img src="@CacheBuster.Bust(wpnDrinkImg)" alt="@wpnDrinkName" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle;" />
+                            }
+                            else
+                            {
+                                <i class="bi @(wpnDrinkRes?.Icon ?? "bi-cup-straw")"></i>
+                            }
+                        </span>
                     </button>
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
@@ -1423,7 +1455,9 @@
                                         <span class="ms-2">
                                             @if (weapon.BonusHP > 0) { <span class="text-danger">+@Fmt(weapon.BonusHP) HP</span> }
                                             @if (weapon.BonusPower > 0) { <span class="text-success ms-1">+@Fmt(weapon.BonusPower) Pow</span> }
+                                            @if (weapon.BonusSpeed > 0) { <span class="text-primary ms-1">+@Fmt(weapon.BonusSpeed) Vel</span> }
                                             @if (weapon.BonusDefense > 0) { <span class="text-secondary ms-1">+@Fmt(weapon.BonusDefense) Def</span> }
+                                            @if (weapon.BonusCriticalChance > 0) { <span class="text-warning ms-1">+@($"{weapon.BonusCriticalChance * 100:F1}%") Crit</span> }
                                         </span>
                                     </div>
                                 </div>
@@ -1543,12 +1577,27 @@
                 {
                     var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
                     var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
-                    var canAffordEqUpgrade = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
+                    var (eqDrinkType, eqDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(eqSlotBonusLevel);
+                    var eqDrinkName = GetResourceName(eqDrinkType);
+                    var eqDrinkHave = GetResourceQuantity(eqDrinkType);
+                    var eqDrinkRes = activeResources.FirstOrDefault(r => r.Type == eqDrinkType.ToString());
+                    var canAffordEqUpgrade = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost && eqDrinkHave >= eqDrinkQty;
                     var upgradeSlot = actionSlot.Value;
                     <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
                         <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmEquipmentSlotUpgrade(upgradeSlot)" disabled="@(itemActioning || !canAffordEqUpgrade)">
                             <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(actionSlotLevel + 1)
-                            <small class="opacity-75">(@Fmt(eqUpgradeCost) <i class="bi bi-coin"></i>)</small>
+                            <small class="opacity-75 ms-1">@Fmt(eqUpgradeCost) <i class="bi bi-coin"></i></small>
+                            <span class="ms-1 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                + @eqDrinkQty
+                                @if (GetDrinkPictureUrl(eqDrinkType) is string eqDrinkImg)
+                                {
+                                    <img src="@CacheBuster.Bust(eqDrinkImg)" alt="@eqDrinkName" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle;" />
+                                }
+                                else
+                                {
+                                    <i class="bi @(eqDrinkRes?.Icon ?? "bi-cup-straw")"></i>
+                                }
+                            </span>
                         </button>
                     </div>
                     <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
@@ -3233,6 +3282,12 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                 pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
+                // Refresh drink quantities (drinks consumed during upgrade)
+                foreach (var res in activeResources)
+                {
+                    if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
+                        resourceQuantities[itemType] = await InventoryService.GetResourceQuantityAsync(currentUser.Id, itemType);
+                }
                 toastMessage = message;
                 toastIsError = false;
             }
@@ -3271,6 +3326,12 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
                 highestStageForEquip = stageProgress?.HighestStage ?? 0;
+                // Refresh drink quantities (drinks consumed during upgrade)
+                foreach (var res in activeResources)
+                {
+                    if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
+                        resourceQuantities[itemType] = await InventoryService.GetResourceQuantityAsync(currentUser.Id, itemType);
+                }
                 toastMessage = message;
                 toastIsError = false;
             }

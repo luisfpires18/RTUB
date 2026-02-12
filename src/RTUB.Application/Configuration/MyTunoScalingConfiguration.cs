@@ -364,7 +364,7 @@ public class EquipmentStatsConfig
     public EquipmentPieceStats Gloves { get; set; } = new() { Power = 25, HP = 10, Defense = 3 };
     public EquipmentPieceStats Legs { get; set; } = new() { HP = 60, Power = 10, Defense = 15 };
     public EquipmentPieceStats Boots { get; set; } = new() { HP = 30, Power = 5, Defense = 10 };
-    public EquipmentPieceStats Instrument { get; set; } = new() { Power = 12 };
+    public EquipmentPieceStats Instrument { get; set; } = new() { HP = 8, Power = 12, Defense = 5 };
 }
 
 /// <summary>
@@ -424,6 +424,58 @@ public class ForgingConfig
     /// Default 1.15 = best quality gets 115% of base stats.
     /// </summary>
     public double InstrumentQualityMax { get; set; } = 1.15;
+
+    /// <summary>
+    /// Minimum drink EnergyCost required for a weapon to roll critical chance.
+    /// Drinks with EnergyCost >= this value are eligible. Default 7 (Gin+).
+    /// </summary>
+    public int CritMinDrinkCost { get; set; } = 7;
+
+    /// <summary>
+    /// Probability (0-1) that an eligible weapon rolls a crit bonus.
+    /// Default 0.30 = 30% chance.
+    /// </summary>
+    public double CritRollChance { get; set; } = 0.30;
+
+    /// <summary>
+    /// Minimum critical chance value when rolled (e.g. 0.01 = 1%).
+    /// </summary>
+    public double CritMin { get; set; } = 0.01;
+
+    /// <summary>
+    /// Maximum critical chance value when rolled (e.g. 0.10 = 10%).
+    /// </summary>
+    public double CritMax { get; set; } = 0.10;
+
+    /// <summary>
+    /// Minimum drink EnergyCost required for a weapon to roll a speed bonus.
+    /// Drinks with EnergyCost >= this value are eligible. Default 7 (Gin+).
+    /// </summary>
+    public int SpeedMinDrinkCost { get; set; } = 7;
+
+    /// <summary>
+    /// Probability (0-1) that an eligible weapon rolls a speed bonus.
+    /// Default 0.25 = 25% chance.
+    /// </summary>
+    public double SpeedRollChance { get; set; } = 0.25;
+
+    /// <summary>
+    /// Minimum speed bonus value when rolled (integer, e.g. 1).
+    /// </summary>
+    public int SpeedMin { get; set; } = 1;
+
+    /// <summary>
+    /// Maximum speed bonus value when rolled (integer, e.g. 5).
+    /// </summary>
+    public int SpeedMax { get; set; } = 5;
+
+    /// <summary>
+    /// Number of upgrade levels before advancing to the next drink tier.
+    /// Within each tier the quantity scales from 1 up to this value.
+    /// E.g. 5 means: 1→2→3→4→5 Cerveja, then 1→2→3→4→5 Vinho, etc.
+    /// Default 5.
+    /// </summary>
+    public int UpgradeLevelsPerDrinkTier { get; set; } = 5;
 }
 
 /// <summary>
@@ -630,6 +682,12 @@ public class GatheringResourceConfig
     /// Energy cost to gather this resource
     /// </summary>
     public int EnergyCost { get; set; } = 1;
+
+    /// <summary>
+    /// Number of this drink consumed per forge. Higher-tier drinks cost more.
+    /// Default 1 = low-tier drinks. Scales up for stronger drinks.
+    /// </summary>
+    public int ForgeCost { get; set; } = 1;
 
     /// <summary>
     /// Bootstrap icon class (e.g., "bi-droplet") — used as fallback if no sprite

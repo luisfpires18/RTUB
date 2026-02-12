@@ -178,6 +178,12 @@ public interface IInventoryService
     decimal GetWeaponUpgradeCost(int currentLevel);
 
     /// <summary>
+    /// Calculates which drink type and quantity are needed for an upgrade at a given level.
+    /// Every 3 levels advances to the next drink tier (1→2→3, then next drink 1→2→3...).
+    /// </summary>
+    (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel);
+
+    /// <summary>
     /// Gets the enhancement level for a specific equipment slot: floor(highestStage / 100) + slot purchased bonus.
     /// </summary>
     Task<int> GetSlotEnhancementLevelAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default);
@@ -188,7 +194,7 @@ public interface IInventoryService
     decimal GetEquipmentUpgradeCost(int currentBonusLevel);
 
     /// <summary>
-    /// Upgrades a specific equipment slot's enhancement level by 1. Costs Fidelis.
+    /// Upgrades a specific equipment slot's enhancement level by 1. Costs Fidelis + drinks.
     /// </summary>
     Task<(bool Success, string Message)> UpgradeEquipmentSlotAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default);
 
