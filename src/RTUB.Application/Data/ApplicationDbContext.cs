@@ -192,9 +192,49 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
         // This prevents issues when entities with navigation properties to ApplicationUser are added
-        // IMPORTANT: This must be called BEFORE iterating over ChangeTracker.Entries<T>() because
-        // that iteration triggers change detection which can cause tracking conflicts
         DetachDuplicateApplicationUsers();
+
+        // Explicitly trigger DetectChanges with error recovery BEFORE iterating entries.
+        // ChangeTracker.Entries<T>() implicitly calls DetectChanges, which can cause
+        // ApplicationUser tracking conflicts when navigation fixup introduces new instances.
+        // By calling DetectChanges explicitly, we can catch and recover from identity conflicts.
+        var savedAutoDetect = ChangeTracker.AutoDetectChangesEnabled;
+        try
+        {
+            // First attempt: trigger change detection (may discover navigation changes
+            // that introduce ApplicationUser entities conflicting with already-tracked ones)
+            try
+            {
+                ChangeTracker.DetectChanges();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
+            {
+                // A tracking conflict was introduced during DetectChanges (e.g., duplicate
+                // ApplicationUser instances via navigation fixup). Clean up and retry.
+                ChangeTracker.AutoDetectChangesEnabled = false;
+                DetachDuplicateApplicationUsers();
+                ChangeTracker.AutoDetectChangesEnabled = true;
+                ChangeTracker.DetectChanges();
+            }
+
+            // Disable auto-detect for the rest of audit processing — DetectChanges already ran
+            ChangeTracker.AutoDetectChangesEnabled = false;
+
+            // Clean up any ApplicationUser duplicates introduced by DetectChanges
+            DetachDuplicateApplicationUsers();
+        }
+        catch
+        {
+            ChangeTracker.AutoDetectChangesEnabled = savedAutoDetect;
+            throw;
+        }
+
+        // Track role changes (critical action)
+        // Collect IDs during change tracking, then resolve names asynchronously after save
+        var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
+
+        try
+        {
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -278,7 +318,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Track role changes (critical action)
         // Collect IDs during change tracking, then resolve names asynchronously after save
-        var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
 
         foreach (var entry in ChangeTracker.Entries<IdentityUserRole<string>>())
         {
@@ -299,6 +338,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     role?.Name
                 ));
             }
+        }
+
+        }
+        finally
+        {
+            ChangeTracker.AutoDetectChangesEnabled = savedAutoDetect;
         }
 
         var result = await base.SaveChangesAsync(cancellationToken);
@@ -786,7 +831,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     /// Detaches duplicate ApplicationUser entities to prevent tracking conflicts.
     /// This is necessary when entities with navigation properties to ApplicationUser are added,
     /// as EF Core may try to track the same ApplicationUser instance multiple times.
-    /// This method also updates navigation properties of other tracked entities to reference the kept instance.
+    /// This method also updates navigation properties of Added/Modified entities to reference the kept instance.
     /// </summary>
     private void DetachDuplicateApplicationUsers()
     {
@@ -815,53 +860,56 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 }
             }
 
-            // Group by user ID to find duplicates
-            var duplicateGroups = trackedUsers
-                .GroupBy(e => e.Entity.Id)
-                .Where(g => g.Count() > 1)
+            // Build a canonical map: one ApplicationUser instance per key.
+            // Prefer Modified > Unchanged > Added states to keep the most meaningful version.
+            var canonicalUsers = new Dictionary<string, ApplicationUser>();
+            var entriesToDetach = new List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ApplicationUser>>();
+
+            var sortedUsers = trackedUsers
+                .OrderBy(e => e.State == EntityState.Modified ? 0 : e.State == EntityState.Unchanged ? 1 : 2)
                 .ToList();
 
-            // For each group of duplicates, keep only one entry tracked
-            // Prefer Unchanged/Modified states over Added states to maintain existing data
-            foreach (var group in duplicateGroups)
+            foreach (var entry in sortedUsers)
             {
-                // Sort entries by priority: Unchanged/Modified first, Added last
-                // This ensures we keep the entity that's already properly tracked
-                var entries = group
-                    .OrderBy(e => e.State == EntityState.Added ? 1 : 0)
-                    .ThenByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
-                    .ToList();
+                var uid = entry.Entity.Id;
+                if (string.IsNullOrEmpty(uid)) continue;
 
-                var keptEntry = entries.First();
-                var keptUser = keptEntry.Entity;
-                var userId = keptUser.Id;
-
-                // Get all entities being added that might reference the duplicate users
-                // Update their navigation properties to point to the kept instance
-                foreach (var entityEntry in ChangeTracker.Entries())
+                if (!canonicalUsers.ContainsKey(uid))
                 {
-                    if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
+                    canonicalUsers[uid] = entry.Entity;
+                }
+                else
+                {
+                    entriesToDetach.Add(entry);
+                }
+            }
+
+            // Normalize ApplicationUser navigation references on Added/Modified entities
+            // to point to the canonical (kept) instance, preventing conflicts during save.
+            foreach (var entityEntry in ChangeTracker.Entries())
+            {
+                if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
+                {
+                    foreach (var navigation in entityEntry.Navigations)
                     {
-                        foreach (var navigation in entityEntry.Navigations)
+                        if (navigation.CurrentValue is ApplicationUser navUser && !string.IsNullOrEmpty(navUser.Id))
                         {
-                            if (navigation.CurrentValue is ApplicationUser navUser && navUser.Id == userId)
+                            if (canonicalUsers.TryGetValue(navUser.Id, out var canonical))
                             {
-                                // Check if this navigation points to a duplicate instance (not the kept one)
-                                if (!ReferenceEquals(navUser, keptUser))
+                                if (!ReferenceEquals(navUser, canonical))
                                 {
-                                    // Update the navigation to point to the kept instance
-                                    navigation.CurrentValue = keptUser;
+                                    navigation.CurrentValue = canonical;
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                // Detach all but the first entry (the one we want to keep)
-                foreach (var entry in entries.Skip(1))
-                {
-                    entry.State = EntityState.Detached;
-                }
+            // Detach all duplicate entries
+            foreach (var entry in entriesToDetach)
+            {
+                entry.State = EntityState.Detached;
             }
         }
         finally

@@ -217,8 +217,8 @@ public class StageService : IStageService
         var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage);
 
-        // Update character HP and stage progress (entire stage complete after beating all enemies)
-        await UpdateCharacterAndProgressAsync(character, stageProgress, combatResult, enemyType, enemyCount);
+        // Update character HP and stage progress in-memory only (no DB save per battle)
+        UpdateCharacterAndProgressInMemory(character, stageProgress, combatResult, enemyType, enemyCount);
 
         // Return battle result DTO (not persisted)
         return new StageBattleResult
@@ -717,103 +717,18 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Updates character HP, XP and stage progress after battle.
-    /// On victory: reduces HP and advances stage.
-    /// On defeat: restores HP to full (no death in stage mode).
-    /// Only persists StageProgress when there's a new record:
-    /// - HighestStage increased (player beat their previous best)
-    /// - EndlessModeUnlocked changed (beat stage 1000)
-    /// Handles concurrency exceptions by reloading entities and retrying.
+    /// Updates character HP and stage progress after battle (in-memory only).
+    /// No DB saves during a run — saves are deferred to run-end methods
+    /// (ApplyRunRewardsAsync + ReturnToCheckpointAsync, or CancelRunAsync).
+    /// This eliminates per-stage DB round-trips and concurrency issues.
     /// </summary>
-    private async Task UpdateCharacterAndProgressAsync(
+    private void UpdateCharacterAndProgressInMemory(
         Character character,
         StageProgress stageProgress,
         CombatResult combatResult,
         EnemyType enemyType,
         int enemyCount = 1)
     {
-        const int maxRetries = 3;
-        for (int attempt = 0; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                await ApplyCharacterAndProgressUpdatesAsync(
-                    character,
-                    stageProgress,
-                    combatResult,
-                    enemyType,
-                    enemyCount);
-                return;
-            }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
-            {
-                if (attempt < maxRetries)
-                {
-                    _logger.LogWarning(
-                        ex,
-                        "Concurrency conflict updating character/progress for character {CharacterId}, reloading and retrying (attempt {Attempt}/{MaxRetries})...",
-                        character.Id,
-                        attempt + 1,
-                        maxRetries);
-
-                    // Reload entities fresh from database to get current values
-                    try
-                    {
-                        var freshCharacter = await _characterRepository.GetByIdAsync(character.Id);
-                        if (freshCharacter != null)
-                        {
-                            // Re-apply the in-memory changes on top of fresh DB values
-                            character.CurrentHP = freshCharacter.CurrentHP;
-                            character.XP = freshCharacter.XP;
-                            character.Level = freshCharacter.Level;
-                        }
-
-                        var freshProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
-                        if (freshProgress != null)
-                        {
-                            stageProgress.HighestStage = freshProgress.HighestStage;
-                            stageProgress.CurrentStage = freshProgress.CurrentStage;
-                            stageProgress.EnemiesDefeatedInCurrentStage = freshProgress.EnemiesDefeatedInCurrentStage;
-                            stageProgress.EndlessModeUnlocked = freshProgress.EndlessModeUnlocked;
-                        }
-                    }
-                    catch (Exception reloadEx)
-                    {
-                        _logger.LogWarning(reloadEx, "Failed to reload entities for retry");
-                    }
-
-                    // Brief delay before retry to let concurrent operation finish
-                    await Task.Delay(50 * (attempt + 1));
-                    continue;
-                }
-
-                // Final retry failed - log error but don't fail the entire stage attempt
-                // The combat result is still valid, just progress tracking failed
-                _logger.LogError(
-                    ex,
-                    "Failed to update character progress for character {CharacterId} after {MaxRetries} retries",
-                    character.Id,
-                    maxRetries);
-                return; // Don't rethrow - allow combat to complete even if progress tracking fails
-            }
-        }
-    }
-
-    /// <summary>
-    /// Internal method that applies character and progress updates
-    /// Separated to allow retry logic in UpdateCharacterAndProgressAsync
-    /// </summary>
-    private async Task ApplyCharacterAndProgressUpdatesAsync(
-        Character character,
-        StageProgress stageProgress,
-        CombatResult combatResult,
-        EnemyType enemyType,
-        int enemyCount)
-    {
-        // Track if we need to persist (only when there's a new record)
-        var previousHighestStage = stageProgress.HighestStage;
-        var previousEndlessModeUnlocked = stageProgress.EndlessModeUnlocked;
-
         // HP carries over between stages — only set to final HP from combat
         if (combatResult.AttackerFinalHP > 0)
         {
@@ -827,8 +742,6 @@ public class StageService : IStageService
         // Write back consumable buff remaining counts from combat
         character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
         character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
-        
-        await _characterRepository.UpdateAsync(character);
 
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
         {
@@ -851,15 +764,6 @@ public class StageService : IStageService
                 // All enemies defeated - advance to next stage
                 stageProgress.AdvanceStage();
             }
-        }
-
-        // Only persist when there's a new record worth saving
-        var hasNewRecord = stageProgress.HighestStage > previousHighestStage ||
-                           stageProgress.EndlessModeUnlocked != previousEndlessModeUnlocked;
-
-        if (hasNewRecord)
-        {
-            await _stageProgressRepository.UpdateAsync(stageProgress);
         }
     }
 

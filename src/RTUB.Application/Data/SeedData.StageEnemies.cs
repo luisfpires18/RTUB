@@ -6,80 +6,9 @@ namespace RTUB.Application.Data;
 
 public static partial class SeedData
 {
-    /// <summary>
-    /// Seeds stage enemies for all biomes. Detects stale data from the old 12-biome
-    /// enum layout (Dark=9, Light=10, Void=99) and automatically wipes + re-seeds
-    /// when found. Safe to run on both fresh and existing databases.
-    /// </summary>
     public static async Task SeedAllBiomeEnemiesAsync(ApplicationDbContext dbContext)
     {
-        // Detect stale enum values from the old 12-biome layout.
-        // Old layout: Dark=9 (now Sky), Light=10 (now Underwater), Void=99 (removed).
-        // If any record has the orphaned value 99, or if "Sky" enemies have Dark-era
-        // stage numbers, the data is stale and must be fully re-seeded.
-        var needsReseed = await DetectStaleEnumDataAsync(dbContext);
-        if (needsReseed)
-        {
-            await ReseedAllBiomeEnemiesAsync(dbContext);
-            return;
-        }
-
-        // Normal path: only seed biomes that are missing.
-        await SeedBiomeIfMissing(dbContext, RegionType.Forest, SeedForestEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Swamp, SeedSwampEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Mountains, SeedMountainsEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Snowy, SeedSnowyEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Tropical, SeedTropicalEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Caverns, SeedCavernsEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Desert, SeedDesertEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Volcanic, SeedVolcanicEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Ruins, SeedRuinsEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Sky, SeedSkyEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Underwater, SeedUnderwaterEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Underground, SeedUndergroundEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Mechanical, SeedMechanicalEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Frostfire, SeedFrostfireEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Corruption, SeedCorruptionEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Dark, SeedDarkEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Alien, SeedAlienEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Void, SeedVoidEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Timerift, SeedTimeriftEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Light, SeedLightEnemies);
-        // Arena has no fixed enemies — it draws randomly from all previous biomes
-    }
-
-    /// <summary>
-    /// Detects whether the database contains stage enemies seeded with the old
-    /// 12-biome RegionType layout (Dark=9, Light=10, Void=99). Returns true if
-    /// stale data is found.
-    /// </summary>
-    private static async Task<bool> DetectStaleEnumDataAsync(ApplicationDbContext db)
-    {
-        if (!await db.StageEnemies.AnyAsync()) return false;
-
-        // Check 1: orphaned Void=99 rows (old enum had Void=99, new enum has no 99)
-        var hasOrphanedVoid = await db.StageEnemies
-            .AnyAsync(e => (int)e.Region == 99);
-        if (hasOrphanedVoid) return true;
-
-        // Check 2: Sky is now 9, but if old Dark enemies are stored as 9 their
-        // sprite paths will reference "/dark/" instead of "/sky/".
-        var skyEnemySprite = await db.StageEnemies
-            .Where(e => e.Region == RegionType.Sky)
-            .Select(e => e.SpritePath)
-            .FirstOrDefaultAsync();
-        if (skyEnemySprite != null && skyEnemySprite.Contains("/dark/", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        // Check 3: same for Underwater=10 (old Light enemies had "/light/" paths)
-        var uwEnemySprite = await db.StageEnemies
-            .Where(e => e.Region == RegionType.Underwater)
-            .Select(e => e.SpritePath)
-            .FirstOrDefaultAsync();
-        if (uwEnemySprite != null && uwEnemySprite.Contains("/light/", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return false;
+        await ReseedAllBiomeEnemiesAsync(dbContext);
     }
 
     /// <summary>
@@ -102,15 +31,8 @@ public static partial class SeedData
         await SeedBiomeIfMissing(dbContext, RegionType.Volcanic, SeedVolcanicEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Ruins, SeedRuinsEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Sky, SeedSkyEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Underwater, SeedUnderwaterEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Underground, SeedUndergroundEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Mechanical, SeedMechanicalEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Frostfire, SeedFrostfireEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Corruption, SeedCorruptionEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Dark, SeedDarkEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Alien, SeedAlienEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Void, SeedVoidEnemies);
-        await SeedBiomeIfMissing(dbContext, RegionType.Timerift, SeedTimeriftEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Light, SeedLightEnemies);
     }
 
@@ -416,162 +338,13 @@ public static partial class SeedData
             B("Raven",    RegionType.Sky, 880,  82, 22, 26, 0.12, 25.0m, 0.40, 0.19, $"{p}/boss_4_raven.png",   940, PlacementType.Aerial),
             B("Condor",   RegionType.Sky, 980,  88, 16, 34, 0.10, 26.0m, 0.41, 0.19, $"{p}/boss_5_condor.png",  950, PlacementType.Aerial),
             B("Behemoth", RegionType.Sky, 1050, 92, 12, 38, 0.09, 27.0m, 0.42, 0.20, $"{p}/boss_6_behemoth.png",960),
-            B("Thunderbird",RegionType.Sky,1000, 90, 20, 32, 0.12, 28.0m, 0.43, 0.20, $"{p}/boss_7_thunderbird.png", 970, PlacementType.Aerial),
-            B("Wyvern",   RegionType.Sky, 1100, 94, 14, 36, 0.10, 29.0m, 0.44, 0.21, $"{p}/boss_8_wyvern.png",  980, PlacementType.Aerial),
-            B("Sky Serpent",RegionType.Sky,1150, 96, 16, 40, 0.11, 30.0m, 0.45, 0.21, $"{p}/boss_9_skyserpent.png", 990, PlacementType.Aerial),
-            B("Storm Dragon",RegionType.Sky,1300,100,12, 44, 0.10, 31.0m, 0.46, 0.22, $"{p}/boss_10_stormdragon.png",1000, PlacementType.Aerial),
+            // Bosses 7-10: no sprites on disk — stages 970/980/990/1000 fall back to GetRandomBoss at runtime
         };
     }
 
-    // ───────────────────────────── Underwater (1001-1100) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedUnderwaterEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/underwater";
-        return new List<StageEnemy>
-        {
-            E("Anglerfish", N, RegionType.Underwater, 160, 28, 10, 12, 0.06, 3.0m, 0.10, 0.05, $"{p}/anglerfish.png"),
-            E("Barracuda",  N, RegionType.Underwater, 140, 30, 16, 8,  0.08, 3.0m, 0.10, 0.05, $"{p}/barracuda.png"),
-            E("Clam",       N, RegionType.Underwater, 200, 16, 4,  18, 0.02, 3.0m, 0.10, 0.05, $"{p}/clam.png"),
-            E("Coral",      N, RegionType.Underwater, 180, 18, 3,  16, 0.03, 3.0m, 0.10, 0.05, $"{p}/coral.png"),
-            E("Deep Crab",  N, RegionType.Underwater, 155, 24, 9,  13, 0.05, 3.0m, 0.10, 0.05, $"{p}/crab.png"),
-            E("Eel",        N, RegionType.Underwater, 120, 26, 14, 7,  0.08, 3.0m, 0.10, 0.05, $"{p}/eel.png"),
-            E("Deep Jellyfish",N,RegionType.Underwater,110,22, 10, 6,  0.07, 3.0m, 0.10, 0.05, $"{p}/jellyfish.png"),
-            E("Nautilus",   N, RegionType.Underwater, 170, 20, 6,  15, 0.04, 3.0m, 0.10, 0.05, $"{p}/nautilus.png"),
-            E("Seahorse",   N, RegionType.Underwater, 100, 18, 12, 6,  0.06, 3.0m, 0.10, 0.05, $"{p}/seahorse.png"),
-            E("Stingray",   N, RegionType.Underwater, 145, 25, 13, 10, 0.06, 3.0m, 0.10, 0.05, $"{p}/stingray.png"),
-            // Bosses
-            B("Kraken",       RegionType.Underwater, 950,  86, 10, 38, 0.09, 24.0m, 0.39, 0.18, $"{p}/boss_1_kraken.png",     1010),
-            B("Leviathan",    RegionType.Underwater, 1000, 90, 8,  42, 0.08, 25.0m, 0.40, 0.19, $"{p}/boss_2_leviathan.png",  1020),
-            B("Megalodon",    RegionType.Underwater, 1050, 94, 14, 36, 0.10, 26.0m, 0.41, 0.19, $"{p}/boss_3_megalodon.png",  1030),
-            B("Sea Serpent",  RegionType.Underwater, 980,  88, 12, 34, 0.09, 27.0m, 0.42, 0.20, $"{p}/boss_4_serpent.png",    1040),
-            B("Whale",        RegionType.Underwater, 1200, 82, 6,  48, 0.06, 28.0m, 0.43, 0.20, $"{p}/boss_5_whale.png",     1050),
-            B("Abyssal",      RegionType.Underwater, 1100, 92, 10, 40, 0.10, 29.0m, 0.44, 0.21, $"{p}/boss_6_abyssal.png",   1060),
-            B("Trident",      RegionType.Underwater, 1050, 90, 14, 36, 0.10, 30.0m, 0.45, 0.21, $"{p}/boss_7_trident.png",   1070),
-            B("Poseidon",     RegionType.Underwater, 1150, 96, 12, 42, 0.11, 31.0m, 0.46, 0.22, $"{p}/boss_8_poseidon.png",  1080),
-            B("Hydra",        RegionType.Underwater, 1100, 94, 10, 40, 0.09, 32.0m, 0.47, 0.22, $"{p}/boss_9_hydra.png",     1090),
-            B("Charybdis",    RegionType.Underwater, 1300, 100,8,  50, 0.10, 33.0m, 0.48, 0.23, $"{p}/boss_10_charybdis.png",1100),
-        };
-    }
-
-    // ───────────────────────────── Underground (1101-1200) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedUndergroundEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/underground";
-        return new List<StageEnemy>
-        {
-            E("Mole",       N, RegionType.Underground, 160, 24, 8,  14, 0.04, 3.2m, 0.11, 0.05, $"{p}/mole.png"),
-            E("Mushroom",   N, RegionType.Underground, 180, 20, 4,  16, 0.03, 3.2m, 0.11, 0.05, $"{p}/mushroom.png"),
-            E("Crystal",    N, RegionType.Underground, 200, 22, 3,  18, 0.03, 3.2m, 0.11, 0.05, $"{p}/crystal.png"),
-            E("Rock Worm",  N, RegionType.Underground, 150, 26, 8,  12, 0.05, 3.2m, 0.11, 0.05, $"{p}/worm.png"),
-            E("Cave Beetle",N, RegionType.Underground, 145, 24, 9,  12, 0.05, 3.2m, 0.11, 0.05, $"{p}/beetle.png"),
-            E("Centipede",  N, RegionType.Underground, 130, 28, 12, 9,  0.06, 3.2m, 0.11, 0.05, $"{p}/centipede.png"),
-            E("Stalactite", N, RegionType.Underground, 190, 18, 2,  20, 0.02, 3.2m, 0.11, 0.05, $"{p}/stalactite.png"),
-            E("Goblin",     N, RegionType.Underground, 120, 26, 14, 8,  0.07, 3.2m, 0.11, 0.05, $"{p}/goblin.png"),
-            E("Glow Worm",  N, RegionType.Underground, 110, 22, 10, 7,  0.06, 3.2m, 0.11, 0.05, $"{p}/glow_worm.png"),
-            E("Rock Golem", N, RegionType.Underground, 220, 20, 4,  20, 0.03, 3.2m, 0.11, 0.05, $"{p}/rock_golem.png"),
-            // Bosses
-            B("Deep Wurm",     RegionType.Underground, 1000, 88, 8,  40, 0.08, 26.0m, 0.41, 0.19, $"{p}/boss_1_wurm.png",        1110),
-            B("Deep King",     RegionType.Underground, 1050, 92, 10, 38, 0.09, 27.0m, 0.42, 0.20, $"{p}/boss_2_deep_king.png",   1120),
-            B("Crystal Lord",  RegionType.Underground, 1100, 86, 6,  44, 0.07, 28.0m, 0.43, 0.20, $"{p}/boss_3_crystal_lord.png",1130),
-            B("Spider Queen",  RegionType.Underground, 1000, 90, 14, 36, 0.10, 29.0m, 0.44, 0.21, $"{p}/boss_4_spider_queen.png",1140),
-            B("Earth Titan",   RegionType.Underground, 1200, 84, 4,  50, 0.06, 30.0m, 0.45, 0.21, $"{p}/boss_5_earth_titan.png", 1150),
-            B("Magma Dweller", RegionType.Underground, 1100, 94, 10, 40, 0.09, 31.0m, 0.46, 0.22, $"{p}/boss_6_magma_dweller.png",1160),
-            B("Cave Drake",    RegionType.Underground, 1050, 92, 14, 38, 0.10, 32.0m, 0.47, 0.22, $"{p}/boss_7_cave_drake.png",  1170),
-            B("Shadow Beast",  RegionType.Underground, 1080, 96, 16, 36, 0.11, 33.0m, 0.48, 0.23, $"{p}/boss_8_shadow_beast.png",1180),
-            B("Tunnel Horror", RegionType.Underground, 1150, 98, 10, 42, 0.09, 34.0m, 0.49, 0.23, $"{p}/boss_9_tunnel_horror.png",1190),
-            B("Ancient One",   RegionType.Underground, 1350,105, 8,  52, 0.10, 35.0m, 0.50, 0.24, $"{p}/boss_10_ancient_one.png",1200),
-        };
-    }
-
-    // ───────────────────────────── Mechanical (1201-1300) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedMechanicalEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/mechanical";
-        return new List<StageEnemy>
-        {
-            E("Gear",       N, RegionType.Mechanical, 180, 26, 8,  16, 0.04, 3.4m, 0.11, 0.06, $"{p}/gear.png"),
-            E("Automaton",  N, RegionType.Mechanical, 200, 28, 6,  18, 0.04, 3.4m, 0.11, 0.06, $"{p}/automaton.png"),
-            E("Drone",      N, RegionType.Mechanical, 120, 24, 18, 8,  0.08, 3.4m, 0.11, 0.06, $"{p}/drone.png", placement: PlacementType.Aerial),
-            E("Piston",     N, RegionType.Mechanical, 210, 22, 4,  20, 0.03, 3.4m, 0.11, 0.06, $"{p}/piston.png"),
-            E("Clockwork",  N, RegionType.Mechanical, 160, 30, 10, 12, 0.06, 3.4m, 0.11, 0.06, $"{p}/clockwork.png"),
-            E("Steam Bot",  N, RegionType.Mechanical, 190, 24, 6,  16, 0.04, 3.4m, 0.11, 0.06, $"{p}/steam_bot.png"),
-            E("Spark",      N, RegionType.Mechanical, 100, 28, 18, 6,  0.09, 3.4m, 0.11, 0.06, $"{p}/spark.png"),
-            E("Wire",       N, RegionType.Mechanical, 130, 22, 12, 10, 0.05, 3.4m, 0.11, 0.06, $"{p}/wire.png"),
-            E("Circuit",    N, RegionType.Mechanical, 150, 26, 10, 12, 0.06, 3.4m, 0.11, 0.06, $"{p}/circuit.png"),
-            E("Engine",     N, RegionType.Mechanical, 230, 20, 4,  22, 0.03, 3.4m, 0.11, 0.06, $"{p}/engine.png"),
-            // Bosses
-            B("Titan",           RegionType.Mechanical, 1100, 92, 8,  44, 0.08, 28.0m, 0.43, 0.20, $"{p}/boss_1_titan.png",            1210),
-            B("Mech Spider",     RegionType.Mechanical, 1050, 90, 14, 38, 0.10, 29.0m, 0.44, 0.21, $"{p}/boss_2_mech_spider.png",      1220),
-            B("Iron Giant",      RegionType.Mechanical, 1200, 86, 4,  50, 0.06, 30.0m, 0.45, 0.21, $"{p}/boss_3_iron_giant.png",       1230),
-            B("Clockwork Dragon",RegionType.Mechanical, 1150, 96, 12, 42, 0.10, 31.0m, 0.46, 0.22, $"{p}/boss_4_clockwork_dragon.png", 1240),
-            B("Steam Lord",      RegionType.Mechanical, 1100, 94, 10, 40, 0.09, 32.0m, 0.47, 0.22, $"{p}/boss_5_steam_lord.png",       1250),
-            B("Tech Hydra",      RegionType.Mechanical, 1180, 98, 10, 42, 0.09, 33.0m, 0.48, 0.23, $"{p}/boss_6_tech_hydra.png",       1260),
-            B("Cyber Beast",     RegionType.Mechanical, 1120, 96, 14, 38, 0.11, 34.0m, 0.49, 0.23, $"{p}/boss_7_cyber_beast.png",      1270),
-            B("Forge Master",    RegionType.Mechanical, 1250, 100,8,  48, 0.08, 35.0m, 0.50, 0.24, $"{p}/boss_8_forge_master.png",     1280),
-            B("Core Sentinel",   RegionType.Mechanical, 1200, 102,10, 44, 0.10, 36.0m, 0.51, 0.24, $"{p}/boss_9_core_sentinel.png",    1290),
-            B("Omega Bot",       RegionType.Mechanical, 1400, 108,6,  54, 0.09, 37.0m, 0.52, 0.25, $"{p}/boss_10_omega_bot.png",       1300),
-        };
-    }
-
-    // ───────────────────────────── Frostfire (1301-1400) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedFrostfireEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/frostfire";
-        return new List<StageEnemy>
-        {
-            E("Ice Flame",    N, RegionType.Frostfire, 170, 30, 12, 12, 0.06, 3.6m, 0.12, 0.06, $"{p}/ice_flame.png"),
-            E("Ember Frost",  N, RegionType.Frostfire, 160, 32, 14, 10, 0.07, 3.6m, 0.12, 0.06, $"{p}/ember_frost.png"),
-            E("Crystal Fire", N, RegionType.Frostfire, 190, 26, 6,  16, 0.05, 3.6m, 0.12, 0.06, $"{p}/crystal_fire.png"),
-            E("Frost Wisp",   N, RegionType.Frostfire, 110, 28, 18, 6,  0.09, 3.6m, 0.12, 0.06, $"{p}/frost_wisp.png"),
-            E("Magma Ice",    N, RegionType.Frostfire, 200, 24, 4,  18, 0.04, 3.6m, 0.12, 0.06, $"{p}/magma_ice.png"),
-            E("Blaze Shard",  N, RegionType.Frostfire, 130, 30, 16, 8,  0.08, 3.6m, 0.12, 0.06, $"{p}/blaze_shard.png"),
-            E("Frozen Flame", N, RegionType.Frostfire, 180, 28, 8,  14, 0.06, 3.6m, 0.12, 0.06, $"{p}/frozen_flame.png"),
-            E("Polar Ember",  N, RegionType.Frostfire, 150, 26, 12, 11, 0.06, 3.6m, 0.12, 0.06, $"{p}/polar_ember.png"),
-            E("Thermal",      N, RegionType.Frostfire, 140, 32, 14, 9,  0.07, 3.6m, 0.12, 0.06, $"{p}/thermal.png"),
-            E("Cryo Spark",   N, RegionType.Frostfire, 120, 34, 16, 7,  0.08, 3.6m, 0.12, 0.06, $"{p}/cryo_spark.png"),
-            // Bosses
-            B("Frostflame Dragon",RegionType.Frostfire,1150, 96, 12, 40, 0.10, 30.0m, 0.45, 0.21, $"{p}/boss_1_frostflame_dragon.png",1310),
-            B("Ice Phoenix",     RegionType.Frostfire, 1100, 94, 18, 36, 0.12, 31.0m, 0.46, 0.22, $"{p}/boss_2_ice_phoenix.png",      1320, PlacementType.Aerial),
-            B("Permafrost Demon",RegionType.Frostfire, 1200, 98, 10, 42, 0.10, 32.0m, 0.47, 0.22, $"{p}/boss_3_permafrost_demon.png", 1330),
-            B("Glacial Inferno", RegionType.Frostfire, 1180,100, 12, 40, 0.11, 33.0m, 0.48, 0.23, $"{p}/boss_4_glacial_inferno.png",  1340),
-            B("Cryo Titan",      RegionType.Frostfire, 1300, 92, 6,  50, 0.07, 34.0m, 0.49, 0.23, $"{p}/boss_5_cryo_titan.png",       1350),
-            B("Frost Wyrm",      RegionType.Frostfire, 1150,96, 14, 38, 0.10, 35.0m, 0.50, 0.24, $"{p}/boss_6_frost_wyrm.png",       1360),
-            B("Blaze Golem",     RegionType.Frostfire, 1250,94, 6,  46, 0.07, 36.0m, 0.51, 0.24, $"{p}/boss_7_blaze_golem.png",      1370),
-            B("Arctic Flame",    RegionType.Frostfire, 1200,98, 14, 40, 0.10, 37.0m, 0.52, 0.25, $"{p}/boss_8_arctic_flame.png",     1380),
-            B("Dual Elemental",  RegionType.Frostfire, 1280,102,10, 44, 0.10, 38.0m, 0.53, 0.25, $"{p}/boss_9_dual_elemental.png",   1390),
-            B("Entropy Lord",    RegionType.Frostfire, 1450,110,8,  52, 0.11, 39.0m, 0.54, 0.26, $"{p}/boss_10_entropy_lord.png",    1400),
-        };
-    }
-
-    // ───────────────────────────── Corruption (1401-1500) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedCorruptionEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/corruption";
-        return new List<StageEnemy>
-        {
-            E("Blight",           N, RegionType.Corruption, 170, 30, 10, 14, 0.06, 3.8m, 0.12, 0.06, $"{p}/blight.png"),
-            E("Parasite",         N, RegionType.Corruption, 120, 34, 16, 8,  0.08, 3.8m, 0.12, 0.06, $"{p}/parasite.png"),
-            E("Rot",              N, RegionType.Corruption, 200, 24, 4,  18, 0.04, 3.8m, 0.12, 0.06, $"{p}/rot.png"),
-            E("Tainted",          N, RegionType.Corruption, 160, 28, 12, 12, 0.06, 3.8m, 0.12, 0.06, $"{p}/tainted.png"),
-            E("Toxic",            N, RegionType.Corruption, 140, 32, 14, 10, 0.07, 3.8m, 0.12, 0.06, $"{p}/toxic.png"),
-            E("Corrupted Knight", N, RegionType.Corruption, 190, 30, 8,  16, 0.06, 3.8m, 0.12, 0.06, $"{p}/corrupted_knight.png"),
-            E("Plague",           N, RegionType.Corruption, 150, 26, 10, 12, 0.05, 3.8m, 0.12, 0.06, $"{p}/plague.png"),
-            E("Miasma",          N, RegionType.Corruption, 130, 28, 12, 9,  0.07, 3.8m, 0.12, 0.06, $"{p}/miasma.png"),
-            E("Decay",            N, RegionType.Corruption, 180, 22, 6,  16, 0.04, 3.8m, 0.12, 0.06, $"{p}/decay.png"),
-            E("Infected",         N, RegionType.Corruption, 155, 30, 12, 11, 0.06, 3.8m, 0.12, 0.06, $"{p}/infected.png"),
-            // Bosses
-            B("Corruption Lord",   RegionType.Corruption, 1200,100,10, 42, 0.10, 32.0m, 0.47, 0.22, $"{p}/boss_1_corruption_lord.png", 1410),
-            B("Plague Beast",      RegionType.Corruption, 1250, 96, 8,  44, 0.08, 33.0m, 0.48, 0.23, $"{p}/boss_2_plague_beast.png",   1420),
-            B("Rot Titan",         RegionType.Corruption, 1350, 92, 4,  52, 0.06, 34.0m, 0.49, 0.23, $"{p}/boss_3_rot_titan.png",      1430),
-            B("Blight Dragon",     RegionType.Corruption, 1200,102,14, 40, 0.11, 35.0m, 0.50, 0.24, $"{p}/boss_4_blight_dragon.png",  1440),
-            B("Tainted Guardian",  RegionType.Corruption, 1280, 98, 8,  46, 0.09, 36.0m, 0.51, 0.24, $"{p}/boss_5_tainted_guardian.png",1450),
-            B("Toxic Hydra",       RegionType.Corruption, 1300,104,10, 44, 0.10, 37.0m, 0.52, 0.25, $"{p}/boss_6_toxic_hydra.png",    1460),
-            B("Decay Wurm",        RegionType.Corruption, 1250,100,12, 42, 0.09, 38.0m, 0.53, 0.25, $"{p}/boss_7_decay_wurm.png",     1470),
-            B("Infected Golem",    RegionType.Corruption, 1350, 96, 6,  50, 0.07, 39.0m, 0.54, 0.26, $"{p}/boss_8_infected_golem.png", 1480),
-            B("Miasma King",       RegionType.Corruption, 1300,106,10, 44, 0.10, 40.0m, 0.55, 0.26, $"{p}/boss_9_miasma_king.png",    1490),
-            B("Entropy",           RegionType.Corruption, 1500,112, 8,  54, 0.11, 41.0m, 0.56, 0.27, $"{p}/boss_10_entropy.png",       1500),
-        };
-    }
+    // Biomes Underwater (1001-1100), Underground (1101-1200), Mechanical (1201-1300),
+    // Frostfire (1301-1400), Corruption (1401-1500) have no sprites yet.
+    // Their stages fall back to GetRandomEnemy / GetRandomBoss at runtime.
 
     // ───────────────────────────── Dark (1501-1600) ─────────────────────────────
     private static List<StageEnemy> SeedDarkEnemies()
@@ -603,35 +376,7 @@ public static partial class SeedData
         };
     }
 
-    // ───────────────────────────── Alien (1601-1700) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedAlienEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/alien";
-        return new List<StageEnemy>
-        {
-            E("Xenomorph",   N, RegionType.Alien, 190, 36, 16, 12, 0.08, 4.2m, 0.13, 0.07, $"{p}/xenomorph.png"),
-            E("Probe",       N, RegionType.Alien, 130, 28, 20, 8,  0.09, 4.2m, 0.13, 0.07, $"{p}/probe.png", placement: PlacementType.Aerial),
-            E("Tentacle",    N, RegionType.Alien, 200, 32, 8,  16, 0.06, 4.2m, 0.13, 0.07, $"{p}/tentacle.png"),
-            E("Mothership",  N, RegionType.Alien, 250, 24, 4,  22, 0.04, 4.2m, 0.13, 0.07, $"{p}/mothership.png", placement: PlacementType.Aerial),
-            E("Larva",       N, RegionType.Alien, 110, 30, 14, 6,  0.07, 4.2m, 0.13, 0.07, $"{p}/larva.png"),
-            E("Hivemind",    N, RegionType.Alien, 180, 34, 10, 14, 0.07, 4.2m, 0.13, 0.07, $"{p}/hivemind.png"),
-            E("Cosmic",      N, RegionType.Alien, 160, 36, 14, 10, 0.09, 4.2m, 0.13, 0.07, $"{p}/cosmic.png"),
-            E("Nebula",      N, RegionType.Alien, 170, 30, 12, 12, 0.06, 4.2m, 0.13, 0.07, $"{p}/nebula.png"),
-            E("Astral",      N, RegionType.Alien, 150, 32, 16, 10, 0.08, 4.2m, 0.13, 0.07, $"{p}/astral.png"),
-            E("Void Walker", N, RegionType.Alien, 175, 34, 14, 11, 0.08, 4.2m, 0.13, 0.07, $"{p}/void_walker.png"),
-            // Bosses
-            B("Alien Queen",     RegionType.Alien, 1350,108,12, 44, 0.10, 36.0m, 0.51, 0.24, $"{p}/boss_1_alien_queen.png",     1610),
-            B("Cosmic Entity",   RegionType.Alien, 1400,112,10, 46, 0.10, 37.0m, 0.52, 0.25, $"{p}/boss_2_cosmic_entity.png",   1620),
-            B("Nebula Lord",     RegionType.Alien, 1300,106,14, 42, 0.11, 38.0m, 0.53, 0.25, $"{p}/boss_3_nebula_lord.png",     1630),
-            B("Star Beast",      RegionType.Alien, 1450,110, 8,  48, 0.09, 39.0m, 0.54, 0.26, $"{p}/boss_4_star_beast.png",      1640),
-            B("Galactic Horror", RegionType.Alien, 1500,114,10, 46, 0.10, 40.0m, 0.55, 0.26, $"{p}/boss_5_galactic_horror.png", 1650),
-            B("Void Tyrant",     RegionType.Alien, 1400,108,12, 44, 0.10, 41.0m, 0.56, 0.27, $"{p}/boss_6_void_tyrant.png",     1660),
-            B("Astral Dragon",   RegionType.Alien, 1350,116,16, 40, 0.12, 42.0m, 0.57, 0.27, $"{p}/boss_7_astral_dragon.png",   1670, PlacementType.Aerial),
-            B("Cosmic Hydra",    RegionType.Alien, 1500,112, 8,  50, 0.09, 43.0m, 0.58, 0.28, $"{p}/boss_8_cosmic_hydra.png",   1680),
-            B("Gravity Titan",   RegionType.Alien, 1550,110, 6,  54, 0.08, 44.0m, 0.59, 0.28, $"{p}/boss_9_gravity_titan.png",  1690),
-            B("Universal Threat",RegionType.Alien, 1700,120, 10, 56, 0.11, 45.0m, 0.60, 0.29, $"{p}/boss_10_universal_threat.png",1700),
-        };
-    }
+    // Biome Alien (1601-1700) has no sprites yet — uses GetRandomEnemy / GetRandomBoss fallback at runtime.
 
     // ───────────────────────────── Void (1701-1800) ─────────────────────────────
     private static List<StageEnemy> SeedVoidEnemies()
@@ -663,35 +408,7 @@ public static partial class SeedData
         };
     }
 
-    // ───────────────────────────── Timerift (1801-1900) — no sprites yet ─────────────────────────────
-    private static List<StageEnemy> SeedTimeriftEnemies()
-    {
-        var p = "/sprites/games/my-tuno/enemies/timerift";
-        return new List<StageEnemy>
-        {
-            E("Chronos",        N, RegionType.Timerift, 200, 38, 16, 14, 0.08, 4.6m, 0.14, 0.08, $"{p}/chronos.png"),
-            E("Paradox",        N, RegionType.Timerift, 180, 40, 18, 10, 0.10, 4.6m, 0.14, 0.08, $"{p}/paradox.png"),
-            E("Temporal",       N, RegionType.Timerift, 190, 36, 14, 12, 0.08, 4.6m, 0.14, 0.08, $"{p}/temporal.png"),
-            E("Rift",           N, RegionType.Timerift, 160, 34, 16, 10, 0.09, 4.6m, 0.14, 0.08, $"{p}/rift.png"),
-            E("Echo",           N, RegionType.Timerift, 170, 32, 14, 12, 0.07, 4.6m, 0.14, 0.08, $"{p}/echo.png"),
-            E("Flux",           N, RegionType.Timerift, 150, 38, 18, 8,  0.10, 4.6m, 0.14, 0.08, $"{p}/flux.png"),
-            E("Past Shadow",    N, RegionType.Timerift, 210, 30, 10, 16, 0.06, 4.6m, 0.14, 0.08, $"{p}/past_shadow.png"),
-            E("Future Specter", N, RegionType.Timerift, 185, 36, 16, 12, 0.08, 4.6m, 0.14, 0.08, $"{p}/future_specter.png"),
-            E("Time Loop",      N, RegionType.Timerift, 220, 28, 6,  18, 0.05, 4.6m, 0.14, 0.08, $"{p}/time_loop.png"),
-            E("Anomaly",        N, RegionType.Timerift, 175, 40, 18, 10, 0.10, 4.6m, 0.14, 0.08, $"{p}/anomaly.png"),
-            // Bosses
-            B("Chrono Dragon",    RegionType.Timerift, 1500,114,14, 46, 0.11, 40.0m, 0.55, 0.26, $"{p}/boss_1_chrono_dragon.png",    1810),
-            B("Time Lord",        RegionType.Timerift, 1550,118,12, 48, 0.11, 41.0m, 0.56, 0.27, $"{p}/boss_2_time_lord.png",        1820),
-            B("Paradox Titan",    RegionType.Timerift, 1600,112, 6,  54, 0.08, 42.0m, 0.57, 0.27, $"{p}/boss_3_paradox_titan.png",    1830),
-            B("Rift Beast",       RegionType.Timerift, 1450,116,16, 42, 0.12, 43.0m, 0.58, 0.28, $"{p}/boss_4_rift_beast.png",       1840),
-            B("Temporal Hydra",   RegionType.Timerift, 1550,120,10, 50, 0.10, 44.0m, 0.59, 0.28, $"{p}/boss_5_temporal_hydra.png",   1850),
-            B("Epoch Guardian",   RegionType.Timerift, 1500,116,12, 46, 0.10, 45.0m, 0.60, 0.29, $"{p}/boss_6_epoch_guardian.png",   1860),
-            B("Flux Demon",       RegionType.Timerift, 1400,122,18, 40, 0.13, 46.0m, 0.61, 0.29, $"{p}/boss_7_flux_demon.png",       1870),
-            B("Time Wurm",        RegionType.Timerift, 1600,118, 8,  52, 0.09, 47.0m, 0.62, 0.30, $"{p}/boss_8_time_wurm.png",       1880),
-            B("Reality Breaker",  RegionType.Timerift, 1650,124,10, 50, 0.11, 48.0m, 0.63, 0.30, $"{p}/boss_9_reality_breaker.png",  1890),
-            B("Infinity",         RegionType.Timerift, 1800,130, 8,  58, 0.12, 49.0m, 0.64, 0.31, $"{p}/boss_10_infinity.png",        1900),
-        };
-    }
+    // Biome Timerift (1801-1900) has no sprites yet — uses GetRandomEnemy / GetRandomBoss fallback at runtime.
 
     // ───────────────────────────── Light (1901-2000) ─────────────────────────────
     private static List<StageEnemy> SeedLightEnemies()

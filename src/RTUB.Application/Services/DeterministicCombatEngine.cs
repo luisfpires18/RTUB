@@ -515,6 +515,8 @@ public class DeterministicCombatEngine : ICombatEngine
         }
 
         // Handle timeout - determine winner by HP
+        // When time runs out, player wins if they have more HP than all enemies combined.
+        // Otherwise it's a defeat (enemies won by outlasting the player).
         if (currentTime >= MaxBattleTime && playerHP > 0 && enemyStates.Any(e => e.HP > 0))
         {
             var totalEnemyHP = enemyStates.Sum(e => e.HP);
@@ -531,6 +533,8 @@ public class DeterministicCombatEngine : ICombatEngine
             }
             else
             {
+                // Player didn't outdamage the enemies — treat as defeat
+                playerHP = 0;
                 events.Add(new CombatEvent
                 {
                     Type = "Victory",

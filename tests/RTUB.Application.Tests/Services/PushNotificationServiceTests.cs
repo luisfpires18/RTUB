@@ -598,7 +598,7 @@ public class PushNotificationServiceTests
     }
 
     [Fact]
-    public async Task SendToUserAsync_ReloadsConversationWithTracking_BeforeUpdating()
+    public async Task SendToUserAsync_UpdatesConversationDirectly_WithoutReload()
     {
         // Arrange
         var userId = "test-user-id";
@@ -619,7 +619,7 @@ public class PushNotificationServiceTests
             .Setup(r => r.GetByUserIdAsync(userId))
             .ReturnsAsync(Enumerable.Empty<PushSubscription>());
 
-        // GetSystemConversationForUserAsync returns untracked entity (simulating AsNoTracking)
+        // GetSystemConversationForUserAsync returns tracked entity
         _mockConversationRepository
             .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync(existingConversation);
@@ -634,19 +634,6 @@ public class PushNotificationServiceTests
         _mockSettingsRepository
             .Setup(r => r.GetOrCreateAsync(userId, 123))
             .ReturnsAsync(existingSettings);
-
-        // GetByIdAsync returns tracked entity (simulating FindAsync)
-        var trackedConversation = new Conversation
-        {
-            Id = 123,
-            Participants = userId,
-            IsSystemConversation = true,
-            Title = "Sistema RTUB"
-        };
-
-        _mockConversationRepository
-            .Setup(r => r.GetByIdAsync(123))
-            .ReturnsAsync(trackedConversation);
 
         var createdMessage = new Message
         {
@@ -663,10 +650,11 @@ public class PushNotificationServiceTests
         // Act
         await _service.SendToUserAsync(userId, notification);
 
-        // Assert - verify conversation was reloaded with tracking before update
-        _mockConversationRepository.Verify(r => r.GetByIdAsync(123), Times.Once);
+        // Assert - verify conversation is NOT reloaded (no GetByIdAsync call)
+        // The conversation from GetSystemConversationForUserAsync is already tracked
+        _mockConversationRepository.Verify(r => r.GetByIdAsync(It.IsAny<int>()), Times.Never);
 
-        // Verify the tracked conversation was updated with the message details
+        // Verify the same conversation instance was updated directly with the message details
         _mockConversationRepository.Verify(r => r.UpdateAsync(It.Is<Conversation>(
             c => c.Id == 123 &&
                  c.LastMessageId == createdMessage.Id

@@ -242,28 +242,18 @@
             this.container.appendChild(this.app.canvas);
             this.stage = this.app.stage;
 
-            // Detect WebGL context loss (OS reclaims GPU when app is backgrounded)
-            // and immediately finish the battle so Blazor can recover
+            // Log GL context loss but let PixiJS handle recovery automatically.
+            // The battle continues — the ticker resumes once the context is restored.
             this._onContextLost = (e) => {
-                console.warn('WebGL context lost — finishing battle to recover');
-                e.preventDefault();
-                this.finishBattle();
+                console.warn('WebGL context lost — battle continues on restore');
+                e.preventDefault(); // request automatic context restore
             };
             this.app.canvas.addEventListener('webglcontextlost', this._onContextLost);
 
-            // Detect user returning to the app after backgrounding
-            // If the battle is still playing but the canvas is dead, finish it
-            this._onVisibilityChange = () => {
-                if (document.visibilityState === 'visible' && this.isPlaying && !this.battleFinished) {
-                    // Check if the GL context is lost
-                    const gl = this.app?.canvas?.getContext('webgl2') || this.app?.canvas?.getContext('webgl');
-                    if (!gl || gl.isContextLost()) {
-                        console.warn('App returned from background with lost GL context — finishing battle');
-                        this.finishBattle();
-                    }
-                }
+            this._onContextRestored = () => {
+                console.log('WebGL context restored');
             };
-            document.addEventListener('visibilitychange', this._onVisibilityChange);
+            this.app.canvas.addEventListener('webglcontextrestored', this._onContextRestored);
 
             await this.loadAssets();
             this.create();
@@ -276,31 +266,45 @@
             this.bgAlias = `bg_${this.backgroundPath}`;
             this._playerAlias = `player_${this.playerSpritePath}`;
 
-            const toLoad = [];
+            // Load each asset individually so a 404 on one sprite doesn't crash everything.
+            // On failure, fall back to a known-good default sprite.
+            const tryLoad = async (alias, src, fallbackAlias) => {
+                if (loadedAssetAliases.has(alias)) return;
+                try {
+                    await PIXI.Assets.load({ alias, src: src + SESSION_CACHE_BUST });
+                    loadedAssetAliases.add(alias);
+                } catch (e) {
+                    console.warn(`Sprite 404, using fallback: ${src}`, e.message);
+                    // Point the alias at the fallback texture so Sprite.from(alias) works
+                    if (fallbackAlias && loadedAssetAliases.has(fallbackAlias)) {
+                        try {
+                            const fallbackTex = PIXI.Assets.get(fallbackAlias);
+                            if (fallbackTex) PIXI.Assets.cache.set(alias, fallbackTex);
+                            loadedAssetAliases.add(alias);
+                        } catch (_) { /* fallback also failed, will use PIXI white texture */ }
+                    }
+                }
+            };
 
-            if (!loadedAssetAliases.has(this.bgAlias)) {
-                toLoad.push({ alias: this.bgAlias, src: this.backgroundPath + SESSION_CACHE_BUST });
-            }
-            if (!loadedAssetAliases.has(this._playerAlias)) {
-                toLoad.push({ alias: this._playerAlias, src: this.playerSpritePath + SESSION_CACHE_BUST });
-            }
+            // Background and player — use defaults as fallbacks
+            const defaultBgAlias = `bg_${defaultSprites.background}`;
+            const defaultPlayerAlias = `player_${defaultSprites.player}`;
+            await tryLoad(defaultBgAlias, defaultSprites.background, null);
+            await tryLoad(defaultPlayerAlias, defaultSprites.player, null);
+            await tryLoad(this.bgAlias, this.backgroundPath, defaultBgAlias);
+            await tryLoad(this._playerAlias, this.playerSpritePath, defaultPlayerAlias);
 
-            // Store the actual paths for creating sprites later
+            // Enemy sprites — fall back to the biome's default normal enemy
             this.enemySpriteAliases = [];
+            const defaultEnemyPath = defaultSprites.enemies.normal;
+            const defaultEnemyAlias = `enemy_${defaultEnemyPath}`;
+            await tryLoad(defaultEnemyAlias, defaultEnemyPath, null);
+
             if (this.enemySpritePaths && Array.isArray(this.enemySpritePaths)) {
                 for (let i = 0; i < this.enemySpritePaths.length; i++) {
                     const alias = `enemy_${this.enemySpritePaths[i]}`;
                     this.enemySpriteAliases.push(alias);
-                    if (!loadedAssetAliases.has(alias)) {
-                        toLoad.push({ alias: alias, src: this.enemySpritePaths[i] + SESSION_CACHE_BUST });
-                    }
-                }
-            }
-
-            if (toLoad.length > 0) {
-                await PIXI.Assets.load(toLoad);
-                for (const a of toLoad) {
-                    loadedAssetAliases.add(a.alias);
+                    await tryLoad(alias, this.enemySpritePaths[i], defaultEnemyAlias);
                 }
             }
         }
@@ -824,6 +828,8 @@
         }
 
         update() {
+            // Guard: if app or stage was destroyed (GL context loss, dispose), stop
+            if (!this.app || !this.stage) return;
             const deltaMs = this.app.ticker.deltaMS;
             
             // Idle animation for enemies - always runs even during pauses
@@ -1145,7 +1151,7 @@
         }
 
         showDamageText(damage, isCritical, x, y) {
-            if (!this.stage) return;
+            if (!this.stage || !this.app) return;
             const damageValue = Math.abs(damage);
             const text = isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`;
             const fontSize = isCritical ? 28 : 22;
@@ -1161,6 +1167,7 @@
                 fill: color,
                 stroke: { color: 0x000000, width: strokeWidth }
             });
+            if (!damageText) return;
             damageText.anchor.set(0.5);
             damageText.x = x;
             damageText.y = y;
@@ -1175,7 +1182,7 @@
         }
 
         showFloatingText(text, x, y, color) {
-            if (!this.stage) return;
+            if (!this.stage || !this.app) return;
             const floatText = this._getPooledText(text, {
                 fontFamily: 'Arial',
                 fontSize: 26,
@@ -1183,6 +1190,7 @@
                 fill: color,
                 stroke: { color: 0x000000, width: 4 }
             });
+            if (!floatText) return;
             floatText.anchor.set(0.5);
             floatText.x = x;
             floatText.y = y;
@@ -1394,9 +1402,13 @@
             }
 
             if (this.dotNetRef) {
-                this.dotNetRef.invokeMethodAsync('OnBattleFinished').catch(e => {
-                    console.warn('Could not notify Blazor of battle finish:', e);
-                });
+                try {
+                    this.dotNetRef.invokeMethodAsync('OnBattleFinished').catch(e => {
+                        console.warn('Could not notify Blazor of battle finish:', e);
+                    });
+                } catch (e) {
+                    console.warn('finishBattle: dotNetRef error:', e.message);
+                }
             }
         }
 
@@ -1498,11 +1510,28 @@
             let t;
             if (this._textPool.length > 0) {
                 t = this._textPool.pop();
-                t.text = text;
-                t.style = style;
-            } else {
-                t = new PIXI.Text({ text, style });
+                // Pooled text may have been destroyed (GL context loss) — verify
+                if (t && !t.destroyed) {
+                    try {
+                        t.text = text;
+                        t.style = style;
+                    } catch (e) {
+                        // If properties fail (destroyed internally), create fresh
+                        t = null;
+                    }
+                } else {
+                    t = null;
+                }
             }
+            if (!t) {
+                try {
+                    t = new PIXI.Text({ text, style });
+                } catch (e) {
+                    console.warn('Failed to create PIXI.Text:', e.message);
+                    return null;
+                }
+            }
+            if (!t) return null;
             t.alpha = 1;
             t.scale.set(1);
             t.visible = true;
@@ -1520,19 +1549,31 @@
         }
 
         animateTo(target, properties, duration, onComplete) {
+            // Guard against null/destroyed targets upfront
+            if (!target || target.destroyed) {
+                if (onComplete) onComplete();
+                return;
+            }
+
             // Adjust animation duration based on battle speed
             const adjustedDuration = duration / this.battleSpeed;
             
             const startProps = {};
-            Object.keys(properties).forEach(key => {
-                if (key === 'scale') {
-                    startProps[key] = target.scale.x;
-                } else if (key === 'width' || key === 'height') {
-                    startProps[key] = target[key];
-                } else {
-                    startProps[key] = target[key] ?? (key === 'alpha' ? 1 : 0);
-                }
-            });
+            try {
+                Object.keys(properties).forEach(key => {
+                    if (key === 'scale') {
+                        startProps[key] = target.scale?.x ?? 1;
+                    } else if (key === 'width' || key === 'height') {
+                        startProps[key] = target[key] ?? 0;
+                    } else {
+                        startProps[key] = target[key] ?? (key === 'alpha' ? 1 : 0);
+                    }
+                });
+            } catch (e) {
+                // Target properties inaccessible (destroyed internally)
+                if (onComplete) onComplete();
+                return;
+            }
 
             const startTime = Date.now();
             const animate = () => {
@@ -1545,15 +1586,21 @@
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / adjustedDuration, 1);
                 
-                Object.keys(properties).forEach(key => {
-                    const start = startProps[key];
-                    const end = properties[key];
-                    if (key === 'scale') {
-                        target.scale.set(start + (end - start) * progress);
-                    } else {
-                        target[key] = start + (end - start) * progress;
-                    }
-                });
+                try {
+                    Object.keys(properties).forEach(key => {
+                        const start = startProps[key];
+                        const end = properties[key];
+                        if (key === 'scale') {
+                            target.scale.set(start + (end - start) * progress);
+                        } else {
+                            target[key] = start + (end - start) * progress;
+                        }
+                    });
+                } catch (e) {
+                    // Target was destroyed mid-animation
+                    if (onComplete) onComplete();
+                    return;
+                }
 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
@@ -1565,12 +1612,12 @@
         }
 
         destroy() {
-            // Remove visibility/context-loss listeners
+            // Remove context-loss/restore listeners
             if (this._onContextLost && this.app?.canvas) {
                 this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);
             }
-            if (this._onVisibilityChange) {
-                document.removeEventListener('visibilitychange', this._onVisibilityChange);
+            if (this._onContextRestored && this.app?.canvas) {
+                this.app.canvas.removeEventListener('webglcontextrestored', this._onContextRestored);
             }
 
             // Clear all pending timers
@@ -1623,6 +1670,12 @@
         
         // Reset scene for next battle — smooth transition, player persists, no flash!
         async resetForNextBattle(data) {
+            // Guard: if app or stage was destroyed (GL context loss), bail out
+            if (!this.app || !this.stage) {
+                console.warn('resetForNextBattle: app/stage destroyed, skipping');
+                return;
+            }
+
             // Stop current battle processing
             this.isPlaying = false;
             this.battleFinished = true;
@@ -1647,6 +1700,12 @@
             } catch (e) {
                 console.error('Failed to load assets for next stage, attempting to continue:', e);
                 // Don't hang — proceed with whatever textures are available
+            }
+            
+            // Re-check after async — scene may have been destroyed while loading
+            if (!this.app || !this.stage) {
+                console.warn('resetForNextBattle: app/stage destroyed during asset load');
+                return;
             }
             
             // Reset battle state
@@ -1677,17 +1736,26 @@
             }
             
             // Remove ONLY non-persistent children (enemies, log, result text, floating text)
+            // Guard: stage may have been destroyed by GL context loss during async loadAssets
+            if (!this.stage) return;
             const toRemove = [];
-            for (const child of [...this.stage.children]) {
-                if (!persistent.has(child)) {
-                    toRemove.push(child);
+            try {
+                for (const child of [...this.stage.children]) {
+                    if (!persistent.has(child)) {
+                        toRemove.push(child);
+                    }
                 }
+            } catch (e) {
+                console.warn('resetForNextBattle: error iterating stage children:', e.message);
+                return;
             }
             for (const child of toRemove) {
-                this.stage.removeChild(child);
-                if (child.destroy) {
-                    try { child.destroy({ children: true, texture: false, baseTexture: false }); } catch (e) {}
-                }
+                try {
+                    this.stage.removeChild(child);
+                    if (child.destroy) {
+                        child.destroy({ children: true, texture: false, baseTexture: false });
+                    }
+                } catch (e) { /* ignore destroyed child */ }
             }
             
             // Reset player visual state (undo KO rotation/fade, attack tint)
@@ -1878,8 +1946,13 @@
         },
 
         nextBattle: function (battleData) {
-            if (!stageScene) {
+            if (!stageScene || !stageScene.app || !stageScene.stage) {
                 console.warn('No active scene, using start() instead');
+                // Destroy any orphaned scene first
+                if (stageScene) {
+                    try { stageScene.destroy(); } catch (e) { /* ignore */ }
+                    stageScene = null;
+                }
                 this.start('phaserBattleContainer', battleData);
                 return;
             }

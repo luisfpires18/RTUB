@@ -431,16 +431,12 @@ public class PushNotificationService : IPushNotificationService
 
             await _messageRepository.AddAsync(message);
 
-            // Reload conversation with tracking to avoid detached entity issues
-            // This is necessary because the conversation was loaded with AsNoTracking earlier
-            var trackedConversation = await _conversationRepository.GetByIdAsync(conversation.Id);
-            if (trackedConversation != null)
-            {
-                // Update conversation
-                trackedConversation.LastMessageAt = message.CreatedAt;
-                trackedConversation.LastMessageId = message.Id;
-                await _conversationRepository.UpdateAsync(trackedConversation);
-            }
+            // Update conversation directly — it's already tracked from the query/add above.
+            // No need to reload; GetSystemConversationForUserAsync returns a tracked entity,
+            // and newly-created conversations are tracked after AddAsync.
+            conversation.LastMessageAt = message.CreatedAt;
+            conversation.LastMessageId = message.Id;
+            await _conversationRepository.UpdateAsync(conversation);
         }
         catch (Exception ex)
         {
