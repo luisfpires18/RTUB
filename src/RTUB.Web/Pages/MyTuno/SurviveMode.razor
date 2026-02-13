@@ -66,25 +66,25 @@
         @* ─── Active Game ─── *@
         @if (showGame)
         {
-            <div class="card mb-4 battle-card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-bullseye text-danger me-2"></i>
-                        Level @currentLevel — @currentBiomeName
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
-                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
-                            <i class="bi bi-stop-fill me-1"></i>Acabar
-                        </button>
+                <div class="card mb-4 battle-card">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bullseye text-danger me-2"></i>
+                            Level @currentLevel — @currentBiomeName
+                        </h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                                <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
+                                <i class="bi bi-stop-fill me-1"></i>Acabar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 d-flex justify-content-center">
+                        <div id="surviveGameContainer" style="width: 100%; max-width: 800px; aspect-ratio: 8/5;"></div>
                     </div>
                 </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="surviveGameContainer" style="width: 100%; max-width: 800px; aspect-ratio: 8/5;"></div>
-                </div>
-            </div>
 
             @* ─── Active Buff Indicators ─── *@
             @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))

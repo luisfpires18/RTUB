@@ -37,18 +37,17 @@ public class SurviveModeService : ISurviveModeService
     private const double BaseTimerSeconds = 480.0;         // Level 1 timer (8 minutes)
     private const double TimerIncreasePerLevel = 60.0;     // +1 min per level
     private const double MaxTimerSeconds = 1200.0;         // Cap at 20 minutes
-    private const int BaseEnemyCount = 5;                  // Starting enemies
-    private const int EnemyCountIncreasePerLevel = 3;      // +3 max enemies per level
-    private const int MaxEnemyCountCap = 50;               // Cap alive enemies
-    private const double BaseEnemySpeed = 72.0;            // Pixels per second
-    private const double MaxEnemySpeedCap = 234.0;         // Speed cap
+    private const int BaseEnemyCount = 3;                  // Starting enemies (same for all levels)
+    private const int MaxEnemyCountBase = 15;              // Base max alive enemies (same for all levels)
+    private const int MaxEnemyCountCap = 50;               // Hard cap on alive enemies
+    private const double BaseEnemySpeed = 60.0;            // Pixels per second (same for all levels)
+    private const double MaxEnemySpeedCap = 250.0;         // Speed cap
     private const double BasePlayerSpeed = 120.0;          // Player is faster than enemies
     private const double PlayerSpeedDecayPerLevel = 2.0;   // Gets slightly slower each level
     private const double MinPlayerSpeed = 80.0;            // Never slower than this
-    private const double BaseSpawnInterval = 3.0;          // Seconds between waves
+    private const double BaseSpawnInterval = 3.0;          // Seconds between spawn waves (same for all levels)
     private const double MinSpawnInterval = 0.5;           // Fastest spawn rate
-    private const double BaseEnemyScale = 0.6;             // Smaller enemies = harder
-    private const double EnemyScaleDecreasePerLevel = 0.02;
+    private const double BaseEnemyScale = 0.6;             // Enemy sprite scale (same for all levels)
     private const double MinEnemyScale = 0.3;
     private const int MapWidth = 2400;                     // Scrollable map
     private const int MapHeight = 2400;
@@ -59,45 +58,28 @@ public class SurviveModeService : ISurviveModeService
     // All levels start the same â€” difficulty ramps over TIME within each level,
     // not across levels. The per-biome time-ramp rates below control how fast
     // spawns and enemy speed increase every minute during a level.
-    private static readonly (double spawnMult, double speedMult)[] LevelScaling = new[]
-    {
-        (1.00, 1.00), // Level 1  - Forest
-        (1.00, 1.00), // Level 2  - Swamp
-        (1.00, 1.00), // Level 3  - Mountains
-        (1.00, 1.00), // Level 4  - Snowy
-        (1.00, 1.00), // Level 5  - Tropical
-        (1.00, 1.00), // Level 6  - Caverns
-        (1.00, 1.00), // Level 7  - Desert
-        (1.00, 1.00), // Level 8  - Volcanic
-        (1.00, 1.00), // Level 9  - Ruins
-        (1.00, 1.00), // Level 10 - Dark
-        (1.00, 1.00), // Level 11 - Light
-        (1.00, 1.00), // Level 12 - Void (final)
-    };
-
-    // Per-biome time-based ramp: (spawnRampPerMinute, speedRampPerMinute)
-    // Each minute within a level, spawns get X% faster and enemies move Y% faster.
     private static readonly (double spawnRamp, double speedRamp)[] BiomeTimeRamp = new[]
     {
-        (0.20, 0.10), // Level 1  - Forest:    +20% spawn / +10% speed per min
-        (0.25, 0.15), // Level 2  - Swamp:     +25% spawn / +15% speed per min
-        (0.30, 0.20), // Level 3  - Mountains: +30% spawn / +20% speed per min
-        (0.35, 0.25), // Level 4  - Snowy:     +35% spawn / +25% speed per min
-        (0.40, 0.30), // Level 5  - Tropical:  +40% spawn / +30% speed per min
-        (0.45, 0.35), // Level 6  - Caverns:   +45% spawn / +35% speed per min
-        (0.50, 0.40), // Level 7  - Desert:    +50% spawn / +40% speed per min
-        (0.55, 0.45), // Level 8  - Volcanic:  +55% spawn / +45% speed per min
-        (0.60, 0.50), // Level 9  - Ruins:     +60% spawn / +50% speed per min
-        (0.65, 0.55), // Level 10 - Dark:      +65% spawn / +55% speed per min
-        (0.68, 0.58), // Level 11 - Light:     +68% spawn / +58% speed per min
-        (0.70, 0.60), // Level 12 - Void:      +70% spawn / +60% speed per min
+        (0.08, 0.05), // Level 1  - Forest:     gentle ramp
+        (0.12, 0.08), // Level 2  - Swamp:      slightly faster ramp
+        (0.16, 0.11), // Level 3  - Mountains:  moderate
+        (0.20, 0.14), // Level 4  - Snowy:      noticeable pressure
+        (0.24, 0.17), // Level 5  - Tropical:   challenging mid-game
+        (0.28, 0.20), // Level 6  - Caverns:    aggressive spawn ramp
+        (0.32, 0.23), // Level 7  - Desert:     demanding
+        (0.36, 0.26), // Level 8  - Volcanic:   intense
+        (0.40, 0.29), // Level 9  - Ruins:      very hard
+        (0.44, 0.32), // Level 10 - Dark:       punishing
+        (0.48, 0.35), // Level 11 - Light:      extreme
+        (0.52, 0.38), // Level 12 - Void:       brutal final level
     };
 
-    // Reward constants
-    private const int BaseXPPerLevel = 20;
-    private const decimal BaseFidelisPerLevel = 15;
-    private const double XPPerEnemyKill = 2.0;
-    private const double FidelisPerEnemyKill = 0.5;
+    // Reward constants — scale up per level so harder biomes are worth more
+    private const int BaseXPPerLevel = 30;
+    private const decimal BaseFidelisPerLevel = 25;
+    private const double XPPerEnemyKill = 3.0;
+    private const double FidelisPerEnemyKill = 1.0;
+    private const double RewardScalePerLevel = 0.15;  // +15% rewards per level beyond 1
 
     public SurviveModeService(
         ISurviveModeProgressRepository progressRepository,
@@ -204,29 +186,26 @@ public class SurviveModeService : ISurviveModeService
         var difficultyMult = biomeConfig?.EnemiesDifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
         var rewardMult = biomeConfig?.RewardMultiplier ?? 1.0 + (level - 1) * 0.2;
 
-        // Per-level scaling from the LevelScaling table (clamped to array bounds)
-        var scaleIdx = Math.Clamp(level - 1, 0, LevelScaling.Length - 1);
-        var (spawnMult, speedMult) = LevelScaling[scaleIdx];
-
         // Timer: 8 min base + 1 min per level, caps at MaxTimerSeconds
         var timer = Math.Min(BaseTimerSeconds + (level - 1) * TimerIncreasePerLevel, MaxTimerSeconds);
 
-        // Enemy count: scales with level and spawn multiplier
-        var baseCount = Math.Min((int)(BaseEnemyCount + (level - 1) * 2 * spawnMult), MaxEnemyCountCap / 2);
-        var maxCount = Math.Min((int)((BaseEnemyCount + (level - 1) * EnemyCountIncreasePerLevel) * spawnMult), MaxEnemyCountCap);
+        // All levels start with the SAME baseline stats — like level 1.
+        // Difficulty within each level is controlled 100% by the BiomeTimeRamp.
+        var baseCount = BaseEnemyCount;
+        var maxCount = MaxEnemyCountBase;
 
-        // Enemy speed scales with level, difficulty, and speed multiplier
-        var enemySpeed = Math.Min(BaseEnemySpeed * speedMult * difficultyMult, MaxEnemySpeedCap);
-        var maxEnemySpeed = Math.Min(enemySpeed * 1.5, MaxEnemySpeedCap * 1.2);
+        // Enemy speed: always starts at the same base (ramp handles acceleration)
+        var enemySpeed = BaseEnemySpeed;
+        var maxEnemySpeed = MaxEnemySpeedCap;
 
         // Player speed: starts high, slowly decreases (still faster than enemies)
         var playerSpeed = Math.Max(BasePlayerSpeed - (level - 1) * PlayerSpeedDecayPerLevel, MinPlayerSpeed);
 
-        // Spawn interval: gets faster each level, scaled by spawnMult
-        var spawnInterval = Math.Max(BaseSpawnInterval / spawnMult, MinSpawnInterval);
+        // Spawn interval: same base for all levels (ramp handles acceleration)
+        var spawnInterval = BaseSpawnInterval;
 
-        // Enemy scale: gets smaller each level (harder to see, more can fit)
-        var enemyScale = Math.Max(BaseEnemyScale - (level - 1) * EnemyScaleDecreasePerLevel, MinEnemyScale);
+        // Enemy scale: same for all levels
+        var enemyScale = BaseEnemyScale;
 
         // Elite enemies appear from level 3+
         var hasElites = level >= 3;
@@ -528,17 +507,20 @@ public class SurviveModeService : ISurviveModeService
         var diffMult = config.DifficultyMultiplier;
         var rewardMult = config.RewardMultiplier;
 
+        // Per-level reward scaling: level 1 = 1x, level 2 = 1.15x, level 12 = 2.65x
+        var levelScale = 1.0 + (level - 1) * RewardScalePerLevel;
+
         // Base XP from level completion + kill bonus
-        var baseXP = (int)(BaseXPPerLevel * level * diffMult);
-        var killXP = (int)(enemiesKilled * XPPerEnemyKill * Math.Sqrt(level));
+        var baseXP = (int)(BaseXPPerLevel * level * diffMult * levelScale);
+        var killXP = (int)(enemiesKilled * XPPerEnemyKill * Math.Sqrt(level) * levelScale);
         var xpReward = survived ? baseXP + killXP : killXP; // Only full XP on survival
 
         // Fidelis reward
-        var baseFidelis = BaseFidelisPerLevel * level * (decimal)rewardMult;
-        var killFidelis = (int)(enemiesKilled * FidelisPerEnemyKill);
+        var baseFidelis = BaseFidelisPerLevel * level * (decimal)(rewardMult * levelScale);
+        var killFidelis = (int)(enemiesKilled * FidelisPerEnemyKill * levelScale);
         var fidelisReward = survived ? baseFidelis + killFidelis : killFidelis;
 
-        // Level bonus (higher character level = slightly more rewards)
+        // Character level bonus (higher character level = slightly more rewards)
         var levelBonus = 1.0 + Math.Min(characterLevel * 0.005, 0.5);
         xpReward = (int)(xpReward * levelBonus);
         fidelisReward = Math.Round(fidelisReward * (decimal)levelBonus, 2);

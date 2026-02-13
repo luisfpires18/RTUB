@@ -13,7 +13,6 @@
       "defense": 5,
       "criticalChance": 0.0
     },
-
     "levelScaling": {
       "maxLevel": 2000,
       "statMultiplierPerLevel": 0.18,
@@ -22,11 +21,33 @@
     },
 
     "upgrades": {
-      "hp":            { "multiplierPerUpgrade": 0.06, "baseCost": 20,  "costExponent": 2.0 },
-      "power":         { "multiplierPerUpgrade": 0.60, "baseCost": 25,  "costExponent": 2.0 },
-      "speed":         { "multiplierPerUpgrade": 1.5,  "baseCost": 30,  "costExponent": 2.0, "maxUpgrades": 41 },
-      "criticalChance":{ "multiplierPerUpgrade": 0.005,"baseCost": 50,  "costExponent": 2.2, "maxUpgrades": 100 },
-      "defense":       { "multiplierPerUpgrade": 0.25, "baseCost": 25,  "costExponent": 2.0 }
+      "hp": {
+        "multiplierPerUpgrade": 0.06,
+        "baseCost": 20,
+        "costExponent": 2.0
+      },
+      "power": {
+        "multiplierPerUpgrade": 0.60,
+        "baseCost": 25,
+        "costExponent": 2.0
+      },
+      "speed": {
+        "multiplierPerUpgrade": 1.5,
+        "baseCost": 30,
+        "costExponent": 2.0,
+        "maxUpgrades": 41
+      },
+      "criticalChance": {
+        "multiplierPerUpgrade": 0.005,
+        "baseCost": 50,
+        "costExponent": 2.2,
+        "maxUpgrades": 100
+      },
+      "defense": {
+        "multiplierPerUpgrade": 0.25,
+        "baseCost": 25,
+        "costExponent": 2.0
+      }
     },
 
     "combat": {
@@ -47,12 +68,12 @@
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
       "restoreHPCost": 20,
-      "finoDropChance": 0.001,
-      "shotDropChance": 0.0006,
-      "cigarroDropChance": 0.0004,
-      "canecaDropChance": 0.0003,
-      "canhaoDropChance": 0.0002,
-      "penaltyDropChance": 0.0001
+      "finoDropChance": 0.0015,
+      "shotDropChance": 0.0009,
+      "cigarroDropChance": 0.0009,
+      "canecaDropChance": 0.0004,
+      "canhaoDropChance": 0.0003,
+      "penaltyDropChance": 0.0002
     },
 
     "stageMode": {
@@ -75,19 +96,31 @@
       },
 
       "baseEnemyStats": {
-        "normal": { "hp": 40, "power": 10, "speed": 5, "defense": 2, "criticalChance": 0.04 },
-        "boss":   { "hp": 80, "power": 15, "speed": 3, "defense": 4, "criticalChance": 0.10 }
+        "normal": {
+          "hp": 40,
+          "power": 10,
+          "speed": 5,
+          "defense": 2,
+          "criticalChance": 0.04
+        },
+        "boss": {
+          "hp": 80,
+          "power": 15,
+          "speed": 3,
+          "defense": 4,
+          "criticalChance": 0.10
+        }
       },
 
       "dropRates": {
-        "finoDropChance": 0.001,
-        "shotDropChance": 0.0006,
-        "cigarroDropChance": 0.0004,
-        "canecaDropChance": 0.0003,
-        "canhaoDropChance": 0.0002,
-        "penaltyDropChance": 0.0001,
-        "instrumentPartDropChance": 0.0001,
-        "equipmentDropChance": 0.0002,
+        "finoDropChance": 0.0015,
+        "shotDropChance": 0.0009,
+        "cigarroDropChance": 0.0009,
+        "canecaDropChance": 0.0004,
+        "canhaoDropChance": 0.0003,
+        "penaltyDropChance": 0.0002,
+        "instrumentPartDropChance": 0.0003,
+        "equipmentDropChance": 0.0003,
         "bossDropMultiplier": 3.0
       },
 
@@ -99,13 +132,41 @@
       "equipmentQualityMin": 0.7,
       "equipmentQualityMax": 1.3,
       "equipmentStats": {
-        "head":       { "hp": 60, "power": 10, "defense": 15 },
-        "shoulders":  { "hp": 45, "power": 5,  "defense": 20 },
-        "chest":      { "hp": 100,"power": 15, "defense": 35 },
-        "gloves":     { "hp": 10, "power": 25, "defense": 3 },
-        "legs":       { "hp": 60, "power": 10, "defense": 15 },
-        "boots":      { "hp": 30, "power": 5,  "defense": 10 },
-        "instrument": { "hp": 8,  "power": 12, "defense": 5 }
+        "head": {
+          "hp": 60,
+          "power": 10,
+          "defense": 15
+        },
+        "shoulders": {
+          "hp": 45,
+          "power": 5,
+          "defense": 20
+        },
+        "chest": {
+          "hp": 100,
+          "power": 15,
+          "defense": 35
+        },
+        "gloves": {
+          "hp": 10,
+          "power": 25,
+          "defense": 3
+        },
+        "legs": {
+          "hp": 60,
+          "power": 10,
+          "defense": 15
+        },
+        "boots": {
+          "hp": 30,
+          "power": 5,
+          "defense": 10
+        },
+        "instrument": {
+          "hp": 8,
+          "power": 12,
+          "defense": 5
+        }
       },
       "discardValues": {
         "equipment": 200,
@@ -354,19 +415,39 @@
       "encounterRules": {
         "bossEveryNStages": 10,
         "enemyCountByStageOffset": [
-          { "from": 1, "to": 2, "count": 1 },
-          { "from": 3, "to": 4, "count": 2 },
-          { "from": 5, "to": 6, "count": 3 },
-          { "from": 7, "to": 8, "count": 4 },
-          { "from": 9, "to": 9, "count": 5 }
+          {
+            "from": 1,
+            "to": 2,
+            "count": 1
+          },
+          {
+            "from": 3,
+            "to": 4,
+            "count": 2
+          },
+          {
+            "from": 5,
+            "to": 6,
+            "count": 3
+          },
+          {
+            "from": 7,
+            "to": 8,
+            "count": 4
+          },
+          {
+            "from": 9,
+            "to": 9,
+            "count": 5
+          }
         ]
       }
     },
 
     "bossMode": {
       "stageOffset": 800,
-      "xpPerBossLevel": 250,
-      "bossLevelXPPower": 1.2,
+      "xpPerBossLevel": 50,
+      "bossLevelXPPower": 0.6,
       "xpLevelPenaltyRate": 0.01,
       "minXPLevelMultiplier": 0.1,
 
@@ -392,19 +473,19 @@
       "bossStatMultiplier": 3.3,
 
       "dropRates": {
-        "finoDropChance": 0.001,
-        "shotDropChance": 0.0006,
-        "cigarroDropChance": 0.0004,
-        "canecaDropChance": 0.0003,
-        "canhaoDropChance": 0.0002,
-        "penaltyDropChance": 0.0001,
-        "instrumentPartDropChance": 0.0001,
-        "equipmentDropChance": 0.0002,
+        "finoDropChance": 0.0015,
+        "shotDropChance": 0.0009,
+        "cigarroDropChance": 0.0009,
+        "canecaDropChance": 0.0004,
+        "canhaoDropChance": 0.0003,
+        "penaltyDropChance": 0.0002,
+        "instrumentPartDropChance": 0.0003,
+        "equipmentDropChance": 0.0003,
         "fitabDropChance": 0.003
       },
 
       "fidelisRewards": {
-        "bossWin": 750
+        "bossWin": 150
       },
 
       "fitabDropChanceStage": 0.002,
@@ -419,16 +500,96 @@
       "regenIntervalSeconds": 60,
       "castTimeSeconds": 3,
       "resources": [
-        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "forgeCost": 1, "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1 },
-        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "forgeCost": 1, "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 101 },
-        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "forgeCost": 2, "icon": "bi-cup",             "isActive": true, "unlockStage": 201 },
-        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "forgeCost": 2, "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 301 },
-        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "forgeCost": 3, "icon": "bi-hurricane",       "isActive": true, "unlockStage": 401 },
-        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "forgeCost": 3, "icon": "bi-droplet",         "isActive": true, "unlockStage": 501 },
-        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "forgeCost": 4, "icon": "bi-moisture",        "isActive": true, "unlockStage": 601 },
-        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "forgeCost": 5, "icon": "bi-fire",            "isActive": true, "unlockStage": 701 },
-        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "forgeCost": 6, "icon": "bi-radioactive",     "isActive": true, "unlockStage": 801 },
-        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "forgeCost": 8, "icon": "bi-lightning-fill",   "isActive": true, "unlockStage": 901 }
+        {
+          "type": "Cerveja",
+          "name": "Cerveja",
+          "energyCost": 1,
+          "forgeCost": 1,
+          "icon": "bi-cup-straw",
+          "isActive": true,
+          "unlockStage": 1
+        },
+        {
+          "type": "Vinho",
+          "name": "Vinho",
+          "energyCost": 2,
+          "forgeCost": 1,
+          "icon": "bi-droplet-fill",
+          "isActive": true,
+          "unlockStage": 101
+        },
+        {
+          "type": "Licor",
+          "name": "Licor",
+          "energyCost": 3,
+          "forgeCost": 2,
+          "icon": "bi-cup",
+          "isActive": true,
+          "unlockStage": 201
+        },
+        {
+          "type": "Rum",
+          "name": "Rum",
+          "energyCost": 4,
+          "forgeCost": 2,
+          "icon": "bi-cup-hot",
+          "isActive": true,
+          "unlockStage": 301
+        },
+        {
+          "type": "Tequilla",
+          "name": "Tequilla",
+          "energyCost": 5,
+          "forgeCost": 3,
+          "icon": "bi-hurricane",
+          "isActive": true,
+          "unlockStage": 401
+        },
+        {
+          "type": "Vodka",
+          "name": "Vodka",
+          "energyCost": 6,
+          "forgeCost": 3,
+          "icon": "bi-droplet",
+          "isActive": true,
+          "unlockStage": 501
+        },
+        {
+          "type": "Gin",
+          "name": "Gin",
+          "energyCost": 7,
+          "forgeCost": 4,
+          "icon": "bi-moisture",
+          "isActive": true,
+          "unlockStage": 601
+        },
+        {
+          "type": "Whisky",
+          "name": "Whisky",
+          "energyCost": 8,
+          "forgeCost": 5,
+          "icon": "bi-fire",
+          "isActive": true,
+          "unlockStage": 701
+        },
+        {
+          "type": "Absinto",
+          "name": "Absinto",
+          "energyCost": 9,
+          "forgeCost": 6,
+          "icon": "bi-radioactive",
+          "isActive": true,
+          "unlockStage": 801
+        },
+        {
+          "type": "Aguardente",
+          "name": "Aguardente",
+          "energyCost": 10,
+          "forgeCost": 8,
+          "icon": "bi-lightning-fill",
+          "isActive": true,
+          "unlockStage": 901
+        }
       ]
     },
 

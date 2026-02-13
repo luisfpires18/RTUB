@@ -262,6 +262,7 @@
             this.eliteChance = levelData.eliteSpawnChance;
             this.mapWidth = levelData.mapWidth;
             this.mapHeight = levelData.mapHeight;
+
             this.vpWidth = levelData.viewportWidth;
             this.vpHeight = levelData.viewportHeight;
             this.backgroundPath = levelData.backgroundPath;
@@ -314,7 +315,7 @@
             this.upgradeIndex = 0; // index into UPGRADE_THRESHOLDS
             this.nextUpgradeAt = UPGRADE_THRESHOLDS[0];
             this.upgradesPicked = 0;
-            this.maxPowerUps = Math.floor(this.timerDuration / 60); // limit powers to timer minutes (8min = 8 max powers)
+            this.maxPowerUps = Math.floor(this.timerDuration / 60) + (this.level - 1) * 2; // base from timer + 2 extra per level
             this.pickedUpgradeIds = new Set(); // track unique upgrades already picked
             this.upgradePickCounts = {};       // track pick count per upgrade id
             this.coinDropMult = 1;    // how many coins per kill
@@ -412,6 +413,7 @@
             this.won = false;
             gameActive = true;
             app.ticker.add(this.update, this);
+
         }
 
         async loadAssets() {
@@ -752,44 +754,42 @@
         }
 
         createJoystick() {
-            // Virtual joystick for mobile (bottom left)
-            const joyX = 80;
-            const joyY = this.vpHeight - 80;
-            const joyRadius = 50;
+            // Floating virtual joystick for mobile — appears where you touch
+            const joyRadius = 64;
+            const knobRadius = 26;
+
+            // Default hidden position (center of a comfortable bottom-left zone)
+            const defaultX = 100;
+            const defaultY = this.vpHeight - 100;
 
             const joyBg = new PIXI.Graphics();
             joyBg.circle(0, 0, joyRadius);
-            joyBg.fill({ color: 0xffffff, alpha: 0.1 });
-            joyBg.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 0.2 });
+            joyBg.fill({ color: 0xffffff, alpha: 0.15 });
+            joyBg.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 0.3 });
             joyBg.stroke();
-            joyBg.position.set(joyX, joyY);
-            joyBg.eventMode = 'static';
+            joyBg.position.set(defaultX, defaultY);
+            joyBg.alpha = 0; // hidden until touch
             this.uiContainer.addChild(joyBg);
 
             const joyKnob = new PIXI.Graphics();
-            joyKnob.circle(0, 0, 18);
-            joyKnob.fill({ color: 0xffffff, alpha: 0.4 });
-            joyKnob.position.set(joyX, joyY);
+            joyKnob.circle(0, 0, knobRadius);
+            joyKnob.fill({ color: 0xffffff, alpha: 0.5 });
+            joyKnob.position.set(defaultX, defaultY);
+            joyKnob.alpha = 0; // hidden until touch
             this.uiContainer.addChild(joyKnob);
 
-            this.joystick = { bg: joyBg, knob: joyKnob, x: joyX, y: joyY, radius: joyRadius };
-
-            // Touch events for joystick
-            joyBg.on('pointerdown', (e) => {
-                this.joystickActive = true;
-                this.updateJoystick(e);
-            });
-            joyBg.on('pointermove', (e) => {
-                if (this.joystickActive) this.updateJoystick(e);
-            });
-            joyBg.on('pointerup', () => this.resetJoystick());
-            joyBg.on('pointerupoutside', () => this.resetJoystick());
+            this.joystick = {
+                bg: joyBg, knob: joyKnob,
+                x: defaultX, y: defaultY,
+                radius: joyRadius,
+                defaultX, defaultY
+            };
+            this._joystickPointerId = null;
         }
 
-        updateJoystick(e) {
-            const pos = e.getLocalPosition(this.uiContainer);
-            const dx = pos.x - this.joystick.x;
-            const dy = pos.y - this.joystick.y;
+        updateJoystick(localX, localY) {
+            const dx = localX - this.joystick.x;
+            const dy = localY - this.joystick.y;
             const d = Math.sqrt(dx * dx + dy * dy);
             const maxD = this.joystick.radius;
             const clamped = Math.min(d, maxD);
@@ -806,10 +806,21 @@
         resetJoystick() {
             this.joystickActive = false;
             this.joystickMagnitude = 0;
+            this._joystickPointerId = null;
+            // Hide the floating joystick
+            this.joystick.bg.alpha = 0;
+            this.joystick.knob.alpha = 0;
+            // Reset position to default
+            this.joystick.x = this.joystick.defaultX;
+            this.joystick.y = this.joystick.defaultY;
+            this.joystick.bg.position.set(this.joystick.x, this.joystick.y);
             this.joystick.knob.position.set(this.joystick.x, this.joystick.y);
         }
 
         setupInput() {
+            // Detect touch-capable device
+            this._isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
             // Keyboard
             this._onKeyDown = (e) => {
                 this.keys[e.key.toLowerCase()] = true;
@@ -821,36 +832,79 @@
             window.addEventListener('keydown', this._onKeyDown);
             window.addEventListener('keyup', this._onKeyUp);
 
-            // Mouse / touch for movement on the canvas
             if (app && app.canvas) {
+                // Prevent browser gestures (scroll/zoom) from hijacking touches
+                app.canvas.style.touchAction = 'none';
+
                 this._onPointerDown = (e) => {
-                    // Only for non-joystick area
                     const rect = app.canvas.getBoundingClientRect();
                     const scaleX = this.vpWidth / rect.width;
                     const scaleY = this.vpHeight / rect.height;
                     const localX = (e.clientX - rect.left) * scaleX;
                     const localY = (e.clientY - rect.top) * scaleY;
-                    
-                    // Don't activate if clicking joystick area
-                    if (localX < 140 && localY > this.vpHeight - 140) return;
 
-                    this.touchActive = true;
-                    this.touchTarget.x = localX + this.camX;
-                    this.touchTarget.y = localY + this.camY;
+                    if (this._isTouchDevice) {
+                        // ── Mobile: left half = floating joystick, right half = ignore (auto-attack) ──
+                        if (localX < this.vpWidth * 0.55 && this._joystickPointerId === null) {
+                            // Anchor joystick where the finger lands
+                            this._joystickPointerId = e.pointerId;
+                            this.joystick.x = localX;
+                            this.joystick.y = localY;
+                            this.joystick.bg.position.set(localX, localY);
+                            this.joystick.knob.position.set(localX, localY);
+                            this.joystick.bg.alpha = 1;
+                            this.joystick.knob.alpha = 1;
+                            this.joystickActive = true;
+                            this.joystickMagnitude = 0;
+                        }
+                    } else {
+                        // ── Desktop: click-to-move ──
+                        this.touchActive = true;
+                        this.touchTarget.x = localX + this.camX;
+                        this.touchTarget.y = localY + this.camY;
+                    }
                 };
+
                 this._onPointerMove = (e) => {
-                    if (!this.touchActive) return;
                     const rect = app.canvas.getBoundingClientRect();
                     const scaleX = this.vpWidth / rect.width;
                     const scaleY = this.vpHeight / rect.height;
-                    this.touchTarget.x = (e.clientX - rect.left) * scaleX + this.camX;
-                    this.touchTarget.y = (e.clientY - rect.top) * scaleY + this.camY;
+                    const localX = (e.clientX - rect.left) * scaleX;
+                    const localY = (e.clientY - rect.top) * scaleY;
+
+                    if (this._isTouchDevice) {
+                        // Track only the joystick finger
+                        if (this.joystickActive && e.pointerId === this._joystickPointerId) {
+                            this.updateJoystick(localX, localY);
+                        }
+                    } else {
+                        if (!this.touchActive) return;
+                        this.touchTarget.x = localX + this.camX;
+                        this.touchTarget.y = localY + this.camY;
+                    }
                 };
-                this._onPointerUp = () => { this.touchActive = false; };
+
+                this._onPointerUp = (e) => {
+                    if (this._isTouchDevice) {
+                        if (e.pointerId === this._joystickPointerId) {
+                            this.resetJoystick();
+                        }
+                    } else {
+                        this.touchActive = false;
+                    }
+                };
+
+                this._onPointerCancel = (e) => {
+                    // Handle interrupted touches (e.g. notification overlay)
+                    if (e.pointerId === this._joystickPointerId) {
+                        this.resetJoystick();
+                    }
+                };
 
                 app.canvas.addEventListener('pointerdown', this._onPointerDown);
                 app.canvas.addEventListener('pointermove', this._onPointerMove);
                 app.canvas.addEventListener('pointerup', this._onPointerUp);
+                app.canvas.addEventListener('pointercancel', this._onPointerCancel);
             }
         }
 
@@ -2203,8 +2257,8 @@
                 if (this._onPointerDown) app.canvas.removeEventListener('pointerdown', this._onPointerDown);
                 if (this._onPointerMove) app.canvas.removeEventListener('pointermove', this._onPointerMove);
                 if (this._onPointerUp) app.canvas.removeEventListener('pointerup', this._onPointerUp);
+                if (this._onPointerCancel) app.canvas.removeEventListener('pointercancel', this._onPointerCancel);
             }
-
             // Remove ticker
             if (app && app.ticker) {
                 try { app.ticker.remove(this.update, this); } catch (_) { }
