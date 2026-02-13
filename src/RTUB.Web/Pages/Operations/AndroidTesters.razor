@@ -209,6 +209,7 @@
                                                    LastLoginDate="@tester.LastLoginDate"
                                                    LoginDays="@tester.LoginDays"
                                                    LastUserAgent="@tester.LastUserAgent"
+                                                   AndroidLoginCount="@tester.AndroidLoginCount"
                                                    OnViewDetails="@(() => OpenDetailsModal(tester))" />
                             }
                         </div>
@@ -431,6 +432,12 @@
                 .GroupBy(l => l.UserId)
                 .ToDictionary(g => g.Key, g => g.First().UserAgent);
 
+            // Count distinct days with Android user-agent per user
+            var androidLoginCountByUser = logins
+                .Where(l => UserAgentHelper.IsAndroid(l.UserAgent))
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(l => l.LoginDate.Date).Distinct().Count());
+
             androidTesters = testers
                 .Select(u => new TesterLoginInfo
                 {
@@ -442,7 +449,8 @@
                     AvatarUrl = u.ProfilePictureSrc,
                     LoginDays = loginsByUser.ContainsKey(u.Id) ? loginsByUser[u.Id] : new List<DateTime>(),
                     LastLoginDate = u.LastLoginDate,
-                    LastUserAgent = latestUserAgentByUser.TryGetValue(u.Id, out var ua) ? ua : null
+                    LastUserAgent = latestUserAgentByUser.TryGetValue(u.Id, out var ua) ? ua : null,
+                    AndroidLoginCount = androidLoginCountByUser.TryGetValue(u.Id, out var count) ? count : 0
                 })
                 .OrderByDescending(t => t.LoginDays.Count)
                 .ThenBy(t => t.DisplayNickname)
@@ -716,6 +724,7 @@
         public List<DateTime> LoginDays { get; set; } = new();
         public DateTime? LastLoginDate { get; set; }
         public string? LastUserAgent { get; set; }
+        public int AndroidLoginCount { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 

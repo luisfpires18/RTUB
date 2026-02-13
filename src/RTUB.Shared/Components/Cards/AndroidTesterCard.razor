@@ -45,6 +45,13 @@
                 <span class="android-tester-value android-tester-value-@(LoggedInToday ? "yes" : "no")">@(LoggedInToday ? "Yes" : "No")</span>
             </div>
 
+            <!-- Android Login Count -->
+            <div class="android-tester-info-row">
+                <i class="bi bi-phone"></i>
+                <span class="android-tester-label">Android Logins:</span>
+                <span class="android-tester-value">@AndroidLoginCount/@TotalDays</span>
+            </div>
+
             <!-- Last Login Date -->
             <div class="android-tester-info-row">
                 <i class="bi bi-clock-history"></i>
@@ -102,6 +109,9 @@
 
     [Parameter]
     public string? LastUserAgent { get; set; }
+
+    [Parameter]
+    public int AndroidLoginCount { get; set; } = 0;
 
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
