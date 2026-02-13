@@ -201,6 +201,7 @@ public class StageBiomeService : IStageBiomeService
             "desert" => RegionType.Desert,
             "volcanic" => RegionType.Volcanic,
             "dark" => RegionType.Dark,
+            "light" => RegionType.Light,
             "void" => RegionType.Void,
             _ => RegionType.Forest
         };

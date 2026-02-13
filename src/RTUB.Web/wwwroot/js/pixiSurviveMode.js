@@ -472,6 +472,7 @@
                 'Volcanic': 0x4a1a1a,
                 'Ruins': 0x4a4a3a,
                 'Dark': 0x1a1a2a,
+                'Light': 0xf5e6a0,
                 'Void': 0x0a0a1a
             };
             const bgColor = biomeColors[this.biomeName] || 0x2d5a27;
@@ -510,7 +511,7 @@
                 'Forest': 0x1a4a17, 'Swamp': 0x2a3a1a, 'Mountains': 0x8a8a8a,
                 'Snowy': 0xffffff, 'Tropical': 0x2a6a3a, 'Caverns': 0x3a3a5a,
                 'Desert': 0xd4b36a, 'Volcanic': 0x6a2a1a, 'Ruins': 0x5a5a4a,
-                'Dark': 0x2a2a4a, 'Void': 0x1a1a3a
+                'Dark': 0x2a2a4a, 'Light': 0xd4c870, 'Void': 0x1a1a3a
             };
             const decoColor = decoColors[this.biomeName] || 0x1a4a17;
             for (let i = 0; i < 200; i++) {

@@ -54,7 +54,7 @@ public class SurviveModeService : ISurviveModeService
     private const int MapHeight = 2400;
     private const int ViewportWidth = 800;                 // Visible area
     private const int ViewportHeight = 500;
-    private const int MaxLevel = 11;                       // Void is the final level
+    private const int MaxLevel = 12;                       // Void is the final level
 
     // All levels start the same â€” difficulty ramps over TIME within each level,
     // not across levels. The per-biome time-ramp rates below control how fast
@@ -71,7 +71,8 @@ public class SurviveModeService : ISurviveModeService
         (1.00, 1.00), // Level 8  - Volcanic
         (1.00, 1.00), // Level 9  - Ruins
         (1.00, 1.00), // Level 10 - Dark
-        (1.00, 1.00), // Level 11 - Void (final)
+        (1.00, 1.00), // Level 11 - Light
+        (1.00, 1.00), // Level 12 - Void (final)
     };
 
     // Per-biome time-based ramp: (spawnRampPerMinute, speedRampPerMinute)
@@ -88,7 +89,8 @@ public class SurviveModeService : ISurviveModeService
         (0.55, 0.45), // Level 8  - Volcanic:  +55% spawn / +45% speed per min
         (0.60, 0.50), // Level 9  - Ruins:     +60% spawn / +50% speed per min
         (0.65, 0.55), // Level 10 - Dark:      +65% spawn / +55% speed per min
-        (0.70, 0.60), // Level 11 - Void:      +70% spawn / +60% speed per min
+        (0.68, 0.58), // Level 11 - Light:     +68% spawn / +58% speed per min
+        (0.70, 0.60), // Level 12 - Void:      +70% spawn / +60% speed per min
     };
 
     // Reward constants

@@ -23,6 +23,9 @@ public static partial class SeedData
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
+        // Seed Light biome stage enemies (runs even for existing databases)
+        await SeedLightBiomeEnemiesAsync(dbContext);
+
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

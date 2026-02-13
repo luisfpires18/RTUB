@@ -954,8 +954,8 @@
                         runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
-                        expireShotBuff: runStartingShotBuffBattles > 0,
-                        expirePenaltyBuff: runStartingPenaltyBuff > 0);
+                        expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
+                        expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
                 }
                 catch (Exception ex)
                 {
@@ -1041,16 +1041,23 @@
         showBuffScreen = false;
         buffToastMessage = null;
 
-        // Consume 1 shot/penalty buff charge for the completed run before starting a new one.
+        // Consume buff charges for the completed run before starting a new one.
         // This ensures each run only costs 1 charge, not N charges for N bosses.
-        if (runStartingShotBuffBattles > 0 && character.ShotBuffBattlesRemaining > 0)
+        // Always check the current character state (not just the run snapshot) because
+        // the player may have activated a buff on the buff screen after dying.
+        var needsSave = false;
+        if (character.ShotBuffBattlesRemaining > 0 && (runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0))
         {
             character.ExpireShotBuff();
-            await CharacterService.UpdateCharacterAsync(character);
+            needsSave = true;
         }
-        if (runStartingPenaltyBuff > 0 && character.PenaltyBuffActive > 0)
+        if (character.PenaltyBuffActive > 0)
         {
             character.ExpirePenaltyBuff();
+            needsSave = true;
+        }
+        if (needsSave)
+        {
             await CharacterService.UpdateCharacterAsync(character);
         }
 
@@ -1094,6 +1101,8 @@
         if (_disposed) return;
 
         // Apply accumulated rewards and expire run-scoped buffs
+        // Check actual character state (not just snapshot) because player may have
+        // activated buffs on the buff screen after dying.
         if (character != null && bossesCleared > 0)
         {
             try
@@ -1103,8 +1112,8 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
-                    expireShotBuff: runStartingShotBuffBattles > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0);
+                    expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }
             catch (Exception ex)
             {
@@ -1113,7 +1122,14 @@
         }
         else if (character != null && runStartingHp.HasValue)
         {
-            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+            // Cancel: expire any buff the player activated on the buff screen
+            // (it was consumed from inventory so it should not persist)
+            if (character.PenaltyBuffActive > 0)
+            {
+                character.ExpirePenaltyBuff();
+                await CharacterService.UpdateCharacterAsync(character);
+            }
+            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, 0);
         }
 
         pendingDefeatRewards = false;
@@ -1323,8 +1339,8 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
-                    expireShotBuff: runStartingShotBuffBattles > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0);
+                    expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }
             catch (Exception) { }
             pendingDefeatRewards = false;

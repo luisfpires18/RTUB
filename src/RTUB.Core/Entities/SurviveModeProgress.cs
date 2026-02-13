@@ -154,7 +154,7 @@ public class SurviveModeProgress : BaseEntity
 
     /// <summary>
     /// Gets the region/biome for a given survive level.
-    /// Level 1 = Forest, 2 = Swamp, ... 10 = Dark, 11+ = Void.
+    /// Level 1 = Forest, 2 = Swamp, ... 10 = Dark, 11 = Light, 12+ = Void.
     /// </summary>
     public static RegionType GetRegionForLevel(int level)
     {
@@ -170,6 +170,7 @@ public class SurviveModeProgress : BaseEntity
             8 => RegionType.Volcanic,
             9 => RegionType.Ruins,
             10 => RegionType.Dark,
+            11 => RegionType.Light,
             _ => RegionType.Void,
         };
     }
@@ -191,6 +192,7 @@ public class SurviveModeProgress : BaseEntity
             RegionType.Volcanic => "Volcanic",
             RegionType.Ruins => "Ruins",
             RegionType.Dark => "Dark",
+            RegionType.Light => "Light",
             RegionType.Void => "Void",
             _ => "Unknown"
         };

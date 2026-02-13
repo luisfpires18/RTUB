@@ -116,8 +116,16 @@ public class StageBiomeServiceTests
                     },
                     new BiomeConfig
                     {
-                        Name = "Void",
+                        Name = "Light",
                         StageMin = 1001,
+                        StageMax = 1100,
+                        EnemySpritePath = "sprites/games/my-tuno/enemies/light",
+                        BossSpritePrefix = "boss_"
+                    },
+                    new BiomeConfig
+                    {
+                        Name = "Void",
+                        StageMin = 1101,
                         StageMax = 999999999,
                         EnemySpritePath = "sprites/games/my-tuno/enemies/void",
                         BossSpritePrefix = "boss_"
@@ -231,10 +239,30 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void GetBiomeForStage_Stage1001_ReturnsVoid()
+    public void GetBiomeForStage_Stage1001_ReturnsLight()
     {
         // Act
         var biome = _service.GetBiomeForStage(1001);
+
+        // Assert
+        Assert.Equal("Light", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage1100_ReturnsLight()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(1100);
+
+        // Assert
+        Assert.Equal("Light", biome);
+    }
+
+    [Fact]
+    public void GetBiomeForStage_Stage1101_ReturnsVoid()
+    {
+        // Act
+        var biome = _service.GetBiomeForStage(1101);
 
         // Assert
         Assert.Equal("Void", biome);

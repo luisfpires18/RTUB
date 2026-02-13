@@ -2,7 +2,7 @@ namespace RTUB.Core.Enums;
 
 /// <summary>
 /// Represents the biome/region in Stage Mode
-/// 10 biomes × 100 stages each (1-1000), Void is 1001+ (endless)
+/// 11 biomes × 100 stages each (1-1100), Void is 1101+ (endless)
 /// </summary>
 public enum RegionType
 {
@@ -38,8 +38,11 @@ public enum RegionType
     /// <summary>Stages 901-1000: Dark region</summary>
     Dark = 9,
 
+    /// <summary>Stages 1001-1100: Light region</summary>
+    Light = 10,
+
     /// <summary>
-    /// Stages 1001+: The Void (Endless mode)
+    /// Stages 1101+: The Void (Endless mode)
     /// Enemies and bosses are drawn randomly across all void sub-folders
     /// </summary>
     Void = 99

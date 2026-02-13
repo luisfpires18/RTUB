@@ -1088,39 +1088,90 @@
             const isBoosted = getEventField(evt, 'IsBoosted') ?? false;
 
             if (attacker === 'Attacker' || attacker === 'Player') {
-                this.animatePlayerAttack();
+                this.animatePlayerAttack(isCritical);
                 if (defender && defender.startsWith('Enemy')) {
                     const enemyIndex = parseInt(defender.replace('Enemy', ''));
-                    this.flashEnemy(enemyIndex);
+                    this.flashEnemy(enemyIndex, isCritical);
+                    // Show damage text on the hit enemy
+                    const enemy = this.enemySprites[enemyIndex];
+                    if (enemy && damage > 0) {
+                        if (isBlocked) {
+                            this.showFloatingText('BLOCKED', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0x00e5ff);
+                        } else {
+                            this.showDamageText(damage, isCritical, enemy.x, enemy.y - (enemy.height || 40) * 0.8);
+                        }
+                    }
                     if (isBoosted) {
-                        const enemy = this.enemySprites[enemyIndex];
-                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0xff9800);
+                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8 - 25, 0xff9800);
                     }
                 } else {
-                    this.flashEnemies();
+                    this.flashEnemies(isCritical);
+                    const enemy = this.enemySprites[0];
+                    if (enemy && damage > 0) {
+                        if (isBlocked) {
+                            this.showFloatingText('BLOCKED', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0x00e5ff);
+                        } else {
+                            this.showDamageText(damage, isCritical, enemy.x, enemy.y - (enemy.height || 40) * 0.8);
+                        }
+                    }
                     if (isBoosted && this.enemySprites.length > 0) {
-                        const enemy = this.enemySprites[0];
-                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8, 0xff9800);
+                        if (enemy) this.showFloatingText('EXTRA', enemy.x, enemy.y - (enemy.height || 40) * 0.8 - 25, 0xff9800);
                     }
                 }
             } else if (attacker.startsWith('Enemy')) {
                 const enemyIndex = parseInt(attacker.replace('Enemy', ''));
-                this.animateSingleEnemyAttack(enemyIndex);
+                this.animateSingleEnemyAttack(enemyIndex, isCritical);
                 if (isBlocked) {
                     this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
                 } else {
-                    this.flashPlayer();
+                    this.flashPlayer(isCritical);
+                    if (damage > 0) {
+                        this.showDamageText(damage, isCritical, this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8);
+                    }
                 }
             } else {
-                this.animateEnemyAttack();
+                this.animateEnemyAttack(isCritical);
                 if (isBlocked) {
                     this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
                 } else {
-                    this.flashPlayer();
+                    this.flashPlayer(isCritical);
+                    if (damage > 0) {
+                        this.showDamageText(damage, isCritical, this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8);
+                    }
                 }
             }
 
             this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
+        }
+
+        showDamageText(damage, isCritical, x, y) {
+            if (!this.stage) return;
+            const damageValue = Math.abs(damage);
+            const text = isCritical ? `CRIT! -${formatNum(damageValue)}` : `-${formatNum(damageValue)}`;
+            const fontSize = isCritical ? 28 : 22;
+            const color = isCritical ? 0xffff00 : 0xff4444;
+            const strokeWidth = isCritical ? 5 : 4;
+            const floatDistance = isCritical ? 80 : 60;
+            const duration = isCritical ? 1000 : 800;
+
+            const damageText = this._getPooledText(text, {
+                fontFamily: 'Arial',
+                fontSize: fontSize,
+                fontWeight: 'bold',
+                fill: color,
+                stroke: { color: 0x000000, width: strokeWidth }
+            });
+            damageText.anchor.set(0.5);
+            damageText.x = x;
+            damageText.y = y;
+            this.stage.addChild(damageText);
+
+            this.animateTo(damageText, {
+                y: damageText.y - floatDistance,
+                alpha: 0
+            }, duration, () => {
+                this._releaseText(damageText);
+            });
         }
 
         showFloatingText(text, x, y, color) {
@@ -1145,64 +1196,73 @@
             });
         }
 
-        animatePlayerAttack() {
+        animatePlayerAttack(isCritical) {
             if (!this.playerSprite) return;
             
             const originalX = this.playerSprite.x;
-            this.animateTo(this.playerSprite, { x: originalX + 60 }, 150, () => {
+            const lungeDistance = isCritical ? 80 : 60;
+            const lungeDuration = isCritical ? 120 : 150;
+            this.animateTo(this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
                 this.animateTo(this.playerSprite, { x: originalX }, 240);
             });
         }
 
-        animateEnemyAttack() {
+        animateEnemyAttack(isCritical) {
             this.enemySprites.forEach((enemy, index) => {
                 const originalX = enemy.x;
+                const lungeDistance = isCritical ? 80 : 60;
+                const lungeDuration = isCritical ? 120 : 150;
                 setTimeout(() => {
-                    this.animateTo(enemy, { x: originalX - 60 }, 150, () => {
+                    this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
                         this.animateTo(enemy, { x: originalX }, 240);
                     });
                 }, (index * 50) / this.battleSpeed);
             });
         }
 
-        animateSingleEnemyAttack(enemyIndex) {
+        animateSingleEnemyAttack(enemyIndex, isCritical) {
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
                     const originalX = enemy.x;
-                    this.animateTo(enemy, { x: originalX - 60 }, 150, () => {
+                    const lungeDistance = isCritical ? 80 : 60;
+                    const lungeDuration = isCritical ? 120 : 150;
+                    this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
                         this.animateTo(enemy, { x: originalX }, 240);
                     });
                 }
             }
         }
 
-        flashPlayer() {
+        flashPlayer(isCritical) {
             if (!this.playerSprite) return;
-            this.playerSprite.tint = 0xff0000;
+            this.playerSprite.tint = isCritical ? 0xcc0000 : 0xff0000;
+            const flashDuration = isCritical ? 180 : 100;
             setTimeout(() => {
                 this.playerSprite.tint = 0xffffff;
-            }, 100 / this.battleSpeed);
+            }, flashDuration / this.battleSpeed);
         }
 
-        flashEnemy(enemyIndex) {
+        flashEnemy(enemyIndex, isCritical) {
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
-                    enemy.tint = 0xff0000;
+                    enemy.tint = isCritical ? 0xcc0000 : 0xff0000;
+                    const flashDuration = isCritical ? 180 : 100;
                     setTimeout(() => {
                         enemy.tint = 0xffffff;
-                    }, 100 / this.battleSpeed);
+                    }, flashDuration / this.battleSpeed);
                 }
             }
         }
 
-        flashEnemies() {
+        flashEnemies(isCritical) {
             this.enemySprites.forEach(enemy => {
-                enemy.tint = 0xff0000;
+                enemy.tint = isCritical ? 0xcc0000 : 0xff0000;
+                const flashDuration = isCritical ? 180 : 100;
                 setTimeout(() => {
                     enemy.tint = 0xffffff;
-                }, 100 / this.battleSpeed);
+                }, flashDuration / this.battleSpeed);
             });
         }
 

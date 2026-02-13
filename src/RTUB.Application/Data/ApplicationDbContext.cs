@@ -803,6 +803,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .Where(e => e.State != EntityState.Detached)
                 .ToList();
 
+            // Fix phantom "Added" users: if an ApplicationUser has an Id but is in Added state,
+            // it's a tracking artifact (e.g., loaded via navigation property on another entity).
+            // These cause UNIQUE constraint failures when SaveChangesAsync tries to INSERT them.
+            // Reset their state to Unchanged so EF doesn't try to insert existing users.
+            foreach (var entry in trackedUsers)
+            {
+                if (entry.State == EntityState.Added && !string.IsNullOrEmpty(entry.Entity.Id))
+                {
+                    entry.State = EntityState.Unchanged;
+                }
+            }
+
             // Group by user ID to find duplicates
             var duplicateGroups = trackedUsers
                 .GroupBy(e => e.Entity.Id)

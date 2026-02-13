@@ -25,7 +25,7 @@ public class StageProgress : BaseEntity
     /// <summary>
     /// The last checkpoint stage the player can return to
     /// Checkpoints: every 10 stages, starting after each boss (1, 11, 21, 31...)
-    /// After stage 1000: no checkpoints (Void)
+    /// After stage 1100: no checkpoints (Void)
     /// </summary>
     public int LastCheckpoint { get; set; } = 1;
 
@@ -41,7 +41,7 @@ public class StageProgress : BaseEntity
     public int EnemiesDefeatedInCurrentStage { get; set; } = 0;
 
     /// <summary>
-    /// Whether the player has unlocked Endless mode (beat stage 1000 boss)
+    /// Whether the player has unlocked Endless mode (beat stage 1100 boss)
     /// </summary>
     public bool EndlessModeUnlocked { get; set; } = false;
 
@@ -131,8 +131,8 @@ public class StageProgress : BaseEntity
     {
         TotalBossesDefeated++;
 
-        // Check if player beat the stage 1000 boss
-        if (CurrentStage == 1000)
+        // Check if player beat the stage 1100 boss
+        if (CurrentStage == 1100)
         {
             EndlessModeUnlocked = true;
         }
@@ -151,16 +151,16 @@ public class StageProgress : BaseEntity
     /// <summary>
     /// Calculates the checkpoint for a given stage
     /// - All stages: checkpoint every 10 stages (1, 11, 21, 31... after each boss)
-    /// - After stage 1000: no new checkpoints (Void)
+    /// - After stage 1100: no new checkpoints (Void)
     /// </summary>
     public static int CalculateCheckpoint(int stage)
     {
         if (stage <= 1) return 1;
 
-        // Void - no checkpoints after 1000
-        if (stage > 1000)
+        // Void - no checkpoints after 1100
+        if (stage > 1100)
         {
-            return 1000;
+            return 1100;
         }
 
         // Checkpoint every 10 stages: 1, 11, 21, 31, ...
@@ -173,11 +173,11 @@ public class StageProgress : BaseEntity
     /// Stages 1-100: Forest, 101-200: Swamp, 201-300: Mountains,
     /// 301-400: Snowy, 401-500: Tropical, 501-600: Caverns,
     /// 601-700: Desert, 701-800: Volcanic, 801-900: Ruins,
-    /// 901-1000: Dark, 1001+: Void
+    /// 901-1000: Dark, 1001-1100: Light, 1101+: Void
     /// </summary>
     public static RegionType GetRegionForStage(int stage)
     {
-        if (stage > 1000) return RegionType.Void;
+        if (stage > 1100) return RegionType.Void;
 
         var regionIndex = (stage - 1) / 100;
         return (RegionType)regionIndex;
@@ -201,6 +201,6 @@ public class StageProgress : BaseEntity
     /// </summary>
     public bool IsInVoid()
     {
-        return CurrentStage > 1000;
+        return CurrentStage > 1100;
     }
 }

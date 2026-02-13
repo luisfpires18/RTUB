@@ -47,12 +47,12 @@
       "maxRewardMultiplier": 3.0,
       "reviveCost": 30,
       "restoreHPCost": 20,
-      "finoDropChance": 0.01,
-      "shotDropChance": 0.006,
-      "cigarroDropChance": 0.004,
-      "canecaDropChance": 0.003,
-      "canhaoDropChance": 0.002,
-      "penaltyDropChance": 0.001
+      "finoDropChance": 0.001,
+      "shotDropChance": 0.0006,
+      "cigarroDropChance": 0.0004,
+      "canecaDropChance": 0.0003,
+      "canhaoDropChance": 0.0002,
+      "penaltyDropChance": 0.0001
     },
 
     "stageMode": {
@@ -80,14 +80,14 @@
       },
 
       "dropRates": {
-        "finoDropChance": 0.01,
-        "shotDropChance": 0.006,
-        "cigarroDropChance": 0.004,
-        "canecaDropChance": 0.003,
-        "canhaoDropChance": 0.002,
-        "penaltyDropChance": 0.001,
-        "instrumentPartDropChance": 0.001,
-        "equipmentDropChance": 0.002,
+        "finoDropChance": 0.001,
+        "shotDropChance": 0.0006,
+        "cigarroDropChance": 0.0004,
+        "canecaDropChance": 0.0003,
+        "canhaoDropChance": 0.0002,
+        "penaltyDropChance": 0.0001,
+        "instrumentPartDropChance": 0.0001,
+        "equipmentDropChance": 0.0002,
         "bossDropMultiplier": 3.0
       },
 
@@ -240,8 +240,18 @@
           "rewardMultiplier": 5.0
         },
         {
-          "name": "Void",
+          "name": "Light",
           "stageMin": 1001,
+          "stageMax": 1100,
+          "enemySpritePath": "sprites/games/my-tuno/enemies/light",
+          "bossSpritePrefix": "boss_",
+          "enemiesDifficultyMultiplier": 12.0,
+          "bossesDifficultyMultiplier": 9.0,
+          "rewardMultiplier": 5.5
+        },
+        {
+          "name": "Void",
+          "stageMin": 1101,
           "stageMax": 999999999,
           "enemySpritePath": "sprites/games/my-tuno/enemies/void",
           "bossSpritePrefix": "boss_",
@@ -292,14 +302,14 @@
       "bossStatMultiplier": 3.2,
 
       "dropRates": {
-        "finoDropChance": 0.01,
-        "shotDropChance": 0.006,
-        "cigarroDropChance": 0.004,
-        "canecaDropChance": 0.003,
-        "canhaoDropChance": 0.002,
-        "penaltyDropChance": 0.001,
-        "instrumentPartDropChance": 0.001,
-        "equipmentDropChance": 0.002,
+        "finoDropChance": 0.001,
+        "shotDropChance": 0.0006,
+        "cigarroDropChance": 0.0004,
+        "canecaDropChance": 0.0003,
+        "canhaoDropChance": 0.0002,
+        "penaltyDropChance": 0.0001,
+        "instrumentPartDropChance": 0.0001,
+        "equipmentDropChance": 0.0002,
         "fitabDropChance": 0.003
       },
 
