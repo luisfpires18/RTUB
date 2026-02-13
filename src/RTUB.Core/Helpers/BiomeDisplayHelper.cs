@@ -16,9 +16,18 @@ public static class BiomeDisplayHelper
         "Desert" => "bi-brightness-high-fill",
         "Volcanic" => "bi-fire",
         "Ruins" => "bi-building",
+        "Sky" => "bi-cloud-fill",
+        "Underwater" => "bi-water",
+        "Underground" => "bi-minecart-loaded",
+        "Mechanical" => "bi-gear-fill",
+        "Frostfire" => "bi-thermometer-half",
+        "Corruption" => "bi-bug-fill",
         "Dark" => "bi-moon-fill",
-        "Light" => "bi-brightness-alt-high-fill",
+        "Alien" => "bi-rocket-takeoff-fill",
         "Void" => "bi-infinity",
+        "Timerift" => "bi-hourglass-split",
+        "Light" => "bi-brightness-alt-high-fill",
+        "Arena" => "bi-trophy-fill",
         _ => "bi-geo-alt-fill"
     };
 
@@ -33,9 +42,18 @@ public static class BiomeDisplayHelper
         "Desert" => "#ffb74d",
         "Volcanic" => "#f44336",
         "Ruins" => "#795548",
+        "Sky" => "#64b5f6",
+        "Underwater" => "#0288d1",
+        "Underground" => "#6d4c41",
+        "Mechanical" => "#90a4ae",
+        "Frostfire" => "#26c6da",
+        "Corruption" => "#ab47bc",
         "Dark" => "#37474f",
-        "Light" => "#fdd835",
+        "Alien" => "#76ff03",
         "Void" => "#7c4dff",
+        "Timerift" => "#e040fb",
+        "Light" => "#fdd835",
+        "Arena" => "#ff1744",
         _ => "#6f42c1"
     };
 

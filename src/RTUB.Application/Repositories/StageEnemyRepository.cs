@@ -50,8 +50,8 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
     {
         var all = await GetAllCachedAsync();
 
-        // Void draws from ALL regions
-        if (region == RegionType.Void)
+        // Arena draws from ALL regions (random enemies from all previous stages)
+        if (region == RegionType.Arena)
             return all;
 
         return all.Where(e => e.Region == region).ToList();
@@ -61,8 +61,8 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
     {
         var all = await GetAllCachedAsync();
 
-        // Void draws from ALL regions
-        if (region == RegionType.Void)
+        // Arena draws from ALL regions
+        if (region == RegionType.Arena)
             return all.Where(e => e.Type == type).ToList();
 
         return all.Where(e => e.Type == type && e.Region == region).ToList();
@@ -99,8 +99,8 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
         var boss = all.FirstOrDefault(e => e.Type == EnemyType.Boss && e.BossStageNumber == stageNumber);
         if (boss != null) return boss;
 
-        // In the Void (stage > 1000), grab a random boss from any region
-        if (stageNumber > 1000)
+        // In the Arena (stage > 2000), grab a random boss from any region
+        if (stageNumber > 2000)
         {
             var allBosses = all.Where(e => e.Type == EnemyType.Boss).ToList();
             if (allBosses.Count > 0)

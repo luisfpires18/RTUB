@@ -54,6 +54,7 @@ public static class AuditConfiguration
         "BossModeProgress",
         "ItemTypeConfig",
         "ForgeComboConfig",
-        "SurviveModeProgress"
+        "SurviveModeProgress",
+        "StageEnemies",
     };
 }

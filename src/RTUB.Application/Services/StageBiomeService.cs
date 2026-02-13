@@ -195,14 +195,23 @@ public class StageBiomeService : IStageBiomeService
             "swamp" => RegionType.Swamp,
             "mountains" => RegionType.Mountains,
             "snowy" => RegionType.Snowy,
-            "ruins" => RegionType.Ruins,
             "tropical" => RegionType.Tropical,
             "caverns" => RegionType.Caverns,
             "desert" => RegionType.Desert,
             "volcanic" => RegionType.Volcanic,
+            "ruins" => RegionType.Ruins,
+            "sky" => RegionType.Sky,
+            "underwater" => RegionType.Underwater,
+            "underground" => RegionType.Underground,
+            "mechanical" => RegionType.Mechanical,
+            "frostfire" => RegionType.Frostfire,
+            "corruption" => RegionType.Corruption,
             "dark" => RegionType.Dark,
-            "light" => RegionType.Light,
+            "alien" => RegionType.Alien,
             "void" => RegionType.Void,
+            "timerift" => RegionType.Timerift,
+            "light" => RegionType.Light,
+            "arena" => RegionType.Arena,
             _ => RegionType.Forest
         };
     }
@@ -213,7 +222,14 @@ public class StageBiomeService : IStageBiomeService
     public string GetBackgroundForStage(int stageNumber)
     {
         var biomeName = GetBiomeForStage(stageNumber);
-        return $"/sprites/games/my-tuno/backgrounds/{biomeName.ToLowerInvariant()}.png";
+        // Map biome names to background file names (some differ)
+        var fileName = biomeName.ToLowerInvariant() switch
+        {
+            "sky" => "clouds",
+            "corruption" => "corrupted",
+            _ => biomeName.ToLowerInvariant()
+        };
+        return $"/sprites/games/my-tuno/backgrounds/{fileName}.png";
     }
 
     /// <summary>

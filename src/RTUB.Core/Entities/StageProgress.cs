@@ -131,8 +131,8 @@ public class StageProgress : BaseEntity
     {
         TotalBossesDefeated++;
 
-        // Check if player beat the stage 1100 boss
-        if (CurrentStage == 1100)
+        // Check if player beat the stage 2000 boss (last Light boss, unlocks Arena)
+        if (CurrentStage == 2000)
         {
             EndlessModeUnlocked = true;
         }
@@ -151,16 +151,16 @@ public class StageProgress : BaseEntity
     /// <summary>
     /// Calculates the checkpoint for a given stage
     /// - All stages: checkpoint every 10 stages (1, 11, 21, 31... after each boss)
-    /// - After stage 1100: no new checkpoints (Void)
+    /// - After stage 2000: no new checkpoints (Arena)
     /// </summary>
     public static int CalculateCheckpoint(int stage)
     {
         if (stage <= 1) return 1;
 
-        // Void - no checkpoints after 1100
-        if (stage > 1100)
+        // Arena - no checkpoints after 2000
+        if (stage > 2000)
         {
-            return 1100;
+            return 2000;
         }
 
         // Checkpoint every 10 stages: 1, 11, 21, 31, ...
@@ -173,11 +173,14 @@ public class StageProgress : BaseEntity
     /// Stages 1-100: Forest, 101-200: Swamp, 201-300: Mountains,
     /// 301-400: Snowy, 401-500: Tropical, 501-600: Caverns,
     /// 601-700: Desert, 701-800: Volcanic, 801-900: Ruins,
-    /// 901-1000: Dark, 1001-1100: Light, 1101+: Void
+    /// 901-1000: Sky, 1001-1100: Underwater, 1101-1200: Underground,
+    /// 1201-1300: Mechanical, 1301-1400: Frostfire, 1401-1500: Corruption,
+    /// 1501-1600: Dark, 1601-1700: Alien, 1701-1800: Void,
+    /// 1801-1900: Timerift, 1901-2000: Light, 2001+: Arena
     /// </summary>
     public static RegionType GetRegionForStage(int stage)
     {
-        if (stage > 1100) return RegionType.Void;
+        if (stage > 2000) return RegionType.Arena;
 
         var regionIndex = (stage - 1) / 100;
         return (RegionType)regionIndex;
@@ -197,10 +200,15 @@ public class StageProgress : BaseEntity
     }
 
     /// <summary>
-    /// Checks if the current stage is in the Void (endless)
+    /// Checks if the current stage is in the Arena (endless)
     /// </summary>
-    public bool IsInVoid()
+    public bool IsInArena()
     {
-        return CurrentStage > 1100;
+        return CurrentStage > 2000;
     }
+
+    /// <summary>
+    /// Legacy alias for IsInArena — kept for compatibility.
+    /// </summary>
+    public bool IsInVoid() => IsInArena();
 }
