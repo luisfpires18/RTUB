@@ -21,6 +21,26 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .FirstOrDefaultAsync(c => c.UserId == userId);
     }
 
+    /// <summary>
+    /// Gets a character by user ID, forcing a DB reload if the entity is already tracked.
+    /// Use on page-load paths to pick up external changes (e.g., owner "Heal All" from another circuit).
+    /// </summary>
+    public async Task<Character?> GetByUserIdFreshAsync(string userId)
+    {
+        var tracked = _context.Characters.Local.FirstOrDefault(c => c.UserId == userId);
+        if (tracked != null)
+        {
+            await _context.Entry(tracked).ReloadAsync();
+            if (tracked.User == null)
+                await _context.Entry(tracked).Reference(c => c.User).LoadAsync();
+            return tracked;
+        }
+
+        return await _context.Characters
+            .Include(c => c.User)
+            .FirstOrDefaultAsync(c => c.UserId == userId);
+    }
+
     public async Task<List<Character>> GetAllOrderedByLevelAsync()
     {
         return await _context.Characters

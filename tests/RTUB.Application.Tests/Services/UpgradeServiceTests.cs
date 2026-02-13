@@ -161,6 +161,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Arrange
         var character = await _characterService.GetOrCreateCharacterAsync(_testUser.Id);
         character.HpUpgrades = 2; // 2 upgrades already purchased
+        await _context.SaveChangesAsync(); // Persist so cost lookup reads the correct value
 
         // Act
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.HP);

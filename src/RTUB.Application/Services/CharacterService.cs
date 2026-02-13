@@ -40,8 +40,9 @@ public class CharacterService : ICharacterService
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
 
-        // Try to get existing character
-        var character = await _characterRepository.GetByUserIdAsync(userId);
+        // Try to get existing character — use Fresh variant to pick up
+        // external DB changes (e.g., owner "Heal All" from another circuit).
+        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
         if (character != null)
         {
             return character;

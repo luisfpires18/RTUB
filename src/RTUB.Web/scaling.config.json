@@ -61,7 +61,7 @@
       "xpLevelPenaltyRate": 0.015,
       "minXPLevelMultiplier": 0.05,
       "bossXPMultiplier": 8,
-      "bossMultiplier": 1.2,
+      "bossMultiplier": 1.5,
 
       "difficultyCurve": {
         "scalingRate": 0.12,
@@ -145,7 +145,8 @@
           "stageMax": 100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.0,
+          "enemiesDifficultyMultiplier": 1.2,
+          "bossesDifficultyMultiplier": 1.0,
           "rewardMultiplier": 1.2
         },
         {
@@ -154,7 +155,8 @@
           "stageMax": 200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.2,
+          "enemiesDifficultyMultiplier": 3.15,
+          "bossesDifficultyMultiplier": 2.5,
           "rewardMultiplier": 1.4
         },
         {
@@ -163,7 +165,8 @@
           "stageMax": 300,
           "enemySpritePath": "sprites/games/my-tuno/enemies/mountains",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.4,
+          "enemiesDifficultyMultiplier": 3.7,
+          "bossesDifficultyMultiplier": 2.9,
           "rewardMultiplier": 1.6
         },
         {
@@ -172,7 +175,8 @@
           "stageMax": 400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.6,
+          "enemiesDifficultyMultiplier": 4.2,
+          "bossesDifficultyMultiplier": 3.3,
           "rewardMultiplier": 1.8
         },
         {
@@ -181,7 +185,8 @@
           "stageMax": 500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/tropical",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 1.8,
+          "enemiesDifficultyMultiplier": 4.75,
+          "bossesDifficultyMultiplier": 3.65,
           "rewardMultiplier": 2.0
         },
         {
@@ -190,7 +195,8 @@
           "stageMax": 600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/caverns",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2,
+          "enemiesDifficultyMultiplier": 5.3,
+          "bossesDifficultyMultiplier": 4.1,
           "rewardMultiplier": 2
         },
         {
@@ -199,7 +205,8 @@
           "stageMax": 700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/desert",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.2,
+          "enemiesDifficultyMultiplier": 5.8,
+          "bossesDifficultyMultiplier": 4.45,
           "rewardMultiplier": 2.4
         },
         {
@@ -208,7 +215,8 @@
           "stageMax": 800,
           "enemySpritePath": "sprites/games/my-tuno/enemies/volcanic",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 2.5,
+          "enemiesDifficultyMultiplier": 6.4,
+          "bossesDifficultyMultiplier": 4.95,
           "rewardMultiplier": 3.0
         },
         {
@@ -217,7 +225,8 @@
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 3.0,
+          "enemiesDifficultyMultiplier": 7.7,
+          "bossesDifficultyMultiplier": 5.95,
           "rewardMultiplier": 4.0
         },
         {
@@ -226,7 +235,8 @@
           "stageMax": 1000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/dark",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 4.0,
+          "enemiesDifficultyMultiplier": 10.5,
+          "bossesDifficultyMultiplier": 8.1,
           "rewardMultiplier": 5.0
         },
         {
@@ -235,7 +245,8 @@
           "stageMax": 999999999,
           "enemySpritePath": "sprites/games/my-tuno/enemies/void",
           "bossSpritePrefix": "boss_",
-          "difficultyMultiplier": 5.0,
+          "enemiesDifficultyMultiplier": 13.4,
+          "bossesDifficultyMultiplier": 9.8,
           "rewardMultiplier": 6.0
         }
       ],
@@ -278,7 +289,7 @@
         "criticalChance": 0.15
       },
 
-      "bossStatMultiplier": 2.5,
+      "bossStatMultiplier": 3.2,
 
       "dropRates": {
         "finoDropChance": 0.01,

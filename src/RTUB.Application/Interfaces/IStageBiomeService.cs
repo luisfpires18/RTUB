@@ -60,11 +60,18 @@ public interface IStageBiomeService
     Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber);
 
     /// <summary>
-    /// Gets the difficulty multiplier for a given stage based on its biome
+    /// Gets the difficulty multiplier for regular enemies at a given stage based on its biome
     /// </summary>
     /// <param name="stageNumber">The stage number</param>
-    /// <returns>Difficulty multiplier (1.0 for Forest, higher for later biomes)</returns>
-    double GetDifficultyMultiplier(int stageNumber);
+    /// <returns>Enemies difficulty multiplier (higher for later biomes)</returns>
+    double GetEnemiesDifficultyMultiplier(int stageNumber);
+
+    /// <summary>
+    /// Gets the difficulty multiplier for bosses at a given stage based on its biome
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>Bosses difficulty multiplier (higher for later biomes)</returns>
+    double GetBossesDifficultyMultiplier(int stageNumber);
 
     /// <summary>
     /// Gets the biome reward multiplier for a given stage (unified scaling).

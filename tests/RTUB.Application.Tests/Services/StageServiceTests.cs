@@ -88,7 +88,8 @@ public class StageServiceTests : IDisposable
             .ReturnsAsync((int stage, int count) => Enumerable.Repeat(("/images/enemies/default.png", 0), count).ToList());
         _biomeServiceMock.Setup(x => x.GetBossSpriteAsync(It.IsAny<int>()))
             .ReturnsAsync("/images/enemies/boss.png");
-        _biomeServiceMock.Setup(x => x.GetDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetEnemiesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetBossesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetRewardMultiplierForStage(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetUnifiedDifficultyCurve(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetUnifiedRewardCurve(It.IsAny<int>())).Returns(1.0);

@@ -882,6 +882,13 @@
                         break;
                     }
                 }
+
+                // Safety net: all events consumed but no Victory/Draw was found — force finish
+                if (this.isPlaying && this.currentEventIndex >= this.battleEvents.length) {
+                    console.warn('All battle events consumed without Victory/Draw — forcing finishBattle');
+                    this.isPlaying = false;
+                    setTimeout(() => this.finishBattle(), 400 / this.battleSpeed);
+                }
             }
         }
 

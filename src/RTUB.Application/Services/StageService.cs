@@ -421,7 +421,7 @@ public class StageService : IStageService
         var stageConfig = _myTunoScalingConfig.StageMode;
         var baseStats = stageConfig.BaseEnemyStats;
         var curve = _biomeService.GetUnifiedDifficultyCurve(stageNumber);
-        var diffMult = _biomeService.GetDifficultyMultiplier(stageNumber);
+        var diffMult = isBoss ? _biomeService.GetBossesDifficultyMultiplier(stageNumber) : _biomeService.GetEnemiesDifficultyMultiplier(stageNumber);
         var bossMult = isBoss ? stageConfig.BossMultiplier : 1.0;
 
         int baseHP, basePower, baseSpeed, baseDefense;

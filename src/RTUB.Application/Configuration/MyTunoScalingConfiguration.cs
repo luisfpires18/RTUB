@@ -509,11 +509,16 @@ public class BiomeConfig
     public string BossSpritePrefix { get; set; } = "boss_";
 
     /// <summary>
-    /// Overall difficulty multiplier for this biome.
-    /// Range 1.0–1.5 (biome = flavor, not major power change).
+    /// Difficulty multiplier for regular enemies in this biome.
     /// Applied on top of the per-stage scaling curve.
     /// </summary>
-    public double DifficultyMultiplier { get; set; } = 1.0;
+    public double EnemiesDifficultyMultiplier { get; set; } = 1.0;
+
+    /// <summary>
+    /// Difficulty multiplier for bosses in this biome.
+    /// Applied on top of the per-stage scaling curve.
+    /// </summary>
+    public double BossesDifficultyMultiplier { get; set; } = 1.0;
 
     /// <summary>
     /// Fidelis/reward multiplier for this biome. Range: 1.0–2.5.

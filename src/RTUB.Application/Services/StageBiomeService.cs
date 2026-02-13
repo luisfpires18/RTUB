@@ -279,9 +279,9 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets the difficulty multiplier for a given stage based on its biome
+    /// Gets the difficulty multiplier for regular enemies at a given stage based on its biome
     /// </summary>
-    public double GetDifficultyMultiplier(int stageNumber)
+    public double GetEnemiesDifficultyMultiplier(int stageNumber)
     {
         var biomes = _config.StageMode.Biomes;
         if (biomes == null || biomes.Count == 0)
@@ -291,13 +291,35 @@ public class StageBiomeService : IStageBiomeService
         {
             if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
             {
-                return biome.DifficultyMultiplier;
+                return biome.EnemiesDifficultyMultiplier;
             }
         }
 
         // Beyond configured biomes, use the last biome's multiplier
         var lastBiome = biomes.OrderByDescending(b => b.StageMax).First();
-        return lastBiome.DifficultyMultiplier;
+        return lastBiome.EnemiesDifficultyMultiplier;
+    }
+
+    /// <summary>
+    /// Gets the difficulty multiplier for bosses at a given stage based on its biome
+    /// </summary>
+    public double GetBossesDifficultyMultiplier(int stageNumber)
+    {
+        var biomes = _config.StageMode.Biomes;
+        if (biomes == null || biomes.Count == 0)
+            return 1.0;
+
+        foreach (var biome in biomes)
+        {
+            if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
+            {
+                return biome.BossesDifficultyMultiplier;
+            }
+        }
+
+        // Beyond configured biomes, use the last biome's multiplier
+        var lastBiome = biomes.OrderByDescending(b => b.StageMax).First();
+        return lastBiome.BossesDifficultyMultiplier;
     }
 
     /// <summary>
@@ -356,7 +378,7 @@ public class StageBiomeService : IStageBiomeService
     public (int hp, int damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
     {
         var curve = GetUnifiedDifficultyCurve(stageNumber);
-        var diffMult = GetDifficultyMultiplier(stageNumber);
+        var diffMult = isBoss ? GetBossesDifficultyMultiplier(stageNumber) : GetEnemiesDifficultyMultiplier(stageNumber);
         var bossMult = isBoss ? _config.StageMode.BossMultiplier : 1.0;
 
         var scaledHp = Math.Max(1, (int)(baseHp * curve * diffMult * bossMult));

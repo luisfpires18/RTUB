@@ -455,7 +455,7 @@ public class BossModeService : IBossModeService
 
         // Use the stage mode's unified difficulty curve with the equivalent stage
         var curve = _biomeService.GetUnifiedDifficultyCurve(equivalentStage);
-        var diffMult = _biomeService.GetDifficultyMultiplier(equivalentStage);
+        var diffMult = _biomeService.GetBossesDifficultyMultiplier(equivalentStage);
         var bossMult = bossConfig.BossStatMultiplier;
 
         var hp = Math.Max(1, (int)(baseStats.Hp * curve * diffMult * bossMult));

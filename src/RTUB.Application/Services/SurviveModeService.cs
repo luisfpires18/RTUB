@@ -199,7 +199,7 @@ public class SurviveModeService : ISurviveModeService
         var biomeConfig = _config.StageMode?.Biomes?.FirstOrDefault(b =>
             string.Equals(b.Name, biomeName, StringComparison.OrdinalIgnoreCase));
 
-        var difficultyMult = biomeConfig?.DifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
+        var difficultyMult = biomeConfig?.EnemiesDifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
         var rewardMult = biomeConfig?.RewardMultiplier ?? 1.0 + (level - 1) * 0.2;
 
         // Per-level scaling from the LevelScaling table (clamped to array bounds)

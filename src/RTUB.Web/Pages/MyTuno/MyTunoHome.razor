@@ -449,6 +449,27 @@
                                 <span class="xp-max">@Fmt(displayMaxHP)</span>
                             </div>
                         </div>
+
+                        @if (currentHP < displayMaxHP && finoQuantity <= 0 && canecaQuantity <= 0)
+                        {
+                            var isDead = currentHP <= 0;
+                            var healCost = isDead
+                                ? MyTunoConfig.Value.BattleRewards.ReviveCost
+                                : MyTunoConfig.Value.BattleRewards.RestoreHPCost;
+                            var canAffordHeal = currentUser != null && currentUser.FidelisBalance >= healCost;
+                            <div class="text-center mb-2">
+                                <button class="btn btn-sm btn-outline-success @(canAffordHeal ? "" : "disabled")"
+                                        @onclick="HealWithFidelis"
+                                        disabled="@(!canAffordHeal || healingWithFidelis)">
+                                    @if (healingWithFidelis)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-heart-pulse me-1"></i>
+                                    @(isDead ? "Reviver" : "Curar") — @Fmt(healCost) Fidelis
+                                </button>
+                            </div>
+                        }
                         
                         <!-- Character Sprite -->
                         <div class="text-center mb-3">
@@ -1960,6 +1981,7 @@
     private int penaltyQuantity = 0;
     private bool usingFino = false;
     private bool usingCaneca = false;
+    private bool healingWithFidelis = false;
     private bool usingCigarro = false;
     private bool usingCanhao = false;
     private bool usingShot = false;
@@ -2478,6 +2500,58 @@
             Logger.LogError(ex, "Error loading character");
             toastMessage = "Erro ao carregar personagem.";
             toastIsError = true;
+        }
+    }
+
+    private async Task HealWithFidelis()
+    {
+        try
+        {
+            healingWithFidelis = true;
+            StateHasChanged();
+
+            if (currentUser == null || character == null)
+            {
+                toastMessage = "Erro ao identificar usuário";
+                toastIsError = true;
+                return;
+            }
+
+            var maxHp = GetDisplayMaxHP(character);
+            var hp = character.CurrentHP ?? maxHp;
+            var isDead = hp <= 0;
+            var cost = isDead
+                ? MyTunoConfig.Value.BattleRewards.ReviveCost
+                : MyTunoConfig.Value.BattleRewards.RestoreHPCost;
+
+            if (currentUser.FidelisBalance < cost)
+            {
+                toastMessage = "Fidelis insuficiente!";
+                toastIsError = true;
+                return;
+            }
+
+            // Deduct Fidelis
+            currentUser.FidelisBalance -= cost;
+            await UserManager.UpdateAsync(currentUser);
+
+            // Heal to full
+            character.CurrentHP = null; // null = full HP
+            await CharacterService.UpdateCharacterAsync(character);
+
+            toastMessage = isDead ? $"Revivido! (-{Fmt(cost)} Fidelis)" : $"HP restaurado! (-{Fmt(cost)} Fidelis)";
+            toastIsError = false;
+        }
+        catch (Exception ex)
+        {
+            toastMessage = "Erro ao curar personagem";
+            toastIsError = true;
+            Logger.LogError(ex, "Error healing character with Fidelis");
+        }
+        finally
+        {
+            healingWithFidelis = false;
+            StateHasChanged();
         }
     }
 
@@ -3403,13 +3477,20 @@
             var (success, totalFidelis, itemsDiscarded, message) = await InventoryService.DiscardAllItemsAsync(currentUser.Id);
             if (success)
             {
+                // Clear state immediately so items vanish from UI
+                equipmentItems = new();
+                instrumentParts = new();
+                forgedWeapons = new();
+                equipablePage = 1;
+                toastMessage = message;
+                toastIsError = false;
+                StateHasChanged();
+
+                // Refresh from DB for correctness
                 currentUser = await UserManager.FindByIdAsync(currentUser.Id);
                 instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser!.Id);
                 equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
-                equipablePage = 1;
-                toastMessage = message;
-                toastIsError = false;
             }
             else
             {
