@@ -31,6 +31,7 @@ public static partial class SeedData
         await SeedBiomeIfMissing(dbContext, RegionType.Volcanic, SeedVolcanicEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Ruins, SeedRuinsEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Sky, SeedSkyEnemies);
+        await SeedBiomeIfMissing(dbContext, RegionType.Underwater, SeedUnderwaterEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Dark, SeedDarkEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Void, SeedVoidEnemies);
         await SeedBiomeIfMissing(dbContext, RegionType.Light, SeedLightEnemies);
@@ -338,11 +339,34 @@ public static partial class SeedData
             B("Raven",    RegionType.Sky, 880,  82, 22, 26, 0.12, 25.0m, 0.40, 0.19, $"{p}/boss_4_raven.png",   940, PlacementType.Aerial),
             B("Condor",   RegionType.Sky, 980,  88, 16, 34, 0.10, 26.0m, 0.41, 0.19, $"{p}/boss_5_condor.png",  950, PlacementType.Aerial),
             B("Behemoth", RegionType.Sky, 1050, 92, 12, 38, 0.09, 27.0m, 0.42, 0.20, $"{p}/boss_6_behemoth.png",960),
-            // Bosses 7-10: no sprites on disk — stages 970/980/990/1000 fall back to GetRandomBoss at runtime
+            B("Cyclone",  RegionType.Sky, 1100, 94, 14, 40, 0.10, 28.0m, 0.43, 0.20, $"{p}/boss_7_cyclone.png", 970),
+            B("Wyvern",   RegionType.Sky, 1150, 96, 16, 42, 0.11, 29.0m, 0.44, 0.21, $"{p}/boss_8_wyvern.png",  980, PlacementType.Aerial),
+            B("Serpent",   RegionType.Sky, 1200, 98, 12, 44, 0.10, 30.0m, 0.45, 0.21, $"{p}/boss_9_serpent.png", 990),
+            B("Starbird",  RegionType.Sky, 1300,100, 14, 46, 0.11, 31.0m, 0.46, 0.22, $"{p}/boss_10_starbird.png",1000, PlacementType.Aerial),
         };
     }
 
-    // Biomes Underwater (1001-1100), Underground (1101-1200), Mechanical (1201-1300),
+    // ───────────────────────────── Underwater (1001-1100) ─────────────────────────────
+    private static List<StageEnemy> SeedUnderwaterEnemies()
+    {
+        var p = "/sprites/games/my-tuno/enemies/underwater";
+        return new List<StageEnemy>
+        {
+            E("Anglerfish", N, RegionType.Underwater, 170, 28, 10, 14, 0.06, 3.0m, 0.11, 0.05, $"{p}/anglerfish.png"),
+            E("Barracuda",  N, RegionType.Underwater, 140, 30, 18, 8,  0.08, 3.0m, 0.11, 0.05, $"{p}/barracuda.png"),
+            E("Eel",        N, RegionType.Underwater, 120, 26, 16, 6,  0.07, 3.0m, 0.11, 0.05, $"{p}/eel.png"),
+            E("Knight",     N, RegionType.Underwater, 180, 24, 8,  16, 0.05, 3.0m, 0.11, 0.05, $"{p}/knight.png"),
+            E("Nautilus",   N, RegionType.Underwater, 160, 22, 6,  14, 0.04, 3.0m, 0.11, 0.05, $"{p}/nautilus.png"),
+            E("Piranha",    N, RegionType.Underwater, 100, 26, 20, 4,  0.09, 3.0m, 0.11, 0.05, $"{p}/piranha.png"),
+            E("Salmon",     N, RegionType.Underwater, 110, 22, 16, 5,  0.06, 3.0m, 0.11, 0.05, $"{p}/salmon.png"),
+            E("Sardine",    N, RegionType.Underwater,  90, 20, 18, 4,  0.05, 3.0m, 0.11, 0.05, $"{p}/sardine.png"),
+            E("Seahorse",   N, RegionType.Underwater, 105, 20, 14, 6,  0.05, 3.0m, 0.11, 0.05, $"{p}/seahorse.png"),
+            E("Shark",      N, RegionType.Underwater, 200, 32, 12, 16, 0.08, 3.0m, 0.11, 0.05, $"{p}/shark.png"),
+            // No boss sprites on disk — stages 1010-1100 fall back to GetRandomBoss at runtime
+        };
+    }
+
+    // Biomes Underground (1101-1200), Mechanical (1201-1300),
     // Frostfire (1301-1400), Corruption (1401-1500) have no sprites yet.
     // Their stages fall back to GetRandomEnemy / GetRandomBoss at runtime.
 

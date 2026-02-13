@@ -38,18 +38,11 @@
                 <span class="android-tester-value">@LoginCount/@TotalDays</span>
             </div>
 
-            <!-- Login Today -->
+            <!-- Login Today (green only if logged in from Android) -->
             <div class="android-tester-info-row">
-                <i class="bi bi-@(LoggedInToday ? "check-circle-fill text-success" : "x-circle-fill text-danger")"></i>
+                <i class="bi bi-@(AndroidLoginToday ? "check-circle-fill text-success" : "x-circle-fill text-danger")"></i>
                 <span class="android-tester-label">Login Today:</span>
-                <span class="android-tester-value android-tester-value-@(LoggedInToday ? "yes" : "no")">@(LoggedInToday ? "Yes" : "No")</span>
-            </div>
-
-            <!-- Android Login Count -->
-            <div class="android-tester-info-row">
-                <i class="bi bi-phone"></i>
-                <span class="android-tester-label">Android Logins:</span>
-                <span class="android-tester-value">@AndroidLoginCount/@TotalDays</span>
+                <span class="android-tester-value android-tester-value-@(AndroidLoginToday ? "yes" : "no")">@(AndroidLoginToday ? "Yes" : "No")</span>
             </div>
 
             <!-- Last Login Date -->
@@ -114,9 +107,10 @@
     public int AndroidLoginCount { get; set; } = 0;
 
     [Parameter]
-    public EventCallback OnViewDetails { get; set; }
+    public bool AndroidLoginToday { get; set; }
 
-    private bool LoggedInToday => LoginDays.Any(d => d.Date == DateTime.UtcNow.Date);
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
 
     private string GetLastLoginText()
     {

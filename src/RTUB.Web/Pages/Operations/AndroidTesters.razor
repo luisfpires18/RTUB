@@ -210,6 +210,7 @@
                                                    LoginDays="@tester.LoginDays"
                                                    LastUserAgent="@tester.LastUserAgent"
                                                    AndroidLoginCount="@tester.AndroidLoginCount"
+                                                   AndroidLoginToday="@tester.AndroidLoginToday"
                                                    OnViewDetails="@(() => OpenDetailsModal(tester))" />
                             }
                         </div>
@@ -450,7 +451,9 @@
                     LoginDays = loginsByUser.ContainsKey(u.Id) ? loginsByUser[u.Id] : new List<DateTime>(),
                     LastLoginDate = u.LastLoginDate,
                     LastUserAgent = latestUserAgentByUser.TryGetValue(u.Id, out var ua) ? ua : null,
-                    AndroidLoginCount = androidLoginCountByUser.TryGetValue(u.Id, out var count) ? count : 0
+                    AndroidLoginCount = androidLoginCountByUser.TryGetValue(u.Id, out var count) ? count : 0,
+                    AndroidLoginToday = loginRecordsByUser.TryGetValue(u.Id, out var todayRecords) 
+                        && todayRecords.Any(r => r.LoginDate.Date == DateTime.UtcNow.Date && UserAgentHelper.IsAndroid(r.UserAgent))
                 })
                 .OrderByDescending(t => t.LoginDays.Count)
                 .ThenBy(t => t.DisplayNickname)
@@ -725,6 +728,7 @@
         public DateTime? LastLoginDate { get; set; }
         public string? LastUserAgent { get; set; }
         public int AndroidLoginCount { get; set; }
+        public bool AndroidLoginToday { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 
