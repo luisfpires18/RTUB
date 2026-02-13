@@ -115,14 +115,29 @@ public class AndroidTesterNotificationBackgroundService : BackgroundService
 
             _logger.LogDebug("Found {Count} Android testers", androidTesters.Count);
 
-            // Filter testers who haven't logged in today and haven't been notified yet
+            // Get today's login records to check user agents
+            var todayLogins = await context.AndroidTesterLogins
+                .AsNoTracking()
+                .Where(l => l.LoginDate == today)
+                .ToListAsync(cancellationToken);
+
+            var todayLoginsByUser = todayLogins
+                .GroupBy(l => l.UserId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Filter testers who haven't logged in today with Android, and haven't been notified yet
             var usersToNotify = androidTesters
                 .Where(u =>
                 {
-                    // Skip if user has logged in today
-                    if (u.LastLoginDate.HasValue && u.LastLoginDate.Value.Date >= today)
+                    // Skip if already notified today
+                    if (_notificationsSentToday.Contains(u.Id))
+                        return false;
+
+                    // Only skip if user has logged in today with an Android user agent
+                    if (todayLoginsByUser.TryGetValue(u.Id, out var userLogins) &&
+                        userLogins.Any(l => !string.IsNullOrWhiteSpace(l.UserAgent) &&
+                                            l.UserAgent.Contains("android", StringComparison.OrdinalIgnoreCase)))
                     {
-                        // Mark as notified to avoid checking again today
                         _notificationsSentToday.Add(u.Id);
                         return false;
                     }

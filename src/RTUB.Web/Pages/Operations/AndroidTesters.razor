@@ -9,6 +9,7 @@
 @using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
 @using RTUB.Application.Configuration
+@using RTUB.Core.Helpers
 @using RTUB.Shared
 @inject UserManager<ApplicationUser> UserManager
 @inject ApplicationDbContext DbContext
@@ -188,8 +189,8 @@
                             <div class="col-md-6">
                                 <div class="card bg-success text-white">
                                     <div class="card-body">
-                                        <h6 class="card-title">Active Today</h6>
-                                        <h3 class="mb-0">@androidTesters.Count(t => t.LoginDays.Any(d => d.Date == DateTime.UtcNow.Date))</h3>
+                                        <h6 class="card-title">Active Today (Android)</h6>
+                                        <h3 class="mb-0">@GetActiveAndroidTodayCount()</h3>
                                     </div>
                                 </div>
                             </div>
@@ -274,14 +275,7 @@
                             <tr class="@(isCurrentDay ? "table-active fw-semibold" : "")">
                                 <td>Day @dayNumber.ToString("00")</td>
                                 <td>
-                                    @if (loginRecords.Any())
-                                    {
-                                        @loginRecords.First().CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                                    }
-                                    else
-                                    {
-                                        @dayDate.ToString("dd/MM/yyyy")
-                                    }
+                                    @dayDate.ToString("dd/MM/yyyy")
                                     @if (isCurrentDay)
                                     {
                                         <span class="badge bg-purple ms-1">TODAY</span>
@@ -296,10 +290,20 @@
                                     {
                                         var distinctAgents = loginRecords
                                             .Where(l => !string.IsNullOrWhiteSpace(l.UserAgent))
-                                            .Select(l => GetShortUserAgent(l.UserAgent))
-                                            .Distinct()
+                                            .Select(l => new { Label = GetShortUserAgent(l.UserAgent), IsAndroid = UserAgentHelper.IsAndroid(l.UserAgent) })
+                                            .DistinctBy(a => a.Label)
                                             .ToList();
-                                        <span class="small">@string.Join(", ", distinctAgents)</span>
+                                        @foreach (var agent in distinctAgents)
+                                        {
+                                            if (agent.IsAndroid)
+                                            {
+                                                <span class="badge bg-success me-1">@agent.Label</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger me-1"><i class="bi bi-x"></i> @agent.Label</span>
+                                            }
+                                        }
                                     }
                                     else
                                     {
@@ -689,6 +693,17 @@
 
     private static string GetShortUserAgent(string? userAgent)
         => UserAgentHelper.GetShortUserAgent(userAgent);
+
+    /// <summary>
+    /// Counts testers who logged in today with an Android user agent.
+    /// </summary>
+    private int GetActiveAndroidTodayCount()
+    {
+        var today = DateTime.UtcNow.Date;
+        return androidTesters.Count(t =>
+            loginRecordsByUser.TryGetValue(t.UserId, out var records) &&
+            records.Any(r => r.LoginDate.Date == today && UserAgentHelper.IsAndroid(r.UserAgent)));
+    }
 
     private class TesterLoginInfo
     {
