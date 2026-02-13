@@ -15,7 +15,7 @@
     },
 
     "levelScaling": {
-      "maxLevel": 1000,
+      "maxLevel": 2000,
       "statMultiplierPerLevel": 0.15,
       "statGrowthExponent": 0.20,
       "xpPerLevelBase": 50
@@ -145,9 +145,9 @@
           "stageMax": 100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 1.2,
-          "bossesDifficultyMultiplier": 1.0,
-          "rewardMultiplier": 1.2
+          "enemiesDifficultyMultiplier": 1.0,
+          "bossesDifficultyMultiplier": 0.5,
+          "rewardMultiplier": 1.0
         },
         {
           "name": "Swamp",
@@ -155,9 +155,9 @@
           "stageMax": 200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/swamp",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 3.15,
-          "bossesDifficultyMultiplier": 2.5,
-          "rewardMultiplier": 1.4
+          "enemiesDifficultyMultiplier": 2.0,
+          "bossesDifficultyMultiplier": 1.0,
+          "rewardMultiplier": 1.2
         },
         {
           "name": "Mountains",
@@ -165,9 +165,9 @@
           "stageMax": 300,
           "enemySpritePath": "sprites/games/my-tuno/enemies/mountains",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 3.7,
-          "bossesDifficultyMultiplier": 2.9,
-          "rewardMultiplier": 1.6
+          "enemiesDifficultyMultiplier": 3.0,
+          "bossesDifficultyMultiplier": 1.5,
+          "rewardMultiplier": 1.4
         },
         {
           "name": "Snowy",
@@ -175,9 +175,9 @@
           "stageMax": 400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/snowy",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 4.2,
-          "bossesDifficultyMultiplier": 3.3,
-          "rewardMultiplier": 1.8
+          "enemiesDifficultyMultiplier": 4.0,
+          "bossesDifficultyMultiplier": 2.0,
+          "rewardMultiplier": 1.6
         },
         {
           "name": "Tropical",
@@ -185,9 +185,9 @@
           "stageMax": 500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/tropical",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 4.75,
-          "bossesDifficultyMultiplier": 3.65,
-          "rewardMultiplier": 2.0
+          "enemiesDifficultyMultiplier": 5.0,
+          "bossesDifficultyMultiplier": 2.5,
+          "rewardMultiplier": 1.8
         },
         {
           "name": "Caverns",
@@ -195,8 +195,8 @@
           "stageMax": 600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/caverns",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 5.3,
-          "bossesDifficultyMultiplier": 4.1,
+          "enemiesDifficultyMultiplier": 6.0,
+          "bossesDifficultyMultiplier": 3.0,
           "rewardMultiplier": 2.0
         },
         {
@@ -205,9 +205,9 @@
           "stageMax": 700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/desert",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 5.8,
-          "bossesDifficultyMultiplier": 4.45,
-          "rewardMultiplier": 2.4
+          "enemiesDifficultyMultiplier": 7.0,
+          "bossesDifficultyMultiplier": 3.5,
+          "rewardMultiplier": 2.5
         },
         {
           "name": "Volcanic",
@@ -215,8 +215,8 @@
           "stageMax": 800,
           "enemySpritePath": "sprites/games/my-tuno/enemies/volcanic",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 6.4,
-          "bossesDifficultyMultiplier": 4.95,
+          "enemiesDifficultyMultiplier": 8.0,
+          "bossesDifficultyMultiplier": 4.0,
           "rewardMultiplier": 3.0
         },
         {
@@ -225,9 +225,9 @@
           "stageMax": 900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/ruins",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 7.7,
-          "bossesDifficultyMultiplier": 5.95,
-          "rewardMultiplier": 4.0
+          "enemiesDifficultyMultiplier": 9.0,
+          "bossesDifficultyMultiplier": 4.5,
+          "rewardMultiplier": 3.5
         },
         {
           "name": "Sky",
@@ -235,9 +235,9 @@
           "stageMax": 1000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/sky",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 8.5,
-          "bossesDifficultyMultiplier": 6.5,
-          "rewardMultiplier": 4.2
+          "enemiesDifficultyMultiplier": 10.0,
+          "bossesDifficultyMultiplier": 5.0,
+          "rewardMultiplier": 4.0
         },
         {
           "name": "Underwater",
@@ -245,9 +245,9 @@
           "stageMax": 1100,
           "enemySpritePath": "sprites/games/my-tuno/enemies/underwater",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 9.3,
-          "bossesDifficultyMultiplier": 7.1,
-          "rewardMultiplier": 4.5
+          "enemiesDifficultyMultiplier": 11.0,
+          "bossesDifficultyMultiplier": 5.5,
+          "rewardMultiplier": 5.0
         },
         {
           "name": "Underground",
@@ -255,9 +255,9 @@
           "stageMax": 1200,
           "enemySpritePath": "sprites/games/my-tuno/enemies/underground",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 10.2,
-          "bossesDifficultyMultiplier": 7.8,
-          "rewardMultiplier": 4.8
+          "enemiesDifficultyMultiplier": 12.0,
+          "bossesDifficultyMultiplier": 6.0,
+          "rewardMultiplier": 6.0
         },
         {
           "name": "Mechanical",
@@ -265,9 +265,9 @@
           "stageMax": 1300,
           "enemySpritePath": "sprites/games/my-tuno/enemies/mechanical",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 11.0,
-          "bossesDifficultyMultiplier": 8.4,
-          "rewardMultiplier": 5.1
+          "enemiesDifficultyMultiplier": 13.0,
+          "bossesDifficultyMultiplier": 6.5,
+          "rewardMultiplier": 7.0
         },
         {
           "name": "Frostfire",
@@ -275,9 +275,9 @@
           "stageMax": 1400,
           "enemySpritePath": "sprites/games/my-tuno/enemies/frostfire",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 11.8,
-          "bossesDifficultyMultiplier": 8.9,
-          "rewardMultiplier": 5.4
+          "enemiesDifficultyMultiplier": 14.0,
+          "bossesDifficultyMultiplier": 7.0,
+          "rewardMultiplier": 8.0
         },
         {
           "name": "Corruption",
@@ -285,9 +285,9 @@
           "stageMax": 1500,
           "enemySpritePath": "sprites/games/my-tuno/enemies/corruption",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 12.6,
-          "bossesDifficultyMultiplier": 9.5,
-          "rewardMultiplier": 5.7
+          "enemiesDifficultyMultiplier": 15.0,
+          "bossesDifficultyMultiplier": 7.5,
+          "rewardMultiplier": 9.5
         },
         {
           "name": "Dark",
@@ -295,9 +295,9 @@
           "stageMax": 1600,
           "enemySpritePath": "sprites/games/my-tuno/enemies/dark",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 13.5,
-          "bossesDifficultyMultiplier": 10.2,
-          "rewardMultiplier": 6.0
+          "enemiesDifficultyMultiplier": 16.0,
+          "bossesDifficultyMultiplier": 8.0,
+          "rewardMultiplier": 11.0
         },
         {
           "name": "Alien",
@@ -305,9 +305,9 @@
           "stageMax": 1700,
           "enemySpritePath": "sprites/games/my-tuno/enemies/alien",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 14.5,
-          "bossesDifficultyMultiplier": 11.0,
-          "rewardMultiplier": 6.4
+          "enemiesDifficultyMultiplier": 17.0,
+          "bossesDifficultyMultiplier": 8.5,
+          "rewardMultiplier": 13.0
         },
         {
           "name": "Void",
@@ -315,9 +315,9 @@
           "stageMax": 1800,
           "enemySpritePath": "sprites/games/my-tuno/enemies/void",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 15.5,
-          "bossesDifficultyMultiplier": 11.8,
-          "rewardMultiplier": 6.8
+          "enemiesDifficultyMultiplier": 18.0,
+          "bossesDifficultyMultiplier": 9.0,
+          "rewardMultiplier": 15.0
         },
         {
           "name": "Timerift",
@@ -325,9 +325,9 @@
           "stageMax": 1900,
           "enemySpritePath": "sprites/games/my-tuno/enemies/timerift",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 16.5,
-          "bossesDifficultyMultiplier": 12.6,
-          "rewardMultiplier": 7.2
+          "enemiesDifficultyMultiplier": 19.0,
+          "bossesDifficultyMultiplier": 10.0,
+          "rewardMultiplier": 18.0
         },
         {
           "name": "Light",
@@ -335,9 +335,9 @@
           "stageMax": 2000,
           "enemySpritePath": "sprites/games/my-tuno/enemies/light",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 17.5,
-          "bossesDifficultyMultiplier": 13.4,
-          "rewardMultiplier": 7.6
+          "enemiesDifficultyMultiplier": 20.0,
+          "bossesDifficultyMultiplier": 12.0,
+          "rewardMultiplier": 20.0
         },
         {
           "name": "Arena",
@@ -345,9 +345,9 @@
           "stageMax": 999999999,
           "enemySpritePath": "sprites/games/my-tuno/enemies/arena",
           "bossSpritePrefix": "boss_",
-          "enemiesDifficultyMultiplier": 18.5,
-          "bossesDifficultyMultiplier": 14.0,
-          "rewardMultiplier": 8.0
+          "enemiesDifficultyMultiplier": 25.0,
+          "bossesDifficultyMultiplier": 15.0,
+          "rewardMultiplier": 30.0
         }
       ],
 
@@ -365,19 +365,19 @@
 
     "bossMode": {
       "stageOffset": 800,
-      "xpPerBossLevel": 150,
-      "bossLevelXPPower": 0.6,
+      "xpPerBossLevel": 250,
+      "bossLevelXPPower": 1.2,
       "xpLevelPenaltyRate": 0.01,
       "minXPLevelMultiplier": 0.1,
 
       "difficultyCurve": {
-        "scalingRate": 0.18,
-        "growthExponent": 1.25
+        "scalingRate": 0.33,
+        "growthExponent": 1.75
       },
       "rewardCurve": {
-        "scalingRate": 0.10,
-        "growthExponent": 1.12,
-        "levelBonusPerLevel": 0.1,
+        "scalingRate": 0.20,
+        "growthExponent": 1.33,
+        "levelBonusPerLevel": 0.5,
         "levelBonusCap": 2.6
       },
 
@@ -389,7 +389,7 @@
         "criticalChance": 0.15
       },
 
-      "bossStatMultiplier": 3.2,
+      "bossStatMultiplier": 3.3,
 
       "dropRates": {
         "finoDropChance": 0.001,
@@ -404,7 +404,7 @@
       },
 
       "fidelisRewards": {
-        "bossWin": 250
+        "bossWin": 750
       },
 
       "fitabDropChanceStage": 0.002,
