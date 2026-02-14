@@ -48,7 +48,7 @@
         player: '/sprites/games/my-tuno/default_tuno.png',
         background: '/sprites/games/my-tuno/backgrounds/forest.png',
         enemies: {
-            normal: '/sprites/games/my-tuno/enemies/forest/wolf.png',
+            normal: '/sprites/games/my-tuno/enemies/forest/monkey.png',
             boss: '/sprites/games/my-tuno/enemies/forest/boss_1_bear.png'
         }
     };
@@ -63,7 +63,11 @@
         const eventsJson = battleData.EventsJson ?? battleData.eventsJson ?? battleData.eventsjson;
         if (eventsJson && typeof eventsJson === 'string') {
             try {
-                return JSON.parse(eventsJson);
+                const parsed = JSON.parse(eventsJson);
+                // EventsJson may be the full replay wrapper {Events:[...], ...} or just the events array
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && Array.isArray(parsed.Events)) return parsed.Events;
+                return [];
             } catch (e) {
                 console.error('Failed to parse EventsJson:', e);
                 return [];

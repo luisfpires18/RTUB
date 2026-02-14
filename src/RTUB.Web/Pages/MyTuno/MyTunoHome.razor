@@ -308,6 +308,9 @@
                                 }
                                 foreach (var kvp in equipmentItems)
                                 {
+                                    // Skip equipment that is currently equipped on the character
+                                    if (IsItemCurrentlyEquipped(kvp.Key)) continue;
+
                                     var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
                                     var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
                                     var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
@@ -3488,7 +3491,8 @@
 
                 // Refresh from DB for correctness
                 currentUser = await UserManager.FindByIdAsync(currentUser.Id);
-                instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser!.Id);
+                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
+                instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
                 equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
             }

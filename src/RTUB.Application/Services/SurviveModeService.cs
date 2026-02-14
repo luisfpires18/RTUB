@@ -34,9 +34,9 @@ public class SurviveModeService : ISurviveModeService
     private readonly IMemoryCache _memoryCache;
 
     // Survive mode constants
-    private const double BaseTimerSeconds = 480.0;         // Level 1 timer (8 minutes)
-    private const double TimerIncreasePerLevel = 60.0;     // +1 min per level
-    private const double MaxTimerSeconds = 1200.0;         // Cap at 20 minutes
+    private const double BaseTimerSeconds = 300.0;         // Level 1 timer (5 minutes)
+    private const double TimerIncreasePerLevel = 30.0;     // +30s per level
+    private const double MaxTimerSeconds = 870.0;          // Cap at level 20 = 14.5 min
     private const int BaseEnemyCount = 3;                  // Starting enemies (same for all levels)
     private const int MaxEnemyCountBase = 15;              // Base max alive enemies (same for all levels)
     private const int MaxEnemyCountCap = 50;               // Hard cap on alive enemies
@@ -53,7 +53,7 @@ public class SurviveModeService : ISurviveModeService
     private const int MapHeight = 2400;
     private const int ViewportWidth = 800;                 // Visible area
     private const int ViewportHeight = 500;
-    private const int MaxLevel = 12;                       // Void is the final level
+    private const int MaxLevel = 20;                       // 20 levels total
 
     // All levels start the same â€” difficulty ramps over TIME within each level,
     // not across levels. The per-biome time-ramp rates below control how fast
@@ -61,17 +61,25 @@ public class SurviveModeService : ISurviveModeService
     private static readonly (double spawnRamp, double speedRamp)[] BiomeTimeRamp = new[]
     {
         (0.08, 0.05), // Level 1  - Forest:     gentle ramp
-        (0.12, 0.08), // Level 2  - Swamp:      slightly faster ramp
-        (0.16, 0.11), // Level 3  - Mountains:  moderate
-        (0.20, 0.14), // Level 4  - Snowy:      noticeable pressure
-        (0.24, 0.17), // Level 5  - Tropical:   challenging mid-game
-        (0.28, 0.20), // Level 6  - Caverns:    aggressive spawn ramp
-        (0.32, 0.23), // Level 7  - Desert:     demanding
-        (0.36, 0.26), // Level 8  - Volcanic:   intense
-        (0.40, 0.29), // Level 9  - Ruins:      very hard
-        (0.44, 0.32), // Level 10 - Dark:       punishing
-        (0.48, 0.35), // Level 11 - Light:      extreme
-        (0.52, 0.38), // Level 12 - Void:       brutal final level
+        (0.10, 0.06), // Level 2  - Swamp:      slightly faster ramp
+        (0.12, 0.08), // Level 3  - Mountains:  moderate
+        (0.14, 0.10), // Level 4  - Snowy:      noticeable pressure
+        (0.16, 0.12), // Level 5  - Tropical:   challenging mid-game
+        (0.18, 0.14), // Level 6  - Caverns:    aggressive spawn ramp
+        (0.20, 0.16), // Level 7  - Desert:     demanding
+        (0.22, 0.18), // Level 8  - Volcanic:   intense
+        (0.24, 0.20), // Level 9  - Ruins:      very hard
+        (0.26, 0.22), // Level 10 - Dark:       punishing
+        (0.28, 0.24), // Level 11 - Light:      extreme
+        (0.30, 0.26), // Level 12 - Void
+        (0.32, 0.28), // Level 13 - Void
+        (0.34, 0.30), // Level 14 - Void
+        (0.36, 0.32), // Level 15 - Void
+        (0.38, 0.34), // Level 16 - Void
+        (0.40, 0.35), // Level 17 - Void
+        (0.42, 0.36), // Level 18 - Void
+        (0.44, 0.37), // Level 19 - Void
+        (0.46, 0.38), // Level 20 - Void: brutal final level
     };
 
     // Reward constants — scale up per level so harder biomes are worth more
@@ -186,7 +194,7 @@ public class SurviveModeService : ISurviveModeService
         var difficultyMult = biomeConfig?.EnemiesDifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
         var rewardMult = biomeConfig?.RewardMultiplier ?? 1.0 + (level - 1) * 0.2;
 
-        // Timer: 8 min base + 1 min per level, caps at MaxTimerSeconds
+        // Timer: 5 min base + 30s per level, caps at MaxTimerSeconds
         var timer = Math.Min(BaseTimerSeconds + (level - 1) * TimerIncreasePerLevel, MaxTimerSeconds);
 
         // All levels start with the SAME baseline stats — like level 1.

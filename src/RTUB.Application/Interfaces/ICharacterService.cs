@@ -59,4 +59,19 @@ public interface ICharacterService
     /// <returns>Tuple of (Success, Message, RewardAmount)</returns>
     Task<(bool Success, string Message, decimal RewardAmount)> ClaimDailyRewardAsync(
         string userId, int characterLevel, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Increases a character's level by 1 (owner operation).
+    /// </summary>
+    Task<(bool Success, string Message)> LevelUpCharacterAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Decreases a character's level by 1 (owner operation).
+    /// </summary>
+    Task<(bool Success, string Message)> LevelDownCharacterAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a character and ALL associated game entities for the given user.
+    /// </summary>
+    Task<(bool Success, string Message)> DeleteCharacterAsync(string userId, CancellationToken cancellationToken = default);
 }

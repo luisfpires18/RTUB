@@ -516,15 +516,19 @@ public class Program
                 .AddInteractiveServerComponents(options =>
                 {
                     options.DetailedErrors = builder.Environment.IsDevelopment();
-                    // Configure SignalR for larger messages (image uploads)
-                    options.MaxBufferedUnacknowledgedRenderBatches = 10;
+                    // Allow more unacknowledged render batches for long-running stage farming
+                    // (hundreds of rapid stage transitions generate many small render diffs)
+                    options.MaxBufferedUnacknowledgedRenderBatches = 20;
                 });
 
         // Configure SignalR hub options for larger messages (image uploads)
+        // and longer keepalive for sustained stage farming sessions
         services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
         {
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB
             options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
         });
 
         // Configure circuit options for better stability

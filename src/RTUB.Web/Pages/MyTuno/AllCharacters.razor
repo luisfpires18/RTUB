@@ -47,6 +47,16 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(toastMessage))
+    {
+        <div class="mb-3">
+            <Alert Type="@(toastIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+                   Message="@toastMessage"
+                   Dismissible="true"
+                   OnDismiss="@(() => toastMessage = null)" />
+        </div>
+    }
+
     @if (loading)
     {
         <LoadingSpinner />
@@ -89,7 +99,12 @@
                 <div class="col" @key="character.Id">
                     <CharacterOverviewCard Character="@character"
                                            StageInfo="@(stageMap.TryGetValue(character.UserId, out var sp) ? sp : null)"
-                                           OnViewDetails="OpenDetailsModal" />
+                                           OnViewDetails="OpenDetailsModal"
+                                           ShowDeleteButton="true"
+                                           OnDelete="@(() => OpenDeleteCharacterModal(character))"
+                                           ShowLevelButtons="true"
+                                           OnLevelUp="@(() => HandleLevelUp(character))"
+                                           OnLevelDown="@(() => HandleLevelDown(character))" />
                 </div>
             }
         </div>
@@ -104,6 +119,22 @@
                          PageSizeOptions="@(new[] { 20, 50, 100 })" />
     }
 </div>
+
+<!-- Delete Character Confirmation -->
+@if (characterToDelete != null)
+{
+    <ConfirmDialog Show="@showDeleteCharacterModal"
+                   ShowChanged="@((bool v) => { if (!v) CloseDeleteCharacterModal(); })"
+                   Title="Eliminar Personagem"
+                   Message="@($"Tens a certeza que queres eliminar o personagem de {GetCharacterDisplayName(characterToDelete)}? Todos os dados de jogo (inventário, armas, progresso de stages, boss mode, survive mode, scores) serão eliminados permanentemente.")"
+                   WarningMessage="Esta ação é irreversível!"
+                   ConfirmText="Eliminar"
+                   CancelText="Cancelar"
+                   ConfirmButtonClass="btn-danger"
+                   Disabled="@deletingCharacter"
+                   OnConfirm="ConfirmDeleteCharacter"
+                   OnCancel="CloseDeleteCharacterModal" />
+}
 
 <!-- Details Modal -->
 @if (selectedCharacter != null)
@@ -315,6 +346,11 @@
     private Character? selectedCharacter;
     private bool showDetailsModal = false;
     private Dictionary<string, int> stageMap = new();
+    private Character? characterToDelete;
+    private bool showDeleteCharacterModal = false;
+    private bool deletingCharacter = false;
+    private string? toastMessage;
+    private bool toastIsError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -329,7 +365,7 @@
             var charsTask = CharacterService.GetAllCharactersOrderedByLevelAsync();
             var stageTask = DbContext.StageProgresses
                 .AsNoTracking()
-                .ToDictionaryAsync(s => s.UserId, s => s.CurrentStage);
+                .ToDictionaryAsync(s => s.UserId, s => s.HighestStage);
             await Task.WhenAll(charsTask, stageTask);
             AllItems = charsTask.Result;
 
@@ -408,6 +444,86 @@
         finally
         {
             healingAll = false;
+        }
+    }
+
+    private async Task HandleLevelUp(Character character)
+    {
+        var (success, message) = await CharacterService.LevelUpCharacterAsync(character.UserId);
+        if (success)
+        {
+            await LoadItemsAsync();
+            toastMessage = $"{GetCharacterDisplayName(character)}: {message}";
+            toastIsError = false;
+        }
+        else
+        {
+            toastMessage = message;
+            toastIsError = true;
+        }
+    }
+
+    private async Task HandleLevelDown(Character character)
+    {
+        var (success, message) = await CharacterService.LevelDownCharacterAsync(character.UserId);
+        if (success)
+        {
+            await LoadItemsAsync();
+            toastMessage = $"{GetCharacterDisplayName(character)}: {message}";
+            toastIsError = false;
+        }
+        else
+        {
+            toastMessage = message;
+            toastIsError = true;
+        }
+    }
+
+    private void OpenDeleteCharacterModal(Character character)
+    {
+        characterToDelete = character;
+        showDeleteCharacterModal = true;
+    }
+
+    private void CloseDeleteCharacterModal()
+    {
+        showDeleteCharacterModal = false;
+        characterToDelete = null;
+    }
+
+    private async Task ConfirmDeleteCharacter()
+    {
+        if (characterToDelete == null || deletingCharacter) return;
+        deletingCharacter = true;
+
+        try
+        {
+            var name = GetCharacterDisplayName(characterToDelete);
+            var (success, message) = await CharacterService.DeleteCharacterAsync(characterToDelete.UserId);
+            showDeleteCharacterModal = false;
+            characterToDelete = null;
+
+            if (success)
+            {
+                await LoadItemsAsync();
+                toastMessage = $"{name}: {message}";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting character");
+            toastMessage = "Erro ao eliminar personagem.";
+            toastIsError = true;
+        }
+        finally
+        {
+            deletingCharacter = false;
         }
     }
 }

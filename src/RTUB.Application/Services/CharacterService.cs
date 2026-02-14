@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -18,17 +20,20 @@ public class CharacterService : ICharacterService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IOptions<MyTunoScalingConfiguration> _myTunoConfig;
     private readonly ILogger<CharacterService> _logger;
+    private readonly ApplicationDbContext _dbContext;
 
     public CharacterService(
         ICharacterRepository characterRepository,
         UserManager<ApplicationUser> userManager,
         IOptions<MyTunoScalingConfiguration> myTunoConfig,
-        ILogger<CharacterService> logger)
+        ILogger<CharacterService> logger,
+        ApplicationDbContext dbContext)
     {
         _characterRepository = characterRepository;
         _userManager = userManager;
         _myTunoConfig = myTunoConfig;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -149,4 +154,82 @@ public class CharacterService : ICharacterService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> LevelUpCharacterAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
+        if (character == null)
+            return (false, "Personagem não encontrado.");
+
+        if (!character.LevelUp())
+            return (false, "O personagem já está no nível máximo.");
+
+        await _characterRepository.UpdateAsync(character);
+        _logger.LogInformation("Owner leveled up character for user {UserId} to level {Level}", userId, character.Level);
+        return (true, $"Nível {character.Level}!");
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> LevelDownCharacterAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
+        if (character == null)
+            return (false, "Personagem não encontrado.");
+
+        if (!character.LevelDown())
+            return (false, "O personagem já está no nível mínimo.");
+
+        await _characterRepository.UpdateAsync(character);
+        _logger.LogInformation("Owner leveled down character for user {UserId} to level {Level}", userId, character.Level);
+        return (true, $"Nível {character.Level}!");
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> DeleteCharacterAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var character = await _dbContext.Characters
+                .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+            if (character == null)
+                return (false, "Personagem não encontrado.");
+
+            // Delete all associated game entities for this user
+            var forgedWeapons = await _dbContext.ForgedWeapons
+                .Where(w => w.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.ForgedWeapons.RemoveRange(forgedWeapons);
+
+            var inventoryItems = await _dbContext.InventoryItems
+                .Where(i => i.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.InventoryItems.RemoveRange(inventoryItems);
+
+            var stageProgress = await _dbContext.StageProgresses
+                .Where(s => s.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.StageProgresses.RemoveRange(stageProgress);
+
+            var bossModeProgress = await _dbContext.BossModeProgresses
+                .Where(b => b.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.BossModeProgresses.RemoveRange(bossModeProgress);
+
+            var surviveModeProgress = await _dbContext.SurviveModeProgresses
+                .Where(s => s.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.SurviveModeProgresses.RemoveRange(surviveModeProgress);
+
+            var gameScores = await _dbContext.GameScores
+                .Where(g => g.UserId == userId).ToListAsync(cancellationToken);
+            _dbContext.GameScores.RemoveRange(gameScores);
+
+            _dbContext.Characters.Remove(character);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Owner deleted character and all game data for user {UserId}", userId);
+            return (true, "Personagem e dados de jogo eliminados com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting character for user {UserId}", userId);
+            return (false, "Erro ao eliminar personagem.");
+        }
+    }
 }

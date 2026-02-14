@@ -243,7 +243,19 @@ public class StageService : IStageService
             EquipmentDropped = equipmentDropped,
             FitabDropped = fitabDropped,
             ReplayJson = replayJson,
-            PlayerFinalHP = combatResult.AttackerFinalHP
+            PlayerFinalHP = combatResult.AttackerFinalHP,
+            // Pre-parsed metadata so the UI doesn't need to re-deserialize ReplayJson
+            EnemyCount = enemies.Count,
+            EnemySpritePaths = enemySpritePaths,
+            EnemyPlacements = enemyPlacements,
+            EnemyStats = enemies.Select(e => new StageBattleEnemyStat
+            {
+                Name = e.User?.UserName ?? "Enemy",
+                HP = e.TotalHP,
+                Power = e.TotalPower,
+                Defense = e.TotalDefense,
+                ActionTime = Math.Round(e.ActionTime, 1)
+            }).ToList()
         };
     }
 

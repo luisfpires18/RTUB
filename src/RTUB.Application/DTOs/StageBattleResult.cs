@@ -114,4 +114,30 @@ public class StageBattleResult
     /// Player's final HP after the battle
     /// </summary>
     public int PlayerFinalHP { get; set; }
+
+    // ── Pre-parsed metadata (avoids re-deserializing ReplayJson per stage) ──
+
+    /// <summary>Number of enemies in this battle</summary>
+    public int EnemyCount { get; set; } = 1;
+
+    /// <summary>Sprite paths for each enemy</summary>
+    public List<string> EnemySpritePaths { get; set; } = new();
+
+    /// <summary>Placement per enemy: 0 = Terrestrial, 1 = Aerial</summary>
+    public List<int> EnemyPlacements { get; set; } = new();
+
+    /// <summary>Per-enemy stats (Name, HP, Power, Defense, ActionTime)</summary>
+    public List<StageBattleEnemyStat> EnemyStats { get; set; } = new();
+}
+
+/// <summary>
+/// Lightweight enemy stat snapshot for the battle UI (avoids re-parsing ReplayJson).
+/// </summary>
+public class StageBattleEnemyStat
+{
+    public string Name { get; set; } = "Enemy";
+    public int HP { get; set; }
+    public int Power { get; set; }
+    public int Defense { get; set; }
+    public double ActionTime { get; set; } = 5.0;
 }

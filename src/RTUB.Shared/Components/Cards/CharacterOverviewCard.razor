@@ -2,6 +2,17 @@
 @using RTUB.Core.Entities
 
 <div class="character-overview-card" tabindex="0">
+    @if (ShowDeleteButton)
+    {
+        <button class="character-overview-card-delete-btn"
+                @onclick="@OnDelete"
+                @onclick:stopPropagation="true"
+                title="Eliminar personagem"
+                aria-label="Eliminar personagem">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+
     <div class="character-overview-card-avatar">
         @if (Character?.User != null && !string.IsNullOrEmpty(Character.User.ProfilePictureSrc))
         {
@@ -51,10 +62,34 @@
                 <span class="stat-label">Defesa</span>
                 <span class="stat-value">@(Character?.TotalDefense ?? 0)</span>
             </div>
+            <div class="stat-row">
+                <span class="stat-icon text-primary"><i class="bi bi-bullseye"></i></span>
+                <span class="stat-label">Crítico</span>
+                <span class="stat-value">@((Character?.TotalCriticalChance ?? 0).ToString("P0"))</span>
+            </div>
         </div>
     </div>
 
     <div class="character-overview-card-action">
+        @if (ShowLevelButtons)
+        {
+            <div class="d-flex gap-1 mb-2">
+                <button class="btn btn-outline-danger btn-sm flex-fill"
+                        @onclick="@OnLevelDown"
+                        @onclick:stopPropagation="true"
+                        disabled="@(Character == null || Character.Level <= 1)"
+                        title="Nível -1">
+                    <i class="bi bi-dash-lg"></i> LVL
+                </button>
+                <button class="btn btn-outline-success btn-sm flex-fill"
+                        @onclick="@OnLevelUp"
+                        @onclick:stopPropagation="true"
+                        disabled="@(Character == null)"
+                        title="Nível +1">
+                    <i class="bi bi-plus-lg"></i> LVL
+                </button>
+            </div>
+        }
         <button class="btn btn-outline-primary btn-sm w-100"
                 @onclick="() => OnViewDetails.InvokeAsync(Character)"
                 disabled="@(Character == null)">
@@ -67,6 +102,11 @@
     [Parameter] public Character? Character { get; set; }
     [Parameter] public int? StageInfo { get; set; }
     [Parameter] public EventCallback<Character> OnViewDetails { get; set; }
+    [Parameter] public bool ShowDeleteButton { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public bool ShowLevelButtons { get; set; }
+    [Parameter] public EventCallback OnLevelUp { get; set; }
+    [Parameter] public EventCallback OnLevelDown { get; set; }
 
     private string GetDisplayName()
     {

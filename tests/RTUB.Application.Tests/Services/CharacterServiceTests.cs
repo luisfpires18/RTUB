@@ -37,12 +37,14 @@ public class CharacterServiceTests
 
         var mockConfig = Options.Create(new MyTunoScalingConfiguration());
         var mockLogger = new Mock<ILogger<CharacterService>>();
+        var dbContext = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender());
 
         _service = new CharacterService(
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             mockConfig,
-            mockLogger.Object);
+            mockLogger.Object,
+            dbContext);
     }
 
     #region GetOrCreateCharacterAsync Tests
@@ -265,7 +267,9 @@ public class CharacterServiceTests
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
-            new Mock<ILogger<CharacterService>>().Object);
+            new Mock<ILogger<CharacterService>>().Object,
+            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
@@ -299,7 +303,9 @@ public class CharacterServiceTests
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
-            new Mock<ILogger<CharacterService>>().Object);
+            new Mock<ILogger<CharacterService>>().Object,
+            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
@@ -333,7 +339,9 @@ public class CharacterServiceTests
             _mockCharacterRepository.Object,
             mockUserManager.Object,
             Options.Create(new MyTunoScalingConfiguration()),
-            new Mock<ILogger<CharacterService>>().Object);
+            new Mock<ILogger<CharacterService>>().Object,
+            new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 1);

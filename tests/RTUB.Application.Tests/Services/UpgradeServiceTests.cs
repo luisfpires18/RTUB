@@ -45,7 +45,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockCharConfig = Options.Create(new MyTunoScalingConfiguration());
         var mockCharLogger = new Mock<ILogger<CharacterService>>();
         _characterService = new CharacterService(
-            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object);
+            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object, _context);
 
         // Setup UserManager mock
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();

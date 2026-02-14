@@ -449,10 +449,15 @@
     // Current battle enemy stats
     private List<EnemyStatsInfo> currentEnemyStats = new();
 
-    // Watchdog: if JS doesn't call OnBattleFinished within this many ms after
-    // FightStageEnemy completes, auto-trigger EndRunEarly to prevent stall.
+    // Watchdog: if JS doesn't call OnBattleFinished within this time, force-end
+    // the run to prevent permanent stall (e.g. JS crash / WebGL context loss).
+    // Max battle SimTime is 300s (5 min) at 1x speed, so 6 min covers the worst case.
     private CancellationTokenSource? _watchdogCts;
-    private const int WatchdogTimeoutMs = 30_000; // 30 seconds — generous for slow connections
+    private const int WatchdogTimeoutMs = 360_000; // 6 minutes
+
+    // Tracks whether the current battle's replay was already sent to JS (so we can
+    // release the JSON string early to reduce GC pressure on long runs).
+    private bool _replaySentToJs;
 
     // Start stage is now set in the DB before navigation (from MyTunoHome checkpoint selection)
     // No query parameter needed — eliminates prerender/redirect race conditions
@@ -555,6 +560,7 @@
             var wasAlreadyAnimating = showBattleAnimation;
             showBattleAnimation = true;
             errorMessage = string.Empty;
+            _replaySentToJs = false;
             
             // Store run starting state for cancel functionality (only on first battle of run)
             if (!runInProgress)
@@ -606,82 +612,55 @@
                         objRef = DotNetObjectReference.Create(this);
                     }
 
-                    // Get enemy type config for this stage (use the battle's stage number, not the local variable)
                     var battleStageNumber = currentBattle.StageNumber;
                     var enemyTypeName = GetEnemyTypeName(currentBattle.EnemyType);
-                    
-                    // Parse the replay JSON to get enemy sprites and count
-                    var replayData = JsonSerializer.Deserialize<JsonElement>(currentBattle.ReplayJson);
-                    var enemyCount = replayData.TryGetProperty("EnemyCount", out var countProp) ? countProp.GetInt32() : 1;
-                    var eventsJson = replayData.TryGetProperty("Events", out var eventsProp) ? eventsProp.GetRawText() : currentBattle.ReplayJson;
-                    
-                    // Get enemy sprite paths from replay data (array of paths for each enemy)
-                    List<string> enemySpritePaths = new();
-                    if (replayData.TryGetProperty("EnemySprites", out var spritesProp) && spritesProp.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var sprite in spritesProp.EnumerateArray())
-                        {
-                            enemySpritePaths.Add(sprite.GetString() ?? GetDefaultEnemySpriteForType(currentBattle.EnemyType));
-                        }
-                    }
-                    
-                    // Fallback: use default sprite for enemy type
+
+                    // Use pre-parsed metadata from StageBattleResult (avoids re-deserializing
+                    // ReplayJson every stage, which caused ~150KB of GC pressure per battle)
+                    var enemySpritePaths = currentBattle.EnemySpritePaths;
                     if (enemySpritePaths.Count == 0)
                     {
                         var fallbackSprite = GetDefaultEnemySpriteForType(currentBattle.EnemyType);
-                        enemySpritePaths = Enumerable.Repeat(fallbackSprite, enemyCount).ToList();
+                        enemySpritePaths = Enumerable.Repeat(fallbackSprite, currentBattle.EnemyCount).ToList();
                     }
 
-                    // Parse enemy stats from replay data
                     currentEnemyStats.Clear();
-                    if (replayData.TryGetProperty("EnemyStats", out var statsProp) && statsProp.ValueKind == JsonValueKind.Array)
+                    foreach (var stat in currentBattle.EnemyStats)
                     {
-                        foreach (var stat in statsProp.EnumerateArray())
-                        {
-                            var name = stat.TryGetProperty("Name", out var nameProp) ? nameProp.GetString() ?? "Enemy" : "Enemy";
-                            var hp = stat.TryGetProperty("HP", out var hpProp) ? hpProp.GetInt32() : 0;
-                            var power = stat.TryGetProperty("Power", out var powerProp) ? powerProp.GetInt32() : 0;
-                            var defense = stat.TryGetProperty("Defense", out var defenseProp) ? defenseProp.GetInt32() : 0;
-                            var actionTime = stat.TryGetProperty("ActionTime", out var atProp) ? atProp.GetDouble() : 5.0;
-                            currentEnemyStats.Add(new EnemyStatsInfo(name, hp, null, power, defense, actionTime));
-                        }
+                        currentEnemyStats.Add(new EnemyStatsInfo(stat.Name, stat.HP, null, stat.Power, stat.Defense, stat.ActionTime));
                     }
 
-                    // Parse enemy placements (0=Terrestrial, 1=Aerial)
-                    var enemyPlacements = new List<int>();
-                    if (replayData.TryGetProperty("EnemyPlacements", out var placementsProp) && placementsProp.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var p in placementsProp.EnumerateArray())
-                        {
-                            enemyPlacements.Add(p.GetInt32());
-                        }
-                    }
-                    // Default to terrestrial if no placements found
-                    while (enemyPlacements.Count < enemyCount)
+                    var enemyPlacements = currentBattle.EnemyPlacements;
+                    while (enemyPlacements.Count < currentBattle.EnemyCount)
                     {
                         enemyPlacements.Add(0);
                     }
 
-                    // Create stage battle data object for new stage battle scene
+                    // Send ReplayJson directly (JS parses it once); no re-serialization needed
                     var battleData = new
                     {
-                        EventsJson = eventsJson,
+                        EventsJson = currentBattle.ReplayJson,
                         DotNetRef = objRef,
                         StageNumber = battleStageNumber,
                         EnemyType = enemyTypeName,
-                        EnemyCount = enemyCount,
+                        EnemyCount = currentBattle.EnemyCount,
                         PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
                         EnemyName = currentBattle.EnemyName,
                         BackgroundPath = BiomeService.GetBackgroundForStage(battleStageNumber),
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
-                        EnemySprites = enemySpritePaths, // Array of sprite paths
-                        EnemyPlacements = enemyPlacements, // 0=Terrestrial, 1=Aerial
-                        BattleSpeed = battleSpeed, // Pass current speed setting
+                        EnemySprites = enemySpritePaths,
+                        EnemyPlacements = enemyPlacements,
+                        BattleSpeed = battleSpeed,
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
+
+                    // Release the large ReplayJson string now that JS has it — reduces GC
+                    // pressure during long farming runs (hundreds of stages)
+                    _replaySentToJs = true;
+                    currentBattle.ReplayJson = string.Empty;
                 }
                 catch (JSException ex)
                 {
@@ -742,7 +721,7 @@
             try { if (!_disposed) _stageLock.Release(); } catch (ObjectDisposedException) { }
             if (!_disposed)
             {
-                if (currentBattle == null || string.IsNullOrEmpty(currentBattle.ReplayJson))
+                if (currentBattle == null || (!_replaySentToJs && string.IsNullOrEmpty(currentBattle.ReplayJson)))
                 {
                     showBattleAnimation = false;
                 }
@@ -830,7 +809,7 @@
                 
                 // Only update UI after starting next battle to minimize flicker
                 await FightStageEnemy();
-                if (!_disposed) StateHasChanged();
+                // Note: FightStageEnemy already calls StateHasChanged in its finally block
             }
             catch (Exception ex)
             {
@@ -1132,7 +1111,7 @@
         return enemyType switch
         {
             EnemyType.Boss => "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png",
-            _ => "/sprites/games/my-tuno/enemies/forest/wolf.png"
+            _ => "/sprites/games/my-tuno/enemies/forest/monkey.png"
         };
     }
 

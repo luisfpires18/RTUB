@@ -738,10 +738,22 @@ public class InventoryService : IInventoryService
             return 1.0;
         }
 
+        // Build set of currently equipped item types so we never discard gear that is worn
+        var equippedTypes = new HashSet<InventoryItemType>();
+        if (character != null)
+        {
+            if (character.EquippedHead.HasValue) equippedTypes.Add(character.EquippedHead.Value);
+            if (character.EquippedShoulders.HasValue) equippedTypes.Add(character.EquippedShoulders.Value);
+            if (character.EquippedChest.HasValue) equippedTypes.Add(character.EquippedChest.Value);
+            if (character.EquippedGloves.HasValue) equippedTypes.Add(character.EquippedGloves.Value);
+            if (character.EquippedLegs.HasValue) equippedTypes.Add(character.EquippedLegs.Value);
+            if (character.EquippedBoots.HasValue) equippedTypes.Add(character.EquippedBoots.Value);
+        }
+
         decimal totalFidelis = 0;
         int totalItems = 0;
 
-        // 1. Discard all equipment items
+        // 1. Discard all equipment / instrument items (skip currently equipped types)
         var equipmentInventory = await _dbContext.InventoryItems
             .Where(i => i.UserId == userId && i.Quantity > 0)
             .ToListAsync(cancellationToken);
@@ -751,6 +763,9 @@ public class InventoryService : IInventoryService
             var isEquipment = EquipmentDropHelper.IsEquipment(item.Type);
             var isInstrument = InstrumentTypeHelper.IsInstrumentPart(item.Type);
             if (!isEquipment && !isInstrument) continue;
+
+            // Never discard equipment that is currently equipped on the character
+            if (isEquipment && equippedTypes.Contains(item.Type)) continue;
 
             var baseValue = isEquipment ? discardValues.Equipment : discardValues.InstrumentPart;
             var itemEnhMult = isEquipment ? GetSlotEnhMult(item.Type) : 1.0;

@@ -594,8 +594,8 @@
     },
 
     "dailyReward": {
-      "baseFidelis": 3000,
-      "perLevelFidelis": 30
+      "baseFidelis": 5000,
+      "perLevelFidelis": 50
     }
   }
 }
