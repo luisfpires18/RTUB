@@ -119,12 +119,51 @@ public static class InstrumentTypeHelper
     }
 
     /// <summary>
-    /// Gets all instrument part InventoryItemType values.
+    /// Instruments removed from the game (no longer drop, cannot forge).
+    /// They still exist in the enum/DB for historical data.
+    /// </summary>
+    public static IReadOnlySet<InstrumentType> RemovedFromGame { get; } = new HashSet<InstrumentType>
+    {
+        InstrumentType.Baixo,
+        InstrumentType.Flauta,
+        InstrumentType.Fagote,
+        InstrumentType.Saxofone
+    };
+
+    /// <summary>
+    /// Checks whether an instrument type has been removed from the game.
+    /// </summary>
+    public static bool IsRemovedFromGame(InstrumentType instrument) => RemovedFromGame.Contains(instrument);
+
+    /// <summary>
+    /// Gets all instrument part InventoryItemType values (including removed).
     /// </summary>
     public static IReadOnlyList<InventoryItemType> AllInstrumentPartTypes { get; } =
         Enum.GetValues(typeof(InstrumentType))
             .Cast<InstrumentType>()
             .Select(ToInventoryPartType)
+            .ToList()
+            .AsReadOnly();
+
+    /// <summary>
+    /// Gets instrument part InventoryItemType values that are still active in the game.
+    /// Excludes removed instruments (Baixo, Flauta, Fagote, Saxofone).
+    /// </summary>
+    public static IReadOnlyList<InventoryItemType> GameInstrumentPartTypes { get; } =
+        Enum.GetValues(typeof(InstrumentType))
+            .Cast<InstrumentType>()
+            .Where(t => !RemovedFromGame.Contains(t))
+            .Select(ToInventoryPartType)
+            .ToList()
+            .AsReadOnly();
+
+    /// <summary>
+    /// Gets active (not removed) InstrumentType values.
+    /// </summary>
+    public static IReadOnlyList<InstrumentType> GameInstrumentTypes { get; } =
+        Enum.GetValues(typeof(InstrumentType))
+            .Cast<InstrumentType>()
+            .Where(t => !RemovedFromGame.Contains(t))
             .ToList()
             .AsReadOnly();
 }

@@ -7,9 +7,11 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
 @using RTUB.Application.DTOs
+@using RTUB.Application.Services
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
+@using System.Text.Json.Serialization
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
@@ -29,6 +31,7 @@
 @inject IAuditLogService AuditLogService
 @inject IInventoryService InventoryService
 @inject IStageService StageService
+@inject ICombatActionService CombatActionService
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
@@ -591,6 +594,15 @@
     private readonly SemaphoreSlim _bossLock = new(1, 1);
     private List<EnemyStatsInfo> currentEnemyStats = new();
 
+    // Interactive combat session (spells / Blade Crafter mode)
+    private CombatSession? _combatSession;
+    private List<RTUB.Core.Entities.SpecialAttack>? _starterSpells;
+    private static readonly JsonSerializerOptions _spellJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     protected override async Task OnInitializedAsync()
     {
         showBattleAnimation = false;
@@ -744,6 +756,13 @@
                 await Task.Delay(50);
             }
 
+            // Capture pre-battle state BEFORE ExecuteBossBattleAsync mutates the tracked
+            // entity (via EF Core shared DbContext). The service writes post-battle HP in
+            // buffed scale, but the interactive session needs the original pre-battle values.
+            var preBattleHp = character.CurrentHP ?? character.TotalHP;
+            var preBattleShotBuff = character.ShotBuffBattlesRemaining > 0;
+            var preBattlePenaltyBuff = character.PenaltyBuffActive > 0;
+
             currentBattle = await BossModeService.ExecuteBossBattleAsync(character.Id);
 
             if (currentBattle.Outcome != BattleOutcome.AttackerWon)
@@ -787,6 +806,45 @@
                         }
                     }
 
+                    // ── Interactive combat session (spells / Blade Crafter mode) ──
+                    RTUB.Core.Enums.InstrumentType? combatInstrumentType = null;
+                    if (character.EquippedWeapon1.HasValue)
+                    {
+                        var weapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                        var equippedWeapon = weapons.FirstOrDefault(w => w.Id == character.EquippedWeapon1.Value);
+                        if (equippedWeapon != null)
+                            combatInstrumentType = InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
+                    }
+                    _starterSpells = SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
+                    var enemyStates = currentEnemyStats.Select((e, i) => new CombatantState
+                    {
+                        Identifier = $"Enemy{i}",
+                        Name = e.Name,
+                        CurrentHP = e.HP,
+                        MaxHP = e.MaxHP ?? e.HP,
+                        Power = e.Power,
+                        Defense = e.Defense,
+                        CriticalChance = 0.05,
+                        ActionTimeSeconds = e.ActionTime
+                    }).ToList();
+
+                    // Build a combat character copy that matches what the pre-computed engine
+                    // uses (shot buff / penalty buff scaling). Restore the pre-battle HP so
+                    // the interactive session starts with the correct HP (ExecuteBossBattleAsync
+                    // already mutated character.CurrentHP to the post-battle value).
+                    // Apply buff copies exactly as the pre-computed engine does
+                    var savedHp = character.CurrentHP;
+                    character.CurrentHP = preBattleHp;
+                    Character sessionChar = character;
+                    if (preBattleShotBuff)
+                        sessionChar = Character.CreateShotBuffedCopy(character);
+                    if (preBattlePenaltyBuff)
+                        sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
+                    character.CurrentHP = savedHp; // Restore post-battle HP
+
+                    _combatSession = CombatActionService.CreateSession(
+                        sessionChar, enemyStates, currentBattle.Seed, _starterSpells, "boss");
+
                     var battleData = new
                     {
                         EventsJson = eventsJson,
@@ -801,7 +859,30 @@
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = new List<int> { 0 },
                         BattleSpeed = battleSpeed,
-                        HasShotBuff = character.ShotBuffBattlesRemaining > 0
+                        HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        // ── Interactive combat data ──
+                        InteractiveMode = true,
+                        PlayerHP = _combatSession!.Player.CurrentHP,
+                        PlayerMaxHP = _combatSession.Player.MaxHP,
+                        PlayerActionTime = _combatSession.Player.ActionTimeSeconds,
+                        Enemies = _combatSession.Enemies.Select((e, i) => new
+                        {
+                            e.Name,
+                            HP = e.CurrentHP,
+                            e.MaxHP,
+                            ActionTime = e.ActionTimeSeconds
+                        }),
+                        Spells = _starterSpells.Select(s => new
+                        {
+                            s.AttackId,
+                            s.Name,
+                            s.Icon,
+                            VfxType = (int)s.VfxType,
+                            s.VfxColor,
+                            s.CooldownSeconds,
+                            s.ScreenShake,
+                            Target = (int)s.Target
+                        })
                     };
 
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
@@ -828,13 +909,86 @@
         }
     }
 
+    // ── Interactive combat JSInvokable methods (Blade Crafter spell system) ──
+
+    /// <summary>
+    /// Called by JS when the player's speed bar fills — auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerAutoAttack()
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerAutoAttack(_combatSession);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when the user clicks a spell button.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerSpell(string attackId)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnEnemyAttack(int enemyIndex)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessEnemyAttack(_combatSession, enemyIndex);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS on each tick to advance spell cooldowns.
+    /// Returns updated cooldown map.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnTickCooldowns(double elapsedSeconds)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+    }
+
     [JSInvokable]
     public async Task OnBattleFinished()
     {
         if (_disposed) return;
         if (currentBattle == null) return;
 
-        if (currentBattle.Outcome == BattleOutcome.AttackerWon)
+        // Use interactive session outcome if available, otherwise fall back to pre-computed
+        var didWin = _combatSession != null
+            ? (_combatSession.Winner == _combatSession.Player.Identifier)
+            : (currentBattle.Outcome == BattleOutcome.AttackerWon);
+
+        // If interactive session says win but pre-computed said loss (pendingDefeatRewards was
+        // set prematurely), correct the state so the run continues properly.
+        if (didWin && pendingDefeatRewards)
+        {
+            pendingDefeatRewards = false;
+            runInProgress = true;
+        }
+
+        _combatSession = null;
+
+        if (didWin)
         {
             // Accumulate rewards
             totalXPEarned += currentBattle.XPReward;

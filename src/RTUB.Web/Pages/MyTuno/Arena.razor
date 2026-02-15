@@ -8,6 +8,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
 @using RTUB.Application.DTOs
+@using RTUB.Application.Services
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
@@ -16,6 +17,7 @@
 @using RTUB.Shared.Components.Cards
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @attribute [Authorize]
 @inject ICharacterService CharacterService
 @inject IBattleService BattleService
@@ -25,6 +27,8 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ILogger<Arena> Logger
+@inject IInventoryService InventoryService
+@inject ICombatActionService CombatActionService
 @implements IAsyncDisposable
 
 <PageTitle>Arena - My Tuno - RTUB</PageTitle>
@@ -261,6 +265,16 @@
     // Battle controls
     private double battleSpeed = 1.0;
     private bool audioEnabled = true;
+
+    // Interactive combat session (spells / Blade Crafter mode)
+    private CombatSession? _combatSession;
+    private List<RTUB.Core.Entities.SpecialAttack>? _starterSpells;
+    private Character? _currentOpponent;
+    private static readonly JsonSerializerOptions _spellJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
     
     // UI timing constant - ensures UI update completes before scrolling on mobile devices
     private const int UiUpdateDelayMs = 50;
@@ -420,6 +434,7 @@
             showResultSummary = false;
             errorMessage = string.Empty;
             currentBattle = null;
+            _currentOpponent = opponent;
             StateHasChanged();
 
             // Scroll to battle on mobile/PWA only
@@ -430,53 +445,85 @@
                 await JSRuntime.InvokeVoidAsync("window.scrollTo", new { top = 0, behavior = "smooth" });
             }
 
-            // Create battle vs specific opponent
+            // Create battle vs specific opponent (pre-computes for rewards metadata)
             currentBattle = await BattleService.CreateBattleVsOpponentAsync(character.Id, opponent.Id);
 
-            // Start live battle animation
+            // ── Interactive combat session (spells / Blade Crafter mode) ──
+            RTUB.Core.Enums.InstrumentType? combatInstrumentType = null;
+            if (character.EquippedWeapon1.HasValue)
+            {
+                var weapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                var equippedWeapon = weapons.FirstOrDefault(w => w.Id == character.EquippedWeapon1.Value);
+                if (equippedWeapon != null)
+                    combatInstrumentType = InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
+            }
+            _starterSpells = SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
+
+            // Create CPU snapshot at full HP for the interactive session.
+            // Use buffed copies when consumable buffs are active (matches the pre-computed engine).
+            var opponentSnapshot = Character.CreateCpuSnapshot(opponent);
+            Character sessionChar = character;
+            if (character.ShotBuffBattlesRemaining > 0)
+                sessionChar = Character.CreateShotBuffedCopy(character);
+            if (character.PenaltyBuffActive > 0)
+                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
+            _combatSession = CombatActionService.CreateSession(
+                sessionChar,
+                new List<Character> { opponentSnapshot },
+                currentBattle.Seed,
+                _starterSpells,
+                "arena");
+
+            // Start live battle animation via pixiBattle.js (interactive mode)
             if (!string.IsNullOrEmpty(currentBattle.ReplayJson))
             {
                 try
                 {
-                    // Initialize DotNetObjectReference if not already done
-                    if (objRef == null)
-                    {
-                        objRef = DotNetObjectReference.Create(this);
-                    }
+                    objRef ??= DotNetObjectReference.Create(this);
 
                     // Wait for container to be rendered
-                    StateHasChanged(); // Trigger render to show container
-                    await Task.Delay(100); // Give time for container to render
+                    StateHasChanged();
+                    await Task.Delay(100);
 
-                    // Validate that ReplayJson is not empty
-                    if (string.IsNullOrWhiteSpace(currentBattle.ReplayJson))
-                    {
-                        Logger.LogWarning("Battle replay JSON is empty");
-                        errorMessage = "Batalha não contém dados para reproduzir.";
-                        showBattleAnimation = false;
-                        StateHasChanged();
-                        return;
-                    }
-
-                    // Create battle data object with JSON string and character names
-                    // JavaScript will parse it directly to maintain proper object structure
                     var battleData = new
                     {
-                        EventsJson = currentBattle.ReplayJson,  // Pass as JSON string
+                        EventsJson = currentBattle.ReplayJson,
                         DotNetRef = objRef,
                         AttackerName = character.User?.Nickname ?? character.User?.UserName ?? "Jogador",
                         DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente",
-                        HasShotBuff = character.ShotBuffBattlesRemaining > 0
+                        BattleSpeed = battleSpeed,
+                        HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        // ── Interactive combat data ──
+                        InteractiveMode = true,
+                        PlayerHP = _combatSession!.Player.CurrentHP,
+                        PlayerMaxHP = _combatSession.Player.MaxHP,
+                        PlayerActionTime = _combatSession.Player.ActionTimeSeconds,
+                        Enemies = _combatSession.Enemies.Select((e, i) => new
+                        {
+                            e.Name,
+                            HP = e.CurrentHP,
+                            e.MaxHP,
+                            ActionTime = e.ActionTimeSeconds
+                        }),
+                        Spells = _starterSpells.Select(s => new
+                        {
+                            s.AttackId,
+                            s.Name,
+                            s.Icon,
+                            VfxType = (int)s.VfxType,
+                            s.VfxColor,
+                            s.CooldownSeconds,
+                            s.ScreenShake,
+                            Target = (int)s.Target
+                        })
                     };
 
-                    await JSRuntime.InvokeVoidAsync("console.log", "Starting PixiJS battle");
                     await JSRuntime.InvokeVoidAsync("myTunoGame.startBattle", "phaserBattleContainer", battleData);
                 }
                 catch (JSException ex)
                 {
                     Logger.LogError(ex, "Error starting battle animation: {Message}", ex.Message);
                     errorMessage = "Erro ao iniciar a animação da batalha.";
-                    // Continue without animation
                     showBattleAnimation = false;
                     StateHasChanged();
                 }
@@ -490,14 +537,13 @@
             }
             else
             {
-                // No replay data, don't show animation
                 showBattleAnimation = false;
             }
 
             // Reload character to show updated stats
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             currentUser = await UserManager.FindByIdAsync(currentUser.Id);
-            await LoadOpponentsAsync();  // Refresh opponents list to show correct HP
+            await LoadOpponentsAsync();
         }
         catch (Exception ex)
         {
@@ -519,6 +565,64 @@
         }
     }
 
+    // ── Interactive combat JSInvokable methods (Blade Crafter spell system) ──
+
+    /// <summary>
+    /// Called by JS when the player's speed bar fills — auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerAutoAttack()
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerAutoAttack(_combatSession);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when the user clicks a spell button.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerSpell(string attackId)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnEnemyAttack(int enemyIndex)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessEnemyAttack(_combatSession, enemyIndex);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS on each tick to advance spell cooldowns.
+    /// Returns updated cooldown map.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnTickCooldowns(double elapsedSeconds)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+    }
+
     [JSInvokable]
     public async Task OnBattleFinished()
     {
@@ -533,6 +637,14 @@
         {
             Logger.LogWarning(ex, "Error destroying arena battle game");
         }
+
+        // Use interactive session outcome if available
+        if (_combatSession != null && currentBattle != null)
+        {
+            var didWin = _combatSession.Winner == _combatSession.Player.Identifier;
+            currentBattle.Outcome = didWin ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon;
+        }
+        _combatSession = null;
         
         // Apply rewards now that battle animation has finished
         if (currentBattle != null)
@@ -606,6 +718,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        _combatSession = null;
+
         // Only attempt JS calls if the component has been rendered interactively
         if (hasRendered)
         {

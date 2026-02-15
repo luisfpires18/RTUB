@@ -174,6 +174,25 @@
 
             // PIXI.Text pool for floating text
             this._textPool = [];
+
+            // ── Interactive mode (spells / Blade Crafter style) ─────────────
+            this.interactiveMode = data?.interactiveMode ?? data?.InteractiveMode ?? false;
+            this.spells = data?.spells ?? data?.Spells ?? [];
+            this.interactivePlayerHP = data?.playerHP ?? data?.PlayerHP ?? null;
+            this.interactivePlayerMaxHP = data?.playerMaxHP ?? data?.PlayerMaxHP ?? null;
+            this.interactivePlayerActionTime = data?.playerActionTime ?? data?.PlayerActionTime ?? null;
+            this.interactiveEnemies = data?.enemies ?? data?.Enemies ?? [];
+
+            // Pending request flags (prevent double-fire during async calls)
+            this._playerAttackPending = false;
+            this._enemyAttackPending = Array(this.enemyCount).fill(false);
+            this._spellPending = false;
+            this._cooldownTickAccum = 0;
+
+            // Spell bar UI elements
+            this.spellButtons = [];
+            this.spellCooldowns = {}; // client-side cooldown tracking {attackId: remainingSeconds}
+            this.spellBarContainer = null;
             
             this.setupAudio();
             this.initPixi();
@@ -336,8 +355,14 @@
             this.createPlayer(width, height);
             this.createEnemies(width, height);
 
-            this.preprocessInitialEvents();
-            this.startTimedBattle();
+            if (this.interactiveMode) {
+                this.initInteractiveState();
+                this.createSpellBar();
+                this.startInteractiveBattle();
+            } else {
+                this.preprocessInitialEvents();
+                this.startTimedBattle();
+            }
             
             // Add update loop with ticker
             this.app.ticker.add(() => this.update());
@@ -831,6 +856,739 @@
             }
         }
 
+        // ── INTERACTIVE MODE METHODS ─────────────────────────────────────
+
+        /** Initialize HP/action-time from the data sent by Blazor (no pre-computed events). */
+        initInteractiveState() {
+            // Player state from Blazor
+            if (this.interactivePlayerHP != null) {
+                this.playerCurrentHp = this.interactivePlayerHP;
+                this.playerMaxHp = this.interactivePlayerMaxHP ?? this.interactivePlayerHP;
+            }
+            if (this.interactivePlayerActionTime != null) {
+                this.playerActionTime = this.interactivePlayerActionTime;
+            }
+
+            // Enemy state from Blazor
+            if (this.interactiveEnemies && this.interactiveEnemies.length > 0) {
+                for (let i = 0; i < this.interactiveEnemies.length && i < this.enemyCount; i++) {
+                    const e = this.interactiveEnemies[i];
+                    const hp = e.hp ?? e.HP ?? 100;
+                    const maxHp = e.maxHP ?? e.MaxHP ?? hp;
+                    const at = e.actionTime ?? e.ActionTime ?? 3.5;
+                    this.enemyHPs[i] = { current: hp, max: maxHp };
+                    this.enemyActionTimes[i] = at;
+                }
+            }
+
+            // Initialize UI bars
+            this.updatePlayerHPBar();
+            for (let i = 0; i < this.enemyCount; i++) {
+                this.updateIndividualEnemyHPBar(i);
+            }
+
+            // Init speed bar timers
+            this.playerSpeedBarTimer = this.playerActionTime * 1000;
+            for (let i = 0; i < this.enemyCount; i++) {
+                this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
+            }
+
+            // Initialize spell cooldowns (all ready at start)
+            for (const spell of this.spells) {
+                const id = spell.attackId ?? spell.AttackId;
+                this.spellCooldowns[id] = 0;
+            }
+        }
+
+        /** Create the spell button bar at the bottom of the canvas. */
+        createSpellBar() {
+            if (!this.spells || this.spells.length === 0) return;
+
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            const btnSize = 52;
+            const btnGap = 10;
+            const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
+            const startX = (width - totalWidth) / 2;
+            const barY = height - btnSize - 8;
+
+            this.spellBarContainer = new PIXI.Container();
+            this.stage.addChild(this.spellBarContainer);
+
+            // Semi-transparent backdrop behind spell bar
+            const backdrop = new PIXI.Graphics();
+            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
+            backdrop.fill({ color: 0x000000, alpha: 0.5 });
+            this.spellBarContainer.addChild(backdrop);
+
+            this.spellButtons = [];
+
+            for (let i = 0; i < this.spells.length; i++) {
+                const spell = this.spells[i];
+                const attackId = spell.attackId ?? spell.AttackId;
+                const name = spell.name ?? spell.Name ?? attackId;
+                const icon = spell.icon ?? spell.Icon ?? '⚡';
+                const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
+                const x = startX + i * (btnSize + btnGap);
+
+                const btnContainer = new PIXI.Container();
+                btnContainer.x = x;
+                btnContainer.y = barY;
+
+                // Button background
+                const bg = new PIXI.Graphics();
+                bg.roundRect(0, 0, btnSize, btnSize, 6);
+                bg.fill({ color: 0x2a2a4a, alpha: 0.9 });
+                bg.stroke({ color: 0x6666aa, width: 2 });
+                btnContainer.addChild(bg);
+
+                // Icon text
+                const iconText = new PIXI.Text({
+                    text: icon,
+                    style: { fontSize: 22, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                });
+                iconText.anchor.set(0.5);
+                iconText.x = btnSize / 2;
+                iconText.y = btnSize / 2 - 4;
+                btnContainer.addChild(iconText);
+
+                // Spell name (small, below icon)
+                const nameText = new PIXI.Text({
+                    text: name.length > 6 ? name.substring(0, 6) : name,
+                    style: { fontSize: 8, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                });
+                nameText.anchor.set(0.5);
+                nameText.x = btnSize / 2;
+                nameText.y = btnSize - 6;
+                btnContainer.addChild(nameText);
+
+                // Cooldown overlay (dark semi-transparent, hidden when ready)
+                const cdOverlay = new PIXI.Graphics();
+                cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                cdOverlay.fill({ color: 0x000000, alpha: 0.7 });
+                cdOverlay.visible = false;
+                btnContainer.addChild(cdOverlay);
+
+                // Cooldown timer text
+                const cdText = new PIXI.Text({
+                    text: '',
+                    style: { fontSize: 16, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
+                });
+                cdText.anchor.set(0.5);
+                cdText.x = btnSize / 2;
+                cdText.y = btnSize / 2;
+                cdText.visible = false;
+                btnContainer.addChild(cdText);
+
+                // Make interactive
+                btnContainer.eventMode = 'static';
+                btnContainer.cursor = 'pointer';
+                btnContainer.on('pointerdown', () => this.onSpellButtonClick(attackId));
+
+                this.spellBarContainer.addChild(btnContainer);
+
+                this.spellButtons.push({
+                    container: btnContainer,
+                    bg,
+                    iconText,
+                    nameText,
+                    cdOverlay,
+                    cdText,
+                    attackId,
+                    cooldownSeconds: cooldown,
+                    spell
+                });
+            }
+        }
+
+        /** Start interactive battle — no pre-computed events, driven by speed bars + server calls. */
+        startInteractiveBattle() {
+            this.battleStartTime = Date.now();
+            this.currentSimTime = 0;
+            this.battleFinished = false;
+            this.isPlaying = true;
+            this._playerAttackPending = false;
+            this._enemyAttackPending = Array(this.enemyCount).fill(false);
+            this._spellPending = false;
+            this._cooldownTickAccum = 0;
+        }
+
+        /** Called when a spell button is clicked. */
+        onSpellButtonClick(attackId) {
+            if (this.battleFinished || !this.isPlaying) return;
+            if (this._spellPending) return;
+            // Check cooldown
+            const cd = this.spellCooldowns[attackId] ?? 0;
+            if (cd > 0) return;
+
+            this._spellPending = true;
+            this.requestPlayerSpell(attackId);
+        }
+
+        /** Call server: player auto-attack. */
+        async requestPlayerAutoAttack() {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._playerAttackPending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack');
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnPlayerAutoAttack error:', e);
+            } finally {
+                this._playerAttackPending = false;
+            }
+        }
+
+        /** Call server: enemy auto-attack. */
+        async requestEnemyAttack(enemyIndex) {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._enemyAttackPending[enemyIndex] = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex);
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnEnemyAttack error:', e);
+            } finally {
+                this._enemyAttackPending[enemyIndex] = false;
+            }
+        }
+
+        /** Call server: player spell cast. */
+        async requestPlayerSpell(attackId) {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._spellPending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId);
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnPlayerSpell error:', e);
+            } finally {
+                this._spellPending = false;
+            }
+        }
+
+        /** Call server: tick cooldowns. */
+        async requestTickCooldowns(elapsedSeconds) {
+            if (!this.dotNetRef || this.battleFinished) return;
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds);
+                if (json) {
+                    const cooldowns = JSON.parse(json);
+                    // Update client-side cooldowns from authoritative server values
+                    for (const [id, remaining] of Object.entries(cooldowns)) {
+                        this.spellCooldowns[id] = remaining;
+                    }
+                }
+            } catch (e) {
+                console.warn('OnTickCooldowns error:', e);
+            }
+        }
+
+        /** Process a CombatActionResult from the server — animate its events. */
+        processServerResult(result) {
+            if (!result) return;
+
+            // Process each event in the result
+            const events = result.events ?? result.Events ?? [];
+            for (const evt of events) {
+                this.processInteractiveEvent(evt);
+            }
+
+            // Update cooldowns from server
+            const cooldowns = result.spellCooldowns ?? result.SpellCooldowns;
+            if (cooldowns) {
+                for (const [id, remaining] of Object.entries(cooldowns)) {
+                    this.spellCooldowns[id] = remaining;
+                }
+            }
+
+            // Check if battle is over
+            const battleOver = result.battleOver ?? result.BattleOver ?? false;
+            if (battleOver) {
+                this.isPlaying = false;
+                // Determine outcome
+                const outcome = result.outcome ?? result.Outcome;
+                // outcome: 0=AttackerWon, 1=DefenderWon, 2=Draw (matches BattleOutcome enum)
+                if (outcome === 0) {
+                    // Player won
+                    this.handleVictory({ Type: 'Victory', Winner: 'Player' });
+                } else if (outcome === 2) {
+                    this.handleDraw();
+                } else {
+                    // Player lost
+                    this.handleVictory({ Type: 'Victory', Winner: 'Enemy' });
+                }
+            }
+        }
+
+        /** Process a single interactive event (from server response). */
+        processInteractiveEvent(evt) {
+            const evtType = evt.type ?? evt.Type;
+            const attackId = evt.attackId ?? evt.AttackId;
+
+            switch (evtType) {
+                case 'HPUpdate':
+                    this.handleHPUpdate(evt);
+                    break;
+                case 'Attack':
+                    if (attackId) {
+                        // This is a spell attack — play spell VFX
+                        this.handleSpellAttack(evt);
+                    } else {
+                        this.handleAttack(evt);
+                    }
+                    break;
+                case 'KO':
+                    this.handleKO(evt);
+                    break;
+                case 'StatusEffect':
+                    this.handleStatusEffect(evt);
+                    break;
+                case 'Victory':
+                    // Don't process here — handled in processServerResult
+                    break;
+                case 'BattleStart':
+                    break;
+            }
+        }
+
+        /** Handle a spell attack event — play VFX based on vfxType. */
+        handleSpellAttack(evt) {
+            const attacker = evt.attacker ?? evt.Attacker;
+            const defender = evt.defender ?? evt.Defender;
+            const damage = evt.damage ?? evt.Damage ?? 0;
+            const isCritical = evt.isCritical ?? evt.IsCritical ?? false;
+            const vfxType = evt.vfxType ?? evt.VfxType; // 0-6
+            const vfxColor = evt.vfxColor ?? evt.VfxColor ?? '#ff6600';
+            const screenShake = evt.screenShake ?? evt.ScreenShake ?? false;
+            const visualHint = evt.visualHint ?? evt.VisualHint;
+            const abilityName = evt.abilityName ?? evt.AbilityName ?? 'Spell';
+            const targets = evt.targets ?? evt.Targets ?? [];
+            const targetDamages = evt.targetDamages ?? evt.TargetDamages ?? [];
+            const effectName = evt.effectName ?? evt.EffectName;
+
+            // Parse hex color to number
+            const color = typeof vfxColor === 'string' && vfxColor.startsWith('#')
+                ? parseInt(vfxColor.replace('#', ''), 16)
+                : (typeof vfxColor === 'number' ? vfxColor : 0xff6600);
+
+            // Screen shake
+            if (screenShake || visualHint === 'screenShake') this.screenShake();
+
+            if (attacker === 'Player' || attacker === 'Attacker') {
+                // ── PLAYER SPELL ──
+                this.animatePlayerAttack(isCritical);
+
+                // Show ability name above player
+                if (this.playerSprite) {
+                    this.showFloatingText(abilityName.toUpperCase(), this.playerSprite.x, 
+                        this.playerSprite.y - (this.playerSprite.height || 40) - 20, color);
+                }
+
+                if (defender === 'Player' || defender === 'Attacker') {
+                    // Self-buff/heal — VFX on player
+                    this.playBuffVfx(this.playerSprite, color);
+                    if (damage < 0 && this.playerSprite) {
+                        // Negative damage = healing
+                        this.showFloatingText(`+${formatNum(Math.abs(damage))}`, this.playerSprite.x,
+                            this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x44ff44);
+                    }
+                    // Show effect label on self
+                    if (effectName && this.playerSprite) {
+                        this.showEffectLabel(effectName, this.playerSprite);
+                    }
+                } else if (targets.length > 1 || vfxType === 2) {
+                    // AoE — hit multiple enemies
+                    for (let t = 0; t < targets.length; t++) {
+                        const targetId = targets[t];
+                        const dmg = targetDamages[t] ?? damage;
+                        const enemyIndex = this.resolveEnemyIndex(targetId);
+                        if (enemyIndex >= 0) {
+                            this.playSpellVfx(vfxType, color, this.playerSprite, this.enemySprites[enemyIndex]);
+                            this.flashEnemy(enemyIndex, isCritical);
+                            const enemy = this.enemySprites[enemyIndex];
+                            if (enemy && dmg > 0) {
+                                this.showDamageText(dmg, isCritical, enemy.x, enemy.y - (enemy.height || 40) * 0.8);
+                            }
+                            // Show effect label on enemy
+                            if (effectName && enemy) {
+                                this.showEffectLabel(effectName, enemy);
+                            }
+                        }
+                    }
+                } else {
+                    // Single target
+                    const enemyIndex = defender ? this.resolveEnemyIndex(defender) : 0;
+                    if (enemyIndex >= 0 && this.enemySprites[enemyIndex]) {
+                        this.playSpellVfx(vfxType, color, this.playerSprite, this.enemySprites[enemyIndex]);
+                        this.flashEnemy(enemyIndex, isCritical);
+                        const enemy = this.enemySprites[enemyIndex];
+                        if (enemy && damage > 0) {
+                            this.showDamageText(damage, isCritical, enemy.x, enemy.y - (enemy.height || 40) * 0.8);
+                        }
+                        // Show effect label on enemy
+                        if (effectName && enemy) {
+                            this.showEffectLabel(effectName, enemy);
+                        }
+                    }
+                }
+
+                // Play spell-specific sound instead of generic attack
+                const attackId = evt.attackId ?? evt.AttackId;
+                if (attackId) {
+                    this.playSpellSound(attackId);
+                } else {
+                    this.playSound(isCritical ? 'critical' : 'attack');
+                }
+            }
+        }
+
+        /** Show a brief status effect label floating above a sprite. */
+        showEffectLabel(effectName, sprite) {
+            const labels = {
+                sleep: '💤 SLEEP', bleed: '🩸 BLEED', slow: '🐌 SLOW',
+                vulnerable: '⚡ VULN', powerboost: '💪 POWER UP', haste: '⚡ HASTE',
+                shield: '🛡️ SHIELD', defensebreak: '💥 DEF BREAK',
+                defenseboost: '🛡️ DEF UP', regen: '💚 REGEN'
+            };
+            const colors = {
+                sleep: 0x9966ff, bleed: 0xff3333, slow: 0x6699cc,
+                vulnerable: 0xffaa00, powerboost: 0xff6600, haste: 0x00ff88,
+                shield: 0x4488ff, defensebreak: 0xff4444, defenseboost: 0x4488ff,
+                regen: 0x44ff44
+            };
+            const label = labels[effectName] || effectName.toUpperCase();
+            const color = colors[effectName] || 0xffffff;
+            this.showFloatingText(label, sprite.x, sprite.y - (sprite.height || 40) - 30, color);
+        }
+
+        /** Resolve "Enemy0", "Enemy1", etc. to an index. */
+        resolveEnemyIndex(identifier) {
+            if (!identifier) return 0;
+            if (identifier === 'Defender') return 0;
+            if (identifier.startsWith('Enemy')) {
+                const idx = parseInt(identifier.replace('Enemy', ''));
+                return isNaN(idx) ? 0 : idx;
+            }
+            return 0;
+        }
+
+        /** Handle status effect events (sleep, bleed ticks, etc.) */
+        handleStatusEffect(evt) {
+            const character = evt.character ?? evt.Character;
+            const effectName = evt.effectName ?? evt.EffectName ?? '';
+            const damage = evt.damage ?? evt.Damage ?? 0;
+
+            const effectLabels = {
+                sleep: '💤 SLEEP',
+                bleed: '🩸 BLEED',
+                slow: '🐌 SLOW',
+                vulnerable: '⚡ VULN',
+                powerboost: '💪 POWER UP',
+                haste: '⚡ HASTE',
+                shield: '🛡️ SHIELD',
+                defensebreak: '💥 DEF BREAK',
+                defenseboost: '🛡️ DEF UP',
+                regen: '💚 REGEN'
+            };
+
+            const label = effectLabels[effectName] || effectName.toUpperCase();
+            const effectColors = {
+                sleep: 0x9966ff, bleed: 0xff3333, slow: 0x6699cc,
+                vulnerable: 0xffaa00, powerboost: 0xff6600, haste: 0x00ff88,
+                shield: 0x4488ff, defensebreak: 0xff4444, defenseboost: 0x4488ff,
+                regen: 0x44ff44
+            };
+            const color = effectColors[effectName] || 0xffffff;
+
+            if (character === 'Player' || character === 'Attacker') {
+                if (this.playerSprite) {
+                    this.showFloatingText(label, this.playerSprite.x,
+                        this.playerSprite.y - (this.playerSprite.height || 40) - 10, color);
+                }
+            } else {
+                const idx = this.resolveEnemyIndex(character);
+                if (idx >= 0 && this.enemySprites[idx]) {
+                    const enemy = this.enemySprites[idx];
+                    this.showFloatingText(label, enemy.x,
+                        enemy.y - (enemy.height || 40) - 10, color);
+                    if (damage > 0) {
+                        this.showDamageText(damage, false, enemy.x, enemy.y - (enemy.height || 40) * 0.8);
+                    }
+                }
+            }
+        }
+
+        // ── SPELL VFX ──────────────────────────────────────────────────────
+
+        /** Dispatch to the right VFX based on type. */
+        playSpellVfx(vfxType, color, source, target) {
+            if (!source || !target || !this.stage) return;
+
+            const srcX = source.x;
+            const srcY = source.y - (source.height || 40) / 2;
+            const tgtX = target.x;
+            const tgtY = target.y - (target.height || 40) / 2;
+
+            switch (vfxType) {
+                case 0: // Projectile
+                    this.createProjectileVfx(color, srcX, srcY, tgtX, tgtY);
+                    break;
+                case 1: // Beam
+                    this.createBeamVfx(color, tgtX, tgtY);
+                    break;
+                case 2: // AreaOfEffect
+                    this.createAoeVfx(color, tgtX, tgtY);
+                    break;
+                case 4: // MeleeStrike
+                    this.createMeleeStrikeVfx(color, tgtX, tgtY);
+                    break;
+                case 5: // SoundWave — expanding concentric rings
+                    this.createSoundWaveVfx(color, srcX, srcY, tgtX, tgtY);
+                    break;
+                case 6: // MusicNotes — floating music note particles
+                    this.createMusicNotesVfx(color, srcX, srcY, tgtX, tgtY);
+                    break;
+                default:
+                    this.createProjectileVfx(color, srcX, srcY, tgtX, tgtY);
+            }
+        }
+
+        /** Animated circle traveling from source to target. */
+        createProjectileVfx(color, srcX, srcY, tgtX, tgtY) {
+            const proj = new PIXI.Graphics();
+            proj.circle(0, 0, 8);
+            proj.fill({ color, alpha: 0.9 });
+            proj.x = srcX;
+            proj.y = srcY;
+            this.stage.addChild(proj);
+
+            // Trail glow
+            const glow = new PIXI.Graphics();
+            glow.circle(0, 0, 14);
+            glow.fill({ color, alpha: 0.3 });
+            glow.x = srcX;
+            glow.y = srcY;
+            this.stage.addChild(glow);
+
+            const duration = 350 / this.battleSpeed;
+            const startTime = Date.now();
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                proj.x = srcX + (tgtX - srcX) * t;
+                proj.y = srcY + (tgtY - srcY) * t;
+                glow.x = proj.x;
+                glow.y = proj.y;
+                glow.alpha = 0.3 * (1 - t * 0.5);
+
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Impact flash
+                    const flash = new PIXI.Graphics();
+                    flash.circle(0, 0, 20);
+                    flash.fill({ color, alpha: 0.8 });
+                    flash.x = tgtX;
+                    flash.y = tgtY;
+                    this.stage.addChild(flash);
+                    this.animateTo(flash, { alpha: 0, scale: 2 }, 200, () => {
+                        if (flash.parent) flash.parent.removeChild(flash);
+                        flash.destroy();
+                    });
+                    if (proj.parent) proj.parent.removeChild(proj);
+                    proj.destroy();
+                    if (glow.parent) glow.parent.removeChild(glow);
+                    glow.destroy();
+                }
+            };
+            requestAnimationFrame(animate);
+        }
+
+        /** Vertical beam dropping on target. */
+        createBeamVfx(color, tgtX, tgtY) {
+            const beam = new PIXI.Graphics();
+            beam.rect(-4, -200, 8, 200);
+            beam.fill({ color, alpha: 0.8 });
+            beam.x = tgtX;
+            beam.y = tgtY;
+            beam.alpha = 0;
+            this.stage.addChild(beam);
+
+            this.animateTo(beam, { alpha: 1 }, 100, () => {
+                this.animateTo(beam, { alpha: 0 }, 400, () => {
+                    if (beam.parent) beam.parent.removeChild(beam);
+                    beam.destroy();
+                });
+            });
+        }
+
+        /** Expanding ring at target area. */
+        createAoeVfx(color, tgtX, tgtY) {
+            const ring = new PIXI.Graphics();
+            ring.circle(0, 0, 10);
+            ring.stroke({ color, width: 3, alpha: 0.9 });
+            ring.x = tgtX;
+            ring.y = tgtY;
+            this.stage.addChild(ring);
+
+            this.animateTo(ring, { scale: 6, alpha: 0 }, 500, () => {
+                if (ring.parent) ring.parent.removeChild(ring);
+                ring.destroy();
+            });
+        }
+
+        /** Upward particles on a target (buff/heal). */
+        playBuffVfx(target, color) {
+            if (!target || !this.stage) return;
+            const cx = target.x;
+            const cy = target.y - (target.height || 40) / 2;
+
+            for (let i = 0; i < 8; i++) {
+                const p = new PIXI.Graphics();
+                p.circle(0, 0, 3);
+                p.fill({ color, alpha: 0.8 });
+                p.x = cx + (Math.random() - 0.5) * 30;
+                p.y = cy + (Math.random() - 0.5) * 20;
+                this.stage.addChild(p);
+
+                this.animateTo(p, { y: p.y - 40 - Math.random() * 30, alpha: 0 }, 600 + Math.random() * 200, () => {
+                    if (p.parent) p.parent.removeChild(p);
+                    p.destroy();
+                });
+            }
+        }
+
+        /** Slash effect at target position. */
+        createMeleeStrikeVfx(color, tgtX, tgtY) {
+            const slash = new PIXI.Graphics();
+            slash.moveTo(-15, -15);
+            slash.lineTo(15, 15);
+            slash.moveTo(15, -15);
+            slash.lineTo(-15, 15);
+            slash.stroke({ color, width: 4, alpha: 0.9 });
+            slash.x = tgtX;
+            slash.y = tgtY;
+            this.stage.addChild(slash);
+
+            this.animateTo(slash, { alpha: 0, scale: 2 }, 350, () => {
+                if (slash.parent) slash.parent.removeChild(slash);
+                slash.destroy();
+            });
+        }
+
+        /** Expanding concentric sound wave rings from source toward target. */
+        createSoundWaveVfx(color, srcX, srcY, tgtX, tgtY) {
+            const midX = (srcX + tgtX) / 2;
+            const midY = (srcY + tgtY) / 2;
+            for (let i = 0; i < 3; i++) {
+                const ring = new PIXI.Graphics();
+                ring.circle(0, 0, 12);
+                ring.stroke({ color, width: 3, alpha: 0.8 });
+                ring.x = midX;
+                ring.y = midY;
+                ring.scale.set(0.3);
+                ring.alpha = 0;
+                this.stage.addChild(ring);
+
+                setTimeout(() => {
+                    ring.alpha = 0.8;
+                    this.animateTo(ring, { alpha: 0, scale: 3 + i }, 500 / this.battleSpeed, () => {
+                        if (ring.parent) ring.parent.removeChild(ring);
+                        ring.destroy();
+                    });
+                }, i * 120 / this.battleSpeed);
+            }
+        }
+
+        /** Floating music note particles drifting from source to target. */
+        createMusicNotesVfx(color, srcX, srcY, tgtX, tgtY) {
+            const notes = ['♪', '♫', '♩', '♬'];
+            for (let i = 0; i < 5; i++) {
+                const note = new PIXI.Text({
+                    text: notes[i % notes.length],
+                    style: { fontSize: 18 + Math.random() * 8, fill: color, fontFamily: 'serif' }
+                });
+                note.anchor.set(0.5);
+                note.x = srcX + (Math.random() - 0.5) * 30;
+                note.y = srcY + (Math.random() - 0.5) * 20;
+                note.alpha = 0;
+                this.stage.addChild(note);
+
+                const delay = i * 80 / this.battleSpeed;
+                const endX = tgtX + (Math.random() - 0.5) * 40;
+                const endY = tgtY - 20 + (Math.random() - 0.5) * 30;
+                setTimeout(() => {
+                    note.alpha = 1;
+                    const duration = 450 / this.battleSpeed;
+                    const startTime = Date.now();
+                    const startX = note.x;
+                    const startY = note.y;
+                    const animate = () => {
+                        const t = Math.min((Date.now() - startTime) / duration, 1);
+                        note.x = startX + (endX - startX) * t;
+                        note.y = startY + (endY - startY) * t - Math.sin(t * Math.PI) * 20;
+                        note.alpha = 1 - t * 0.6;
+                        note.rotation = Math.sin(t * Math.PI * 2) * 0.3;
+                        if (t < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            if (note.parent) note.parent.removeChild(note);
+                            note.destroy();
+                        }
+                    };
+                    animate();
+                }, delay);
+            }
+        }
+
+        /** Brief screen shake effect. */
+        screenShake() {
+            if (!this.stage) return;
+            const intensity = 4;
+            const originalX = this.stage.x;
+            const originalY = this.stage.y;
+            let count = 0;
+            const shake = () => {
+                if (count >= 6 || !this.stage) {
+                    if (this.stage) { this.stage.x = originalX; this.stage.y = originalY; }
+                    return;
+                }
+                this.stage.x = originalX + (Math.random() - 0.5) * intensity * 2;
+                this.stage.y = originalY + (Math.random() - 0.5) * intensity * 2;
+                count++;
+                setTimeout(shake, 30);
+            };
+            shake();
+        }
+
+        /** Update spell button cooldown visuals. */
+        updateSpellCooldownVisuals() {
+            for (const btn of this.spellButtons) {
+                const cd = this.spellCooldowns[btn.attackId] ?? 0;
+                if (cd > 0) {
+                    btn.cdOverlay.visible = true;
+                    btn.cdText.visible = true;
+                    btn.cdText.text = Math.ceil(cd).toString();
+                    btn.container.cursor = 'not-allowed';
+                    btn.bg.alpha = 0.5;
+                } else {
+                    btn.cdOverlay.visible = false;
+                    btn.cdText.visible = false;
+                    btn.container.cursor = 'pointer';
+                    btn.bg.alpha = 0.9;
+                }
+            }
+        }
+
+        // ── END INTERACTIVE MODE METHODS ────────────────────────────────────
+
         update() {
             // Guard: if app or stage was destroyed (GL context loss, dispose), stop
             if (!this.app || !this.stage) return;
@@ -838,8 +1596,55 @@
             
             // Idle animation for enemies - always runs even during pauses
             this.updateIdleAnimation(deltaMs);
+
+            // ── Interactive mode: speed bars trigger server calls ──
+            if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
+                const simDelta = deltaMs * this.battleSpeed;
+                this.currentSimTime += simDelta;
+
+                // Player speed bar
+                if (this.playerCurrentHp > 0) {
+                    this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+                    this.updatePlayerSpeedBar();
+
+                    if (this.playerSpeedBarTimer <= 0 && !this._playerAttackPending) {
+                        this._playerAttackPending = true;
+                        this.playerSpeedBarTimer = this.playerActionTime * 1000;
+                        this.requestPlayerAutoAttack();
+                    }
+                }
+
+                // Enemy speed bars
+                for (let i = 0; i < this.enemyCount; i++) {
+                    if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
+                        this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+                        this.updateEnemySpeedBar(i);
+
+                        if (this.enemySpeedBarTimers[i] <= 0 && !this._enemyAttackPending[i]) {
+                            this._enemyAttackPending[i] = true;
+                            this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
+                            this.requestEnemyAttack(i);
+                        }
+                    }
+                }
+
+                // Tick cooldowns on server periodically (~200ms)
+                this._cooldownTickAccum += simDelta;
+                if (this._cooldownTickAccum >= 200) {
+                    const elapsed = this._cooldownTickAccum / 1000;
+                    this._cooldownTickAccum = 0;
+                    // Also decrement client-side for visual responsiveness
+                    for (const id of Object.keys(this.spellCooldowns)) {
+                        this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
+                    }
+                    this.updateSpellCooldownVisuals();
+                    this.requestTickCooldowns(elapsed);
+                }
+
+                return; // Don't process pre-computed events
+            }
             
-            // Time-based battle simulation
+            // ── Pre-computed mode: process events by SimTime ──
             if (!this.battleFinished && this.battleEvents && this.isPlaying) {
                 // Advance simulation time based on battle speed
                 const simDelta = deltaMs * this.battleSpeed;
@@ -1416,6 +2221,116 @@
             }
         }
 
+        /** Play a unique musical sound for each special attack.
+         *  Uses Web Audio API oscillators to synthesize instrument-specific tones. */
+        playSpellSound(attackId) {
+            if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
+            if (this.audioContext.state === 'suspended') this.audioContext.resume();
+            const ctx = this.audioContext;
+            const vol = this.sfxVolume;
+            const t = ctx.currentTime;
+
+            const playNote = (freq, type, start, dur, v = 0.3) => {
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.connect(g); g.connect(ctx.destination);
+                osc.frequency.value = freq; osc.type = type;
+                g.gain.setValueAtTime(vol * v, t + start);
+                g.gain.exponentialRampToValueAtTime(0.01, t + start + dur);
+                osc.start(t + start); osc.stop(t + start + dur);
+            };
+
+            switch (attackId) {
+                case 'heavy_attack': {
+                    // Big impact — low power hit + mid crunch
+                    playNote(120, 'sawtooth', 0, 0.15, 0.5);
+                    playNote(180, 'square', 0.03, 0.12, 0.4);
+                    break;
+                }
+                case 'guitarra_barrage': {
+                    // Guitar barrage — rapid machine-gun power chords
+                    for (let i = 0; i < 6; i++) {
+                        playNote(82 + i * 15, 'sawtooth', i * 0.07, 0.08, 0.4);
+                        playNote(165 + i * 10, 'square', i * 0.07 + 0.03, 0.06, 0.25);
+                    }
+                    break;
+                }
+                case 'bandolim_swiftchord': {
+                    // Mandolin — sharp swift single chord strike
+                    playNote(587, 'triangle', 0, 0.12, 0.4);
+                    playNote(784, 'triangle', 0.02, 0.1, 0.35);
+                    playNote(988, 'sine', 0.04, 0.08, 0.3);
+                    break;
+                }
+                case 'cavaquinho_paralysis': {
+                    // Cavaquinho — electric paralysing zap (staccato + high buzz)
+                    for (let i = 0; i < 5; i++) {
+                        playNote(800 + Math.random() * 400, 'square', i * 0.06, 0.05, 0.3);
+                    }
+                    playNote(200, 'sawtooth', 0.35, 0.2, 0.4);
+                    break;
+                }
+                case 'acordeao_fear': {
+                    // Accordion — deep ominous dread (descending dissonant chord)
+                    playNote(130, 'sawtooth', 0, 0.6, 0.4);
+                    playNote(138, 'sawtooth', 0, 0.55, 0.35);
+                    playNote(98, 'square', 0.1, 0.4, 0.3);
+                    playNote(65, 'triangle', 0.2, 0.4, 0.25);
+                    break;
+                }
+                case 'contrabaixo_sonicboom': {
+                    // Contrabass — big sonic boom (deep impact + expanding wave)
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.connect(g); g.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(110, t);
+                    osc.frequency.exponentialRampToValueAtTime(35, t + 0.5);
+                    g.gain.setValueAtTime(vol * 0.6, t);
+                    g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                    osc.start(t); osc.stop(t + 0.5);
+                    playNote(55, 'triangle', 0, 0.4, 0.3);
+                    playNote(220, 'square', 0.05, 0.15, 0.2);
+                    break;
+                }
+                case 'percussao_combo': {
+                    // Percussion — 1-2-3 combo hits, 3rd hit bigger
+                    playNote(100, 'square', 0, 0.08, 0.35);
+                    playNote(120, 'square', 0.12, 0.08, 0.4);
+                    playNote(80, 'sawtooth', 0.28, 0.15, 0.55);
+                    playNote(60, 'triangle', 0.3, 0.2, 0.4);
+                    break;
+                }
+                case 'pandeireta_boomerang': {
+                    // Pandeireta boomerang — whoosh out and back
+                    for (let i = 0; i < 4; i++) {
+                        playNote(600 + i * 200, 'sine', i * 0.08, 0.1, 0.25);
+                    }
+                    for (let i = 0; i < 4; i++) {
+                        playNote(1400 - i * 200, 'sine', 0.4 + i * 0.08, 0.1, 0.25);
+                    }
+                    break;
+                }
+                case 'estandarte_rally': {
+                    // Flag/banner — military fanfare (rising brass-like notes)
+                    const fanfare = [262, 330, 392, 523, 659];
+                    fanfare.forEach((f, i) => playNote(f, 'square', i * 0.1, 0.15, 0.35));
+                    break;
+                }
+                case 'violino_sleep': {
+                    // Violin — haunting lullaby melody (legato high notes)
+                    const lullaby = [659, 587, 523, 494, 440];
+                    lullaby.forEach((f, i) => playNote(f, 'sine', i * 0.15, 0.25, 0.35));
+                    playNote(330, 'triangle', 0, 0.7, 0.15);
+                    break;
+                }
+                default:
+                    // Fallback to generic attack sound
+                    this.playSound('attack');
+                    break;
+            }
+        }
+
         playSound(type) {
             if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
             
@@ -1632,6 +2547,10 @@
 
             // Destroy pooled texts
             for (const t of this._textPool) { try { t.destroy(); } catch (_) {} }
+
+            // Clean up spell bar
+            this.spellButtons = [];
+            this.spellBarContainer = null;
             this._textPool = [];
 
             if (this.eventTimer) {
@@ -1697,6 +2616,15 @@
             this.enemySpritePaths = data?.enemySprites ?? [];
             this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
             this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? this.hasShotBuff;
+            
+            // Interactive mode fields
+            this.interactiveMode = data?.interactiveMode ?? data?.InteractiveMode ?? this.interactiveMode;
+            this.spells = data?.spells ?? data?.Spells ?? this.spells;
+            this.interactivePlayerHP = data?.playerHP ?? data?.PlayerHP ?? null;
+            this.interactivePlayerMaxHP = data?.playerMaxHP ?? data?.PlayerMaxHP ?? null;
+            this.interactivePlayerActionTime = data?.playerActionTime ?? data?.PlayerActionTime ?? null;
+            this.interactiveEnemies = data?.enemies ?? data?.Enemies ?? [];
+            this._enemyAttackPending = Array(this.enemyCount).fill(false);
             
             // PRE-LOAD new textures while old scene is still fully visible (no flash)
             try {
@@ -1847,8 +2775,14 @@
             // Music continues playing across battles — no stop/restart on boss transitions
             
             // Restart battle
-            this.preprocessInitialEvents();
-            this.startTimedBattle();
+            if (this.interactiveMode) {
+                this.initInteractiveState();
+                this.createSpellBar();
+                this.startInteractiveBattle();
+            } else {
+                this.preprocessInitialEvents();
+                this.startTimedBattle();
+            }
         }
         
         static stopBackgroundMusic() {
@@ -1892,6 +2826,14 @@
             const initialBattleSpeed = battleData?.battleSpeed ?? battleData?.BattleSpeed ?? 1.0;
             const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
+            // Interactive mode fields
+            const interactiveMode = battleData?.interactiveMode ?? battleData?.InteractiveMode ?? false;
+            const spells = battleData?.spells ?? battleData?.Spells ?? [];
+            const playerHP = battleData?.playerHP ?? battleData?.PlayerHP ?? null;
+            const playerMaxHP = battleData?.playerMaxHP ?? battleData?.PlayerMaxHP ?? null;
+            const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
+            const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
+
             stageScene = new StageBattleScene(container, {
                 events: events,
                 dotNetRef: dotNetRef,
@@ -1904,7 +2846,13 @@
                 playerSpritePath: playerSpritePath,
                 enemySprites: enemySprites,
                 enemyPlacements: enemyPlacements,
-                HasShotBuff: hasShotBuff
+                HasShotBuff: hasShotBuff,
+                interactiveMode: interactiveMode,
+                spells: spells,
+                playerHP: playerHP,
+                playerMaxHP: playerMaxHP,
+                playerActionTime: playerActionTime,
+                enemies: enemies
             });
             
             // Apply initial battle speed after scene is created
@@ -1974,6 +2922,14 @@
             const dotNetRef = battleData?.DotNetRef ?? battleData?.dotNetRef ?? null;
             const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
 
+            // Interactive mode fields
+            const interactiveMode = battleData?.interactiveMode ?? battleData?.InteractiveMode ?? false;
+            const spells = battleData?.spells ?? battleData?.Spells ?? [];
+            const playerHP = battleData?.playerHP ?? battleData?.PlayerHP ?? null;
+            const playerMaxHP = battleData?.playerMaxHP ?? battleData?.PlayerMaxHP ?? null;
+            const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
+            const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
+
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
                 events: events,
@@ -1987,7 +2943,13 @@
                 playerSpritePath: playerSpritePath,
                 enemySprites: enemySprites,
                 enemyPlacements: enemyPlacements,
-                HasShotBuff: hasShotBuff
+                HasShotBuff: hasShotBuff,
+                interactiveMode: interactiveMode,
+                spells: spells,
+                playerHP: playerHP,
+                playerMaxHP: playerMaxHP,
+                playerActionTime: playerActionTime,
+                enemies: enemies
             });
         }
     };

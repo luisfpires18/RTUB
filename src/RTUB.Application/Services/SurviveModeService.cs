@@ -11,6 +11,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Services;
 
@@ -558,13 +559,7 @@ public class SurviveModeService : ISurviveModeService
         var instrParts = new List<InventoryItemType>();
         var equipPieces = new List<InventoryItemType>();
 
-        var instrPartTypes = new[]
-        {
-            InventoryItemType.GuitarraPart, InventoryItemType.BaixoPart,
-            InventoryItemType.CavaquinhoPart, InventoryItemType.AcordeaoPart,
-            InventoryItemType.ViolinoPart, InventoryItemType.PercussaoPart,
-            InventoryItemType.FlautaPart, InventoryItemType.SaxofonePart
-        };
+        var instrPartTypes = InstrumentTypeHelper.GameInstrumentPartTypes.ToArray();
 
         var equipSlotTypes = new[]
         {

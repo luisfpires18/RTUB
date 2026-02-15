@@ -14,7 +14,9 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @using RTUB.Application.Configuration
+@using RTUB.Application.Services
 @using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IStageService StageService
@@ -28,6 +30,8 @@
 @inject ILogger<Stage> Logger
 @inject IStageBiomeService BiomeService
 @inject IAuditLogService AuditLogService
+@inject ICombatActionService CombatActionService
+@inject IInventoryService InventoryService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -459,6 +463,14 @@
     // release the JSON string early to reduce GC pressure on long runs).
     private bool _replaySentToJs;
 
+    // Interactive combat session (spells / Blade Crafter mode)
+    private CombatSession? _combatSession;
+    private static readonly JsonSerializerOptions _spellJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     // Start stage is now set in the DB before navigation (from MyTunoHome checkpoint selection)
     // No query parameter needed — eliminates prerender/redirect race conditions
 
@@ -584,8 +596,47 @@
                 await Task.Delay(50);
             }
 
-            // Execute stage battle
+            // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+
+            // Create interactive combat session from enemy metadata
+            // This drives the REAL combat — player auto-attacks + spell clicks
+            // Determine instrument type from equipped weapon for unique special attack
+            RTUB.Core.Enums.InstrumentType? combatInstrumentType = null;
+            if (character.EquippedWeapon1.HasValue)
+            {
+                var weapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
+                var equippedWeapon = weapons.FirstOrDefault(w => w.Id == character.EquippedWeapon1.Value);
+                if (equippedWeapon != null)
+                {
+                    combatInstrumentType = RTUB.Core.Helpers.InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
+                }
+            }
+            var starterSpells = RTUB.Application.Data.SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
+            var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.Services.CombatantState
+            {
+                Identifier = $"Enemy{i}",
+                Name = e.Name,
+                CurrentHP = e.HP,
+                MaxHP = e.HP,
+                Power = e.Power,
+                Defense = e.Defense,
+                CriticalChance = 0.05, // Default enemy crit chance
+                ActionTimeSeconds = e.ActionTime
+            }).ToList();
+            // Use buffed copies when consumable buffs are active — matches the
+            // pre-computed engine so HP/Power/ActionTime are consistent.
+            Character sessionChar = character;
+            if (character.ShotBuffBattlesRemaining > 0)
+                sessionChar = Character.CreateShotBuffedCopy(character);
+            if (character.PenaltyBuffActive > 0)
+                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
+            _combatSession = CombatActionService.CreateSession(
+                sessionChar,
+                enemyStates,
+                currentBattle.Seed,
+                starterSpells,
+                "stage");
 
             // If the player lost, immediately mark the run as finished so that
             // CancelRunIfInProgressAsync (called on dispose/navigate-away) will NOT
@@ -636,7 +687,7 @@
                         enemyPlacements.Add(0);
                     }
 
-                    // Send ReplayJson directly (JS parses it once); no re-serialization needed
+                    // Send interactive battle data (no pre-computed events — JS drives combat)
                     var battleData = new
                     {
                         EventsJson = currentBattle.ReplayJson,
@@ -651,7 +702,30 @@
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,
-                        HasShotBuff = character.ShotBuffBattlesRemaining > 0
+                        HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        // ── Interactive combat data (spells / Blade Crafter mode) ──
+                        InteractiveMode = true,
+                        PlayerHP = _combatSession!.Player.CurrentHP,
+                        PlayerMaxHP = _combatSession.Player.MaxHP,
+                        PlayerActionTime = _combatSession.Player.ActionTimeSeconds,
+                        Enemies = _combatSession.Enemies.Select((e, i) => new
+                        {
+                            e.Name,
+                            HP = e.CurrentHP,
+                            e.MaxHP,
+                            ActionTime = e.ActionTimeSeconds
+                        }),
+                        Spells = starterSpells.Select(s => new
+                        {
+                            s.AttackId,
+                            s.Name,
+                            s.Icon,
+                            VfxType = (int)s.VfxType,
+                            s.VfxColor,
+                            s.CooldownSeconds,
+                            s.ScreenShake,
+                            Target = (int)s.Target
+                        })
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
@@ -740,7 +814,66 @@
         if (_disposed) return;
         // Reset battle state and start next fight
         currentBattle = null;
+        _combatSession = null;
         await FightStageEnemy();
+    }
+
+    // ── Interactive combat JSInvokable methods (Blade Crafter spell system) ──
+
+    /// <summary>
+    /// Called by JS when the player's speed bar fills — auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerAutoAttack()
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerAutoAttack(_combatSession);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when the user clicks a spell button.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnPlayerSpell(string attackId)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessPlayerSpell(_combatSession, attackId);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when an enemy's speed bar fills — enemy auto-attack fires.
+    /// Returns CombatActionResult JSON for JS to animate.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnEnemyAttack(int enemyIndex)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var result = CombatActionService.ProcessEnemyAttack(_combatSession, enemyIndex);
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS on each tick to advance spell cooldowns.
+    /// Returns updated cooldown map.
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnTickCooldowns(double elapsedSeconds)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
     }
 
     [JSInvokable]
@@ -760,7 +893,31 @@
         if (!runInProgress && !pendingDefeatRewards) return;
 
         // Auto-continue to next stage if victory (don't hide battle animation)
-        if (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon)
+        // Use interactive session outcome if available, otherwise fall back to pre-computed
+        var didWin = _combatSession != null
+            ? (_combatSession.Winner == _combatSession.Player.Identifier)
+            : (currentBattle != null && currentBattle.Outcome == BattleOutcome.AttackerWon);
+
+        // If interactive session says win but pre-computed said loss (pendingDefeatRewards was
+        // set prematurely), correct the state so the run continues properly.
+        if (didWin && pendingDefeatRewards)
+        {
+            pendingDefeatRewards = false;
+            runInProgress = true;
+        }
+
+        // Update character HP from interactive session (overrides pre-computed value)
+        if (_combatSession != null && character != null)
+        {
+            character.CurrentHP = _combatSession.Player.CurrentHP > 0
+                ? _combatSession.Player.CurrentHP
+                : null;
+            // Update buff remaining counts from session
+            character.CigarroShieldHitsRemaining = _combatSession.CigarroShieldRemaining;
+            character.CanhaoDamageBoostHitsRemaining = _combatSession.CanhaoBoostRemaining;
+        }
+
+        if (didWin && currentBattle != null)
         {
             try
             {
@@ -806,6 +963,7 @@
                 await Task.Delay(200);
                 if (_disposed) return;
                 currentBattle = null;
+                _combatSession = null;
                 
                 // Only update UI after starting next battle to minimize flicker
                 await FightStageEnemy();
@@ -870,6 +1028,7 @@
             showDefeatSummary = true;
             currentEnemyStats.Clear();
             currentBattle = null;
+            _combatSession = null;
             
             if (!_disposed) StateHasChanged();
         }

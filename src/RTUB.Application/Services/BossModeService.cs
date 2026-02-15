@@ -522,10 +522,7 @@ public class BossModeService : IBossModeService
         if (highestStage >= 101 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
         if (highestStage >= 901 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
-        var instrumentTypes = Enum.GetValues(typeof(InstrumentType))
-            .Cast<InstrumentType>()
-            .Where(t => t != InstrumentType.Saxofone && t != InstrumentType.Fagote)
-            .ToArray();
+        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
         var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         if (random.NextDouble() < dropRates.InstrumentPartDropChance)

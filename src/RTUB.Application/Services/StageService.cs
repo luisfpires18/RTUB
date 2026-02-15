@@ -315,6 +315,13 @@ public class StageService : IStageService
                 if (stageProgress == null)
                     throw new Core.Exceptions.EntityNotFoundException(nameof(StageProgress), userId);
 
+                // Reload from database to ensure clean change tracker state.
+                // In Blazor Server, the long-lived DbContext may have stale tracked state
+                // from prior operations (e.g., ApplyRunRewardsAsync saving this entity as a
+                // side effect when SaveChangesAsync flushes all modified tracked entities).
+                // ReloadAsync refreshes original+current values and resets state to Unchanged.
+                await _stageProgressRepository.ReloadAsync(stageProgress);
+
                 stageProgress.ReturnToCheckpoint();
                 await _stageProgressRepository.UpdateAsync(stageProgress);
 
@@ -374,6 +381,12 @@ public class StageService : IStageService
                 character.CanhaoDamageBoostHitsRemaining = restoreCanhaoBoost;
                 character.PenaltyBuffActive = restorePenaltyBuff;
                 await _characterRepository.UpdateAsync(character);
+
+                // Reload stageProgress from database to ensure clean change tracker state.
+                // The character save above may have flushed stageProgress as a side effect
+                // (SaveChangesAsync saves all tracked Modified entities), leaving the
+                // tracker with stale original values that cause concurrency exceptions.
+                await _stageProgressRepository.ReloadAsync(stageProgress);
 
                 // Reset stage progress to the restore point
                 if (stageProgress.CurrentStage != restoreStage)
@@ -575,10 +588,7 @@ public class StageService : IStageService
             equipmentChance *= dropRates.BossDropMultiplier;
         }
 
-        var instrumentTypes = Enum.GetValues(typeof(InstrumentType))
-            .Cast<InstrumentType>()
-            .Where(t => t != InstrumentType.Saxofone && t != InstrumentType.Fagote)
-            .ToArray();
+        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
         var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         for (int i = 0; i < enemyCount; i++)

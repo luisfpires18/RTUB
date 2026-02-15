@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -19,12 +20,16 @@ public static partial class SeedData
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData");
 
         // Seed default games (runs even for existing databases)
         await gameService.SeedDefaultGamesAsync();
 
         // Seed all biome stage enemies (runs even for existing databases)
         await SeedAllBiomeEnemiesAsync(dbContext);
+
+        // Cleanup removed instruments (Baixo, Flauta, Fagote, Saxofone) — runs every startup
+        await CleanupRemovedInstrumentsAsync(dbContext, logger);
 
         if (await dbContext.Users.AnyAsync())
         {

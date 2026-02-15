@@ -140,6 +140,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICharacterService, CharacterService>();
         services.AddScoped<IUpgradeService, UpgradeService>();
         services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
+        services.AddScoped<ICombatActionService, CombatActionService>();
         services.AddScoped<IBattleService, BattleService>();
         services.AddScoped<IStageService, StageService>();
         services.AddScoped<IStageBiomeService, StageBiomeService>();
