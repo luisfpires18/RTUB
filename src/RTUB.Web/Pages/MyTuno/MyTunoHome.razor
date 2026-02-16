@@ -173,7 +173,7 @@
                                             ("Cigarro", "bi-cloud", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
                                             ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 501, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
                                             ("Canhão", "bi-bullseye", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "0.5s + 100% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
                                         };
                                     }
 
@@ -485,7 +485,7 @@
                         <div class="mb-3">
                             <h4 class="text-center mb-3">Nível @character.Level</h4>
                             @{
-                                var xpForNextLevel = character.Level * RTUB.Core.Configuration.MyTunoScaling.XpPerLevelBase;
+                                var xpForNextLevel = RTUB.Core.Entities.Character.XpForLevel(character.Level);
                                 var xpProgress = xpForNextLevel > 0 ? Math.Min(100, (character.XP * 100.0 / xpForNextLevel)) : 0;
                             }
                             <!-- XP Bar matching Profile.razor style -->
@@ -1336,6 +1336,15 @@
     <!-- Weapon Action Modal (Equip/Unequip forged weapon) -->
     @if (showWeaponActionModal && pendingWeapon != null)
     {
+        var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
+        var (wpnDrinkType, wpnDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
+        var wpnDrinkName = GetResourceName(wpnDrinkType);
+        var wpnDrinkHave = GetResourceQuantity(wpnDrinkType);
+        var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
+        var hasFidelis = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
+        var hasDrinks = wpnDrinkHave >= wpnDrinkQty;
+        var canAffordUpgrade = hasFidelis && hasDrinks;
+        var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
         <Modal Show="@showWeaponActionModal"
                ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
                Title="@pendingWeapon.Name"
@@ -1364,6 +1373,8 @@
                         @WeaponTypeHelper.GetDisplayName(pendingWeapon.WeaponType)
                     </span>
                 </div>
+
+                <!-- Bonus Stats -->
                 <div class="equip-confirm-stats mb-3">
                     <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
@@ -1374,31 +1385,47 @@
                         @if (pendingWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
                     </div>
                 </div>
+
+                <!-- Upgrade Requirements Section -->
+                <div class="wpn-upgrade-section">
+                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
+                        <i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(pendingWeapon.Level + 1):
+                    </small>
+                    <div class="d-flex flex-column gap-2">
+                        <!-- Fidelis cost -->
+                        <div class="wpn-upgrade-req @(hasFidelis ? "" : "wpn-upgrade-req--missing")">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-coin" style="color: var(--bs-warning); font-size: 1rem;"></i>
+                                <span style="color: #e2e2e2; font-size: 0.85rem;">@Fmt(upgradeCost) Fidelis</span>
+                            </div>
+                            <span class="badge @(hasFidelis ? "bg-success bg-opacity-25 text-success" : "bg-danger bg-opacity-25 text-danger")" style="font-size: 0.7rem;">
+                                @Fmt(currentUser?.FidelisBalance ?? 0)
+                            </span>
+                        </div>
+                        <!-- Drink cost -->
+                        <div class="wpn-upgrade-req @(hasDrinks ? "" : "wpn-upgrade-req--missing")">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (GetDrinkPictureUrl(wpnDrinkType) is string wpnDrinkImg)
+                                {
+                                    <img src="@CacheBuster.Bust(wpnDrinkImg)" alt="@wpnDrinkName" style="width: 20px; height: 20px; object-fit: contain;" />
+                                }
+                                else
+                                {
+                                    <i class="bi @(wpnDrinkRes?.Icon ?? "bi-cup-straw")" style="font-size: 1rem; color: var(--bs-info);"></i>
+                                }
+                                <span style="color: #e2e2e2; font-size: 0.85rem;">@wpnDrinkQty @wpnDrinkName</span>
+                            </div>
+                            <span class="badge @(hasDrinks ? "bg-success bg-opacity-25 text-success" : "bg-danger bg-opacity-25 text-danger")" style="font-size: 0.7rem;">
+                                @wpnDrinkHave
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </BodyContent>
             <FooterContent>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
-                    @{
-                        var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
-                        var (wpnDrinkType, wpnDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
-                        var wpnDrinkName = GetResourceName(wpnDrinkType);
-                        var wpnDrinkHave = GetResourceQuantity(wpnDrinkType);
-                        var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
-                        var canAffordUpgrade = currentUser != null && currentUser.FidelisBalance >= upgradeCost && wpnDrinkHave >= wpnDrinkQty;
-                    }
                     <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmWeaponUpgrade()" disabled="@(weaponActioning || !canAffordUpgrade)">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(pendingWeapon.Level + 1)
-                        <small class="opacity-75 ms-1">@Fmt(upgradeCost) <i class="bi bi-coin"></i></small>
-                        <span class="ms-1 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                            + @wpnDrinkQty
-                            @if (GetDrinkPictureUrl(wpnDrinkType) is string wpnDrinkImg)
-                            {
-                                <img src="@CacheBuster.Bust(wpnDrinkImg)" alt="@wpnDrinkName" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle;" />
-                            }
-                            else
-                            {
-                                <i class="bi @(wpnDrinkRes?.Icon ?? "bi-cup-straw")"></i>
-                            }
-                        </span>
                     </button>
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
@@ -1422,9 +1449,6 @@
                     }
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    @{
-                        var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
-                    }
                     <button class="btn btn-danger btn-sm" @onclick="() => ConfirmWeaponDiscard()" disabled="@weaponActioning">
                         <i class="bi bi-trash me-1"></i>Descartar
                         <small class="opacity-75">(@Fmt(weaponDiscardValue) <i class="bi bi-coin"></i>)</small>
@@ -1783,11 +1807,11 @@
                     A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e stage) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
                 </div>
                 
-                @if ((character?.Level ?? 0) < 100)
+                @if ((character?.Level ?? 0) < 10)
                 {
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Precisas de atingir Level 100 para aceder ao Boss Mode.
+                        Precisas de atingir Level 10 para aceder ao Boss Mode.
                     </div>
                 }
                 else if ((currentUser?.FitabBalance ?? 0) < 1)
@@ -1802,7 +1826,7 @@
                 <button class="btn btn-secondary" @onclick="CloseBossModeModal">
                     <i class="bi bi-x-lg me-2"></i>Fechar
                 </button>
-                <button class="btn btn-warning" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 100)">
+                <button class="btn btn-warning" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 10)">
                     <i class="bi bi-lightning-fill me-2"></i>Entrar (1 FITAB)
                 </button>
             </FooterContent>
@@ -2096,7 +2120,8 @@
     private decimal GetDailyRewardAmount()
     {
         var level = character?.Level ?? 1;
-        return CharacterService.GetDailyRewardAmount(level);
+        var balance = currentUser?.FidelisBalance ?? 0m;
+        return CharacterService.GetDailyRewardAmount(level, balance);
     }
     
     private async Task ClaimDailyReward()
@@ -2749,7 +2774,7 @@
             {
                 penaltyQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha.";
+                toastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
                 toastIsError = false;
             }
             else

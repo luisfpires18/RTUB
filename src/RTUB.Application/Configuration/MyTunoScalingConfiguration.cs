@@ -45,86 +45,79 @@ public class MyTunoScalingConfiguration
 
 public class BattleRewards
 {
-    public decimal WinReward { get; set; } = 10m;
-    public decimal DrawReward { get; set; } = 7.5m;
+    public decimal WinReward { get; set; } = 120m;
+    public decimal DrawReward { get; set; } = 30m;
 
     /// <summary>
     /// Base XP reward for winning an arena battle
     /// </summary>
-    public int BaseWinXP { get; set; } = 50;
+    public int BaseWinXP { get; set; } = 150;
 
     /// <summary>
     /// Base XP reward for drawing an arena battle
     /// </summary>
-    public int BaseDrawXP { get; set; } = 30;
+    public int BaseDrawXP { get; set; } = 75;
 
     /// <summary>
     /// Unified level-difference scaling for both XP and Fidelis arena rewards.
     /// Formula: rewardMultiplier = clamp(1.0 + (defenderLevel - attackerLevel) * LevelDiffScale, Min, Max)
     /// Beating higher level = bonus, beating lower level = penalty.
-    /// Default 0.02 = 2% per level difference. Zero threshold at 45 levels above.
+    /// Default 0.015 = 1.5% per level difference (scaled for max level 100).
     /// </summary>
-    public double LevelDiffScale { get; set; } = 0.02;
+    public double LevelDiffScale { get; set; } = 0.015;
 
     /// <summary>
-    /// Minimum reward multiplier floor. 0.1 = always earn at least 10% of base rewards.
+    /// Minimum reward multiplier floor. 0.05 = virtually no reward for massive downfighting.
     /// </summary>
-    public double MinRewardMultiplier { get; set; } = 0.1;
+    public double MinRewardMultiplier { get; set; } = 0.05;
 
     /// <summary>
     /// Maximum reward multiplier (cap for beating much stronger opponents).
-    /// Default 3.0 = max 300% rewards.
+    /// Default 2.5 = max 250% rewards.
     /// </summary>
-    public double MaxRewardMultiplier { get; set; } = 3.0;
+    public double MaxRewardMultiplier { get; set; } = 2.5;
 
     /// <summary>
     /// Level-based scaling exponent for arena rewards.
     /// Rewards scale with attacker level: base × level^LevelScalePower.
-    /// 0.5 = sqrt scaling (level 381 → 19.5× base). 0 = no level scaling.
+    /// 0.8 = sublinear scaling (level 100 → ~63× base). 0 = no level scaling.
     /// </summary>
-    public double LevelScalePower { get; set; } = 0.7;
+    public double LevelScalePower { get; set; } = 0.8;
 
     /// <summary>
     /// Cost in Fidelis to revive a defeated character
-    /// Default is 100 Fidelis
     /// </summary>
-    public decimal ReviveCost { get; set; } = 100m;
+    public decimal ReviveCost { get; set; } = 30m;
 
     /// <summary>
     /// Cost in Fidelis to restore HP to maximum
-    /// Default is 50 Fidelis
     /// </summary>
-    public decimal RestoreHPCost { get; set; } = 50m;
+    public decimal RestoreHPCost { get; set; } = 20m;
 
     /// <summary>
     /// Chance of Fino drop after winning an arena battle (0.0 to 1.0)
     /// </summary>
-    public double FinoDropChance { get; set; } = 0.001;
-
-    /// <summary>
-    /// Chance of Shot drop after winning an arena battle (0.0 to 1.0)
-    /// </summary>
-    public double ShotDropChance { get; set; } = 0.0006;
+    public double FinoDropChance { get; set; } = 0.0015;
 
     /// <summary>
     /// Chance of Caneca drop after winning an arena battle (0.0 to 1.0)
     /// </summary>
-    public double CanecaDropChance { get; set; } = 0.0003;
+    public double CanecaDropChance { get; set; } = 0.0004;
 
     /// <summary>
     /// Chance of Cigarro drop after winning an arena battle
     /// </summary>
-    public double CigarroDropChance { get; set; } = 0.0004;
+    public double CigarroDropChance { get; set; } = 0.0009;
 
     /// <summary>
     /// Chance of Canhão drop after winning an arena battle
     /// </summary>
-    public double CanhaoDropChance { get; set; } = 0.0002;
+    public double CanhaoDropChance { get; set; } = 0.0003;
 
     /// <summary>
     /// Chance of Penalty drop after winning an arena battle
     /// </summary>
-    public double PenaltyDropChance { get; set; } = 0.0001;
+    public double PenaltyDropChance { get; set; } = 0.0002;
 }
 
 public class MyTunoBaseStats
@@ -148,6 +141,11 @@ public class MyTunoLevelScaling
     public double StatMultiplierPerLevel { get; set; } = 0.1;
     public double StatGrowthExponent { get; set; } = 0.0;
     public int XpPerLevelBase { get; set; } = 100;
+
+    /// <summary>
+    /// Exponent for exponential XP growth: XP needed = XpPerLevelBase × Level^XpGrowthExponent.
+    /// </summary>
+    public double XpGrowthExponent { get; set; } = 2.2;
 }
 
 public class MyTunoUpgrades
@@ -271,7 +269,7 @@ public class StageModeConfig
     /// Bonus per equipment enhancement tier.
     /// Enhancement = floor(highestStage / 100). Formula: stat × (1 + enhancement × EquipmentEnhancementBonus).
     /// </summary>
-    public double EquipmentEnhancementBonus { get; set; } = 0.5;
+    public double EquipmentEnhancementBonus { get; set; } = 0.20;
 
     /// <summary>
     /// Per-character-level scaling factor applied to equipped weapon stat bonuses.
@@ -373,13 +371,13 @@ public class EquipmentStatsConfig
 public class DiscardValuesConfig
 {
     /// <summary>Fidelis gained from discarding an equipment piece.</summary>
-    public decimal Equipment { get; set; } = 200m;
+    public decimal Equipment { get; set; } = 20m;
 
     /// <summary>Fidelis gained from discarding an instrument part.</summary>
-    public decimal InstrumentPart { get; set; } = 250m;
+    public decimal InstrumentPart { get; set; } = 25m;
 
     /// <summary>Base Fidelis gained from discarding a forged weapon.</summary>
-    public decimal Weapon { get; set; } = 300m;
+    public decimal Weapon { get; set; } = 30m;
 }
 
 /// <summary>
@@ -391,19 +389,19 @@ public class ForgingConfig
     public int CastTimeSeconds { get; set; } = 5;
 
     /// <summary>Base Fidelis cost to upgrade a weapon from level 0 to 1.</summary>
-    public decimal WeaponUpgradeBaseCost { get; set; } = 500m;
+    public decimal WeaponUpgradeBaseCost { get; set; } = 50m;
 
     /// <summary>Cost multiplier per level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
-    public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.08m;
+    public decimal WeaponUpgradeCostMultiplier { get; set; } = 1.18m;
 
-    /// <summary>Stat increase percentage per weapon level (0.15 = +15% per level).</summary>
-    public double WeaponUpgradeStatBonus { get; set; } = 0.15;
+    /// <summary>Stat increase percentage per weapon level (0.10 = +10% per level).</summary>
+    public double WeaponUpgradeStatBonus { get; set; } = 0.10;
 
     /// <summary>Base Fidelis cost to upgrade equipment enhancement from level 0 to 1.</summary>
-    public decimal EquipmentUpgradeBaseCost { get; set; } = 400m;
+    public decimal EquipmentUpgradeBaseCost { get; set; } = 40m;
 
     /// <summary>Cost multiplier per equipment upgrade level: cost = BaseCost * (Multiplier ^ currentLevel).</summary>
-    public decimal EquipmentUpgradeCostMultiplier { get; set; } = 1.12m;
+    public decimal EquipmentUpgradeCostMultiplier { get; set; } = 1.18m;
 
     /// <summary>
     /// Stat multiplier for two-handed weapons. Since 2H occupies both weapon slots,
@@ -507,18 +505,6 @@ public class BiomeConfig
     /// Prefix for boss sprite filenames (e.g., "boss_")
     /// </summary>
     public string BossSpritePrefix { get; set; } = "boss_";
-
-    /// <summary>
-    /// Difficulty multiplier for regular enemies in this biome.
-    /// Applied on top of the per-stage scaling curve.
-    /// </summary>
-    public double EnemiesDifficultyMultiplier { get; set; } = 1.0;
-
-    /// <summary>
-    /// Difficulty multiplier for bosses in this biome.
-    /// Applied on top of the per-stage scaling curve.
-    /// </summary>
-    public double BossesDifficultyMultiplier { get; set; } = 1.0;
 
     /// <summary>
     /// Fidelis/reward multiplier for this biome. Range: 1.0–2.5.
@@ -626,7 +612,8 @@ public class CombatConfig
 
     /// <summary>
     /// Defense mitigation constant K. Formula: multiplier = K / (K + defense).
-    /// Higher K = defense matters less.
+    /// Higher K = defense matters less. When defense = K, damage is halved.
+    /// The formula has natural diminishing returns — no hard cap needed.
     /// </summary>
     public double DefenseK { get; set; } = 50;
 
@@ -646,11 +633,6 @@ public class CombatConfig
 /// </summary>
 public class GatheringConfig
 {
-    /// <summary>
-    /// Maximum energy capacity for gathering
-    /// </summary>
-    public int MaxEnergy { get; set; } = 10;
-
     /// <summary>
     /// Seconds between each energy regeneration tick (1 energy per interval)
     /// Default is 60 (1 energy per minute)
@@ -727,6 +709,12 @@ public class DailyRewardConfig
 
     /// <summary>Additional Fidelis per character level.</summary>
     public decimal PerLevelFidelis { get; set; } = 2m;
+
+    /// <summary>
+    /// Percentage of current Fidelis balance added as bonus (0.05 = 5%).
+    /// Makes the reward scale with wealth so it always feels meaningful.
+    /// </summary>
+    public decimal BalancePercent { get; set; } = 0.05m;
 }
 
 /// <summary>
@@ -738,15 +726,22 @@ public class BossModeConfig
 {
     /// <summary>
     /// Stage offset that maps boss stage 1 to this equivalent stage mode difficulty.
-    /// Boss stage N has difficulty of stage (StageOffset + N - 1).
-    /// Default 500 means boss stage 1 ≈ stage mode 500 difficulty.
+    /// Boss stage N has difficulty of stage (StageOffset + (N-1) × BossStageScaling).
+    /// Default 750 means boss stage 1 ≈ stage mode 750 difficulty.
     /// </summary>
-    public int StageOffset { get; set; } = 500;
+    public int StageOffset { get; set; } = 750;
+
+    /// <summary>
+    /// How many equivalent stages each boss stage is worth.
+    /// Default 3 means boss 1=750, boss 2=753, boss 10=777, boss 50=897.
+    /// Higher values = steeper difficulty curve per boss stage.
+    /// </summary>
+    public int BossStageScaling { get; set; } = 3;
 
     /// <summary>
     /// XP base per boss level.
     /// </summary>
-    public double XpPerBossLevel { get; set; } = 25;
+    public double XpPerBossLevel { get; set; } = 120;
 
     /// <summary>
     /// Power applied to boss level for XP scaling.
@@ -764,24 +759,20 @@ public class BossModeConfig
     public double MinXPLevelMultiplier { get; set; } = 0.1;
 
     /// <summary>
-    /// Difficulty curve for boss stat scaling.
-    /// </summary>
-    public DifficultyCurveConfig DifficultyCurve { get; set; } = new();
-
-    /// <summary>
-    /// Reward curve for Fidelis scaling.
+    /// Reward curve level bonus settings (scalingRate/growthExponent come from stage mode's curve).
     /// </summary>
     public RewardCurveConfig RewardCurve { get; set; } = new();
 
     /// <summary>
     /// Base boss stats (all bosses use these as the starting point).
     /// </summary>
-    public EnemyTypeStat BaseBossStats { get; set; } = new() { Hp = 80, Power = 15, Speed = 3, Defense = 4, CriticalChance = 0.10 };
+    public EnemyTypeStat BaseBossStats { get; set; } = new() { Hp = 150, Power = 25, Speed = 6, Defense = 10, CriticalChance = 0.15 };
 
     /// <summary>
     /// Additional multiplier applied on top of the difficulty curve for boss fights.
+    /// Makes bosses significantly harder than regular stage enemies.
     /// </summary>
-    public double BossStatMultiplier { get; set; } = 1.5;
+    public double BossStatMultiplier { get; set; } = 2.0;
 
     /// <summary>
     /// Drop rates for boss mode rewards.
@@ -817,18 +808,19 @@ public class BossModeConfig
 
 /// <summary>
 /// Drop rates for Boss Mode.
+/// Doubled from original values to make Boss Mode a rewarding premium experience.
 /// </summary>
 public class BossModeDropRates
 {
-    public double FinoDropChance { get; set; } = 0.001;
-    public double ShotDropChance { get; set; } = 0.0006;
-    public double CigarroDropChance { get; set; } = 0.0004;
-    public double CanecaDropChance { get; set; } = 0.0003;
-    public double CanhaoDropChance { get; set; } = 0.0002;
-    public double PenaltyDropChance { get; set; } = 0.0001;
-    public double InstrumentPartDropChance { get; set; } = 0.0001;
-    public double EquipmentDropChance { get; set; } = 0.0002;
-    public double FitabDropChance { get; set; } = 0.003;
+    public double FinoDropChance { get; set; } = 0.003;
+    public double ShotDropChance { get; set; } = 0.0018;
+    public double CigarroDropChance { get; set; } = 0.0018;
+    public double CanecaDropChance { get; set; } = 0.0008;
+    public double CanhaoDropChance { get; set; } = 0.0006;
+    public double PenaltyDropChance { get; set; } = 0.0004;
+    public double InstrumentPartDropChance { get; set; } = 0.0006;
+    public double EquipmentDropChance { get; set; } = 0.0006;
+    public double FitabDropChance { get; set; } = 0.005;
 }
 
 /// <summary>
@@ -836,5 +828,5 @@ public class BossModeDropRates
 /// </summary>
 public class BossModeFidelisRewards
 {
-    public decimal BossWin { get; set; } = 80m;
+    public decimal BossWin { get; set; } = 350m;
 }

@@ -139,7 +139,7 @@
                 <div class="col-md-4">
                     <label class="form-label text-light-theme">Instrumento</label>
                     <select class="form-select" @bind="selectedForgeInstrument">
-                        @foreach (var inst in InstrumentTypeHelper.AllInstrumentPartTypes)
+                        @foreach (var inst in InstrumentTypeHelper.GameInstrumentPartTypes)
                         {
                             var instType = InstrumentTypeHelper.FromInventoryPartType(inst);
                             if (instType.HasValue)

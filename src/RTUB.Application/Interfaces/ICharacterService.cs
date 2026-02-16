@@ -45,11 +45,12 @@ public interface ICharacterService
     Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Calculates the daily reward amount based on character level.
+    /// Calculates the daily reward amount based on character level and current balance.
     /// </summary>
     /// <param name="characterLevel">The character's current level</param>
+    /// <param name="currentBalance">The user's current Fidelis balance (for percentage bonus)</param>
     /// <returns>The reward amount in Fidelis</returns>
-    decimal GetDailyRewardAmount(int characterLevel);
+    decimal GetDailyRewardAmount(int characterLevel, decimal currentBalance = 0m);
 
     /// <summary>
     /// Claims the daily reward for a user. Re-checks from DB to prevent double-claim.

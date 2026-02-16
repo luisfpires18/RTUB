@@ -139,6 +139,25 @@
             // PIXI.Text pool for floating damage/status text
             this._textPool = [];
 
+            // ── Interactive mode (spells / Blade Crafter style) ─────────────
+            this.interactiveMode = data?.InteractiveMode ?? data?.interactiveMode ?? false;
+            this.spells = data?.Spells ?? data?.spells ?? [];
+            this.interactivePlayerHP = data?.PlayerHP ?? data?.playerHP ?? null;
+            this.interactivePlayerMaxHP = data?.PlayerMaxHP ?? data?.playerMaxHP ?? null;
+            this.interactivePlayerActionTime = data?.PlayerActionTime ?? data?.playerActionTime ?? null;
+            this.interactiveEnemies = data?.Enemies ?? data?.enemies ?? [];
+
+            // Pending request flags (prevent double-fire during async calls)
+            this._playerAttackPending = false;
+            this._enemyAttackPending = false;
+            this._spellPending = false;
+            this._cooldownTickAccum = 0;
+
+            // Spell bar UI elements
+            this.spellButtons = [];
+            this.spellCooldowns = {};
+            this.spellBarContainer = null;
+
             // Audio system initialization
             this.audioEnabled = true;
             this.musicVolume = 0.3;
@@ -385,7 +404,11 @@
             this.drawHpBars();
             this.drawSpeedBars();
 
-            if (this.mode === 'live') {
+            if (this.interactiveMode) {
+                this.initInteractiveState();
+                this.createSpellBar();
+                this.startInteractiveBattle();
+            } else if (this.mode === 'live') {
                 this.startTimedBattle();
             } else {
                 this.setupReplayLoop();
@@ -624,6 +647,729 @@
             drawSpeedBar(50, this.speedBarTimers.attacker, attackerActionTimeMs);
             drawSpeedBar(this.app.screen.width - 50 - barWidth, this.speedBarTimers.defender, defenderActionTimeMs);
         }
+
+        // ── Interactive Mode Methods (Blade Crafter spell system) ──────────
+
+        /** Initialize interactive state from Blazor-supplied player/enemy data. */
+        initInteractiveState() {
+            if (this.interactivePlayerHP != null) {
+                this.currentHp.attacker = this.interactivePlayerHP;
+                this.maxHp.attacker = this.interactivePlayerMaxHP ?? this.interactivePlayerHP;
+            }
+            if (this.interactivePlayerActionTime != null) {
+                this.actionTime.attacker = this.interactivePlayerActionTime;
+            }
+
+            // Defender state from Blazor (1v1 — only first enemy)
+            if (this.interactiveEnemies && this.interactiveEnemies.length > 0) {
+                const e = this.interactiveEnemies[0];
+                this.currentHp.defender = e.hp ?? e.HP ?? 100;
+                this.maxHp.defender = e.maxHP ?? e.MaxHP ?? this.currentHp.defender;
+                this.actionTime.defender = e.actionTime ?? e.ActionTime ?? 3.5;
+            }
+
+            this.drawHpBars();
+
+            this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
+            this.speedBarTimers.defender = this.actionTime.defender * 1000;
+
+            for (const spell of this.spells) {
+                const id = spell.attackId ?? spell.AttackId;
+                this.spellCooldowns[id] = 0;
+            }
+        }
+
+        /** Create the spell button bar at the bottom of the canvas. */
+        createSpellBar() {
+            if (!this.spells || this.spells.length === 0) return;
+
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            const btnSize = 52;
+            const btnGap = 10;
+            const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
+            const startX = (width - totalWidth) / 2;
+            const barY = height - btnSize - 8;
+
+            this.spellBarContainer = new PIXI.Container();
+            this.stage.addChild(this.spellBarContainer);
+
+            const backdrop = new PIXI.Graphics();
+            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
+            backdrop.fill({ color: 0x000000, alpha: 0.5 });
+            this.spellBarContainer.addChild(backdrop);
+
+            this.spellButtons = [];
+
+            for (let i = 0; i < this.spells.length; i++) {
+                const spell = this.spells[i];
+                const attackId = spell.attackId ?? spell.AttackId;
+                const name = spell.name ?? spell.Name ?? attackId;
+                const icon = spell.icon ?? spell.Icon ?? '⚡';
+                const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
+                const x = startX + i * (btnSize + btnGap);
+
+                const btnContainer = new PIXI.Container();
+                btnContainer.x = x;
+                btnContainer.y = barY;
+
+                const bg = new PIXI.Graphics();
+                bg.roundRect(0, 0, btnSize, btnSize, 6);
+                bg.fill({ color: 0x2a2a4a, alpha: 0.9 });
+                bg.stroke({ color: 0x6666aa, width: 2 });
+                btnContainer.addChild(bg);
+
+                const iconText = new PIXI.Text({
+                    text: icon,
+                    style: { fontSize: 22, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                });
+                iconText.anchor.set(0.5);
+                iconText.x = btnSize / 2;
+                iconText.y = btnSize / 2 - 4;
+                btnContainer.addChild(iconText);
+
+                const nameText = new PIXI.Text({
+                    text: name.length > 6 ? name.substring(0, 6) : name,
+                    style: { fontSize: 8, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                });
+                nameText.anchor.set(0.5);
+                nameText.x = btnSize / 2;
+                nameText.y = btnSize - 6;
+                btnContainer.addChild(nameText);
+
+                const cdOverlay = new PIXI.Graphics();
+                cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                cdOverlay.fill({ color: 0x000000, alpha: 0.7 });
+                cdOverlay.visible = false;
+                btnContainer.addChild(cdOverlay);
+
+                const cdText = new PIXI.Text({
+                    text: '',
+                    style: { fontSize: 16, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
+                });
+                cdText.anchor.set(0.5);
+                cdText.x = btnSize / 2;
+                cdText.y = btnSize / 2;
+                cdText.visible = false;
+                btnContainer.addChild(cdText);
+
+                btnContainer.eventMode = 'static';
+                btnContainer.cursor = 'pointer';
+                btnContainer.on('pointerdown', () => this.onSpellButtonClick(attackId));
+
+                this.spellBarContainer.addChild(btnContainer);
+
+                this.spellButtons.push({
+                    container: btnContainer, bg, iconText, nameText, cdOverlay, cdText,
+                    attackId, cooldownSeconds: cooldown, spell
+                });
+            }
+        }
+
+        /** Start interactive battle — real-time speed bars + server calls. */
+        startInteractiveBattle() {
+            this.battleStartTime = Date.now();
+            this.currentSimTime = 0;
+            this.battleFinished = false;
+            this.isPlaying = true;
+            this._playerAttackPending = false;
+            this._enemyAttackPending = false;
+            this._spellPending = false;
+            this._cooldownTickAccum = 0;
+        }
+
+        /** Spell button click handler. */
+        onSpellButtonClick(attackId) {
+            if (this.battleFinished || !this.isPlaying) return;
+            if (this._spellPending) return;
+            const cd = this.spellCooldowns[attackId] ?? 0;
+            if (cd > 0) return;
+            this._spellPending = true;
+            this.requestPlayerSpell(attackId);
+        }
+
+        /** Call server: player auto-attack. */
+        async requestPlayerAutoAttack() {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._playerAttackPending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack');
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnPlayerAutoAttack error:', e);
+            } finally {
+                this._playerAttackPending = false;
+            }
+        }
+
+        /** Call server: enemy (defender) auto-attack. */
+        async requestEnemyAttack() {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._enemyAttackPending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', 0);
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnEnemyAttack error:', e);
+            } finally {
+                this._enemyAttackPending = false;
+            }
+        }
+
+        /** Call server: player spell cast. */
+        async requestPlayerSpell(attackId) {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._spellPending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId);
+                if (json) this.processServerResult(JSON.parse(json));
+            } catch (e) {
+                console.warn('OnPlayerSpell error:', e);
+            } finally {
+                this._spellPending = false;
+            }
+        }
+
+        /** Call server: tick cooldowns. */
+        async requestTickCooldowns(elapsedSeconds) {
+            if (!this.dotNetRef || this.battleFinished) return;
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds);
+                if (json) {
+                    const cooldowns = JSON.parse(json);
+                    for (const [id, remaining] of Object.entries(cooldowns)) {
+                        this.spellCooldowns[id] = remaining;
+                    }
+                }
+            } catch (e) {
+                console.warn('OnTickCooldowns error:', e);
+            }
+        }
+
+        /** Process a CombatActionResult from the server. */
+        processServerResult(result) {
+            if (!result) return;
+
+            const events = result.events ?? result.Events ?? [];
+            for (const evt of events) {
+                this.processInteractiveEvent(evt);
+            }
+
+            const cooldowns = result.spellCooldowns ?? result.SpellCooldowns;
+            if (cooldowns) {
+                for (const [id, remaining] of Object.entries(cooldowns)) {
+                    this.spellCooldowns[id] = remaining;
+                }
+            }
+
+            const battleOver = result.battleOver ?? result.BattleOver ?? false;
+            if (battleOver) {
+                this.isPlaying = false;
+                const outcome = result.outcome ?? result.Outcome;
+                // outcome: 0=AttackerWon, 1=DefenderWon, 2=Draw
+                if (outcome === 0) {
+                    this.showVictory('Attacker');
+                } else if (outcome === 2) {
+                    this.showDraw();
+                } else {
+                    this.showVictory('Defender');
+                }
+                setTimeout(() => this.finishBattle(), 2000 / this.battleSpeed);
+            }
+        }
+
+        /** Process a single interactive event. */
+        processInteractiveEvent(evt) {
+            const evtType = evt.type ?? evt.Type;
+            const attackId = evt.attackId ?? evt.AttackId;
+
+            switch (evtType) {
+                case 'HPUpdate':
+                    this.processEvent(evt);
+                    break;
+                case 'Attack':
+                    if (attackId) {
+                        this.handleSpellAttack(evt);
+                    } else {
+                        this.processEvent(evt);
+                    }
+                    break;
+                case 'KO':
+                    this.processEvent(evt);
+                    break;
+                case 'StatusEffect':
+                    this.handleStatusEffect(evt);
+                    break;
+                case 'Victory':
+                case 'BattleStart':
+                    break;
+            }
+        }
+
+        /** Handle a spell attack event with VFX. */
+        handleSpellAttack(evt) {
+            const attacker = evt.attacker ?? evt.Attacker;
+            const defender = evt.defender ?? evt.Defender;
+            const damage = evt.damage ?? evt.Damage ?? 0;
+            const isCritical = evt.isCritical ?? evt.IsCritical ?? false;
+            const vfxType = evt.vfxType ?? evt.VfxType;
+            const vfxColor = evt.vfxColor ?? evt.VfxColor ?? '#ff6600';
+            const doScreenShake = evt.screenShake ?? evt.ScreenShake ?? false;
+            const visualHint = evt.visualHint ?? evt.VisualHint;
+            const abilityName = evt.abilityName ?? evt.AbilityName ?? 'Spell';
+            const effectName = evt.effectName ?? evt.EffectName;
+            const attackId = evt.attackId ?? evt.AttackId;
+
+            const color = typeof vfxColor === 'string' && vfxColor.startsWith('#')
+                ? parseInt(vfxColor.replace('#', ''), 16)
+                : (typeof vfxColor === 'number' ? vfxColor : 0xff6600);
+
+            if (doScreenShake || visualHint === 'screenShake') this.screenShake();
+
+            const atkChar = attacker === 'Attacker' ? this.characterSprites.attacker : this.characterSprites.defender;
+            const defChar = defender === 'Defender' ? this.characterSprites.defender : this.characterSprites.attacker;
+            if (!atkChar || !defChar) return;
+
+            const atkSpr = atkChar.sprite;
+            const defSpr = defChar.sprite;
+
+            if (attacker === 'Attacker') {
+                // Player spell — lunge animation
+                const startX = atkChar.originX;
+                this.animateTo(atkSpr, { x: startX + 40 }, 120, () => {
+                    this.animateTo(atkSpr, { x: startX }, 200);
+                });
+
+                // Show ability name above attacker
+                this.showFloatingText(abilityName.toUpperCase(), atkSpr.x,
+                    atkSpr.y - atkSpr.height * 0.8, color);
+
+                if (defender === 'Attacker') {
+                    // Self-buff/heal
+                    this.playBuffVfx(atkSpr, color);
+                    if (damage < 0) {
+                        this.showFloatingText(`+${formatNum(Math.abs(damage))}`, atkSpr.x,
+                            atkSpr.y - atkSpr.height * 0.6, 0x44ff44);
+                    }
+                    if (effectName) this.showEffectLabel(effectName, atkSpr);
+                } else {
+                    // Hit defender
+                    this.playSpellVfx(vfxType, color, atkSpr, defSpr);
+                    defSpr.tint = isCritical ? 0xff0000 : 0xff5555;
+                    setTimeout(() => { if (!defSpr.destroyed) defSpr.tint = 0xffffff; }, 200 / this.battleSpeed);
+                    if (damage > 0) {
+                        this.showDamageText(damage, isCritical, defSpr.x, defSpr.y - defSpr.height * 0.6);
+                    }
+                    if (effectName) this.showEffectLabel(effectName, defSpr);
+                }
+
+                if (attackId) {
+                    this.playSpellSound(attackId);
+                } else {
+                    this.playSound(isCritical ? 'critical' : 'attack');
+                }
+            }
+        }
+
+        /** Handle status effect events (bleed ticks, etc.). */
+        handleStatusEffect(evt) {
+            const character = evt.character ?? evt.Character;
+            const effectName = evt.effectName ?? evt.EffectName ?? '';
+            const damage = evt.damage ?? evt.Damage ?? 0;
+
+            const target = character === 'Attacker'
+                ? this.characterSprites.attacker?.sprite
+                : this.characterSprites.defender?.sprite;
+            if (!target) return;
+
+            this.showEffectLabel(effectName, target);
+            if (damage > 0) {
+                this.showDamageText(damage, false, target.x, target.y - target.height * 0.6);
+            }
+        }
+
+        /** Floating text that drifts up and fades. */
+        showFloatingText(text, x, y, color) {
+            if (!this.stage || !this.app) return;
+            const floatText = this._getPooledText(text, {
+                fontFamily: 'Arial', fontSize: 26, fontWeight: 'bold',
+                fill: color, stroke: { color: 0x000000, width: 4 }
+            });
+            if (!floatText) return;
+            floatText.anchor.set(0.5);
+            floatText.x = x;
+            floatText.y = y;
+            this.stage.addChild(floatText);
+            this.animateTo(floatText, { y: floatText.y - 70, alpha: 0 }, 900, () => {
+                this._releaseText(floatText);
+            });
+        }
+
+        /** Show damage number floating above a position. */
+        showDamageText(damage, isCritical, x, y) {
+            const text = isCritical ? `CRIT! -${formatNum(damage)}` : `-${formatNum(damage)}`;
+            const damageText = this._getPooledText(text, {
+                fontFamily: 'Arial',
+                fontSize: isCritical ? 28 : 24,
+                fontWeight: 'bold',
+                fill: isCritical ? 0xffff00 : 0xff4444,
+                stroke: { color: 0x000000, width: 3 }
+            });
+            damageText.anchor.set(0.5);
+            damageText.x = x;
+            damageText.y = y;
+            this.stage.addChild(damageText);
+            this.animateTo(damageText, {
+                y: damageText.y - (isCritical ? 80 : 60), alpha: 0
+            }, isCritical ? 1000 : 800, () => {
+                this._releaseText(damageText);
+            });
+        }
+
+        /** Show a status effect label floating above a sprite. */
+        showEffectLabel(effectName, sprite) {
+            const labels = {
+                sleep: '💤 SLEEP', bleed: '🩸 BLEED', slow: '🐌 SLOW',
+                vulnerable: '⚡ VULN', powerboost: '💪 POWER UP', haste: '⚡ HASTE',
+                shield: '🛡️ SHIELD', defensebreak: '💥 DEF BREAK',
+                defenseboost: '🛡️ DEF UP', regen: '💚 REGEN'
+            };
+            const colors = {
+                sleep: 0x9966ff, bleed: 0xff3333, slow: 0x6699cc,
+                vulnerable: 0xffaa00, powerboost: 0xff6600, haste: 0x00ff88,
+                shield: 0x4488ff, defensebreak: 0xff4444, defenseboost: 0x4488ff,
+                regen: 0x44ff44
+            };
+            const label = labels[effectName] || effectName.toUpperCase();
+            const color = colors[effectName] || 0xffffff;
+            this.showFloatingText(label, sprite.x, sprite.y - (sprite.height || 40) - 30, color);
+        }
+
+        /** Show Draw result. */
+        showDraw() {
+            const drawText = new PIXI.Text({
+                text: 'Empate!',
+                style: {
+                    fontFamily: 'Arial', fontSize: 48, fontWeight: 'bold',
+                    fill: 0xcccccc,
+                    stroke: { color: 0x000000, width: 6 }
+                }
+            });
+            drawText.anchor.set(0.5);
+            drawText.x = this.app.screen.width / 2;
+            drawText.y = this.app.screen.height / 2 - 50;
+            drawText.alpha = 0;
+            drawText.scale.set(0.5);
+            this.stage.addChild(drawText);
+            this.animateTo(drawText, { alpha: 1, scale: 1.2 }, 400);
+            setTimeout(() => {
+                this.animateTo(drawText, { alpha: 0, y: drawText.y - 30 }, 800, () => {
+                    this.stage.removeChild(drawText);
+                });
+            }, 1200 / this.battleSpeed);
+        }
+
+        /** Brief screen shake effect. */
+        screenShake() {
+            if (!this.stage) return;
+            const intensity = 4;
+            const originalX = this.stage.x;
+            const originalY = this.stage.y;
+            let count = 0;
+            const shake = () => {
+                if (count >= 6 || !this.stage) {
+                    if (this.stage) { this.stage.x = originalX; this.stage.y = originalY; }
+                    return;
+                }
+                this.stage.x = originalX + (Math.random() - 0.5) * intensity * 2;
+                this.stage.y = originalY + (Math.random() - 0.5) * intensity * 2;
+                count++;
+                setTimeout(shake, 30);
+            };
+            shake();
+        }
+
+        /** Play spell VFX based on type. */
+        playSpellVfx(vfxType, color, source, target) {
+            if (!source || !target || !this.stage) return;
+            const srcX = source.x;
+            const srcY = source.y - (source.height || 40) / 2;
+            const tgtX = target.x;
+            const tgtY = target.y - (target.height || 40) / 2;
+            switch (vfxType) {
+                case 0: this.createProjectileVfx(color, srcX, srcY, tgtX, tgtY); break;
+                case 1: this.createBeamVfx(color, tgtX, tgtY); break;
+                case 2: this.createAoeVfx(color, tgtX, tgtY); break;
+                case 4: this.createMeleeStrikeVfx(color, tgtX, tgtY); break;
+                case 5: this.createSoundWaveVfx(color, srcX, srcY, tgtX, tgtY); break;
+                case 6: this.createMusicNotesVfx(color, srcX, srcY, tgtX, tgtY); break;
+                default: this.createProjectileVfx(color, srcX, srcY, tgtX, tgtY);
+            }
+        }
+
+        createProjectileVfx(color, srcX, srcY, tgtX, tgtY) {
+            const proj = new PIXI.Graphics();
+            proj.circle(0, 0, 8);
+            proj.fill({ color, alpha: 0.9 });
+            proj.x = srcX; proj.y = srcY;
+            this.stage.addChild(proj);
+            const glow = new PIXI.Graphics();
+            glow.circle(0, 0, 14);
+            glow.fill({ color, alpha: 0.3 });
+            glow.x = srcX; glow.y = srcY;
+            this.stage.addChild(glow);
+            const duration = 350 / this.battleSpeed;
+            const startTime = Date.now();
+            const animate = () => {
+                const t = Math.min((Date.now() - startTime) / duration, 1);
+                proj.x = srcX + (tgtX - srcX) * t;
+                proj.y = srcY + (tgtY - srcY) * t;
+                glow.x = proj.x; glow.y = proj.y;
+                glow.alpha = 0.3 * (1 - t * 0.5);
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    const flash = new PIXI.Graphics();
+                    flash.circle(0, 0, 20);
+                    flash.fill({ color, alpha: 0.8 });
+                    flash.x = tgtX; flash.y = tgtY;
+                    this.stage.addChild(flash);
+                    this.animateTo(flash, { alpha: 0, scale: 2 }, 200, () => {
+                        if (flash.parent) flash.parent.removeChild(flash);
+                        flash.destroy();
+                    });
+                    if (proj.parent) proj.parent.removeChild(proj);
+                    proj.destroy();
+                    if (glow.parent) glow.parent.removeChild(glow);
+                    glow.destroy();
+                }
+            };
+            requestAnimationFrame(animate);
+        }
+
+        createBeamVfx(color, tgtX, tgtY) {
+            const beam = new PIXI.Graphics();
+            beam.rect(-4, -200, 8, 200);
+            beam.fill({ color, alpha: 0.8 });
+            beam.x = tgtX; beam.y = tgtY;
+            beam.alpha = 0;
+            this.stage.addChild(beam);
+            this.animateTo(beam, { alpha: 1 }, 100, () => {
+                this.animateTo(beam, { alpha: 0 }, 400, () => {
+                    if (beam.parent) beam.parent.removeChild(beam);
+                    beam.destroy();
+                });
+            });
+        }
+
+        createAoeVfx(color, tgtX, tgtY) {
+            const ring = new PIXI.Graphics();
+            ring.circle(0, 0, 10);
+            ring.stroke({ color, width: 3, alpha: 0.9 });
+            ring.x = tgtX; ring.y = tgtY;
+            this.stage.addChild(ring);
+            this.animateTo(ring, { scale: 6, alpha: 0 }, 500, () => {
+                if (ring.parent) ring.parent.removeChild(ring);
+                ring.destroy();
+            });
+        }
+
+        createMeleeStrikeVfx(color, tgtX, tgtY) {
+            const slash = new PIXI.Graphics();
+            slash.moveTo(-15, -15); slash.lineTo(15, 15);
+            slash.moveTo(15, -15); slash.lineTo(-15, 15);
+            slash.stroke({ color, width: 4, alpha: 0.9 });
+            slash.x = tgtX; slash.y = tgtY;
+            this.stage.addChild(slash);
+            this.animateTo(slash, { alpha: 0, scale: 2 }, 350, () => {
+                if (slash.parent) slash.parent.removeChild(slash);
+                slash.destroy();
+            });
+        }
+
+        createSoundWaveVfx(color, srcX, srcY, tgtX, tgtY) {
+            const midX = (srcX + tgtX) / 2;
+            const midY = (srcY + tgtY) / 2;
+            for (let i = 0; i < 3; i++) {
+                const ring = new PIXI.Graphics();
+                ring.circle(0, 0, 12);
+                ring.stroke({ color, width: 3, alpha: 0.8 });
+                ring.x = midX; ring.y = midY;
+                ring.scale.set(0.3); ring.alpha = 0;
+                this.stage.addChild(ring);
+                setTimeout(() => {
+                    ring.alpha = 0.8;
+                    this.animateTo(ring, { alpha: 0, scale: 3 + i }, 500 / this.battleSpeed, () => {
+                        if (ring.parent) ring.parent.removeChild(ring);
+                        ring.destroy();
+                    });
+                }, i * 120 / this.battleSpeed);
+            }
+        }
+
+        createMusicNotesVfx(color, srcX, srcY, tgtX, tgtY) {
+            const notes = ['♪', '♫', '♩', '♬'];
+            for (let i = 0; i < 5; i++) {
+                const note = new PIXI.Text({
+                    text: notes[i % notes.length],
+                    style: { fontSize: 18 + Math.random() * 8, fill: color, fontFamily: 'serif' }
+                });
+                note.anchor.set(0.5);
+                note.x = srcX + (Math.random() - 0.5) * 30;
+                note.y = srcY + (Math.random() - 0.5) * 20;
+                note.alpha = 0;
+                this.stage.addChild(note);
+                const delay = i * 80 / this.battleSpeed;
+                const endX = tgtX + (Math.random() - 0.5) * 40;
+                const endY = tgtY - 20 + (Math.random() - 0.5) * 30;
+                setTimeout(() => {
+                    note.alpha = 1;
+                    const duration = 450 / this.battleSpeed;
+                    const startTime = Date.now();
+                    const noteStartX = note.x;
+                    const noteStartY = note.y;
+                    const animate = () => {
+                        const t = Math.min((Date.now() - startTime) / duration, 1);
+                        note.x = noteStartX + (endX - noteStartX) * t;
+                        note.y = noteStartY + (endY - noteStartY) * t - Math.sin(t * Math.PI) * 20;
+                        note.alpha = 1 - t * 0.6;
+                        note.rotation = Math.sin(t * Math.PI * 2) * 0.3;
+                        if (t < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            if (note.parent) note.parent.removeChild(note);
+                            note.destroy();
+                        }
+                    };
+                    animate();
+                }, delay);
+            }
+        }
+
+        /** Upward particles on target (buff/heal). */
+        playBuffVfx(target, color) {
+            if (!target || !this.stage) return;
+            const cx = target.x;
+            const cy = target.y - (target.height || 40) / 2;
+            for (let i = 0; i < 8; i++) {
+                const p = new PIXI.Graphics();
+                p.circle(0, 0, 3);
+                p.fill({ color, alpha: 0.8 });
+                p.x = cx + (Math.random() - 0.5) * 30;
+                p.y = cy + (Math.random() - 0.5) * 20;
+                this.stage.addChild(p);
+                this.animateTo(p, { y: p.y - 40 - Math.random() * 30, alpha: 0 }, 600 + Math.random() * 200, () => {
+                    if (p.parent) p.parent.removeChild(p);
+                    p.destroy();
+                });
+            }
+        }
+
+        /** Update spell button cooldown visuals. */
+        updateSpellCooldownVisuals() {
+            for (const btn of this.spellButtons) {
+                const cd = this.spellCooldowns[btn.attackId] ?? 0;
+                if (cd > 0) {
+                    btn.cdOverlay.visible = true;
+                    btn.cdText.visible = true;
+                    btn.cdText.text = Math.ceil(cd).toString();
+                    btn.container.cursor = 'not-allowed';
+                    btn.bg.alpha = 0.5;
+                } else {
+                    btn.cdOverlay.visible = false;
+                    btn.cdText.visible = false;
+                    btn.container.cursor = 'pointer';
+                    btn.bg.alpha = 0.9;
+                }
+            }
+        }
+
+        /** Play spell-specific sound. */
+        playSpellSound(attackId) {
+            if (!this.audioEnabled || !this.audioContext || !this.sfxVolume) return;
+            if (this.audioContext.state === 'suspended') this.audioContext.resume();
+            const ctx = this.audioContext;
+            const vol = this.sfxVolume;
+            const t = ctx.currentTime;
+            const playNote = (freq, type, start, dur, v = 0.3) => {
+                const osc = ctx.createOscillator();
+                const g = ctx.createGain();
+                osc.connect(g); g.connect(ctx.destination);
+                osc.frequency.value = freq; osc.type = type;
+                g.gain.setValueAtTime(vol * v, t + start);
+                g.gain.exponentialRampToValueAtTime(0.01, t + start + dur);
+                osc.start(t + start); osc.stop(t + start + dur);
+            };
+            switch (attackId) {
+                case 'heavy_attack':
+                    playNote(120, 'sawtooth', 0, 0.15, 0.5);
+                    playNote(180, 'square', 0.03, 0.12, 0.4);
+                    break;
+                case 'guitarra_barrage':
+                    for (let i = 0; i < 6; i++) {
+                        playNote(82 + i * 15, 'sawtooth', i * 0.07, 0.08, 0.4);
+                        playNote(165 + i * 10, 'square', i * 0.07 + 0.03, 0.06, 0.25);
+                    }
+                    break;
+                case 'bandolim_swiftchord':
+                    playNote(587, 'triangle', 0, 0.12, 0.4);
+                    playNote(784, 'triangle', 0.02, 0.1, 0.35);
+                    playNote(988, 'sine', 0.04, 0.08, 0.3);
+                    break;
+                case 'cavaquinho_paralysis':
+                    for (let i = 0; i < 5; i++) playNote(800 + Math.random() * 400, 'square', i * 0.06, 0.05, 0.3);
+                    playNote(200, 'sawtooth', 0.35, 0.2, 0.4);
+                    break;
+                case 'acordeao_fear':
+                    playNote(130, 'sawtooth', 0, 0.6, 0.4);
+                    playNote(138, 'sawtooth', 0, 0.55, 0.35);
+                    playNote(98, 'square', 0.1, 0.4, 0.3);
+                    playNote(65, 'triangle', 0.2, 0.4, 0.25);
+                    break;
+                case 'contrabaixo_sonicboom': {
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.connect(g); g.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(110, t);
+                    osc.frequency.exponentialRampToValueAtTime(35, t + 0.5);
+                    g.gain.setValueAtTime(vol * 0.6, t);
+                    g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                    osc.start(t); osc.stop(t + 0.5);
+                    playNote(55, 'triangle', 0, 0.4, 0.3);
+                    playNote(220, 'square', 0.05, 0.15, 0.2);
+                    break;
+                }
+                case 'percussao_combo':
+                    playNote(100, 'square', 0, 0.08, 0.35);
+                    playNote(120, 'square', 0.12, 0.08, 0.4);
+                    playNote(80, 'sawtooth', 0.28, 0.15, 0.55);
+                    playNote(60, 'triangle', 0.3, 0.2, 0.4);
+                    break;
+                case 'pandeireta_boomerang':
+                    for (let i = 0; i < 4; i++) playNote(600 + i * 200, 'sine', i * 0.08, 0.1, 0.25);
+                    for (let i = 0; i < 4; i++) playNote(1400 - i * 200, 'sine', 0.4 + i * 0.08, 0.1, 0.25);
+                    break;
+                case 'estandarte_rally':
+                    [262, 330, 392, 523, 659].forEach((f, i) => playNote(f, 'square', i * 0.1, 0.15, 0.35));
+                    break;
+                case 'violino_sleep':
+                    [659, 587, 523, 494, 440].forEach((f, i) => playNote(f, 'sine', i * 0.15, 0.25, 0.35));
+                    playNote(330, 'triangle', 0, 0.7, 0.15);
+                    break;
+                default:
+                    this.playSound('attack');
+                    break;
+            }
+        }
+
+        // ── End Interactive Mode Methods ───────────────────────────────────
 
         startTimedBattle() {
             // Find all events and their SimTime values
@@ -1043,6 +1789,47 @@
                 this.attackerAura.alpha = 0.25 + Math.sin(time * 1.2) * 0.12;
             }
 
+            // ── Interactive mode: speed bars trigger server calls ──
+            if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
+                const simDelta = deltaMs * this.battleSpeed;
+                this.currentSimTime += simDelta;
+
+                // Attacker (player) speed bar
+                if (this.currentHp.attacker > 0) {
+                    this.speedBarTimers.attacker = Math.max(0, this.speedBarTimers.attacker - simDelta);
+                    if (this.speedBarTimers.attacker <= 0 && !this._playerAttackPending) {
+                        this._playerAttackPending = true;
+                        this.speedBarTimers.attacker = this.actionTime.attacker * 1000;
+                        this.requestPlayerAutoAttack();
+                    }
+                }
+
+                // Defender (enemy) speed bar
+                if (this.currentHp.defender > 0) {
+                    this.speedBarTimers.defender = Math.max(0, this.speedBarTimers.defender - simDelta);
+                    if (this.speedBarTimers.defender <= 0 && !this._enemyAttackPending) {
+                        this._enemyAttackPending = true;
+                        this.speedBarTimers.defender = this.actionTime.defender * 1000;
+                        this.requestEnemyAttack();
+                    }
+                }
+
+                // Tick cooldowns periodically (~200ms)
+                this._cooldownTickAccum += simDelta;
+                if (this._cooldownTickAccum >= 200) {
+                    const elapsed = this._cooldownTickAccum / 1000;
+                    this._cooldownTickAccum = 0;
+                    for (const id of Object.keys(this.spellCooldowns)) {
+                        this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
+                    }
+                    this.updateSpellCooldownVisuals();
+                    this.requestTickCooldowns(elapsed);
+                }
+
+                this.drawSpeedBars();
+                return; // Don't process pre-computed events
+            }
+
             // Time-based battle simulation for live mode
             if (this.mode === 'live' && !this.battleFinished && this.isPlaying && this.battleEvents) {
                 // Advance simulation time based on battle speed
@@ -1192,6 +1979,10 @@
             for (const t of this._textPool) { try { t.destroy(); } catch (_) {} }
             this._textPool = [];
 
+            // Clean up interactive mode references
+            this.spellBarContainer = null;
+            this.spellButtons = [];
+
             if (this.app) {
                 // Stop ticker before destroying
                 this.app.ticker.stop();
@@ -1230,6 +2021,12 @@
         const attackerName = resolveAttackerName(battleData);
         const defenderName = resolveDefenderName(battleData);
         const hasShotBuff = battleData?.HasShotBuff ?? battleData?.hasShotBuff ?? false;
+        const interactiveMode = battleData?.InteractiveMode ?? battleData?.interactiveMode ?? false;
+        const spells = battleData?.Spells ?? battleData?.spells ?? [];
+        const playerHP = battleData?.PlayerHP ?? battleData?.playerHP ?? null;
+        const playerMaxHP = battleData?.PlayerMaxHP ?? battleData?.playerMaxHP ?? null;
+        const playerActionTime = battleData?.PlayerActionTime ?? battleData?.playerActionTime ?? null;
+        const enemies = battleData?.Enemies ?? battleData?.enemies ?? [];
 
         return new BattleScene(container, {
             events,
@@ -1237,7 +2034,13 @@
             mode,
             attackerName,
             defenderName,
-            HasShotBuff: hasShotBuff
+            HasShotBuff: hasShotBuff,
+            InteractiveMode: interactiveMode,
+            Spells: spells,
+            PlayerHP: playerHP,
+            PlayerMaxHP: playerMaxHP,
+            PlayerActionTime: playerActionTime,
+            Enemies: enemies
         });
     };
 

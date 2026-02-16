@@ -341,10 +341,13 @@
 <script>
     // Configure Blazor to use absolute path for SignalR hub
     // This prevents 404 errors when on /admin/* or other sub-paths
+    // Server timeout and keep-alive match server-side HubOptions for stable stage farming sessions
     Blazor.start({
         circuit: {
             configureSignalR: function (builder) {
                 builder.withUrl("/_blazor");
+                builder.withServerTimeout(300000);
+                builder.withKeepAliveInterval(15000);
             }
         }
     });

@@ -124,8 +124,8 @@ public class BossModeService : IBossModeService
 
         // Check level requirement
         var character = await _characterRepository.GetByUserIdAsync(userId);
-        if (character == null || character.Level < 100)
-            throw new InvalidOperationException("Level 100 required to enter Boss Mode.");
+        if (character == null || character.Level < 10)
+            throw new InvalidOperationException("Level 10 required to enter Boss Mode.");
 
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
@@ -441,7 +441,8 @@ public class BossModeService : IBossModeService
     /// <inheritdoc />
     public int GetEquivalentStage(int bossStage)
     {
-        return _config.BossMode.StageOffset + bossStage - 1;
+        var scaling = Math.Max(1, _config.BossMode.BossStageScaling);
+        return _config.BossMode.StageOffset + (bossStage - 1) * scaling;
     }
 
     /// <summary>
@@ -522,10 +523,7 @@ public class BossModeService : IBossModeService
         if (highestStage >= 101 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
         if (highestStage >= 901 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
-        var instrumentTypes = Enum.GetValues(typeof(InstrumentType))
-            .Cast<InstrumentType>()
-            .Where(t => t != InstrumentType.Saxofone && t != InstrumentType.Fagote)
-            .ToArray();
+        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
         var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         if (random.NextDouble() < dropRates.InstrumentPartDropChance)

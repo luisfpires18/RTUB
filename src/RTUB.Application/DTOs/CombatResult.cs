@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.DTOs;
@@ -120,4 +121,64 @@ public class CombatEvent
     /// Simulation time in milliseconds when this event occurred (for real-time combat)
     /// </summary>
     public double? SimTime { get; set; }
+
+    // ── Spell / Special Attack fields (null-suppressed in JSON for normal attacks) ──
+
+    /// <summary>
+    /// Unique key of the special attack used (e.g. "fireball", "heal").
+    /// Null for normal auto-attacks.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AttackId { get; set; }
+
+    /// <summary>
+    /// Display name of the ability (e.g. "Bola de Fogo").
+    /// Null for normal auto-attacks.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AbilityName { get; set; }
+
+    /// <summary>
+    /// Visual effect type key for JS VFX dispatch (e.g. "projectile", "beam", "aoe", "buff").
+    /// Null for normal auto-attacks.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? VfxType { get; set; }
+
+    /// <summary>
+    /// Hex color for the VFX (e.g. "ff4400"). Null uses default.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? VfxColor { get; set; }
+
+    /// <summary>
+    /// Visual hint for extra effects (e.g. "screenShake"). Null for none.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? VisualHint { get; set; }
+
+    /// <summary>
+    /// For AoE spells — list of defender identifiers hit.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Targets { get; set; }
+
+    /// <summary>
+    /// For AoE spells — per-target damage values (same order as Targets).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<int>? TargetDamages { get; set; }
+
+    /// <summary>
+    /// Status effect applied by this attack (e.g. "sleep", "bleed", "vulnerable").
+    /// Null for attacks with no status effect.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EffectName { get; set; }
+
+    /// <summary>
+    /// Duration/stacks of the status effect.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? EffectDuration { get; set; }
 }
