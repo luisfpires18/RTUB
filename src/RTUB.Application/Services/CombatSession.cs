@@ -99,6 +99,12 @@ public class CombatSession
     /// </summary>
     public Dictionary<string, double> SpellCooldowns { get; set; } = new();
 
+    /// <summary>
+    /// Remaining cooldown per consumable (key = consumable type name e.g. "fino", value = remaining seconds).
+    /// Persists across stage transitions.
+    /// </summary>
+    public Dictionary<string, double> ConsumableCooldowns { get; set; } = new();
+
     // ── Timing (for server-side validation) ──
     public DateTime BattleStartedAt { get; set; }
     public DateTime LastPlayerActionAt { get; set; }

@@ -666,6 +666,12 @@ public class CombatActionService : ICombatActionService
             session.SpellCooldowns[key] = Math.Max(0, session.SpellCooldowns[key] - elapsedSeconds);
         }
 
+        // ── Consumable cooldowns (Fino 1min, Caneca 2min) ──
+        foreach (var key in session.ConsumableCooldowns.Keys.ToList())
+        {
+            session.ConsumableCooldowns[key] = Math.Max(0, session.ConsumableCooldowns[key] - elapsedSeconds);
+        }
+
         // ── Regen tick (Bandolim Serenade) ──
         if (session.PlayerRegen.TicksRemaining > 0)
         {

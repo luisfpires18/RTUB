@@ -215,6 +215,12 @@
                 shot: !!(abData.shot ?? abData.Shot),
                 penalty: !!(abData.penalty ?? abData.Penalty)
             };
+            // Consumable cooldowns (fino: 60s, caneca: 120s) — persisted across stages
+            const ccData = data?.consumableCooldowns ?? data?.ConsumableCooldowns ?? {};
+            this.consumableCooldowns = {
+                fino: ccData.fino ?? ccData.Fino ?? 0,
+                caneca: ccData.caneca ?? ccData.Caneca ?? 0
+            };
             
             this.setupAudio();
             this.initPixi();
@@ -937,10 +943,13 @@
                 this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
             }
 
-            // Initialize spell cooldowns (all ready at start)
+            // Initialize spell cooldowns — preserve existing values across stages
             for (const spell of this.spells) {
                 const id = spell.attackId ?? spell.AttackId;
-                this.spellCooldowns[id] = 0;
+                // Only reset to 0 if no preserved cooldown exists
+                if (this.spellCooldowns[id] == null) {
+                    this.spellCooldowns[id] = 0;
+                }
             }
         }
 
@@ -1130,9 +1139,29 @@
                 emptyOverlay.visible = qty <= 0;
                 btnContainer.addChild(emptyOverlay);
 
+                // Cooldown overlay (dark semi-transparent, hidden when ready)
+                const cdOverlay = new PIXI.Graphics();
+                cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                cdOverlay.fill({ color: 0x000000, alpha: 0.65 });
+                const initCd = this.consumableCooldowns[c.type] ?? 0;
+                cdOverlay.visible = initCd > 0;
+                btnContainer.addChild(cdOverlay);
+
+                // Cooldown timer text
+                const cdText = new PIXI.Text({
+                    text: initCd > 0 ? `${Math.ceil(initCd)}s` : '',
+                    style: { fontSize: 12, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xff6666 }
+                });
+                cdText.anchor.set(0.5);
+                cdText.x = btnSize / 2;
+                cdText.y = btnSize / 2;
+                cdText.visible = initCd > 0;
+                btnContainer.addChild(cdText);
+
                 // Interactive
                 btnContainer.eventMode = 'static';
-                btnContainer.cursor = qty > 0 ? 'pointer' : 'not-allowed';
+                const isOnCooldown = initCd > 0;
+                btnContainer.cursor = (qty > 0 && !isOnCooldown) ? 'pointer' : 'not-allowed';
                 const consumableType = c.type;
                 btnContainer.on('pointerdown', () => this.onConsumableClick(consumableType));
 
@@ -1140,7 +1169,7 @@
 
                 this.consumableButtons.push({
                     container: btnContainer, bg, iconText, nameText,
-                    qtyBg, qtyText, emptyOverlay,
+                    qtyBg, qtyText, emptyOverlay, cdOverlay, cdText,
                     type: c.type, color: c.color,
                     isBuffType: ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type)
                 });
@@ -1153,6 +1182,9 @@
             if (this._consumablePending) return;
             const qty = this.consumableQuantities[type] ?? 0;
             if (qty <= 0) return;
+            // Block if consumable is on cooldown
+            const cd = this.consumableCooldowns[type] ?? 0;
+            if (cd > 0) return;
             // Block if this buff is already active
             const isBuffType = ['cigarro', 'canhao', 'shot', 'penalty'].includes(type);
             if (isBuffType && this.activeBuffs[type]) return;
@@ -1175,6 +1207,12 @@
                         // Update quantity
                         this.consumableQuantities[type] = result.newQuantity ?? 0;
                         this.updateConsumableButton(type);
+
+                        // Start consumable cooldown if server returned one
+                        if (result.cooldownSeconds != null && result.cooldownSeconds > 0) {
+                            this.consumableCooldowns[type] = result.cooldownSeconds;
+                            this.updateConsumableButton(type);
+                        }
 
                         // Handle heal (Fino / Caneca)
                         if (result.playerHP != null) {
@@ -1243,7 +1281,9 @@
             if (!btn) return;
             const qty = this.consumableQuantities[type] ?? 0;
             const isActive = this.activeBuffs[type] ?? false;
-            const isDisabled = qty <= 0 || (btn.isBuffType && isActive);
+            const cd = this.consumableCooldowns[type] ?? 0;
+            const isOnCooldown = cd > 0;
+            const isDisabled = qty <= 0 || (btn.isBuffType && isActive) || isOnCooldown;
 
             // Update quantity text
             btn.qtyText.text = qty.toString();
@@ -1269,9 +1309,37 @@
             btn.nameText.style.fill = isActive ? btn.color : 0xcccccc;
             btn.nameText.style.fontWeight = isActive ? 'bold' : 'normal';
 
-            // Show/hide overlay
-            btn.emptyOverlay.visible = isDisabled;
+            // Cooldown overlay and timer
+            if (btn.cdOverlay) {
+                btn.cdOverlay.visible = isOnCooldown;
+            }
+            if (btn.cdText) {
+                btn.cdText.visible = isOnCooldown;
+                btn.cdText.text = isOnCooldown ? `${Math.ceil(cd)}s` : '';
+            }
+
+            // Show/hide empty overlay (hidden when cooldown overlay is showing)
+            btn.emptyOverlay.visible = !isOnCooldown && (qty <= 0 || (btn.isBuffType && isActive));
             btn.container.cursor = isDisabled ? 'not-allowed' : 'pointer';
+        }
+
+        /** Update cooldown visuals for all consumable buttons (called each tick). */
+        updateConsumableCooldownVisuals() {
+            for (const btn of this.consumableButtons) {
+                const cd = this.consumableCooldowns[btn.type] ?? 0;
+                if (btn.cdOverlay) {
+                    btn.cdOverlay.visible = cd > 0;
+                }
+                if (btn.cdText) {
+                    btn.cdText.visible = cd > 0;
+                    btn.cdText.text = cd > 0 ? `${Math.ceil(cd)}s` : '';
+                }
+                // Update cursor
+                const qty = this.consumableQuantities[btn.type] ?? 0;
+                const isActive = this.activeBuffs[btn.type] ?? false;
+                const isDisabled = qty <= 0 || (btn.isBuffType && isActive) || cd > 0;
+                btn.container.cursor = isDisabled ? 'not-allowed' : 'pointer';
+            }
         }
 
         /** Start interactive battle — no pre-computed events, driven by speed bars + server calls. */
@@ -1352,10 +1420,19 @@
             try {
                 const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds);
                 if (json) {
-                    const cooldowns = JSON.parse(json);
-                    // Update client-side cooldowns from authoritative server values
-                    for (const [id, remaining] of Object.entries(cooldowns)) {
+                    const data = JSON.parse(json);
+                    // New format: { spells: {...}, consumables: {...} }
+                    const spellCooldowns = data.spells ?? data;
+                    for (const [id, remaining] of Object.entries(spellCooldowns)) {
                         this.spellCooldowns[id] = remaining;
+                    }
+                    // Update consumable cooldowns from server
+                    const consumCooldowns = data.consumables;
+                    if (consumCooldowns) {
+                        for (const [type, remaining] of Object.entries(consumCooldowns)) {
+                            this.consumableCooldowns[type] = remaining;
+                        }
+                        this.updateConsumableCooldownVisuals();
                     }
                 }
             } catch (e) {
@@ -1910,7 +1987,12 @@
                     for (const id of Object.keys(this.spellCooldowns)) {
                         this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
                     }
+                    // Decrement consumable cooldowns client-side for responsive visuals
+                    for (const type of Object.keys(this.consumableCooldowns)) {
+                        this.consumableCooldowns[type] = Math.max(0, this.consumableCooldowns[type] - elapsed);
+                    }
                     this.updateSpellCooldownVisuals();
+                    this.updateConsumableCooldownVisuals();
                     this.requestTickCooldowns(elapsed);
                 }
 
@@ -2934,6 +3016,22 @@
                     penalty: !!(abData.penalty ?? abData.Penalty)
                 };
             }
+
+            // Update consumable cooldowns from server (persist across stages)
+            const ccData = data?.consumableCooldowns ?? data?.ConsumableCooldowns;
+            if (ccData) {
+                for (const [type, remaining] of Object.entries(ccData)) {
+                    this.consumableCooldowns[type] = remaining;
+                }
+            }
+
+            // Update spell cooldowns from server (persist across stages)
+            const scData = data?.spellCooldowns ?? data?.SpellCooldowns;
+            if (scData) {
+                for (const [id, remaining] of Object.entries(scData)) {
+                    this.spellCooldowns[id] = remaining;
+                }
+            }
             
             // PRE-LOAD new textures while old scene is still fully visible (no flash)
             try {
@@ -3247,6 +3345,8 @@
             const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
             const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
             const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
+            const consumableCooldowns = battleData?.consumableCooldowns ?? battleData?.ConsumableCooldowns ?? {};
+            const spellCooldowns = battleData?.spellCooldowns ?? battleData?.SpellCooldowns ?? {};
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -3268,7 +3368,9 @@
                 playerMaxHP: playerMaxHP,
                 playerActionTime: playerActionTime,
                 enemies: enemies,
-                consumables: consumables
+                consumables: consumables,
+                consumableCooldowns: consumableCooldowns,
+                spellCooldowns: spellCooldowns
             });
         }
     };

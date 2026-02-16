@@ -842,8 +842,10 @@
             try {
                 const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds);
                 if (json) {
-                    const cooldowns = JSON.parse(json);
-                    for (const [id, remaining] of Object.entries(cooldowns)) {
+                    const data = JSON.parse(json);
+                    // New format: { spells: {...}, consumables: {...} }
+                    const spellCooldowns = data.spells ?? data;
+                    for (const [id, remaining] of Object.entries(spellCooldowns)) {
                         this.spellCooldowns[id] = remaining;
                     }
                 }

@@ -620,7 +620,13 @@
             return Task.FromResult("{}");
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+
+        var result = new Dictionary<string, object>
+        {
+            ["spells"] = cooldowns,
+            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
+        };
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
     }
 
     [JSInvokable]

@@ -467,6 +467,13 @@
     // Consumable quantities for in-fight bar
     private int _finoQty, _canecaQty, _cigarroQty, _canhaoQty, _shotQty, _penaltyQty;
 
+    // Consumable cooldowns (persist across stage transitions within a run)
+    // Key = consumable type ("fino", "caneca"), Value = remaining cooldown in seconds
+    private Dictionary<string, double> _consumableCooldowns = new();
+
+    // Spell cooldowns preserved across stage transitions (copied from old session before destroy)
+    private Dictionary<string, double>? _preservedSpellCooldowns;
+
     private static readonly JsonSerializerOptions _spellJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -586,6 +593,9 @@
                 runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
+                // Reset cooldowns for the new run
+                _consumableCooldowns.Clear();
+                _preservedSpellCooldowns = null;
                 Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
 
                 // Load consumable quantities for in-fight bar (once per run)
@@ -663,6 +673,23 @@
                 currentBattle.Seed,
                 starterSpells,
                 "stage");
+
+            // Restore preserved cooldowns from previous stage (so they don't reset)
+            if (_preservedSpellCooldowns != null)
+            {
+                foreach (var kvp in _preservedSpellCooldowns)
+                {
+                    if (_combatSession.SpellCooldowns.ContainsKey(kvp.Key) && kvp.Value > 0)
+                        _combatSession.SpellCooldowns[kvp.Key] = kvp.Value;
+                }
+                _preservedSpellCooldowns = null;
+            }
+            // Restore consumable cooldowns (persist across entire run)
+            foreach (var kvp in _consumableCooldowns)
+            {
+                if (kvp.Value > 0)
+                    _combatSession.ConsumableCooldowns[kvp.Key] = kvp.Value;
+            }
 
             // If the player lost, immediately mark the run as finished so that
             // CancelRunIfInProgressAsync (called on dispose/navigate-away) will NOT
@@ -758,6 +785,8 @@
                             Fino = _finoQty,
                             Caneca = _canecaQty
                         },
+                        ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
+                        SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),
                         ActiveBuffs = new { }
                     };
 
@@ -846,6 +875,8 @@
     private async Task ContinueToNextStage()
     {
         if (_disposed) return;
+        // Preserve cooldowns before destroying session
+        PreserveCooldownsFromSession();
         // Reset battle state and start next fight
         currentBattle = null;
         _combatSession = null;
@@ -853,6 +884,21 @@
     }
 
     // ── Interactive combat JSInvokable methods (Blade Crafter spell system) ──
+
+    /// <summary>
+    /// Saves spell and consumable cooldowns from the current session so they
+    /// persist across stage transitions (session is destroyed and recreated each stage).
+    /// </summary>
+    private void PreserveCooldownsFromSession()
+    {
+        if (_combatSession == null) return;
+        _preservedSpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns);
+        // Consumable cooldowns are stored at page level — sync from session
+        foreach (var kvp in _combatSession.ConsumableCooldowns)
+        {
+            _consumableCooldowns[kvp.Key] = kvp.Value;
+        }
+    }
 
     /// <summary>
     /// Called by JS when the player's speed bar fills — auto-attack fires.
@@ -907,7 +953,14 @@
             return Task.FromResult("{}");
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+
+        // Include consumable cooldowns in the response so JS can show them
+        var result = new Dictionary<string, object>
+        {
+            ["spells"] = cooldowns,
+            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
+        };
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
     }
 
     /// <summary>
@@ -931,6 +984,9 @@
                 case "fino":
                 {
                     if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    // Check consumable cooldown (2.5 minutes for Fino)
+                    if (_combatSession.ConsumableCooldowns.TryGetValue("fino", out var finoCd) && finoCd > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = $"Fino em cooldown ({finoCd:F0}s)." }, _spellJsonOptions);
                     if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
                         return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
                     var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Fino, 1);
@@ -940,11 +996,16 @@
                     _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
                     character.CurrentHP = _combatSession.Player.CurrentHP;
                     _finoQty = Math.Max(0, _finoQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _finoQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp }, _spellJsonOptions);
+                    // Set 2.5 minute cooldown
+                    _combatSession.ConsumableCooldowns["fino"] = 150;
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _finoQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 150 }, _spellJsonOptions);
                 }
                 case "caneca":
                 {
                     if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    // Check consumable cooldown (5 minutes for Caneca)
+                    if (_combatSession.ConsumableCooldowns.TryGetValue("caneca", out var canecaCd) && canecaCd > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = $"Caneca em cooldown ({canecaCd:F0}s)." }, _spellJsonOptions);
                     if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
                         return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
                     var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Caneca, 1);
@@ -954,7 +1015,9 @@
                     _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
                     character.CurrentHP = _combatSession.Player.CurrentHP;
                     _canecaQty = Math.Max(0, _canecaQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canecaQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp }, _spellJsonOptions);
+                    // Set 5 minute cooldown
+                    _combatSession.ConsumableCooldowns["caneca"] = 300;
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canecaQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 300 }, _spellJsonOptions);
                 }
                 case "cigarro":
                 {
@@ -1112,6 +1175,8 @@
                 // Keep showBattleAnimation = true to avoid hiding/recreating the container
                 await Task.Delay(200);
                 if (_disposed) return;
+                // Preserve cooldowns before destroying session
+                PreserveCooldownsFromSession();
                 currentBattle = null;
                 _combatSession = null;
                 

@@ -29,6 +29,7 @@
 @inject IInventoryService InventoryService
 @inject IStageService StageService
 @inject ICombatActionService CombatActionService
+@inject IInventoryRepository InventoryRepository
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
@@ -594,6 +595,10 @@
     // Interactive combat session (spells / Blade Crafter mode)
     private CombatSession? _combatSession;
     private List<RTUB.Core.Entities.SpecialAttack>? _starterSpells;
+
+    // In-combat consumable quantities (Fino & Caneca healing)
+    private int _finoQty, _canecaQty;
+
     private static readonly JsonSerializerOptions _spellJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -742,6 +747,19 @@
                 runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
+
+                // Load consumable quantities for in-fight bar (once per run)
+                try
+                {
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    _finoQty = inv.GetValueOrDefault(InventoryItemType.Fino);
+                    _canecaQty = inv.GetValueOrDefault(InventoryItemType.Caneca);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load consumable quantities for boss run");
+                }
+
                 Logger.LogInformation("Boss Mode run started by {UserName} at boss stage {Stage}",
                     currentUser.UserName, bossModeProgress.CurrentBossStage);
             }
@@ -879,7 +897,14 @@
                             s.CooldownSeconds,
                             s.ScreenShake,
                             Target = (int)s.Target
-                        })
+                        }),
+                        Consumables = new
+                        {
+                            Fino = _finoQty,
+                            Caneca = _canecaQty
+                        },
+                        ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
+                        ActiveBuffs = new { }
                     };
 
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
@@ -961,7 +986,78 @@
             return Task.FromResult("{}");
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
-        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+
+        var result = new Dictionary<string, object>
+        {
+            ["spells"] = cooldowns,
+            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
+        };
+        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when the user clicks a consumable button during combat.
+    /// Consumes the item and applies its effect to the combat session.
+    /// Boss mode uses ConsumeItemAsync directly (same as stage mode) because
+    /// character DB writes happen per-battle via UpdateCharacterAsync.
+    /// </summary>
+    [JSInvokable]
+    public async Task<string> OnUseConsumable(string type)
+    {
+        if (character == null || currentUser == null)
+            return JsonSerializer.Serialize(new { success = false, message = "Personagem não encontrado." }, _spellJsonOptions);
+
+        try
+        {
+            switch (type.ToLowerInvariant())
+            {
+                case "fino":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    // Check consumable cooldown (2.5 minutes for Fino)
+                    if (_combatSession.ConsumableCooldowns.TryGetValue("fino", out var finoCd) && finoCd > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = $"Fino em cooldown ({finoCd:F0}s)." }, _spellJsonOptions);
+                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
+                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Fino, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Fino disponível." }, _spellJsonOptions);
+                    var maxHp = _combatSession.Player.MaxHP;
+                    var healAmount = (int)(maxHp * 0.25);
+                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
+                    character.CurrentHP = _combatSession.Player.CurrentHP;
+                    _finoQty = Math.Max(0, _finoQty - 1);
+                    // Set 2.5 minute cooldown
+                    _combatSession.ConsumableCooldowns["fino"] = 150;
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _finoQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 150 }, _spellJsonOptions);
+                }
+                case "caneca":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    // Check consumable cooldown (5 minutes for Caneca)
+                    if (_combatSession.ConsumableCooldowns.TryGetValue("caneca", out var canecaCd) && canecaCd > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = $"Caneca em cooldown ({canecaCd:F0}s)." }, _spellJsonOptions);
+                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
+                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Caneca, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Caneca disponível." }, _spellJsonOptions);
+                    var maxHp = _combatSession.Player.MaxHP;
+                    var healAmount = (int)(maxHp * 0.50);
+                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
+                    character.CurrentHP = _combatSession.Player.CurrentHP;
+                    _canecaQty = Math.Max(0, _canecaQty - 1);
+                    // Set 5 minute cooldown
+                    _combatSession.ConsumableCooldowns["caneca"] = 300;
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canecaQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 300 }, _spellJsonOptions);
+                }
+                default:
+                    return JsonSerializer.Serialize(new { success = false, message = "Consumível desconhecido." }, _spellJsonOptions);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error using consumable {Type} in boss mode", type);
+            return JsonSerializer.Serialize(new { success = false, message = "Erro ao usar consumível." }, _spellJsonOptions);
+        }
     }
 
     [JSInvokable]
