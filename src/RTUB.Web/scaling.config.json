@@ -126,8 +126,8 @@
         "growthExponent": 1.05
       },
       "rewardCurve": {
-        "scalingRate": 0.02,
-        "growthExponent": 1.0,
+        "scalingRate": 0.018,
+        "growthExponent": 1.13,
         "levelBonusPerLevel": 0.005,
         "levelBonusCap": 1.5
       },
