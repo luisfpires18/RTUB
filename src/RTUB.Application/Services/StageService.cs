@@ -132,11 +132,36 @@ public class StageService : IStageService
         var enemySpritePaths = new List<string>();
         var enemyPlacements = new List<int>();
         
-        // Get all enemy sprites/templates with placements in a single DB query
-        // The returned StageEnemy objects double as stat templates, eliminating N+1 queries
+        // Get all enemy sprites/templates with placements
         var enemyTemplates = new List<StageEnemy?>();
         
-        if (enemyType == EnemyType.Boss)
+        if (region == RegionType.Arena)
+        {
+            // Arena uses filesystem-based sprites (like boss mode / survive mode).
+            // Drop new sprites into wwwroot/sprites/games/my-tuno/enemies/arena/
+            // without touching SeedAllBiomeEnemiesAsync. boss_* files appear every 10 stages.
+            if (enemyType == EnemyType.Boss)
+            {
+                var bossSprite = await _biomeService.GetBossSpriteForArenaAsync(stageNumber);
+                for (int i = 0; i < enemyCount; i++)
+                {
+                    enemyTemplates.Add(null);
+                    enemySpritePaths.Add(bossSprite);
+                    enemyPlacements.Add(0); // Terrestrial
+                }
+            }
+            else
+            {
+                var sprites = await _biomeService.GetRandomEnemySpritesAsync(stageNumber, enemyCount);
+                foreach (var sprite in sprites)
+                {
+                    enemyTemplates.Add(null);
+                    enemySpritePaths.Add(sprite);
+                    enemyPlacements.Add(0); // Terrestrial
+                }
+            }
+        }
+        else if (enemyType == EnemyType.Boss)
         {
             var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
             for (int i = 0; i < enemyCount; i++)

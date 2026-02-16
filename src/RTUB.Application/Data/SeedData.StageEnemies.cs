@@ -8,7 +8,7 @@ public static partial class SeedData
 {
     public static async Task SeedAllBiomeEnemiesAsync(ApplicationDbContext dbContext)
     {
-        await ReseedAllBiomeEnemiesAsync(dbContext);
+        //await ReseedAllBiomeEnemiesAsync(dbContext);
     }
 
     /// <summary>

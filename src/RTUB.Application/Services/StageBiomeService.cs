@@ -280,6 +280,30 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
+    /// Gets a boss sprite for an Arena stage directly from the filesystem.
+    /// Deterministic pick based on stage number so retries show the same boss.
+    /// </summary>
+    public async Task<string> GetBossSpriteForArenaAsync(int stageNumber)
+    {
+        var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b =>
+            stageNumber >= b.StageMin && stageNumber <= b.StageMax);
+
+        if (biomeConfig != null)
+        {
+            var bossSprites = await GetBossSpritesForBiomeAsync(biomeConfig);
+            if (bossSprites.Count > 0)
+            {
+                // Deterministic selection so the same boss appears on retries
+                var index = Math.Abs(stageNumber) % bossSprites.Count;
+                return bossSprites[index];
+            }
+        }
+
+        _logger.LogWarning("No arena boss sprites found for stage {StageNumber}, using fallback", stageNumber);
+        return "/sprites/games/my-tuno/enemies/arena/boss_calhau.png";
+    }
+
+    /// <summary>
     /// Gets boss sprite path with placement info for a given boss stage
     /// </summary>
     public async Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber)

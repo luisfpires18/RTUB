@@ -420,8 +420,8 @@
     },
 
     "bossMode": {
-      "stageOffset": 750,
-      "bossStageScaling": 100,
+      "stageOffset": 1000,
+      "bossStageScaling": 10,
       "xpPerBossLevel": 120,
       "bossLevelXPPower": 0.6,
       "xpLevelPenaltyRate": 0.01,

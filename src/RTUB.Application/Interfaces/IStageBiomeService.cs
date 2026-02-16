@@ -99,6 +99,15 @@ public interface IStageBiomeService
     string GetBackgroundForStage(int stageNumber);
 
     /// <summary>
+    /// Gets a boss sprite path for an Arena stage directly from the filesystem.
+    /// Bypasses the DB-first lookup so new sprites can be dropped into the arena folder
+    /// without updating <c>SeedAllBiomeEnemiesAsync</c>.
+    /// </summary>
+    /// <param name="stageNumber">The boss stage number (must be in the Arena range, i.e. &gt; 2000)</param>
+    /// <returns>Boss sprite path (relative to wwwroot)</returns>
+    Task<string> GetBossSpriteForArenaAsync(int stageNumber);
+
+    /// <summary>
     /// Calculates scaled enemy stats for a given stage
     /// </summary>
     /// <param name="stageNumber">The stage number</param>
