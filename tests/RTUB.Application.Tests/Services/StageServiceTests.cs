@@ -596,7 +596,7 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteStageBattleAsync_WhenFightingBossAtStage1100_ShouldUnlockEndlessMode()
+    public async Task ExecuteStageBattleAsync_WhenFightingBossAtStage2000_ShouldUnlockEndlessMode()
     {
         // Arrange
         var user = CreateTestUser();
@@ -606,9 +606,9 @@ public class StageServiceTests : IDisposable
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
 
-        // Create progress at stage 1100 (final boss)
+        // Create progress at stage 2000 (final Light boss)
         var progress = StageProgress.Create("user1");
-        for (int i = 1; i < 1100; i++)
+        for (int i = 1; i < 2000; i++)
         {
             progress.AdvanceStage();
         }
@@ -638,7 +638,7 @@ public class StageServiceTests : IDisposable
 
         // Assert
         battle.EnemyType.Should().Be(EnemyType.Boss);
-        battle.StageNumber.Should().Be(1100);
+        battle.StageNumber.Should().Be(2000);
 
         // Verify endless mode was unlocked
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
@@ -736,8 +736,8 @@ public class StageServiceTests : IDisposable
 
         var progress = StageProgress.Create(userId);
 
-        // Advance to stage 1115 (in the Void — checkpoint falls back to 1100)
-        for (int i = 1; i < 1115; i++)
+        // Advance to stage 2015 (in the Arena — checkpoint falls back to 2000)
+        for (int i = 1; i < 2015; i++)
         {
             progress.AdvanceStage();
         }
@@ -748,8 +748,8 @@ public class StageServiceTests : IDisposable
         var result = await _stageService.ReturnToCheckpointAsync(userId);
 
         // Assert
-        result.CurrentStage.Should().Be(1100); // Void has no checkpoints, falls back to 1100
-        result.CurrentRegion.Should().Be(RegionType.Light); // Stage 1100 is Light region
+        result.CurrentStage.Should().Be(2000); // Arena has no new checkpoints, falls back to 2000
+        result.CurrentRegion.Should().Be(RegionType.Light); // Stage 2000 is Light region
     }
 
     #endregion
@@ -774,13 +774,15 @@ public class StageServiceTests : IDisposable
     [InlineData(201, 201)] // First Mountains stage
     [InlineData(250, 241)]
     [InlineData(999, 991)]
-    [InlineData(1000, 991)] // Boss stage (last Dark boss)
-    [InlineData(1001, 1001)] // Light biome — still has checkpoints
+    [InlineData(1000, 991)] // Boss stage (last Sky boss)
+    [InlineData(1001, 1001)] // Underwater biome — still has checkpoints
     [InlineData(1050, 1041)]
-    [InlineData(1100, 1091)] // Boss stage (last Light boss)
-    [InlineData(1101, 1100)] // Void — no new checkpoints
-    [InlineData(1500, 1100)]
-    [InlineData(5000, 1100)]
+    [InlineData(1100, 1091)] // Boss stage (last Underwater boss)
+    [InlineData(1101, 1101)] // Underground biome — still has checkpoints
+    [InlineData(1500, 1491)]
+    [InlineData(2000, 1991)] // Boss stage (last Light boss)
+    [InlineData(2001, 2000)] // Arena — no new checkpoints
+    [InlineData(5000, 2000)]
     public void CalculateCheckpoint_ShouldReturnCorrectCheckpoint(int stage, int expectedCheckpoint)
     {
         // Act
@@ -810,16 +812,20 @@ public class StageServiceTests : IDisposable
     [InlineData(800, RegionType.Volcanic)]
     [InlineData(801, RegionType.Ruins)]
     [InlineData(900, RegionType.Ruins)]
-    [InlineData(901, RegionType.Dark)]
-    [InlineData(1000, RegionType.Dark)]
-    [InlineData(1001, RegionType.Light)]
-    [InlineData(1050, RegionType.Light)]
-    [InlineData(1100, RegionType.Light)]
-    [InlineData(1101, RegionType.Void)]
-    [InlineData(2000, RegionType.Void)]
-    [InlineData(5000, RegionType.Void)]
-    [InlineData(10000, RegionType.Void)]
-    [InlineData(99999, RegionType.Void)]
+    [InlineData(901, RegionType.Sky)]
+    [InlineData(1000, RegionType.Sky)]
+    [InlineData(1001, RegionType.Underwater)]
+    [InlineData(1050, RegionType.Underwater)]
+    [InlineData(1100, RegionType.Underwater)]
+    [InlineData(1101, RegionType.Underground)]
+    [InlineData(1500, RegionType.Corruption)]
+    [InlineData(1700, RegionType.Alien)]
+    [InlineData(1900, RegionType.Timerift)]
+    [InlineData(2000, RegionType.Light)]
+    [InlineData(2001, RegionType.Arena)]
+    [InlineData(5000, RegionType.Arena)]
+    [InlineData(10000, RegionType.Arena)]
+    [InlineData(99999, RegionType.Arena)]
     public void GetRegionForStage_ShouldReturnCorrectRegion(int stage, RegionType expectedRegion)
     {
         // Act
@@ -860,8 +866,10 @@ public class StageServiceTests : IDisposable
     [InlineData(1000, false)]
     [InlineData(1001, false)]
     [InlineData(1100, false)]
-    [InlineData(1101, true)]
-    [InlineData(2000, true)]
+    [InlineData(1101, false)]
+    [InlineData(2000, false)]
+    [InlineData(2001, true)] // Arena starts at 2001
+    [InlineData(5000, true)]
     [InlineData(99999, true)]
     public void IsInVoid_ShouldReturnCorrectValue(int stage, bool expected)
     {
@@ -872,7 +880,7 @@ public class StageServiceTests : IDisposable
             progress.AdvanceStage();
         }
 
-        // Act
+        // Act — IsInVoid() is now an alias for IsInArena()
         var result = progress.IsInVoid();
 
         // Assert
@@ -921,18 +929,18 @@ public class StageServiceTests : IDisposable
         // Arrange
         var progress = StageProgress.Create("user1");
 
-        // Advance to stage 1100 (end of Light)
-        for (int i = 1; i < 1100; i++)
+        // Advance to stage 2000 (end of Light)
+        for (int i = 1; i < 2000; i++)
         {
             progress.AdvanceStage();
         }
 
-        // Act - advance to stage 1101 (Void region)
+        // Act - advance to stage 2001 (Arena region)
         progress.AdvanceStage();
 
         // Assert
-        progress.CurrentStage.Should().Be(1101);
-        progress.CurrentRegion.Should().Be(RegionType.Void);
+        progress.CurrentStage.Should().Be(2001);
+        progress.CurrentRegion.Should().Be(RegionType.Arena);
     }
 
     [Fact]
@@ -949,13 +957,13 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public void RecordBossDefeat_AtStage1100_ShouldUnlockEndlessMode()
+    public void RecordBossDefeat_AtStage2000_ShouldUnlockEndlessMode()
     {
         // Arrange
         var progress = StageProgress.Create("user1");
 
-        // Advance to stage 1100
-        for (int i = 1; i < 1100; i++)
+        // Advance to stage 2000 (last Light boss)
+        for (int i = 1; i < 2000; i++)
         {
             progress.AdvanceStage();
         }
