@@ -36,7 +36,7 @@ public class Character : BaseEntity
     // Canhão buff - number of hits remaining where damage is boosted by 30%
     public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
 
-    // Penalty buff - 0.5s attack speed + 100% crit for 1 run/battle
+    // Penalty buff - reduces action time by 0.5s + adds 50% crit chance for 1 run/battle
     public int PenaltyBuffActive { get; set; } = 0;
 
     // Arena Statistics
@@ -553,13 +553,34 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Penalty buff speed reduction in seconds (subtracted from current action time).
+    /// </summary>
+    public const double PenaltySpeedReduction = 0.5;
+
+    /// <summary>
+    /// Penalty buff critical chance bonus (additive).
+    /// A player with 50% crit becomes 100%, a player with 1% crit becomes 51%.
+    /// </summary>
+    public const double PenaltyCritBonus = 0.5;
+
+    /// <summary>
+    /// Minimum action time when penalty buff is active (allows going below normal MinActionTime).
+    /// </summary>
+    public const double PenaltyMinActionTime = 0.5;
+
+    /// <summary>
     /// Creates a copy of the character with Penalty buff applied.
-    /// Overrides action time to 0.5s and critical chance to 100%.
+    /// Reduces action time by 0.5s (min 0.5s) and adds +50% crit chance (capped at 100%).
     /// </summary>
     public static Character CreatePenaltyBuffedCopy(Character source)
     {
         if (source == null)
             throw new ArgumentNullException(nameof(source));
+
+        // Additive crit: +50% (capped at 1.0)
+        var penaltyCrit = Math.Min(1.0, source.TotalCriticalChance + PenaltyCritBonus);
+        // Speed reduction: -0.5s from current action time (min 0.5s)
+        var penaltyActionTime = Math.Max(PenaltyMinActionTime, source.ActionTime - PenaltySpeedReduction);
 
         return new Character
         {
@@ -571,7 +592,7 @@ public class Character : BaseEntity
             Power = source.Power,
             Speed = source.Speed,
             Defense = source.Defense,
-            CriticalChance = 1.0, // 100% crit
+            CriticalChance = penaltyCrit,
             HpUpgrades = source.HpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
@@ -602,7 +623,7 @@ public class Character : BaseEntity
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,
             EquipmentDefenseBonus = source.EquipmentDefenseBonus,
             EquipmentCriticalBonus = source.EquipmentCriticalBonus,
-            ActionTimeOverride = 0.5, // 0.5s attack speed
+            ActionTimeOverride = penaltyActionTime,
             CurrentHP = source.CurrentHP,
             User = source.User,
             CreatedAt = source.CreatedAt,

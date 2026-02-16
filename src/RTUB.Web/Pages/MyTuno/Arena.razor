@@ -643,6 +643,11 @@
         {
             var didWin = _combatSession.Winner == _combatSession.Player.Identifier;
             currentBattle.Outcome = didWin ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon;
+            // Sync interactive session state back to BattleResult so FinalizeAndApplyRewardsAsync
+            // persists the correct buff remaining counts and HP (not the pre-computed ones).
+            currentBattle.AttackerFinalHP = _combatSession.Player.CurrentHP;
+            currentBattle.AttackerCigarroShieldRemaining = _combatSession.CigarroShieldRemaining;
+            currentBattle.AttackerCanhaoBoostRemaining = _combatSession.CanhaoBoostRemaining;
         }
         _combatSession = null;
         

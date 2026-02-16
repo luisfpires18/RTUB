@@ -173,7 +173,7 @@
                                             ("Cigarro", "bi-cloud", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
                                             ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 501, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
                                             ("Canhão", "bi-bullseye", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "0.5s + 100% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
                                         };
                                     }
 
@@ -2774,7 +2774,7 @@
             {
                 penaltyQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha.";
+                toastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
                 toastIsError = false;
             }
             else

@@ -220,7 +220,7 @@ public class InventoryService : IInventoryService
         character.PenaltyBuffActive = 1;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha");
+        return (true, "Penalty ativado! -0.5s ataque + 50% crit até morrer");
     }
 
     /// <summary>
