@@ -15,7 +15,6 @@
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using RTUB.Application.Services
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
@@ -659,7 +658,7 @@
                 }
             }
             var starterSpells = RTUB.Application.Data.SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
-            var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.Services.CombatantState
+            var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.DTOs.CombatantState
             {
                 Identifier = $"Enemy{i}",
                 Name = e.Name,

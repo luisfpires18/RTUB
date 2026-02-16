@@ -1,4 +1,4 @@
-namespace RTUB.Core.Entities;
+namespace RTUB.Core.Enums;
 
 /// <summary>
 /// Visual effect type for special attacks / spells.
