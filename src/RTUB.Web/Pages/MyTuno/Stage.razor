@@ -113,9 +113,15 @@
             </div>
 
             <!-- Active Buff Indicators -->
-            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+            @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
             {
                 <div class="d-flex gap-2 mb-3 flex-wrap">
+                    @if (character.ShotBuffBattlesRemaining > 0)
+                    {
+                        <span class="badge fs-6" style="background-color: #7b1fa2;">
+                            <i class="bi bi-cup me-1"></i>Shot +20% (@character.ShotBuffBattlesRemaining batalhas)
+                        </span>
+                    }
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
@@ -124,7 +130,7 @@
                     }
                     @if (character.CanhaoDamageBoostHitsRemaining > 0)
                     {
-                        <span class="badge bg-info fs-6">
+                        <span class="badge bg-danger fs-6">
                             <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
                         </span>
                     }
@@ -276,7 +282,7 @@
                     <div class="defeat-banner">
                         <span>STAGE LIMPA</span>
                     </div>
-                    <div class="defeat-stage">Stage @Fmt(defeatedAtStage)</div>
+                    <div class="defeat-stage">Stage @defeatedAtStage</div>
                     @if (stagesCleared > 0)
                     {
                         <div class="defeat-rewards">
@@ -624,16 +630,20 @@
                 await Task.Delay(50);
             }
 
-            // Save pre-battle HP before deterministic sim modifies it.
+            // Save pre-battle state before deterministic sim modifies it.
             // The deterministic engine sets character.CurrentHP to null on predicted loss
-            // (e.g., boss stages), which would make the interactive session start at full HP.
+            // and consumes cigarro/canhao charges — but the interactive session drives real combat.
             var preBattleHp = character.CurrentHP;
+            var preBattleCigarroShield = character.CigarroShieldHitsRemaining;
+            var preBattleCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
 
-            // Restore pre-battle HP — the interactive session drives real combat
+            // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
+            character.CigarroShieldHitsRemaining = preBattleCigarroShield;
+            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBoost;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks + spell clicks
@@ -783,11 +793,21 @@
                         Consumables = new
                         {
                             Fino = _finoQty,
-                            Caneca = _canecaQty
+                            Caneca = _canecaQty,
+                            Cigarro = _cigarroQty,
+                            Canhao = _canhaoQty,
+                            Shot = _shotQty,
+                            Penalty = _penaltyQty
                         },
                         ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
                         SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),
-                        ActiveBuffs = new { }
+                        ActiveBuffs = new
+                        {
+                            Cigarro = _combatSession.CigarroShieldRemaining > 0,
+                            Canhao = _combatSession.CanhaoBoostRemaining > 0,
+                            Shot = _combatSession.HasShotBuff,
+                            Penalty = _combatSession.HasPenaltyBuff
+                        }
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
@@ -1281,6 +1301,24 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error setting battle speed");
+        }
+    }
+
+    /// <summary>
+    /// Called from the HTML consumable buttons below the canvas.
+    /// Delegates to the JS game instance which handles the full flow.
+    /// </summary>
+    private async Task UseConsumableFromHtml(string type)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("stageBattleGame.useConsumable", type);
+            // Re-render to update button disabled states after use
+            if (!_disposed) StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error using consumable {Type} from HTML", type);
         }
     }
 

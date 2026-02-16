@@ -207,8 +207,15 @@ public class Character : BaseEntity
     public const double MaxCriticalChance = 0.5;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double TotalCriticalChance =>
-        Math.Min(MaxCriticalChance, CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier));
+    public double TotalCriticalChance
+    {
+        get
+        {
+            var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier);
+            // Penalty buff explicitly allows up to 100% crit — skip the normal 50% cap
+            return PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
+        }
+    }
 
     /// <summary>
     /// Effective defense base — self-heals characters whose Defense column is still 0
@@ -339,9 +346,11 @@ public class Character : BaseEntity
     {
         get
         {
-            // Stage enemies use a direct override based on stage tier
+            // Stage enemies and penalty-buffed characters use a direct override.
+            // Penalty buff allows going below MinActionTime (down to PenaltyMinActionTime = 0.5s),
+            // so use the lower floor when an override is set.
             if (ActionTimeOverride.HasValue)
-                return Math.Max(MinActionTime, ActionTimeOverride.Value);
+                return Math.Max(PenaltyMinActionTime, ActionTimeOverride.Value);
 
             // Speed upgrades provide the flat reduction: 5.0s → 1.0s over 41 upgrades
             var time = BaseActionTime - SpeedUpgrades * ActionTimeReductionPerUpgrade;
@@ -557,11 +566,10 @@ public class Character : BaseEntity
 
         var buffMultiplier = source.EffectiveShotBuffMultiplier;
 
-        // Simple approach: multiply the base HP stat by 1.2
-        // This makes TotalHP automatically scale up (though not exactly 1.2x due to upgrades)
-        // But we also scale the upgrade bonus by storing extra "virtual" upgrades
+        // Only multiply the base HP — do NOT scale HpUpgrades, as that compounds
+        // exponentially with the upgrade formula: HP * scale * (1+mult)^upgrades.
+        // Scaling upgrades from N to N*1.2 causes TotalHP to grow far beyond 1.2x.
         var buffedHP = (int)Math.Round(source.HP * buffMultiplier);
-        var buffedHpUpgrades = (int)Math.Round(source.HpUpgrades * buffMultiplier);
 
         return new Character
         {
@@ -576,8 +584,8 @@ public class Character : BaseEntity
             Speed = (int)Math.Round(source.Speed * buffMultiplier),
             Defense = (int)Math.Round(source.Defense * buffMultiplier),
             CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
-            // Also scale HP upgrades so total HP is exactly 1.2x
-            HpUpgrades = buffedHpUpgrades,
+            // Keep original HpUpgrades — scaling them causes exponential compounding
+            HpUpgrades = source.HpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,
@@ -664,7 +672,8 @@ public class Character : BaseEntity
             HpUpgrades = source.HpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
-            CriticalUpgrades = source.CriticalUpgrades,
+            // Upgrades already baked into penaltyCrit — zero out to prevent double-counting
+            CriticalUpgrades = 0,
             DefenseUpgrades = source.DefenseUpgrades,
             EquippedHead = source.EquippedHead,
             EquippedShoulders = source.EquippedShoulders,

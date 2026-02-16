@@ -43,7 +43,7 @@ public class CombatActionService : ICombatActionService
             {
                 Identifier = mode == "arena" ? "Attacker" : "Player",
                 Name = player.User?.UserName ?? "Player",
-                CurrentHP = player.CurrentHP ?? player.TotalHP,
+                CurrentHP = Math.Min(player.CurrentHP ?? player.TotalHP, player.TotalHP),
                 MaxHP = player.TotalHP,
                 Power = player.TotalPower,
                 Defense = player.TotalDefense,
@@ -147,7 +147,7 @@ public class CombatActionService : ICombatActionService
             {
                 Identifier = mode == "arena" ? "Attacker" : "Player",
                 Name = player.User?.UserName ?? "Player",
-                CurrentHP = player.CurrentHP ?? player.TotalHP,
+                CurrentHP = Math.Min(player.CurrentHP ?? player.TotalHP, player.TotalHP),
                 MaxHP = player.TotalHP,
                 Power = player.TotalPower,
                 Defense = player.TotalDefense,

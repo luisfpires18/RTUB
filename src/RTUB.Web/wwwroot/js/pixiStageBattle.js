@@ -55,7 +55,8 @@
 
     const getEventField = (evt, field) => {
         if (!evt) return undefined;
-        return evt[field] ?? evt[field.toLowerCase()];
+        // Try PascalCase, camelCase, then lowercase
+        return evt[field] ?? evt[field[0].toLowerCase() + field.slice(1)] ?? evt[field.toLowerCase()];
     };
 
     const resolveEvents = (battleData) => {
@@ -215,11 +216,15 @@
                 shot: !!(abData.shot ?? abData.Shot),
                 penalty: !!(abData.penalty ?? abData.Penalty)
             };
-            // Consumable cooldowns (fino: 60s, caneca: 120s) — persisted across stages
+            // Consumable cooldowns — persisted across stages
             const ccData = data?.consumableCooldowns ?? data?.ConsumableCooldowns ?? {};
             this.consumableCooldowns = {
                 fino: ccData.fino ?? ccData.Fino ?? 0,
-                caneca: ccData.caneca ?? ccData.Caneca ?? 0
+                caneca: ccData.caneca ?? ccData.Caneca ?? 0,
+                cigarro: ccData.cigarro ?? ccData.Cigarro ?? 0,
+                canhao: ccData.canhao ?? ccData.Canhao ?? 0,
+                shot: ccData.shot ?? ccData.Shot ?? 0,
+                penalty: ccData.penalty ?? ccData.Penalty ?? 0
             };
             
             this.setupAudio();
@@ -1058,13 +1063,20 @@
         createConsumableBar() {
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = 48;
-            const btnGap = 6;
+            const btnGap = 4;
 
             const consumables = [
                 { type: 'fino',    icon: '🍺', name: 'Fino',    color: 0xf5a623 },
-                { type: 'caneca',  icon: '🍻', name: 'Caneca',  color: 0xf5a623 }
+                { type: 'caneca',  icon: '🍻', name: 'Caneca',  color: 0xf5a623 },
+                { type: 'cigarro', icon: '🛡️', name: 'Cigarro', color: 0x90caf9 },
+                { type: 'canhao',  icon: '💣', name: 'Canhão',  color: 0xef5350 },
+                { type: 'shot',    icon: '🥃', name: 'Shot',    color: 0xab47bc },
+                { type: 'penalty', icon: '⚡', name: 'Penalty', color: 0xffee58 }
             ];
+
+            // Compute button size to fit all consumables within the canvas width
+            const maxBarWidth = width - 24; // 12px padding on each side
+            const btnSize = Math.min(64, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
 
             const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;
@@ -1132,11 +1144,13 @@
                 qtyText.y = 4;
                 btnContainer.addChild(qtyText);
 
-                // Greyed out overlay when qty == 0
+                // Greyed out overlay when qty == 0 or buff already active
                 const emptyOverlay = new PIXI.Graphics();
                 emptyOverlay.roundRect(0, 0, btnSize, btnSize, 6);
                 emptyOverlay.fill({ color: 0x000000, alpha: 0.6 });
-                emptyOverlay.visible = qty <= 0;
+                const isBuffType = ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type);
+                const isActive = isBuffType && (this.activeBuffs[c.type] ?? false);
+                emptyOverlay.visible = qty <= 0 || isActive;
                 btnContainer.addChild(emptyOverlay);
 
                 // Cooldown overlay (dark semi-transparent, hidden when ready)
@@ -1161,7 +1175,7 @@
                 // Interactive
                 btnContainer.eventMode = 'static';
                 const isOnCooldown = initCd > 0;
-                btnContainer.cursor = (qty > 0 && !isOnCooldown) ? 'pointer' : 'not-allowed';
+                btnContainer.cursor = (qty > 0 && !isOnCooldown && !isActive) ? 'pointer' : 'not-allowed';
                 const consumableType = c.type;
                 btnContainer.on('pointerdown', () => this.onConsumableClick(consumableType));
 
@@ -1170,7 +1184,7 @@
                 this.consumableButtons.push({
                     container: btnContainer, bg, iconText, nameText,
                     qtyBg, qtyText, emptyOverlay, cdOverlay, cdText,
-                    type: c.type, color: c.color,
+                    type: c.type, color: c.color, btnSize,
                     isBuffType: ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type)
                 });
             }
@@ -1279,6 +1293,7 @@
         updateConsumableButton(type) {
             const btn = this.consumableButtons.find(b => b.type === type);
             if (!btn) return;
+            const sz = btn.btnSize ?? 48;
             const qty = this.consumableQuantities[type] ?? 0;
             const isActive = this.activeBuffs[type] ?? false;
             const cd = this.consumableCooldowns[type] ?? 0;
@@ -1290,12 +1305,12 @@
 
             // Update badge color
             btn.qtyBg.clear();
-            btn.qtyBg.circle(48 - 4, 4, 10);
+            btn.qtyBg.circle(sz - 4, 4, 10);
             btn.qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x555555, alpha: 0.95 });
 
             // Update button style - active buffs get bright glow
             btn.bg.clear();
-            btn.bg.roundRect(0, 0, 48, 48, 6);
+            btn.bg.roundRect(0, 0, sz, sz, 6);
             if (isActive) {
                 btn.bg.fill({ color: btn.color, alpha: 0.35 });
                 btn.bg.stroke({ color: btn.color, width: 3 });
@@ -2222,7 +2237,8 @@
         }
 
         updatePlayerHPBar() {
-            const ratio = Math.max(0, this.playerCurrentHp / this.playerMaxHp);
+            // Clamp ratio to [0,1] to prevent bar overflow when CurrentHP > MaxHP
+            const ratio = Math.min(1, Math.max(0, this.playerCurrentHp / this.playerMaxHp));
             const maxWidth = this.playerHpBar.maxWidth || 200;
             const barHeight = this.playerHpBar.barHeight || 24;
 
@@ -3347,6 +3363,7 @@
             const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
             const consumableCooldowns = battleData?.consumableCooldowns ?? battleData?.ConsumableCooldowns ?? {};
             const spellCooldowns = battleData?.spellCooldowns ?? battleData?.SpellCooldowns ?? {};
+            const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? null;
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -3370,7 +3387,8 @@
                 enemies: enemies,
                 consumables: consumables,
                 consumableCooldowns: consumableCooldowns,
-                spellCooldowns: spellCooldowns
+                spellCooldowns: spellCooldowns,
+                activeBuffs: activeBuffs
             });
         }
     };
