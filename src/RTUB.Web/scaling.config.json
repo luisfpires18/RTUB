@@ -96,8 +96,8 @@
     },
 
     "battleRewards": {
-      "winReward": 120,
-      "drawReward": 30,
+      "winReward": 150,
+      "drawReward": 40,
       "baseWinXP": 150,
       "baseDrawXP": 75,
       "levelDiffScale": 0.015,
@@ -134,11 +134,11 @@
 
       "baseEnemyStats": {
         "normal": {
-          "hp": 50,
-          "power": 12,
-          "speed": 5,
-          "defense": 3,
-          "criticalChance": 0.05
+          "hp": 35,
+          "power": 8,
+          "speed": 4,
+          "defense": 2,
+          "criticalChance": 0.03
         },
         "boss": {
           "hp": 120,
@@ -232,8 +232,8 @@
       },
 
       "fidelisRewards": {
-        "normalWin": 30,
-        "bossWin": 75
+        "normalWin": 75,
+        "bossWin": 100
       },
 
       "biomes": [
@@ -455,7 +455,7 @@
       },
 
       "fidelisRewards": {
-        "bossWin": 350
+        "bossWin": 430
       },
 
       "fitabDropChanceStage": 0.002,
@@ -563,8 +563,8 @@
     },
 
     "dailyReward": {
-      "baseFidelis": 750,
-      "perLevelFidelis": 10,
+      "baseFidelis": 900,
+      "perLevelFidelis": 12,
       "balancePercent": 0.05
     }
   }
