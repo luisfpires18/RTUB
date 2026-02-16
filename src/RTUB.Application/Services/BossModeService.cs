@@ -233,8 +233,8 @@ public class BossModeService : IBossModeService
         var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped) =
             CalculateBossRewards(combatResult, bossStage, character.Level, highestStage);
 
-        // Update progress (pass hasShotBuff so we can decrement the buff per battle, matching normal gameplay)
-        await UpdateProgressAfterBattle(character, progress, combatResult, bossFullHP, hasShotBuff, hasPenaltyBuff);
+        // Update progress (hasShotBuff and hasPenaltyBuff tracked for potential future use)
+        await UpdateProgressAfterBattle(character, progress, combatResult, bossFullHP);
 
         return new BossModeBattleResult
         {
@@ -549,7 +549,7 @@ public class BossModeService : IBossModeService
     /// On defeat, saves the boss's remaining HP so the next run continues where this one left off.
     /// </summary>
     private async Task UpdateProgressAfterBattle(
-        Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP, bool shotBuffUsed = false, bool penaltyBuffUsed = false)
+        Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)

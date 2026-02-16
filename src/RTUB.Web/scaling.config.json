@@ -59,18 +59,18 @@
       },
       "energyRegen": {
         "multiplierPerUpgrade": 2.0,
-        "baseCost": 500,
+        "baseCost": 2000,
         "costExponent": 2.8
       },
       "shotBuffBonus": {
         "multiplierPerUpgrade": 0.005,
-        "baseCost": 1000,
+        "baseCost": 4000,
         "costExponent": 3.0,
         "maxUpgrades": 40
       },
       "fidelisEarned": {
         "multiplierPerUpgrade": 0.02,
-        "baseCost": 100,
+        "baseCost": 400,
         "costExponent": 2.0
       }
     },

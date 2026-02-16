@@ -2381,6 +2381,14 @@
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
                 }
 
+                // Refresh energy bar and regen timer to reflect upgrades
+                if (character != null)
+                {
+                    maxEnergy = character.EffectiveMaxEnergy;
+                    currentEnergy = Math.Min(currentEnergy, maxEnergy);
+                    StartEnergyRegenTimer();
+                }
+
                 toastMessage = $"Melhoria comprada com sucesso!";
                 toastIsError = false;
             }

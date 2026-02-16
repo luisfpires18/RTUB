@@ -1220,7 +1220,7 @@
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                         expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                        expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
+                        expirePenaltyBuff: false);
                 }
                 catch (Exception ex)
                 {
