@@ -566,10 +566,13 @@ public class Character : BaseEntity
 
         var buffMultiplier = source.EffectiveShotBuffMultiplier;
 
-        // Only multiply the base HP — do NOT scale HpUpgrades, as that compounds
-        // exponentially with the upgrade formula: HP * scale * (1+mult)^upgrades.
-        // Scaling upgrades from N to N*1.2 causes TotalHP to grow far beyond 1.2x.
+        // Scale base stats AND upgrades — the compounding with the exponential
+        // upgrade formula (stat × scale × (1+mult)^upgrades) is intentional:
+        // investing in both Shot-buff upgrades and HP upgrades yields increasing returns.
+        // The green-HP-bar overflow is prevented separately by clamping CurrentHP
+        // to TotalHP in CombatActionService.CreateSession and JS updatePlayerHPBar.
         var buffedHP = (int)Math.Round(source.HP * buffMultiplier);
+        var buffedHpUpgrades = (int)Math.Round(source.HpUpgrades * buffMultiplier);
 
         return new Character
         {
@@ -577,15 +580,14 @@ public class Character : BaseEntity
             UserId = source.UserId,
             Level = source.Level,
             XP = source.XP,
-            // Boost base HP stat by 20%
+            // Boost base stats by buff multiplier
             HP = buffedHP,
-            // Boost all other stats by 20%
             Power = (int)Math.Round(source.Power * buffMultiplier),
             Speed = (int)Math.Round(source.Speed * buffMultiplier),
             Defense = (int)Math.Round(source.Defense * buffMultiplier),
             CriticalChance = Math.Min(1.0, source.CriticalChance * buffMultiplier),
-            // Keep original HpUpgrades — scaling them causes exponential compounding
-            HpUpgrades = source.HpUpgrades,
+            // Scale HP upgrades — synergizes with the compound upgrade formula
+            HpUpgrades = buffedHpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
             CriticalUpgrades = source.CriticalUpgrades,

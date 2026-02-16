@@ -23,7 +23,7 @@
 
     "upgrades": {
       "hp": {
-        "multiplierPerUpgrade": 0.04,
+        "multiplierPerUpgrade": 0.1,
         "baseCost": 30,
         "costExponent": 2.0
       },
@@ -232,8 +232,8 @@
       },
 
       "fidelisRewards": {
-        "normalWin": 20,
-        "bossWin": 60
+        "normalWin": 30,
+        "bossWin": 75
       },
 
       "biomes": [
@@ -420,7 +420,7 @@
     },
 
     "bossMode": {
-      "stageOffset": 1200,
+      "stageOffset": 750,
       "bossStageScaling": 100,
       "xpPerBossLevel": 120,
       "bossLevelXPPower": 0.6,
@@ -563,7 +563,7 @@
     },
 
     "dailyReward": {
-      "baseFidelis": 500,
+      "baseFidelis": 750,
       "perLevelFidelis": 10,
       "balancePercent": 0.05
     }
