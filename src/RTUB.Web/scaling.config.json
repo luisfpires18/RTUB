@@ -23,7 +23,7 @@
 
     "upgrades": {
       "hp": {
-        "multiplierPerUpgrade": 0.1,
+        "multiplierPerUpgrade": 0.08,
         "baseCost": 30,
         "costExponent": 2.0
       },
