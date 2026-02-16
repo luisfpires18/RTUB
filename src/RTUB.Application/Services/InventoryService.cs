@@ -1125,6 +1125,10 @@ public class InventoryService : IInventoryService
         if (weapon == null)
             return (false, "Arma não encontrada");
 
+        var forging = _scalingConfig.StageMode.Forging;
+        if (forging.MaxWeaponLevel > 0 && weapon.Level >= forging.MaxWeaponLevel)
+            return (false, $"Nível máximo de arma alcançado ({forging.MaxWeaponLevel}).");
+
         var cost = GetWeaponUpgradeCost(weapon.Level);
 
         var character = await _dbContext.Characters.FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
@@ -1151,7 +1155,6 @@ public class InventoryService : IInventoryService
         weapon.Level += 1;
 
         // Recalculate stats: increase base stats by upgrade bonus per level
-        var forging = _scalingConfig.StageMode.Forging;
         var statBonus = forging.WeaponUpgradeStatBonus;
         var levelMultiplier = 1.0 + (weapon.Level * statBonus);
         var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
@@ -1223,6 +1226,11 @@ public class InventoryService : IInventoryService
             return (false, "Personagem não encontrado");
 
         var currentSlotLevel = character.GetSlotBonusLevel(slot);
+
+        var maxBonusLevel = _scalingConfig.StageMode.MaxEquipmentBonusLevel;
+        if (maxBonusLevel > 0 && currentSlotLevel >= maxBonusLevel)
+            return (false, $"Nível máximo de equipamento alcançado ({maxBonusLevel}).");
+
         var cost = GetEquipmentUpgradeCost(currentSlotLevel);
 
         var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);

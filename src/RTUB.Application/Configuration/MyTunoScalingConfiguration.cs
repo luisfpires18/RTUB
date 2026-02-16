@@ -305,6 +305,13 @@ public class StageModeConfig
     public double EquipmentEnhancementBonus { get; set; } = 0.20;
 
     /// <summary>
+    /// Maximum purchased enhancement level per equipment slot.
+    /// Stage-derived bonus (HighestStage/100) is uncapped and stacks on top.
+    /// Default 15. Set to 0 for no limit.
+    /// </summary>
+    public int MaxEquipmentBonusLevel { get; set; } = 15;
+
+    /// <summary>
     /// Per-character-level scaling factor applied to equipped weapon stat bonuses.
     /// Formula: weaponStat × (1 + charLevel × WeaponCharacterLevelScale).
     /// </summary>
@@ -507,6 +514,12 @@ public class ForgingConfig
     /// Default 5.
     /// </summary>
     public int UpgradeLevelsPerDrinkTier { get; set; } = 5;
+
+    /// <summary>
+    /// Maximum weapon enhancement level. Set to 0 for no limit.
+    /// Default 20.
+    /// </summary>
+    public int MaxWeaponLevel { get; set; } = 20;
 }
 
 /// <summary>
