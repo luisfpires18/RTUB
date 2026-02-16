@@ -547,6 +547,28 @@ public class BossModeService : IBossModeService
     /// change tracker conflicts from multiple sequential saves.
     /// On defeat, saves the boss's remaining HP so the next run continues where this one left off.
     /// </summary>
+    /// <inheritdoc />
+    public async Task CorrectInteractiveWinAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+        // EndRun() set CurrentBossStage = 0 but preserved DailyBossStage.
+        // Restore the stage the player was fighting, then advance past it.
+        if (progress.CurrentBossStage <= 0 && progress.DailyBossStage > 0)
+        {
+            progress.CurrentBossStage = progress.DailyBossStage;
+            progress.AdvanceBossStage();
+            await _bossModeProgressRepository.UpdateAsync(progress);
+
+            _logger.LogInformation(
+                "Corrected interactive win for user {UserId}: advanced boss stage to {Stage}",
+                userId, progress.CurrentBossStage);
+        }
+    }
+
     private async Task UpdateProgressAfterBattle(
         Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP, bool shotBuffUsed = false, bool penaltyBuffUsed = false)
     {

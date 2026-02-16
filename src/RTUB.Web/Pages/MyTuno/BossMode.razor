@@ -739,7 +739,27 @@
             showBattleAnimation = true;
             errorMessage = string.Empty;
 
-            if (!runInProgress)
+// Ensure the server-side run is started. This handles the timing race where
+        // OnAfterRenderAsync(firstRender: true) fired before LoadDataAsync completed,
+        // so the run-start block was skipped.
+        if (bossModeProgress.CurrentBossStage <= 0 && !_runAlreadyStarted)
+        {
+            try
+            {
+                _runAlreadyStarted = true;
+                bossModeProgress = await BossModeService.StartBossModeRunAsync(currentUser.Id);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
+            {
+                errorMessage = ex.Message.Contains("Level")
+                    ? "Precisas de Level 10 para aceder ao Boss Mode."
+                    : "Não tens FITAB suficiente para entrar no Boss Mode.";
+                Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
+                return;
+            }
+        }
+
+        if (!runInProgress)
             {
                 runStartingHp = character.CurrentHP;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
@@ -1095,6 +1115,21 @@
         {
             pendingDefeatRewards = false;
             runInProgress = true;
+
+            // The deterministic engine predicted a loss, so UpdateProgressAfterBattle
+            // called EndRun() (CurrentBossStage = 0) and saved to DB. Correct the
+            // server-side progress to undo the EndRun and advance the boss stage.
+            if (currentUser != null)
+            {
+                try
+                {
+                    await BossModeService.CorrectInteractiveWinAsync(currentUser.Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error correcting interactive win for boss mode");
+                }
+            }
         }
 
         _combatSession = null;

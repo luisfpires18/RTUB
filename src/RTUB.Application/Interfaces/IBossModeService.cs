@@ -59,6 +59,13 @@ public interface IBossModeService
     string GetBackgroundPath();
 
     /// <summary>
+    /// Corrects server-side boss progress when the interactive combat session
+    /// wins a battle that the deterministic engine predicted as a loss.
+    /// Undoes the EndRun that was saved during ExecuteBossBattleAsync and advances the boss stage.
+    /// </summary>
+    Task CorrectInteractiveWinAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the equivalent stage mode difficulty for a boss stage number.
     /// Boss stage 1 = stage 500+ equivalent.
     /// </summary>

@@ -1117,6 +1117,28 @@
         {
             pendingDefeatRewards = false;
             runInProgress = true;
+
+            // The deterministic engine predicted a loss, so
+            // UpdateCharacterAndProgressInMemory skipped stage advancement.
+            // Advance stage progress in memory now (no DB save during runs).
+            if (stageProgress != null && currentBattle != null)
+            {
+                for (int i = 0; i < currentBattle.EnemyCount; i++)
+                {
+                    stageProgress.RecordEnemyDefeat();
+                }
+                if (currentBattle.EnemyType == EnemyType.Boss)
+                {
+                    stageProgress.RecordBossDefeat();
+                }
+                var totalEnemies = BiomeService.GetEnemyCountForStage(stageProgress.CurrentStage);
+                if (stageProgress.EnemiesDefeatedInCurrentStage >= totalEnemies)
+                {
+                    stageProgress.AdvanceStage();
+                }
+                currentStageNumber = stageProgress.CurrentStage;
+                checkpointStage = stageProgress.LastCheckpoint;
+            }
         }
 
         // Update character HP from interactive session (overrides pre-computed value)
