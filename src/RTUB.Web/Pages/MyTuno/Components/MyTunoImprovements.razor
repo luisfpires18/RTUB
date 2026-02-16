@@ -1,0 +1,276 @@
+@using RTUB.Application.Configuration
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Enums
+@using RTUB.Core.Configuration
+@using RTUB.Core.Helpers
+@using Microsoft.Extensions.Options
+@inject IImprovementService ImprovementService
+@inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
+
+<div class="card h-100">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-gem me-2"></i>Melhorias</h5>
+    </div>
+    <div class="card-body p-2">
+        <div class="d-flex flex-column gap-2">
+
+        <!-- Energy Amount Upgrade Row -->
+        <div class="enhance-row @(IsEnergyAmountMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--energy">
+                <i class="bi bi-battery-charging"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Energia <span class="enhance-row__level">Lv@(Character.EnergyAmountUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar capacidade de energia</div>
+                <div class="enhance-row__stat">
+                    @if (IsEnergyAmountMaxed)
+                    {
+                        <text>@Character.EffectiveMaxEnergy</text>
+                    }
+                    else
+                    {
+                        var nextMaxEnergy = MyTunoScaling.BaseMaxEnergy + (int)((Character.EnergyAmountUpgrades + 1) * MyTunoScaling.EnergyAmountPerUpgrade);
+                        <text>@Character.EffectiveMaxEnergy → <span class="text-success">@nextMaxEnergy</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsEnergyAmountMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.EnergyAmount)"
+                        disabled="@(Purchasing || energyAmountCostLoading || IsEnergyAmountMaxed || FidelisBalance < energyAmountCost)">
+                    @if (Purchasing && PurchasingType == ImprovementType.EnergyAmount)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsEnergyAmountMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (energyAmountCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(energyAmountCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Energy Regen Upgrade Row -->
+        <div class="enhance-row @(IsEnergyRegenMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--regen">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Regeneração <span class="enhance-row__level">Lv@(Character.EnergyRegenUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar velocidade de regeneração</div>
+                <div class="enhance-row__stat">
+                    @if (IsEnergyRegenMaxed)
+                    {
+                        <text>@Character.EffectiveRegenInterval.ToString("F0")s</text>
+                    }
+                    else
+                    {
+                        var nextRegen = Math.Max(5.0, MyTunoScaling.BaseRegenInterval - (Character.EnergyRegenUpgrades + 1) * MyTunoScaling.RegenReductionPerUpgrade);
+                        <text>@Character.EffectiveRegenInterval.ToString("F0")s → <span class="text-success">@nextRegen.ToString("F0")s</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsEnergyRegenMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.EnergyRegen)"
+                        disabled="@(Purchasing || energyRegenCostLoading || IsEnergyRegenMaxed || FidelisBalance < energyRegenCost)">
+                    @if (Purchasing && PurchasingType == ImprovementType.EnergyRegen)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsEnergyRegenMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (energyRegenCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(energyRegenCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Shot Buff Bonus Upgrade Row -->
+        <div class="enhance-row @(IsShotBuffMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--shot">
+                <i class="bi bi-droplet-fill"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Shot Buff <span class="enhance-row__level">Lv@(Character.ShotBuffUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar bónus do Shot (+0.5%)</div>
+                <div class="enhance-row__stat">
+                    @if (IsShotBuffMaxed)
+                    {
+                        <text>+@($"{(Character.EffectiveShotBuffMultiplier - 1) * 100:F1}%")</text>
+                    }
+                    else
+                    {
+                        var nextMult = MyTunoScaling.ShotBuffMultiplier + (Character.ShotBuffUpgrades + 1) * MyTunoScaling.ShotBuffBonusPerUpgrade;
+                        <text>+@($"{(Character.EffectiveShotBuffMultiplier - 1) * 100:F1}%") → <span class="text-success">+@($"{(nextMult - 1) * 100:F1}%")</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsShotBuffMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.ShotBuffBonus)"
+                        disabled="@(Purchasing || shotBuffCostLoading || IsShotBuffMaxed || FidelisBalance < shotBuffCost)">
+                    @if (Purchasing && PurchasingType == ImprovementType.ShotBuffBonus)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsShotBuffMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (shotBuffCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(shotBuffCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Fidelis Earned Upgrade Row -->
+        <div class="enhance-row @(IsFidelisMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--fidelis">
+                <i class="bi bi-coin"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Fidelis <span class="enhance-row__level">Lv@(Character.FidelisEarnedUpgrades)</span></div>
+                <div class="enhance-row__desc">Aumentar Fidelis ganhos</div>
+                <div class="enhance-row__stat">
+                    @if (IsFidelisMaxed)
+                    {
+                        <text>+@($"{(Character.FidelisEarnedMultiplier - 1) * 100:F0}%")</text>
+                    }
+                    else
+                    {
+                        var nextMult = 1.0 + (Character.FidelisEarnedUpgrades + 1) * MyTunoScaling.FidelisEarnedBonusPerUpgrade;
+                        <text>+@($"{(Character.FidelisEarnedMultiplier - 1) * 100:F0}%") → <span class="text-success">+@($"{(nextMult - 1) * 100:F0}%")</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsFidelisMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.FidelisEarned)"
+                        disabled="@(Purchasing || fidelisCostLoading || IsFidelisMaxed || FidelisBalance < fidelisCost)">
+                    @if (Purchasing && PurchasingType == ImprovementType.FidelisEarned)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsFidelisMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (fidelisCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(fidelisCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Character Character { get; set; } = default!;
+    [Parameter] public decimal FidelisBalance { get; set; }
+    [Parameter] public bool Purchasing { get; set; }
+    [Parameter] public ImprovementType? PurchasingType { get; set; }
+    [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
+
+    private decimal energyAmountCost, energyRegenCost, shotBuffCost, fidelisCost;
+    private bool energyAmountCostLoading = true, energyRegenCostLoading = true,
+                 shotBuffCostLoading = true, fidelisCostLoading = true;
+
+    private int MaxEnergyAmountUpgrades => MyTunoConfig.Value.Improvements.EnergyAmount.MaxUpgrades;
+    private int MaxEnergyRegenUpgrades => MyTunoConfig.Value.Improvements.EnergyRegen.MaxUpgrades;
+    private int MaxShotBuffUpgrades => MyTunoConfig.Value.Improvements.ShotBuffBonus.MaxUpgrades;
+    private int MaxFidelisUpgrades => MyTunoConfig.Value.Improvements.FidelisEarned.MaxUpgrades;
+
+    private bool IsEnergyAmountMaxed => MaxEnergyAmountUpgrades > 0 && Character.EnergyAmountUpgrades >= MaxEnergyAmountUpgrades;
+    private bool IsEnergyRegenMaxed => (MaxEnergyRegenUpgrades > 0 && Character.EnergyRegenUpgrades >= MaxEnergyRegenUpgrades) || Character.EffectiveRegenInterval <= 5.0;
+    private bool IsShotBuffMaxed => MaxShotBuffUpgrades > 0 && Character.ShotBuffUpgrades >= MaxShotBuffUpgrades;
+    private bool IsFidelisMaxed => MaxFidelisUpgrades > 0 && Character.FidelisEarnedUpgrades >= MaxFidelisUpgrades;
+
+    protected override void OnParametersSet()
+    {
+        LoadCostsFromCharacter();
+    }
+
+    private void LoadCostsFromCharacter()
+    {
+        try
+        {
+            var costs = ImprovementService.GetAllImprovementCosts(Character);
+            energyAmountCost = costs.GetValueOrDefault(ImprovementType.EnergyAmount);
+            energyRegenCost = costs.GetValueOrDefault(ImprovementType.EnergyRegen);
+            shotBuffCost = costs.GetValueOrDefault(ImprovementType.ShotBuffBonus);
+            fidelisCost = costs.GetValueOrDefault(ImprovementType.FidelisEarned);
+        }
+        catch
+        {
+            // Costs stay at 0
+        }
+        finally
+        {
+            energyAmountCostLoading = false;
+            energyRegenCostLoading = false;
+            shotBuffCostLoading = false;
+            fidelisCostLoading = false;
+        }
+    }
+
+    private async Task RequestPurchase(ImprovementType improvementType)
+    {
+        await OnPurchaseRequested.InvokeAsync(improvementType);
+    }
+
+    private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
+}

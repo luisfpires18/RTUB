@@ -385,7 +385,8 @@ public class SurviveModeService : ISurviveModeService
             await using var fidelisContext = _contextFactory.CreateDbContext();
             var user = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken)
                 ?? throw new InvalidOperationException("User not found");
-            user.FidelisBalance += fidelis;
+            // Apply Fidelis earned multiplier from Improvements upgrade
+            user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
             await fidelisContext.SaveChangesAsync(cancellationToken);
         }
     }

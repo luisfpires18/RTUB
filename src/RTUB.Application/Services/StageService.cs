@@ -631,14 +631,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, equipment, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, equipment, expirePenaltyBuff, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -659,7 +659,7 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, int? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, int? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, bool expirePenaltyBuff, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;
@@ -682,8 +682,8 @@ public class StageService : IStageService
             character.ExpireShotBuff();
         }
 
-        // Consume penalty buff if it was active during this run
-        if (character.PenaltyBuffActive > 0)
+        // Consume penalty buff if it was active during this run and should expire (defeat)
+        if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
         {
             character.ExpirePenaltyBuff();
         }
@@ -704,7 +704,8 @@ public class StageService : IStageService
         var user = await _userManager.FindByIdAsync(character.UserId);
         if (user != null && (fidelis > 0 || fitab > 0))
         {
-            if (fidelis > 0) user.FidelisBalance += fidelis;
+            // Apply Fidelis earned multiplier from Improvements upgrade
+            if (fidelis > 0) user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
             if (fitab > 0) user.FitabBalance += fitab;
             await _userManager.UpdateAsync(user);
         }

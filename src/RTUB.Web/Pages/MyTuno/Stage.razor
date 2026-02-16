@@ -1429,7 +1429,8 @@
                         await StageService.ApplyRunRewardsAsync(
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                            totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
+                            expirePenaltyBuff: false);
                     }
                     catch (Exception ex)
                     {

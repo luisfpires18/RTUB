@@ -27,6 +27,16 @@ public class CombatSession
     public bool HasShotBuff { get; set; }
     public bool HasPenaltyBuff { get; set; }
 
+    /// <summary>
+    /// Damage bonus multiplier for heavy attacks from Powers upgrades (e.g., 0.10 = +10%).
+    /// </summary>
+    public double HeavyAttackDamageBonus { get; set; }
+
+    /// <summary>
+    /// Damage bonus multiplier for special attacks (non-heavy) from Powers upgrades (e.g., 0.10 = +10%).
+    /// </summary>
+    public double SpecialAttackDamageBonus { get; set; }
+
     // ── Status Effect Tracking ──
     /// <summary>
     /// Sleep turns remaining per enemy (key = enemy identifier, value = turns left).

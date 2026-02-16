@@ -143,7 +143,15 @@ public class Program
                 myTunoScaling.Upgrades.Defense.MultiplierPerUpgrade,
                 myTunoScaling.Combat.DefenseK,
                 myTunoScaling.Combat.MinDamage,
-                myTunoScaling.Combat.ShotBuffMultiplier);
+                myTunoScaling.Combat.ShotBuffMultiplier,
+                baseMaxEnergy: (int)myTunoScaling.Improvements.EnergyAmount.MultiplierPerUpgrade > 0 ? 10 : 10,
+                energyAmountPerUpgrade: myTunoScaling.Improvements.EnergyAmount.MultiplierPerUpgrade,
+                baseRegenInterval: myTunoScaling.Gathering.RegenIntervalSeconds,
+                regenReductionPerUpgrade: myTunoScaling.Improvements.EnergyRegen.MultiplierPerUpgrade,
+                shotBuffBonusPerUpgrade: myTunoScaling.Improvements.ShotBuffBonus.MultiplierPerUpgrade,
+                fidelisEarnedBonusPerUpgrade: myTunoScaling.Improvements.FidelisEarned.MultiplierPerUpgrade,
+                heavyAttackBonusPerUpgrade: myTunoScaling.Powers.HeavyAttack.MultiplierPerUpgrade,
+                specialAttackBonusPerUpgrade: myTunoScaling.Powers.SpecialAttack.MultiplierPerUpgrade);
         }
 
         // ---------- DB: SQLite only ----------

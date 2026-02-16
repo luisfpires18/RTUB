@@ -18,6 +18,8 @@
 @implements IDisposable
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
+@inject IImprovementService ImprovementService
+@inject IPowerService PowerService
 @inject ICharacterRepository CharacterRepository
 @inject IInventoryService InventoryService
 @inject INaipeService NaipeService
@@ -133,7 +135,7 @@
 
         <div class="row g-4">
             <!-- Inventário -->
-            <div class="col-lg-4 order-lg-3">
+            <div class="col-lg-4 order-3">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-archive me-2"></i>Inventário</h5>
@@ -424,7 +426,7 @@
             </div>
 
             <!-- Character Summary Card -->
-            <div class="col-lg-4 order-lg-2">
+            <div class="col-lg-4 order-2">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
@@ -669,15 +671,15 @@
             </div>
 
             <!-- Leaderboard -->
-            <div class="col-lg-4 order-lg-1">
+            <div class="col-lg-4 order-1">
                 <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
             </div>
         </div>
 
-        <!-- Bottom Row: Equipment + Destilaria + Forja + Upgrades + Poderes + Melhorias -->
+        <!-- Bottom Row: Equipment + Destilaria + Forja + Upgrades + Powers + Improvements -->
         <div class="row g-4 mt-2">
             <!-- Upgrade Shop -->
-            <div class="col-lg-4 order-lg-4">
+            <div class="col-lg-4 order-4">
                 <MyTunoUpgradeShop Character="@character"
                                    FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
                                    Purchasing="@purchasing"
@@ -685,34 +687,26 @@
                                    OnPurchaseRequested="PurchaseUpgrade" />
             </div>
 
-            <!-- Poderes Section -->
-            <div class="col-lg-4 order-lg-5">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-stars me-2"></i>Poderes</h5>
-                    </div>
-                    <div class="card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
-                        <i class="bi bi-stars" style="font-size: 3rem; opacity: 0.15;"></i>
-                        <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">Em breve</p>
-                    </div>
-                </div>
+            <!-- Improvements Section -->
+            <div class="col-lg-4 order-5">
+                <MyTunoImprovements Character="@character"
+                                  FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                  Purchasing="@purchasingImprovement"
+                                  PurchasingType="@purchasingImprovementType"
+                                  OnPurchaseRequested="PurchaseImprovement" />
             </div>
 
-            <!-- Melhorias Section -->
-            <div class="col-lg-4 order-lg-last">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-gem me-2"></i>Melhorias</h5>
-                    </div>
-                    <div class="card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
-                        <i class="bi bi-gem" style="font-size: 3rem; opacity: 0.15;"></i>
-                        <p class="text-muted mt-3 mb-0" style="font-size: 0.85rem;">Em breve</p>
-                    </div>
-                </div>
+            <!-- Powers Section -->
+            <div class="col-lg-4 order-last">
+                <MyTunoPowers Character="@character"
+                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                               Purchasing="@purchasingPower"
+                               PurchasingType="@purchasingPowerType"
+                               OnPurchaseRequested="PurchasePower" />
             </div>
 
             <!-- Equipment Section -->
-            <div class="col-lg-4 order-lg-1">
+            <div class="col-lg-4 order-1">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Equipamento</h5>
@@ -968,7 +962,7 @@
             </div>
 
             <!-- Destilaria (Resource Gathering) -->
-            <div class="col-lg-4 order-lg-2">
+            <div class="col-lg-4 order-2">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-moisture me-2"></i>Destilaria</h5>
@@ -986,7 +980,7 @@
                             @if (currentEnergy < maxEnergy)
                             {
                                 <div class="energy-bar__regen">
-                                    <i class="bi bi-arrow-repeat me-1"></i>+1 / @(gatheringConfig.RegenIntervalSeconds)s
+                                    <i class="bi bi-arrow-repeat me-1"></i>+1 / @((int)character!.EffectiveRegenInterval)s
                                 </div>
                             }
                         </div>
@@ -1077,7 +1071,7 @@
             </div>
 
             <!-- Forging Section -->
-            <div class="col-lg-4 order-lg-3">
+            <div class="col-lg-4 order-3">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
@@ -2092,6 +2086,14 @@
     // Upgrade shop state (purchasing flag passed to child component)
     private bool purchasing = false;
     private StatType? purchasingStat = null;
+
+    // Improvements shop state
+    private bool purchasingImprovement = false;
+    private ImprovementType? purchasingImprovementType = null;
+
+    // Powers shop state
+    private bool purchasingPower = false;
+    private PowerType? purchasingPowerType = null;
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
     private bool claimingDailyReward = false;
@@ -2355,6 +2357,100 @@
         {
             purchasing = false;
             purchasingStat = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PurchaseImprovement(ImprovementType improvementType)
+    {
+        if (currentUser == null) return;
+
+        purchasingImprovementType = improvementType;
+        purchasingImprovement = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await ImprovementService.PurchaseImprovementAsync(currentUser.Id, improvementType);
+
+            if (result.Success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                }
+
+                // Refresh energy bar and regen timer to reflect upgrades
+                if (character != null)
+                {
+                    maxEnergy = character.EffectiveMaxEnergy;
+                    currentEnergy = Math.Min(currentEnergy, maxEnergy);
+                    StartEnergyRegenTimer();
+                }
+
+                toastMessage = $"Melhoria comprada com sucesso!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = result.ErrorMessage ?? "Erro ao comprar melhoria.";
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error purchasing improvement");
+            toastMessage = "Erro ao processar a compra. Por favor, tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            purchasingImprovement = false;
+            purchasingImprovementType = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PurchasePower(PowerType powerType)
+    {
+        if (currentUser == null) return;
+
+        purchasingPowerType = powerType;
+        purchasingPower = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await PowerService.PurchasePowerAsync(currentUser.Id, powerType);
+
+            if (result.Success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                }
+
+                toastMessage = $"Poder comprado com sucesso!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = result.ErrorMessage ?? "Erro ao comprar poder.";
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error purchasing power");
+            toastMessage = "Erro ao processar a compra. Por favor, tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            purchasingPower = false;
+            purchasingPowerType = null;
             StateHasChanged();
         }
     }
@@ -3617,7 +3713,7 @@
     private void StartEnergyRegenTimer(int secondsUntilNext = 0)
     {
         energyRegenTimer?.Dispose();
-        var regenInterval = gatheringConfig.RegenIntervalSeconds;
+        var regenInterval = character != null ? (int)character.EffectiveRegenInterval : gatheringConfig.RegenIntervalSeconds;
         if (regenInterval <= 0) regenInterval = 60;
         
         // Use the server-provided offset for the first tick, then full interval for subsequent ticks

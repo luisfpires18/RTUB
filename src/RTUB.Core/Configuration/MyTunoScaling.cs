@@ -47,6 +47,34 @@ public static class MyTunoScaling
     /// </summary>
     public static double ShotBuffMultiplier { get; private set; } = 1.20;
 
+    // ── Improvements (game-wide improvements) ──
+
+    /// <summary>Base maximum energy capacity</summary>
+    public static int BaseMaxEnergy { get; private set; } = 10;
+
+    /// <summary>Energy capacity increase per upgrade level</summary>
+    public static double EnergyAmountPerUpgrade { get; private set; } = 2.0;
+
+    /// <summary>Base energy regeneration interval in seconds</summary>
+    public static double BaseRegenInterval { get; private set; } = 60.0;
+
+    /// <summary>Regen interval reduction per upgrade level (seconds)</summary>
+    public static double RegenReductionPerUpgrade { get; private set; } = 2.0;
+
+    /// <summary>Shot buff multiplier bonus per upgrade (0.005 = +0.5% per upgrade)</summary>
+    public static double ShotBuffBonusPerUpgrade { get; private set; } = 0.005;
+
+    /// <summary>Fidelis earned bonus per upgrade (0.02 = +2% per upgrade)</summary>
+    public static double FidelisEarnedBonusPerUpgrade { get; private set; } = 0.02;
+
+    // ── Powers (combat power enhancements) ──
+
+    /// <summary>Heavy attack damage bonus per upgrade (additive to base 2.0x multiplier)</summary>
+    public static double HeavyAttackBonusPerUpgrade { get; private set; } = 0.05;
+
+    /// <summary>Special attack damage bonus per upgrade (additive to base multiplier)</summary>
+    public static double SpecialAttackBonusPerUpgrade { get; private set; } = 0.05;
+
     public static void Configure(
         int baseLevel,
         int baseXp,
@@ -67,7 +95,15 @@ public static class MyTunoScaling
         double defenseUpgradeMultiplier,
         double defenseK,
         int minDamage,
-        double shotBuffMultiplier)
+        double shotBuffMultiplier,
+        int baseMaxEnergy = 10,
+        double energyAmountPerUpgrade = 2.0,
+        double baseRegenInterval = 60.0,
+        double regenReductionPerUpgrade = 2.0,
+        double shotBuffBonusPerUpgrade = 0.005,
+        double fidelisEarnedBonusPerUpgrade = 0.02,
+        double heavyAttackBonusPerUpgrade = 0.05,
+        double specialAttackBonusPerUpgrade = 0.05)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -89,5 +125,13 @@ public static class MyTunoScaling
         DefenseK = defenseK;
         MinDamage = minDamage;
         ShotBuffMultiplier = shotBuffMultiplier;
+        BaseMaxEnergy = baseMaxEnergy;
+        EnergyAmountPerUpgrade = energyAmountPerUpgrade;
+        BaseRegenInterval = baseRegenInterval;
+        RegenReductionPerUpgrade = regenReductionPerUpgrade;
+        ShotBuffBonusPerUpgrade = shotBuffBonusPerUpgrade;
+        FidelisEarnedBonusPerUpgrade = fidelisEarnedBonusPerUpgrade;
+        HeavyAttackBonusPerUpgrade = heavyAttackBonusPerUpgrade;
+        SpecialAttackBonusPerUpgrade = specialAttackBonusPerUpgrade;
     }
 }
