@@ -1,6 +1,6 @@
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Utilities;
@@ -16,20 +16,14 @@ namespace RTUB.Application.Services;
 public class DeterministicCombatEngine : ICombatEngine
 {
     private const double MaxBattleTime = 300000; // 5 minutes max battle time in ms
-    private const double DamageVarianceMin = 0.8;
-    private const double DamageVarianceMax = 1.2;
-    private const double TimeStepMs = 10; // Simulation time step in milliseconds
-    private const double CanhaoDamageMultiplier = 1.30; // +30% damage
 
     /// <summary>
     /// Simulates a battle between two characters using time-based combat
     /// </summary>
     public CombatResult Simulate(Character attacker, Character defender, int seed)
     {
-        if (attacker == null)
-            throw new ArgumentNullException(nameof(attacker));
-        if (defender == null)
-            throw new ArgumentNullException(nameof(defender));
+        ArgumentNullException.ThrowIfNull(attacker);
+        ArgumentNullException.ThrowIfNull(defender);
 
         var rng = new SeededRandom(seed);
         var events = new List<CombatEvent>();
@@ -101,12 +95,12 @@ public class DeterministicCombatEngine : ICombatEngine
             if (attackerTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
                 var isBoosted = false;
-                var (damage, isCritical) = CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, defender.TotalDefense, rng);
+                var (damage, isCritical) = CombatMath.CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, defender.TotalDefense, rng);
 
                 // Apply Canhão damage boost (+30%) if active
                 if (attackerDamageBoostHits > 0)
                 {
-                    damage = (int)Math.Round(damage * CanhaoDamageMultiplier);
+                    damage = (int)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
                     attackerDamageBoostHits--;
                     isBoosted = true;
                 }
@@ -162,7 +156,7 @@ public class DeterministicCombatEngine : ICombatEngine
             if (defenderTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
                 var isBlocked = false;
-                var (damage, isCritical) = CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
+                var (damage, isCritical) = CombatMath.CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
 
                 // Apply Cigarro shield — absorb hit if active
                 if (attackerShieldHits > 0)
@@ -275,9 +269,8 @@ public class DeterministicCombatEngine : ICombatEngine
     /// </summary>
     public CombatResult SimulateMultiEnemy(Character player, List<Character> enemies, int seed)
     {
-        if (player == null)
-            throw new ArgumentNullException(nameof(player));
-        if (enemies == null || !enemies.Any())
+        ArgumentNullException.ThrowIfNull(player);
+        if (enemies == null || enemies.Count == 0)
             throw new ArgumentException("Must have at least one enemy", nameof(enemies));
 
         var rng = new SeededRandom(seed);
@@ -351,7 +344,7 @@ public class DeterministicCombatEngine : ICombatEngine
         {
             // Check if any enemies are alive
             var aliveEnemies = enemyStates.Where(e => e.HP > 0).ToList();
-            if (!aliveEnemies.Any())
+            if (aliveEnemies.Count == 0)
             {
                 events.Add(new CombatEvent
                 {
@@ -401,12 +394,12 @@ public class DeterministicCombatEngine : ICombatEngine
                 if (target.HP > 0)
                 {
                     var isBoosted = false;
-                    var (damage, isCritical) = CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
+                    var (damage, isCritical) = CombatMath.CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
 
                     // Apply Canhão damage boost (+30%) if active
                     if (playerDamageBoostHits > 0)
                     {
-                        damage = (int)Math.Round(damage * CanhaoDamageMultiplier);
+                        damage = (int)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
                         playerDamageBoostHits--;
                         isBoosted = true;
                     }
@@ -456,7 +449,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 if (playerHP <= 0) break;
 
                 var isBlocked = false;
-                var (damage, isCritical) = CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
+                var (damage, isCritical) = CombatMath.CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
 
                 // Apply Cigarro shield — absorb hit if active
                 if (playerShieldHits > 0)
@@ -559,61 +552,10 @@ public class DeterministicCombatEngine : ICombatEngine
         };
     }
 
-    // EnemyState class moved to EnemyState.cs
+    // Core damage math lives in CombatMath (shared with CombatActionService).
 
     /// <summary>
-    /// Calculates raw damage with variance and critical hit
-    /// Order of operations: Base Power -> Variance -> Critical
-    /// </summary>
-    private static (int rawDamage, bool isCritical) CalculateRawDamage(int power, double criticalChance, SeededRandom rng)
-    {
-        var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
-        var damage = power * variance;
-        var isCritical = rng.NextDouble() < criticalChance;
-        if (isCritical)
-        {
-            damage *= 2;
-        }
-        return ((int)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
-    }
-
-    /// <summary>
-    /// Applies defense mitigation to raw damage using diminishing returns formula.
-    /// Formula: mult = K / (K + defense). Never reaches zero — every point of defense
-    /// always helps, but with diminishing returns (no hard cap needed).
-    /// </summary>
-    /// <param name="rawDamage">Damage after power/crit calculations, before mitigation</param>
-    /// <param name="defense">Target's total defense stat</param>
-    /// <returns>Final damage after defense mitigation (minimum MinDamage)</returns>
-    private static int ApplyDefenseMitigation(int rawDamage, int defense)
-    {
-        var k = MyTunoScaling.DefenseK;
-        var minDamage = MyTunoScaling.MinDamage;
-
-        // Diminishing returns formula: mult = K / (K + defense)
-        // When defense = 0: mult = 1.0 (no reduction)
-        // When defense = K: mult = 0.5 (50% reduction)
-        // When defense = 2K: mult = 0.33 (67% reduction)
-        // Asymptotic — never reaches 0, so defense always has value
-        var multiplier = k / (k + defense);
-        var mitigatedDamage = (int)Math.Floor(rawDamage * multiplier);
-
-        return Math.Max(minDamage, mitigatedDamage);
-    }
-
-    /// <summary>
-    /// Calculates final damage including defense mitigation
-    /// Order of operations: Power -> Variance -> Critical -> Defense
-    /// </summary>
-    private static (int damage, bool isCritical) CalculateDamage(int power, double criticalChance, int targetDefense, SeededRandom rng)
-    {
-        var (rawDamage, isCritical) = CalculateRawDamage(power, criticalChance, rng);
-        var finalDamage = ApplyDefenseMitigation(rawDamage, targetDefense);
-        return (finalDamage, isCritical);
-    }
-
-    /// <summary>
-    /// Determines the battle outcome based on final HP values
+    /// Determines the battle outcome based on final HP values.
     /// </summary>
     private static BattleOutcome DetermineOutcome(int attackerHP, int defenderHP)
     {

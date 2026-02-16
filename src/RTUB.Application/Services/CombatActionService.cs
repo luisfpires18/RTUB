@@ -1,6 +1,6 @@
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
-using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Utilities;
@@ -17,9 +17,6 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class CombatActionService : ICombatActionService
 {
-    private const double DamageVarianceMin = 0.8;
-    private const double DamageVarianceMax = 1.2;
-    private const double CanhaoDamageMultiplier = 1.30; // +30% damage
 
     /// <inheritdoc />
     public CombatSession CreateSession(
@@ -68,7 +65,7 @@ public class CombatActionService : ICombatActionService
             HasPenaltyBuff = player.PenaltyBuffActive > 0,
             HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
             SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
-            EquippedSpells = equippedSpells ?? new List<SpecialAttack>(),
+            EquippedSpells = equippedSpells ?? [],
             BattleStartedAt = DateTime.UtcNow,
             LastPlayerActionAt = DateTime.UtcNow,
             LastEnemyActionAt = new DateTime[enemies.Count],
@@ -168,7 +165,7 @@ public class CombatActionService : ICombatActionService
             HasPenaltyBuff = player.PenaltyBuffActive > 0,
             HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
             SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
-            EquippedSpells = equippedSpells ?? new List<SpecialAttack>(),
+            EquippedSpells = equippedSpells ?? [],
             BattleStartedAt = DateTime.UtcNow,
             LastPlayerActionAt = DateTime.UtcNow,
             LastEnemyActionAt = new DateTime[enemyStates.Count],
@@ -240,14 +237,14 @@ public class CombatActionService : ICombatActionService
         var simTime = (DateTime.UtcNow - session.BattleStartedAt).TotalMilliseconds;
 
         // Calculate base damage
-        var (damage, isCritical) = CalculateDamage(
+        var (damage, isCritical) = CombatMath.CalculateDamage(
             session.Player.Power, session.Player.CriticalChance, GetEffectiveDefense(session, target), session.Rng);
 
         // Apply Canhão boost
         bool isBoosted = false;
         if (session.CanhaoBoostRemaining > 0)
         {
-            damage = (int)Math.Round(damage * CanhaoDamageMultiplier);
+            damage = (int)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
             session.CanhaoBoostRemaining--;
             isBoosted = true;
         }
@@ -349,11 +346,11 @@ public class CombatActionService : ICombatActionService
                 return CompleteBattle(session, session.Player.Identifier);
 
             var target = session.Enemies[session.CurrentTargetIndex];
-            var rawDamage = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+            var rawDamage = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
             // Apply Powers heavy attack damage bonus
             if (session.HeavyAttackDamageBonus > 0)
                 rawDamage = (int)Math.Round(rawDamage * (1.0 + session.HeavyAttackDamageBonus));
-            rawDamage = ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
+            rawDamage = CombatMath.ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
 
             // Apply vulnerable
             if (session.EnemyVulnerableStacks.TryGetValue(target.Identifier, out var vulnStacks) && vulnStacks > 0)
@@ -433,11 +430,11 @@ public class CombatActionService : ICombatActionService
                 var dmg = 0;
                 if (spell.DamageMultiplier > 0)
                 {
-                    dmg = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+                    dmg = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                     // Apply Powers special attack damage bonus
                     if (session.SpecialAttackDamageBonus > 0)
                         dmg = (int)Math.Round(dmg * (1.0 + session.SpecialAttackDamageBonus));
-                    dmg = ApplyDefenseMitigation(dmg, GetEffectiveDefense(session, enemy));
+                    dmg = CombatMath.ApplyDefenseMitigation(dmg, GetEffectiveDefense(session, enemy));
                     enemy.CurrentHP = Math.Max(0, enemy.CurrentHP - dmg);
                 }
 
@@ -507,11 +504,11 @@ public class CombatActionService : ICombatActionService
             var rawDamage = 0;
             if (spell.DamageMultiplier > 0)
             {
-                rawDamage = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+                rawDamage = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                 // Apply Powers special attack damage bonus
                 if (session.SpecialAttackDamageBonus > 0)
                     rawDamage = (int)Math.Round(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
-                rawDamage = ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
+                rawDamage = CombatMath.ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
                 target.CurrentHP = Math.Max(0, target.CurrentHP - rawDamage);
             }
 
@@ -602,7 +599,7 @@ public class CombatActionService : ICombatActionService
             session.PlayerDefenseBoost = (session.PlayerDefenseBoost.HitsRemaining - 1, session.PlayerDefenseBoost.BoostFraction);
         }
 
-        var (damage, isCritical) = CalculateDamage(
+        var (damage, isCritical) = CombatMath.CalculateDamage(
             effectivePower, enemy.CriticalChance, effectivePlayerDef, session.Rng);
 
         // ── Instrument Shield (Percussão) — absorb hit ──
@@ -696,43 +693,9 @@ public class CombatActionService : ICombatActionService
         return new Dictionary<string, double>(session.SpellCooldowns);
     }
 
-    // ── Private helpers (same formulas as DeterministicCombatEngine) ──
-
-    private static (int damage, bool isCritical) CalculateDamage(
-        int power, double criticalChance, int targetDefense, SeededRandom rng)
-    {
-        var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
-        var damage = power * variance;
-        var isCritical = rng.NextDouble() < criticalChance;
-        if (isCritical) damage *= 2;
-
-        var rawDamage = (int)Math.Round(damage, MidpointRounding.AwayFromZero);
-        var finalDamage = ApplyDefenseMitigation(rawDamage, targetDefense);
-        return (finalDamage, isCritical);
-    }
-
-    private static int CalculateSpellDamage(int power, SpecialAttack spell, SeededRandom rng)
-    {
-        var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
-        var damage = power * variance * spell.DamageMultiplier;
-
-        if (spell.CanCrit)
-        {
-            // Spells that can crit always crit (premium feel)
-            damage *= 2;
-        }
-
-        return (int)Math.Round(damage, MidpointRounding.AwayFromZero);
-    }
-
-    private static int ApplyDefenseMitigation(int rawDamage, int defense)
-    {
-        var k = MyTunoScaling.DefenseK;
-        var minDamage = MyTunoScaling.MinDamage;
-        var multiplier = k / (k + defense);
-        var mitigatedDamage = (int)Math.Floor(rawDamage * multiplier);
-        return Math.Max(minDamage, mitigatedDamage);
-    }
+    // ── Private helpers ──
+    // Core damage math (CalculateDamage, ApplyDefenseMitigation, CalculateSpellDamage)
+    // lives in CombatMath to stay in sync with DeterministicCombatEngine.
 
     private static void AdvanceTarget(CombatSession session)
     {
@@ -759,7 +722,7 @@ public class CombatActionService : ICombatActionService
 
         return new CombatActionResult
         {
-            Events = new List<CombatEvent> { victoryEvt },
+            Events = [victoryEvt],
             BattleOver = true,
             Outcome = (winner != "Enemies") ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon
         };

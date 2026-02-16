@@ -1,8 +1,7 @@
 using RTUB.Core.Entities;
 using RTUB.Core.Utilities;
-using RTUB.Application.DTOs;
 
-namespace RTUB.Application.Services;
+namespace RTUB.Application.DTOs;
 
 /// <summary>
 /// Holds all server-side state for an interactive combat session.
@@ -12,19 +11,39 @@ namespace RTUB.Application.Services;
 public class CombatSession
 {
     // ── Identification ──
+
+    /// <summary>RNG seed for deterministic replay.</summary>
     public int Seed { get; set; }
+
+    /// <summary>Seeded RNG instance for this battle.</summary>
     public SeededRandom Rng { get; set; } = null!;
-    public string Mode { get; set; } = "stage"; // "arena" | "stage" | "boss"
+
+    /// <summary>Game mode: "arena", "stage", or "boss".</summary>
+    public string Mode { get; set; } = "stage";
 
     // ── Combatant State ──
+
+    /// <summary>Player combatant state.</summary>
     public CombatantState Player { get; set; } = null!;
-    public List<CombatantState> Enemies { get; set; } = new();
+
+    /// <summary>Enemy combatant states.</summary>
+    public List<CombatantState> Enemies { get; set; } = [];
+
+    /// <summary>Index of the enemy the player is currently targeting.</summary>
     public int CurrentTargetIndex { get; set; }
 
     // ── Buff Tracking ──
+
+    /// <summary>Remaining Cigarro shield hit absorptions.</summary>
     public int CigarroShieldRemaining { get; set; }
+
+    /// <summary>Remaining Canhão damage boost hits.</summary>
     public int CanhaoBoostRemaining { get; set; }
+
+    /// <summary>Whether the player has an active shot buff.</summary>
     public bool HasShotBuff { get; set; }
+
+    /// <summary>Whether the player has an active penalty buff.</summary>
     public bool HasPenaltyBuff { get; set; }
 
     /// <summary>
@@ -38,27 +57,28 @@ public class CombatSession
     public double SpecialAttackDamageBonus { get; set; }
 
     // ── Status Effect Tracking ──
+
     /// <summary>
     /// Sleep turns remaining per enemy (key = enemy identifier, value = turns left).
     /// While sleeping, enemy speed bar is frozen.
     /// </summary>
-    public Dictionary<string, int> EnemySleepTurns { get; set; } = new();
+    public Dictionary<string, int> EnemySleepTurns { get; set; } = [];
 
     /// <summary>
     /// Vulnerable stacks per enemy (key = enemy identifier, value = hits remaining).
     /// Next attack deals double damage.
     /// </summary>
-    public Dictionary<string, int> EnemyVulnerableStacks { get; set; } = new();
+    public Dictionary<string, int> EnemyVulnerableStacks { get; set; } = [];
 
     /// <summary>
     /// Bleed ticks per enemy (key = enemy identifier, value = (ticksRemaining, damagePerTick)).
     /// </summary>
-    public Dictionary<string, (int TicksRemaining, int DamagePerTick)> EnemyBleed { get; set; } = new();
+    public Dictionary<string, (int TicksRemaining, int DamagePerTick)> EnemyBleed { get; set; } = [];
 
     /// <summary>
     /// Slow effect per enemy (key = enemy identifier, value = (hitsRemaining, slowFraction)).
     /// </summary>
-    public Dictionary<string, (int HitsRemaining, double SlowFraction)> EnemySlow { get; set; } = new();
+    public Dictionary<string, (int HitsRemaining, double SlowFraction)> EnemySlow { get; set; } = [];
 
     /// <summary>
     /// Player power boost stacks (hits remaining, boost fraction).
@@ -89,44 +109,58 @@ public class CombatSession
     /// Enemy power reduction (key = enemy identifier, value = (hitsRemaining, reductionFraction)).
     /// Saxofone jazz solo reduces enemy power.
     /// </summary>
-    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyPowerReduction { get; set; } = new();
+    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyPowerReduction { get; set; } = [];
 
     /// <summary>
     /// Enemy defense break (key = enemy identifier, value = (hitsRemaining, reductionFraction)).
     /// Guitarra power chord reduces enemy defense.
     /// </summary>
-    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyDefenseBreak { get; set; } = new();
+    public Dictionary<string, (int HitsRemaining, double ReductionFraction)> EnemyDefenseBreak { get; set; } = [];
 
     // ── Spell State ──
+
     /// <summary>
     /// Player's equipped spells for this battle.
     /// </summary>
-    public List<SpecialAttack> EquippedSpells { get; set; } = new();
+    public List<SpecialAttack> EquippedSpells { get; set; } = [];
 
     /// <summary>
     /// Remaining cooldown per spell (key = AttackId, value = remaining seconds).
     /// Starts at 0 (all spells ready at battle start).
     /// </summary>
-    public Dictionary<string, double> SpellCooldowns { get; set; } = new();
+    public Dictionary<string, double> SpellCooldowns { get; set; } = [];
 
     /// <summary>
     /// Remaining cooldown per consumable (key = consumable type name e.g. "fino", value = remaining seconds).
     /// Persists across stage transitions.
     /// </summary>
-    public Dictionary<string, double> ConsumableCooldowns { get; set; } = new();
+    public Dictionary<string, double> ConsumableCooldowns { get; set; } = [];
 
     // ── Timing (for server-side validation) ──
+
+    /// <summary>When the battle started (UTC).</summary>
     public DateTime BattleStartedAt { get; set; }
+
+    /// <summary>When the player last attacked (UTC).</summary>
     public DateTime LastPlayerActionAt { get; set; }
-    public DateTime[] LastEnemyActionAt { get; set; } = Array.Empty<DateTime>();
+
+    /// <summary>When each enemy last attacked (UTC), indexed by enemy order.</summary>
+    public DateTime[] LastEnemyActionAt { get; set; } = [];
 
     // ── Recording ──
+
     /// <summary>
     /// All events recorded during the battle — saved as ReplayJson at the end.
     /// </summary>
-    public List<CombatEvent> RecordedEvents { get; set; } = new();
+    public List<CombatEvent> RecordedEvents { get; set; } = [];
+
+    /// <summary>Monotonically increasing event counter for ordering.</summary>
     public int EventTimestamp { get; set; }
+
+    /// <summary>Whether the battle has finished.</summary>
     public bool IsComplete { get; set; }
+
+    /// <summary>Identifier of the winning side, or <c>null</c> if still in progress.</summary>
     public string? Winner { get; set; }
 }
 
@@ -135,12 +169,27 @@ public class CombatSession
 /// </summary>
 public class CombatantState
 {
-    public string Identifier { get; set; } = string.Empty;  // "Player", "Enemy0", "Enemy1", etc.
+    /// <summary>Role identifier: "Player", "Enemy0", "Enemy1", "Attacker", "Defender", etc.</summary>
+    public string Identifier { get; set; } = string.Empty;
+
+    /// <summary>Display name (username or enemy label).</summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>Current hit points.</summary>
     public int CurrentHP { get; set; }
+
+    /// <summary>Maximum hit points.</summary>
     public int MaxHP { get; set; }
+
+    /// <summary>Effective power stat.</summary>
     public int Power { get; set; }
+
+    /// <summary>Effective defense stat.</summary>
     public int Defense { get; set; }
+
+    /// <summary>Critical hit probability (0.0–1.0).</summary>
     public double CriticalChance { get; set; }
-    public double ActionTimeSeconds { get; set; } // seconds between auto-attacks
+
+    /// <summary>Seconds between auto-attacks (lower = faster).</summary>
+    public double ActionTimeSeconds { get; set; }
 }

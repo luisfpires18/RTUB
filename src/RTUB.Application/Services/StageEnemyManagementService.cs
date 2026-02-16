@@ -7,7 +7,7 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for Stage Enemy management (owner CRUD operations)
+/// Service for Stage Enemy management (owner CRUD operations).
 /// </summary>
 public class StageEnemyManagementService : IStageEnemyManagementService
 {
@@ -23,25 +23,25 @@ public class StageEnemyManagementService : IStageEnemyManagementService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<StageEnemy>> GetAllAsync()
+    public async Task<IEnumerable<StageEnemy>> GetAllAsync(CancellationToken cancellationToken)
     {
         return await _repository.GetAllAsync();
     }
 
     /// <inheritdoc />
-    public async Task<StageEnemy?> GetByIdAsync(int id)
+    public async Task<StageEnemy?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         return await _repository.GetByIdAsync(id);
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<StageEnemy>> GetByRegionAsync(RegionType region)
+    public async Task<IEnumerable<StageEnemy>> GetByRegionAsync(RegionType region, CancellationToken cancellationToken)
     {
         return await _repository.GetByRegionAsync(region);
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<StageEnemy>> GetByTypeAsync(EnemyType type)
+    public async Task<IEnumerable<StageEnemy>> GetByTypeAsync(EnemyType type, CancellationToken cancellationToken)
     {
         var all = await _repository.GetAllAsync();
         return all.Where(e => e.Type == type);
@@ -62,7 +62,8 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
-        PlacementType placement)
+        PlacementType placement,
+        CancellationToken cancellationToken)
     {
         var enemy = StageEnemy.Create(
             name, type, region,
@@ -94,7 +95,8 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
-        PlacementType placement)
+        PlacementType placement,
+        CancellationToken cancellationToken)
     {
         var enemy = await _repository.GetByIdOrThrowAsync(id);
 
@@ -119,7 +121,7 @@ public class StageEnemyManagementService : IStageEnemyManagementService
     }
 
     /// <inheritdoc />
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken)
     {
         var enemy = await _repository.GetByIdOrThrowAsync(id);
         await _repository.DeleteAsync(enemy);
