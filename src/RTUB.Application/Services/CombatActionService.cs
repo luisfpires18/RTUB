@@ -66,6 +66,8 @@ public class CombatActionService : ICombatActionService
             CanhaoBoostRemaining = player.CanhaoDamageBoostHitsRemaining,
             HasShotBuff = player.ShotBuffBattlesRemaining > 0,
             HasPenaltyBuff = player.PenaltyBuffActive > 0,
+            HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
+            SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
             EquippedSpells = equippedSpells ?? new List<SpecialAttack>(),
             BattleStartedAt = DateTime.UtcNow,
             LastPlayerActionAt = DateTime.UtcNow,
@@ -164,6 +166,8 @@ public class CombatActionService : ICombatActionService
             CanhaoBoostRemaining = player.CanhaoDamageBoostHitsRemaining,
             HasShotBuff = player.ShotBuffBattlesRemaining > 0,
             HasPenaltyBuff = player.PenaltyBuffActive > 0,
+            HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
+            SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
             EquippedSpells = equippedSpells ?? new List<SpecialAttack>(),
             BattleStartedAt = DateTime.UtcNow,
             LastPlayerActionAt = DateTime.UtcNow,
@@ -346,6 +350,9 @@ public class CombatActionService : ICombatActionService
 
             var target = session.Enemies[session.CurrentTargetIndex];
             var rawDamage = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+            // Apply Powers heavy attack damage bonus
+            if (session.HeavyAttackDamageBonus > 0)
+                rawDamage = (int)Math.Round(rawDamage * (1.0 + session.HeavyAttackDamageBonus));
             rawDamage = ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
 
             // Apply vulnerable
@@ -427,6 +434,9 @@ public class CombatActionService : ICombatActionService
                 if (spell.DamageMultiplier > 0)
                 {
                     dmg = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+                    // Apply Powers special attack damage bonus
+                    if (session.SpecialAttackDamageBonus > 0)
+                        dmg = (int)Math.Round(dmg * (1.0 + session.SpecialAttackDamageBonus));
                     dmg = ApplyDefenseMitigation(dmg, GetEffectiveDefense(session, enemy));
                     enemy.CurrentHP = Math.Max(0, enemy.CurrentHP - dmg);
                 }
@@ -498,6 +508,9 @@ public class CombatActionService : ICombatActionService
             if (spell.DamageMultiplier > 0)
             {
                 rawDamage = CalculateSpellDamage(session.Player.Power, spell, session.Rng);
+                // Apply Powers special attack damage bonus
+                if (session.SpecialAttackDamageBonus > 0)
+                    rawDamage = (int)Math.Round(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
                 rawDamage = ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
                 target.CurrentHP = Math.Max(0, target.CurrentHP - rawDamage);
             }

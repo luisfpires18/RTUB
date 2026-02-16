@@ -51,6 +51,43 @@
       }
     },
 
+    "improvements": {
+      "energyAmount": {
+        "multiplierPerUpgrade": 2.0,
+        "baseCost": 100,
+        "costExponent": 2.0
+      },
+      "energyRegen": {
+        "multiplierPerUpgrade": 2.0,
+        "baseCost": 500,
+        "costExponent": 2.8
+      },
+      "shotBuffBonus": {
+        "multiplierPerUpgrade": 0.005,
+        "baseCost": 1000,
+        "costExponent": 3.0,
+        "maxUpgrades": 40
+      },
+      "fidelisEarned": {
+        "multiplierPerUpgrade": 0.02,
+        "baseCost": 100,
+        "costExponent": 2.0
+      }
+    },
+
+    "powers": {
+      "heavyAttack": {
+        "multiplierPerUpgrade": 0.05,
+        "baseCost": 80,
+        "costExponent": 2.0
+      },
+      "specialAttack": {
+        "multiplierPerUpgrade": 0.05,
+        "baseCost": 200,
+        "costExponent": 2.5
+      }
+    },
+
     "combat": {
       "defenseK": 1000,
       "minDamage": 1,

@@ -241,7 +241,9 @@ public class BattleService : IBattleService
         var user = await _dbContext.Users.FindAsync(new object[] { playerCharacter.UserId }, cancellationToken);
         if (user != null)
         {
-            user.FidelisBalance += result.AttackerFidelis;
+            // Apply Fidelis earned multiplier from Improvements upgrade
+            var fidelisAmount = result.AttackerFidelis * (decimal)playerCharacter.FidelisEarnedMultiplier;
+            user.FidelisBalance += fidelisAmount;
         }
         playerCharacter.AddXP(result.AttackerXP);
 

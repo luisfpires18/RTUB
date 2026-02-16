@@ -22,6 +22,8 @@ public class MyTunoScalingConfiguration
     public MyTunoBaseStats BaseStats { get; set; } = new();
     public MyTunoLevelScaling LevelScaling { get; set; } = new();
     public MyTunoUpgrades Upgrades { get; set; } = new();
+    public MyTunoImprovements Improvements { get; set; } = new();
+    public MyTunoPowers Powers { get; set; } = new();
     public BattleRewards BattleRewards { get; set; } = new();
     public CombatConfig Combat { get; set; } = new();
 
@@ -167,6 +169,37 @@ public class MyTunoUpgradeStat
     /// Only Speed (40) and CriticalChance (100) have hard caps.
     /// </summary>
     public int MaxUpgrades { get; set; } = 0;
+}
+
+/// <summary>
+/// Configuration for Improvements (game-wide improvements).
+/// Each improvement has its own cost scaling, separate from stat upgrades.
+/// </summary>
+public class MyTunoImprovements
+{
+    /// <summary>Increase maximum energy capacity</summary>
+    public MyTunoUpgradeStat EnergyAmount { get; set; } = new() { BaseCost = 100, CostExponent = 2.0, MultiplierPerUpgrade = 2.0 };
+
+    /// <summary>Increase energy regeneration speed (very costly)</summary>
+    public MyTunoUpgradeStat EnergyRegen { get; set; } = new() { BaseCost = 500, CostExponent = 2.8, MultiplierPerUpgrade = 2.0 };
+
+    /// <summary>Increase shot buff stat bonus by 0.5% (very costly)</summary>
+    public MyTunoUpgradeStat ShotBuffBonus { get; set; } = new() { BaseCost = 1000, CostExponent = 3.0, MultiplierPerUpgrade = 0.005, MaxUpgrades = 40 };
+
+    /// <summary>Increase fidelis earned from all sources</summary>
+    public MyTunoUpgradeStat FidelisEarned { get; set; } = new() { BaseCost = 100, CostExponent = 2.0, MultiplierPerUpgrade = 0.02 };
+}
+
+/// <summary>
+/// Configuration for Powers (combat power enhancements).
+/// </summary>
+public class MyTunoPowers
+{
+    /// <summary>Increase heavy attack damage multiplier</summary>
+    public MyTunoUpgradeStat HeavyAttack { get; set; } = new() { BaseCost = 80, CostExponent = 2.0, MultiplierPerUpgrade = 0.05 };
+
+    /// <summary>Increase special attack damage multiplier (high cost scaling)</summary>
+    public MyTunoUpgradeStat SpecialAttack { get; set; } = new() { BaseCost = 200, CostExponent = 2.5, MultiplierPerUpgrade = 0.05 };
 }
 
 /// <summary>

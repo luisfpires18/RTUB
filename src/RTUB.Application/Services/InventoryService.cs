@@ -378,7 +378,7 @@ public class InventoryService : IInventoryService
         var secondsUntilNext = 0;
         if (character.Energy < character.MaxEnergy)
         {
-            var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+            var regenInterval = (int)character.EffectiveRegenInterval;
             if (regenInterval <= 0) regenInterval = 60;
             var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;
             var elapsed = (DateTime.UtcNow - lastRegen).TotalSeconds;
@@ -405,7 +405,7 @@ public class InventoryService : IInventoryService
         var secondsUntilNext = 0;
         if (character.Energy < character.MaxEnergy)
         {
-            var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+            var regenInterval = (int)character.EffectiveRegenInterval;
             if (regenInterval <= 0) regenInterval = 60;
             var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;
             var elapsed = (DateTime.UtcNow - lastRegen).TotalSeconds;
@@ -478,7 +478,7 @@ public class InventoryService : IInventoryService
             return;
         }
 
-        var regenInterval = _gatheringConfig.RegenIntervalSeconds;
+        var regenInterval = (int)character.EffectiveRegenInterval;
         if (regenInterval <= 0) regenInterval = 60;
 
         var lastRegen = character.LastEnergyRegenAt ?? DateTime.UtcNow;

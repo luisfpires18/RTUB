@@ -704,7 +704,8 @@ public class StageService : IStageService
         var user = await _userManager.FindByIdAsync(character.UserId);
         if (user != null && (fidelis > 0 || fitab > 0))
         {
-            if (fidelis > 0) user.FidelisBalance += fidelis;
+            // Apply Fidelis earned multiplier from Improvements upgrade
+            if (fidelis > 0) user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
             if (fitab > 0) user.FitabBalance += fitab;
             await _userManager.UpdateAsync(user);
         }

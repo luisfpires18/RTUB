@@ -97,6 +97,28 @@ public class Character : BaseEntity
     public int CriticalUpgrades { get; set; }
     public int DefenseUpgrades { get; set; }
 
+    // ── Improvements (game-wide improvements) ──
+
+    /// <summary>Number of energy capacity upgrades purchased</summary>
+    public int EnergyAmountUpgrades { get; set; }
+
+    /// <summary>Number of energy regeneration upgrades purchased</summary>
+    public int EnergyRegenUpgrades { get; set; }
+
+    /// <summary>Number of shot buff bonus upgrades purchased</summary>
+    public int ShotBuffUpgrades { get; set; }
+
+    /// <summary>Number of fidelis earned bonus upgrades purchased</summary>
+    public int FidelisEarnedUpgrades { get; set; }
+
+    // ── Powers (combat power enhancements) ──
+
+    /// <summary>Number of heavy attack damage upgrades purchased</summary>
+    public int HeavyAttackUpgrades { get; set; }
+
+    /// <summary>Number of special attack damage upgrades purchased</summary>
+    public int SpecialAttackUpgrades { get; set; }
+
     // ── Equipped Items (null = empty slot) ──
 
     /// <summary>Equipment piece in head slot</summary>
@@ -216,6 +238,52 @@ public class Character : BaseEntity
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance =>
         Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier));
+
+    // ── Improvements computed properties ──
+
+    /// <summary>
+    /// Effective maximum energy including upgrades.
+    /// Each upgrade adds EnergyAmountPerUpgrade to the base MaxEnergy.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int EffectiveMaxEnergy => MyTunoScaling.BaseMaxEnergy + (int)(EnergyAmountUpgrades * MyTunoScaling.EnergyAmountPerUpgrade);
+
+    /// <summary>
+    /// Energy regeneration interval in seconds, reduced by regen upgrades.
+    /// Each upgrade reduces the interval by RegenReductionPerUpgrade seconds (min 5s).
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double EffectiveRegenInterval => Math.Max(5.0, MyTunoScaling.BaseRegenInterval - EnergyRegenUpgrades * MyTunoScaling.RegenReductionPerUpgrade);
+
+    /// <summary>
+    /// Effective shot buff multiplier including upgrades.
+    /// Each upgrade adds ShotBuffBonusPerUpgrade (0.005 = +0.5%) to the base multiplier.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier + ShotBuffUpgrades * MyTunoScaling.ShotBuffBonusPerUpgrade;
+
+    /// <summary>
+    /// Fidelis earned bonus multiplier (1.0 = no bonus, 1.05 = +5%).
+    /// Each upgrade adds FidelisEarnedBonusPerUpgrade to 1.0.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double FidelisEarnedMultiplier => 1.0 + FidelisEarnedUpgrades * MyTunoScaling.FidelisEarnedBonusPerUpgrade;
+
+    // ── Powers computed properties ──
+
+    /// <summary>
+    /// Heavy attack damage bonus multiplier (additive on top of base 2.0x).
+    /// Each upgrade adds HeavyAttackBonusPerUpgrade.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double HeavyAttackDamageBonus => HeavyAttackUpgrades * MyTunoScaling.HeavyAttackBonusPerUpgrade;
+
+    /// <summary>
+    /// Special attack damage bonus multiplier (additive on top of base).
+    /// Each upgrade adds SpecialAttackBonusPerUpgrade.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double SpecialAttackDamageBonus => SpecialAttackUpgrades * MyTunoScaling.SpecialAttackBonusPerUpgrade;
 
     /// <summary>
     /// Computes the level-based stat multiplier using polynomial growth.
@@ -487,7 +555,7 @@ public class Character : BaseEntity
         if (source == null)
             throw new ArgumentNullException(nameof(source));
 
-        var buffMultiplier = MyTunoScaling.ShotBuffMultiplier;
+        var buffMultiplier = source.EffectiveShotBuffMultiplier;
 
         // Simple approach: multiply the base HP stat by 1.2
         // This makes TotalHP automatically scale up (though not exactly 1.2x due to upgrades)
@@ -751,6 +819,59 @@ public class Character : BaseEntity
     public void UpgradeDefense()
     {
         DefenseUpgrades++;
+    }
+
+    // ── Improvements upgrade methods ──
+
+    /// <summary>
+    /// Upgrades energy capacity (increases MaxEnergy by configured amount per level)
+    /// </summary>
+    public void UpgradeEnergyAmount()
+    {
+        EnergyAmountUpgrades++;
+        MaxEnergy = MyTunoScaling.BaseMaxEnergy + (int)(EnergyAmountUpgrades * MyTunoScaling.EnergyAmountPerUpgrade);
+    }
+
+    /// <summary>
+    /// Upgrades energy regeneration speed
+    /// </summary>
+    public void UpgradeEnergyRegen()
+    {
+        EnergyRegenUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades the stat bonus given by the Shot buff
+    /// </summary>
+    public void UpgradeShotBuff()
+    {
+        ShotBuffUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades fidelis earned bonus
+    /// </summary>
+    public void UpgradeFidelisEarned()
+    {
+        FidelisEarnedUpgrades++;
+    }
+
+    // ── Powers upgrade methods ──
+
+    /// <summary>
+    /// Upgrades heavy attack damage multiplier
+    /// </summary>
+    public void UpgradeHeavyAttack()
+    {
+        HeavyAttackUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades special attack damage multiplier
+    /// </summary>
+    public void UpgradeSpecialAttack()
+    {
+        SpecialAttackUpgrades++;
     }
 
     /// <summary>

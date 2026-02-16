@@ -305,7 +305,8 @@ public class BossModeService : IBossModeService
         var user = await _userManager.FindByIdAsync(character.UserId);
         if (user != null && fidelis > 0)
         {
-            user.FidelisBalance += fidelis;
+            // Apply Fidelis earned multiplier from Improvements upgrade
+            user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
             await _userManager.UpdateAsync(user);
         }
 
