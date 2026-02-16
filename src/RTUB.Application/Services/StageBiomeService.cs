@@ -296,48 +296,14 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets the difficulty multiplier for regular enemies at a given stage based on its biome
+    /// Gets the difficulty multiplier for regular enemies — always 1.0 (unified curve handles scaling).
     /// </summary>
-    public double GetEnemiesDifficultyMultiplier(int stageNumber)
-    {
-        var biomes = _config.StageMode.Biomes;
-        if (biomes == null || biomes.Count == 0)
-            return 1.0;
-
-        foreach (var biome in biomes)
-        {
-            if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
-            {
-                return biome.EnemiesDifficultyMultiplier;
-            }
-        }
-
-        // Beyond configured biomes, use the last biome's multiplier
-        var lastBiome = biomes.OrderByDescending(b => b.StageMax).First();
-        return lastBiome.EnemiesDifficultyMultiplier;
-    }
+    public double GetEnemiesDifficultyMultiplier(int stageNumber) => 1.0;
 
     /// <summary>
-    /// Gets the difficulty multiplier for bosses at a given stage based on its biome
+    /// Gets the difficulty multiplier for bosses — always 1.0 (unified curve handles scaling).
     /// </summary>
-    public double GetBossesDifficultyMultiplier(int stageNumber)
-    {
-        var biomes = _config.StageMode.Biomes;
-        if (biomes == null || biomes.Count == 0)
-            return 1.0;
-
-        foreach (var biome in biomes)
-        {
-            if (stageNumber >= biome.StageMin && stageNumber <= biome.StageMax)
-            {
-                return biome.BossesDifficultyMultiplier;
-            }
-        }
-
-        // Beyond configured biomes, use the last biome's multiplier
-        var lastBiome = biomes.OrderByDescending(b => b.StageMax).First();
-        return lastBiome.BossesDifficultyMultiplier;
-    }
+    public double GetBossesDifficultyMultiplier(int stageNumber) => 1.0;
 
     /// <summary>
     /// Gets the biome reward multiplier for a given stage (unified scaling).

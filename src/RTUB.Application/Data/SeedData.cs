@@ -31,6 +31,9 @@ public static partial class SeedData
         // Cleanup removed instruments (Baixo, Flauta, Fagote, Saxofone) — runs every startup
         await CleanupRemovedInstrumentsAsync(dbContext, logger);
 
+        // Migrate character levels from old 1-2000 range to new 1-100 range
+        await MigrateCharacterLevelsAsync(dbContext, logger);
+
         if (await dbContext.Users.AnyAsync())
         {
             return; // Data already exists, skip seeding

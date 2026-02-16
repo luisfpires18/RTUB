@@ -148,7 +148,7 @@
                   OnClose="CloseDetailsModal">
         <BadgesContent>
             <span class="badge bg-primary">Nível @selectedCharacter.Level</span>
-            <span class="badge bg-info">XP: @selectedCharacter.XP</span>
+            <span class="badge bg-info">XP: @Fmt(selectedCharacter.XP)</span>
             @if (stageMap.TryGetValue(selectedCharacter.UserId, out var detailStage))
             {
                 <span class="badge bg-warning text-dark">
@@ -170,13 +170,13 @@
                     <div class="col-6">
                         <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
                             <span class="text-danger"><i class="bi bi-heart-fill me-1"></i>HP Total</span>
-                            <strong>@selectedCharacter.TotalHP</strong>
+                            <strong>@Fmt(selectedCharacter.TotalHP)</strong>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
                             <span class="text-warning"><i class="bi bi-lightning-fill me-1"></i>Poder</span>
-                            <strong>@selectedCharacter.TotalPower</strong>
+                            <strong>@Fmt(selectedCharacter.TotalPower)</strong>
                         </div>
                     </div>
                     <div class="col-6">
@@ -188,7 +188,7 @@
                     <div class="col-6">
                         <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
                             <span class="text-success"><i class="bi bi-shield-fill me-1"></i>Defesa</span>
-                            <strong>@selectedCharacter.TotalDefense</strong>
+                            <strong>@Fmt(selectedCharacter.TotalDefense)</strong>
                         </div>
                     </div>
                     <div class="col-6">
@@ -200,7 +200,7 @@
                     <div class="col-6">
                         <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
                             <span><i class="bi bi-heart-pulse me-1"></i>HP Atual</span>
-                            <strong>@(selectedCharacter.CurrentHP ?? selectedCharacter.TotalHP) / @selectedCharacter.TotalHP</strong>
+                            <strong>@Fmt(selectedCharacter.CurrentHP ?? selectedCharacter.TotalHP) / @Fmt(selectedCharacter.TotalHP)</strong>
                         </div>
                     </div>
                 </div>
@@ -478,6 +478,8 @@
             toastIsError = true;
         }
     }
+
+    private static string Fmt(int value) => NumberFormatter.Compact(value);
 
     private void OpenDeleteCharacterModal(Character character)
     {

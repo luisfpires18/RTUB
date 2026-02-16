@@ -193,6 +193,28 @@
             this.spellButtons = [];
             this.spellCooldowns = {}; // client-side cooldown tracking {attackId: remainingSeconds}
             this.spellBarContainer = null;
+
+            // ── Consumable in-fight bar ─────────────────────────────────────
+            this.consumableBarContainer = null;
+            this.consumableButtons = [];
+            this._consumablePending = false;
+            const cData = data?.consumables ?? data?.Consumables ?? {};
+            this.consumableQuantities = {
+                fino: cData.fino ?? cData.Fino ?? 0,
+                caneca: cData.caneca ?? cData.Caneca ?? 0,
+                cigarro: cData.cigarro ?? cData.Cigarro ?? 0,
+                canhao: cData.canhao ?? cData.Canhao ?? 0,
+                shot: cData.shot ?? cData.Shot ?? 0,
+                penalty: cData.penalty ?? cData.Penalty ?? 0
+            };
+            // Track which buffs are currently active (to disable buttons + show active visuals)
+            const abData = data?.activeBuffs ?? data?.ActiveBuffs ?? {};
+            this.activeBuffs = {
+                cigarro: !!(abData.cigarro ?? abData.Cigarro),
+                canhao: !!(abData.canhao ?? abData.Canhao),
+                shot: !!(abData.shot ?? abData.Shot),
+                penalty: !!(abData.penalty ?? abData.Penalty)
+            };
             
             this.setupAudio();
             this.initPixi();
@@ -354,10 +376,12 @@
 
             this.createPlayer(width, height);
             this.createEnemies(width, height);
+            this.createHudBars(width, height);
 
             if (this.interactiveMode) {
                 this.initInteractiveState();
                 this.createSpellBar();
+                this.createConsumableBar();
                 this.startInteractiveBattle();
             } else {
                 this.preprocessInitialEvents();
@@ -473,67 +497,8 @@
             }
             
             this.stage.addChild(this.playerSprite);
-            
-            // Create HP bar above player sprite
-            const barWidth = 60;
-            const barHeight = 8;
-            const hpBarY = playerY - this.playerDisplayHeight - 10;
-            
-            const playerHpBarBg = new PIXI.Graphics();
-            playerHpBarBg.rect(playerX - barWidth / 2, hpBarY - barHeight / 2, barWidth, barHeight);
-            playerHpBarBg.fill(0x333333);
-            this.stage.addChild(playerHpBarBg);
-            
-            const playerHpBarFill = new PIXI.Graphics();
-            playerHpBarFill.rect(0, 0, barWidth, barHeight);
-            playerHpBarFill.fill(0x44ff44);
-            playerHpBarFill.x = playerX - barWidth / 2;
-            playerHpBarFill.y = hpBarY - barHeight / 2;
-            this.stage.addChild(playerHpBarFill);
-            
-            const playerHpText = new PIXI.Text({
-                text: '100/100',
-                style: {
-                    fontSize: 10,
-                    fontFamily: 'Arial, sans-serif',
-                    fontWeight: 'bold',
-                    fill: 0xffffff,
-                    stroke: { color: 0x000000, width: 2 }
-                }
-            });
-            playerHpText.anchor.set(0.5);
-            playerHpText.x = playerX;
-            playerHpText.y = hpBarY - 10;
-            this.stage.addChild(playerHpText);
 
-            this.playerHpBar = {
-                bar: playerHpBarFill,
-                barBg: playerHpBarBg,
-                text: playerHpText,
-                maxWidth: barWidth
-            };
-            
-            // Create Speed bar below HP bar (smaller)
-            const speedBarHeight = 4;
-            const speedBarY = hpBarY + barHeight / 2 + 3;
-            
-            const playerSpeedBarBg = new PIXI.Graphics();
-            playerSpeedBarBg.rect(playerX - barWidth / 2, speedBarY, barWidth, speedBarHeight);
-            playerSpeedBarBg.fill(0x222222);
-            this.stage.addChild(playerSpeedBarBg);
-            
-            const playerSpeedBarFill = new PIXI.Graphics();
-            playerSpeedBarFill.rect(0, 0, barWidth, speedBarHeight);
-            playerSpeedBarFill.fill(0x00bcd4); // Cyan for speed
-            playerSpeedBarFill.x = playerX - barWidth / 2;
-            playerSpeedBarFill.y = speedBarY;
-            this.stage.addChild(playerSpeedBarFill);
-            
-            this.playerSpeedBar = {
-                bar: playerSpeedBarFill,
-                barBg: playerSpeedBarBg,
-                maxWidth: barWidth
-            };
+            // Player HP and speed bars are drawn in createHudBars() (top of canvas)
 
             // Store base position for idle bobbing animation
             this.playerIdleOffset = {
@@ -542,6 +507,85 @@
                 phase: Math.PI, // Offset phase from enemies
                 bobAmplitude: 3,
                 swayAmplitude: 2
+            };
+        }
+
+        /** Draw player HP bar and speed bar at top of canvas (HUD style, like battle mode). */
+        createHudBars(width, height) {
+            const barWidth = 200;
+            const barHeight = 24;
+            const paddingTop = 20;
+            const paddingLeft = 50;
+
+            // HP bar background
+            const hpBg = new PIXI.Graphics();
+            hpBg.rect(paddingLeft, paddingTop, barWidth, barHeight);
+            hpBg.fill(0x333333);
+            this.stage.addChild(hpBg);
+
+            // HP bar fill
+            const hpFill = new PIXI.Graphics();
+            hpFill.rect(0, 0, barWidth, barHeight);
+            hpFill.fill(0x4caf50);
+            hpFill.x = paddingLeft;
+            hpFill.y = paddingTop;
+            this.stage.addChild(hpFill);
+
+            // HP bar border
+            const hpBorder = new PIXI.Graphics();
+            hpBorder.rect(paddingLeft, paddingTop, barWidth, barHeight);
+            hpBorder.stroke({ width: 2, color: 0xffffff });
+            this.stage.addChild(hpBorder);
+
+            // HP text
+            const hpText = new PIXI.Text({
+                text: '',
+                style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xffffff }
+            });
+            hpText.anchor.set(0.5, 0);
+            hpText.x = paddingLeft + barWidth / 2;
+            hpText.y = paddingTop + 4;
+            this.stage.addChild(hpText);
+
+            this.playerHpBar = {
+                bar: hpFill, barBg: hpBg, border: hpBorder,
+                text: hpText, maxWidth: barWidth, barHeight: barHeight
+            };
+
+            // Speed bar below HP bar
+            const speedBarHeight = 8;
+            const speedBarY = paddingTop + barHeight + 4;
+
+            const speedBg = new PIXI.Graphics();
+            speedBg.rect(paddingLeft, speedBarY, barWidth, speedBarHeight);
+            speedBg.fill(0x222222);
+            this.stage.addChild(speedBg);
+
+            const speedFill = new PIXI.Graphics();
+            speedFill.rect(0, 0, barWidth, speedBarHeight);
+            speedFill.fill(0x00bcd4);
+            speedFill.x = paddingLeft;
+            speedFill.y = speedBarY;
+            this.stage.addChild(speedFill);
+
+            const speedBorder = new PIXI.Graphics();
+            speedBorder.rect(paddingLeft, speedBarY, barWidth, speedBarHeight);
+            speedBorder.stroke({ width: 1, color: 0x666666 });
+            this.stage.addChild(speedBorder);
+
+            // Speed text (shows action time e.g. "1.0s")
+            const speedText = new PIXI.Text({
+                text: '',
+                style: { fontFamily: 'Arial', fontSize: 10, fontWeight: 'bold', fill: 0x00e5ff }
+            });
+            speedText.anchor.set(0, 0.5);
+            speedText.x = paddingLeft + barWidth + 6;
+            speedText.y = speedBarY + speedBarHeight / 2;
+            this.stage.addChild(speedText);
+
+            this.playerSpeedBar = {
+                bar: speedFill, barBg: speedBg, border: speedBorder, maxWidth: barWidth,
+                text: speedText
             };
         }
 
@@ -900,24 +944,24 @@
             }
         }
 
-        /** Create the spell button bar at the bottom of the canvas. */
+        /** Create the spell button bar on the left side of the canvas (vertical layout). */
         createSpellBar() {
             if (!this.spells || this.spells.length === 0) return;
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = 52;
-            const btnGap = 10;
-            const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
-            const startX = (width - totalWidth) / 2;
-            const barY = height - btnSize - 8;
+            const btnSize = 48;
+            const btnGap = 6;
+            const totalHeight = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
+            const startX = 8;
+            const startY = 60; // below HUD bars
 
             this.spellBarContainer = new PIXI.Container();
             this.stage.addChild(this.spellBarContainer);
 
             // Semi-transparent backdrop behind spell bar
             const backdrop = new PIXI.Graphics();
-            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
+            backdrop.roundRect(startX - 4, startY - 4, btnSize + 8, totalHeight + 8, 8);
             backdrop.fill({ color: 0x000000, alpha: 0.5 });
             this.spellBarContainer.addChild(backdrop);
 
@@ -929,11 +973,11 @@
                 const name = spell.name ?? spell.Name ?? attackId;
                 const icon = spell.icon ?? spell.Icon ?? '⚡';
                 const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
-                const x = startX + i * (btnSize + btnGap);
+                const y = startY + i * (btnSize + btnGap);
 
                 const btnContainer = new PIXI.Container();
-                btnContainer.x = x;
-                btnContainer.y = barY;
+                btnContainer.x = startX;
+                btnContainer.y = y;
 
                 // Button background
                 const bg = new PIXI.Graphics();
@@ -999,6 +1043,235 @@
                     spell
                 });
             }
+        }
+
+        /** Create the consumable bar at the center-bottom of the canvas. */
+        createConsumableBar() {
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            const btnSize = 48;
+            const btnGap = 6;
+
+            const consumables = [
+                { type: 'fino',    icon: '🍺', name: 'Fino',    color: 0xf5a623 },
+                { type: 'caneca',  icon: '🍻', name: 'Caneca',  color: 0xf5a623 }
+            ];
+
+            const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
+            const startX = (width - totalWidth) / 2;
+            const barY = height - btnSize - 8;
+
+            this.consumableBarContainer = new PIXI.Container();
+            this.stage.addChild(this.consumableBarContainer);
+
+            // Semi-transparent backdrop
+            const backdrop = new PIXI.Graphics();
+            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
+            backdrop.fill({ color: 0x000000, alpha: 0.45 });
+            this.consumableBarContainer.addChild(backdrop);
+
+            this.consumableButtons = [];
+
+            for (let i = 0; i < consumables.length; i++) {
+                const c = consumables[i];
+                const qty = this.consumableQuantities[c.type] ?? 0;
+                const x = startX + i * (btnSize + btnGap);
+
+                const btnContainer = new PIXI.Container();
+                btnContainer.x = x;
+                btnContainer.y = barY;
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.roundRect(0, 0, btnSize, btnSize, 6);
+                bg.fill({ color: qty > 0 ? 0x1e3a2f : 0x2a2a2a, alpha: 0.9 });
+                bg.stroke({ color: qty > 0 ? c.color : 0x555555, width: 2 });
+                btnContainer.addChild(bg);
+
+                // Icon
+                const iconText = new PIXI.Text({
+                    text: c.icon,
+                    style: { fontSize: 20, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                });
+                iconText.anchor.set(0.5);
+                iconText.x = btnSize / 2;
+                iconText.y = btnSize / 2 - 6;
+                btnContainer.addChild(iconText);
+
+                // Name label
+                const nameText = new PIXI.Text({
+                    text: c.name.length > 7 ? c.name.substring(0, 7) : c.name,
+                    style: { fontSize: 7, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                });
+                nameText.anchor.set(0.5);
+                nameText.x = btnSize / 2;
+                nameText.y = btnSize - 6;
+                btnContainer.addChild(nameText);
+
+                // Quantity badge (top-right corner)
+                const qtyBg = new PIXI.Graphics();
+                qtyBg.circle(btnSize - 4, 4, 10);
+                qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x555555, alpha: 0.95 });
+                btnContainer.addChild(qtyBg);
+
+                const qtyText = new PIXI.Text({
+                    text: qty.toString(),
+                    style: { fontSize: 10, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
+                });
+                qtyText.anchor.set(0.5);
+                qtyText.x = btnSize - 4;
+                qtyText.y = 4;
+                btnContainer.addChild(qtyText);
+
+                // Greyed out overlay when qty == 0
+                const emptyOverlay = new PIXI.Graphics();
+                emptyOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                emptyOverlay.fill({ color: 0x000000, alpha: 0.6 });
+                emptyOverlay.visible = qty <= 0;
+                btnContainer.addChild(emptyOverlay);
+
+                // Interactive
+                btnContainer.eventMode = 'static';
+                btnContainer.cursor = qty > 0 ? 'pointer' : 'not-allowed';
+                const consumableType = c.type;
+                btnContainer.on('pointerdown', () => this.onConsumableClick(consumableType));
+
+                this.consumableBarContainer.addChild(btnContainer);
+
+                this.consumableButtons.push({
+                    container: btnContainer, bg, iconText, nameText,
+                    qtyBg, qtyText, emptyOverlay,
+                    type: c.type, color: c.color,
+                    isBuffType: ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type)
+                });
+            }
+        }
+
+        /** Called when a consumable button is clicked. */
+        onConsumableClick(type) {
+            if (this.battleFinished || !this.isPlaying) return;
+            if (this._consumablePending) return;
+            const qty = this.consumableQuantities[type] ?? 0;
+            if (qty <= 0) return;
+            // Block if this buff is already active
+            const isBuffType = ['cigarro', 'canhao', 'shot', 'penalty'].includes(type);
+            if (isBuffType && this.activeBuffs[type]) return;
+
+            this._consumablePending = true;
+            this.requestUseConsumable(type);
+        }
+
+        /** Call server to use a consumable during combat. */
+        async requestUseConsumable(type) {
+            if (!this.dotNetRef || this.battleFinished) {
+                this._consumablePending = false;
+                return;
+            }
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type);
+                if (json) {
+                    const result = JSON.parse(json);
+                    if (result.success) {
+                        // Update quantity
+                        this.consumableQuantities[type] = result.newQuantity ?? 0;
+                        this.updateConsumableButton(type);
+
+                        // Handle heal (Fino / Caneca)
+                        if (result.playerHP != null) {
+                            this.playerCurrentHp = result.playerHP;
+                            this.playerMaxHp = result.playerMaxHP ?? this.playerMaxHp;
+                            this.updatePlayerHPBar();
+                            // Show heal floating text
+                            if (result.healAmount && result.healAmount > 0 && this.playerSprite) {
+                                this.showFloatingText(`+${formatNum(result.healAmount)} HP`,
+                                    this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) - 20, 0x44ff44);
+                                this.playBuffVfx(this.playerSprite, 0x44ff44);
+                            }
+                        }
+
+                        // Handle buff activation (cigarro, canhao, shot, penalty)
+                        if (result.buffMessage && this.playerSprite) {
+                            const buffColor = type === 'cigarro' ? 0x90caf9 : type === 'canhao' ? 0xef5350
+                                : type === 'shot' ? 0xab47bc : 0xffee58;
+                            this.showFloatingText(result.buffMessage,
+                                this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) - 20, buffColor);
+                            this.playBuffVfx(this.playerSprite, buffColor);
+                        }
+
+                        // Mark buff as active and update button visual
+                        if (result.buffActive) {
+                            this.activeBuffs[type] = true;
+                            this.updateConsumableButton(type);
+                        }
+
+                        // Handle penalty speed change — update the action time for the speed bar
+                        if (result.newActionTime != null && result.newActionTime > 0) {
+                            this.playerActionTime = result.newActionTime;
+                            this.updatePlayerSpeedBar();
+                        }
+
+                        // Show shot aura if Shot was used
+                        if (type === 'shot' && !this.playerAura && this.playerSprite) {
+                            const auraSize = this.playerDisplayHeight * 0.7;
+                            this.playerAura = new PIXI.Graphics();
+                            this.playerAura.circle(0, 0, auraSize);
+                            this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+                            this.playerAura.x = this.playerSprite.x;
+                            this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+                            const playerIdx = this.stage.getChildIndex(this.playerSprite);
+                            this.stage.addChildAt(this.playerAura, playerIdx);
+                            this.hasShotBuff = true;
+                        }
+                    } else {
+                        // Show failure message
+                        if (this.playerSprite) {
+                            this.showFloatingText(result.message ?? 'Sem stock!',
+                                this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) - 20, 0xff4444);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('OnUseConsumable error:', e);
+            } finally {
+                this._consumablePending = false;
+            }
+        }
+
+        /** Update a single consumable button after use. */
+        updateConsumableButton(type) {
+            const btn = this.consumableButtons.find(b => b.type === type);
+            if (!btn) return;
+            const qty = this.consumableQuantities[type] ?? 0;
+            const isActive = this.activeBuffs[type] ?? false;
+            const isDisabled = qty <= 0 || (btn.isBuffType && isActive);
+
+            // Update quantity text
+            btn.qtyText.text = qty.toString();
+
+            // Update badge color
+            btn.qtyBg.clear();
+            btn.qtyBg.circle(48 - 4, 4, 10);
+            btn.qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x555555, alpha: 0.95 });
+
+            // Update button style - active buffs get bright glow
+            btn.bg.clear();
+            btn.bg.roundRect(0, 0, 48, 48, 6);
+            if (isActive) {
+                btn.bg.fill({ color: btn.color, alpha: 0.35 });
+                btn.bg.stroke({ color: btn.color, width: 3 });
+            } else {
+                btn.bg.fill({ color: qty > 0 ? 0x1e3a2f : 0x2a2a2a, alpha: 0.9 });
+                btn.bg.stroke({ color: qty > 0 ? btn.color : 0x555555, width: 2 });
+            }
+
+            // Update name label - show "ATIVO" when active
+            btn.nameText.text = isActive ? 'ATIVO' : (type === 'canhao' ? 'Canhão' : type.charAt(0).toUpperCase() + type.slice(1));
+            btn.nameText.style.fill = isActive ? btn.color : 0xcccccc;
+            btn.nameText.style.fontWeight = isActive ? 'bold' : 'normal';
+
+            // Show/hide overlay
+            btn.emptyOverlay.visible = isDisabled;
+            btn.container.cursor = isDisabled ? 'not-allowed' : 'pointer';
         }
 
         /** Start interactive battle — no pre-computed events, driven by speed bars + server calls. */
@@ -1759,6 +2032,10 @@
             const ratio = Math.max(0, this.playerSpeedBarTimer / (this.playerActionTime * 1000));
             const newWidth = this.playerSpeedBar.maxWidth * ratio;
             this.playerSpeedBar.bar.width = newWidth;
+            // Update speed text label
+            if (this.playerSpeedBar.text) {
+                this.playerSpeedBar.text.text = `${this.playerActionTime.toFixed(1)}s`;
+            }
         }
 
         updateEnemySpeedBar(enemyIndex) {
@@ -1865,9 +2142,16 @@
         updatePlayerHPBar() {
             const ratio = Math.max(0, this.playerCurrentHp / this.playerMaxHp);
             const maxWidth = this.playerHpBar.maxWidth || 200;
-            
+            const barHeight = this.playerHpBar.barHeight || 24;
+
+            // Update bar color based on HP percentage
+            const fillColor = ratio > 0.5 ? 0x4caf50 : ratio > 0.25 ? 0xff9800 : 0xf44336;
+            this.playerHpBar.bar.clear();
+            this.playerHpBar.bar.rect(0, 0, maxWidth, barHeight);
+            this.playerHpBar.bar.fill(fillColor);
+
             this.animateTo(this.playerHpBar.bar, { width: maxWidth * ratio }, 200);
-            this.playerHpBar.text.text = `${formatNum(Math.max(0, this.playerCurrentHp))}/${formatNum(this.playerMaxHp)}`;
+            this.playerHpBar.text.text = `${formatNum(Math.max(0, this.playerCurrentHp))} / ${formatNum(this.playerMaxHp)} HP`;
         }
 
         updateIndividualEnemyHPBar(enemyIndex) {
@@ -2407,11 +2691,11 @@
         }
 
         setSpeed(speed) {
-            // Only allow valid speeds (1, 2, 3) to prevent console exploits
-            const allowedSpeeds = [1, 2, 3];
-            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(3, Math.max(1, Math.round(speed)));
+            // Only allow valid speeds (1, 3, 5) to prevent console exploits
+            const allowedSpeeds = [1, 3, 5];
+            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
             this.playbackSpeed = validSpeed;
-            // Convert playback speed to battle speed (1x = 1.0, 2x = 2.0, 3x = 3.0)
+            // Convert playback speed to battle speed (1x = 1.0, 3x = 3.0, 5x = 5.0)
             this.battleSpeed = validSpeed;
         }
 
@@ -2616,6 +2900,7 @@
             this.enemySpritePaths = data?.enemySprites ?? [];
             this.enemyPlacements = data?.enemyPlacements ?? Array(this.enemyCount).fill(0);
             this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? this.hasShotBuff;
+            this.hasPenaltyBuff = data?.HasPenaltyBuff ?? data?.hasPenaltyBuff ?? false;
             
             // Interactive mode fields
             this.interactiveMode = data?.interactiveMode ?? data?.InteractiveMode ?? this.interactiveMode;
@@ -2625,6 +2910,30 @@
             this.interactivePlayerActionTime = data?.playerActionTime ?? data?.PlayerActionTime ?? null;
             this.interactiveEnemies = data?.enemies ?? data?.Enemies ?? [];
             this._enemyAttackPending = Array(this.enemyCount).fill(false);
+
+            // Update consumable quantities from server
+            const cData = data?.consumables ?? data?.Consumables;
+            if (cData) {
+                this.consumableQuantities = {
+                    fino: cData.fino ?? cData.Fino ?? this.consumableQuantities.fino,
+                    caneca: cData.caneca ?? cData.Caneca ?? this.consumableQuantities.caneca,
+                    cigarro: cData.cigarro ?? cData.Cigarro ?? this.consumableQuantities.cigarro,
+                    canhao: cData.canhao ?? cData.Canhao ?? this.consumableQuantities.canhao,
+                    shot: cData.shot ?? cData.Shot ?? this.consumableQuantities.shot,
+                    penalty: cData.penalty ?? cData.Penalty ?? this.consumableQuantities.penalty
+                };
+            }
+
+            // Update active buff state from server
+            const abData = data?.activeBuffs ?? data?.ActiveBuffs;
+            if (abData) {
+                this.activeBuffs = {
+                    cigarro: !!(abData.cigarro ?? abData.Cigarro),
+                    canhao: !!(abData.canhao ?? abData.Canhao),
+                    shot: !!(abData.shot ?? abData.Shot),
+                    penalty: !!(abData.penalty ?? abData.Penalty)
+                };
+            }
             
             // PRE-LOAD new textures while old scene is still fully visible (no flash)
             try {
@@ -2661,10 +2970,13 @@
                 persistent.add(this.playerHpBar.bar);
                 persistent.add(this.playerHpBar.barBg);
                 persistent.add(this.playerHpBar.text);
+                if (this.playerHpBar.border) persistent.add(this.playerHpBar.border);
             }
             if (this.playerSpeedBar) {
                 persistent.add(this.playerSpeedBar.bar);
                 persistent.add(this.playerSpeedBar.barBg);
+                if (this.playerSpeedBar.border) persistent.add(this.playerSpeedBar.border);
+                if (this.playerSpeedBar.text) persistent.add(this.playerSpeedBar.text);
             }
             
             // Remove ONLY non-persistent children (enemies, log, result text, floating text)
@@ -2778,6 +3090,7 @@
             if (this.interactiveMode) {
                 this.initInteractiveState();
                 this.createSpellBar();
+                this.createConsumableBar();
                 this.startInteractiveBattle();
             } else {
                 this.preprocessInitialEvents();
@@ -2833,6 +3146,8 @@
             const playerMaxHP = battleData?.playerMaxHP ?? battleData?.PlayerMaxHP ?? null;
             const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
             const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
+            const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
+            const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? {};
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -2852,7 +3167,9 @@
                 playerHP: playerHP,
                 playerMaxHP: playerMaxHP,
                 playerActionTime: playerActionTime,
-                enemies: enemies
+                enemies: enemies,
+                consumables: consumables,
+                activeBuffs: activeBuffs
             });
             
             // Apply initial battle speed after scene is created
@@ -2929,6 +3246,7 @@
             const playerMaxHP = battleData?.playerMaxHP ?? battleData?.PlayerMaxHP ?? null;
             const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
             const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
+            const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -2949,7 +3267,8 @@
                 playerHP: playerHP,
                 playerMaxHP: playerMaxHP,
                 playerActionTime: playerActionTime,
-                enemies: enemies
+                enemies: enemies,
+                consumables: consumables
             });
         }
     };

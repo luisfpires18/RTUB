@@ -14,13 +14,10 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
-@using RTUB.Application.Configuration
-@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject ISurviveModeService SurviveModeService
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
-@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation

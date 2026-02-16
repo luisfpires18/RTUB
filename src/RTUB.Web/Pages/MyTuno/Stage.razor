@@ -15,14 +15,11 @@
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using RTUB.Application.Configuration
 @using RTUB.Application.Services
-@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
-@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -32,6 +29,7 @@
 @inject IAuditLogService AuditLogService
 @inject ICombatActionService CombatActionService
 @inject IInventoryService InventoryService
+@inject IInventoryRepository InventoryRepository
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -93,13 +91,13 @@
                                 @onclick="() => SetBattleSpeed(1.0)">
                             1x
                         </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(2.0)">
-                            2x
-                        </button>
                         <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
                                 @onclick="() => SetBattleSpeed(3.0)">
                             3x
+                        </button>
+                        <button type="button" class="btn btn-outline-light @(battleSpeed == 5.0 ? "active" : "")" 
+                                @onclick="() => SetBattleSpeed(5.0)">
+                            5x
                         </button>
                         <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
@@ -465,6 +463,10 @@
 
     // Interactive combat session (spells / Blade Crafter mode)
     private CombatSession? _combatSession;
+
+    // Consumable quantities for in-fight bar
+    private int _finoQty, _canecaQty, _cigarroQty, _canhaoQty, _shotQty, _penaltyQty;
+
     private static readonly JsonSerializerOptions _spellJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -585,6 +587,22 @@
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
                 Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
+
+                // Load consumable quantities for in-fight bar (once per run)
+                try
+                {
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    _finoQty = inv.GetValueOrDefault(InventoryItemType.Fino);
+                    _canecaQty = inv.GetValueOrDefault(InventoryItemType.Caneca);
+                    _cigarroQty = inv.GetValueOrDefault(InventoryItemType.Cigarro);
+                    _canhaoQty = inv.GetValueOrDefault(InventoryItemType.Canhao);
+                    _shotQty = inv.GetValueOrDefault(InventoryItemType.Shot);
+                    _penaltyQty = inv.GetValueOrDefault(InventoryItemType.Penalty);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load consumable quantities for stage run");
+                }
             }
             
             // Only update UI if we weren't already animating (first battle)
@@ -596,8 +614,16 @@
                 await Task.Delay(50);
             }
 
+            // Save pre-battle HP before deterministic sim modifies it.
+            // The deterministic engine sets character.CurrentHP to null on predicted loss
+            // (e.g., boss stages), which would make the interactive session start at full HP.
+            var preBattleHp = character.CurrentHP;
+
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+
+            // Restore pre-battle HP — the interactive session drives real combat
+            character.CurrentHP = preBattleHp;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks + spell clicks
@@ -703,6 +729,7 @@
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        HasPenaltyBuff = character.PenaltyBuffActive > 0,
                         // ── Interactive combat data (spells / Blade Crafter mode) ──
                         InteractiveMode = true,
                         PlayerHP = _combatSession!.Player.CurrentHP,
@@ -725,7 +752,13 @@
                             s.CooldownSeconds,
                             s.ScreenShake,
                             Target = (int)s.Target
-                        })
+                        }),
+                        Consumables = new
+                        {
+                            Fino = _finoQty,
+                            Caneca = _canecaQty
+                        },
+                        ActiveBuffs = new { }
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
@@ -759,8 +792,9 @@
                 showBattleAnimation = false;
             }
 
-            // Character and stageProgress are already updated in-memory by ExecuteStageBattleAsync
-            // — no need to reload from DB. Just refresh local display state.
+            // stageProgress is updated in-memory by ExecuteStageBattleAsync (stage
+            // advancement, enemy defeats). character.CurrentHP is restored to pre-battle
+            // value above — the interactive session drives real HP changes.
             if (stageProgress != null)
             {
                 currentStageNumber = stageProgress.CurrentStage;
@@ -874,6 +908,122 @@
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
         return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
+    }
+
+    /// <summary>
+    /// Called by JS when the user clicks a consumable button during combat.
+    /// Consumes the item and applies its effect to the combat session.
+    /// </summary>
+    [JSInvokable]
+    public async Task<string> OnUseConsumable(string type)
+    {
+        if (character == null || currentUser == null)
+            return JsonSerializer.Serialize(new { success = false, message = "Personagem não encontrado." }, _spellJsonOptions);
+
+        try
+        {
+            // Stage mode uses ConsumeItemAsync directly (not UseXxxAsync) because
+            // stage batches character DB writes at run end. The UseXxxAsync methods
+            // reload character from DB and check state (HP full, buff already active)
+            // which fails since the DB character isn't updated during the run.
+            switch (type.ToLowerInvariant())
+            {
+                case "fino":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
+                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Fino, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Fino disponível." }, _spellJsonOptions);
+                    var maxHp = _combatSession.Player.MaxHP;
+                    var healAmount = (int)(maxHp * 0.25);
+                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
+                    character.CurrentHP = _combatSession.Player.CurrentHP;
+                    _finoQty = Math.Max(0, _finoQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _finoQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp }, _spellJsonOptions);
+                }
+                case "caneca":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
+                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Caneca, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Caneca disponível." }, _spellJsonOptions);
+                    var maxHp = _combatSession.Player.MaxHP;
+                    var healAmount = (int)(maxHp * 0.50);
+                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
+                    character.CurrentHP = _combatSession.Player.CurrentHP;
+                    _canecaQty = Math.Max(0, _canecaQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canecaQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp }, _spellJsonOptions);
+                }
+                case "cigarro":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    if (_combatSession.CigarroShieldRemaining > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = "Escudo já ativo!" }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Cigarro, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Cigarro disponível." }, _spellJsonOptions);
+                    _combatSession.CigarroShieldRemaining = 3;
+                    character.CigarroShieldHitsRemaining = 3;
+                    _cigarroQty = Math.Max(0, _cigarroQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _cigarroQty, buffMessage = "🛡️ ESCUDO x3", buffActive = true }, _spellJsonOptions);
+                }
+                case "canhao":
+                {
+                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
+                    if (_combatSession.CanhaoBoostRemaining > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = "Boost já ativo!" }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Canhao, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Canhão disponível." }, _spellJsonOptions);
+                    _combatSession.CanhaoBoostRemaining = 3;
+                    character.CanhaoDamageBoostHitsRemaining = 3;
+                    _canhaoQty = Math.Max(0, _canhaoQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canhaoQty, buffMessage = "💣 +30% DMG x3", buffActive = true }, _spellJsonOptions);
+                }
+                case "shot":
+                {
+                    if (character.ShotBuffBattlesRemaining > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = "Shot já ativo!" }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Shot, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Shot disponível." }, _spellJsonOptions);
+                    character.ShotBuffBattlesRemaining = 5;
+                    // Apply +20% power to current combat session immediately
+                    if (_combatSession != null)
+                    {
+                        _combatSession.Player.Power = (int)Math.Round(_combatSession.Player.Power * 1.2);
+                        _combatSession.HasShotBuff = true;
+                    }
+                    _shotQty = Math.Max(0, _shotQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _shotQty, buffMessage = "🥃 SHOT +20% x5", buffActive = true }, _spellJsonOptions);
+                }
+                case "penalty":
+                {
+                    if (character.PenaltyBuffActive > 0)
+                        return JsonSerializer.Serialize(new { success = false, message = "Penalty já ativo!" }, _spellJsonOptions);
+                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Penalty, 1);
+                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Penalty disponível." }, _spellJsonOptions);
+                    character.PenaltyBuffActive = 1;
+                    // Apply -0.5s speed and +50% crit to current combat session immediately
+                    double newActionTime = 0;
+                    if (_combatSession != null)
+                    {
+                        _combatSession.Player.ActionTimeSeconds = Math.Max(0.5, _combatSession.Player.ActionTimeSeconds - 0.5);
+                        _combatSession.Player.CriticalChance = Math.Min(1.0, _combatSession.Player.CriticalChance + 0.5);
+                        _combatSession.HasPenaltyBuff = true;
+                        newActionTime = _combatSession.Player.ActionTimeSeconds;
+                    }
+                    _penaltyQty = Math.Max(0, _penaltyQty - 1);
+                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _penaltyQty, buffMessage = "⚡ PENALTY!", buffActive = true, newActionTime }, _spellJsonOptions);
+                }
+                default:
+                    return JsonSerializer.Serialize(new { success = false, message = "Consumível desconhecido." }, _spellJsonOptions);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error using consumable {Type}", type);
+            return JsonSerializer.Serialize(new { success = false, message = "Erro ao usar consumível." }, _spellJsonOptions);
+        }
     }
 
     [JSInvokable]

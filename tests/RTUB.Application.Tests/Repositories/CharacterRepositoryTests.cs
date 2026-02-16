@@ -36,7 +36,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Arrange - Create player at level 5
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
         await _context.Users.AddAsync(playerUser);
+        _context.DisableAuditing();
         await _context.SaveChangesAsync();
+        _context.EnableAuditing();
 
         var playerCharacter = Character.Create(playerUser.Id);
         // Level up to 5
@@ -55,7 +57,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
 
             var user = CreateTestUser($"user-{level}", $"Opponent{level}", MemberCategory.Tuno);
             await _context.Users.AddAsync(user);
+            _context.DisableAuditing();
             await _context.SaveChangesAsync();
+            _context.EnableAuditing();
 
             var character = Character.Create(user.Id);
             // Level up to target level
@@ -90,7 +94,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Arrange - Create player at level 5
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
         await _context.Users.AddAsync(playerUser);
+        _context.DisableAuditing();
         await _context.SaveChangesAsync();
+        _context.EnableAuditing();
 
         var playerCharacter = Character.Create(playerUser.Id);
         // Level up to 5
@@ -107,7 +113,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         {
             var user = CreateTestUser($"user-{level}", $"Opponent{level}", MemberCategory.Tuno);
             await _context.Users.AddAsync(user);
+            _context.DisableAuditing();
             await _context.SaveChangesAsync();
+            _context.EnableAuditing();
 
             var character = Character.Create(user.Id);
             // Level up to target level
@@ -138,7 +146,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Arrange - Create player at level 10
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
         await _context.Users.AddAsync(playerUser);
+        _context.DisableAuditing();
         await _context.SaveChangesAsync();
+        _context.EnableAuditing();
 
         var playerCharacter = Character.Create(playerUser.Id);
         // Level up to 10
@@ -155,7 +165,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         {
             var user = CreateTestUser($"user-{level}", $"Opponent{level}", MemberCategory.Tuno);
             await _context.Users.AddAsync(user);
+            _context.DisableAuditing();
             await _context.SaveChangesAsync();
+            _context.EnableAuditing();
 
             var character = Character.Create(user.Id);
             // Level up to target level
@@ -186,7 +198,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Arrange - Create player
         var playerUser = CreateTestUser("player-user", "Player", MemberCategory.Tuno);
         await _context.Users.AddAsync(playerUser);
+        _context.DisableAuditing();
         await _context.SaveChangesAsync();
+        _context.EnableAuditing();
 
         var playerCharacter = Character.Create(playerUser.Id);
         await _context.Characters.AddAsync(playerCharacter);
@@ -197,7 +211,9 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         {
             var user = CreateTestUser($"user-{i}", $"Opponent{i}", MemberCategory.Tuno);
             await _context.Users.AddAsync(user);
+            _context.DisableAuditing();
             await _context.SaveChangesAsync();
+            _context.EnableAuditing();
 
             var character = Character.Create(user.Id);
             await _context.Characters.AddAsync(character);

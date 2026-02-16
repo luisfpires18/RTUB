@@ -16,13 +16,10 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
-@using RTUB.Application.Configuration
-@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IBossModeService BossModeService
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
-@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -377,7 +374,7 @@
                                     ("Shot", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
                                     ("Cigarro", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
                                     ("Canhão", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                    ("Penalty", "bi-lightning-charge-fill", "0.5s + 100% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
+                                    ("Penalty", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
                                 };
                             }
 
@@ -632,7 +629,7 @@
                 catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
                 {
                     errorMessage = ex.Message.Contains("Level")
-                        ? "Precisas de Level 100 para aceder ao Boss Mode."
+                        ? "Precisas de Level 10 para aceder ao Boss Mode."
                         : "Não tens FITAB suficiente para entrar no Boss Mode.";
                     Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
                     StateHasChanged();
@@ -688,10 +685,10 @@
 
                     if (character != null && bossModeProgress != null)
                     {
-                        // Level gate: must be level 100+
-                        if (character.Level < 100)
+                        // Level gate: must be level 10+
+                        if (character.Level < 10)
                         {
-                            errorMessage = "Precisas de Level 100 para aceder ao Boss Mode.";
+                            errorMessage = "Precisas de Level 10 para aceder ao Boss Mode.";
                             return;
                         }
 
@@ -704,7 +701,7 @@
         catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
         {
             errorMessage = ex.Message.Contains("Level")
-                ? "Precisas de Level 100 para aceder ao Boss Mode."
+                ? "Precisas de Level 10 para aceder ao Boss Mode."
                 : "Não tens FITAB suficiente para entrar no Boss Mode.";
             Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
         }
@@ -977,6 +974,24 @@
         var didWin = _combatSession != null
             ? (_combatSession.Winner == _combatSession.Player.Identifier)
             : (currentBattle.Outcome == BattleOutcome.AttackerWon);
+
+        // Sync interactive session state back to character so the DB has the correct
+        // buff remaining counts and HP (not the pre-computed ones which may differ).
+        if (_combatSession != null && character != null)
+        {
+            character.CurrentHP = _combatSession.Player.CurrentHP > 0
+                ? _combatSession.Player.CurrentHP : null;
+            character.CigarroShieldHitsRemaining = _combatSession.CigarroShieldRemaining;
+            character.CanhaoDamageBoostHitsRemaining = _combatSession.CanhaoBoostRemaining;
+            try
+            {
+                await CharacterService.UpdateCharacterAsync(character);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error syncing interactive session state to character");
+            }
+        }
 
         // If interactive session says win but pre-computed said loss (pendingDefeatRewards was
         // set prematurely), correct the state so the run continues properly.
@@ -1421,7 +1436,7 @@
             {
                 penaltyQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Penalty ativado! 0.5s ataque + 100% crit por 1 run/batalha.";
+                buffToastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
                 buffToastIsError = false;
             }
             else

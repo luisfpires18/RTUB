@@ -36,7 +36,7 @@ public class Character : BaseEntity
     // Canhão buff - number of hits remaining where damage is boosted by 30%
     public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
 
-    // Penalty buff - 0.5s attack speed + 100% crit for 1 run/battle
+    // Penalty buff - reduces action time by 0.5s + adds 50% crit chance for 1 run/battle
     public int PenaltyBuffActive { get; set; } = 0;
 
     // Arena Statistics
@@ -164,15 +164,15 @@ public class Character : BaseEntity
     public virtual ApplicationUser User { get; set; } = null!;
 
     // Computed properties (not stored in database)
-    // Stats scale with level using polynomial growth:
-    // stat = base * (1 + multiplier * (level-1)^(1+exponent)) + upgrades
-    // When exponent=0 this reduces to simple linear scaling.
+    // Stats scale with level (polynomial) × upgrades (compound exponential):
+    // stat = base × levelScale × (1 + mult)^upgrades + equipment
+    // Each upgrade multiplies the stat by a fixed factor — absolute gains grow with each one.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalHP => (int)(HP * LevelScaleFactor() * (1 + HpUpgrades * MyTunoScaling.HpUpgradeMultiplier))
+    public int TotalHP => (int)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalPower => (int)(Power * LevelScaleFactor() * (1 + PowerUpgrades * MyTunoScaling.PowerUpgradeMultiplier))
+    public int TotalPower => (int)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -197,20 +197,20 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * (1 + DefenseUpgrades * MyTunoScaling.DefenseUpgradeMultiplier))
+    public int TotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalHP => (int)(HP * LevelScaleFactor() * (1 + (HpUpgrades + 1) * MyTunoScaling.HpUpgradeMultiplier))
+    public int NextTotalHP => (int)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalPower => (int)(Power * LevelScaleFactor() * (1 + (PowerUpgrades + 1) * MyTunoScaling.PowerUpgradeMultiplier))
+    public int NextTotalPower => (int)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * (1 + (DefenseUpgrades + 1) * MyTunoScaling.DefenseUpgradeMultiplier))
+    public int NextTotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -553,13 +553,34 @@ public class Character : BaseEntity
     }
 
     /// <summary>
+    /// Penalty buff speed reduction in seconds (subtracted from current action time).
+    /// </summary>
+    public const double PenaltySpeedReduction = 0.5;
+
+    /// <summary>
+    /// Penalty buff critical chance bonus (additive).
+    /// A player with 50% crit becomes 100%, a player with 1% crit becomes 51%.
+    /// </summary>
+    public const double PenaltyCritBonus = 0.5;
+
+    /// <summary>
+    /// Minimum action time when penalty buff is active (allows going below normal MinActionTime).
+    /// </summary>
+    public const double PenaltyMinActionTime = 0.5;
+
+    /// <summary>
     /// Creates a copy of the character with Penalty buff applied.
-    /// Overrides action time to 0.5s and critical chance to 100%.
+    /// Reduces action time by 0.5s (min 0.5s) and adds +50% crit chance (capped at 100%).
     /// </summary>
     public static Character CreatePenaltyBuffedCopy(Character source)
     {
         if (source == null)
             throw new ArgumentNullException(nameof(source));
+
+        // Additive crit: +50% (capped at 1.0)
+        var penaltyCrit = Math.Min(1.0, source.TotalCriticalChance + PenaltyCritBonus);
+        // Speed reduction: -0.5s from current action time (min 0.5s)
+        var penaltyActionTime = Math.Max(PenaltyMinActionTime, source.ActionTime - PenaltySpeedReduction);
 
         return new Character
         {
@@ -571,7 +592,7 @@ public class Character : BaseEntity
             Power = source.Power,
             Speed = source.Speed,
             Defense = source.Defense,
-            CriticalChance = 1.0, // 100% crit
+            CriticalChance = penaltyCrit,
             HpUpgrades = source.HpUpgrades,
             PowerUpgrades = source.PowerUpgrades,
             SpeedUpgrades = source.SpeedUpgrades,
@@ -602,7 +623,7 @@ public class Character : BaseEntity
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,
             EquipmentDefenseBonus = source.EquipmentDefenseBonus,
             EquipmentCriticalBonus = source.EquipmentCriticalBonus,
-            ActionTimeOverride = 0.5, // 0.5s attack speed
+            ActionTimeOverride = penaltyActionTime,
             CurrentHP = source.CurrentHP,
             User = source.User,
             CreatedAt = source.CreatedAt,
@@ -615,9 +636,17 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Adds XP to the character and handles level-ups
-    /// Level up formula: Each level requires 100 * level XP to reach the next level
-    /// Level 1->2: 100 XP, Level 2->3: 200 XP, Level 3->4: 300 XP, etc.
+    /// Calculates XP required to advance from a given level to the next.
+    /// Uses exponential formula: XpPerLevelBase × Level^XpGrowthExponent.
+    /// Early levels are fast, late levels take days.
+    /// </summary>
+    public static int XpForLevel(int level) =>
+        (int)Math.Round(MyTunoScaling.XpPerLevelBase * Math.Pow(level, MyTunoScaling.XpGrowthExponent));
+
+    /// <summary>
+    /// Adds XP to the character and handles level-ups.
+    /// Uses exponential XP curve: each level requires XpPerLevelBase × Level^XpGrowthExponent XP.
+    /// Level 1→2: 50 XP, Level 10→11: ~7,900 XP, Level 99→100: ~1,094,000 XP.
     /// </summary>
     public void AddXP(int amount)
     {
@@ -626,11 +655,11 @@ public class Character : BaseEntity
 
         XP += amount;
 
-        // Level up logic: Each level requires (Level * XpPerLevelBase) XP
+        // Level up logic: Each level requires XpForLevel(Level) XP
         // Max level cap prevents infinite leveling
-        while (Level < MyTunoScaling.MaxLevel && XP >= Level * MyTunoScaling.XpPerLevelBase)
+        while (Level < MyTunoScaling.MaxLevel && XP >= XpForLevel(Level))
         {
-            XP -= Level * MyTunoScaling.XpPerLevelBase;
+            XP -= XpForLevel(Level);
             Level++;
             // Heal to full HP on level-up (accounts for shot buff)
             var maxHP = ShotBuffBattlesRemaining > 0
