@@ -188,11 +188,11 @@ public class SurviveModeService : ISurviveModeService
         var region = SurviveModeProgress.GetRegionForLevel(level);
         var biomeName = SurviveModeProgress.GetBiomeName(level);
 
-        // Get biome difficulty/reward multipliers from stage mode config
+        // Get biome reward multiplier from stage mode config (difficulty multipliers are always 1.0)
         var biomeConfig = _config.StageMode?.Biomes?.FirstOrDefault(b =>
             string.Equals(b.Name, biomeName, StringComparison.OrdinalIgnoreCase));
 
-        var difficultyMult = biomeConfig?.EnemiesDifficultyMultiplier ?? 1.0 + (level - 1) * 0.3;
+        var difficultyMult = 1.0;
         var rewardMult = biomeConfig?.RewardMultiplier ?? 1.0 + (level - 1) * 0.2;
 
         // Timer: 5 min base + 30s per level, caps at MaxTimerSeconds

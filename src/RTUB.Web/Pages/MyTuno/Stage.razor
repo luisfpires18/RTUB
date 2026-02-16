@@ -15,14 +15,11 @@
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using RTUB.Application.Configuration
 @using RTUB.Application.Services
-@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
-@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -596,8 +593,16 @@
                 await Task.Delay(50);
             }
 
+            // Save pre-battle HP before deterministic sim modifies it.
+            // The deterministic engine sets character.CurrentHP to null on predicted loss
+            // (e.g., boss stages), which would make the interactive session start at full HP.
+            var preBattleHp = character.CurrentHP;
+
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+
+            // Restore pre-battle HP — the interactive session drives real combat
+            character.CurrentHP = preBattleHp;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks + spell clicks
@@ -759,8 +764,9 @@
                 showBattleAnimation = false;
             }
 
-            // Character and stageProgress are already updated in-memory by ExecuteStageBattleAsync
-            // — no need to reload from DB. Just refresh local display state.
+            // stageProgress is updated in-memory by ExecuteStageBattleAsync (stage
+            // advancement, enemy defeats). character.CurrentHP is restored to pre-battle
+            // value above — the interactive session drives real HP changes.
             if (stageProgress != null)
             {
                 currentStageNumber = stageProgress.CurrentStage;

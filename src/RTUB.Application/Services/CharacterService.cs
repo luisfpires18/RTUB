@@ -114,10 +114,12 @@ public class CharacterService : ICharacterService
     }
 
     /// <inheritdoc />
-    public decimal GetDailyRewardAmount(int characterLevel)
+    public decimal GetDailyRewardAmount(int characterLevel, decimal currentBalance = 0m)
     {
         var config = _myTunoConfig.Value.DailyReward;
-        return config.BaseFidelis + (characterLevel * config.PerLevelFidelis);
+        var baseReward = config.BaseFidelis + (characterLevel * config.PerLevelFidelis);
+        var balanceBonus = Math.Round(currentBalance * config.BalancePercent, 2);
+        return baseReward + balanceBonus;
     }
 
     /// <inheritdoc />
@@ -140,7 +142,7 @@ public class CharacterService : ICharacterService
                 return (false, "Já recebeste o Daily Reward hoje!", 0);
             }
 
-            var reward = GetDailyRewardAmount(characterLevel);
+            var reward = GetDailyRewardAmount(characterLevel, freshUser.FidelisBalance);
             freshUser.FidelisBalance += reward;
             freshUser.LastDailyRewardClaim = DateTime.UtcNow;
             await _userManager.UpdateAsync(freshUser);

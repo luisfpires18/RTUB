@@ -17,6 +17,12 @@ public static class MyTunoScaling
     public static double StatGrowthExponent { get; private set; } = 0.0;
     public static int XpPerLevelBase { get; private set; } = 100;
 
+    /// <summary>
+    /// Exponent for exponential XP growth: XP needed = XpPerLevelBase × Level^XpGrowthExponent.
+    /// Higher values make late levels require dramatically more XP.
+    /// </summary>
+    public static double XpGrowthExponent { get; private set; } = 1.0;
+
     // ── Upgrade multipliers ──
     public static double HpUpgradeMultiplier { get; private set; } = 0.02;
     public static double PowerUpgradeMultiplier { get; private set; } = 0.02;
@@ -27,6 +33,7 @@ public static class MyTunoScaling
     // ── Combat ──
     /// <summary>
     /// Defense constant K for damage mitigation formula: mult = K / (K + defense).
+    /// Higher K means defense matters less. When defense = K, damage is reduced by 50%.
     /// </summary>
     public static double DefenseK { get; private set; } = 50;
 
@@ -52,6 +59,7 @@ public static class MyTunoScaling
         double statMultiplierPerLevel,
         double statGrowthExponent,
         int xpPerLevelBase,
+        double xpGrowthExponent,
         double hpUpgradeMultiplier,
         double powerUpgradeMultiplier,
         double speedUpgradeMultiplier,
@@ -72,6 +80,7 @@ public static class MyTunoScaling
         StatMultiplierPerLevel = statMultiplierPerLevel;
         StatGrowthExponent = statGrowthExponent;
         XpPerLevelBase = xpPerLevelBase;
+        XpGrowthExponent = xpGrowthExponent;
         HpUpgradeMultiplier = hpUpgradeMultiplier;
         PowerUpgradeMultiplier = powerUpgradeMultiplier;
         SpeedUpgradeMultiplier = speedUpgradeMultiplier;

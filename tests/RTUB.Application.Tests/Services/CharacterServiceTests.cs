@@ -227,23 +227,31 @@ public class CharacterServiceTests
     [Fact]
     public void GetDailyRewardAmount_Level1_ShouldReturnBaseReward()
     {
-        // Default config: BaseFidelis=15, PerLevelFidelis=2
+        // Default config: BaseFidelis=15, PerLevelFidelis=2, BalancePercent=0.05
         var result = _service.GetDailyRewardAmount(1);
-        result.Should().Be(17m); // 15 + (1 * 2)
+        result.Should().Be(17m); // 15 + (1 * 2) + 0 balance
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level50_ShouldScaleWithLevel()
     {
         var result = _service.GetDailyRewardAmount(50);
-        result.Should().Be(115m); // 15 + (50 * 2)
+        result.Should().Be(115m); // 15 + (50 * 2) + 0 balance
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level0_ShouldReturnBase()
     {
         var result = _service.GetDailyRewardAmount(0);
-        result.Should().Be(15m); // 15 + (0 * 2)
+        result.Should().Be(15m); // 15 + (0 * 2) + 0 balance
+    }
+
+    [Fact]
+    public void GetDailyRewardAmount_WithBalance_ShouldIncludePercentBonus()
+    {
+        // Default config: BalancePercent=0.05 (5%)
+        var result = _service.GetDailyRewardAmount(1, 10_000m);
+        result.Should().Be(517m); // 15 + (1 * 2) + (10000 * 0.05 = 500)
     }
 
     #endregion
@@ -276,8 +284,8 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(35m); // 15 + (10 * 2)
-        testUser.FidelisBalance.Should().Be(135m); // 100 + 35
+        reward.Should().Be(40m); // 15 + (10 * 2) + (100 * 0.05 = 5)
+        testUser.FidelisBalance.Should().Be(140m); // 100 + 40
         testUser.LastDailyRewardClaim.Should().NotBeNull();
         testUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
     }
@@ -348,8 +356,8 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(17m); // 15 + (1 * 2)
-        testUser.FidelisBalance.Should().Be(517m); // 500 + 17
+        reward.Should().Be(42m); // 15 + (1 * 2) + (500 * 0.05 = 25)
+        testUser.FidelisBalance.Should().Be(542m); // 500 + 42
     }
 
     [Theory]

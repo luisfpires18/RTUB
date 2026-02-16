@@ -163,10 +163,11 @@ public class CharacterTests
     {
         // Arrange
         var character = Character.Create("user-123");
-        character.Level = 2; // Level 2 needs 200 XP
+        character.Level = 2;
+        var xpNeeded = Character.XpForLevel(2); // Uses exponential formula
 
         // Act
-        character.AddXP(200);
+        character.AddXP(xpNeeded);
 
         // Assert
         character.Level.Should().Be(3);

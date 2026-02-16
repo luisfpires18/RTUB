@@ -578,13 +578,13 @@ public class DeterministicCombatEngine : ICombatEngine
     }
 
     /// <summary>
-    /// Applies defense mitigation to raw damage using diminishing returns formula
-    /// Formula: mult = K / (K + defense), finalDamage = max(MinDamage, floor(rawDamage * mult))
-    /// Uses config-driven DefenseK and MinDamage values from MyTunoScaling
+    /// Applies defense mitigation to raw damage using diminishing returns formula.
+    /// Formula: mult = K / (K + defense). Never reaches zero — every point of defense
+    /// always helps, but with diminishing returns (no hard cap needed).
     /// </summary>
     /// <param name="rawDamage">Damage after power/crit calculations, before mitigation</param>
     /// <param name="defense">Target's total defense stat</param>
-    /// <returns>Final damage after defense mitigation (minimum 1)</returns>
+    /// <returns>Final damage after defense mitigation (minimum MinDamage)</returns>
     private static int ApplyDefenseMitigation(int rawDamage, int defense)
     {
         var k = MyTunoScaling.DefenseK;
@@ -594,6 +594,7 @@ public class DeterministicCombatEngine : ICombatEngine
         // When defense = 0: mult = 1.0 (no reduction)
         // When defense = K: mult = 0.5 (50% reduction)
         // When defense = 2K: mult = 0.33 (67% reduction)
+        // Asymptotic — never reaches 0, so defense always has value
         var multiplier = k / (k + defense);
         var mitigatedDamage = (int)Math.Floor(rawDamage * multiplier);
 

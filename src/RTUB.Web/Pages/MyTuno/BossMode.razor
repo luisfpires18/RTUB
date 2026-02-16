@@ -16,13 +16,10 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
-@using RTUB.Application.Configuration
-@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject IBossModeService BossModeService
 @inject ICharacterService CharacterService
 @inject INaipeService NaipeService
-@inject IOptions<MyTunoScalingConfiguration> ScalingConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -632,7 +629,7 @@
                 catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
                 {
                     errorMessage = ex.Message.Contains("Level")
-                        ? "Precisas de Level 100 para aceder ao Boss Mode."
+                        ? "Precisas de Level 10 para aceder ao Boss Mode."
                         : "Não tens FITAB suficiente para entrar no Boss Mode.";
                     Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
                     StateHasChanged();
@@ -688,10 +685,10 @@
 
                     if (character != null && bossModeProgress != null)
                     {
-                        // Level gate: must be level 100+
-                        if (character.Level < 100)
+                        // Level gate: must be level 10+
+                        if (character.Level < 10)
                         {
-                            errorMessage = "Precisas de Level 100 para aceder ao Boss Mode.";
+                            errorMessage = "Precisas de Level 10 para aceder ao Boss Mode.";
                             return;
                         }
 
@@ -704,7 +701,7 @@
         catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
         {
             errorMessage = ex.Message.Contains("Level")
-                ? "Precisas de Level 100 para aceder ao Boss Mode."
+                ? "Precisas de Level 10 para aceder ao Boss Mode."
                 : "Não tens FITAB suficiente para entrar no Boss Mode.";
             Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
         }

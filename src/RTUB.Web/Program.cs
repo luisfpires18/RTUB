@@ -135,6 +135,7 @@ public class Program
                 myTunoScaling.LevelScaling.StatMultiplierPerLevel,
                 myTunoScaling.LevelScaling.StatGrowthExponent,
                 myTunoScaling.LevelScaling.XpPerLevelBase,
+                myTunoScaling.LevelScaling.XpGrowthExponent,
                 myTunoScaling.Upgrades.HP.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.Power.MultiplierPerUpgrade,
                 myTunoScaling.Upgrades.Speed.MultiplierPerUpgrade,
@@ -519,6 +520,8 @@ public class Program
                     // Allow more unacknowledged render batches for long-running stage farming
                     // (hundreds of rapid stage transitions generate many small render diffs)
                     options.MaxBufferedUnacknowledgedRenderBatches = 20;
+                    // Keep disconnected circuits alive longer so brief network blips don't lose state
+                    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10);
                 });
 
         // Configure SignalR hub options for larger messages (image uploads)
@@ -528,7 +531,7 @@ public class Program
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB
             options.EnableDetailedErrors = builder.Environment.IsDevelopment();
             options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(300);
         });
 
         // Configure circuit options for better stability

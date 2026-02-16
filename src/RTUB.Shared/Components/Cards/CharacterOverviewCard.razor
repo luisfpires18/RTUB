@@ -45,12 +45,12 @@
             <div class="stat-row">
                 <span class="stat-icon text-danger"><i class="bi bi-heart-fill"></i></span>
                 <span class="stat-label">HP</span>
-                <span class="stat-value">@(Character?.TotalHP ?? 0)</span>
+                <span class="stat-value">@NumberFormatter.Compact(Character?.TotalHP ?? 0)</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon text-warning"><i class="bi bi-lightning-fill"></i></span>
                 <span class="stat-label">Poder</span>
-                <span class="stat-value">@(Character?.TotalPower ?? 0)</span>
+                <span class="stat-value">@NumberFormatter.Compact(Character?.TotalPower ?? 0)</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon text-info"><i class="bi bi-speedometer2"></i></span>
@@ -60,7 +60,7 @@
             <div class="stat-row">
                 <span class="stat-icon text-success"><i class="bi bi-shield-fill"></i></span>
                 <span class="stat-label">Defesa</span>
-                <span class="stat-value">@(Character?.TotalDefense ?? 0)</span>
+                <span class="stat-value">@NumberFormatter.Compact(Character?.TotalDefense ?? 0)</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon text-primary"><i class="bi bi-bullseye"></i></span>
