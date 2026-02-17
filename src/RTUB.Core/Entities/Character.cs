@@ -200,7 +200,8 @@ public class Character : BaseEntity
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
-        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
+        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier)
+        + EquipmentSpeedBonus;
 
     /// <summary>
     /// Maximum critical chance cap (50%)
@@ -214,7 +215,9 @@ public class Character : BaseEntity
         {
             var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier);
             // Penalty buff explicitly allows up to 100% crit — skip the normal 50% cap
-            return PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
+            var upgradeCrit = PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
+            // Equipment crit bonus stacks on top of upgrade-capped value (absolute cap 100%)
+            return Math.Min(1.0, upgradeCrit + EquipmentCriticalBonus);
         }
     }
 
@@ -245,7 +248,7 @@ public class Character : BaseEntity
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance =>
-        Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier));
+        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier)) + EquipmentCriticalBonus);
 
     // ── Improvements computed properties ──
 
@@ -320,9 +323,20 @@ public class Character : BaseEntity
     public const double BaseActionTime = 5.0;
     
     /// <summary>
-    /// Minimum action time in seconds (cannot go below this)
+    /// Minimum action time from upgrades alone (cannot go below this without equipment)
     /// </summary>
     public const double MinActionTime = 1.0;
+
+    /// <summary>
+    /// Absolute minimum action time in seconds (cannot go below this even with equipment bonuses).
+    /// </summary>
+    public const double AbsoluteMinActionTime = 0.1;
+
+    /// <summary>
+    /// Action time reduction per equipment speed point (each point = 0.02s faster).
+    /// A weapon with +5 speed reduces action time by 0.1s.
+    /// </summary>
+    public const double ActionTimeReductionPerSpeedPoint = 0.02;
 
     /// <summary>
     /// Optional override for action time (used for stage enemies with stage-based speed tiers).
@@ -355,8 +369,11 @@ public class Character : BaseEntity
 
             // Speed upgrades provide the flat reduction: 5.0s → 1.0s over 41 upgrades
             var time = BaseActionTime - SpeedUpgrades * ActionTimeReductionPerUpgrade;
-            
-            return Math.Max(MinActionTime, time);
+
+            // Equipment speed bonus provides additional action time reduction beyond the upgrade cap
+            time -= EquipmentSpeedBonus * ActionTimeReductionPerSpeedPoint;
+
+            return Math.Max(AbsoluteMinActionTime, time);
         }
     }
 

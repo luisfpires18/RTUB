@@ -322,7 +322,7 @@
 
     private string GetSpeedPreview()
     {
-        var previewTime = Math.Max(Character.MinActionTime, Character.ActionTime - Character.ActionTimeReductionPerUpgrade);
+        var previewTime = Math.Max(Character.AbsoluteMinActionTime, Character.ActionTime - Character.ActionTimeReductionPerUpgrade);
         return previewTime.ToString("F1");
     }
 
