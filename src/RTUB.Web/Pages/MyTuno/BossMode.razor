@@ -29,6 +29,7 @@
 @inject IStageService StageService
 @inject ICombatActionService CombatActionService
 @inject IInventoryRepository InventoryRepository
+@inject ICharacterAppearanceService AppearanceService
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
@@ -535,6 +536,7 @@
 
 @code {
     private Character? character;
+    private CharacterSpriteLayers? _playerLayers;
     private ApplicationUser? currentUser;
     private BossModeProgress? bossModeProgress;
     private BossModeBattleResult? currentBattle;
@@ -686,6 +688,9 @@
                     await Task.WhenAll(characterTask, progressTask);
                     character = characterTask.Result;
                     bossModeProgress = progressTask.Result;
+
+                    if (character != null)
+                        _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
 
                     if (character != null && bossModeProgress != null)
                     {
@@ -901,6 +906,7 @@
                         EnemyName = currentBattle.BossName,
                         BackgroundPath = BossModeService.GetBackgroundPath(),
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        PlayerLayers = _playerLayers,
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = new List<int> { 0 },
                         BattleSpeed = battleSpeed,

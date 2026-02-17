@@ -29,6 +29,7 @@
 @inject ICombatActionService CombatActionService
 @inject IInventoryService InventoryService
 @inject IInventoryRepository InventoryRepository
+@inject ICharacterAppearanceService AppearanceService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -401,6 +402,7 @@
 
 @code {
     private Character? character;
+    private CharacterSpriteLayers? _playerLayers;
     private ApplicationUser? currentUser;
     private StageProgress? stageProgress;
     private StageBattleResult? currentBattle;
@@ -544,6 +546,7 @@
                     stageProgress = await stageProgressTask;
                     if (character != null)
                     {
+                        _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
                         if (stageProgress != null)
                         {
                             currentStageNumber = stageProgress.CurrentStage;
@@ -761,6 +764,7 @@
                         EnemyName = currentBattle.EnemyName,
                         BackgroundPath = BiomeService.GetBackgroundForStage(battleStageNumber),
                         PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        PlayerLayers = _playerLayers,
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,

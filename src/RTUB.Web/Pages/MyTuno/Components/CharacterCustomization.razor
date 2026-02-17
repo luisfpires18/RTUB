@@ -1,0 +1,310 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Shared.Components.UI
+@inject ICharacterAppearanceService AppearanceService
+@inject ILogger<CharacterCustomization> Logger
+
+@if (Show)
+{
+    <Modal Show="@Show"
+           ShowChanged="@OnShowChanged"
+           Title="Personalizar Personagem"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            @if (loading)
+            {
+                <LoadingSpinner />
+            }
+            else if (appearance != null)
+            {
+                <div class="row g-3">
+                    <!-- Live Preview -->
+                    <div class="col-12 text-center mb-2">
+                        <div class="customization-preview">
+                            <div class="layered-sprite-container" style="position: relative; display: inline-block; width: 200px; height: 200px;">
+                                <img src="@GetBodyPath()" alt="Body" class="layered-sprite-layer" data-tint="@skinColor" />
+                                <img src="@GetClothesPath()" alt="Clothes" class="layered-sprite-layer" />
+                                <img src="@GetEyesPath()" alt="Eyes" class="layered-sprite-layer" data-tint="@eyeColor" />
+                                @if (hairStyle != HairStyle.Bald)
+                                {
+                                    <img src="@GetHairPath()" alt="Hair" class="layered-sprite-layer" data-tint="@hairColor" />
+                                }
+                                @if (weaponVisual.HasValue)
+                                {
+                                    <img src="@GetWeaponPath()" alt="Weapon" class="layered-sprite-layer" />
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skin Color -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold"><i class="bi bi-person me-1"></i>Cor da Pele</label>
+                        <input type="color" class="form-control form-control-color w-100" @bind="skinColor" />
+                    </div>
+
+                    <!-- Eye Color -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold"><i class="bi bi-eye me-1"></i>Cor dos Olhos</label>
+                        <input type="color" class="form-control form-control-color w-100" @bind="eyeColor" />
+                    </div>
+
+                    <!-- Hair Color -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold"><i class="bi bi-scissors me-1"></i>Cor do Cabelo</label>
+                        <input type="color" class="form-control form-control-color w-100" @bind="hairColor" disabled="@(hairStyle == HairStyle.Bald)" />
+                    </div>
+
+                    <!-- Hair Style -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="bi bi-person-badge me-1"></i>Estilo de Cabelo</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var style in Enum.GetValues<HairStyle>())
+                            {
+                                var s = style;
+                                <button class="btn btn-sm @(hairStyle == s ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => hairStyle = s">
+                                    @GetHairStyleName(s)
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Clothes Style -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold"><i class="bi bi-suit-heart me-1"></i>Roupa</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var style in Enum.GetValues<ClothesStyle>())
+                            {
+                                var s = style;
+                                <button class="btn btn-sm @(clothesStyle == s ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => clothesStyle = s">
+                                    @GetClothesStyleName(s)
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Weapon Visual -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold"><i class="bi bi-shield me-1"></i>Arma Visual</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm @(!weaponVisual.HasValue ? "btn-primary" : "btn-outline-secondary")"
+                                    @onclick="() => weaponVisual = null">
+                                <i class="bi bi-x-lg me-1"></i>Nenhuma
+                            </button>
+                            @foreach (var wt in WeaponTypeHelper.AllWeaponTypes)
+                            {
+                                var w = wt;
+                                <button class="btn btn-sm @(weaponVisual == w ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => weaponVisual = w">
+                                    <i class="bi @WeaponTypeHelper.GetIcon(w) me-1"></i>@WeaponTypeHelper.GetDisplayName(w)
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i>@errorMessage
+                    </div>
+                }
+            }
+        </BodyContent>
+        <FooterContent>
+            <button class="btn btn-secondary" @onclick="Close" disabled="@saving">
+                <i class="bi bi-x-lg me-2"></i>Cancelar
+            </button>
+            <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(saving || loading)">
+                @if (saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                <i class="bi bi-check-lg me-2"></i>Guardar
+            </button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    /// <summary>Whether the modal is visible</summary>
+    [Parameter] public bool Show { get; set; }
+
+    /// <summary>Callback when Show changes</summary>
+    [Parameter] public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>The character ID to customize</summary>
+    [Parameter] public int CharacterId { get; set; }
+
+    /// <summary>Callback when appearance is saved successfully, passes updated layers</summary>
+    [Parameter] public EventCallback<CharacterSpriteLayers> OnSaved { get; set; }
+
+    private CharacterAppearance? appearance;
+    private bool loading = true;
+    private bool saving;
+    private string errorMessage = string.Empty;
+
+    // Form fields bound to UI
+    private HairStyle hairStyle;
+    private string hairColor = "#3B2F2F";
+    private string eyeColor = "#4A90D9";
+    private string skinColor = "#F5D6C3";
+    private ClothesStyle clothesStyle;
+    private WeaponType? weaponVisual;
+
+    /// <summary>
+    /// Loads the existing appearance when the modal is shown.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Show && appearance == null && CharacterId > 0)
+        {
+            await LoadAppearanceAsync();
+        }
+    }
+
+    private async Task LoadAppearanceAsync()
+    {
+        try
+        {
+            loading = true;
+            appearance = await AppearanceService.GetOrCreateAppearanceAsync(CharacterId);
+
+            // Populate form fields from entity
+            hairStyle = appearance.HairStyle;
+            hairColor = appearance.HairColor;
+            eyeColor = appearance.EyeColor;
+            skinColor = appearance.SkinColor;
+            clothesStyle = appearance.ClothesStyle;
+            weaponVisual = appearance.WeaponVisual;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading character appearance for CharacterId {CharacterId}", CharacterId);
+            errorMessage = "Erro ao carregar aparência.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (CharacterId <= 0) return;
+
+        try
+        {
+            saving = true;
+            errorMessage = string.Empty;
+
+            await AppearanceService.UpdateAppearanceAsync(
+                CharacterId,
+                hairStyle,
+                hairColor,
+                eyeColor,
+                skinColor,
+                clothesStyle,
+                weaponVisual);
+
+            // Get updated layers to notify parent
+            var layers = await AppearanceService.GetSpriteLayersForCharacterAsync(CharacterId);
+            await OnSaved.InvokeAsync(layers);
+            await Close();
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving character appearance for CharacterId {CharacterId}", CharacterId);
+            errorMessage = "Erro ao guardar aparência.";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        appearance = null;
+        errorMessage = string.Empty;
+        await ShowChanged.InvokeAsync(false);
+    }
+
+    private void OnShowChanged(bool show)
+    {
+        if (!show)
+        {
+            appearance = null;
+            errorMessage = string.Empty;
+            ShowChanged.InvokeAsync(false);
+        }
+    }
+
+    // Layer path helpers (mirror the service logic for live preview)
+    private string GetBodyPath() => "/sprites/games/my-tuno/layers/body/base.png";
+    private string GetEyesPath() => "/sprites/games/my-tuno/layers/eyes/base.png";
+
+    private string GetHairPath() => hairStyle switch
+    {
+        HairStyle.Short => "/sprites/games/my-tuno/layers/hair/short.png",
+        HairStyle.Long => "/sprites/games/my-tuno/layers/hair/long.png",
+        HairStyle.Spiky => "/sprites/games/my-tuno/layers/hair/spiky.png",
+        _ => string.Empty
+    };
+
+    private string GetClothesPath() => clothesStyle switch
+    {
+        ClothesStyle.Casual => "/sprites/games/my-tuno/layers/clothes/casual.png",
+        ClothesStyle.Armor => "/sprites/games/my-tuno/layers/clothes/armor.png",
+        ClothesStyle.Robe => "/sprites/games/my-tuno/layers/clothes/robe.png",
+        _ => "/sprites/games/my-tuno/layers/clothes/casual.png"
+    };
+
+    private string GetWeaponPath()
+    {
+        if (!weaponVisual.HasValue) return string.Empty;
+        var fileName = weaponVisual.Value switch
+        {
+            WeaponType.SwordOneHand => "sword_1h",
+            WeaponType.AxeOneHand => "axe_1h",
+            WeaponType.Mace => "mace",
+            WeaponType.Shield => "shield",
+            WeaponType.Dagger => "dagger",
+            WeaponType.Staff => "staff",
+            WeaponType.Bow => "bow",
+            WeaponType.SwordTwoHand => "sword_2h",
+            WeaponType.Spear => "spear",
+            WeaponType.AxeTwoHand => "axe_2h",
+            WeaponType.Hammer => "hammer",
+            _ => "sword_1h"
+        };
+        return $"/sprites/games/my-tuno/layers/weapons/{fileName}.png";
+    }
+
+    private static string GetHairStyleName(HairStyle style) => style switch
+    {
+        HairStyle.Bald => "Careca",
+        HairStyle.Short => "Curto",
+        HairStyle.Long => "Comprido",
+        HairStyle.Spiky => "Espetado",
+        _ => style.ToString()
+    };
+
+    private static string GetClothesStyleName(ClothesStyle style) => style switch
+    {
+        ClothesStyle.Casual => "Casual",
+        ClothesStyle.Armor => "Armadura",
+        ClothesStyle.Robe => "Manto",
+        _ => style.ToString()
+    };
+}

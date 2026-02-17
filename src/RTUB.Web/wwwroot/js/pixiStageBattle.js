@@ -126,6 +126,9 @@
             this.backgroundPath = data?.BackgroundPath ?? data?.backgroundPath ?? defaultSprites.background;
             this.playerSpritePath = data?.PlayerSpritePath ?? data?.playerSpritePath ?? defaultSprites.player;
             
+            // Layered sprite data (from CharacterSpriteLayers DTO)
+            this.playerLayers = data?.PlayerLayers ?? data?.playerLayers ?? null;
+            
             // Get enemy sprites - check both PascalCase and camelCase
             const enemySpritesData = data?.EnemySprites ?? data?.enemySprites;
             if (enemySpritesData && Array.isArray(enemySpritesData)) {
@@ -321,6 +324,11 @@
             // responses across stage transitions, eliminating redundant network fetches.
             this.bgAlias = `bg_${this.backgroundPath}`;
             this._playerAlias = `player_${this.playerSpritePath}`;
+            
+            // Pre-load layered sprite assets if available
+            if (this.playerLayers && window.spriteCompositor?.hasLayers(this.playerLayers)) {
+                await window.spriteCompositor.preloadLayers(this.playerLayers, SESSION_CACHE_BUST);
+            }
 
             // Load each asset individually so a 404 on one sprite doesn't crash everything.
             // On failure, fall back to a known-good default sprite.
@@ -484,13 +492,23 @@
             const playerX = width * 0.25;
             const playerY = height - groundOffset;
             
-            this.playerSprite = PIXI.Sprite.from(this._playerAlias);
-            this.playerSprite.anchor.set(0.5, 1);
+            // Use layered sprite compositor if layer data is available
+            if (this.playerLayers && window.spriteCompositor?.hasLayers(this.playerLayers)) {
+                this.playerSprite = window.spriteCompositor.createCharacterContainer(this.playerLayers);
+                this._playerIsLayered = true;
+            } else {
+                this.playerSprite = PIXI.Sprite.from(this._playerAlias);
+                this.playerSprite.anchor.set(0.5, 1);
+                this._playerIsLayered = false;
+            }
             this.playerSprite.x = playerX;
             this.playerSprite.y = playerY;
             
             const maxSpriteHeight = height * 0.45;
-            const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
+            const spriteHeight = this._playerIsLayered
+                ? (this.playerSprite.height || 256)
+                : this.playerSprite.height;
+            const scale = Math.min(1, maxSpriteHeight / spriteHeight);
             this.playerSprite.scale.set(scale);
             
             this.playerX = playerX;

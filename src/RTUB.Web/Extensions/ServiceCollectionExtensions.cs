@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IItemTypeConfigService, ItemTypeConfigService>();
         services.AddSingleton<ItemTypeConfigInitializer>();
         services.AddScoped<ICharacterService, CharacterService>();
+        services.AddScoped<ICharacterAppearanceService, CharacterAppearanceService>();
         services.AddScoped<IUpgradeService, UpgradeService>();
         services.AddScoped<IImprovementService, ImprovementService>();
         services.AddScoped<IPowerService, PowerService>();

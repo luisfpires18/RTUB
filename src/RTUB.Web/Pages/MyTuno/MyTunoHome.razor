@@ -17,6 +17,7 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject ICharacterService CharacterService
+@inject ICharacterAppearanceService AppearanceService
 @inject IUpgradeService UpgradeService
 @inject IImprovementService ImprovementService
 @inject IPowerService PowerService
@@ -476,14 +477,40 @@
                             </div>
                         }
                         
-                        <!-- Character Sprite -->
+                        <!-- Character Sprite (Layered) -->
                         <div class="text-center mb-3">
-                            <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
-                                 alt="My Tuno Character" 
-                                 class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
-                                 style="max-height: 200px; max-width: 100%; object-fit: contain;" />
+                            @if (_playerLayers != null)
+                            {
+                                <div class="layered-sprite-container @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")" style="position: relative; display: inline-block; width: 200px; height: 200px;">
+                                    <img src="@CacheBuster.Bust(_playerLayers.BodyPath)" alt="Body" class="layered-sprite-layer" style="filter: brightness(0) saturate(100%) sepia(100%) hue-rotate(0deg);" data-tint="@_playerLayers.BodyTint" />
+                                    <img src="@CacheBuster.Bust(_playerLayers.ClothesPath)" alt="Clothes" class="layered-sprite-layer" />
+                                    <img src="@CacheBuster.Bust(_playerLayers.EyesPath)" alt="Eyes" class="layered-sprite-layer" data-tint="@_playerLayers.EyesTint" />
+                                    @if (!string.IsNullOrEmpty(_playerLayers.HairPath))
+                                    {
+                                        <img src="@CacheBuster.Bust(_playerLayers.HairPath)" alt="Hair" class="layered-sprite-layer" data-tint="@_playerLayers.HairTint" />
+                                    }
+                                    @if (!string.IsNullOrEmpty(_playerLayers.WeaponPath))
+                                    {
+                                        <img src="@CacheBuster.Bust(_playerLayers.WeaponPath)" alt="Weapon" class="layered-sprite-layer" />
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
+                                     alt="My Tuno Character" 
+                                     class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
+                                     style="max-height: 200px; max-width: 100%; object-fit: contain;" />
+                            }
                         </div>
                         
+                        <!-- Customize Button -->
+                        <div class="text-center mb-3">
+                            <button class="btn btn-sm btn-outline-info" @onclick="OpenCustomizationModal">
+                                <i class="bi bi-palette me-1"></i>Personalizar
+                            </button>
+                        </div>
+
                         <div class="mb-3">
                             <h4 class="text-center mb-3">Nível @character.Level</h4>
                             @{
@@ -823,9 +850,28 @@
 
                             <!-- Center character -->
                             <div class="equip-layout__center">
-                                <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
-                                     alt="Equipment Preview" 
-                                     class="equip-layout__sprite" />
+                                @if (_playerLayers != null)
+                                {
+                                    <div class="layered-sprite-container equip-layout__sprite" style="position: relative;">
+                                        <img src="@CacheBuster.Bust(_playerLayers.BodyPath)" alt="Body" class="layered-sprite-layer" data-tint="@_playerLayers.BodyTint" />
+                                        <img src="@CacheBuster.Bust(_playerLayers.ClothesPath)" alt="Clothes" class="layered-sprite-layer" />
+                                        <img src="@CacheBuster.Bust(_playerLayers.EyesPath)" alt="Eyes" class="layered-sprite-layer" data-tint="@_playerLayers.EyesTint" />
+                                        @if (!string.IsNullOrEmpty(_playerLayers.HairPath))
+                                        {
+                                            <img src="@CacheBuster.Bust(_playerLayers.HairPath)" alt="Hair" class="layered-sprite-layer" data-tint="@_playerLayers.HairTint" />
+                                        }
+                                        @if (!string.IsNullOrEmpty(_playerLayers.WeaponPath))
+                                        {
+                                            <img src="@CacheBuster.Bust(_playerLayers.WeaponPath)" alt="Weapon" class="layered-sprite-layer" />
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
+                                         alt="Equipment Preview" 
+                                         class="equip-layout__sprite" />
+                                }
                             </div>
 
                             <!-- Right slots (Gloves, Legs, Boots) -->
@@ -1919,7 +1965,7 @@
                       ShowChanged="@((bool show) => showInfoModal = show)"
                       Title="Sobre My Tuno"
                       HeaderTitle="My Tuno"
-                      ImageUrl="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")"
+                      ImageUrl="@CacheBuster.Bust(_playerLayers?.BodyPath ?? "/sprites/games/my-tuno/default_tuno.png")"
                       UseRectangularImage="false"
                       OnClose="CloseInfoModal">
             <BadgesContent>
@@ -1934,6 +1980,15 @@
                 </InfoSection>
             </Sections>
         </DetailsModal>
+    }
+
+    <!-- Character Customization Modal -->
+    @if (character != null)
+    {
+        <CharacterCustomization Show="@showCustomizationModal"
+                                ShowChanged="@((bool show) => showCustomizationModal = show)"
+                                CharacterId="@character.Id"
+                                OnSaved="@OnCustomizationSaved" />
     }
 </div>
 
@@ -2067,6 +2122,12 @@
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
     
+    // Character appearance layers
+    private CharacterSpriteLayers? _playerLayers;
+
+    // Character customization modal state
+    private bool showCustomizationModal = false;
+
     // Info modal state
     private bool showInfoModal = false;
     private string myTunoVersion = DefaultVersion;
@@ -2201,6 +2262,7 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
+                        _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
                         // Batch: single inventory query replaces ~13 individual calls
                         var inventorySummaryTask = InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                         // These are independent of inventory — run in parallel
@@ -2609,6 +2671,17 @@
         showInfoModal = false;
     }
 
+    private void OpenCustomizationModal()
+    {
+        showCustomizationModal = true;
+    }
+
+    private void OnCustomizationSaved(CharacterSpriteLayers layers)
+    {
+        _playerLayers = layers;
+        StateHasChanged();
+    }
+
 
 
     private async Task LoadCharacterAsync()
@@ -2618,6 +2691,10 @@
         try
         {
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+            if (character != null)
+            {
+                _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
+            }
         }
         catch (Exception ex)
         {

@@ -1406,3 +1406,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Layered sprite compositor for character customization */
+.layered-sprite-container {
+    display: inline-block;
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+.layered-sprite-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}

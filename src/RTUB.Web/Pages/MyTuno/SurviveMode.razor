@@ -25,6 +25,7 @@
 @inject ILogger<SurviveMode> Logger
 @inject IAuditLogService AuditLogService
 @inject IStageService StageService
+@inject ICharacterAppearanceService AppearanceService
 @implements IAsyncDisposable
 
 <PageTitle>Survive Mode - My Tuno - RTUB</PageTitle>
@@ -282,6 +283,7 @@
     private string errorMessage = string.Empty;
 
     private Character? character;
+    private CharacterSpriteLayers? _playerLayers;
     private ApplicationUser? currentUser;
     private SurviveModeProgress? surviveProgress;
     private DotNetObjectReference<SurviveMode>? objRef;
@@ -348,13 +350,16 @@
             surviveProgress = progressTask.Result;
             var sp = stageProgressTask.Result;
 
+            if (character != null)
+                _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
+
             // Always use the player's actual progress level — no URL override allowed
             currentLevel = surviveProgress.CurrentLevel;
 
             currentBiomeName = SurviveModeProgress.GetBiomeName(currentLevel);
 
             // Cancel any stale runs
-            if (surviveProgress.IsRunActive)
+            if (surviveProgress.IsRunActive && character != null)
             {
                 Logger.LogWarning("Found stale survive run for user {UserId}, cancelling.", currentUser.Id);
                 await SurviveModeService.CancelRunAsync(character.Id);
@@ -450,7 +455,8 @@
                 BackgroundPath = backgroundPath,
                 EnemySprites = enemySprites.ToArray(),
                 BossSprites = bossSprites.ToArray(),
-                PlayerSpritePath = playerSpritePath
+                PlayerSpritePath = playerSpritePath,
+                PlayerLayers = _playerLayers
             };
 
             if (levelsCompleted == 0)

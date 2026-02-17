@@ -268,6 +268,7 @@
             this.backgroundPath = levelData.backgroundPath;
             this.enemySprites = levelData.enemySprites || [];
             this.playerSpritePath = levelData.playerSpritePath;
+            this.playerLayers = levelData.playerLayers || levelData.PlayerLayers || null;
             this.bossSprites = levelData.bossSprites || [];
             this.isFinalLevel = levelData.isFinalLevel || false;
             this.spawnRampPerMinute = levelData.spawnRampPerMinute || 0.20;
@@ -429,8 +430,10 @@
                 assets.push({ alias: this._bgAlias, src: this.backgroundPath + cacheBust });
             }
 
-            // Player sprite
-            if (this.playerSpritePath) {
+            // Player sprite — layered or single
+            if (this.playerLayers && window.spriteCompositor?.hasLayers(this.playerLayers)) {
+                await window.spriteCompositor.preloadLayers(this.playerLayers, cacheBust);
+            } else if (this.playerSpritePath) {
                 this._playerAlias = `survivePlayer_${this.playerSpritePath}`;
                 assets.push({ alias: this._playerAlias, src: this.playerSpritePath + cacheBust });
             }
@@ -550,19 +553,38 @@
         createPlayer() {
             const playerContainer = new PIXI.Container();
 
-            // Try to use player sprite
+            // Try layered sprite first, then single sprite
             let playerSprite = null;
-            try {
-                const tex = PIXI.Assets.get(this._playerAlias || 'survivePlayer');
-                if (tex) {
-                    playerSprite = new PIXI.Sprite(tex);
-                    playerSprite.anchor.set(0.5, 0.5);
-                    const maxSize = PLAYER_RADIUS * 4;
-                    const scale = Math.min(maxSize / playerSprite.width, maxSize / playerSprite.height);
-                    playerSprite.scale.set(scale);
-                    playerContainer.addChild(playerSprite);
-                }
-            } catch (_) { }
+            if (this.playerLayers && window.spriteCompositor?.hasLayers(this.playerLayers)) {
+                try {
+                    const layeredContainer = window.spriteCompositor.createCharacterContainer(this.playerLayers);
+                    if (layeredContainer.children.length > 0) {
+                        // Adjust anchor to center (survive mode uses center anchor)
+                        for (const child of layeredContainer.children) {
+                            child.anchor.set(0.5, 0.5);
+                        }
+                        const maxSize = PLAYER_RADIUS * 4;
+                        const scale = Math.min(maxSize / (layeredContainer.width || 256), maxSize / (layeredContainer.height || 256));
+                        layeredContainer.scale.set(scale);
+                        playerContainer.addChild(layeredContainer);
+                        playerSprite = layeredContainer;
+                    }
+                } catch (_) { }
+            }
+            
+            if (!playerSprite) {
+                try {
+                    const tex = PIXI.Assets.get(this._playerAlias || 'survivePlayer');
+                    if (tex) {
+                        playerSprite = new PIXI.Sprite(tex);
+                        playerSprite.anchor.set(0.5, 0.5);
+                        const maxSize = PLAYER_RADIUS * 4;
+                        const scale = Math.min(maxSize / playerSprite.width, maxSize / playerSprite.height);
+                        playerSprite.scale.set(scale);
+                        playerContainer.addChild(playerSprite);
+                    }
+                } catch (_) { }
+            }
 
             if (!playerSprite) {
                 // Fallback: circle player

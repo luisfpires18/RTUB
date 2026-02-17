@@ -64,5 +64,11 @@ public class CharacterConfiguration : IEntityTypeConfiguration<Character>
             .WithMany()
             .HasForeignKey(c => c.UserId)
             .OnDelete(DeleteBehavior.Cascade); // Delete character when user is deleted
+
+        // One-to-one: Character has optional Appearance
+        builder.HasOne(c => c.Appearance)
+            .WithOne(a => a.Character)
+            .HasForeignKey<CharacterAppearance>(a => a.CharacterId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

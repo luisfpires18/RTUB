@@ -28,6 +28,7 @@
 @inject ILogger<Arena> Logger
 @inject IInventoryService InventoryService
 @inject ICombatActionService CombatActionService
+@inject ICharacterAppearanceService AppearanceService
 @implements IAsyncDisposable
 
 <PageTitle>Arena - My Tuno - RTUB</PageTitle>
@@ -243,6 +244,7 @@
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     private Character? character;
+    private CharacterSpriteLayers? _playerLayers;
     private ApplicationUser? currentUser;
     private List<Character>? allOpponentCharacters;
     private List<Character>? opponentCharacters;
@@ -322,6 +324,7 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
+                        _playerLayers = await AppearanceService.GetSpriteLayersForCharacterAsync(character.Id);
                         await LoadOpponentsAsync();
                     }
                 }
@@ -492,6 +495,10 @@
                         DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente",
                         BattleSpeed = battleSpeed,
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        AttackerLayers = _playerLayers,
+                        DefenderLayers = opponent.Appearance != null
+                            ? AppearanceService.GetSpriteLayers(opponent.Appearance)
+                            : await AppearanceService.GetSpriteLayersForCharacterAsync(opponent.Id),
                         // ── Interactive combat data ──
                         InteractiveMode = true,
                         PlayerHP = _combatSession!.Player.CurrentHP,

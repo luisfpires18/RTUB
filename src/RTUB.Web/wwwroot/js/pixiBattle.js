@@ -124,6 +124,10 @@
             this.hasShotBuff = data?.HasShotBuff ?? data?.hasShotBuff ?? false;
             this.attackerAura = null;
             
+            // Layered sprite data (from CharacterSpriteLayers DTO)
+            this.attackerLayers = data?.AttackerLayers ?? data?.attackerLayers ?? null;
+            this.defenderLayers = data?.DefenderLayers ?? data?.defenderLayers ?? null;
+            
             // Speed bar system - time-based combat
             this.actionTime = { attacker: 5.0, defender: 5.0 }; // In seconds
             this.speedBars = { attacker: null, defender: null };
@@ -365,10 +369,18 @@
         async loadAssets() {
             const toLoad = [];
             
-            if (!loadedAssetAliases.has('attackerSprite')) {
+            // Pre-load layered sprite assets if available
+            const hasAttackerLayers = this.attackerLayers && window.spriteCompositor?.hasLayers(this.attackerLayers);
+            const hasDefenderLayers = this.defenderLayers && window.spriteCompositor?.hasLayers(this.defenderLayers);
+            
+            if (hasAttackerLayers) {
+                await window.spriteCompositor.preloadLayers(this.attackerLayers, SESSION_CACHE_BUST);
+            } else if (!loadedAssetAliases.has('attackerSprite')) {
                 toLoad.push({ alias: 'attackerSprite', src: spritePaths.attacker + SESSION_CACHE_BUST });
             }
-            if (!loadedAssetAliases.has('defenderSprite')) {
+            if (hasDefenderLayers) {
+                await window.spriteCompositor.preloadLayers(this.defenderLayers, SESSION_CACHE_BUST);
+            } else if (!loadedAssetAliases.has('defenderSprite')) {
                 toLoad.push({ alias: 'defenderSprite', src: spritePaths.defender + SESSION_CACHE_BUST });
             }
             if (!loadedAssetAliases.has('arenaBg')) {
@@ -432,11 +444,21 @@
             const defenderX = width * 0.75;
             const characterY = height - groundOffset;
 
-            const attackerSprite = PIXI.Sprite.from('attackerSprite');
-            attackerSprite.anchor.set(0.5, 1);
+            // Create attacker (layered or single sprite)
+            let attackerSprite;
+            const hasAttackerLayers = this.attackerLayers && window.spriteCompositor?.hasLayers(this.attackerLayers);
+            if (hasAttackerLayers) {
+                attackerSprite = window.spriteCompositor.createCharacterContainer(this.attackerLayers);
+                this._attackerIsLayered = true;
+            } else {
+                attackerSprite = PIXI.Sprite.from('attackerSprite');
+                attackerSprite.anchor.set(0.5, 1);
+                this._attackerIsLayered = false;
+            }
             attackerSprite.x = attackerX;
             attackerSprite.y = characterY;
-            const attackerScale = this.getSpriteScale(attackerSprite, height);
+            const attackerHeight = this._attackerIsLayered ? (attackerSprite.height || 256) : attackerSprite.height;
+            const attackerScale = this.getSpriteScale({ height: attackerHeight, texture: attackerSprite.texture }, height);
             attackerSprite.scale.set(attackerScale);
             
             // Add blue aura BEFORE sprite so it renders behind
@@ -453,12 +475,23 @@
             
             this.stage.addChild(attackerSprite);
 
-            const defenderSprite = PIXI.Sprite.from('defenderSprite');
-            defenderSprite.anchor.set(0.5, 1);
+            // Create defender (layered or single sprite)
+            let defenderSprite;
+            const hasDefenderLayers = this.defenderLayers && window.spriteCompositor?.hasLayers(this.defenderLayers);
+            if (hasDefenderLayers) {
+                defenderSprite = window.spriteCompositor.createCharacterContainer(this.defenderLayers);
+                defenderSprite.scale.x = -1; // Flip horizontally for defender
+                this._defenderIsLayered = true;
+            } else {
+                defenderSprite = PIXI.Sprite.from('defenderSprite');
+                defenderSprite.anchor.set(0.5, 1);
+                this._defenderIsLayered = false;
+            }
             defenderSprite.x = defenderX;
             defenderSprite.y = characterY;
-            const defenderScale = this.getSpriteScale(defenderSprite, height);
-            defenderSprite.scale.set(defenderScale);
+            const defenderHeight = this._defenderIsLayered ? (defenderSprite.height || 256) : defenderSprite.height;
+            const defenderScale = this.getSpriteScale({ height: defenderHeight, texture: defenderSprite.texture }, height);
+            defenderSprite.scale.set(this._defenderIsLayered ? -defenderScale : defenderScale, defenderScale);
             this.stage.addChild(defenderSprite);
 
             this.characterSprites = {
@@ -510,10 +543,9 @@
 
         getSpriteScale(sprite, height) {
             const maxSpriteHeight = height * 0.45;
-            if (!sprite.texture || !sprite.texture.height) {
-                return 0.6;
-            }
-            return Math.min(1, maxSpriteHeight / sprite.texture.height);
+            // Support both Sprite (has .texture.height) and Container (use .height or fallback)
+            const texHeight = sprite?.texture?.height || sprite?.height || 256;
+            return Math.min(1, maxSpriteHeight / texHeight);
         }
 
         initializeHpFromEvents() {

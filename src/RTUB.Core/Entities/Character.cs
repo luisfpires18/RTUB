@@ -185,6 +185,9 @@ public class Character : BaseEntity
     // Navigation
     public virtual ApplicationUser User { get; set; } = null!;
 
+    /// <summary>Character's visual customization (one-to-one)</summary>
+    public virtual CharacterAppearance? Appearance { get; set; }
+
     // Computed properties (not stored in database)
     // Stats scale with level (polynomial) × upgrades (compound exponential):
     // stat = base × levelScale × (1 + mult)^upgrades + equipment
