@@ -48,7 +48,7 @@
         @{
             var currentHP = Character?.CurrentHP ?? Character?.TotalHP ?? 100;
             // Account for shot buff - use CreateShotBuffedCopy to get exact same max HP as arena
-            int maxHP;
+            long maxHP;
             if (Character != null && Character.ShotBuffBattlesRemaining > 0)
             {
                 var buffedCopy = Character.CreateShotBuffedCopy(Character);

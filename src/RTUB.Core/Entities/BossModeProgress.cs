@@ -52,13 +52,13 @@ public class BossModeProgress : BaseEntity
     /// the next run starts with the boss at 80%.
     /// Resets when the boss is defeated or at daily reset.
     /// </summary>
-    public int? DailyBossRemainingHP { get; set; }
+    public long? DailyBossRemainingHP { get; set; }
 
     /// <summary>
     /// The max HP the current daily boss was created with.
     /// Used to validate boss consistency across runs.
     /// </summary>
-    public int DailyBossMaxHP { get; set; } = 0;
+    public long DailyBossMaxHP { get; set; } = 0;
 
     /// <summary>
     /// The date of the last daily reset. Used to detect when a new day has started
@@ -147,7 +147,7 @@ public class BossModeProgress : BaseEntity
     /// Saves the remaining HP of the current boss when the player is defeated.
     /// The boss HP persists so the next run continues where this one left off.
     /// </summary>
-    public void SaveBossHP(int remainingHP, int maxHP)
+    public void SaveBossHP(long remainingHP, long maxHP)
     {
         DailyBossRemainingHP = remainingHP;
         DailyBossMaxHP = maxHP;

@@ -25,7 +25,7 @@ public class Character : BaseEntity
     public double CriticalChance { get; set; } = MyTunoScaling.BaseCriticalChance;
 
     // Current HP (null means full HP, for backwards compatibility)
-    public int? CurrentHP { get; set; } = null;
+    public long? CurrentHP { get; set; } = null;
 
     // Shot buff - number of battles remaining with empowerment
     public int ShotBuffBattlesRemaining { get; set; } = 0;
@@ -189,17 +189,18 @@ public class Character : BaseEntity
     // Stats scale with level (polynomial) × upgrades (compound exponential):
     // stat = base × levelScale × (1 + mult)^upgrades + equipment
     // Each upgrade multiplies the stat by a fixed factor — absolute gains grow with each one.
+    // Math.Round avoids truncation bias that causes non-monotonic marginal upgrade gains.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalHP => (int)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
+    public long TotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalPower => (int)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
+    public long TotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalSpeed => (int)(Speed * LevelScaleFactor())
-        + (int)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
+    public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
+        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
 
     /// <summary>
     /// Maximum critical chance cap (50%)
@@ -226,20 +227,20 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int TotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
+    public long TotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalHP => (int)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
+    public long NextTotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalPower => (int)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
+    public long NextTotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public int NextTotalDefense => (int)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
+    public long NextTotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
@@ -463,17 +464,17 @@ public class Character : BaseEntity
     /// <param name="criticalChance">Critical hit chance</param>
     /// <param name="enemyName">Display name for the enemy</param>
     /// <returns>A Character instance for combat simulation</returns>
-    public static Character CreateStageEnemy(int hp, int power, int speed, int defense, double criticalChance, string enemyName, double? actionTimeOverride = null)
+    public static Character CreateStageEnemy(long hp, long power, long speed, long defense, double criticalChance, string enemyName, double? actionTimeOverride = null)
     {
         var character = new Character
         {
             UserId = "stage-enemy",
             Level = 1,
             XP = 0,
-            HP = hp,
-            Power = power,
-            Speed = speed,
-            Defense = defense,
+            HP = (int)Math.Min(hp, int.MaxValue),
+            Power = (int)Math.Min(power, int.MaxValue),
+            Speed = (int)Math.Min(speed, int.MaxValue),
+            Defense = (int)Math.Min(defense, int.MaxValue),
             CriticalChance = criticalChance,
             CurrentHP = hp,
             HpUpgrades = 0,
@@ -888,7 +889,7 @@ public class Character : BaseEntity
     /// <summary>
     /// Takes damage and updates CurrentHP
     /// </summary>
-    public void TakeDamage(int damage)
+    public void TakeDamage(long damage)
     {
         var currentHp = CurrentHP ?? TotalHP;
         currentHp -= damage;
@@ -899,7 +900,7 @@ public class Character : BaseEntity
     /// Heals the character and updates CurrentHP
     /// Accounts for shot buff if active
     /// </summary>
-    public void Heal(int amount)
+    public void Heal(long amount)
     {
         var maxHP = ShotBuffBattlesRemaining > 0 
             ? CreateShotBuffedCopy(this).TotalHP 
@@ -949,7 +950,7 @@ public class Character : BaseEntity
             var unbuffedMaxHp = TotalHP;
             var currentHp = CurrentHP ?? buffedMaxHp;
             var hpRatio = (double)currentHp / buffedMaxHp;
-            CurrentHP = Math.Max(1, (int)Math.Round(hpRatio * unbuffedMaxHp));
+            CurrentHP = Math.Max(1, (long)Math.Round(hpRatio * unbuffedMaxHp));
         }
     }
 
@@ -966,7 +967,7 @@ public class Character : BaseEntity
     /// Gets the display max HP for UI, accounting for shot buff.
     /// Uses CreateShotBuffedCopy to get the exact same value used in combat.
     /// </summary>
-    public int GetDisplayMaxHP()
+    public long GetDisplayMaxHP()
     {
         if (ShotBuffBattlesRemaining > 0)
         {

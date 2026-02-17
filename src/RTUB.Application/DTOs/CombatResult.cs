@@ -22,12 +22,12 @@ public class CombatResult
     /// <summary>
     /// Final HP of the attacker after the battle
     /// </summary>
-    public int AttackerFinalHP { get; set; }
+    public long AttackerFinalHP { get; set; }
 
     /// <summary>
     /// Final HP of the defender after the battle
     /// </summary>
-    public int DefenderFinalHP { get; set; }
+    public long DefenderFinalHP { get; set; }
 
     /// <summary>
     /// Remaining Cigarro shield hits for the attacker after the battle
@@ -69,7 +69,7 @@ public class CombatEvent
     /// <summary>
     /// Damage dealt (for Attack events)
     /// </summary>
-    public int? Damage { get; set; }
+    public long? Damage { get; set; }
 
     /// <summary>
     /// Whether the attack was a critical hit (for Attack events)
@@ -94,12 +94,12 @@ public class CombatEvent
     /// <summary>
     /// Current HP value (for HPUpdate events)
     /// </summary>
-    public int? HP { get; set; }
+    public long? HP { get; set; }
 
     /// <summary>
     /// Maximum HP value (for initial HPUpdate events)
     /// </summary>
-    public int? MaxHP { get; set; }
+    public long? MaxHP { get; set; }
 
     /// <summary>
     /// Winner character identifier (for Victory events)
@@ -167,7 +167,7 @@ public class CombatEvent
     /// For AoE spells — per-target damage values (same order as Targets).
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<int>? TargetDamages { get; set; }
+    public List<long>? TargetDamages { get; set; }
 
     /// <summary>
     /// Status effect applied by this attack (e.g. "sleep", "bleed", "vulnerable").

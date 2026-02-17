@@ -59,7 +59,7 @@ public class CritChanceDebugTests
         defender.CriticalChance = 0.0;
 
         // Act - Run many battles and count crits
-        var allDamages = new List<int>();
+        var allDamages = new List<long>();
         for (int seed = 0; seed < 1000; seed++)
         {
             var result = engine.Simulate(attacker, defender, seed);

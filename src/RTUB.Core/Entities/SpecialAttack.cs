@@ -1,3 +1,5 @@
+using RTUB.Core.Enums;
+
 namespace RTUB.Core.Entities;
 
 /// <summary>

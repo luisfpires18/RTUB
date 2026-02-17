@@ -15,7 +15,6 @@
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
-@using RTUB.Application.Services
 @attribute [Authorize]
 @inject IStageService StageService
 @inject ICharacterService CharacterService
@@ -436,7 +435,7 @@
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
-    private int? runStartingHp;
+    private long? runStartingHp;
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroShield = 0;
@@ -449,7 +448,7 @@
     // Defeat summary state
     private bool showDefeatSummary = false;
     private int defeatedAtStage = 0;
-    private int? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
+    private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -659,7 +658,7 @@
                 }
             }
             var starterSpells = RTUB.Application.Data.SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
-            var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.Services.CombatantState
+            var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.DTOs.CombatantState
             {
                 Identifier = $"Enemy{i}",
                 Name = e.Name,
@@ -995,118 +994,43 @@
 
         try
         {
-            // Stage mode uses ConsumeItemAsync directly (not UseXxxAsync) because
-            // stage batches character DB writes at run end. The UseXxxAsync methods
-            // reload character from DB and check state (HP full, buff already active)
-            // which fails since the DB character isn't updated during the run.
-            switch (type.ToLowerInvariant())
-            {
-                case "fino":
-                {
-                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
-                    // Check consumable cooldown (2.5 minutes for Fino)
-                    if (_combatSession.ConsumableCooldowns.TryGetValue("fino", out var finoCd) && finoCd > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = $"Fino em cooldown ({finoCd:F0}s)." }, _spellJsonOptions);
-                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
-                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Fino, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Fino disponível." }, _spellJsonOptions);
-                    var maxHp = _combatSession.Player.MaxHP;
-                    var healAmount = (int)(maxHp * 0.25);
-                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
-                    character.CurrentHP = _combatSession.Player.CurrentHP;
-                    _finoQty = Math.Max(0, _finoQty - 1);
-                    // Set 2.5 minute cooldown
-                    _combatSession.ConsumableCooldowns["fino"] = 150;
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _finoQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 150 }, _spellJsonOptions);
-                }
-                case "caneca":
-                {
-                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
-                    // Check consumable cooldown (5 minutes for Caneca)
-                    if (_combatSession.ConsumableCooldowns.TryGetValue("caneca", out var canecaCd) && canecaCd > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = $"Caneca em cooldown ({canecaCd:F0}s)." }, _spellJsonOptions);
-                    if (_combatSession.Player.CurrentHP >= _combatSession.Player.MaxHP)
-                        return JsonSerializer.Serialize(new { success = false, message = "HP já está cheio." }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Caneca, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Caneca disponível." }, _spellJsonOptions);
-                    var maxHp = _combatSession.Player.MaxHP;
-                    var healAmount = (int)(maxHp * 0.50);
-                    _combatSession.Player.CurrentHP = Math.Min(_combatSession.Player.CurrentHP + healAmount, maxHp);
-                    character.CurrentHP = _combatSession.Player.CurrentHP;
-                    _canecaQty = Math.Max(0, _canecaQty - 1);
-                    // Set 5 minute cooldown
-                    _combatSession.ConsumableCooldowns["caneca"] = 300;
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canecaQty, healAmount, playerHP = _combatSession.Player.CurrentHP, playerMaxHP = maxHp, cooldownSeconds = 300 }, _spellJsonOptions);
-                }
-                case "cigarro":
-                {
-                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
-                    if (_combatSession.CigarroShieldRemaining > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = "Escudo já ativo!" }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Cigarro, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Cigarro disponível." }, _spellJsonOptions);
-                    _combatSession.CigarroShieldRemaining = 3;
-                    character.CigarroShieldHitsRemaining = 3;
-                    _cigarroQty = Math.Max(0, _cigarroQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _cigarroQty, buffMessage = "🛡️ ESCUDO x3", buffActive = true }, _spellJsonOptions);
-                }
-                case "canhao":
-                {
-                    if (_combatSession == null) return JsonSerializer.Serialize(new { success = false, message = "Sessão inválida." }, _spellJsonOptions);
-                    if (_combatSession.CanhaoBoostRemaining > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = "Boost já ativo!" }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Canhao, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Canhão disponível." }, _spellJsonOptions);
-                    _combatSession.CanhaoBoostRemaining = 3;
-                    character.CanhaoDamageBoostHitsRemaining = 3;
-                    _canhaoQty = Math.Max(0, _canhaoQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _canhaoQty, buffMessage = "💣 +30% DMG x3", buffActive = true }, _spellJsonOptions);
-                }
-                case "shot":
-                {
-                    if (character.ShotBuffBattlesRemaining > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = "Shot já ativo!" }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Shot, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Shot disponível." }, _spellJsonOptions);
-                    character.ShotBuffBattlesRemaining = 5;
-                    // Apply +20% power to current combat session immediately
-                    if (_combatSession != null)
-                    {
-                        _combatSession.Player.Power = (int)Math.Round(_combatSession.Player.Power * 1.2);
-                        _combatSession.HasShotBuff = true;
-                    }
-                    _shotQty = Math.Max(0, _shotQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _shotQty, buffMessage = "🥃 SHOT +20% x5", buffActive = true }, _spellJsonOptions);
-                }
-                case "penalty":
-                {
-                    if (character.PenaltyBuffActive > 0)
-                        return JsonSerializer.Serialize(new { success = false, message = "Penalty já ativo!" }, _spellJsonOptions);
-                    var consumed = await InventoryRepository.ConsumeItemAsync(currentUser.Id, InventoryItemType.Penalty, 1);
-                    if (!consumed) return JsonSerializer.Serialize(new { success = false, message = "Sem Penalty disponível." }, _spellJsonOptions);
-                    character.PenaltyBuffActive = 1;
-                    // Apply -0.5s speed and +50% crit to current combat session immediately
-                    double newActionTime = 0;
-                    if (_combatSession != null)
-                    {
-                        _combatSession.Player.ActionTimeSeconds = Math.Max(0.5, _combatSession.Player.ActionTimeSeconds - 0.5);
-                        _combatSession.Player.CriticalChance = Math.Min(1.0, _combatSession.Player.CriticalChance + 0.5);
-                        _combatSession.HasPenaltyBuff = true;
-                        newActionTime = _combatSession.Player.ActionTimeSeconds;
-                    }
-                    _penaltyQty = Math.Max(0, _penaltyQty - 1);
-                    return JsonSerializer.Serialize(new { success = true, type, newQuantity = _penaltyQty, buffMessage = "⚡ PENALTY!", buffActive = true, newActionTime }, _spellJsonOptions);
-                }
-                default:
-                    return JsonSerializer.Serialize(new { success = false, message = "Consumível desconhecido." }, _spellJsonOptions);
-            }
+            var result = await CombatActionService.ApplyConsumableAsync(_combatSession, currentUser.Id, type, character);
+
+            if (!result.Success)
+                return JsonSerializer.Serialize(new { success = false, message = result.Message }, _spellJsonOptions);
+
+            // Decrement local UI quantity tracker
+            var newQuantity = DecrementConsumableQuantity(type);
+
+            // Build the JSON response expected by JS
+            if (result.HealAmount.HasValue)
+                return JsonSerializer.Serialize(new { success = true, type, newQuantity, healAmount = result.HealAmount, playerHP = result.PlayerHP, playerMaxHP = result.PlayerMaxHP, cooldownSeconds = result.CooldownSeconds }, _spellJsonOptions);
+            if (result.NewActionTime.HasValue && result.NewActionTime > 0)
+                return JsonSerializer.Serialize(new { success = true, type, newQuantity, buffMessage = result.BuffMessage, buffActive = result.BuffActive, newActionTime = result.NewActionTime }, _spellJsonOptions);
+            return JsonSerializer.Serialize(new { success = true, type, newQuantity, buffMessage = result.BuffMessage, buffActive = result.BuffActive }, _spellJsonOptions);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error using consumable {Type}", type);
             return JsonSerializer.Serialize(new { success = false, message = "Erro ao usar consumível." }, _spellJsonOptions);
         }
+    }
+
+    /// <summary>
+    /// Decrements the local UI consumable quantity tracker and returns the new value.
+    /// </summary>
+    private int DecrementConsumableQuantity(string type)
+    {
+        return type.ToLowerInvariant() switch
+        {
+            "fino" => _finoQty = Math.Max(0, _finoQty - 1),
+            "caneca" => _canecaQty = Math.Max(0, _canecaQty - 1),
+            "cigarro" => _cigarroQty = Math.Max(0, _cigarroQty - 1),
+            "canhao" => _canhaoQty = Math.Max(0, _canhaoQty - 1),
+            "shot" => _shotQty = Math.Max(0, _shotQty - 1),
+            "penalty" => _penaltyQty = Math.Max(0, _penaltyQty - 1),
+            _ => 0
+        };
     }
 
     [JSInvokable]
@@ -1370,7 +1294,7 @@
         }
     }
 
-    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(long value) => NumberFormatter.Compact(value);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     private void ResetRunTotals()

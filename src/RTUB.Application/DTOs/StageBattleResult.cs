@@ -113,7 +113,7 @@ public class StageBattleResult
     /// <summary>
     /// Player's final HP after the battle
     /// </summary>
-    public int PlayerFinalHP { get; set; }
+    public long PlayerFinalHP { get; set; }
 
     // ── Pre-parsed metadata (avoids re-deserializing ReplayJson per stage) ──
 
@@ -136,8 +136,8 @@ public class StageBattleResult
 public class StageBattleEnemyStat
 {
     public string Name { get; set; } = "Enemy";
-    public int HP { get; set; }
-    public int Power { get; set; }
-    public int Defense { get; set; }
+    public long HP { get; set; }
+    public long Power { get; set; }
+    public long Defense { get; set; }
     public double ActionTime { get; set; } = 5.0;
 }

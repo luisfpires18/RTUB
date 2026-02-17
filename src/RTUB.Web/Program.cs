@@ -151,7 +151,18 @@ public class Program
                 shotBuffBonusPerUpgrade: myTunoScaling.Improvements.ShotBuffBonus.MultiplierPerUpgrade,
                 fidelisEarnedBonusPerUpgrade: myTunoScaling.Improvements.FidelisEarned.MultiplierPerUpgrade,
                 heavyAttackBonusPerUpgrade: myTunoScaling.Powers.HeavyAttack.MultiplierPerUpgrade,
-                specialAttackBonusPerUpgrade: myTunoScaling.Powers.SpecialAttack.MultiplierPerUpgrade);
+                specialAttackBonusPerUpgrade: myTunoScaling.Powers.SpecialAttack.MultiplierPerUpgrade,
+                finoHealPercent: myTunoScaling.Consumables.FinoHealPercent,
+                finoCooldownSeconds: myTunoScaling.Consumables.FinoCooldownSeconds,
+                canecaHealPercent: myTunoScaling.Consumables.CanecaHealPercent,
+                canecaCooldownSeconds: myTunoScaling.Consumables.CanecaCooldownSeconds,
+                cigarroShieldCharges: myTunoScaling.Consumables.CigarroShieldCharges,
+                canhaoBoostCharges: myTunoScaling.Consumables.CanhaoBoostCharges,
+                shotBuffBattles: myTunoScaling.Consumables.ShotBuffBattles,
+                shotPowerMultiplier: myTunoScaling.Consumables.ShotPowerMultiplier,
+                penaltySpeedReduction: myTunoScaling.Consumables.PenaltySpeedReduction,
+                penaltyCritIncrease: myTunoScaling.Consumables.PenaltyCritIncrease,
+                penaltyMinActionTime: myTunoScaling.Consumables.PenaltyMinActionTime);
         }
 
         // ---------- DB: SQLite only ----------

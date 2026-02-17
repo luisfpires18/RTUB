@@ -25,5 +25,5 @@ public class BossModeBattleResult
     public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
     public List<InventoryItemType> EquipmentDropped { get; set; } = new();
     public string ReplayJson { get; set; } = string.Empty;
-    public int PlayerFinalHP { get; set; }
+    public long PlayerFinalHP { get; set; }
 }

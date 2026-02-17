@@ -378,7 +378,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
+    public async Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -474,17 +474,17 @@ public class StageService : IStageService
         var diffMult = isBoss ? _biomeService.GetBossesDifficultyMultiplier(stageNumber) : _biomeService.GetEnemiesDifficultyMultiplier(stageNumber);
         var bossMult = isBoss ? stageConfig.BossMultiplier : 1.0;
 
-        int baseHP, basePower, baseSpeed, baseDefense;
+        long baseHP, basePower, baseSpeed, baseDefense;
         double baseCriticalChance;
         string enemyName;
 
         if (template != null)
         {
             // Template provides base stats; we apply unified curve on top
-            baseHP = Math.Max(1, (int)(template.BaseHP * curve * diffMult * bossMult));
-            basePower = Math.Max(1, (int)(template.BasePower * curve * diffMult * bossMult));
-            baseSpeed = Math.Max(1, (int)(template.BaseSpeed * curve * diffMult * bossMult));
-            baseDefense = Math.Max(1, (int)(template.BaseDefense * curve * diffMult * bossMult));
+            baseHP = Math.Max(1, (long)(template.BaseHP * curve * diffMult * bossMult));
+            basePower = Math.Max(1, (long)(template.BasePower * curve * diffMult * bossMult));
+            baseSpeed = Math.Max(1, (long)(template.BaseSpeed * curve * diffMult * bossMult));
+            baseDefense = Math.Max(1, (long)(template.BaseDefense * curve * diffMult * bossMult));
             baseCriticalChance = template.BaseCriticalChance;
             enemyName = template.Name;
         }
@@ -496,10 +496,10 @@ public class StageService : IStageService
                 _ => baseStats.Normal
             };
 
-            baseHP = Math.Max(1, (int)(typeStats.Hp * curve * diffMult * bossMult));
-            basePower = Math.Max(1, (int)(typeStats.Power * curve * diffMult * bossMult));
-            baseSpeed = Math.Max(1, (int)(typeStats.Speed * curve * diffMult * bossMult));
-            baseDefense = Math.Max(1, (int)(typeStats.Defense * curve * diffMult * bossMult));
+            baseHP = Math.Max(1, (long)(typeStats.Hp * curve * diffMult * bossMult));
+            basePower = Math.Max(1, (long)(typeStats.Power * curve * diffMult * bossMult));
+            baseSpeed = Math.Max(1, (long)(typeStats.Speed * curve * diffMult * bossMult));
+            baseDefense = Math.Max(1, (long)(typeStats.Defense * curve * diffMult * bossMult));
 
             var critGrowth = (stageNumber - 1) * 0.003; // Gentle crit growth
             baseCriticalChance = Math.Min(typeStats.CriticalChance + critGrowth, _myTunoScalingConfig.Combat.CriticalChanceCap);
@@ -656,7 +656,7 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -684,7 +684,7 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, int? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, bool expirePenaltyBuff, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, bool expirePenaltyBuff, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasEquipment = equipment != null && equipment.Count > 0;

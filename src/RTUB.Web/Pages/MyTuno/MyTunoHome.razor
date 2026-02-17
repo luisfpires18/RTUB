@@ -1981,7 +1981,7 @@
     /// Gets the display max HP for the character, accounting for shot buff.
     /// Delegates to Character.GetDisplayMaxHP().
     /// </summary>
-    private static int GetDisplayMaxHP(Character? c)
+    private static long GetDisplayMaxHP(Character? c)
     {
         if (c == null) return 100;
         return c.GetDisplayMaxHP();
@@ -2169,8 +2169,8 @@
         }
     }
 
-    private static string Fmt(int value) => NumberFormatter.Compact(value);
-    private static string Fmt(int? value) => NumberFormatter.Compact(value ?? 0);
+    private static string Fmt(long value) => NumberFormatter.Compact(value);
+    private static string Fmt(long? value) => NumberFormatter.Compact(value ?? 0);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     protected override async Task OnInitializedAsync()

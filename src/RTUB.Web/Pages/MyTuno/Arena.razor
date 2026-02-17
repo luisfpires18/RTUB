@@ -8,7 +8,6 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
 @using RTUB.Application.DTOs
-@using RTUB.Application.Services
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
@@ -240,7 +239,7 @@
 </div>
 
 @code {
-    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(long value) => NumberFormatter.Compact(value);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     private Character? character;
@@ -281,7 +280,7 @@
     
     // Helper method to get display max HP accounting for buff
     // Delegates to Character.GetDisplayMaxHP()
-    private static int GetDisplayMaxHP(Character? c)
+    private static long GetDisplayMaxHP(Character? c)
     {
         if (c == null) return 0;
         return c.GetDisplayMaxHP();

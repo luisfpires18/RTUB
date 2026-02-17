@@ -327,6 +327,6 @@
     }
 
     private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
-    private static string Fmt(int value) => NumberFormatter.Compact(value);
-    private static string Fmt(int? value) => NumberFormatter.Compact(value ?? 0);
+    private static string Fmt(long value) => NumberFormatter.Compact(value);
+    private static string Fmt(long? value) => NumberFormatter.Compact(value ?? 0);
 }

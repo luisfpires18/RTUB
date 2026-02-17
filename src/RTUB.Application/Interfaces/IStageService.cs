@@ -72,7 +72,7 @@ public interface IStageService
     /// <param name="restoreStage">The stage number to restore to</param>
     /// <param name="restoreShotBuffBattles">The shot buff battles remaining to restore</param>
     /// <returns>True if cancelled successfully</returns>
-    Task<bool> CancelRunAsync(int characterId, int restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default);
+    Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
@@ -80,7 +80,7 @@ public interface IStageService
     /// Not called on cancel/back — rewards are forfeited.
     /// Optionally restores the character's HP to the value they had before the run started.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, int? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the biome name for a given stage number

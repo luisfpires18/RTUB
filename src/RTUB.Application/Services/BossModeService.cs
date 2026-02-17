@@ -262,7 +262,7 @@ public class BossModeService : IBossModeService
     /// <inheritdoc />
     public async Task ApplyBossRunRewardsAsync(
         int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
-        int? restoreHp = null,
+        long? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         Dictionary<InventoryItemType, int>? equipment = null,
         bool expireShotBuff = false,
@@ -340,7 +340,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelBossRunAsync(int characterId, int restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
+    public async Task<bool> CancelBossRunAsync(int characterId, long restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         // Pre-fetch character for logging (available in catch blocks)
@@ -460,10 +460,10 @@ public class BossModeService : IBossModeService
         var diffMult = _biomeService.GetBossesDifficultyMultiplier(equivalentStage);
         var bossMult = bossConfig.BossStatMultiplier;
 
-        var hp = Math.Max(1, (int)(baseStats.Hp * curve * diffMult * bossMult));
-        var power = Math.Max(1, (int)(baseStats.Power * curve * diffMult * bossMult));
-        var speed = Math.Max(1, (int)(baseStats.Speed * curve * diffMult * bossMult));
-        var defense = Math.Max(1, (int)(baseStats.Defense * curve * diffMult * bossMult));
+        var hp = Math.Max(1, (long)(baseStats.Hp * curve * diffMult * bossMult));
+        var power = Math.Max(1, (long)(baseStats.Power * curve * diffMult * bossMult));
+        var speed = Math.Max(1, (long)(baseStats.Speed * curve * diffMult * bossMult));
+        var defense = Math.Max(1, (long)(baseStats.Defense * curve * diffMult * bossMult));
 
         var critGrowth = (equivalentStage - 1) * 0.003;
         var critChance = Math.Min(baseStats.CriticalChance + critGrowth, _config.Combat.CriticalChanceCap);
@@ -571,7 +571,7 @@ public class BossModeService : IBossModeService
     }
 
     private async Task UpdateProgressAfterBattle(
-        Character character, BossModeProgress progress, CombatResult combatResult, int bossMaxHP)
+        Character character, BossModeProgress progress, CombatResult combatResult, long bossMaxHP)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
