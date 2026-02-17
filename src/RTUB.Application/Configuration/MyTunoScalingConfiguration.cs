@@ -27,6 +27,11 @@ public class MyTunoScalingConfiguration
     public BattleRewards BattleRewards { get; set; } = new();
     public CombatConfig Combat { get; set; } = new();
 
+    /// <summary>
+    /// Consumable item effect configuration (heal amounts, cooldowns, charges, buffs).
+    /// </summary>
+    public ConsumablesConfig Consumables { get; set; } = new();
+
     public StageModeConfig StageMode { get; set; } = new();
 
     /// <summary>
@@ -659,6 +664,45 @@ public class CombatConfig
     /// Stat multiplier when a shot buff is active (1.20 = 20% boost).
     /// </summary>
     public double ShotBuffMultiplier { get; set; } = 1.20;
+}
+
+/// <summary>
+/// Configuration for consumable item effects during combat.
+/// </summary>
+public class ConsumablesConfig
+{
+    /// <summary>Fino heal as fraction of max HP (0.25 = 25%).</summary>
+    public double FinoHealPercent { get; set; } = 0.25;
+
+    /// <summary>Fino cooldown in seconds after use.</summary>
+    public double FinoCooldownSeconds { get; set; } = 150;
+
+    /// <summary>Caneca heal as fraction of max HP (0.50 = 50%).</summary>
+    public double CanecaHealPercent { get; set; } = 0.50;
+
+    /// <summary>Caneca cooldown in seconds after use.</summary>
+    public double CanecaCooldownSeconds { get; set; } = 300;
+
+    /// <summary>Number of hits the Cigarro shield absorbs.</summary>
+    public int CigarroShieldCharges { get; set; } = 3;
+
+    /// <summary>Number of hits with Canhão damage boost.</summary>
+    public int CanhaoBoostCharges { get; set; } = 3;
+
+    /// <summary>Number of battles the Shot buff persists.</summary>
+    public int ShotBuffBattles { get; set; } = 5;
+
+    /// <summary>Power multiplier when Shot is active (1.20 = +20%).</summary>
+    public double ShotPowerMultiplier { get; set; } = 1.20;
+
+    /// <summary>Seconds subtracted from action time by Penalty.</summary>
+    public double PenaltySpeedReduction { get; set; } = 0.5;
+
+    /// <summary>Critical chance added by Penalty (0.5 = +50%).</summary>
+    public double PenaltyCritIncrease { get; set; } = 0.5;
+
+    /// <summary>Minimum action time floor after Penalty speed reduction.</summary>
+    public double PenaltyMinActionTime { get; set; } = 0.5;
 }
 
 /// <summary>

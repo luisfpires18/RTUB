@@ -51,7 +51,7 @@ public class BattleResult
     /// <summary>
     /// Attacker's final HP after the battle
     /// </summary>
-    public int AttackerFinalHP { get; set; }
+    public long AttackerFinalHP { get; set; }
 
     /// <summary>
     /// Whether shot buff was active during this battle

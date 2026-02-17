@@ -1,5 +1,6 @@
 using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
@@ -52,4 +53,21 @@ public interface ICombatActionService
     /// Advances spell cooldowns by the given elapsed time (called by JS after each tick).
     /// </summary>
     Dictionary<string, double> TickCooldowns(CombatSession session, double elapsedSeconds);
+
+    /// <summary>
+    /// Applies a consumable item to the current combat session.
+    /// Handles inventory consumption, cooldown checks, and effect application.
+    /// </summary>
+    /// <param name="session">The current combat session (may be null if no active combat).</param>
+    /// <param name="userId">The user ID for inventory consumption.</param>
+    /// <param name="type">Consumable type key (e.g. "fino", "caneca").</param>
+    /// <param name="character">The character entity (for persistent buff tracking).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Result describing the outcome, ready to serialize to JSON for JS.</returns>
+    Task<ConsumableResult> ApplyConsumableAsync(
+        CombatSession? session,
+        string userId,
+        string type,
+        Character character,
+        CancellationToken cancellationToken = default);
 }

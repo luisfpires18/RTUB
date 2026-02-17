@@ -177,16 +177,16 @@ public class CombatantState
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Current hit points.</summary>
-    public int CurrentHP { get; set; }
+    public long CurrentHP { get; set; }
 
     /// <summary>Maximum hit points.</summary>
-    public int MaxHP { get; set; }
+    public long MaxHP { get; set; }
 
     /// <summary>Attack power stat.</summary>
-    public int Power { get; set; }
+    public long Power { get; set; }
 
     /// <summary>Defense stat.</summary>
-    public int Defense { get; set; }
+    public long Defense { get; set; }
 
     /// <summary>Probability of a critical hit (0–1).</summary>
     public double CriticalChance { get; set; }

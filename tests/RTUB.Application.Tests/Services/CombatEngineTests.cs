@@ -492,7 +492,7 @@ public class CombatEngineTests
         defender.CriticalChance = 0.0;
 
         // Act - Run multiple seeds
-        var allDamages = new List<int>();
+        var allDamages = new List<long>();
         for (int seed = 0; seed < 100; seed++)
         {
             var result = _combatEngine.Simulate(attacker, defender, seed);
@@ -503,7 +503,7 @@ public class CombatEngineTests
         }
 
         // Assert - No damage should exceed max non-crit (Power * 1.2)
-        var maxNonCritDamage = (int)(attacker.Power * 1.2);
+        var maxNonCritDamage = (long)(attacker.Power * 1.2);
         allDamages.Should().OnlyContain(d => d <= maxNonCritDamage + 1, // +1 for rounding
             "with 0% crit chance, no attacks should be critical hits");
     }
@@ -562,7 +562,7 @@ public class CombatEngineTests
         defender.CriticalChance = 0.0;
 
         // Act - Collect damage values from multiple battles
-        var allDamages = new List<int>();
+        var allDamages = new List<long>();
         for (int seed = 0; seed < 500; seed++)
         {
             var result = _combatEngine.Simulate(attacker, defender, seed);
@@ -575,7 +575,7 @@ public class CombatEngineTests
         // Calculate crit rate
         // Crit damage: Power * variance * 2 (at least Power * 0.8 * 2 = 160)
         // Non-crit damage: Power * variance (at most Power * 1.2 = 120)
-        var critThreshold = (int)(attacker.Power * 1.3); // Threshold between crit and non-crit
+        var critThreshold = (long)(attacker.Power * 1.3); // Threshold between crit and non-crit
         var critCount = allDamages.Count(d => d > critThreshold);
         var totalAttacks = allDamages.Count;
         var observedCritRate = (double)critCount / totalAttacks;
@@ -607,7 +607,7 @@ public class CombatEngineTests
         defender.CriticalChance = 0.0;
 
         // Act - Collect multiple battles
-        var allDamages = new List<int>();
+        var allDamages = new List<long>();
         for (int seed = 0; seed < 200; seed++)
         {
             var result = _combatEngine.Simulate(attacker, defender, seed);
@@ -618,7 +618,7 @@ public class CombatEngineTests
         }
 
         // Calculate crit rate - should be ~50%
-        var critThreshold = (int)(attacker.Power * 1.3);
+        var critThreshold = (long)(attacker.Power * 1.3);
         var critCount = allDamages.Count(d => d > critThreshold);
         var totalAttacks = allDamages.Count;
         var observedCritRate = (double)critCount / totalAttacks;
@@ -807,7 +807,7 @@ public class CombatEngineTests
         defender.Defense = defense;
 
         // Collect damage from multiple seeds to get average
-        var damages = new List<int>();
+        var damages = new List<long>();
         for (int seed = 1; seed <= 100; seed++)
         {
             var result = _combatEngine.Simulate(attacker, defender, seed);

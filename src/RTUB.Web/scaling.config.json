@@ -95,6 +95,20 @@
       "shotBuffMultiplier": 1.20
     },
 
+    "consumables": {
+      "finoHealPercent": 0.25,
+      "finoCooldownSeconds": 150,
+      "canecaHealPercent": 0.50,
+      "canecaCooldownSeconds": 300,
+      "cigarroShieldCharges": 3,
+      "canhaoBoostCharges": 3,
+      "shotBuffBattles": 5,
+      "shotPowerMultiplier": 1.20,
+      "penaltySpeedReduction": 0.5,
+      "penaltyCritIncrease": 0.5,
+      "penaltyMinActionTime": 0.5
+    },
+
     "battleRewards": {
       "winReward": 150,
       "drawReward": 40,

@@ -382,14 +382,14 @@ public class StageBiomeService : IStageBiomeService
     /// <summary>
     /// Calculates scaled enemy stats for a given stage using the unified difficulty curve.
     /// </summary>
-    public (int hp, int damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
+    public (long hp, long damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
     {
         var curve = GetUnifiedDifficultyCurve(stageNumber);
         var diffMult = isBoss ? GetBossesDifficultyMultiplier(stageNumber) : GetEnemiesDifficultyMultiplier(stageNumber);
         var bossMult = isBoss ? _config.StageMode.BossMultiplier : 1.0;
 
-        var scaledHp = Math.Max(1, (int)(baseHp * curve * diffMult * bossMult));
-        var scaledDamage = Math.Max(1, (int)(baseDamage * curve * diffMult * bossMult));
+        var scaledHp = Math.Max(1, (long)(baseHp * curve * diffMult * bossMult));
+        var scaledDamage = Math.Max(1, (long)(baseDamage * curve * diffMult * bossMult));
 
         return (scaledHp, scaledDamage);
     }

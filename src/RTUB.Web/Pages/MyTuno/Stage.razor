@@ -435,7 +435,7 @@
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
-    private int? runStartingHp;
+    private long? runStartingHp;
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroShield = 0;
@@ -448,7 +448,7 @@
     // Defeat summary state
     private bool showDefeatSummary = false;
     private int defeatedAtStage = 0;
-    private int? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
+    private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -1369,7 +1369,7 @@
         }
     }
 
-    private static string Fmt(int value) => NumberFormatter.Compact(value);
+    private static string Fmt(long value) => NumberFormatter.Compact(value);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
 
     private void ResetRunTotals()

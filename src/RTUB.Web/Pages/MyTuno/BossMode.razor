@@ -564,7 +564,7 @@
     private int bossesCleared = 0;
 
     // Run state tracking
-    private int? runStartingHp;
+    private long? runStartingHp;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroShield = 0;
     private int runStartingCanhaoBoost = 0;
@@ -577,7 +577,7 @@
     // Defeat summary
     private bool showDefeatSummary = false;
     private int defeatedAtBossStage = 0;
-    private int? defeatRestoreHp;
+    private long? defeatRestoreHp;
 
     // Consumable state (post-defeat buff screen)
     private bool showBuffScreen = false;
@@ -1682,7 +1682,7 @@
         currentEnemyStats.Clear();
     }
 
-    private static string Fmt(int value) => value.ToString("N0");
+    private static string Fmt(long value) => value.ToString("N0");
     private static string Fmt(decimal value) => value.ToString("N0");
 
     private async Task CancelRunIfInProgressAsync()

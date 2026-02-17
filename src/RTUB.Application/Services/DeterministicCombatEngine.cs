@@ -100,7 +100,7 @@ public class DeterministicCombatEngine : ICombatEngine
                 // Apply Canhão damage boost (+30%) if active
                 if (attackerDamageBoostHits > 0)
                 {
-                    damage = (int)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
+                    damage = (long)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
                     attackerDamageBoostHits--;
                     isBoosted = true;
                 }
@@ -400,7 +400,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     // Apply Canhão damage boost (+30%) if active
                     if (playerDamageBoostHits > 0)
                     {
-                        damage = (int)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
+                        damage = (long)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
                         playerDamageBoostHits--;
                         isBoosted = true;
                     }
@@ -558,7 +558,7 @@ public class DeterministicCombatEngine : ICombatEngine
     /// <summary>
     /// Determines the battle outcome based on final HP values
     /// </summary>
-    private static BattleOutcome DetermineOutcome(int attackerHP, int defenderHP)
+    private static BattleOutcome DetermineOutcome(long attackerHP, long defenderHP)
     {
         if (attackerHP > 0 && defenderHP <= 0)
             return BattleOutcome.AttackerWon;

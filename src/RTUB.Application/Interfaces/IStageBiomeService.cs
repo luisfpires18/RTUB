@@ -115,5 +115,5 @@ public interface IStageBiomeService
     /// <param name="baseDamage">Base damage value</param>
     /// <param name="isBoss">Whether this is a boss enemy</param>
     /// <returns>Tuple of (scaledHp, scaledDamage)</returns>
-    (int hp, int damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss);
+    (long hp, long damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss);
 }

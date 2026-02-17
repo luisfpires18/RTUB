@@ -1,6 +1,7 @@
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Utilities;
@@ -15,8 +16,9 @@ namespace RTUB.Application.Services;
 ///   rawDamage = power × variance(0.8–1.2) × crit(2x)
 ///   finalDamage = max(MinDamage, floor(rawDamage × K/(K+defense)))
 /// </summary>
-public class CombatActionService : ICombatActionService
+public class CombatActionService(IInventoryRepository inventoryRepository) : ICombatActionService
 {
+    private readonly IInventoryRepository _inventoryRepository = inventoryRepository;
 
     /// <inheritdoc />
     public CombatSession CreateSession(
@@ -423,17 +425,17 @@ public class CombatActionService : ICombatActionService
         {
             var aliveEnemies = session.Enemies.Where(e => e.CurrentHP > 0).ToList();
             var targets = new List<string>();
-            var damages = new List<int>();
+            var damages = new List<long>();
 
             foreach (var enemy in aliveEnemies)
             {
-                var dmg = 0;
+                long dmg = 0;
                 if (spell.DamageMultiplier > 0)
                 {
                     dmg = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                     // Apply Powers special attack damage bonus
                     if (session.SpecialAttackDamageBonus > 0)
-                        dmg = (int)Math.Round(dmg * (1.0 + session.SpecialAttackDamageBonus));
+                        dmg = (long)Math.Round(dmg * (1.0 + session.SpecialAttackDamageBonus));
                     dmg = CombatMath.ApplyDefenseMitigation(dmg, GetEffectiveDefense(session, enemy));
                     enemy.CurrentHP = Math.Max(0, enemy.CurrentHP - dmg);
                 }
@@ -501,13 +503,13 @@ public class CombatActionService : ICombatActionService
                 return CompleteBattle(session, session.Player.Identifier);
 
             var target = session.Enemies[session.CurrentTargetIndex];
-            var rawDamage = 0;
+            var rawDamage = 0L;
             if (spell.DamageMultiplier > 0)
             {
                 rawDamage = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                 // Apply Powers special attack damage bonus
                 if (session.SpecialAttackDamageBonus > 0)
-                    rawDamage = (int)Math.Round(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
+                    rawDamage = (long)Math.Round(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
                 rawDamage = CombatMath.ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
                 target.CurrentHP = Math.Max(0, target.CurrentHP - rawDamage);
             }
@@ -728,12 +730,12 @@ public class CombatActionService : ICombatActionService
 
     // ── Effect-aware helpers ──
 
-    private static int GetEffectiveDefense(CombatSession session, CombatantState target)
+    private static long GetEffectiveDefense(CombatSession session, CombatantState target)
     {
         var defense = target.Defense;
         if (session.EnemyDefenseBreak.TryGetValue(target.Identifier, out var db) && db.HitsRemaining > 0)
         {
-            defense = (int)(defense * (1.0 - db.ReductionFraction));
+            defense = (long)(defense * (1.0 - db.ReductionFraction));
         }
         return defense;
     }
@@ -815,7 +817,7 @@ public class CombatActionService : ICombatActionService
         session.EnemyDefenseBreak.Remove(identifier);
     }
 
-    private static void EmitHPUpdate(CombatSession session, CombatActionResult result, string identifier, int hp, double simTime)
+    private static void EmitHPUpdate(CombatSession session, CombatActionResult result, string identifier, long hp, double simTime)
     {
         var hpEvt = new CombatEvent
         {
@@ -830,7 +832,7 @@ public class CombatActionService : ICombatActionService
     }
 
     private static void EmitSpellAttack(CombatSession session, CombatActionResult result,
-        SpecialAttack spell, string attacker, string defender, int damage, bool isCrit,
+        SpecialAttack spell, string attacker, string defender, long damage, bool isCrit,
         string? effectName, int? effectDuration, double simTime)
     {
         var atkEvt = new CombatEvent
@@ -851,5 +853,160 @@ public class CombatActionService : ICombatActionService
         };
         result.Events.Add(atkEvt);
         session.RecordedEvents.Add(atkEvt);
+    }
+
+    // ── Consumable Application ──
+
+    /// <inheritdoc />
+    public async Task<ConsumableResult> ApplyConsumableAsync(
+        CombatSession? session,
+        string userId,
+        string type,
+        Character character,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(character);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(type);
+
+        switch (type.ToLowerInvariant())
+        {
+            case "fino":
+            {
+                if (session == null) return ConsumableResult.Fail("Sessão inválida.");
+                if (session.ConsumableCooldowns.TryGetValue("fino", out var cd) && cd > 0)
+                    return ConsumableResult.Fail($"Fino em cooldown ({cd:F0}s).");
+                if (session.Player.CurrentHP >= session.Player.MaxHP)
+                    return ConsumableResult.Fail("HP já está cheio.");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Fino disponível.");
+
+                var maxHp = session.Player.MaxHP;
+                var healAmount = (long)(maxHp * MyTunoScaling.FinoHealPercent);
+                session.Player.CurrentHP = Math.Min(session.Player.CurrentHP + healAmount, maxHp);
+                character.CurrentHP = session.Player.CurrentHP;
+                session.ConsumableCooldowns["fino"] = MyTunoScaling.FinoCooldownSeconds;
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type, HealAmount = healAmount,
+                    PlayerHP = session.Player.CurrentHP, PlayerMaxHP = maxHp,
+                    CooldownSeconds = MyTunoScaling.FinoCooldownSeconds
+                };
+            }
+            case "caneca":
+            {
+                if (session == null) return ConsumableResult.Fail("Sessão inválida.");
+                if (session.ConsumableCooldowns.TryGetValue("caneca", out var cd) && cd > 0)
+                    return ConsumableResult.Fail($"Caneca em cooldown ({cd:F0}s).");
+                if (session.Player.CurrentHP >= session.Player.MaxHP)
+                    return ConsumableResult.Fail("HP já está cheio.");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Caneca, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Caneca disponível.");
+
+                var maxHp = session.Player.MaxHP;
+                var healAmount = (long)(maxHp * MyTunoScaling.CanecaHealPercent);
+                session.Player.CurrentHP = Math.Min(session.Player.CurrentHP + healAmount, maxHp);
+                character.CurrentHP = session.Player.CurrentHP;
+                session.ConsumableCooldowns["caneca"] = MyTunoScaling.CanecaCooldownSeconds;
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type, HealAmount = healAmount,
+                    PlayerHP = session.Player.CurrentHP, PlayerMaxHP = maxHp,
+                    CooldownSeconds = MyTunoScaling.CanecaCooldownSeconds
+                };
+            }
+            case "cigarro":
+            {
+                if (session == null) return ConsumableResult.Fail("Sessão inválida.");
+                if (session.CigarroShieldRemaining > 0)
+                    return ConsumableResult.Fail("Escudo já ativo!");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Cigarro, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Cigarro disponível.");
+
+                session.CigarroShieldRemaining = MyTunoScaling.CigarroShieldCharges;
+                character.CigarroShieldHitsRemaining = MyTunoScaling.CigarroShieldCharges;
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type,
+                    BuffMessage = $"🛡️ ESCUDO x{MyTunoScaling.CigarroShieldCharges}", BuffActive = true
+                };
+            }
+            case "canhao":
+            {
+                if (session == null) return ConsumableResult.Fail("Sessão inválida.");
+                if (session.CanhaoBoostRemaining > 0)
+                    return ConsumableResult.Fail("Boost já ativo!");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Canhao, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Canhão disponível.");
+
+                session.CanhaoBoostRemaining = MyTunoScaling.CanhaoBoostCharges;
+                character.CanhaoDamageBoostHitsRemaining = MyTunoScaling.CanhaoBoostCharges;
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type,
+                    BuffMessage = $"💣 +30% DMG x{MyTunoScaling.CanhaoBoostCharges}", BuffActive = true
+                };
+            }
+            case "shot":
+            {
+                if (character.ShotBuffBattlesRemaining > 0)
+                    return ConsumableResult.Fail("Shot já ativo!");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Shot, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Shot disponível.");
+
+                character.ShotBuffBattlesRemaining = MyTunoScaling.ShotBuffBattles;
+                if (session != null)
+                {
+                    session.Player.Power = (long)Math.Round(session.Player.Power * MyTunoScaling.ShotPowerMultiplier);
+                    session.HasShotBuff = true;
+                }
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type,
+                    BuffMessage = $"🥃 SHOT +{(int)((MyTunoScaling.ShotPowerMultiplier - 1) * 100)}% x{MyTunoScaling.ShotBuffBattles}", BuffActive = true
+                };
+            }
+            case "penalty":
+            {
+                if (character.PenaltyBuffActive > 0)
+                    return ConsumableResult.Fail("Penalty já ativo!");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Penalty, 1, cancellationToken);
+                if (!consumed) return ConsumableResult.Fail("Sem Penalty disponível.");
+
+                character.PenaltyBuffActive = 1;
+                double newActionTime = 0;
+                if (session != null)
+                {
+                    session.Player.ActionTimeSeconds = Math.Max(
+                        MyTunoScaling.PenaltyMinActionTime,
+                        session.Player.ActionTimeSeconds - MyTunoScaling.PenaltySpeedReduction);
+                    session.Player.CriticalChance = Math.Min(
+                        1.0,
+                        session.Player.CriticalChance + MyTunoScaling.PenaltyCritIncrease);
+                    session.HasPenaltyBuff = true;
+                    newActionTime = session.Player.ActionTimeSeconds;
+                }
+
+                return new ConsumableResult
+                {
+                    Success = true, Type = type,
+                    BuffMessage = "⚡ PENALTY!", BuffActive = true,
+                    NewActionTime = newActionTime
+                };
+            }
+            default:
+                return ConsumableResult.Fail("Consumível desconhecido.");
+        }
     }
 }

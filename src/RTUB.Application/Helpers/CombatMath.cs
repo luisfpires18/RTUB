@@ -28,8 +28,8 @@ public static class CombatMath
     /// <param name="criticalChance">Probability of a critical hit (0–1).</param>
     /// <param name="rng">Seeded RNG for deterministic results.</param>
     /// <returns>Raw damage (before defense) and whether a crit occurred.</returns>
-    public static (int rawDamage, bool isCritical) CalculateRawDamage(
-        int power, double criticalChance, SeededRandom rng)
+    public static (long rawDamage, bool isCritical) CalculateRawDamage(
+        long power, double criticalChance, SeededRandom rng)
     {
         var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
         var damage = power * variance;
@@ -38,7 +38,7 @@ public static class CombatMath
         {
             damage *= 2;
         }
-        return ((int)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
+        return ((long)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
     }
 
     /// <summary>
@@ -49,12 +49,12 @@ public static class CombatMath
     /// <param name="rawDamage">Damage after power/crit calculations, before mitigation.</param>
     /// <param name="defense">Target's total defense stat.</param>
     /// <returns>Final damage after defense mitigation (minimum <see cref="MyTunoScaling.MinDamage"/>).</returns>
-    public static int ApplyDefenseMitigation(int rawDamage, int defense)
+    public static long ApplyDefenseMitigation(long rawDamage, long defense)
     {
         var k = MyTunoScaling.DefenseK;
         var minDamage = MyTunoScaling.MinDamage;
         var multiplier = k / (k + defense);
-        var mitigatedDamage = (int)Math.Floor(rawDamage * multiplier);
+        var mitigatedDamage = (long)Math.Floor(rawDamage * multiplier);
         return Math.Max(minDamage, mitigatedDamage);
     }
 
@@ -67,8 +67,8 @@ public static class CombatMath
     /// <param name="targetDefense">Target's total defense stat.</param>
     /// <param name="rng">Seeded RNG for deterministic results.</param>
     /// <returns>Final damage and whether a crit occurred.</returns>
-    public static (int damage, bool isCritical) CalculateDamage(
-        int power, double criticalChance, int targetDefense, SeededRandom rng)
+    public static (long damage, bool isCritical) CalculateDamage(
+        long power, double criticalChance, long targetDefense, SeededRandom rng)
     {
         var (rawDamage, isCritical) = CalculateRawDamage(power, criticalChance, rng);
         var finalDamage = ApplyDefenseMitigation(rawDamage, targetDefense);
@@ -84,7 +84,7 @@ public static class CombatMath
     /// <param name="spell">The spell definition.</param>
     /// <param name="rng">Seeded RNG for deterministic results.</param>
     /// <returns>Final spell damage.</returns>
-    public static int CalculateSpellDamage(int power, SpecialAttack spell, SeededRandom rng)
+    public static long CalculateSpellDamage(long power, SpecialAttack spell, SeededRandom rng)
     {
         var variance = rng.Next(DamageVarianceMin, DamageVarianceMax);
         var damage = power * variance * spell.DamageMultiplier;
@@ -95,6 +95,6 @@ public static class CombatMath
             damage *= 2;
         }
 
-        return (int)Math.Round(damage, MidpointRounding.AwayFromZero);
+        return (long)Math.Round(damage, MidpointRounding.AwayFromZero);
     }
 }

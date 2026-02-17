@@ -47,6 +47,41 @@ public static class MyTunoScaling
     /// </summary>
     public static double ShotBuffMultiplier { get; private set; } = 1.20;
 
+    // ── Consumables ──
+
+    /// <summary>Fino heal as fraction of max HP (0.25 = 25%).</summary>
+    public static double FinoHealPercent { get; private set; } = 0.25;
+
+    /// <summary>Fino cooldown in seconds after use.</summary>
+    public static double FinoCooldownSeconds { get; private set; } = 150;
+
+    /// <summary>Caneca heal as fraction of max HP (0.50 = 50%).</summary>
+    public static double CanecaHealPercent { get; private set; } = 0.50;
+
+    /// <summary>Caneca cooldown in seconds after use.</summary>
+    public static double CanecaCooldownSeconds { get; private set; } = 300;
+
+    /// <summary>Number of hits the Cigarro shield absorbs.</summary>
+    public static int CigarroShieldCharges { get; private set; } = 3;
+
+    /// <summary>Number of hits with Canhão damage boost.</summary>
+    public static int CanhaoBoostCharges { get; private set; } = 3;
+
+    /// <summary>Number of battles the Shot buff persists.</summary>
+    public static int ShotBuffBattles { get; private set; } = 5;
+
+    /// <summary>Power multiplier when Shot is used (1.20 = +20%).</summary>
+    public static double ShotPowerMultiplier { get; private set; } = 1.20;
+
+    /// <summary>Seconds subtracted from action time by Penalty.</summary>
+    public static double PenaltySpeedReduction { get; private set; } = 0.5;
+
+    /// <summary>Critical chance added by Penalty (0.5 = +50%).</summary>
+    public static double PenaltyCritIncrease { get; private set; } = 0.5;
+
+    /// <summary>Minimum action time floor after Penalty speed reduction.</summary>
+    public static double PenaltyMinActionTime { get; private set; } = 0.5;
+
     // ── Improvements (game-wide improvements) ──
 
     /// <summary>Base maximum energy capacity</summary>
@@ -103,7 +138,18 @@ public static class MyTunoScaling
         double shotBuffBonusPerUpgrade = 0.005,
         double fidelisEarnedBonusPerUpgrade = 0.02,
         double heavyAttackBonusPerUpgrade = 0.05,
-        double specialAttackBonusPerUpgrade = 0.05)
+        double specialAttackBonusPerUpgrade = 0.05,
+        double finoHealPercent = 0.25,
+        double finoCooldownSeconds = 150,
+        double canecaHealPercent = 0.50,
+        double canecaCooldownSeconds = 300,
+        int cigarroShieldCharges = 3,
+        int canhaoBoostCharges = 3,
+        int shotBuffBattles = 5,
+        double shotPowerMultiplier = 1.20,
+        double penaltySpeedReduction = 0.5,
+        double penaltyCritIncrease = 0.5,
+        double penaltyMinActionTime = 0.5)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -133,5 +179,16 @@ public static class MyTunoScaling
         FidelisEarnedBonusPerUpgrade = fidelisEarnedBonusPerUpgrade;
         HeavyAttackBonusPerUpgrade = heavyAttackBonusPerUpgrade;
         SpecialAttackBonusPerUpgrade = specialAttackBonusPerUpgrade;
+        FinoHealPercent = finoHealPercent;
+        FinoCooldownSeconds = finoCooldownSeconds;
+        CanecaHealPercent = canecaHealPercent;
+        CanecaCooldownSeconds = canecaCooldownSeconds;
+        CigarroShieldCharges = cigarroShieldCharges;
+        CanhaoBoostCharges = canhaoBoostCharges;
+        ShotBuffBattles = shotBuffBattles;
+        ShotPowerMultiplier = shotPowerMultiplier;
+        PenaltySpeedReduction = penaltySpeedReduction;
+        PenaltyCritIncrease = penaltyCritIncrease;
+        PenaltyMinActionTime = penaltyMinActionTime;
     }
 }
