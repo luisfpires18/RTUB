@@ -87,8 +87,8 @@ public class CharacterTests
         character.PowerUpgrades = 3;
 
         // Act & Assert
-        // Multiplicative: (int)(10 * 1.0 * (1 + 3 * 0.02)) = (int)(10.6) = 10
-        character.TotalPower.Should().Be(10);
+        // Multiplicative: Round(10 * 1.0 * 1.04^3) = Round(11.249) = 11
+        character.TotalPower.Should().Be(11);
     }
 
     [Fact]

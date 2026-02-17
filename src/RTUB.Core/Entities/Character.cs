@@ -189,17 +189,18 @@ public class Character : BaseEntity
     // Stats scale with level (polynomial) × upgrades (compound exponential):
     // stat = base × levelScale × (1 + mult)^upgrades + equipment
     // Each upgrade multiplies the stat by a fixed factor — absolute gains grow with each one.
+    // Math.Round avoids truncation bias that causes non-monotonic marginal upgrade gains.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalHP => (long)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
+    public long TotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalPower => (long)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
+    public long TotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalSpeed => (long)(Speed * LevelScaleFactor())
-        + (long)(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
+    public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
+        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier);
 
     /// <summary>
     /// Maximum critical chance cap (50%)
@@ -226,20 +227,20 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalDefense => (long)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
+    public long TotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalHP => (long)(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
+    public long NextTotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalPower => (long)(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
+    public long NextTotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalDefense => (long)(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
+    public long NextTotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
