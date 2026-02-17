@@ -166,8 +166,8 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
                     }
 
-                    // Speed: also block if action time already at minimum
-                    if (statType == StatType.Speed && character.ActionTime <= Character.MinActionTime)
+                    // Speed: also block if action time already at absolute minimum
+                    if (statType == StatType.Speed && character.ActionTime <= Character.AbsoluteMinActionTime)
                     {
                         await transaction.RollbackAsync();
                         return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
@@ -315,8 +315,8 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure($"Nível máximo de upgrade alcançado ({maxUpgrades}).");
             }
 
-            // Speed: also block if action time already at minimum
-            if (statType == StatType.Speed && character.ActionTime <= Character.MinActionTime)
+            // Speed: also block if action time already at absolute minimum
+            if (statType == StatType.Speed && character.ActionTime <= Character.AbsoluteMinActionTime)
             {
                 return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
             }
