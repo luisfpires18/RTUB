@@ -1,11 +1,11 @@
 # My-Tuno SVG layers (text-based)
 
-These are text-based SVG replacements for the character customization layer stack.
+These are text-based SVG layers for the character customization stack, now redrawn in a compact **LF2-inspired side-fighter silhouette** (right-facing male base).
 
 ## Why this folder exists
 
-Some review surfaces cannot render diffs for binary PNG files (`Binary files are not supported`).
-To keep art changes reviewable in PRs, these assets are authored as SVG text files.
+Some review surfaces cannot render binary PNG diffs (`Binary files are not supported`).
+These assets stay reviewable because every layer is plain text SVG.
 
 ## Regeneration
 
@@ -13,7 +13,7 @@ To keep art changes reviewable in PRs, these assets are authored as SVG text fil
 python scripts/generate_my_tuno_layers_svg.py
 ```
 
-The generator outputs all 19 layers matching the same right-facing male cel-shaded template:
+The generator writes all 19 layers aligned to the same body template:
 
 - body (1)
 - eyes (1)

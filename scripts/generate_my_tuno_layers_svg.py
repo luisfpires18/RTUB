@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Generate text-based SVG sprite layers for My-Tuno customization."""
+"""Generate My-Tuno layered SVG sprites inspired by classic LF2-style proportions.
+
+Outputs 19 text-based SVG files (256x256) for body, eyes, hair, clothes and weapons.
+"""
 
 from pathlib import Path
 
 ROOT = Path("src/RTUB.Web/wwwroot/sprites/games/my-tuno/layers-svg")
 SCALE = 4
-SIZE = 64
-PX = SIZE * SCALE
+CANVAS = 64
+PX = CANVAS * SCALE
 
 
 def rgba(c):
@@ -15,71 +18,183 @@ def rgba(c):
 
 
 def svg(rects):
-    lines = [
+    out = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{PX}" height="{PX}" viewBox="0 0 {PX} {PX}" shape-rendering="crispEdges">'
     ]
     for x, y, w, h, color in rects:
-        lines.append(
+        out.append(
             f'<rect x="{x*SCALE}" y="{y*SCALE}" width="{w*SCALE}" height="{h*SCALE}" fill="{rgba(color)}"/>'
         )
-    lines.append("</svg>")
-    return "\n".join(lines) + "\n"
+    out.append("</svg>")
+    return "\n".join(out) + "\n"
 
 
 def write(rel, rects):
-    p = ROOT / rel
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(svg(rects), encoding="utf-8")
+    path = ROOT / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(svg(rects), encoding="utf-8")
 
 
-skin = (213, 160, 120, 255)
-skin_shadow = (173, 122, 90, 255)
-detail_shadow = (150, 105, 78, 255)
-outline = (62, 39, 33, 255)
-cloth_dark = (48, 52, 70, 255)
-cloth_mid = (70, 76, 96, 255)
-boots = (74, 48, 34, 255)
+def block_outline(rects, x, y, w, h, color):
+    rects += [
+        (x, y, w, 1, color),
+        (x, y + h - 1, w, 1, color),
+        (x, y, 1, h, color),
+        (x + w - 1, y, 1, h, color),
+    ]
 
-body = [
-    (26, 20, 14, 14, skin), (26, 20, 4, 14, skin_shadow),
-    (35, 10, 11, 12, skin), (35, 10, 3, 12, skin_shadow),
-    (45, 15, 2, 2, skin_shadow),
-    (39, 24, 12, 4, skin), (39, 24, 4, 4, skin_shadow),
-    (49, 24, 4, 10, skin), (49, 24, 1, 10, skin_shadow),
-    (24, 24, 4, 10, skin), (24, 24, 1, 10, skin_shadow),
-    (50, 33, 3, 2, (160, 110, 80, 255)), (23, 33, 3, 2, (160, 110, 80, 255)),
-    (27, 34, 6, 14, cloth_mid), (27, 34, 2, 14, cloth_dark),
-    (34, 34, 6, 14, cloth_mid), (34, 34, 2, 14, cloth_dark),
-    (26, 48, 8, 4, boots), (33, 48, 8, 4, boots),
-    (27, 33, 13, 2, (115, 82, 46, 255)), (33, 23, 6, 4, detail_shadow),
+
+# Shared palette
+OUTLINE = (35, 23, 20, 255)
+SKIN = (220, 170, 132, 255)
+SKIN_DARK = (182, 132, 96, 255)
+SKIN_MID = (200, 150, 112, 255)
+
+# BODY ----------------------------------------------------------------------
+body = []
+# Head (facing right)
+body += [
+    (29, 8, 10, 9, SKIN),
+    (29, 8, 3, 9, SKIN_DARK),
+    (36, 12, 2, 1, (40, 26, 24, 255)),   # eye slit
+    (38, 13, 1, 1, (130, 84, 60, 255)),   # nose tip
 ]
-for x, y, w, h in [(26,20,14,14),(35,10,11,12),(39,24,12,4),(49,24,4,10),(24,24,4,10),(27,34,6,14),(34,34,6,14),(26,48,8,4),(33,48,8,4)]:
-    body += [(x,y,w,1,outline),(x,y+h-1,w,1,outline),(x,y,1,h,outline),(x+w-1,y,1,h,outline)]
+block_outline(body, 29, 8, 10, 9, OUTLINE)
+
+# Neck + torso skin base (clothes go on top as overlays)
+body += [
+    (30, 17, 2, 2, SKIN_MID),
+    (30, 19, 10, 12, SKIN),
+    (30, 19, 3, 12, SKIN_DARK),
+]
+block_outline(body, 30, 19, 10, 12, OUTLINE)
+
+# Right arm (forward fighting pose)
+body += [
+    (40, 21, 6, 2, SKIN),
+    (40, 21, 2, 2, SKIN_DARK),
+    (45, 21, 2, 6, SKIN),
+    (45, 21, 1, 6, SKIN_DARK),
+    (45, 26, 2, 1, SKIN_MID),
+]
+block_outline(body, 40, 21, 6, 2, OUTLINE)
+block_outline(body, 45, 21, 2, 6, OUTLINE)
+
+# Left arm (behind torso)
+body += [
+    (28, 21, 2, 6, SKIN_DARK),
+    (28, 26, 2, 1, SKIN_MID),
+]
+block_outline(body, 28, 21, 2, 6, OUTLINE)
+
+# Legs + boots
+PANTS = (64, 108, 176, 255)
+PANTS_DARK = (42, 76, 136, 255)
+BOOTS = (74, 46, 36, 255)
+body += [
+    (31, 31, 4, 11, PANTS),
+    (31, 31, 1, 11, PANTS_DARK),
+    (35, 31, 4, 11, PANTS),
+    (35, 31, 1, 11, PANTS_DARK),
+    (30, 42, 5, 2, BOOTS),
+    (35, 42, 5, 2, BOOTS),
+]
+block_outline(body, 31, 31, 4, 11, OUTLINE)
+block_outline(body, 35, 31, 4, 11, OUTLINE)
+block_outline(body, 30, 42, 5, 2, OUTLINE)
+block_outline(body, 35, 42, 5, 2, OUTLINE)
 write("body/base.svg", body)
 
-write("eyes/base.svg", [
-    (42,15,3,2,(255,255,255,255)),(43,15,1,1,(30,80,140,255)),(44,15,1,1,(20,20,20,255)),
-    (42,15,3,1,(20,20,20,255)),(42,16,3,1,(20,20,20,255)),(42,15,1,2,(20,20,20,255)),(44,15,1,2,(20,20,20,255))
+# EYES ----------------------------------------------------------------------
+eyes = [
+    (36, 12, 2, 1, (255, 255, 255, 230)),
+    (37, 12, 1, 1, (32, 72, 140, 255)),
+]
+write("eyes/base.svg", eyes)
+
+# HAIR ----------------------------------------------------------------------
+hair_short = [
+    (29, 7, 10, 2, (72, 44, 28, 255)),
+    (30, 6, 7, 1, (108, 70, 44, 255)),
+    (29, 9, 2, 2, (72, 44, 28, 255)),
+]
+hair_long = [
+    (29, 7, 10, 2, (34, 34, 42, 255)),
+    (30, 6, 7, 1, (70, 70, 88, 255)),
+    (29, 9, 2, 10, (34, 34, 42, 255)),
+    (37, 9, 2, 8, (34, 34, 42, 255)),
+]
+hair_spiky = [
+    (29, 8, 10, 1, (110, 30, 30, 255)),
+    (29, 6, 2, 2, (164, 54, 54, 255)),
+    (32, 5, 2, 2, (164, 54, 54, 255)),
+    (35, 6, 2, 2, (164, 54, 54, 255)),
+    (38, 7, 1, 2, (164, 54, 54, 255)),
+]
+write("hair/short.svg", hair_short)
+write("hair/long.svg", hair_long)
+write("hair/spiky.svg", hair_spiky)
+
+# CLOTHES (overlay-only) ----------------------------------------------------
+armor = [
+    (30, 19, 10, 12, (110, 124, 144, 235)),
+    (33, 20, 5, 6, (168, 180, 200, 235)),
+    (31, 24, 8, 1, (214, 184, 86, 245)),
+    (31, 31, 8, 1, (214, 184, 86, 220)),
+]
+casual = [
+    (30, 19, 10, 12, (72, 132, 208, 228)),
+    (33, 20, 4, 5, (114, 176, 238, 220)),
+    (30, 23, 10, 1, (88, 152, 220, 240)),
+]
+robe = [
+    (30, 19, 10, 12, (98, 56, 136, 228)),
+    (32, 20, 6, 5, (142, 92, 184, 220)),
+    (33, 25, 4, 2, (235, 206, 126, 225)),
+]
+write("clothes/armor.svg", armor)
+write("clothes/casual.svg", casual)
+write("clothes/robe.svg", robe)
+
+# WEAPONS -------------------------------------------------------------------
+wood = (128, 88, 52, 255)
+steel = (176, 184, 196, 255)
+steel_dark = (98, 108, 126, 255)
+gold = (188, 148, 72, 255)
+
+write("weapons/sword_1h.svg", [
+    (46, 24, 1, 7, steel), (46, 24, 1, 1, steel_dark), (45, 30, 3, 1, gold), (46, 31, 1, 3, wood)
+])
+write("weapons/sword_2h.svg", [
+    (46, 19, 2, 12, steel), (46, 19, 2, 1, steel_dark), (45, 30, 4, 1, gold), (46, 31, 1, 6, wood)
+])
+write("weapons/dagger.svg", [
+    (46, 26, 1, 4, steel), (45, 29, 3, 1, gold), (46, 30, 1, 2, wood)
+])
+write("weapons/axe_1h.svg", [
+    (46, 23, 1, 10, wood), (46, 23, 3, 3, steel), (48, 24, 1, 2, steel_dark)
+])
+write("weapons/axe_2h.svg", [
+    (46, 18, 1, 15, wood), (46, 19, 4, 4, steel), (49, 20, 1, 2, steel_dark)
+])
+write("weapons/bow.svg", [
+    (45, 20, 1, 14, wood), (46, 22, 1, 1, wood), (47, 24, 1, 1, wood), (48, 26, 1, 1, wood),
+    (46, 32, 1, 1, wood), (47, 30, 1, 1, wood), (48, 28, 1, 1, wood), (46, 20, 1, 14, (210, 210, 220, 220))
+])
+write("weapons/hammer.svg", [
+    (46, 23, 1, 11, wood), (44, 22, 5, 3, steel_dark), (45, 23, 3, 1, steel)
+])
+write("weapons/mace.svg", [
+    (46, 23, 1, 10, wood), (45, 20, 3, 4, steel), (45, 20, 1, 1, steel_dark), (47, 22, 1, 1, steel_dark)
+])
+write("weapons/shield.svg", [
+    (43, 22, 5, 7, (118, 76, 46, 255)), (44, 23, 3, 5, (156, 102, 64, 255)), (45, 24, 1, 1, gold)
+])
+write("weapons/spear.svg", [
+    (46, 18, 1, 16, wood), (47, 26, 1, 8, wood), (45, 17, 3, 2, steel)
+])
+write("weapons/staff.svg", [
+    (46, 18, 1, 16, wood), (47, 26, 1, 8, wood), (45, 16, 3, 2, (96, 212, 236, 255)), (46, 16, 1, 1, (176, 246, 255, 255))
 ])
 
-write("hair/short.svg",[(35,8,11,4,(56,42,28,255)),(37,7,7,2,(92,68,42,255)),(35,12,3,3,(56,42,28,255))])
-write("hair/long.svg",[(34,7,12,4,(28,28,35,255)),(36,6,7,2,(72,72,92,255)),(34,11,4,12,(28,28,35,255)),(42,11,4,10,(28,28,35,255))])
-write("hair/spiky.svg",[(35,8,11,3,(94,24,24,255)),(34,6,3,3,(150,44,44,255)),(38,5,3,3,(150,44,44,255)),(42,6,3,3,(150,44,44,255)),(35,11,3,3,(94,24,24,255))])
-
-write("clothes/armor.svg",[(26,21,14,13,(110,118,136,220)),(30,23,6,6,(168,176,198,220)),(27,33,12,2,(220,188,70,240)),(27,34,6,14,(110,118,136,220)),(34,34,6,14,(110,118,136,220)),(28,24,3,3,(220,188,70,240)),(35,24,3,3,(220,188,70,240))])
-write("clothes/casual.svg",[(26,21,14,13,(54,96,150,210)),(30,23,6,6,(90,150,220,210)),(27,33,12,2,(220,220,220,200)),(27,34,6,14,(54,96,150,210)),(34,34,6,14,(54,96,150,210)),(31,21,4,3,(190,220,255,190))])
-write("clothes/robe.svg",[(26,21,14,13,(86,42,110,220)),(30,23,6,6,(132,74,170,220)),(27,33,12,2,(240,212,130,220)),(27,34,6,14,(86,42,110,220)),(34,34,6,14,(86,42,110,220)),(29,25,8,6,(60,20,86,200))])
-
-write("weapons/sword_1h.svg",[(50,33,2,7,(170,178,186,255)),(49,39,4,1,(186,146,64,255)),(50,40,2,4,(128,88,52,255))])
-write("weapons/sword_2h.svg",[(49,27,3,15,(170,178,186,255)),(48,40,5,1,(186,146,64,255)),(50,41,1,8,(128,88,52,255))])
-write("weapons/dagger.svg",[(51,34,1,4,(170,178,186,255)),(50,37,3,1,(186,146,64,255)),(51,38,1,2,(128,88,52,255))])
-write("weapons/axe_1h.svg",[(50,31,1,11,(128,88,52,255)),(50,31,4,4,(170,178,186,255)),(53,32,1,2,(72,74,80,255))])
-write("weapons/axe_2h.svg",[(49,27,1,18,(128,88,52,255)),(49,28,5,5,(170,178,186,255)),(53,29,1,3,(72,74,80,255))])
-write("weapons/bow.svg",[(48,28,1,16,(128,88,52,255)),(48,28,1,1,(128,88,52,255)),(49,30,1,1,(128,88,52,255)),(50,32,1,1,(128,88,52,255)),(51,34,1,1,(128,88,52,255)),(52,36,1,1,(128,88,52,255)),(49,42,1,1,(128,88,52,255)),(50,40,1,1,(128,88,52,255)),(51,38,1,1,(128,88,52,255)),(52,36,1,1,(128,88,52,255)),(49,28,1,16,(210,210,210,255))])
-write("weapons/hammer.svg",[(50,31,1,13,(128,88,52,255)),(48,30,5,3,(72,74,80,255)),(49,31,3,1,(170,178,186,255))])
-write("weapons/mace.svg",[(50,31,1,12,(128,88,52,255)),(49,28,3,4,(170,178,186,255)),(49,28,1,1,(72,74,80,255)),(51,30,1,1,(72,74,80,255))])
-write("weapons/shield.svg",[(47,30,6,8,(122,78,44,255)),(48,31,4,6,(162,104,60,255)),(49,33,2,2,(186,146,64,255))])
-write("weapons/spear.svg",[(49,27,1,18,(128,88,52,255)),(50,33,1,12,(128,88,52,255)),(48,26,3,3,(170,178,186,255))])
-write("weapons/staff.svg",[(49,27,1,18,(128,88,52,255)),(50,33,1,12,(128,88,52,255)),(48,25,4,3,(100,220,240,255)),(49,26,2,1,(170,250,255,255))])
-
-print(f"Generated SVG layers at {ROOT}")
+print(f"Generated LF2-style SVG layers at {ROOT}")
