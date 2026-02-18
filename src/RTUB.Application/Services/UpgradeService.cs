@@ -61,10 +61,10 @@ public class UpgradeService : IUpgradeService
             _ => 0
         } : 0;
 
-        var upgradeStat = GetUpgradeStatConfig(statType);
+        var upgradeStat = GetUpgradeCostConfig(statType);
 
-        // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
-        var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, upgradeStat.CostExponent);
+        // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
+        var cost = upgradeStat.BaseCost + upgradeCount * upgradeStat.CostPerLevel;
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -89,8 +89,8 @@ public class UpgradeService : IUpgradeService
                 _ => 0
             };
 
-            var upgradeStat = GetUpgradeStatConfig(statType);
-            var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, upgradeStat.CostExponent);
+            var upgradeStat = GetUpgradeCostConfig(statType);
+            var cost = upgradeStat.BaseCost + upgradeCount * upgradeStat.CostPerLevel;
             result[statType] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -146,7 +146,7 @@ public class UpgradeService : IUpgradeService
                     }
 
                     // Calculate cost based on current upgrade count
-                    var upgradeStat = GetUpgradeStatConfig(statType);
+                    var upgradeStat = GetUpgradeCostConfig(statType);
 
                     var currentUpgradeCount = statType switch
                     {
@@ -173,8 +173,8 @@ public class UpgradeService : IUpgradeService
                         return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
                     }
 
-                    // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
-                    var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + currentUpgradeCount, upgradeStat.CostExponent);
+                    // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
+                    var cost = upgradeStat.BaseCost + currentUpgradeCount * upgradeStat.CostPerLevel;
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     // Validate sufficient balance
@@ -262,17 +262,17 @@ public class UpgradeService : IUpgradeService
     }
 
     /// <summary>
-    /// Gets the upgrade configuration for a stat type (baseCost, costExponent, maxUpgrades, etc.)
+    /// Gets the upgrade cost configuration for a stat type (baseCost, costPerLevel, maxUpgrades).
     /// </summary>
-    private MyTunoUpgradeStat GetUpgradeStatConfig(StatType statType)
+    private (decimal BaseCost, decimal CostPerLevel, int MaxUpgrades) GetUpgradeCostConfig(StatType statType)
     {
         return statType switch
         {
-            StatType.HP => _config.Upgrades.HP,
-            StatType.Power => _config.Upgrades.Power,
-            StatType.Speed => _config.Upgrades.Speed,
-            StatType.CriticalChance => _config.Upgrades.CriticalChance,
-            StatType.Defense => _config.Upgrades.Defense,
+            StatType.HP => (_config.Upgrades.HP.BaseCost, _config.Upgrades.HP.CostPerLevel, _config.Upgrades.HP.MaxUpgrades),
+            StatType.Power => (_config.Upgrades.Power.BaseCost, _config.Upgrades.Power.CostPerLevel, _config.Upgrades.Power.MaxUpgrades),
+            StatType.Speed => (_config.Upgrades.Speed.BaseCost, _config.Upgrades.Speed.CostPerLevel, _config.Upgrades.Speed.MaxUpgrades),
+            StatType.CriticalChance => (_config.Upgrades.CriticalChance.BaseCost, _config.Upgrades.CriticalChance.CostPerLevel, _config.Upgrades.CriticalChance.MaxUpgrades),
+            StatType.Defense => (_config.Upgrades.Defense.BaseCost, _config.Upgrades.Defense.CostPerLevel, _config.Upgrades.Defense.MaxUpgrades),
             _ => throw new ArgumentException($"Unknown stat type: {statType}", nameof(statType))
         };
     }
@@ -296,7 +296,7 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Personagem não encontrado");
             }
 
-            var upgradeStat = GetUpgradeStatConfig(statType);
+            var upgradeStat = GetUpgradeCostConfig(statType);
 
             var currentUpgradeCount = statType switch
             {
@@ -321,8 +321,8 @@ public class UpgradeService : IUpgradeService
                 return UpgradeResult.CreateFailure("Velocidade já atingiu o limite mínimo.");
             }
 
-            // Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
-            var cost = upgradeStat.BaseCost * (decimal)Math.Pow(1 + currentUpgradeCount, upgradeStat.CostExponent);
+            // Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
+            var cost = upgradeStat.BaseCost + currentUpgradeCount * upgradeStat.CostPerLevel;
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

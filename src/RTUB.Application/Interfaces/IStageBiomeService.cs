@@ -22,11 +22,18 @@ public interface IStageBiomeService
     int GetEnemyCountForStage(int stageNumber);
 
     /// <summary>
-    /// Determines if a stage is a boss stage
+    /// Determines if a stage is a boss stage (every 100 stages)
     /// </summary>
     /// <param name="stageNumber">The stage number</param>
     /// <returns>True if boss stage, false otherwise</returns>
     bool IsBossStage(int stageNumber);
+
+    /// <summary>
+    /// Determines if a stage is a miniboss stage (every 10 stages, excluding boss stages)
+    /// </summary>
+    /// <param name="stageNumber">The stage number</param>
+    /// <returns>True if miniboss stage, false otherwise</returns>
+    bool IsMiniBossStage(int stageNumber);
 
     /// <summary>
     /// Gets random enemy sprite paths for a given stage
@@ -80,16 +87,11 @@ public interface IStageBiomeService
     double GetRewardMultiplierForStage(int stageNumber);
 
     /// <summary>
-    /// Computes the unified difficulty curve value for a given stage.
-    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// Looks up the enemy tier configuration for a given stage number.
+    /// Returns the tier whose [MinStage, MaxStage] range contains the stage,
+    /// or the highest tier if the stage exceeds all defined ranges.
     /// </summary>
-    double GetUnifiedDifficultyCurve(int stageNumber);
-
-    /// <summary>
-    /// Computes the unified reward curve value for a given stage.
-    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
-    /// </summary>
-    double GetUnifiedRewardCurve(int stageNumber);
+    StageEnemyTierConfig GetEnemyTierForStage(int stageNumber);
 
     /// <summary>
     /// Gets the background image path for a given stage number

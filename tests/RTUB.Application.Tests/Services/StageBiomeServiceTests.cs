@@ -144,17 +144,11 @@ public class StageBiomeServiceTests
                     }
                 },
 
-                DifficultyCurve = new DifficultyCurveConfig
+                EnemyTiers = new List<StageEnemyTierConfig>
                 {
-                    ScalingRate = 0.12,
-                    GrowthExponent = 1.15
-                },
-                RewardCurve = new RewardCurveConfig
-                {
-                    ScalingRate = 0.08,
-                    GrowthExponent = 1.10,
-                    LevelBonusPerLevel = 0.04,
-                    LevelBonusCap = 1.8
+                    new StageEnemyTierConfig { Tier = 1, MinStage = 1, MaxStage = 50, HP = 150, Power = 15, Defense = 5, Speed = 10, CritChance = 0.03, FidelisReward = 10m, XpReward = 10, BossHP = 300, BossPower = 30, BossDefense = 10 },
+                    new StageEnemyTierConfig { Tier = 2, MinStage = 51, MaxStage = 100, HP = 450, Power = 45, Defense = 15, Speed = 12, CritChance = 0.05, FidelisReward = 30m, XpReward = 30, BossHP = 900, BossPower = 90, BossDefense = 30 },
+                    new StageEnemyTierConfig { Tier = 3, MinStage = 101, MaxStage = 999999999, HP = 1200, Power = 120, Defense = 40, Speed = 15, CritChance = 0.08, FidelisReward = 80m, XpReward = 80, BossHP = 2400, BossPower = 240, BossDefense = 80 }
                 },
                 BossMultiplier = 1.2
             }
@@ -573,52 +567,31 @@ public class StageBiomeServiceTests
 
     #endregion
 
-    #region Unified Scaling Tests
+    #region Tier-Based Scaling Tests
 
     [Fact]
-    public void GetUnifiedDifficultyCurve_Stage1_Returns1()
+    public void GetEnemyTierForStage_Stage1_ReturnsTier1()
     {
-        var curve = _service.GetUnifiedDifficultyCurve(1);
-        Assert.Equal(1.0, curve);
+        var tier = _service.GetEnemyTierForStage(1);
+        Assert.Equal(1, tier.Tier);
     }
 
     [Fact]
-    public void GetUnifiedDifficultyCurve_Stage10_ReturnsPolynomialValue()
+    public void GetEnemyTierForStage_Stage51_ReturnsTier2()
     {
-        // curve = 1 + 0.12 * (10 - 1)^1.15
-        var curve = _service.GetUnifiedDifficultyCurve(10);
-        Assert.True(curve > 1.0, "Curve should be > 1.0 at stage 10");
-        Assert.True(curve < 5.0, $"Curve should be < 5.0 at stage 10, got {curve}");
+        var tier = _service.GetEnemyTierForStage(51);
+        Assert.Equal(2, tier.Tier);
     }
 
     [Fact]
-    public void GetUnifiedDifficultyCurve_IsMonotonicallyIncreasing()
+    public void GetEnemyTierForStage_HigherTiers_HaveHigherStats()
     {
-        var curve10 = _service.GetUnifiedDifficultyCurve(10);
-        var curve50 = _service.GetUnifiedDifficultyCurve(50);
-        var curve100 = _service.GetUnifiedDifficultyCurve(100);
-        var curve500 = _service.GetUnifiedDifficultyCurve(500);
+        var tier1 = _service.GetEnemyTierForStage(1);
+        var tier2 = _service.GetEnemyTierForStage(51);
+        var tier3 = _service.GetEnemyTierForStage(101);
 
-        Assert.True(curve10 < curve50, "Curve should increase from stage 10 to 50");
-        Assert.True(curve50 < curve100, "Curve should increase from stage 50 to 100");
-        Assert.True(curve100 < curve500, "Curve should increase from stage 100 to 500");
-    }
-
-    [Fact]
-    public void GetUnifiedRewardCurve_Stage1_Returns1()
-    {
-        var curve = _service.GetUnifiedRewardCurve(1);
-        Assert.Equal(1.0, curve);
-    }
-
-    [Fact]
-    public void GetUnifiedRewardCurve_IsMonotonicallyIncreasing()
-    {
-        var curve10 = _service.GetUnifiedRewardCurve(10);
-        var curve100 = _service.GetUnifiedRewardCurve(100);
-
-        Assert.True(curve10 > 1.0, "Reward curve should be > 1 at stage 10");
-        Assert.True(curve100 > curve10, "Reward curve should increase from stage 10 to 100");
+        Assert.True(tier1.HP < tier2.HP, "Tier 2 should have more HP than tier 1");
+        Assert.True(tier2.HP < tier3.HP, "Tier 3 should have more HP than tier 2");
     }
 
     [Fact]
@@ -630,8 +603,9 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void CalculateScaledStats_Unified_Stage1_ReturnsBaseStats()
+    public void CalculateScaledStats_TierBased_Stage1_ReturnsBaseStats()
     {
+        // Tier 1 HP = 150, tierFactor = 150/150 = 1.0, so 100 * 1.0 = 100
         var (hp, damage) = _service.CalculateScaledStats(1, 100, 10, isBoss: false);
 
         Assert.Equal(100, hp);
@@ -639,16 +613,17 @@ public class StageBiomeServiceTests
     }
 
     [Fact]
-    public void CalculateScaledStats_Unified_Stage50_ShowsGrowth()
+    public void CalculateScaledStats_TierBased_HigherTier_ShowsGrowth()
     {
         var (hp1, _) = _service.CalculateScaledStats(1, 100, 10, isBoss: false);
-        var (hp50, _) = _service.CalculateScaledStats(50, 100, 10, isBoss: false);
+        var (hp51, _) = _service.CalculateScaledStats(51, 100, 10, isBoss: false);
 
-        Assert.True(hp50 > hp1 * 3, $"Stage 50 HP ({hp50}) should be > 3x stage 1 HP ({hp1})");
+        // Tier 2 HP = 450, tierFactor = 450/150 = 3.0, so hp51 = 300
+        Assert.True(hp51 > hp1, $"Tier 2 HP ({hp51}) should be > tier 1 HP ({hp1})");
     }
 
     [Fact]
-    public void CalculateScaledStats_Unified_Boss_AppliesBossMultiplier()
+    public void CalculateScaledStats_TierBased_Boss_AppliesBossMultiplier()
     {
         var (hpNormal, _) = _service.CalculateScaledStats(10, 100, 10, isBoss: false);
         var (hpBoss, _) = _service.CalculateScaledStats(10, 100, 10, isBoss: true);

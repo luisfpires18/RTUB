@@ -52,14 +52,6 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         string name,
         EnemyType type,
         RegionType region,
-        int baseHP,
-        int basePower,
-        int baseSpeed,
-        int baseDefense,
-        double baseCriticalChance,
-        decimal baseFidelisDrop,
-        double finoDropChance,
-        double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
         PlacementType placement,
@@ -67,9 +59,6 @@ public class StageEnemyManagementService : IStageEnemyManagementService
     {
         var enemy = StageEnemy.Create(
             name, type, region,
-            baseHP, basePower, baseSpeed, baseDefense,
-            baseCriticalChance, baseFidelisDrop,
-            finoDropChance, shotDropChance,
             spritePath, bossStageNumber, placement);
 
         var created = await _repository.AddAsync(enemy);
@@ -85,14 +74,6 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         string name,
         EnemyType type,
         RegionType region,
-        int baseHP,
-        int basePower,
-        int baseSpeed,
-        int baseDefense,
-        double baseCriticalChance,
-        decimal baseFidelisDrop,
-        double finoDropChance,
-        double shotDropChance,
         string? spritePath,
         int? bossStageNumber,
         PlacementType placement,
@@ -103,14 +84,6 @@ public class StageEnemyManagementService : IStageEnemyManagementService
         enemy.Name = name;
         enemy.Type = type;
         enemy.Region = region;
-        enemy.BaseHP = baseHP;
-        enemy.BasePower = basePower;
-        enemy.BaseSpeed = baseSpeed;
-        enemy.BaseDefense = baseDefense;
-        enemy.BaseCriticalChance = baseCriticalChance;
-        enemy.BaseFidelisDrop = baseFidelisDrop;
-        enemy.FinoDropChance = finoDropChance;
-        enemy.ShotDropChance = shotDropChance;
         enemy.SpritePath = spritePath;
         enemy.BossStageNumber = bossStageNumber;
         enemy.Placement = placement;

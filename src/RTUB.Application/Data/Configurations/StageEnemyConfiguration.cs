@@ -24,30 +24,8 @@ public class StageEnemyConfiguration : IEntityTypeConfiguration<StageEnemy>
         builder.Property(se => se.Region)
             .IsRequired();
 
-        builder.Property(se => se.BaseHP)
-            .IsRequired();
-
-        builder.Property(se => se.BasePower)
-            .IsRequired();
-
-        builder.Property(se => se.BaseSpeed)
-            .IsRequired();
-
-        builder.Property(se => se.BaseCriticalChance)
-            .IsRequired();
-
         builder.Property(se => se.SpritePath)
             .HasMaxLength(500);
-
-        builder.Property(se => se.BaseFidelisDrop)
-            .HasPrecision(18, 2)
-            .IsRequired();
-
-        builder.Property(se => se.FinoDropChance)
-            .IsRequired();
-
-        builder.Property(se => se.ShotDropChance)
-            .IsRequired();
 
         builder.Property(se => se.CreatedAt)
             .IsRequired();

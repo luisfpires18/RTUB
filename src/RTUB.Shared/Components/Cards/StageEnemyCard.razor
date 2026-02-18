@@ -48,52 +48,16 @@
 
         <!-- Stats -->
         <div class="stage-enemy-card-stats">
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-heart-fill text-danger"></i> HP</span>
-                <span>@Enemy.BaseHP</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-lightning-fill text-warning"></i> Power</span>
-                <span>@Enemy.BasePower</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-speedometer text-info"></i> Speed</span>
-                <span>@Enemy.BaseSpeed</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-shield-fill text-success"></i> Defense</span>
-                <span>@Enemy.BaseDefense</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-bullseye text-purple"></i> Crit</span>
-                <span>@($"{Enemy.BaseCriticalChance:P0}")</span>
-            </div>
             @if (Enemy.Type == EnemyType.Boss && Enemy.BossStageNumber.HasValue)
             {
                 <div class="stage-enemy-card-stat">
-                    <span><i class="bi bi-flag-fill text-danger"></i> Stage</span>
+                    <span><i class="bi bi-flag-fill text-danger"></i> Floor</span>
                     <span>@Enemy.BossStageNumber</span>
                 </div>
             }
             <div class="stage-enemy-card-stat">
                 <span><i class="bi bi-geo-alt"></i> Placement</span>
                 <span>@Enemy.Placement</span>
-            </div>
-        </div>
-
-        <!-- Drops -->
-        <div class="stage-enemy-card-drops">
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-coin text-warning"></i> Fidelis</span>
-                <span>@Enemy.BaseFidelisDrop</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-cup-straw text-warning"></i> Fino %</span>
-                <span>@($"{Enemy.FinoDropChance:P0}")</span>
-            </div>
-            <div class="stage-enemy-card-stat">
-                <span><i class="bi bi-droplet-fill text-info"></i> Shot %</span>
-                <span>@($"{Enemy.ShotDropChance:P0}")</span>
             </div>
         </div>
     </div>

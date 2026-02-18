@@ -41,7 +41,7 @@ public class PowerService : IPowerService
 
     /// <summary>
     /// Calculates the cost for upgrading a specific power.
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+    /// Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
     /// </summary>
     public async Task<decimal> GetPowerCostAsync(string userId, PowerType powerType, CancellationToken cancellationToken = default)
     {
@@ -52,7 +52,7 @@ public class PowerService : IPowerService
         var upgradeCount = character != null ? GetUpgradeCount(character, powerType) : 0;
         var stat = GetPowerStatConfig(powerType);
 
-        var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+        var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -68,7 +68,7 @@ public class PowerService : IPowerService
         {
             var upgradeCount = GetUpgradeCount(character, type);
             var stat = GetPowerStatConfig(type);
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+            var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
             result[type] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -121,7 +121,7 @@ public class PowerService : IPowerService
                         return UpgradeResult.CreateFailure($"Nível máximo de poder alcançado ({stat.MaxUpgrades}).");
                     }
 
-                    var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+                    var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     if (user.FidelisBalance < cost)
@@ -186,7 +186,7 @@ public class PowerService : IPowerService
         }
     }
 
-    private MyTunoUpgradeStat GetPowerStatConfig(PowerType type) => type switch
+    private UpgradeFlatStat GetPowerStatConfig(PowerType type) => type switch
     {
         PowerType.HeavyAttack => _config.Powers.HeavyAttack,
         PowerType.SpecialAttack => _config.Powers.SpecialAttack,
@@ -211,7 +211,7 @@ public class PowerService : IPowerService
             if (stat.MaxUpgrades > 0 && currentCount >= stat.MaxUpgrades)
                 return UpgradeResult.CreateFailure($"Nível máximo de poder alcançado ({stat.MaxUpgrades}).");
 
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+            var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

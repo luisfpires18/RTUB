@@ -183,14 +183,14 @@
                                     {
                                         var isConsumableLocked = c.UnlockStage > consumableHighestStage;
                                         var unlockBiomeName = isConsumableLocked
-                                            ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= c.UnlockStage && b.StageMax >= c.UnlockStage)?.Name ?? $"Stage {c.UnlockStage}"
+                                            ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= c.UnlockStage && b.StageMax >= c.UnlockStage)?.Name ?? $"Floor {c.UnlockStage}"
                                             : "";
                                         var isActionDisabled = isConsumableLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
 
                                         <div class="item-card item-card--@c.CssVariant @(isConsumableLocked ? "item-card--locked" : "")"
                                              @onclick="async () => { if (!isConsumableLocked) await c.UseAction(); }"
                                              style="cursor: @(isActionDisabled ? "not-allowed" : "pointer")"
-                                             title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Stage {c.UnlockStage} ({unlockBiomeName})" : c.Name)">
+                                             title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Floor {c.UnlockStage} ({unlockBiomeName})" : c.Name)">
                                             <div class="item-card__qty">
                                                 @if (isConsumableLocked)
                                                 {
@@ -655,7 +655,7 @@
                                 <i class="bi bi-sword me-2"></i>Arena
                             </button>
                             <button class="btn btn-success btn-lg flex-fill" @onclick="OpenStageModal" disabled="@(currentHP <= 0)">
-                                <i class="bi bi-layers me-2"></i>Stages
+                                <i class="bi bi-layers me-2"></i>Floors
                             </button>
                         </div>
                         <div class="d-flex gap-2 mt-2">
@@ -744,7 +744,7 @@
                         else
                         {
                             <div class="text-center py-1">
-                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens das Stages para ganhar bónus!</small>
+                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens dos Floors para ganhar bónus!</small>
                             </div>
                         }
 
@@ -1014,7 +1014,7 @@
                                 var unlockBiome = isLocked ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= res.UnlockStage && b.StageMax >= res.UnlockStage) : null;
                                 <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "") @(isLocked ? "gather-node--locked" : "")"
                                      @onclick="async () => { if (!isLocked) await GatherResource(resType); }"
-                                     title="@(isLocked ? $"{res.Name} — Desbloqueia no Stage {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
+                                     title="@(isLocked ? $"{res.Name} — Desbloqueia no Floor {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
                                     <div class="gather-node__cost">
                                         @if (isLocked)
                                         {
@@ -1053,7 +1053,7 @@
                                     <div class="gather-node__name">@res.Name</div>
                                     @if (isLocked)
                                     {
-                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Stage {res.UnlockStage}")</div>
+                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Floor {res.UnlockStage}")</div>
                                     }
                                     else
                                     {
@@ -1681,7 +1681,7 @@
                     <div class="text-center mb-3">
                         <h5 class="mb-0">
                             <i class="bi bi-trophy text-warning me-2"></i>
-                            Maior Stage Alcançado: <span class="text-success">Stage @stageProgress.HighestStage</span>
+                            Maior Floor Alcançado: <span class="text-success">Floor @stageProgress.HighestStage</span>
                         </h5>
                     </div>
                     
@@ -1708,7 +1708,7 @@
                                     <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
                                     <div style="flex: 1; min-width: 0;">
                                         <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">@biome.Name</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Stages @rangeText</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Floors @rangeText</div>
                                     </div>
                                     @if (isCompleted)
                                     {
@@ -1798,7 +1798,7 @@
 
                 <div class="alert text-white" style="background-color: #6a1b9a;">
                     <i class="bi bi-arrow-repeat me-2"></i>
-                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e stage) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
+                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e floor) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
                 </div>
                 
                 @if ((character?.Level ?? 0) < 10)
@@ -1812,7 +1812,7 @@
                 {
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Não tens FITAB suficiente! FITAB é um drop raro nos Stages e Arena.
+                        Não tens FITAB suficiente! FITAB é um drop raro nos Floors e Arena.
                     </div>
                 }
             </BodyContent>

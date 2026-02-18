@@ -186,34 +186,33 @@ public class Character : BaseEntity
     public virtual ApplicationUser User { get; set; } = null!;
 
     // Computed properties (not stored in database)
-    // Stats scale with level (polynomial) × upgrades (compound exponential):
-    // stat = base × levelScale × (1 + mult)^upgrades + equipment
-    // Each upgrade multiplies the stat by a fixed factor — absolute gains grow with each one.
-    // Math.Round avoids truncation bias that causes non-monotonic marginal upgrade gains.
+    // Stats scale with level (linear) + upgrades (flat additive):
+    // stat = (base + flatBonus × n) × levelFactor + equipment
+    // Linear per-upgrade growth with level amplification.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
+    public long TotalHP => (long)Math.Round((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor())
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
+    public long TotalPower => (long)Math.Round((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor())
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
-        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier)
+        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedFlatBonus)
         + EquipmentSpeedBonus;
 
     /// <summary>
-    /// Maximum critical chance cap (50%)
+    /// Maximum critical chance cap (uses config value, default 40%)
     /// </summary>
-    public const double MaxCriticalChance = 0.5;
+    public static double MaxCriticalChance => MyTunoScaling.MaxCriticalChance;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance
     {
         get
         {
-            var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier);
+            var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChancePerUpgrade);
             // Penalty buff explicitly allows up to 100% crit — skip the normal 50% cap
             var upgradeCrit = PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
             // Equipment crit bonus stacks on top of upgrade-capped value (absolute cap 100%)
@@ -230,25 +229,25 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
+    public long TotalDefense => (long)Math.Round((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor())
         + EquipmentDefenseBonus;
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
+    public long NextTotalHP => (long)Math.Round((HP + MyTunoScaling.HpFlatBonus * (HpUpgrades + 1)) * LevelScaleFactor())
         + EquipmentHPBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
+    public long NextTotalPower => (long)Math.Round((Power + MyTunoScaling.PowerFlatBonus * (PowerUpgrades + 1)) * LevelScaleFactor())
         + EquipmentPowerBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
+    public long NextTotalDefense => (long)Math.Round((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor())
         + EquipmentDefenseBonus;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance =>
-        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier)) + EquipmentCriticalBonus);
+        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChancePerUpgrade)) + EquipmentCriticalBonus);
 
     // ── Improvements computed properties ──
 
@@ -297,25 +296,16 @@ public class Character : BaseEntity
     public double SpecialAttackDamageBonus => SpecialAttackUpgrades * MyTunoScaling.SpecialAttackBonusPerUpgrade;
 
     /// <summary>
-    /// Computes the level-based stat multiplier using polynomial growth.
-    /// Formula: 1 + multiplier * (level-1)^(1+exponent)
-    /// When exponent=0 this is simple linear: 1 + multiplier * (level-1)
+    /// Computes the level-based stat multiplier using linear growth.
+    /// Formula: 1 + BonusPerLevel × (Level - 1).
+    /// At level 100: 1 + 0.008 × 99 = 1.792.
     /// </summary>
     private double LevelScaleFactor()
     {
         var levelsGained = Level - 1;
         if (levelsGained <= 0) return 1.0;
-        var exponent = MyTunoScaling.StatGrowthExponent;
-        if (exponent == 0.0)
-            return 1.0 + levelsGained * MyTunoScaling.StatMultiplierPerLevel;
-        return 1.0 + MyTunoScaling.StatMultiplierPerLevel * Math.Pow(levelsGained, 1.0 + exponent);
+        return 1.0 + levelsGained * MyTunoScaling.BonusPerLevel;
     }
-
-    /// <summary>
-    /// Defense uses sqrt of the main scale factor so it grows much slower
-    /// than offensive stats, preventing late-game damage stalemates.
-    /// </summary>
-    private double DefenseLevelScaleFactor() => Math.Sqrt(LevelScaleFactor());
 
     /// <summary>
     /// Base action time in seconds (how long before a character can attack)
@@ -734,8 +724,8 @@ public class Character : BaseEntity
 
     /// <summary>
     /// Calculates XP required to advance from a given level to the next.
-    /// Uses exponential formula: XpPerLevelBase × Level^XpGrowthExponent.
-    /// Early levels are fast, late levels take days.
+    /// Uses formula: XpPerLevelBase × Level^XpGrowthExponent.
+    /// With exponent 1.5: level 1→2 = 100 XP, level 50→51 ≈ 35,355 XP, level 99→100 ≈ 98,505 XP.
     /// </summary>
     public static int XpForLevel(int level) =>
         (int)Math.Round(MyTunoScaling.XpPerLevelBase * Math.Pow(level, MyTunoScaling.XpGrowthExponent));

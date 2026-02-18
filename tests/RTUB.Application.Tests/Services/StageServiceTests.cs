@@ -67,10 +67,9 @@ public class StageServiceTests : IDisposable
             },
             StageMode = new StageModeConfig
             {
-                BaseEnemyStats = new BaseEnemyStats
+                EnemyTiers = new List<StageEnemyTierConfig>
                 {
-                    Normal = new EnemyTypeStat { Hp = 100, Power = 10, Speed = 10, Defense = 5, CriticalChance = 0.03 },
-                    Boss = new EnemyTypeStat { Hp = 500, Power = 50, Speed = 20, Defense = 25, CriticalChance = 0.10 }
+                    new StageEnemyTierConfig { Tier = 1, MinStage = 1, MaxStage = 999999999, HP = 150, Power = 15, Defense = 5, Speed = 10, CritChance = 0.03, FidelisReward = 10m, XpReward = 10, BossHP = 500, BossPower = 50, BossDefense = 25 }
                 }
             }
         };
@@ -91,8 +90,7 @@ public class StageServiceTests : IDisposable
         _biomeServiceMock.Setup(x => x.GetEnemiesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetBossesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetRewardMultiplierForStage(It.IsAny<int>())).Returns(1.0);
-        _biomeServiceMock.Setup(x => x.GetUnifiedDifficultyCurve(It.IsAny<int>())).Returns(1.0);
-        _biomeServiceMock.Setup(x => x.GetUnifiedRewardCurve(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetEnemyTierForStage(It.IsAny<int>())).Returns(new StageEnemyTierConfig { Tier = 1, MinStage = 1, MaxStage = 999999999, HP = 150, Power = 15, Defense = 5, Speed = 10, CritChance = 0.03, FidelisReward = 10m, XpReward = 10, BossHP = 500, BossPower = 50, BossDefense = 25 });
 
         _stageService = new StageService(
             _stageProgressRepository,

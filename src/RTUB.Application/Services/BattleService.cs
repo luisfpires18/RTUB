@@ -279,9 +279,8 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome, level difference, and attacker level.
-    /// Rewards scale with attacker level (level^LevelScalePower) so high-level arena battles
-    /// give rewards comparable to stage mode.
+    /// Calculates XP and Fidelis rewards based on battle outcome and level difference.
+    /// In v5, arena rewards are flat base values scaled only by level difference (no level-power scaling).
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
@@ -289,21 +288,18 @@ public class BattleService : IBattleService
 
         // Unified level-diff multiplier for both XP and Fidelis
         var levelDiff = defender.Level - attacker.Level;
-        var levelDiffMult = Math.Max(rewards.MinRewardMultiplier,
-            Math.Min(rewards.MaxRewardMultiplier, 1.0 + levelDiff * rewards.LevelDiffScale));
-
-        // Level-based scaling: rewards grow with attacker level (like stage mode)
-        var levelScale = Math.Pow(attacker.Level, rewards.LevelScalePower);
+        var levelDiffMult = Math.Clamp(1.0 + levelDiff * rewards.LevelDiffScale,
+            1.0 - rewards.LevelDiffCap, 1.0 + rewards.LevelDiffCap);
 
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
-                (int)Math.Round(rewards.BaseWinXP * levelScale * levelDiffMult),
-                (decimal)Math.Round((double)rewards.WinReward * levelScale * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseWinXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.WinReward * levelDiffMult, 2)),
             BattleOutcome.DefenderWon => (0, 0m),
             BattleOutcome.Draw => (
-                (int)Math.Round(rewards.BaseDrawXP * levelScale * levelDiffMult),
-                (decimal)Math.Round((double)rewards.DrawReward * levelScale * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseDrawXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.DrawReward * levelDiffMult, 2)),
             _ => (0, 0m)
         };
     }

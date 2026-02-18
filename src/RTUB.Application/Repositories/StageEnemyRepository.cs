@@ -101,7 +101,7 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
 
         // No exact match — pick a random boss from any region.
         // This covers biomes that have no seeded bosses (Underwater, Underground, etc.)
-        // as well as the Arena (stage > 2000).
+        // as well as the Arena (floor > 20000).
         var allBosses = all.Where(e => e.Type == EnemyType.Boss).ToList();
         if (allBosses.Count > 0)
             return allBosses[Random.Shared.Next(allBosses.Count)];

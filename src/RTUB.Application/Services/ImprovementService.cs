@@ -41,7 +41,7 @@ public class ImprovementService : IImprovementService
 
     /// <summary>
     /// Calculates the cost for upgrading a specific improvement.
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+    /// Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
     /// </summary>
     public async Task<decimal> GetImprovementCostAsync(string userId, ImprovementType improvementType, CancellationToken cancellationToken = default)
     {
@@ -52,7 +52,7 @@ public class ImprovementService : IImprovementService
         var upgradeCount = character != null ? GetUpgradeCount(character, improvementType) : 0;
         var stat = GetImprovementStatConfig(improvementType);
 
-        var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+        var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -68,7 +68,7 @@ public class ImprovementService : IImprovementService
         {
             var upgradeCount = GetUpgradeCount(character, type);
             var stat = GetImprovementStatConfig(type);
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+            var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
             result[type] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -121,7 +121,7 @@ public class ImprovementService : IImprovementService
                         return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
                     }
 
-                    var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+                    var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     if (user.FidelisBalance < cost)
@@ -194,7 +194,7 @@ public class ImprovementService : IImprovementService
         }
     }
 
-    private MyTunoUpgradeStat GetImprovementStatConfig(ImprovementType type) => type switch
+    private UpgradeFlatStat GetImprovementStatConfig(ImprovementType type) => type switch
     {
         ImprovementType.EnergyAmount => _config.Improvements.EnergyAmount,
         ImprovementType.EnergyRegen => _config.Improvements.EnergyRegen,
@@ -221,7 +221,7 @@ public class ImprovementService : IImprovementService
             if (stat.MaxUpgrades > 0 && currentCount >= stat.MaxUpgrades)
                 return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
 
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+            var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)

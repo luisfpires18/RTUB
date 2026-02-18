@@ -4,8 +4,8 @@ using RTUB.Core.Enums;
 namespace RTUB.Core.Entities;
 
 /// <summary>
-/// Represents an enemy template in Stage Mode
-/// Defines base stats for normal enemies and bosses
+/// Represents an enemy template in Stage Mode.
+/// Stats are determined by tier configuration — this entity only stores visual/identity data.
 /// </summary>
 public class StageEnemy : BaseEntity
 {
@@ -27,31 +27,6 @@ public class StageEnemy : BaseEntity
     public RegionType Region { get; set; } = RegionType.Forest;
 
     /// <summary>
-    /// Base HP of the enemy
-    /// </summary>
-    public int BaseHP { get; set; } = 50;
-
-    /// <summary>
-    /// Base power/attack of the enemy
-    /// </summary>
-    public int BasePower { get; set; } = 8;
-
-    /// <summary>
-    /// Base speed of the enemy
-    /// </summary>
-    public int BaseSpeed { get; set; } = 5;
-
-    /// <summary>
-    /// Base defense of the enemy
-    /// </summary>
-    public int BaseDefense { get; set; } = 3;
-
-    /// <summary>
-    /// Base critical chance of the enemy
-    /// </summary>
-    public double BaseCriticalChance { get; set; } = 0.05;
-
-    /// <summary>
     /// Sprite path for the enemy image
     /// </summary>
     [StringLength(500)]
@@ -62,21 +37,6 @@ public class StageEnemy : BaseEntity
     /// Null for normal enemies which can appear randomly
     /// </summary>
     public int? BossStageNumber { get; set; }
-
-    /// <summary>
-    /// Base Fidelis drop amount
-    /// </summary>
-    public decimal BaseFidelisDrop { get; set; } = 1.0m;
-
-    /// <summary>
-    /// Chance to drop fino (0.0 to 1.0)
-    /// </summary>
-    public double FinoDropChance { get; set; } = 0.1;
-
-    /// <summary>
-    /// Chance to drop shot (0.0 to 1.0)
-    /// </summary>
-    public double ShotDropChance { get; set; } = 0.05;
 
     /// <summary>
     /// How the enemy is positioned in battle (ground or flying)
@@ -93,14 +53,6 @@ public class StageEnemy : BaseEntity
         string name,
         EnemyType type,
         RegionType region,
-        int baseHP,
-        int basePower,
-        int baseSpeed,
-        int baseDefense = 3,
-        double baseCriticalChance = 0.05,
-        decimal baseFidelisDrop = 1.0m,
-        double finoDropChance = 0.1,
-        double shotDropChance = 0.05,
         string? spritePath = null,
         int? bossStageNumber = null,
         PlacementType placement = PlacementType.Terrestrial)
@@ -113,14 +65,6 @@ public class StageEnemy : BaseEntity
             Name = name,
             Type = type,
             Region = region,
-            BaseHP = baseHP,
-            BasePower = basePower,
-            BaseSpeed = baseSpeed,
-            BaseDefense = baseDefense,
-            BaseCriticalChance = baseCriticalChance,
-            BaseFidelisDrop = baseFidelisDrop,
-            FinoDropChance = finoDropChance,
-            ShotDropChance = shotDropChance,
             SpritePath = spritePath,
             BossStageNumber = bossStageNumber,
             Placement = placement

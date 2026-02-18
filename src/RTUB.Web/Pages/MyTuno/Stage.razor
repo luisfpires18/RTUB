@@ -78,7 +78,7 @@
                         <i class="bi bi-sword me-2"></i>
                         @if (currentBattle != null)
                         {
-                            <text>Stage @currentBattle.StageNumber</text>
+                            <text>Floor @currentBattle.StageNumber</text>
                         }
                         else
                         {
@@ -101,7 +101,7 @@
                         <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="Acabar Stage">
+                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="Acabar Floor">
                             <i class="bi bi-stop-fill me-1"></i>Acabar
                         </button>
                     </div>
@@ -150,7 +150,7 @@
                         <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>@Fmt(stagesCleared) Stages
+                                <i class="bi bi-check-circle me-1"></i>@Fmt(stagesCleared) Floors
                             </span>
                             <span class="badge bg-warning text-dark">
                                 <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
@@ -279,15 +279,15 @@
             <div class="defeat-overlay">
                 <div class="defeat-panel">
                     <div class="defeat-banner">
-                        <span>STAGE LIMPA</span>
+                        <span>FLOOR CLEAR</span>
                     </div>
-                    <div class="defeat-stage">Stage @defeatedAtStage</div>
+                    <div class="defeat-stage">Floor @defeatedAtStage</div>
                     @if (stagesCleared > 0)
                     {
                         <div class="defeat-rewards">
                             <div class="defeat-reward-row">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>@Fmt(stagesCleared) Stages</span>
+                                <span>@Fmt(stagesCleared) Floors</span>
                             </div>
                             <div class="defeat-reward-row">
                                 <i class="bi bi-star-fill text-warning"></i>
@@ -388,7 +388,7 @@
                     }
                     else
                     {
-                        <p class="defeat-no-rewards">Nenhuma stage completada.</p>
+                        <p class="defeat-no-rewards">Nenhum floor completado.</p>
                     }
                     <button class="defeat-btn" @onclick="DefeatGoBack">
                         IR MY TUNO

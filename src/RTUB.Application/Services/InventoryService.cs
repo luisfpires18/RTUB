@@ -1087,7 +1087,7 @@ public class InventoryService : IInventoryService
     public decimal GetWeaponUpgradeCost(int currentLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
-        return forging.WeaponUpgradeBaseCost * (decimal)Math.Pow((double)forging.WeaponUpgradeCostMultiplier, currentLevel);
+        return forging.WeaponUpgradeBaseCost + currentLevel * forging.WeaponUpgradeCostPerLevel;
     }
 
     /// <summary>
@@ -1203,12 +1203,12 @@ public class InventoryService : IInventoryService
 
     /// <summary>
     /// Gets the Fidelis cost to upgrade equipment enhancement to the next level.
-    /// Formula: baseCost * (multiplier ^ currentBonusLevel)
+    /// Formula: baseCost + currentBonusLevel * costPerLevel
     /// </summary>
     public decimal GetEquipmentUpgradeCost(int currentBonusLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
-        return Math.Round(forging.EquipmentUpgradeBaseCost * (decimal)Math.Pow((double)forging.EquipmentUpgradeCostMultiplier, currentBonusLevel), 2);
+        return Math.Round(forging.EquipmentUpgradeBaseCost + currentBonusLevel * forging.EquipmentUpgradeCostPerLevel, 2);
     }
 
     /// <summary>

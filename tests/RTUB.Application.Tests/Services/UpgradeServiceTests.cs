@@ -57,10 +57,10 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         {
             Upgrades = new MyTunoUpgrades
             {
-                HP = new MyTunoUpgradeStat { BaseCost = 50m },
-                Power = new MyTunoUpgradeStat { BaseCost = 75m },
-                Speed = new MyTunoUpgradeStat { BaseCost = 100m },
-                CriticalChance = new MyTunoUpgradeStat { BaseCost = 150m }
+                HP = new UpgradeLogStat { BaseCost = 50m, CostPerLevel = 50m },
+                Power = new UpgradeLogStat { BaseCost = 75m, CostPerLevel = 75m },
+                Speed = new UpgradeFlatStat { BaseCost = 100m, CostPerLevel = 100m },
+                CriticalChance = new UpgradeFlatStat { BaseCost = 150m, CostPerLevel = 150m }
             }
         };
         var mockConfig = new Mock<IOptions<MyTunoScalingConfiguration>>();

@@ -113,8 +113,8 @@
                 <ErrorDisplay />
 
                 <div class="row">
-                    <!-- Left Column: Identity -->
-                    <div class="col-md-6">
+                    <!-- Identity -->
+                    <div class="col-md-12">
                         <div class="mb-3">
                             <label class="form-label text-white-full fw-semibold">
                                 <i class="bi bi-type text-primary me-2"></i>Name
@@ -178,72 +178,6 @@
                             </div>
                         }
                     </div>
-
-                    <!-- Right Column: Stats & Drops -->
-                    <div class="col-md-6">
-                        <h6 class="text-white-full fw-semibold mb-3"><i class="bi bi-bar-chart text-info me-2"></i>Base Stats</h6>
-
-                        <div class="row mb-2">
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-heart-fill text-danger me-1"></i>HP
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseHP" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-lightning-fill text-warning me-1"></i>Power
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BasePower" />
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-speedometer text-info me-1"></i>Speed
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseSpeed" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-shield-fill text-success me-1"></i>Defense
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseDefense" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label text-white-full small">
-                                <i class="bi bi-bullseye text-purple me-1"></i>Critical Chance (0.0 - 1.0)
-                            </label>
-                            <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseCriticalChance" step="0.01" />
-                        </div>
-
-                        <h6 class="text-white-full fw-semibold mb-3 mt-4"><i class="bi bi-gift text-warning me-2"></i>Drops</h6>
-
-                        <div class="mb-2">
-                            <label class="form-label text-white-full small">
-                                <i class="bi bi-coin text-warning me-1"></i>Fidelis Drop
-                            </label>
-                            <InputNumber class="form-control form-control-sm" @bind-Value="formModel.BaseFidelisDrop" step="0.1" />
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-cup-straw text-warning me-1"></i>Fino Drop %
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.FinoDropChance" step="0.01" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label text-white-full small">
-                                    <i class="bi bi-droplet-fill text-info me-1"></i>Shot Drop %
-                                </label>
-                                <InputNumber class="form-control form-control-sm" @bind-Value="formModel.ShotDropChance" step="0.01" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </EditForm>
         }
@@ -306,8 +240,7 @@
         {
             [nameof(StageEnemy.Name)] = e => e.Name,
             [nameof(StageEnemy.Type)] = e => (int)e.Type,
-            [nameof(StageEnemy.Region)] = e => (int)e.Region,
-            [nameof(StageEnemy.BaseHP)] = e => e.BaseHP
+            [nameof(StageEnemy.Region)] = e => (int)e.Region
         };
     }
 
@@ -391,14 +324,6 @@
             Name = enemy.Name,
             Type = enemy.Type,
             Region = enemy.Region,
-            BaseHP = enemy.BaseHP,
-            BasePower = enemy.BasePower,
-            BaseSpeed = enemy.BaseSpeed,
-            BaseDefense = enemy.BaseDefense,
-            BaseCriticalChance = enemy.BaseCriticalChance,
-            BaseFidelisDrop = enemy.BaseFidelisDrop,
-            FinoDropChance = enemy.FinoDropChance,
-            ShotDropChance = enemy.ShotDropChance,
             SpritePath = enemy.SpritePath,
             BossStageNumber = enemy.BossStageNumber,
             Placement = enemy.Placement
@@ -418,14 +343,6 @@
                     formModel.Name,
                     formModel.Type,
                     formModel.Region,
-                    formModel.BaseHP,
-                    formModel.BasePower,
-                    formModel.BaseSpeed,
-                    formModel.BaseDefense,
-                    formModel.BaseCriticalChance,
-                    formModel.BaseFidelisDrop,
-                    formModel.FinoDropChance,
-                    formModel.ShotDropChance,
                     formModel.SpritePath,
                     formModel.BossStageNumber,
                     formModel.Placement);
@@ -437,14 +354,6 @@
                     formModel.Name,
                     formModel.Type,
                     formModel.Region,
-                    formModel.BaseHP,
-                    formModel.BasePower,
-                    formModel.BaseSpeed,
-                    formModel.BaseDefense,
-                    formModel.BaseCriticalChance,
-                    formModel.BaseFidelisDrop,
-                    formModel.FinoDropChance,
-                    formModel.ShotDropChance,
                     formModel.SpritePath,
                     formModel.BossStageNumber,
                     formModel.Placement);

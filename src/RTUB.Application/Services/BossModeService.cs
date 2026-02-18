@@ -447,30 +447,25 @@ public class BossModeService : IBossModeService
     }
 
     /// <summary>
-    /// Creates a temporary boss character for combat, using equivalent stage difficulty.
-    /// Mirrors stage mode enemy scaling but with boss-specific config.
+    /// Creates a temporary boss character for combat using tier-based stats.
+    /// Maps bossStage → equivalent stage → tier lookup, then applies boss stat multiplier.
     /// </summary>
     private Character CreateBossEnemy(int bossStage, int equivalentStage)
     {
         var bossConfig = _config.BossMode;
-        var baseStats = bossConfig.BaseBossStats;
-
-        // Use the stage mode's unified difficulty curve with the equivalent stage
-        var curve = _biomeService.GetUnifiedDifficultyCurve(equivalentStage);
-        var diffMult = _biomeService.GetBossesDifficultyMultiplier(equivalentStage);
+        var tier = _biomeService.GetEnemyTierForStage(equivalentStage);
         var bossMult = bossConfig.BossStatMultiplier;
 
-        var hp = Math.Max(1, (long)(baseStats.Hp * curve * diffMult * bossMult));
-        var power = Math.Max(1, (long)(baseStats.Power * curve * diffMult * bossMult));
-        var speed = Math.Max(1, (long)(baseStats.Speed * curve * diffMult * bossMult));
-        var defense = Math.Max(1, (long)(baseStats.Defense * curve * diffMult * bossMult));
-
-        var critGrowth = (equivalentStage - 1) * 0.003;
-        var critChance = Math.Min(baseStats.CriticalChance + critGrowth, _config.Combat.CriticalChanceCap);
+        // Use tier boss stats, further amplified by boss mode multiplier
+        var hp = Math.Max(1, (long)(tier.BossHP * bossMult));
+        var power = Math.Max(1, (long)(tier.BossPower * bossMult));
+        var defense = Math.Max(1, (long)(tier.BossDefense * bossMult));
+        var speed = (long)tier.Speed;
+        var critChance = Math.Min(tier.CritChance, _config.Combat.CriticalChanceCap);
 
         // Boss action time gets faster as boss stages progress (much more aggressive)
-        var tier = (bossStage - 1) / 5;
-        var actionTime = Math.Max(0.8, 4.0 - (tier * 0.4));
+        var actionTimeTier = (bossStage - 1) / 5;
+        var actionTime = Math.Max(0.8, 4.0 - (actionTimeTier * 0.4));
 
         var bossName = $"Boss #{bossStage}";
         return Character.CreateStageEnemy(hp, power, speed, defense, critChance, bossName, actionTime);
@@ -496,14 +491,14 @@ public class BossModeService : IBossModeService
         var levelDiffMult = Math.Max(bossConfig.MinXPLevelMultiplier, 1.0 - levelDiff * bossConfig.XpLevelPenaltyRate);
         var xpReward = (int)Math.Round(bossConfig.XpPerBossLevel * bossLevelFactor * levelDiffMult);
 
-        // Fidelis calculation
+        // Fidelis: tier-based reward × biome multiplier × level bonus
+        var tier = _biomeService.GetEnemyTierForStage(equivalentStage);
         var baseFidelis = bossConfig.FidelisRewards.BossWin;
-        var rewardCurve = _biomeService.GetUnifiedRewardCurve(equivalentStage);
         var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(equivalentStage);
         var rewardConfig = bossConfig.RewardCurve;
         var rawLevelBonus = 1.0 + (characterLevel - 1) * rewardConfig.LevelBonusPerLevel;
         var levelBonus = Math.Min(rawLevelBonus, rewardConfig.LevelBonusCap);
-        var fidelisReward = Math.Round(baseFidelis * (decimal)(rewardCurve * biomeRewardMult * levelBonus), 2);
+        var fidelisReward = Math.Round(baseFidelis * (decimal)(biomeRewardMult * levelBonus), 2);
 
         // Drop rolls
         var finosDropped = 0;
