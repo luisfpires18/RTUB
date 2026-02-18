@@ -2,385 +2,291 @@
 
 ## Overview
 
-The My-Tuno game features two main combat modes with distinct scaling mechanics:
-1. **Arena Mode**: Player vs Player matchmaking-based battles
-2. **Stage Mode**: Single-player progressive difficulty — the goal is to push as far as possible before being defeated. There is no "winning" stage mode; the player always eventually loses as enemies scale infinitely.
+My-Tuno features four combat modes, each with different scaling and DB-write strategies:
 
-The scaling system is configured via `scaling.config.json` and defined in `MyTunoScalingConfiguration.cs`.
+| Mode | Description | DB Writes | Rewards |
+|---|---|:---:|---|
+| **Stage** | 20 biomes × 1,000 floors (20,000 total) | 0 per battle | Batched at run end (`ApplyRunRewardsAsync`) |
+| **Boss** | Boss rush with scaling difficulty | 1 per battle | Progress + HP saved, rewards at run end |
+| **Battle (Arena)** | PvP matchmaking | 2–3 after each fight | `FinalizeAndApplyRewardsAsync` |
+| **Survive** | Endless survival | 1 per level | `CompleteLevelAsync`, rewards at run end |
 
----
-
-## 1. ARENA MODE SCALING
-
-### 1.1 Player Statistics Scaling
-
-#### Base Stats (Player Creation)
-```json
-"baseStats": {
-  "level": 1,
-  "xp": 0,
-  "hp": 100,
-  "power": 10,
-  "speed": 10,
-  "defense": 5,
-  "criticalChance": 0.0
-}
-```
-
-**Formula**: `StatValue = BaseStat + (Level - 1) * BaseStat * StatMultiplierPerLevel`
-- **StatMultiplierPerLevel**: 0.1 (10% per level)
-- Example: Level 10 HP = 100 + (10-1) × 100 × 0.1 = 190 HP
-
-#### Level Progression
-- **XP Formula**: `XP_Required = Level × 100`
-  - Level 1→2: 100 XP
-  - Level 10→11: 1000 XP
-  - Level 36→37: 3600 XP
-
-### 1.2 Upgrade System (Fidelis-based)
-
-Each stat has independent upgrade scaling with a configurable max level cap:
-
-| Stat | Bonus/Upgrade | Base Cost | Max Upgrades | Notes |
-|------|---------------|-----------|--------------|-------|
-| **HP** | +10 | 5 Fidelis | 50 | Highest bonus, lowest cost |
-| **Power** | +2 | 10 Fidelis | 50 | Linear scaling with damage |
-| **Speed** | +1 | 15 Fidelis | 40 | Affects action time (capped at 1.0s) |
-| **Defense** | +2 | 12 Fidelis | 50 | Mitigation formula: `mult = 50/(50+defense)` |
-| **Critical** | +0.005 | 20 Fidelis | 50 | Chance modifier (capped at 50%) |
-
-**Cost Progression Formula**: `Cost = BaseCost × (1 + UpgradeCount) ^ 1.5`
-
-**Max Level Enforcement**: Both the backend (`UpgradeService`) and frontend UI enforce the `maxUpgrades` limit per stat. When a stat reaches its max, the purchase button shows "Máximo Alcançado" and the backend rejects further purchases.
-
-**Config Structure**:
-```json
-"upgrades": {
-  "hp": {
-    "initialBought": 0,
-    "bonusPerUpgrade": 10,
-    "baseCost": 5,
-    "maxUpgrades": 50
-  },
-  "power": {
-    "initialBought": 0,
-    "bonusPerUpgrade": 2,
-    "baseCost": 10,
-    "maxUpgrades": 50
-  },
-  "speed": {
-    "initialBought": 0,
-    "bonusPerUpgrade": 1,
-    "baseCost": 15,
-    "maxUpgrades": 40
-  },
-  "criticalChance": {
-    "initialBought": 0,
-    "bonusPerUpgrade": 0.005,
-    "baseCost": 20,
-    "maxUpgrades": 50
-  },
-  "defense": {
-    "initialBought": 0,
-    "bonusPerUpgrade": 2,
-    "baseCost": 12,
-    "maxUpgrades": 50
-  }
-}
-```
-
-### 1.3 Arena Battle Rewards
-
-#### Fidelis & XP Rewards
-```json
-"battleRewards": {
-  "winReward": 15,
-  "drawReward": 7.5,
-  "baseWinXP": 50,
-  "baseDrawXP": 30,
-  "xpScalingFactor": 0.08,
-  "minXpMultiplier": 0.2,
-  "maxXpMultiplier": 3.0,
-  "reviveCost": 30,
-  "restoreHPCost": 10,
-  "fidelisLevelMultiplier": 0.1
-}
-```
-
-#### XP Calculation with Level Scaling
-**Formula**: `XP = BaseXP × clamp(1.0 + (OpponentLevel - PlayerLevel) × XpScalingFactor, MinXpMultiplier, MaxXpMultiplier)`
-
-- **BaseWinXP**: 50, **BaseDrawXP**: 30
-- **XpScalingFactor**: 0.08 (8% per level difference)
-- **Min Multiplier**: 0.2 (minimum 20% of base XP)
-- **Max Multiplier**: 3.0 (maximum 300% of base XP)
-
-#### Fidelis Level Bonus
-**Formula**: `FidelisReward = BaseReward × (1 + PlayerLevel × FidelisLevelMultiplier)`
-- **FidelisLevelMultiplier**: 0.1 (10% bonus per level)
-
-### 1.4 Combat Mechanics
-
-#### Defense Mitigation
-**Formula**: `Multiplier = DefenseK / (DefenseK + Defense)`
-
-- **DefenseK**: 50 (constant)
-- **MinDamage**: 1 (guaranteed minimum damage)
-
-| Defense | Multiplier | Mitigation |
-|---------|-----------|------------|
-| 5 | 0.909 | 9% |
-| 25 | 0.667 | 33% |
-| 50 | 0.500 | 50% |
-| 100 | 0.333 | 67% |
-
-#### Critical Chance
-- **CriticalChanceCap**: 0.5 (50% max)
-- Player base: 1%, upgradeable by +0.5% per upgrade
-
-#### Items
-- **Shot Buff Multiplier**: 1.20 (+20% to all stats, arena battles only)
-
-### 1.5 Matchmaking
-
-```json
-"matchmaking": {
-  "cooldownMinutes": 60,
-  "initialPowerRangeMin": 0.7,
-  "initialPowerRangeMax": 1.3,
-  "expandedPowerRangeMin": 0.5,
-  "expandedPowerRangeMax": 1.5,
-  "powerRatingWeights": {
-    "hp": 0.5,
-    "power": 2.0,
-    "speed": 1.5
-  }
-}
-```
-
-**Power Rating System**: Opponents are matched based on a weighted power rating:
-- HP weight: 0.5, Power weight: 2.0, Speed weight: 1.5
-- Initial range: 70%–130% of player's power rating
-- Expanded range (if no match): 50%–150%
-
-**Leaderboard Display**:
-- 4 opponents at/below player level (sorted by proximity)
-- 4 opponents above player level (sorted by proximity)
-- Arena tab sorted by wins, Level tab by level, Stage tab by highest stage
+Scaling is configured via `scaling.config.json` and loaded into `MyTunoScaling` via `MyTunoScalingConfiguration`.
 
 ---
 
-## 2. STAGE MODE SCALING
+## 1. Arena Mode
 
-### 2.1 Enemy Composition
+### Player Stats
 
-#### Encounter Rules
-```json
-"encounterRules": {
-  "bossEveryNStages": 10,
-  "enemyCountByStageOffset": [
-    { "from": 1, "to": 2, "count": 1 },
-    { "from": 3, "to": 4, "count": 2 },
-    { "from": 5, "to": 6, "count": 3 },
-    { "from": 7, "to": 8, "count": 4 },
-    { "from": 9, "to": 9, "count": 5 }
-  ]
-}
+**Base stats** (character creation):
+
+| Stat | Base Value |
+|---|---:|
+| HP | 200 |
+| Power | 25 |
+| Speed | 10 |
+| Defense | 20 |
+| Critical | 2% |
+
+**Level scaling:** `StatValue = BaseStat × (1 + 0.008 × (Level − 1))` — max level 100.
+
+### Upgrade System (Fidelis)
+
+Each stat upgrades independently with linear cost: `Cost(N) = BaseCost + N × CostPerLevel`.
+
+| Stat | Bonus/Upgrade | Base Cost | Per-Level | Max | Notes |
+|---|:---:|---:|---:|:---:|---|
+| HP | +100 | 50 | 50 | ∞ | Highest flat bonus |
+| Power | +15 | 50 | 50 | ∞ | Linear damage scaling |
+| Speed | +1.5 | 150 | 150 | 41 | Reduces action time (min 1.0s) |
+| Defense | +12 | 50 | 50 | ∞ | Mitigation: `500/(500+Def)` |
+| Critical | +0.5% | 120 | 120 | 80 | Capped at 40% |
+
+### Combat
+
+```
+DamageMult = 500 / (500 + TargetDefense)
+Damage     = max(1, ⌊Power × DamageMult⌋)
+CritDamage = Damage × 2.0
 ```
 
-- **Boss every 10th stage**: Stage 10, 20, 30, etc.
-- **Enemy count within each 10-stage block** (based on offset within block):
+### Arena Rewards
 
-| Stage Offset | Enemy Count |
-|-------------|-------------|
-| 1–2 | 1 |
-| 3–4 | 2 |
-| 5–6 | 3 |
-| 7–8 | 4 |
-| 9 | 5 |
-| 10 (boss) | 1 boss |
+| Outcome | Fidelis | XP |
+|---|---:|---:|
+| Win | 120 | 100 |
+| Draw | 40 | 50 |
 
-### 2.2 Enemy Base Stats
-
-```json
-"baseEnemyStats": {
-  "normal": { "hp": 50, "power": 8, "speed": 5, "defense": 3, "criticalChance": 0.05 },
-  "boss": { "hp": 500, "power": 20, "speed": 8, "defense": 15, "criticalChance": 0.15 }
-}
-```
-
-### 2.3 Enemy Stat Scaling Per Stage
-
-**Formula**: `ScaledStat = BaseStat × (1.0 + (Stage - 1) × ScalingRate)`
-
-```json
-"enemyScaling": {
-  "hpPerStage": 0.08,
-  "powerPerStage": 0.05,
-  "speedPerStage": 0.03,
-  "defensePerStage": 0.04,
-  "criticalChancePerStage": 0.002
-}
-```
-
-| Stat | Per Stage Rate | Notes |
-|------|----------------|-------|
-| **HP** | 8% | Fastest growth |
-| **Power** | 5% | Linear damage increase |
-| **Speed** | 3% | Slower action bar |
-| **Defense** | 4% | Increasing damage reduction |
-| **Critical** | +0.2% | Additive, not multiplicative |
-
-**Examples** (Normal Enemy):
-| Stage | HP | Power | Speed | Defense |
-|-------|-----|-------|-------|---------|
-| 1 | 50 | 8 | 5 | 3 |
-| 10 | 86 | 11.6 | 6.35 | 4.44 |
-| 50 | 246 | 27.6 | 12.35 | 8.88 |
-| 100 | 446 | 47.6 | 19.85 | 14.88 |
-
-#### Additional Scaling Layer
-```json
-"scaling": {
-  "hpGrowthPerStage": 0.06,
-  "damageGrowthPerStage": 0.05,
-  "armorGrowthPerStage": 0.03,
-  "bossMultiplier": 2.5
-}
-```
-
-### 2.4 Stage Mode XP Rewards
-
-```json
-"stageMode": {
-  "baseStageXP": 30,
-  "bossXPMultiplier": 10,
-  "stageRewardScalingFactor": 0.05
-}
-```
-
-**Formula**: `XP = BaseStageXP × EnemyCount × EnemyTypeMultiplier × (1.0 + Stage × StageRewardScalingFactor)`
-
-- **EnemyTypeMultiplier**: Normal: 1.0, Boss: 10.0
-- **StageRewardScalingFactor**: 0.05 (5% per stage)
-
-**Examples**:
-| Stage | Enemies | Type | XP |
-|-------|---------|------|-----|
-| 1 | 1 normal | Normal | 30 × 1 × 1.0 × 1.05 ≈ 31.5 |
-| 10 | 1 boss | Boss | 30 × 1 × 10 × 1.5 = 450 |
-| 50 | 5 normal | Normal | 30 × 5 × 1.0 × 3.5 = 525 |
-
-### 2.5 Fidelis Drop Rates
-
-```json
-"fidelisRewards": {
-  "normalWin": 10,
-  "bossWin": 50
-}
-```
-
-Fixed rewards per enemy type, no scaling applied.
-
-### 2.6 Item Drop System
-
-```json
-"dropRates": {
-  "beerDropChance": 0.10,
-  "shotDropChance": 0.05,
-  "bossDropMultiplier": 3.0
-}
-```
-
-- Normal enemy: 10% beer, 5% shot
-- Boss: 30% beer, 15% shot (3× multiplier)
-
-### 2.7 Biome System
-
-```json
-"biomes": [
-  {
-    "name": "Forest",
-    "stageMin": 1,
-    "stageMax": 100,
-    "enemySpritePath": "sprites/games/my-tuno/enemies/forest",
-    "bossSpritePrefix": "boss_"
-  },
-  {
-    "name": "Desert",
-    "stageMin": 101,
-    "stageMax": 200,
-    "enemySpritePath": "sprites/games/my-tuno/enemies/desert",
-    "bossSpritePrefix": "boss_"
-  }
-]
-```
+Level difference scales rewards ±50% (1% per level diff).
 
 ---
 
-## 3. CONFIGURATION REFERENCE
+## 2. Stage Mode
 
-### 3.1 Complete Config File Structure
+### Structure
 
-All values live in `scaling.config.json` under the `"myTuno"` key and map to `MyTunoScalingConfiguration.cs`.
+- **20 biomes** (stages) × **1,000 floors** = **20,000 floors**
+- **Arena** unlocks at floor **20,001** after clearing floor 20,000 boss
+- Arena is endless (tier 21 flat stats)
 
-| Config Key | Type | Description |
-|------------|------|-------------|
-| `version` | string | Game version identifier |
-| `description` | string | Game description text |
-| `nextFeatures` | string | Upcoming features text |
-| `baseStats` | object | Starting player stats |
-| `levelScaling` | object | Per-level stat multiplier and XP base |
-| `upgrades` | object | Per-stat upgrade config (bonus, cost, max) |
-| `defenseK` | number | Defense formula constant (50) |
-| `minDamage` | number | Guaranteed minimum damage (1) |
-| `combat.criticalChanceCap` | number | Max critical chance (0.5) |
-| `items.shotBuffMultiplier` | number | Shot item stat multiplier (1.20) |
-| `beerDropChance` | number | Arena beer drop chance (0.5) |
-| `battleRewards` | object | Arena Fidelis/XP reward config |
-| `matchmaking` | object | Arena matchmaking parameters |
-| `stageMode` | object | Stage mode full configuration |
+### Encounter Pattern
 
-### 3.2 Key C# Classes
+Within each 10-floor block:
 
-| Class | File | Purpose |
-|-------|------|---------|
-| `MyTunoScalingConfiguration` | Configuration/MyTunoScalingConfiguration.cs | Root config model |
-| `MyTunoUpgradeStat` | Configuration/MyTunoScalingConfiguration.cs | Per-stat upgrade config (bonusPerUpgrade, baseCost, maxUpgrades) |
-| `MyTunoUpgrades` | Configuration/MyTunoScalingConfiguration.cs | Container for all 5 stat upgrades |
-| `StageModeConfig` | Configuration/MyTunoScalingConfiguration.cs | Stage mode settings |
-| `EnemyScalingConfig` | Configuration/MyTunoScalingConfiguration.cs | Per-stage enemy stat growth rates |
-| `EncounterRulesConfig` | Configuration/MyTunoScalingConfiguration.cs | Boss frequency & enemy count rules |
-| `BiomeConfig` | Configuration/MyTunoScalingConfiguration.cs | Biome stage ranges & sprite paths |
-| `UpgradeService` | Services/UpgradeService.cs | Handles upgrade purchases with max level enforcement |
+| Floor Offset | Enemies | Type |
+|:---:|:---:|:---|
+| 1–9 | 1–9 | Normal (ramp) |
+| 10 | 1 | **Miniboss** |
+
+Every **100th floor** = **Boss** (overrides miniboss, 1 enemy, unique boss sprite).
+
+### Enemy Scaling — Tier System
+
+Enemies use **flat stats per tier** — all floors within a tier face the same base stats. No per-floor formula.
+
+21 tiers: T1–T20 (one per biome of 1,000 floors) + T21 (arena 20,001+).
+
+**Key tiers:**
+
+| Tier | Floors | Normal HP | Miniboss HP | Boss HP | Fidelis | XP |
+|:---:|:---|---:|---:|---:|---:|---:|
+| 1 | 1–1,000 | 150 | 400 | 1,200 | 30 | 20 |
+| 5 | 4,001–5,000 | 1,900 | 4,800 | 15,000 | 140 | 110 |
+| 10 | 9,001–10,000 | 11,000 | 27,500 | 85,000 | 370 | 230 |
+| 15 | 14,001–15,000 | 34,000 | 85,000 | 262,000 | 740 | 380 |
+| 20 | 19,001–20,000 | 100,000 | 250,000 | 770,000 | 1,350 | 580 |
+| 21 | 20,001+ | 125,000 | 313,000 | 963,000 | 1,500 | 620 |
+
+Full 21-tier tables: see `docs/my_tuno/STAGE_ENEMY_SCALING.md`.
+
+### Biomes
+
+| # | Biome | Floors | Reward × | Action Time |
+|:---:|:---|:---|:---:|:---:|
+| 1 | Forest | 1–1,000 | ×1.00 | 5.0s |
+| 2 | Swamp | 1,001–2,000 | ×1.05 | 4.8s |
+| 3 | Mountains | 2,001–3,000 | ×1.10 | 4.6s |
+| 4 | Snowy | 3,001–4,000 | ×1.15 | 4.4s |
+| 5 | Tropical | 4,001–5,000 | ×1.20 | 4.2s |
+| 6 | Caverns | 5,001–6,000 | ×1.25 | 4.0s |
+| 7 | Desert | 6,001–7,000 | ×1.30 | 3.8s |
+| 8 | Volcanic | 7,001–8,000 | ×1.35 | 3.6s |
+| 9 | Ruins | 8,001–9,000 | ×1.40 | 3.4s |
+| 10 | Sky | 9,001–10,000 | ×1.45 | 3.2s |
+| 11 | Underwater | 10,001–11,000 | ×1.50 | 3.0s |
+| 12 | Underground | 11,001–12,000 | ×1.55 | 2.8s |
+| 13 | Mechanical | 12,001–13,000 | ×1.60 | 2.6s |
+| 14 | Frostfire | 13,001–14,000 | ×1.65 | 2.4s |
+| 15 | Corruption | 14,001–15,000 | ×1.70 | 2.2s |
+| 16 | Dark | 15,001–16,000 | ×1.75 | 2.0s |
+| 17 | Alien | 16,001–17,000 | ×1.80 | 1.8s |
+| 18 | Void | 17,001–18,000 | ×1.85 | 1.6s |
+| 19 | Timerift | 18,001–19,000 | ×1.90 | 1.4s |
+| 20 | Light | 19,001–20,000 | ×1.95 | 1.2s |
+| — | Arena | 20,001+ | ×2.50 | 1.0s |
+
+**Action time formula:** `max(1.0, 5.0 − ⌊(floor−1)/1000⌋ × 0.2)`
+
+### Checkpoints
+
+- Checkpoint every 10 floors (after miniboss)
+- Death → return to last checkpoint
+- Arena: no checkpoints (death → floor 20,001)
+
+### Drop Rates (per floor)
+
+| Item | Chance | Boss × | Gate Floor |
+|:---|:---:|:---:|:---:|
+| Fino | 0.15% | ×3 | 1 |
+| Shot | 0.09% | ×3 | 1,001 |
+| Cigarro | 0.09% | ×3 | 3,001 |
+| Caneca | 0.04% | ×3 | 5,001 |
+| Canhão | 0.03% | ×3 | 7,001 |
+| Penalty | 0.02% | ×3 | 9,001 |
+| Instrument Part | 0.03% | ×3 | — |
+| Equipment | 0.03% | ×3 | — |
+
+### Consumable Effects
+
+| Item | Effect |
+|:---|:---|
+| Fino | Heal 25% HP (150s cooldown) |
+| Caneca | Heal 50% HP (300s cooldown) |
+| Cigarro | 3 shield charges |
+| Canhão | 3 boost charges |
+| Shot | ×1.20 power for 5 battles |
+| Penalty | −50% speed, +50% crit, min 0.5s action |
 
 ---
 
-## 4. SUMMARY TABLE
+## 3. Boss Mode
 
-### Arena Mode
-| Component | Scaling Mechanism | Config Key | Configurable |
-|-----------|------------------|-----------|--------------|
-| Player Base Stats | Level × 0.1 | `baseStats`, `levelScaling` | ✓ |
-| Stat Upgrades | BaseCost × (1+count)^1.5 | `upgrades` | ✓ |
-| Max Upgrade Levels | Per-stat cap | `upgrades.*.maxUpgrades` | ✓ |
-| Level Progression | Level × 100 XP | `levelScaling.xpPerLevelBase` | ✓ |
-| Arena XP Rewards | Level diff × 0.08 | `battleRewards.xpScalingFactor` | ✓ |
-| Fidelis Rewards | Base × (1 + level × 0.1) | `battleRewards.fidelisLevelMultiplier` | ✓ |
-| Defense Mitigation | K/(K+DEF) formula | `defenseK`, `minDamage` | ✓ |
-| Critical Chance Cap | 50% max | `combat.criticalChanceCap` | ✓ |
-| Matchmaking | Power-rating balanced | `matchmaking` | ✓ |
+Boss mode uses a separate scaling formula tied to boss level.
 
-### Stage Mode
-| Component | Scaling Mechanism | Config Key | Configurable |
-|-----------|------------------|-----------|--------------|
-| Enemy Count | Offset-based rules per 10-stage block | `stageMode.encounterRules` | ✓ |
-| Boss Frequency | Every Nth stage | `stageMode.encounterRules.bossEveryNStages` | ✓ |
-| Enemy HP | Base × (1 + stage × 0.08) | `stageMode.enemyScaling.hpPerStage` | ✓ |
-| Enemy Power | Base × (1 + stage × 0.05) | `stageMode.enemyScaling.powerPerStage` | ✓ |
-| Enemy Speed | Base × (1 + stage × 0.03) | `stageMode.enemyScaling.speedPerStage` | ✓ |
-| Enemy Defense | Base × (1 + stage × 0.04) | `stageMode.enemyScaling.defensePerStage` | ✓ |
-| Stage XP Reward | 30 × count × type × (1 + stage×0.05) | `stageMode.baseStageXP` | ✓ |
-| Item Drops | Base chance × boss multiplier | `stageMode.dropRates` | ✓ |
-| Fidelis Rewards | Fixed per enemy type | `stageMode.fidelisRewards` | ✓ |
-| Biomes | Stage range → sprite path | `stageMode.biomes` | ✓ |
+### Boss Base Stats
+
+| Stat | Value |
+|---|---:|
+| HP | 150 |
+| Power | 25 |
+| Speed | 6 |
+| Defense | 10 |
+| Critical | 15% |
+
+### Scaling Parameters
+
+| Parameter | Value |
+|---|:---:|
+| Stage offset | 1,000 |
+| Boss stage scaling | 10 |
+| Boss stat multiplier | ×2.0 |
+| XP per boss level | 120 |
+| Boss level XP power | 0.6 |
+| XP level penalty rate | 1% |
+| Min XP level multiplier | 0.10 |
+| Level bonus per level | +1% (cap ×2.0) |
+| Boss win Fidelis | 430 |
+
+### Drop Rates (Boss Mode — 2× stage rates)
+
+| Item | Chance |
+|:---|:---:|
+| Fino | 0.30% |
+| Shot | 0.18% |
+| Cigarro | 0.18% |
+| Caneca | 0.08% |
+| Canhão | 0.06% |
+| Penalty | 0.04% |
+| Instrument Part | 0.06% |
+| Equipment | 0.06% |
+| FITAB | 0.50% |
+
+---
+
+## 4. Equipment & Forging
+
+### Equipment Slot Stats
+
+| Slot | HP | Power | Defense |
+|:---|---:|---:|---:|
+| Head | 60 | 10 | 15 |
+| Shoulders | 45 | 5 | 20 |
+| Chest | 100 | 15 | 35 |
+| Gloves | 10 | 25 | 3 |
+| Legs | 60 | 10 | 15 |
+| Boots | 30 | 5 | 10 |
+| Instrument | 8 | 12 | 5 |
+
+Quality range: **0.70–1.30**. Enhancement: **+5% per level**, max **15** (+75%).
+
+### Drink Resources for Forging
+
+| Drink | Energy | Forge Cost | Unlock Floor |
+|:---|:---:|:---:|:---:|
+| Cerveja | 1 | 1 | 1 |
+| Vinho | 2 | 1 | 1,001 |
+| Licor | 3 | 2 | 2,001 |
+| Rum | 4 | 2 | 3,001 |
+| Tequilla | 5 | 3 | 4,001 |
+| Vodka | 6 | 3 | 5,001 |
+| Gin | 7 | 4 | 6,001 |
+| Whisky | 8 | 5 | 7,001 |
+| Absinto | 9 | 6 | 8,001 |
+| Aguardente | 10 | 8 | 9,001 |
+
+Energy regeneration: 1 energy per **60 seconds**. Cast time: **3 seconds**.
+
+### Weapon Forging
+
+| Parameter | Value |
+|---|:---:|
+| Weapon upgrade base cost | 50 |
+| Weapon upgrade per level | 50 |
+| Max weapon level | 20 |
+| Stat bonus per level | +5% |
+| Two-handed multiplier | ×2.0 |
+| Instrument quality range | 0.85–1.15 |
+| Upgrade levels per drink tier | 5 |
+
+### Crit & Speed Rolls
+
+| Roll | Min Drink Cost | Chance | Range |
+|:---|:---:|:---:|:---|
+| Critical | 7 | 30% | +1%–10% |
+| Speed | 7 | 25% | +1–5 |
+
+---
+
+## 5. FITAB Drop Rates
+
+| Source | Chance |
+|:---|:---:|
+| Stage Mode | 0.20% |
+| Battle (Arena) | 0.10% |
+| Boss Mode | 0.50% |
+
+---
+
+## 6. Daily Reward
+
+| Parameter | Value |
+|---|:---:|
+| Base Fidelis | 500 |
+| Per-level bonus | +5 |
+| Balance percent | 0% |
+
+---
+
+## Key Files
+
+| File | Purpose |
+|---|---|
+| `scaling.config.json` | Master config for all scaling values |
+| `MyTunoScalingConfiguration.cs` | Config POCO (deserialization target) |
+| `MyTunoScaling.cs` | Static singleton — `MyTunoScaling.Configure()` |
+| `StageService.cs` | Floor progression, enemy creation, action time |
+| `StageBiomeService.cs` | Biome lookup, boss/miniboss detection, encounter rules |
+| `DeterministicCombatEngine.cs` | Pre-computed combat outcomes (seeded RNG) |
+| `CombatActionService.cs` | Interactive combat actions (auto-attacks, spells) |
+| `docs/my_tuno/STAGE_ENEMY_SCALING.md` | Full 21-tier enemy stat tables |
