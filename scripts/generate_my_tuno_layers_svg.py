@@ -6,7 +6,7 @@ Outputs 19 text-based SVG files (256x256) for body, eyes, hair, clothes and weap
 
 from pathlib import Path
 
-ROOT = Path("src/RTUB.Web/wwwroot/sprites/games/my-tuno/layers-svg")
+ROOT = Path("src/RTUB.Web/wwwroot/sprites/games/my-tuno/layers")
 SCALE = 4
 CANVAS = 64
 PX = CANVAS * SCALE

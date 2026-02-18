@@ -6,14 +6,14 @@
  *
  * Layer data shape (from CharacterSpriteLayers DTO):
  *   {
- *     bodyPath:    "/sprites/games/my-tuno/layers-svg/body/base.svg",
+ *     bodyPath:    "/sprites/games/my-tuno/layers/body/base.svg",
  *     bodyTint:    "#F5D6C3",
- *     eyesPath:    "/sprites/games/my-tuno/layers-svg/eyes/base.svg",
+ *     eyesPath:    "/sprites/games/my-tuno/layers/eyes/base.svg",
  *     eyesTint:    "#4A90D9",
- *     hairPath:    "/sprites/games/my-tuno/layers-svg/hair/short.svg" | null,
+ *     hairPath:    "/sprites/games/my-tuno/layers/hair/short.svg" | null,
  *     hairTint:    "#3B2F2F",
- *     clothesPath: "/sprites/games/my-tuno/layers-svg/clothes/casual.svg",
- *     weaponPath:  "/sprites/games/my-tuno/layers-svg/weapons/sword_1h.svg" | null
+ *     clothesPath: "/sprites/games/my-tuno/layers/clothes/casual.svg",
+ *     weaponPath:  "/sprites/games/my-tuno/layers/weapons/sword_1h.svg" | null
  *   }
  */
 (function () {
