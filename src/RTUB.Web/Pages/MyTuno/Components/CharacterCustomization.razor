@@ -251,23 +251,23 @@
     }
 
     // Layer path helpers (mirror the service logic for live preview)
-    private string GetBodyPath() => "/sprites/games/my-tuno/layers/body/base.png";
-    private string GetEyesPath() => "/sprites/games/my-tuno/layers/eyes/base.png";
+    private string GetBodyPath() => "/sprites/games/my-tuno/layers-svg/body/base.svg";
+    private string GetEyesPath() => "/sprites/games/my-tuno/layers-svg/eyes/base.svg";
 
     private string GetHairPath() => hairStyle switch
     {
-        HairStyle.Short => "/sprites/games/my-tuno/layers/hair/short.png",
-        HairStyle.Long => "/sprites/games/my-tuno/layers/hair/long.png",
-        HairStyle.Spiky => "/sprites/games/my-tuno/layers/hair/spiky.png",
+        HairStyle.Short => "/sprites/games/my-tuno/layers-svg/hair/short.svg",
+        HairStyle.Long => "/sprites/games/my-tuno/layers-svg/hair/long.svg",
+        HairStyle.Spiky => "/sprites/games/my-tuno/layers-svg/hair/spiky.svg",
         _ => string.Empty
     };
 
     private string GetClothesPath() => clothesStyle switch
     {
-        ClothesStyle.Casual => "/sprites/games/my-tuno/layers/clothes/casual.png",
-        ClothesStyle.Armor => "/sprites/games/my-tuno/layers/clothes/armor.png",
-        ClothesStyle.Robe => "/sprites/games/my-tuno/layers/clothes/robe.png",
-        _ => "/sprites/games/my-tuno/layers/clothes/casual.png"
+        ClothesStyle.Casual => "/sprites/games/my-tuno/layers-svg/clothes/casual.svg",
+        ClothesStyle.Armor => "/sprites/games/my-tuno/layers-svg/clothes/armor.svg",
+        ClothesStyle.Robe => "/sprites/games/my-tuno/layers-svg/clothes/robe.svg",
+        _ => "/sprites/games/my-tuno/layers-svg/clothes/casual.svg"
     };
 
     private string GetWeaponPath()
@@ -288,7 +288,7 @@
             WeaponType.Hammer => "hammer",
             _ => "sword_1h"
         };
-        return $"/sprites/games/my-tuno/layers/weapons/{fileName}.png";
+        return $"/sprites/games/my-tuno/layers-svg/weapons/{fileName}.svg";
     }
 
     private static string GetHairStyleName(HairStyle style) => style switch
