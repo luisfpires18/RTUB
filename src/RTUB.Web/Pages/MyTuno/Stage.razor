@@ -29,249 +29,131 @@
 @inject ICombatActionService CombatActionService
 @inject IInventoryService InventoryService
 @inject IInventoryRepository InventoryRepository
+@inject IItemTypeConfigService ItemTypeConfigService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
 
-<div class="stage-page container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center gap-3">
-            <!-- Left: Back button -->
-            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
-                <i class="bi bi-arrow-left"></i>
-            </button>
-            
-            <!-- Center: Title (takes remaining space + centers text) -->
-            <div class="flex-grow-1 text-center">
-                <h1 class="mb-2"><i class="bi bi-trophy"></i> Stage Mode</h1>
-            </div>
-            
-            <!-- Right: Invisible spacer (maintains symmetry) -->
-            <div style="width: 48px;"></div>
-        </div>
-    </div>
-
+<div class="stage-page">
     @if (loading)
     {
-        <LoadingSpinner />
+        <div class="stage-loading">
+            <LoadingSpinner />
+        </div>
     }
     else if (character == null)
     {
-        <EmptyState Title="Personagem não encontrado"
-                    Message="Ocorreu um erro ao carregar o teu personagem."
-                    Icon="bi-person-x" />
+        <div class="stage-loading">
+            <EmptyState Title="Personagem não encontrado"
+                        Message="Ocorreu um erro ao carregar o teu personagem."
+                        Icon="bi-person-x" />
+        </div>
     }
     else if (errorMessage != string.Empty)
     {
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        <div class="stage-loading">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+            </div>
         </div>
     }
     else
     {
-        <!-- Battle Screen - Always show container when animating to preserve PixiJS game -->
         @if (showBattleAnimation)
         {
-            <div class="card mb-4 battle-card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-sword me-2"></i>
+            <!-- ═══ Fullscreen Battle Screen (WOO-inspired) ═══ -->
+            <div class="battle-screen">
+                <!-- Canvas fills the entire battle area -->
+                <div id="phaserBattleContainer" class="battle-canvas"></div>
+
+                <!-- ── TOP BAR: Back + Floor (center) + Rewards + Controls ── -->
+                <div class="battle-top-bar">
+                    <!-- Left: Back button -->
+                    <button class="battle-back-btn" @onclick="GoBack" title="Voltar">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    <!-- Center: Floor indicator (absolutely positioned) -->
+                    <div class="battle-floor-indicator">
+                        <span class="floor-label">FLOOR</span>
                         @if (currentBattle != null)
                         {
-                            <text>Floor @currentBattle.StageNumber</text>
+                            <span class="floor-num">@currentBattle.StageNumber</span>
                         }
                         else
                         {
-                            <text>A carregar batalha...</text>
+                            <span class="floor-num">—</span>
                         }
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(1.0)">
-                            1x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(3.0)">
-                            3x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 5.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(5.0)">
-                            5x
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
-                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="Acabar Floor">
-                            <i class="bi bi-stop-fill me-1"></i>Acabar
-                        </button>
                     </div>
-                </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer"></div>
-                </div>
-            </div>
 
-            <!-- Active Buff Indicators -->
-            @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
-            {
-                <div class="d-flex gap-2 mb-3 flex-wrap">
-                    @if (character.ShotBuffBattlesRemaining > 0)
+                    <!-- Left-middle: Compact rewards tracker -->
+                    @if (stagesCleared > 0)
                     {
-                        <span class="badge fs-6" style="background-color: #7b1fa2;">
-                            <i class="bi bi-cup me-1"></i>Shot +20% (@character.ShotBuffBattlesRemaining batalhas)
-                        </span>
-                    }
-                    @if (character.CigarroShieldHitsRemaining > 0)
-                    {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-shield-fill me-1"></i>@character.CigarroShieldHitsRemaining/3 ataques por bloquear
-                        </span>
-                    }
-                    @if (character.CanhaoDamageBoostHitsRemaining > 0)
-                    {
-                        <span class="badge bg-danger fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
-                        </span>
-                    }
-                    @if (character.PenaltyBuffActive > 0)
-                    {
-                        <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty (0.5s + 100% Crit)
-                        </span>
-                    }
-                </div>
-            }
-
-            <!-- Accumulated Loot Tracker - Separate card on mobile for better visibility -->
-            @if (stagesCleared > 0)
-            {
-                <div class="card mb-4 rewards-card">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>@Fmt(stagesCleared) Floors
+                        <div class="battle-rewards-strip">
+                            <span class="reward-tag reward-tag--xp">
+                                <i class="bi bi-star-fill"></i> @Fmt(totalXPEarned) XP
                             </span>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
+                            <span class="reward-tag reward-tag--fidelis">
+                                <i class="bi bi-coin"></i> @Fmt(totalFidelisEarned) Fidelis
                             </span>
-                            <span class="badge bg-info text-dark">
-                                <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
-                            </span>
-                            @if (totalFinosDropped > 0)
+                            @if (totalFinosDropped + totalCanecasDropped > 0)
                             {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalFinosDropped) Fino
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalFinosDropped + totalCanecasDropped) Drinks
                                 </span>
                             }
-                            @if (totalCanecasDropped > 0)
+                            @if (totalInstrumentPartsDropped.Count > 0)
                             {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalCanecasDropped) Caneca
+                                <span class="reward-tag reward-tag--instrument">
+                                    <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Parts
                                 </span>
                             }
-                            @if (totalCigarrosDropped > 0)
+                            @if (totalEquipmentDropped.Count > 0)
                             {
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-cloud me-1"></i>+@Fmt(totalCigarrosDropped) Cigarro
+                                <span class="reward-tag reward-tag--equip">
+                                    <i class="bi bi-gem"></i> @totalEquipmentDropped.Values.Sum() Equip
                                 </span>
-                            }
-                            @if (totalCanhaosDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-bullseye me-1"></i>+@Fmt(totalCanhaosDropped) Canhão
-                                </span>
-                            }
-                            @if (totalShotsDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
-                                </span>
-                            }
-                            @if (totalPenaltiesDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-lightning-charge-fill me-1"></i>+@Fmt(totalPenaltiesDropped) Penalty
-                                </span>
-                            }
-                            @if (totalFitabDropped > 0)
-                            {
-                                <span class="badge text-white" style="background-color: #e040fb;">
-                                    <i class="bi bi-lightning-fill me-1"></i>+@totalFitabDropped FITAB
-                                </span>
-                            }
-                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
-                            {
-                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
-                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
-                                var imageUrl = instrumentPartImages.GetValueOrDefault(partType);
-                                <span class="badge bg-purple text-white instrument-drop-badge">
-                                    @if (!string.IsNullOrEmpty(imageUrl))
-                                    {
-                                        <img src="@CacheBuster.Bust(imageUrl)" alt="@instrumentName" class="instrument-drop-icon me-1" />
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-music-note me-1"></i>
-                                    }
-                                    +@qty @instrumentName
-                                </span>
-                            }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var equipSprite = GetEquipmentSpritePath(slot);
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <span class="badge bg-equipment text-white equipment-drop-badge">
-                                        @if (!string.IsNullOrEmpty(equipSprite))
-                                        {
-                                            <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon me-1" />
-                                        }
-                                        else
-                                        {
-                                            <i class="bi @fallbackIcon me-1"></i>
-                                        }
-                                        +1 @equipName
-                                    </span>
-                                }
                             }
                         </div>
+                    }
+                    
+                    <!-- Controls (right side) -->
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 3.0 ? "active" : "")" @onclick="() => SetBattleSpeed(3.0)">3x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--stop" @onclick="EndRunEarly" title="Acabar">
+                            <i class="bi bi-stop-fill"></i>
+                        </button>
                     </div>
                 </div>
-            }
 
-            <!-- Enemy Stats Card -->
-            @if (currentEnemyStats.Count > 0)
-            {
-                <div class="card mb-4 enemy-stats-card">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Stats dos Inimigos:</h6>
-                        @foreach (var enemy in currentEnemyStats)
+                <!-- ── Active Buff Indicators (below top bar) ── -->
+                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+                {
+                    <div class="battle-buffs-strip">
+                        @if (character.ShotBuffBattlesRemaining > 0)
                         {
-                            <div class="mb-2">
-                                <small class="fw-bold d-block mb-1">@enemy.Name</small>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="badge bg-danger">
-                                        <i class="bi bi-heart-fill me-1"></i>@Fmt(enemy.HP) HP
-                                    </span>
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-lightning-fill me-1"></i>@Fmt(enemy.Power) Poder
-                                    </span>
-                                    <span class="badge bg-info text-dark">
-                                        <i class="bi bi-shield-fill me-1"></i>@Fmt(enemy.Defense) Defesa
-                                    </span>
-                                    <span class="badge bg-secondary">
-                                        <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
-                                    </span>
-                                </div>
-                            </div>
+                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>@character.ShotBuffBattlesRemaining</span>
+                        }
+                        @if (character.CigarroShieldHitsRemaining > 0)
+                        {
+                            <span class="buff-tag buff-tag--shield"><i class="bi bi-shield-fill"></i>@character.CigarroShieldHitsRemaining</span>
+                        }
+                        @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                        {
+                            <span class="buff-tag buff-tag--damage"><i class="bi bi-bullseye"></i>@character.CanhaoDamageBoostHitsRemaining</span>
+                        }
+                        @if (character.PenaltyBuffActive > 0)
+                        {
+                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i></span>
                         }
                     </div>
-                </div>
-            }
+                }
+            </div>
         }
 
         @if (showDefeatSummary)
@@ -279,7 +161,7 @@
             <div class="defeat-overlay">
                 <div class="defeat-panel">
                     <div class="defeat-banner">
-                        <span>FLOOR CLEAR</span>
+                        <span>STAGE END</span>
                     </div>
                     <div class="defeat-stage">Floor @defeatedAtStage</div>
                     @if (stagesCleared > 0)
@@ -476,6 +358,9 @@
     // Key = consumable type ("fino", "caneca"), Value = remaining cooldown in seconds
     private Dictionary<string, double> _consumableCooldowns = new();
 
+    // Consumable image URLs from ItemTypeConfig (Cloudflare)
+    private Dictionary<string, string> _consumableImages = new();
+
     // Spell cooldowns preserved across stage transitions (copied from old session before destroy)
     private Dictionary<string, double>? _preservedSpellCooldowns;
 
@@ -617,6 +502,27 @@
                 catch (Exception ex)
                 {
                     Logger.LogWarning(ex, "Failed to load consumable quantities for stage run");
+                }
+
+                // Load consumable image URLs from config (Cloudflare CDN)
+                try
+                {
+                    if (_consumableImages.Count == 0)
+                    {
+                        var allConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
+                        Logger.LogInformation("Stage: Loaded {Count} item configs. Consumable PictureUrls: {Urls}",
+                            allConfigs.Count,
+                            string.Join(", ", allConfigs
+                                .Where(c => c.Category == "Consumable")
+                                .Select(c => $"{c.TypeKey}={c.PictureUrl ?? "(null)"}")));
+                        _consumableImages = allConfigs
+                            .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
+                            .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load consumable images for stage run");
                 }
             }
             
@@ -797,6 +703,13 @@
                             Canhao = _canhaoQty,
                             Shot = _shotQty,
                             Penalty = _penaltyQty
+                        },
+                        ConsumableImages = new
+                        {
+                            Fino = _consumableImages.GetValueOrDefault("Fino"),
+                            Caneca = _consumableImages.GetValueOrDefault("Caneca"),
+                            Cigarro = _consumableImages.GetValueOrDefault("Cigarro"),
+                            Canhao = _consumableImages.GetValueOrDefault("Canhao")
                         },
                         ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
                         SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),

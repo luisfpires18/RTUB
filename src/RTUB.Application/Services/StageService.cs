@@ -173,8 +173,10 @@ public class StageService : IStageService
         }
         else
         {
-            // Single query: GetRandomEnemiesAsync returns full StageEnemy objects
-            var randomEnemies = await _stageEnemyRepository.GetRandomEnemiesAsync(enemyType, region, enemyCount);
+            // MiniBoss floors: pick a random Normal enemy from the same region
+            // (no dedicated MiniBoss sprites exist — they're just buffed normals)
+            var queryType = enemyType == EnemyType.MiniBoss ? EnemyType.Normal : enemyType;
+            var randomEnemies = await _stageEnemyRepository.GetRandomEnemiesAsync(queryType, region, enemyCount);
             foreach (var e in randomEnemies)
             {
                 enemyTemplates.Add(e);

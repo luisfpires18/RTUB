@@ -1,806 +1,552 @@
-/* Stage Mode Page Styling */
+/* ===================================================================
+   Stage Mode - WOO-inspired Fullscreen Battle Layout
+   Mobile-first -> Desktop adaptation
+   =================================================================== */
 
+/* -- Page wrapper -- */
 .stage-page {
-  min-height: 100vh;
-  padding-bottom: 2rem;
-  /* Mobile optimization like Arena */
-  max-width: 1200px;
-  margin: 0 auto;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    overflow: hidden;
 }
 
-/* Header spacer for alignment */
-.header-spacer {
-  width: 140px;
-}
-
-/* Battle animation container - responsive like Arena */
-#phaserBattleContainer {
-  display: block;
-  width: 100%;
-  max-width: 800px;
-  height: auto;
-  aspect-ratio: 8 / 5; /* Maintain 800x500 aspect ratio */
-  margin: 0 auto;
-  background: #1a1a1a;
-}
-
-/* Mobile responsive styles - match Arena exactly */
-@media (max-width: 768px) {
-  .stage-page {
-    padding: 0 0.5rem;
-    /* Fix screen to prevent horizontal scrolling on mobile */
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #phaserBattleContainer {
-    max-width: 100%;
-    /* Keep same aspect ratio as Arena for consistency */
-  }
-}
-
-/* Battle Card */
-.battle-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98));
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* Rewards Card - Separate card for better mobile visibility */
-.rewards-card {
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(25, 135, 84, 0.15), rgba(25, 135, 84, 0.05));
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-.rewards-card .card-body {
-  padding: 1.25rem;
-}
-
-.rewards-card h6 {
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.rewards-card .badge {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-/* Battle Result Card - Reusing Arena pattern */
-.battle-result-card {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 16px !important;
-  background: linear-gradient(180deg, rgba(18, 18, 24, 0.98), rgba(12, 12, 16, 0.98)) !important;
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.4) !important;
-}
-
-.battle-result-card .card-body {
-  background: transparent !important;
-}
-
-.battle-result-body {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  text-align: center;
-}
-
-.battle-result-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(249, 168, 37, 0.25), rgba(245, 127, 23, 0.35));
-  color: #ffe7b0;
-  font-weight: 600;
-}
-
-.battle-result-title i {
-  font-size: 1.2rem;
-}
-
-.battle-result-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.battle-result-label {
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.battle-result-rewards {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-/* Loot Section */
-.loot-section {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.reward-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(25, 135, 84, 0.2), rgba(25, 135, 84, 0.1));
-  border: 1px solid rgba(25, 135, 84, 0.3);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.reward-item i {
-  font-size: 1.1rem;
-}
-
-/* Stage Statistics Boxes */
-.stage-stat-box {
-  background: linear-gradient(135deg, rgba(18, 18, 24, 0.9), rgba(12, 12, 16, 0.9));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 1rem;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.stage-stat-box:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.stage-stat-label {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stage-stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-/* Enemy Info Card */
-.enemy-info-card {
-  background: linear-gradient(135deg, rgba(18, 18, 24, 0.95), rgba(12, 12, 16, 0.95));
-  border: 2px solid rgba(220, 53, 69, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 24px rgba(220, 53, 69, 0.15);
-  height: 100%;
-}
-
-.enemy-sprite {
-  filter: drop-shadow(0 4px 12px rgba(220, 53, 69, 0.3));
-  transition: transform 0.3s ease;
-}
-
-.enemy-sprite:hover {
-  transform: scale(1.05);
-}
-
-.enemy-stat-box {
-  padding: 0.75rem;
-  border-radius: 8px;
-  background-color: rgba(30, 30, 30, 0.9);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
-}
-
-.enemy-stat-box:hover {
-  background-color: rgba(40, 40, 40, 0.95);
-  transform: translateX(4px);
-}
-
-/* Stage Battle Actions */
-.stage-battle-actions {
-  background: linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(13, 110, 253, 0.04));
-  border: 1px solid rgba(13, 110, 253, 0.2);
-  border-radius: 16px;
-  padding: 1.5rem;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.character-stats-preview {
-  background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.stat-preview-box {
-  background: rgba(30, 30, 30, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.5rem;
-  text-align: center;
-  font-size: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.stat-preview-box strong {
-  font-size: 1rem;
-}
-
-.potential-rewards {
-  background: rgba(25, 135, 84, 0.08);
-  border: 1px solid rgba(25, 135, 84, 0.2);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-/* Page Header Subtitle */
-.page-header-subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 992px) {
-  .stage-stat-value {
-    font-size: 1.25rem;
-  }
-
-  .stage-battle-actions {
-    margin-top: 1rem;
-  }
-
-  /* Hide spacer on smaller screens */
-  .header-spacer {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .stage-page {
-    padding: 0 0.5rem;
-    padding-bottom: 1rem;
-    /* Fix screen to prevent horizontal scrolling on mobile - copied from Arena */
-    height: 100vh;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .battle-result-body {
-    padding: 1.5rem 1rem;
-  }
-
-  .battle-result-title {
-    font-size: 0.9rem;
-  }
-
-  .battle-result-row {
-    gap: 0.5rem;
-  }
-
-  .stage-stat-box {
-    padding: 0.75rem;
-  }
-
-  .stage-stat-value {
-    font-size: 1.1rem;
-  }
-
-  .enemy-info-card {
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .stage-battle-actions {
-    padding: 1rem;
-  }
-
-  .stat-preview-box {
-    font-size: 0.75rem;
-  }
-
-  /* Compact battle card for mobile - mirrors Arena */
-  .battle-card {
-    margin-bottom: 1rem;
-  }
-
-  .battle-card .card-header {
-    padding: 0.75rem !important;
-    flex-wrap: wrap;
-    gap: 0.5rem !important;
-  }
-
-  .battle-card .card-header h5 {
-    font-size: 0.95rem !important;
-    margin-bottom: 0 !important;
-  }
-
-  .btn-group-sm > .btn {
-    padding: 0.25rem 0.5rem !important;
-    font-size: 0.75rem !important;
-  }
-
-  /* Rewards card mobile optimization */
-  .rewards-card {
-    margin-bottom: 1.5rem;
-  }
-
-  .rewards-card .card-body {
-    padding: 1rem;
-  }
-
-  .rewards-card h6 {
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .rewards-card .badge {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.75rem;
-  }
-
-  /* Stack battle container on mobile */
-  #phaserBattleContainer {
-    max-width: 100%;
-  }
-
-  /* Stack battle speed controls on mobile */
-  .card-header .btn-group {
-    flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 480px) {
-  .battle-result-body {
-    padding: 1rem 0.75rem;
-  }
-
-  .battle-result-title {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  .battle-result-title i {
-    font-size: 1rem;
-  }
-
-  .battle-result-label {
-    font-size: 0.9rem;
-  }
-
-  .battle-result-rewards {
-    gap: 0.4rem;
-  }
-
-  /* Mobile-specific adjustments for very small screens */
-  .stage-page {
-    padding: 0 0.25rem;
-  }
-
-  /* Extra compact battle card header */
-  .battle-card .card-header {
-    padding: 0.5rem 0.5rem !important;
-    gap: 0.35rem !important;
-  }
-
-  .battle-card .card-header h5 {
-    font-size: 0.8rem !important;
-    flex: 0 0 100%;
-  }
-
-  .btn-group-sm {
-    width: 100%;
+.stage-loading {
     display: flex;
-    gap: 0.25rem;
-  }
-
-  .btn-group-sm > .btn {
-    flex: 1;
-    padding: 0.2rem 0.25rem !important;
-    font-size: 0.65rem !important;
-  }
-
-  /* Rewards card for very small screens */
-  .rewards-card .card-body {
-    padding: 0.75rem;
-  }
-
-  .rewards-card h6 {
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .rewards-card .badge {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.7rem;
-  }
-
-  /* Make header flex column on very small screens */
-  .stage-page > div:first-child {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* Stack battle controls vertically on very small screens */
-  .card-header {
-    flex-direction: column !important;
-    gap: 0.75rem;
-    padding: 0.75rem;
-  }
-
-  .card-header h5 {
-    text-align: center;
-  }
-
-  .card-header .btn-group {
-    width: 100%;
+    align-items: center;
     justify-content: center;
-  }
-
-  .card-header .btn-group .btn {
-    flex: 1;
-    font-size: 0.85rem;
-  }
-
-  /* Ensure battle container fits on very small screens */
-  #phaserBattleContainer {
+    height: 100%;
     width: 100%;
-    max-width: 100%;
-  }
 }
 
-@media (max-width: 576px) {
-  .page-header-subtitle {
-    font-size: 0.9rem;
-  }
+/* === Battle Screen === */
+.battle-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    overflow: hidden;
+}
 
-  .battle-result-title {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-  }
+/* Canvas fills the entire screen, sits behind overlays */
+.battle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    background: #1a1a1a;
+}
 
-  .stage-stat-label {
-    font-size: 0.75rem;
-  }
+.battle-canvas canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
 
-  .stage-stat-value {
+/* -- TOP BAR: overlaid on canvas -- */
+.battle-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+    min-height: 44px;
+    flex-wrap: nowrap;
+}
+
+/* Back button */
+.battle-back-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #fff;
     font-size: 1rem;
-  }
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: background 0.15s;
+    flex-shrink: 0;
 }
 
-/* Dark mode specific adjustments */
-@media (prefers-color-scheme: dark) {
-  .enemy-info-card {
-    border-color: rgba(220, 53, 69, 0.4);
-  }
-
-  .stage-battle-actions {
-    border-color: rgba(13, 110, 253, 0.3);
-  }
+.battle-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* Light mode adjustments */
-@media (prefers-color-scheme: light) {
-  .stage-stat-box {
-    background: linear-gradient(135deg, rgba(248, 249, 250, 0.95), rgba(233, 236, 239, 0.95));
-    border-color: rgba(0, 0, 0, 0.15);
-  }
-
-  .stage-stat-label {
-    color: rgba(0, 0, 0, 0.7);
-  }
-
-  .stage-stat-value {
-    color: rgba(0, 0, 0, 0.9);
-  }
-
-  .enemy-info-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 250, 0.98));
-    border-color: rgba(220, 53, 69, 0.5);
-  }
-
-  .enemy-stat-box {
-    background-color: rgba(248, 249, 250, 0.95);
-  }
-
-  .enemy-stat-box:hover {
-    background-color: rgba(233, 236, 239, 0.98);
-  }
-
-  .stage-battle-actions {
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(13, 110, 253, 0.06));
-    border-color: rgba(13, 110, 253, 0.3);
-  }
-
-  .character-stats-preview {
-    background: rgba(248, 249, 250, 0.9);
-    border-color: rgba(0, 0, 0, 0.12);
-  }
-
-  .stat-preview-box {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(0, 0, 0, 0.15);
-  }
-
-  .potential-rewards {
-    background: rgba(25, 135, 84, 0.12);
-    border-color: rgba(25, 135, 84, 0.3);
-  }
-
-  .battle-result-card {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 249, 250, 0.98));
-    border-color: rgba(0, 0, 0, 0.12);
-  }
-
-  .battle-result-label {
-    color: rgba(0, 0, 0, 0.85);
-  }
+/* Floor indicator (absolutely centered) */
+.battle-floor-indicator {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 36px;
+    pointer-events: none;
+    z-index: 1;
 }
 
-/* Animation for battle start */
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(13, 110, 253, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(13, 110, 253, 0.6);
-  }
+.floor-num {
+    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
 }
 
-.btn-primary:not(:disabled):hover {
-  animation: pulse-glow 2s infinite;
+.floor-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 1px;
 }
 
-/* ===== Defeat Screen - Game-style results panel ===== */
+/* -- Rewards strip (inline badges in top bar) -- */
+.battle-rewards-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
 
+.reward-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.reward-tag i {
+    font-size: 0.6rem;
+}
+
+.reward-tag--xp {
+    background: rgba(255, 193, 7, 0.35);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.reward-tag--fidelis {
+    background: rgba(124, 77, 255, 0.35);
+    border: 1px solid rgba(124, 77, 255, 0.5);
+}
+
+.reward-tag--drink {
+    background: rgba(245, 166, 35, 0.35);
+    border: 1px solid rgba(245, 166, 35, 0.5);
+}
+
+.reward-tag--instrument {
+    background: rgba(168, 85, 247, 0.35);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+}
+
+.reward-tag--equip {
+    background: rgba(245, 158, 11, 0.35);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+/* -- Battle speed/audio/stop controls (right side) -- */
+.battle-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.battle-ctrl-btn {
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0 4px;
+}
+
+.battle-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.battle-ctrl-btn.active {
+    background: rgba(124, 77, 255, 0.6);
+    border-color: rgba(124, 77, 255, 0.8);
+    color: #fff;
+}
+
+.battle-ctrl-btn--audio {
+    color: rgba(255, 193, 7, 0.8);
+}
+
+.battle-ctrl-btn--stop {
+    color: rgba(255, 68, 68, 0.8);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.battle-ctrl-btn--stop:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+}
+
+/* -- Active Buff Indicators (below top bar) -- */
+.battle-buffs-strip {
+    position: absolute;
+    top: 48px;
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    left: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+}
+
+.buff-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+.buff-tag--shot {
+    background: rgba(123, 31, 162, 0.5);
+    border: 1px solid rgba(123, 31, 162, 0.7);
+}
+
+.buff-tag--shield {
+    background: rgba(0, 188, 212, 0.4);
+    border: 1px solid rgba(0, 188, 212, 0.6);
+}
+
+.buff-tag--damage {
+    background: rgba(239, 83, 80, 0.4);
+    border: 1px solid rgba(239, 83, 80, 0.6);
+}
+
+.buff-tag--penalty {
+    background: rgba(255, 152, 0, 0.4);
+    border: 1px solid rgba(255, 152, 0, 0.6);
+}
+
+/* === Defeat Overlay (fullscreen, WOO-inspired) === */
 .defeat-overlay {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 1rem 0;
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 200;
+    animation: overlayFadeIn 0.4s ease;
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .defeat-panel {
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-  background: linear-gradient(180deg, #1a1028 0%, #0d0a14 100%);
-  border: 2px solid rgba(124, 77, 255, 0.4);
-  border-radius: 24px;
-  padding: 3.5rem 2rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  box-shadow:
-    0 0 40px rgba(124, 77, 255, 0.15),
-    0 20px 60px rgba(0, 0, 0, 0.6);
-  animation: defeat-slide-in 0.4s ease-out;
+    position: relative;
+    width: 92%;
+    max-width: 380px;
+    background: linear-gradient(180deg, #1a1028 0%, #0d0a14 100%);
+    border: 2px solid rgba(124, 77, 255, 0.4);
+    border-radius: 20px;
+    padding: 3rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-shadow:
+        0 0 40px rgba(124, 77, 255, 0.15),
+        0 20px 60px rgba(0, 0, 0, 0.6);
+    animation: defeat-slide-in 0.4s ease-out;
 }
 
 @keyframes defeat-slide-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .defeat-banner {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #7c4dff, #651fff);
-  padding: 0.5rem 2.5rem;
-  border-radius: 999px;
-  box-shadow:
-    0 4px 20px rgba(124, 77, 255, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  white-space: nowrap;
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #7c4dff, #651fff);
+    padding: 0.4rem 2rem;
+    border-radius: 999px;
+    box-shadow:
+        0 4px 20px rgba(124, 77, 255, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    white-space: nowrap;
 }
 
 .defeat-banner span {
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 3px;
-  color: #fff;
-  text-transform: uppercase;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #fff;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .defeat-stage {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
-  letter-spacing: 0.5px;
-}
-
-.defeat-stars {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.defeat-star {
-  font-size: 2.2rem;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
-  animation: star-pop 0.3s ease-out backwards;
-}
-
-.defeat-star:nth-child(1) { animation-delay: 0.2s; }
-.defeat-star:nth-child(2) { animation-delay: 0.4s; }
-.defeat-star:nth-child(3) { animation-delay: 0.6s; }
-
-@keyframes star-pop {
-  from {
-    opacity: 0;
-    transform: scale(0) rotate(-30deg);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-.star-filled {
-  color: #ffca28;
-  filter: drop-shadow(0 0 8px rgba(255, 202, 40, 0.5));
-}
-
-.star-empty {
-  color: rgba(255, 255, 255, 0.12);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.5px;
 }
 
 .defeat-rewards {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 45vh;
+    overflow-y: auto;
 }
 
 .defeat-reward-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .defeat-reward-row i {
-  font-size: 1.1rem;
-  width: 20px;
-  text-align: center;
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
 }
 
 .defeat-no-rewards {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.95rem;
-  margin: 0;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
+    margin: 0;
 }
 
 .defeat-btn {
-  width: 100%;
-  padding: 0.85rem;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #7c4dff, #651fff);
-  color: #fff;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(124, 77, 255, 0.35);
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c4dff, #651fff);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(124, 77, 255, 0.35);
 }
 
 .defeat-btn:hover {
-  background: linear-gradient(135deg, #9165ff, #7c4dff);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(124, 77, 255, 0.5);
+    background: linear-gradient(135deg, #9165ff, #7c4dff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(124, 77, 255, 0.5);
 }
 
 .defeat-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
 }
 
-@media (max-width: 768px) {
-  .defeat-panel {
-    max-width: 340px;
-    padding: 3rem 1.5rem 1.5rem;
-  }
-
-  .defeat-stage {
-    font-size: 1.3rem;
-  }
-
-  .defeat-star {
-    font-size: 1.8rem;
-  }
-}
-
-/* Instrument Part Drop Styles */
-.bg-purple {
-  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
-}
-
-.text-purple {
-  color: #a855f7 !important;
-}
-
-.instrument-drop-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  border-radius: 3px;
-}
-
-.instrument-drop-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+/* Instrument / Equipment drop styles in defeat panel */
+.instrument-drop-icon,
+.equipment-drop-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    border-radius: 3px;
 }
 
 .instrument-part-reward {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1)) !important;
-  border-color: rgba(168, 85, 247, 0.3) !important;
-}
-
-/* Equipment Drop Styles */
-.bg-equipment {
-  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
-}
-
-.text-equipment {
-  color: #f59e0b !important;
-}
-
-.equipment-drop-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  border-radius: 3px;
-}
-
-.equipment-drop-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(168, 85, 247, 0.08)) !important;
 }
 
 .equipment-reward {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(245, 158, 11, 0.1)) !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.15), rgba(245, 158, 11, 0.08)) !important;
+}
+
+/* ===================================================================
+   Desktop (fullscreen) adaptation
+   Canvas stays centered, HUD elements scale up
+   =================================================================== */
+@media (min-width: 769px) {
+    .battle-top-bar {
+        padding: 8px 16px;
+        gap: 12px;
+        flex-wrap: nowrap;
+    }
+
+    .battle-back-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .floor-num {
+        font-size: 1.5rem;
+    }
+
+    .floor-label {
+        font-size: 0.6rem;
+    }
+
+    .reward-tag {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 34px;
+        height: 32px;
+        font-size: 0.72rem;
+        padding: 0 6px;
+    }
+
+    .battle-buffs-strip {
+        top: 52px;
+        gap: 6px;
+    }
+
+    .buff-tag {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+    }
+
+    .defeat-panel {
+        max-width: 420px;
+        padding: 3.5rem 2rem 2rem;
+    }
+
+    .defeat-stage {
+        font-size: 1.6rem;
+    }
+
+    .defeat-reward-row {
+        font-size: 1rem;
+    }
+
+    .defeat-btn {
+        font-size: 1.1rem;
+        padding: 0.85rem;
+    }
+}
+
+/* Large desktop */
+@media (min-width: 1200px) {
+    .battle-top-bar {
+        padding: 10px 24px;
+        gap: 16px;
+    }
+
+    .floor-num {
+        font-size: 1.6rem;
+    }
+
+    .reward-tag {
+        font-size: 0.78rem;
+        padding: 3px 10px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 38px;
+        height: 34px;
+        font-size: 0.78rem;
+    }
+}
+
+/* === Mobile compact === */
+@media (max-width: 480px) {
+    .battle-top-bar {
+        padding: 4px 6px;
+        gap: 4px;
+    }
+
+    .battle-back-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+
+    .floor-num {
+        font-size: 1.1rem;
+    }
+
+    .reward-tag {
+        font-size: 0.58rem;
+        padding: 1px 5px;
+    }
+
+    .battle-ctrl-btn {
+        min-width: 24px;
+        height: 24px;
+        font-size: 0.58rem;
+    }
+
+    .buff-tag {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+    }
+
+    .defeat-panel {
+        width: 95%;
+        padding: 2.5rem 1.25rem 1.25rem;
+    }
+
+    .defeat-stage {
+        font-size: 1.2rem;
+    }
+
+    .defeat-reward-row {
+        font-size: 0.85rem;
+    }
 }
