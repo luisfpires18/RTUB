@@ -1,0 +1,61 @@
+/* ==========================================
+   Mobile Bottom Navigation Bar
+   Fixed to bottom, dark/purple theme, white text
+   Only visible on mobile (≤767px)
+   ========================================== */
+
+/* Hidden on desktop by default */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1040;
+        background: #111114;
+        border-top: 1px solid rgba(111, 66, 193, 0.25);
+        padding: 0.25rem 0;
+        padding-bottom: env(safe-area-inset-bottom, 0.25rem);
+        justify-content: space-around;
+        align-items: stretch;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.6);
+    }
+
+    .mobile-bottom-nav__btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        padding: 0.4rem 0.25rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .mobile-bottom-nav__btn i {
+        font-size: 1.25rem;
+    }
+
+    .mobile-bottom-nav__btn--active {
+        color: #a88ee5;
+    }
+
+    .mobile-bottom-nav__btn:active {
+        color: #c7a7ff;
+    }
+}

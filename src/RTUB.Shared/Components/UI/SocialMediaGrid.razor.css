@@ -1,0 +1,85 @@
+/* ==========================================
+   Social Media Grid – 2×2 square tiles
+   ========================================== */
+.social-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.social-grid__tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    aspect-ratio: 1;
+    border-radius: 1rem;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.social-grid__tile i {
+    font-size: 2rem;
+}
+
+.social-grid__tile:hover {
+    transform: translateY(-3px);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Facebook */
+.social-grid__tile--facebook {
+    background: linear-gradient(135deg, #1877f2 0%, #0d5cc7 100%);
+    box-shadow: 0 4px 16px rgba(24, 119, 242, 0.3);
+}
+
+.social-grid__tile--facebook:hover {
+    box-shadow: 0 6px 24px rgba(24, 119, 242, 0.5);
+}
+
+/* Instagram */
+.social-grid__tile--instagram {
+    background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    box-shadow: 0 4px 16px rgba(220, 39, 67, 0.3);
+}
+
+.social-grid__tile--instagram:hover {
+    box-shadow: 0 6px 24px rgba(220, 39, 67, 0.5);
+}
+
+/* YouTube */
+.social-grid__tile--youtube {
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    box-shadow: 0 4px 16px rgba(255, 0, 0, 0.3);
+}
+
+.social-grid__tile--youtube:hover {
+    box-shadow: 0 6px 24px rgba(255, 0, 0, 0.5);
+}
+
+/* Spotify */
+.social-grid__tile--spotify {
+    background: linear-gradient(135deg, #1db954 0%, #169c46 100%);
+    box-shadow: 0 4px 16px rgba(29, 185, 84, 0.3);
+}
+
+.social-grid__tile--spotify:hover {
+    box-shadow: 0 6px 24px rgba(29, 185, 84, 0.5);
+}
+
+/* Desktop: restrict max size so grid doesn't stretch too wide */
+@media (min-width: 768px) {
+    .social-grid {
+        max-width: 500px;
+    }
+
+    .social-grid__tile {
+        aspect-ratio: auto;
+        padding: 1.25rem;
+    }
+}

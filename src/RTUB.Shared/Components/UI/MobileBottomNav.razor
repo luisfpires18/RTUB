@@ -1,0 +1,44 @@
+@namespace RTUB.Shared
+@*
+    Mobile Bottom Navigation Component
+    Fixed bottom bar with icon + label buttons (like the WoO pattern).
+    Uses RTUB dark/purple theme. Only visible on mobile (≤767px via CSS).
+*@
+
+<nav class="mobile-bottom-nav" aria-label="Navegação do portal">
+    @foreach (var item in Items)
+    {
+        <button type="button"
+                class="mobile-bottom-nav__btn @(item.Key == ActiveKey ? "mobile-bottom-nav__btn--active" : "")"
+                @onclick="() => OnSelect.InvokeAsync(item.Key)"
+                aria-selected="@(item.Key == ActiveKey)">
+            <i class="bi @item.Icon"></i>
+            <span>@item.Label</span>
+        </button>
+    }
+</nav>
+
+@code {
+    /// <summary>
+    /// The navigation items to display.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MobileNavItem> Items { get; set; } = Array.Empty<MobileNavItem>();
+
+    /// <summary>
+    /// The currently active section key.
+    /// </summary>
+    [Parameter]
+    public string ActiveKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback when a button is tapped.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>
+    /// Represents a single bottom-nav item.
+    /// </summary>
+    public record MobileNavItem(string Key, string Label, string Icon);
+}
