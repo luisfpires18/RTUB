@@ -330,10 +330,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddStorageServices(this IServiceCollection services)
     {
         services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
-        services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
-        services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
+        services.AddScoped<IAudioStorageService, CloudflareAudioStorageService>();
+        services.AddScoped<ILyricStorageService, CloudflareLyricStorageService>();
         services.AddScoped<IDocumentStorageService, CloudflareDocumentStorageService>();
-        services.AddScoped<DriveDocumentStorageService>(); // For /roles page RGI document from IDrive
         services.AddScoped<IEventMediaStorageService, CloudflareEventMediaStorageService>();
         services.AddScoped<ISongVideoStorageService, CloudflareSongVideoStorageService>();
         services.AddScoped<IEventVideoStorageService, CloudflareEventVideoStorageService>();
