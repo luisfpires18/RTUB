@@ -518,6 +518,9 @@ public class Program
         // Messaging notification service for server-side Blazor real-time updates
         services.AddSingleton<RTUB.Web.Services.MessagesNotificationService>();
 
+        // Admin-triggered global refresh service (e.g. after DB-level balance resets)
+        services.AddSingleton<RTUB.Web.Services.AdminRefreshService>();
+
         // Media Session API interop for lock screen / system media overlay
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
 
@@ -909,6 +912,13 @@ public class Program
 
         // Map SignalR hubs
         app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
+
+        // Admin endpoint: force all connected circuits to reload user data from DB
+        app.MapPost("/api/admin/refresh-all", async (RTUB.Web.Services.AdminRefreshService refreshService) =>
+        {
+            await refreshService.TriggerRefreshAsync();
+            return Results.Ok(new { message = "Refresh triggered for all connected users." });
+        }).RequireAuthorization(new Microsoft.AspNetCore.Authorization.AuthorizeAttribute { Roles = "Admin" });
 
         // Map API controllers
         app.MapControllers();

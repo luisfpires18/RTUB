@@ -30,6 +30,7 @@
 @inject ILogger<MyTunoHome> Logger
 @inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
 @inject IItemTypeConfigService ItemTypeConfigService
+@inject RTUB.Web.Services.AdminRefreshService AdminRefreshService
 
 <PageTitle>My Tuno - RTUB</PageTitle>
 
@@ -2017,6 +2018,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        AdminRefreshService.OnRefreshRequested += HandleAdminRefreshAsync;
         await LoadDataAsync();
     }
 
@@ -3489,8 +3491,26 @@
         }, null, TimeSpan.FromSeconds(initialDelay), TimeSpan.FromSeconds(regenInterval));
     }
 
+    private async Task HandleAdminRefreshAsync()
+    {
+        try
+        {
+            // Reload user from DB to pick up reset FidelisBalance
+            if (currentUser != null)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling admin refresh");
+        }
+    }
+
     public void Dispose()
     {
+        AdminRefreshService.OnRefreshRequested -= HandleAdminRefreshAsync;
         energyRegenTimer?.Dispose();
         castBarTimer?.Dispose();
         forgeCastBarTimer?.Dispose();

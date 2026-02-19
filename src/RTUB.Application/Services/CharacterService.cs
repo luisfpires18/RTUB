@@ -264,10 +264,14 @@ public class CharacterService : ICharacterService
             var characters = await _dbContext.Characters.ToListAsync(cancellationToken);
             _dbContext.Characters.RemoveRange(characters);
 
+            // Reset FidelisBalance to 0 for ALL users
+            await _dbContext.Users
+                .ExecuteUpdateAsync(u => u.SetProperty(x => x.FidelisBalance, 0m), cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var count = characters.Count;
-            _logger.LogWarning("Owner reset ALL game data: {Count} characters and all related entities deleted", count);
+            _logger.LogWarning("Owner reset ALL game data: {Count} characters, all related entities deleted, and all FidelisBalance reset to 0", count);
             return (true, $"Todos os dados de jogo foram resetados. {count} personagens eliminados.");
         }
         catch (Exception ex)

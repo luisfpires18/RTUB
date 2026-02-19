@@ -14,6 +14,7 @@
 @inject ICharacterService CharacterService
 @inject ApplicationDbContext DbContext
 @inject ILogger<AllCharacters> Logger
+@inject RTUB.Web.Services.AdminRefreshService AdminRefreshService
 
 <PageTitle>Todos os Personagens - RTUB</PageTitle>
 
@@ -435,6 +436,8 @@
             if (success)
             {
                 await LoadItemsAsync();
+                // Notify all connected circuits to refresh user data (FidelisBalance)
+                _ = AdminRefreshService.TriggerRefreshAsync();
             }
         }
         catch (Exception ex)
