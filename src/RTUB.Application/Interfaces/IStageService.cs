@@ -97,6 +97,13 @@ public interface IStageService
     int GetEnemyCountForStage(int stageNumber);
 
     /// <summary>
+    /// Calculates XP and Fidelis rewards for winning a given stage.
+    /// Used when the interactive session wins but the deterministic sim predicted a loss
+    /// (so the StageBattleResult has XPReward/FidelisReward = 0).
+    /// </summary>
+    (int xp, decimal fidelis) GetWinRewardsForStage(int stageNumber, int enemyCount, int highestStage);
+
+    /// <summary>
     /// Checks if a stage is a boss stage
     /// </summary>
     /// <param name="stageNumber">The stage number</param>

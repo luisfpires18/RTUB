@@ -234,8 +234,20 @@ public class BattleService : IBattleService
         playerCharacter.LastBattleAt = DateTime.UtcNow;
         playerCharacter.LastBattleId = result.BattleId;
 
+        // Re-derive rating change from the *actual* outcome + live character data.
+        // result.RatingChange was pre-computed by the deterministic sim; if the
+        // interactive session flipped the outcome (e.g. player survived a predicted
+        // loss), the pre-computed value would be wrong (-10 on a real win).
+        var opponentCharacter = await _characterRepository.GetByIdAsync(result.DefenderCharacterId);
+        var ratingChange = opponentCharacter != null
+            ? CalculateRatingChange(result.Outcome, playerCharacter, opponentCharacter)
+            : result.RatingChange; // fallback if opponent was deleted
+
         // Apply arena rating change (min 0)
-        playerCharacter.ArenaRating = Math.Max(0, playerCharacter.ArenaRating + result.RatingChange);
+        playerCharacter.ArenaRating = Math.Max(0, playerCharacter.ArenaRating + ratingChange);
+
+        // Sync back so the UI shows the correct value
+        result.RatingChange = ratingChange;
 
         // Arena battles no longer award XP or Fidelis — only rating
         // (kept for drop logic below)
@@ -281,8 +293,8 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates arena rating change based on battle outcome and level/rating differences.
-    /// Win: +15 if opponent rating is above yours, +10 if close level, +0 if 10+ levels above opponent.
+    /// Calculates arena rating change based on battle outcome and level differences.
+    /// Win: +15 if opponent level is above yours, +10 if close level, +0 if 10+ levels above opponent.
     /// Lose: -10 rating. Draw: 0.
     /// </summary>
     private static int CalculateRatingChange(BattleOutcome outcome, Character attacker, Character defender)
@@ -300,8 +312,8 @@ public class BattleService : IBattleService
         if (levelDiff >= 10)
             return 0;
 
-        // If defender's rating is above attacker's, award +15
-        if (defender.ArenaRating > attacker.ArenaRating)
+        // If defender's level is above attacker's, award +15
+        if (defender.Level > attacker.Level)
             return 15;
 
         // Otherwise close level match, award +10

@@ -966,6 +966,13 @@
             // Advance stage progress in memory now (no DB save during runs).
             if (stageProgress != null && currentBattle != null)
             {
+                // Recalculate rewards — currentBattle.XPReward/FidelisReward are 0
+                // because the deterministic sim predicted a loss.
+                var (recoveredXp, recoveredFidelis) = StageService.GetWinRewardsForStage(
+                    currentBattle.StageNumber, currentBattle.EnemyCount, stageProgress.HighestStage);
+                totalXPEarned += recoveredXp;
+                totalFidelisEarned += recoveredFidelis;
+
                 for (int i = 0; i < currentBattle.EnemyCount; i++)
                 {
                     stageProgress.RecordEnemyDefeat();

@@ -1089,26 +1089,4 @@ public class PushNotificationFactory : IPushNotificationFactory
         };
     }
 
-    /// <summary>
-    /// Creates a reminder push notification for Android testers to use the app.
-    /// </summary>
-    public SendPushNotificationDto CreateAndroidTesterReminderNotification(string baseUrl)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-
-        var url = baseUrl.TrimEnd('/');
-        if (url == string.Empty)
-        {
-            url = "/";
-        }
-
-        return new SendPushNotificationDto
-        {
-            Title = "Lembrete de Teste",
-            Body = "Você é um Android tester e precisamos que entres na app durante 5 minutos hoje.",
-            Icon = "/icons/rtub-logo-192.png",
-            Url = url,
-            Tag = "android-tester-reminder"
-        };
-    }
 }

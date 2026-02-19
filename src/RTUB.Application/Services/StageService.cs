@@ -853,6 +853,20 @@ public class StageService : IStageService
     }
 
     /// <summary>
+    /// Calculates XP and Fidelis rewards for winning a given stage.
+    /// Used when the interactive session wins but the deterministic sim predicted a loss
+    /// (so the StageBattleResult has XPReward/FidelisReward = 0).
+    /// </summary>
+    public (int xp, decimal fidelis) GetWinRewardsForStage(int stageNumber, int enemyCount, int highestStage)
+    {
+        var tier = _biomeService.GetEnemyTierForStage(stageNumber);
+        var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(stageNumber);
+        var xp = tier.XpReward * enemyCount;
+        var fidelis = Math.Round(tier.FidelisReward * enemyCount * (decimal)biomeRewardMult, 2);
+        return (xp, fidelis);
+    }
+
+    /// <summary>
     /// Gets the enemy type for a stage using biome config.
     /// Boss every 100 stages, MiniBoss every 10 stages (excluding boss stages).
     /// </summary>

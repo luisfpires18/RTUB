@@ -379,12 +379,4 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateMemberActivityReminderNotification(string? userDisplayName, string userId, string baseUrl);
-
-    /// <summary>
-    /// Creates a reminder push notification for Android testers to use the app.
-    /// Sent multiple times per day during a testing campaign.
-    /// </summary>
-    /// <param name="baseUrl">The base URL of the application</param>
-    /// <returns>A SendPushNotificationDto ready to be sent</returns>
-    SendPushNotificationDto CreateAndroidTesterReminderNotification(string baseUrl);
 }
