@@ -1146,6 +1146,23 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, "Erro ao consumir bebida");
 
+        // Check Leitão cost (mid-game currency from Boss Mode)
+        var piggies = _scalingConfig.BossMode.Piggies;
+        var leitaoCost = PiggiesCostConfig.CalculateCost(
+            weapon.Level, piggies.WeaponUpgradeStartLevel,
+            piggies.WeaponUpgradeBaseCost, piggies.WeaponUpgradeCostEveryNLevels);
+
+        if (leitaoCost > 0)
+        {
+            var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+            if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+            if (!leitaoConsumed)
+                return (false, "Erro ao consumir Leitões");
+        }
+
         user.FidelisBalance -= cost;
         weapon.Level += 1;
 
@@ -1239,6 +1256,23 @@ public class InventoryService : IInventoryService
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
         if (!consumed)
             return (false, "Erro ao consumir bebida");
+
+        // Check Leitão cost (mid-game currency from Boss Mode)
+        var piggies = _scalingConfig.BossMode.Piggies;
+        var leitaoCost = PiggiesCostConfig.CalculateCost(
+            currentSlotLevel, piggies.EquipmentUpgradeStartLevel,
+            piggies.EquipmentUpgradeBaseCost, piggies.EquipmentUpgradeCostEveryNLevels);
+
+        if (leitaoCost > 0)
+        {
+            var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+            if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+            if (!leitaoConsumed)
+                return (false, "Erro ao consumir Leitões");
+        }
 
         user.FidelisBalance -= cost;
         character.SetSlotBonusLevel(slot, currentSlotLevel + 1);

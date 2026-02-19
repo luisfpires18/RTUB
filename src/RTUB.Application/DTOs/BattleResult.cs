@@ -77,4 +77,10 @@ public class BattleResult
     /// Whether the penalty buff expired after this battle
     /// </summary>
     public bool PenaltyBuffExpired { get; set; }
+
+    /// <summary>
+    /// Arena rating change for the attacker after this battle.
+    /// Positive when winning, negative when losing (clamped to 0 min when applied).
+    /// </summary>
+    public int RatingChange { get; set; }
 }

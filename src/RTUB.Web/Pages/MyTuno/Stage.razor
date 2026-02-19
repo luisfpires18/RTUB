@@ -245,9 +245,14 @@
                     {
                         <p class="defeat-no-rewards">Nenhum floor completado.</p>
                     }
-                    <button class="defeat-btn" @onclick="DefeatGoBack">
-                        IR MY TUNO
-                    </button>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="defeat-btn" @onclick="RetryFromCheckpoint">
+                            <i class="bi bi-arrow-clockwise me-1"></i>RECOMEÇAR
+                        </button>
+                        <button class="defeat-btn" @onclick="DefeatGoBack">
+                            IR MY TUNO
+                        </button>
+                    </div>
                 </div>
             </div>
         }
@@ -286,7 +291,6 @@
     private int totalFitabDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
     private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
-    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
@@ -1036,8 +1040,7 @@
                 {
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
                 }
                 catch (Exception ex)
                 {
@@ -1177,7 +1180,6 @@
         totalPenaltiesDropped = 0;
         totalFitabDropped = 0;
         totalInstrumentPartsDropped.Clear();
-        totalEquipmentDropped.Clear();
         stagesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -1187,6 +1189,37 @@
         showDefeatSummary = false;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
+    }
+
+    /// <summary>
+    /// Retry from the last checkpoint — reloads data and auto-starts a new run.
+    /// </summary>
+    private async Task RetryFromCheckpoint()
+    {
+        showDefeatSummary = false;
+        ResetRunTotals();
+        battleAutoStarted = false;
+        showBattleAnimation = false;
+        fighting = false;
+        _endingRun = false;
+        currentBattle = null;
+        _combatSession = null;
+
+        // Reload character + stage progress from DB (checkpoint was already saved on defeat)
+        await LoadDataAsync();
+        StateHasChanged();
+
+        // Auto-start battle (same as first render)
+        if (character != null && hasRendered)
+        {
+            battleAutoStarted = true;
+            await Task.Delay(150);
+            if (!_disposed)
+            {
+                try { await FightStageEnemy(); }
+                catch (Exception ex) { Logger.LogError(ex, "Retry auto-start failed"); }
+            }
+        }
     }
 
     private void StartWatchdog()
@@ -1259,7 +1292,6 @@
                         await StageService.ApplyRunRewardsAsync(
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                             expirePenaltyBuff: false);
                     }
                     catch (Exception ex)
@@ -1392,8 +1424,7 @@
             {
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
             }
             catch (Exception)
             {

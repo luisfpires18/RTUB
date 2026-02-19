@@ -339,7 +339,6 @@ public class SurviveModeService : ISurviveModeService
     /// <inheritdoc />
     public Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null,
         CancellationToken cancellationToken = default)
     {
         // Survive mode no longer grants rewards — no-op.
@@ -488,7 +487,6 @@ public class SurviveModeService : ISurviveModeService
             ShotsDropped = 0,
             PenaltiesDropped = 0,
             InstrumentPartsDropped = new List<InventoryItemType>(),
-            EquipmentDropped = new List<InventoryItemType>(),
             FitabDropped = 0
         };
     }

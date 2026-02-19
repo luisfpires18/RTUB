@@ -46,7 +46,7 @@
                     var sortedLeaderboard = activeTab == "level"
                         ? Entries.OrderByDescending(e => e.Level).ToList()
                         : activeTab == "arena"
-                            ? Entries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
+                            ? Entries.OrderByDescending(e => e.ArenaRating).ThenByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
                             : activeTab == "boss"
                                 ? Entries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
                                     : Entries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
@@ -93,8 +93,11 @@
                             }
                             else if (activeTab == "arena")
                             {
-                                <i class="bi bi-trophy"></i>
-                                <span>@entry.Wins</span>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-warning text-dark" title="Rating">@entry.ArenaRating</span>
+                                    <small class="text-success" title="Vitórias">@entry.Wins W</small>
+                                    <small class="text-danger" title="Derrotas">@entry.Losses L</small>
+                                </span>
                             }
                             else if (activeTab == "boss")
                             {

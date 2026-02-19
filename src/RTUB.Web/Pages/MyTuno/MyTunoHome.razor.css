@@ -1423,3 +1423,54 @@
 ::deep .upgrades-embedded > .card > .card-body {
     padding: 0;
 }
+
+/* ==========================================
+   FantasyTile Grids (layout helpers)
+   ========================================== */
+.ftile-grid {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ftile-grid--2col {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.ftile-grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Bonus stats: auto-fill columns that fit ~70px min */
+.ftile-grid--bonus {
+    grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+    gap: 0.4rem;
+}
+
+/* Stock indicator inside FantasyTile (current balance / quantity) */
+.ftile-stock {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-top: 2px;
+}
+
+.ftile-stock--ok {
+    color: #28a745;
+    background: rgba(40, 167, 69, 0.12);
+}
+
+.ftile-stock--low {
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.12);
+}
+
+@media (max-width: 768px) {
+    .ftile-grid--3col {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .ftile-grid--2col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

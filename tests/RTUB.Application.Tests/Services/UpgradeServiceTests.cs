@@ -70,7 +70,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _characterService,
             _mockUserManager.Object,
             _context,
-            mockConfig.Object);
+            mockConfig.Object,
+            new Mock<IInventoryRepository>().Object);
 
         // Create test user
         var userId = "upgrade-test-user";

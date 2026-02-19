@@ -56,6 +56,11 @@ public class Character : BaseEntity
     public int ArenaDraws { get; set; } = 0;
 
     /// <summary>
+    /// Arena rating (min 0). Won by winning arena battles, lost by losing.
+    /// </summary>
+    public int ArenaRating { get; set; } = 0;
+
+    /// <summary>
     /// Last opponent character ID (for cooldown tracking)
     /// </summary>
     public int? LastOpponentId { get; set; } = null;

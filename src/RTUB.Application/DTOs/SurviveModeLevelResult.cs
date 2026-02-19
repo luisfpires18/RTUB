@@ -99,11 +99,6 @@ public class SurviveModeLevelResult
     public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
 
     /// <summary>
-    /// Equipment pieces dropped.
-    /// </summary>
-    public List<InventoryItemType> EquipmentDropped { get; set; } = new();
-
-    /// <summary>
     /// FITAB tokens dropped.
     /// </summary>
     public int FitabDropped { get; set; }

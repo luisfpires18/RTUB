@@ -1,4 +1,4 @@
-﻿{
+{
   "myTuno": {
     "version": "5.0.0",
     "description": "Luta contra inimigos e melhora o teu personagem atraves de combates! Jogo ira estar em constante mudanca",
@@ -127,7 +127,6 @@
         "canhaoDropChance": 0.0003,
         "penaltyDropChance": 0.0002,
         "instrumentPartDropChance": 0.0003,
-        "equipmentDropChance": 0,
         "bossDropMultiplier": 3.0
       },
 
@@ -146,12 +145,12 @@
       "maxEquipmentEnhancement": 15,
       "weaponCharacterLevelScale": 0.0,
       "equipmentLevelScale": 0.0,
-      "discardLevelScale": 0.01,
+      "discardLevelScale": 0.05,
 
       "discardValues": {
         "equipment": 20,
         "instrumentPart": 25,
-        "weapon": 30
+        "weapon": 50
       },
       "forging": {
         "castTimeSeconds": 5,
@@ -261,7 +260,7 @@
         "criticalChance": 0.15
       },
 
-      "bossStatMultiplier": 2.0,
+      "bossStatMultiplier": 2.5,
 
       "dropRates": {
         "finoDropChance": 0.003,
@@ -271,12 +270,31 @@
         "canhaoDropChance": 0.0006,
         "penaltyDropChance": 0.0004,
         "instrumentPartDropChance": 0.0006,
-        "equipmentDropChance": 0,
-        "fitabDropChance": 0.005
+        "fitabDropChance": 0.005,
+        "leitaoDropChance": 0.15,
+        "leitaoBonusEveryNBosses": 5
       },
 
       "fidelisRewards": {
         "bossWin": 430
+      },
+
+      "piggies": {
+        "statUpgradeStartLevel": 10,
+        "statUpgradeBaseCost": 1,
+        "statUpgradeCostEveryNLevels": 5,
+        "improvementStartLevel": 5,
+        "improvementBaseCost": 1,
+        "improvementCostEveryNLevels": 5,
+        "powerStartLevel": 5,
+        "powerBaseCost": 1,
+        "powerCostEveryNLevels": 5,
+        "weaponUpgradeStartLevel": 5,
+        "weaponUpgradeBaseCost": 1,
+        "weaponUpgradeCostEveryNLevels": 5,
+        "equipmentUpgradeStartLevel": 5,
+        "equipmentUpgradeBaseCost": 1,
+        "equipmentUpgradeCostEveryNLevels": 5
       },
 
       "fitabDropChanceStage": 0.002,

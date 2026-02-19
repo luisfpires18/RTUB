@@ -1,16 +1,40 @@
 ﻿# My Tuno — Upgrade Cost Tables
 
-**Formula:** `Cost(n) = baseCost + n × costPerLevel` where `n` = current upgrade count (0-indexed)
+**Fidelis Formula:** `Cost(n) = baseCost + n × costPerLevel` where `n` = current upgrade count (0-indexed)
+
+**Leitão (Piggies) Formula:** `Cost(n) = baseCost + (n - startLevel) / costEveryNLevels` (integer division). Returns **0** below `startLevel`.
 
 ## Summary
 
-| Stat | baseCost | costPerLevel | Max Lvl | Flat Bonus/Lvl | Total Invested |
-|------|----------|-------------|---------|----------------|----------------|
-| HP | 50 | 50 | ∞ | +100 HP | 252,500 (at 100) |
-| Power | 50 | 50 | ∞ | +15 Power | 252,500 (at 100) |
-| Defense | 50 | 50 | ∞ | +12 Defense | 252,500 (at 100) |
-| **Speed** | **150** | **150** | **41** | +1.5 Speed | **129,150** |
-| **Crit** | **120** | **120** | **80** | +0.5% Crit | **388,800** |
+| Stat | baseCost | costPerLevel | Max Lvl | Flat Bonus/Lvl | Total Invested | Leitão Start Level |
+|------|----------|-------------|---------|----------------|----------------|--------------------|
+| HP | 50 | 50 | ∞ | +100 HP | 252,500 (at 100) | 10 |
+| Power | 50 | 50 | ∞ | +15 Power | 252,500 (at 100) | 10 |
+| Defense | 50 | 50 | ∞ | +12 Defense | 252,500 (at 100) | 10 |
+| **Speed** | **150** | **150** | **41** | +1.5 Speed | **129,150** | **10** |
+| **Crit** | **120** | **120** | **80** | +0.5% Crit | **388,800** | **10** |
+
+### Leitão Costs for Stat Upgrades
+
+Leitão cost begins at **level 10** for all stat upgrades (HP, Power, Defense, Speed, Crit). Below level 10, no Leitão is required.
+
+| Config Key | Value |
+|------------|------:|
+| `statUpgradeStartLevel` | 10 |
+| `statUpgradeBaseCost` | 1 |
+| `statUpgradeCostEveryNLevels` | 5 |
+
+| Level Range | Leitão Cost |
+|-------------|------------:|
+| 1–9 | 0 |
+| 10–14 | 1 |
+| 15–19 | 2 |
+| 20–24 | 3 |
+| 25–29 | 4 |
+| 30–34 | 5 |
+| ... | +1 every 5 levels |
+
+Leitões are earned exclusively from **Boss Mode** victories.
 
 ---
 

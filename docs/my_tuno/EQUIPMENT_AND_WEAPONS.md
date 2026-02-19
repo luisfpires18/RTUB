@@ -39,9 +39,11 @@ Where:
 
 ### Upgrading Equipment
 
-Each slot can be upgraded independently using **Fidelis + Drinks**.
+Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (from level 5+).
 
-**Cost Formula:** `Cost(n) = 40 + n × 40` Fidelis (where `n` = current slot bonus level)
+**Fidelis Cost Formula:** `Cost(n) = 40 + n × 40` Fidelis (where `n` = current slot bonus level)
+
+**Leitão Cost Formula:** `Cost(n) = 1 + (n - 5) / 5` (starts at level 5, +1 every 5 levels)
 
 **Drink Requirement:** Uses tiered drinks. Every 5 levels advances to the next drink tier:
 - Levels 0–4: Cerveja (1× to 5×)
@@ -55,23 +57,23 @@ Each slot can be upgraded independently using **Fidelis + Drinks**.
 
 ### Equipment Upgrade Cost Table (first 15 levels)
 
-| Level | Fidelis Cost | Cumulative | Drink | Qty |
-|------:|-----------:|-----------:|-------|----:|
-| 1 | 40 | 40 | Cerveja | 1 |
-| 2 | 80 | 120 | Cerveja | 2 |
-| 3 | 120 | 240 | Cerveja | 3 |
-| 4 | 160 | 400 | Cerveja | 4 |
-| 5 | 200 | 600 | Cerveja | 5 |
-| 6 | 240 | 840 | Vinho | 1 |
-| 7 | 280 | 1,120 | Vinho | 2 |
-| 8 | 320 | 1,440 | Vinho | 3 |
-| 9 | 360 | 1,800 | Vinho | 4 |
-| 10 | 400 | 2,200 | Vinho | 5 |
-| 11 | 440 | 2,640 | Licor | 1 |
-| 12 | 480 | 3,120 | Licor | 2 |
-| 13 | 520 | 3,640 | Licor | 3 |
-| 14 | 560 | 4,200 | Licor | 4 |
-| 15 | 600 | 4,800 | Licor | 5 |
+| Level | Fidelis Cost | Cumulative | Drink | Qty | Leitão |
+|------:|-----------:|-----------:|-------|----:|-------:|
+| 1 | 40 | 40 | Cerveja | 1 | 0 |
+| 2 | 80 | 120 | Cerveja | 2 | 0 |
+| 3 | 120 | 240 | Cerveja | 3 | 0 |
+| 4 | 160 | 400 | Cerveja | 4 | 0 |
+| 5 | 200 | 600 | Cerveja | 5 | 1 |
+| 6 | 240 | 840 | Vinho | 1 | 1 |
+| 7 | 280 | 1,120 | Vinho | 2 | 1 |
+| 8 | 320 | 1,440 | Vinho | 3 | 1 |
+| 9 | 360 | 1,800 | Vinho | 4 | 1 |
+| 10 | 400 | 2,200 | Vinho | 5 | 2 |
+| 11 | 440 | 2,640 | Licor | 1 | 2 |
+| 12 | 480 | 3,120 | Licor | 2 | 2 |
+| 13 | 520 | 3,640 | Licor | 3 | 2 |
+| 14 | 560 | 4,200 | Licor | 4 | 2 |
+| 15 | 600 | 4,800 | Licor | 5 | 3 |
 
 ---
 
@@ -139,9 +141,11 @@ Currently `weaponCharacterLevelScale = 0.0` so there's no level scaling. Speed a
 
 ### Weapon Upgrading
 
-Weapons can be upgraded using **Fidelis + Drinks** (same drink tier system as equipment).
+Weapons can be upgraded using **Fidelis + Drinks + Leitões** (from level 5+).
 
-**Cost Formula:** `Cost(n) = 50 + n × 50` Fidelis (where `n` = current weapon level)
+**Fidelis Cost Formula:** `Cost(n) = 50 + n × 50` Fidelis (where `n` = current weapon level)
+
+**Leitão Cost Formula:** `Cost(n) = 1 + (n - 5) / 5` (starts at level 5, +1 every 5 levels)
 
 **Stat bonus per level:** +5% of base stats per level (`weaponUpgradeStatBonus = 0.05`)
 
@@ -194,3 +198,16 @@ All values are defined in `scaling.config.json` under `stageMode`:
 | `forging.weaponUpgradeStatBonus` | 0.05 | +5% per weapon level |
 | `forging.maxWeaponLevel` | 20 | Weapon level cap |
 | `forging.upgradeLevelsPerDrinkTier` | 5 | Levels before next drink tier |
+
+### Piggies (Leitão) Cost Config
+
+| Key | Value | Description |
+|-----|------:|-------------|
+| `piggies.equipmentUpgradeStartLevel` | 5 | Level at which Leitão cost begins for equipment |
+| `piggies.equipmentUpgradeBaseCost` | 1 | Base Leitão cost |
+| `piggies.equipmentUpgradeCostEveryNLevels` | 5 | +1 Leitão every N levels |
+| `piggies.weaponUpgradeStartLevel` | 5 | Level at which Leitão cost begins for weapons |
+| `piggies.weaponUpgradeBaseCost` | 1 | Base Leitão cost |
+| `piggies.weaponUpgradeCostEveryNLevels` | 5 | +1 Leitão every N levels |
+
+Leitões are earned exclusively from **Boss Mode** victories.

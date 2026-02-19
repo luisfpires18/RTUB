@@ -15,6 +15,8 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using Microsoft.Extensions.Options
+@using RTUB.Application.Configuration
 @attribute [Authorize]
 @inject IBossModeService BossModeService
 @inject ICharacterService CharacterService
@@ -29,6 +31,7 @@
 @inject IStageService StageService
 @inject ICombatActionService CombatActionService
 @inject IInventoryRepository InventoryRepository
+@inject IOptions<MyTunoScalingConfiguration> ScalingConfigOptions
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
@@ -129,12 +132,15 @@
                             <span class="badge bg-success">
                                 <i class="bi bi-check-circle me-1"></i>@Fmt(bossesCleared) Bosses
                             </span>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
-                            </span>
                             <span class="badge bg-info text-dark">
                                 <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
                             </span>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <span class="badge" style="background-color: #ffb6c1; color: #333;">
+                                    <span class="me-1">🐷</span>+@Fmt(totalLeitaoDropped) Leitão
+                                </span>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <span class="badge bg-warning text-dark">
@@ -230,13 +236,16 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@Fmt(totalXPEarned) XP</span>
-                            </div>
-                            <div class="defeat-reward-row">
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span>+@Fmt(totalLeitaoDropped) Leitão</span>
+                                </div>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <div class="defeat-reward-row">
@@ -287,19 +296,6 @@
                                     <i class="bi bi-music-note" style="color: #a855f7;"></i>
                                     <span>+@qty @instrumentName</span>
                                 </div>
-                            }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row">
-                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
                             }
                         </div>
                     }
@@ -443,13 +439,16 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@Fmt(totalXPEarned) XP</span>
-                            </div>
-                            <div class="defeat-reward-row">
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span>+@Fmt(totalLeitaoDropped) Leitão</span>
+                                </div>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <div class="defeat-reward-row">
@@ -501,19 +500,6 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row">
-                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
-                            }
                         </div>
                     }
                     else
@@ -547,8 +533,8 @@
     private bool audioEnabled = true;
 
     // Accumulated loot tracker
-    private int totalXPEarned = 0;
     private decimal totalFidelisEarned = 0;
+    private int totalLeitaoDropped = 0;
     private int totalFinosDropped = 0;
     private int totalCanecasDropped = 0;
     private int totalCigarrosDropped = 0;
@@ -556,7 +542,6 @@
     private int totalShotsDropped = 0;
     private int totalPenaltiesDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
-    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private int bossesCleared = 0;
 
     // Run state tracking
@@ -1132,8 +1117,8 @@
         if (didWin)
         {
             // Accumulate rewards
-            totalXPEarned += currentBattle.XPReward;
             totalFidelisEarned += currentBattle.FidelisReward;
+            totalLeitaoDropped += currentBattle.LeitaoDropped;
             totalFinosDropped += currentBattle.FinosDropped;
             totalCanecasDropped += currentBattle.CanecasDropped;
             totalCigarrosDropped += currentBattle.CigarrosDropped;
@@ -1142,20 +1127,17 @@
             totalPenaltiesDropped += currentBattle.PenaltiesDropped;
             bossesCleared++;
 
+            // Bonus Leitão every N bosses in a single run
+            var bonusEvery = ScalingConfigOptions.Value.BossMode.DropRates.LeitaoBonusEveryNBosses;
+            if (bonusEvery > 0 && bossesCleared % bonusEvery == 0)
+                totalLeitaoDropped++;
+
             foreach (var part in currentBattle.InstrumentPartsDropped)
             {
                 if (totalInstrumentPartsDropped.ContainsKey(part))
                     totalInstrumentPartsDropped[part]++;
                 else
                     totalInstrumentPartsDropped[part] = 1;
-            }
-
-            foreach (var equip in currentBattle.EquipmentDropped)
-            {
-                if (totalEquipmentDropped.ContainsKey(equip))
-                    totalEquipmentDropped[equip]++;
-                else
-                    totalEquipmentDropped[equip] = 1;
             }
 
             // Reload character to get updated HP
@@ -1245,10 +1227,9 @@
                 try
                 {
                     await BossModeService.ApplyBossRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                        character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                         runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                         expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                         expirePenaltyBuff: false);
                 }
@@ -1403,10 +1384,9 @@
             try
             {
                 await BossModeService.ApplyBossRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                    character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                     expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }
@@ -1586,8 +1566,8 @@
 
     private void ResetRunTotals()
     {
-        totalXPEarned = 0;
         totalFidelisEarned = 0;
+        totalLeitaoDropped = 0;
         totalFinosDropped = 0;
         totalCanecasDropped = 0;
         totalCigarrosDropped = 0;
@@ -1595,7 +1575,6 @@
         totalShotsDropped = 0;
         totalPenaltiesDropped = 0;
         totalInstrumentPartsDropped.Clear();
-        totalEquipmentDropped.Clear();
         bossesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -1630,10 +1609,9 @@
             try
             {
                 await BossModeService.ApplyBossRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                    character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                     expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }

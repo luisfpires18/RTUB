@@ -238,7 +238,7 @@ public class StageService : IStageService
         });
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage);
 
         // Update character HP and stage progress in-memory only (no DB save per battle)
@@ -264,7 +264,6 @@ public class StageService : IStageService
             ShotsDropped = shotsDropped,
             PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
-            EquipmentDropped = equipmentDropped,
             FitabDropped = fitabDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP,
@@ -564,7 +563,7 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment, int fitab) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
@@ -573,7 +572,7 @@ public class StageService : IStageService
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>(), 0);
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0);
         }
 
         var random = Random.Shared;
@@ -585,7 +584,6 @@ public class StageService : IStageService
         var penaltiesDropped = 0;
         var fitabDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
-        var equipmentDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
         var dropRates = stageConfig.DropRates;
 
@@ -647,7 +645,7 @@ public class StageService : IStageService
                 fitabDropped++;
         }
 
-        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped);
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped);
     }
 
     /// <summary>
@@ -655,14 +653,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, equipment, expirePenaltyBuff, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -683,10 +681,9 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, bool expirePenaltyBuff, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
-        var hasEquipment = equipment != null && equipment.Count > 0;
 
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -695,9 +692,8 @@ public class StageService : IStageService
             return;
         }
 
-        // Restore HP to the value the player had before the run started
-        // null restoreHp means the player entered with full HP (CurrentHP was null)
-        character.CurrentHP = restoreHp;
+        // Always restore full HP after run — players no longer lose HP between battles
+        character.CurrentHP = null;
         
         // Expire all active buffs (one run consumed per call)
         if (character.ShotBuffBattlesRemaining > 0)
@@ -719,7 +715,7 @@ public class StageService : IStageService
         
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts && !hasEquipment)
+        if (xp <= 0 && fidelis <= 0 && fitab <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts)
             return;
 
         // Apply XP
@@ -754,18 +750,12 @@ public class StageService : IStageService
                 allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
-        if (hasEquipment)
-        {
-            foreach (var (equipType, quantity) in equipment!)
-                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
-        }
-
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
         _logger.LogInformation(
-            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
-            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts",
+            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0);
     }
 
     /// <summary>

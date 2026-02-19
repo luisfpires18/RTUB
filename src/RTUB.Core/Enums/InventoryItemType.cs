@@ -36,6 +36,11 @@ public enum InventoryItemType
     Penalty = 16,
 
     /// <summary>
+    /// Leitão (Piggy) — Boss Mode exclusive currency used for mid/late-game upgrades
+    /// </summary>
+    Leitao = 17,
+
+    /// <summary>
     /// Cerveja - gathered resource, used for crafting (costs 1 energy)
     /// </summary>
     Cerveja = 3,

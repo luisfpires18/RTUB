@@ -65,10 +65,6 @@ public class BattleService : IBattleService
         if (playerCharacter == null)
             throw new EntityNotFoundException(nameof(Character), playerCharacterId);
 
-        // Check if player character is alive
-        if (!playerCharacter.IsAlive())
-            throw new InvalidOperationException("Personagem derrotado. Precisa de reviver antes de lutar.");
-
         // Load opponent character
         var opponentCharacter = await _characterRepository.GetByIdAsync(opponentCharacterId);
         if (opponentCharacter == null)
@@ -105,6 +101,9 @@ public class BattleService : IBattleService
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);
 
+        // Calculate arena rating change
+        var ratingChange = CalculateRatingChange(combatResult.Outcome, playerCharacter, opponentCharacter);
+
         // Serialize replay events to JSON
         var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
         {
@@ -132,7 +131,8 @@ public class BattleService : IBattleService
             ShotBuffExpired = shotBuffExpired,
             ShotBuffBattlesRemaining = shotBuffRemaining,
             PenaltyBuffUsed = hasPenaltyBuff,
-            PenaltyBuffExpired = penaltyBuffExpired
+            PenaltyBuffExpired = penaltyBuffExpired,
+            RatingChange = ratingChange
         };
     }
 
@@ -196,9 +196,8 @@ public class BattleService : IBattleService
             return true;
         }
 
-        // Apply battle HP result — arena battles use persistent HP
-        // AttackerFinalHP is in buffed scale if buff was active; ExpireShotBuff will scale it down
-        playerCharacter.CurrentHP = result.AttackerFinalHP > 0 ? result.AttackerFinalHP : 0;
+        // Always restore full HP after arena battle — players no longer lose HP between battles
+        playerCharacter.CurrentHP = null;
 
         // Expire run-based buffs after arena battle
         playerCharacter.ExpireCigarroBuff();
@@ -235,33 +234,12 @@ public class BattleService : IBattleService
         playerCharacter.LastBattleAt = DateTime.UtcNow;
         playerCharacter.LastBattleId = result.BattleId;
 
-        // Apply rewards — modify user entity directly (no intermediate save)
+        // Apply arena rating change (min 0)
+        playerCharacter.ArenaRating = Math.Max(0, playerCharacter.ArenaRating + result.RatingChange);
+
+        // Arena battles no longer award XP or Fidelis — only rating
+        // (kept for drop logic below)
         var user = await _dbContext.Users.FindAsync(new object[] { playerCharacter.UserId }, cancellationToken);
-        if (user != null)
-        {
-            // Apply Fidelis earned multiplier from Improvements upgrade
-            var fidelisAmount = result.AttackerFidelis * (decimal)playerCharacter.FidelisEarnedMultiplier;
-            user.FidelisBalance += fidelisAmount;
-        }
-        playerCharacter.AddXP(result.AttackerXP);
-
-        // If player died and has no Fino/Caneca to heal, auto-heal to full HP
-        // Use a single inventory query to check relevant quantities
-        if (!playerCharacter.IsAlive())
-        {
-            var inventory = await _inventoryRepository.GetUserInventoryAsync(playerCharacter.UserId, cancellationToken);
-            var finoQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Fino)?.Quantity ?? 0;
-            var canecaQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Caneca)?.Quantity ?? 0;
-            var hasHealingItems = finoQty > 0 || canecaQty > 0;
-
-            if (!hasHealingItems)
-            {
-                playerCharacter.RestoreHP();
-                _logger.LogInformation(
-                    "Auto-healed character {CharacterId} after arena death (no healing items available)",
-                    playerCharacter.Id);
-            }
-        }
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
@@ -300,6 +278,34 @@ public class BattleService : IBattleService
                 (decimal)Math.Round((double)rewards.DrawReward * levelDiffMult, 2)),
             _ => (0, 0m)
         };
+    }
+
+    /// <summary>
+    /// Calculates arena rating change based on battle outcome and level/rating differences.
+    /// Win: +15 if opponent rating is above yours, +10 if close level, +0 if 10+ levels above opponent.
+    /// Lose: -10 rating. Draw: 0.
+    /// </summary>
+    private static int CalculateRatingChange(BattleOutcome outcome, Character attacker, Character defender)
+    {
+        if (outcome == BattleOutcome.Draw)
+            return 0;
+
+        if (outcome == BattleOutcome.DefenderWon)
+            return -10;
+
+        // AttackerWon — check if rating should be awarded
+        var levelDiff = attacker.Level - defender.Level;
+
+        // If attacker is 10+ levels above defender, no rating gain
+        if (levelDiff >= 10)
+            return 0;
+
+        // If defender's rating is above attacker's, award +15
+        if (defender.ArenaRating > attacker.ArenaRating)
+            return 15;
+
+        // Otherwise close level match, award +10
+        return 10;
     }
 
     /// <summary>

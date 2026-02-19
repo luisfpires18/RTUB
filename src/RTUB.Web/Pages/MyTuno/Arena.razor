@@ -97,12 +97,19 @@
                     <div class="result-subtitle">Arena</div>
                     <div class="result-rewards">
                         <div class="result-reward-row">
-                            <i class="bi bi-star-fill text-warning"></i>
-                            <span>+@Fmt(currentBattle.AttackerXP) XP</span>
-                        </div>
-                        <div class="result-reward-row">
-                            <i class="bi bi-coin" style="color: #7c4dff;"></i>
-                            <span>+@Fmt(currentBattle.AttackerFidelis) Fidelis</span>
+                            <i class="bi bi-graph-up-arrow" style="color: #ffc107;"></i>
+                            @if (currentBattle.RatingChange > 0)
+                            {
+                                <span class="text-success">+@currentBattle.RatingChange Rating</span>
+                            }
+                            else if (currentBattle.RatingChange < 0)
+                            {
+                                <span class="text-danger">@currentBattle.RatingChange Rating</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">+0 Rating</span>
+                            }
                         </div>
                     </div>
                     @if (character?.ShotBuffBattlesRemaining > 0)
@@ -158,6 +165,10 @@
         {
             <div class="d-flex justify-content-center gap-3 mb-4">
                 <div class="stat-box-square">
+                    <span class="badge fs-5" style="background-color: #ffc107; color: #000;">@Fmt(character.ArenaRating)</span>
+                    <p class="mb-0 small text-muted">Rating</p>
+                </div>
+                <div class="stat-box-square">
                     <span class="badge bg-success fs-5">@Fmt(character.ArenaWins)</span>
                     <p class="mb-0 small text-muted">Vitórias</p>
                 </div>
@@ -171,14 +182,6 @@
         <!-- Opponent Selection - Only show when battle/result is not active -->
         @if (!showBattleAnimation && !showResultSummary)
         {
-            @if (character != null && !character.IsAlive())
-            {
-                <div class="alert alert-danger text-center mb-4" role="alert">
-                    <i class="bi bi-heart-fill me-2"></i>
-                    <strong>O teu personagem está derrotado!</strong> Usa uma cerveja para reviver antes de lutar.
-                </div>
-            }
-
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
@@ -195,12 +198,21 @@
                         <div class="row g-3">
                             @foreach (var opponent in opponentCharacters)
                             {
+                                var levelDiff = (character?.Level ?? 0) - opponent.Level;
+                                var potentialRating = levelDiff >= 10 ? 0
+                                    : opponent.ArenaRating > (character?.ArenaRating ?? 0) ? 15
+                                    : 10;
+
                                 <div class="col-md-6 col-lg-4 col-xl-3">
-                                    <EnemyCard Character="@opponent"
-                                              OnFight="() => FightOpponent(opponent)"
-                                              IsDisabled="@(fighting || showBattleAnimation)"
-                                              IsFighting="@(fightingOpponentId == opponent.Id)"
-                                              ShowLevelAndXP="true" />
+                                    <div class="position-relative">
+                                        <EnemyCard Character="@opponent"
+                                                  OnFight="() => FightOpponent(opponent)"
+                                                  IsDisabled="@(fighting || showBattleAnimation)"
+                                                  IsFighting="@(fightingOpponentId == opponent.Id)"
+                                                  ShowLevelAndXP="true"
+                                                  ArenaRating="@opponent.ArenaRating"
+                                                  RatingGain="@potentialRating" />
+                                    </div>
                                 </div>
                             }
                         </div>

@@ -227,7 +227,7 @@ public class BossModeService : IBossModeService
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
         var highestStage = stageProgress?.HighestStage ?? 1;
 
-        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped) =
+        var (fidelisReward, leitaoDropped, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped) =
             CalculateBossRewards(combatResult, bossStage, character.Level, highestStage);
 
         // Update progress (hasShotBuff and hasPenaltyBuff tracked for potential future use)
@@ -241,8 +241,9 @@ public class BossModeService : IBossModeService
             BossName = bossName,
             Seed = seed,
             Outcome = combatResult.Outcome,
-            XPReward = xpReward,
+            XPReward = 0,
             FidelisReward = fidelisReward,
+            LeitaoDropped = leitaoDropped,
             FinosDropped = finosDropped,
             CanecasDropped = canecasDropped,
             CigarrosDropped = cigarrosDropped,
@@ -250,7 +251,6 @@ public class BossModeService : IBossModeService
             ShotsDropped = shotsDropped,
             PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
-            EquipmentDropped = equipmentDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP
         };
@@ -258,10 +258,9 @@ public class BossModeService : IBossModeService
 
     /// <inheritdoc />
     public async Task ApplyBossRunRewardsAsync(
-        int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
+        int characterId, decimal fidelis, int leitao, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         long? restoreHp = null,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null,
         bool expireShotBuff = false,
         bool expirePenaltyBuff = false,
         CancellationToken cancellationToken = default)
@@ -273,7 +272,8 @@ public class BossModeService : IBossModeService
             return;
         }
 
-        character.CurrentHP = restoreHp;
+        // Always restore full HP after boss run — players no longer lose HP between battles
+        character.CurrentHP = null;
 
         // Expire buffs once per run (not per-boss).
         // Must happen BEFORE saving so HP scaling (when shot buff reaches 0) is persisted.
@@ -296,16 +296,9 @@ public class BossModeService : IBossModeService
 
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 &&
-            (instrumentParts == null || instrumentParts.Count == 0) &&
-            (equipment == null || equipment.Count == 0))
+        if (fidelis <= 0 && leitao <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 &&
+            (instrumentParts == null || instrumentParts.Count == 0))
             return;
-
-        if (xp > 0)
-        {
-            character.AddXP(xp);
-            await _characterRepository.UpdateAsync(character);
-        }
 
         var user = await _userManager.FindByIdAsync(character.UserId);
         if (user != null && fidelis > 0)
@@ -323,6 +316,7 @@ public class BossModeService : IBossModeService
         if (canhaos > 0) allDrops[InventoryItemType.Canhao] = canhaos;
         if (shots > 0) allDrops[InventoryItemType.Shot] = shots;
         if (penalties > 0) allDrops[InventoryItemType.Penalty] = penalties;
+        if (leitao > 0) allDrops[InventoryItemType.Leitao] = leitao;
 
         if (instrumentParts != null)
         {
@@ -330,18 +324,12 @@ public class BossModeService : IBossModeService
                 allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
-        if (equipment != null)
-        {
-            foreach (var (equipType, quantity) in equipment)
-                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
-        }
-
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
 
         _logger.LogInformation(
-            "Applied boss run rewards for {UserName}: +{XP} XP, +{Fidelis} Fidelis, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots",
-            user?.UserName ?? "unknown", xp, fidelis, finos, canecas, cigarros, canhaos, shots);
+            "Applied boss run rewards for {UserName}: +{Fidelis} Fidelis, +{Leitao} Leitão, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots",
+            user?.UserName ?? "unknown", fidelis, leitao, finos, canecas, cigarros, canhaos, shots);
     }
 
     /// <inheritdoc />
@@ -478,32 +466,31 @@ public class BossModeService : IBossModeService
 
     /// <summary>
     /// Calculates rewards for defeating a boss in Boss Mode.
+    /// Boss Mode no longer awards XP — only Fidelis, Leitão, and consumable drops.
     /// </summary>
-    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment) CalculateBossRewards(
+    private (decimal fidelis, int leitao, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts) CalculateBossRewards(
         CombatResult combatResult, int bossStage, int characterLevel, int highestStage = 1)
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
-            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>());
+            return (0m, 0, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>());
 
         var random = Random.Shared;
         var bossConfig = _config.BossMode;
         var dropRates = bossConfig.DropRates;
 
-        // XP calculation
-        var equivalentStage = GetEquivalentStage(bossStage);
-        var bossLevelFactor = Math.Pow(equivalentStage, bossConfig.BossLevelXPPower);
-        var levelDiff = Math.Max(0, characterLevel - equivalentStage);
-        var levelDiffMult = Math.Max(bossConfig.MinXPLevelMultiplier, 1.0 - levelDiff * bossConfig.XpLevelPenaltyRate);
-        var xpReward = (int)Math.Round(bossConfig.XpPerBossLevel * bossLevelFactor * levelDiffMult);
-
         // Fidelis: tier-based reward × biome multiplier × level bonus
-        var tier = _biomeService.GetEnemyTierForStage(equivalentStage);
+        var equivalentStage = GetEquivalentStage(bossStage);
         var baseFidelis = bossConfig.FidelisRewards.BossWin;
         var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(equivalentStage);
         var rewardConfig = bossConfig.RewardCurve;
         var rawLevelBonus = 1.0 + (characterLevel - 1) * rewardConfig.LevelBonusPerLevel;
         var levelBonus = Math.Min(rawLevelBonus, rewardConfig.LevelBonusCap);
         var fidelisReward = Math.Round(baseFidelis * (decimal)(biomeRewardMult * levelBonus), 2);
+
+        // Leitão drop — Boss Mode exclusive currency (15% chance for 1 per boss kill)
+        var leitaoDropped = 0;
+        if (random.NextDouble() < dropRates.LeitaoDropChance)
+            leitaoDropped++;
 
         // Drop rolls
         var finosDropped = 0;
@@ -513,7 +500,6 @@ public class BossModeService : IBossModeService
         var shotsDropped = 0;
         var penaltiesDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
-        var equipmentDropped = new List<InventoryItemType>();
 
         // Gate consumable drops behind biome progression
         // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
@@ -531,7 +517,7 @@ public class BossModeService : IBossModeService
             instrumentPartsDropped.Add(InstrumentTypeHelper.ToInventoryPartType(randomInstrument));
         }
 
-        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped);
+        return (fidelisReward, leitaoDropped, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped);
     }
 
     /// <summary>

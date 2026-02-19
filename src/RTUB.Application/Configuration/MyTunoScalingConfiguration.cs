@@ -1,4 +1,4 @@
-﻿namespace RTUB.Application.Configuration;
+namespace RTUB.Application.Configuration;
 
 public class MyTunoScalingConfiguration
 {
@@ -276,7 +276,7 @@ public class StageModeConfig
     /// <summary>
     /// Per-level scaling factor for equipment discard Fidelis.
     /// </summary>
-    public double DiscardLevelScale { get; set; } = 0.01;
+    public double DiscardLevelScale { get; set; } = 0.05;
 
     /// <summary>
     /// Fidelis values for discarding items
@@ -354,7 +354,6 @@ public class StageDropRates
     public double CanhaoDropChance { get; set; } = 0.0003;
     public double PenaltyDropChance { get; set; } = 0.0002;
     public double InstrumentPartDropChance { get; set; } = 0.0003;
-    public double EquipmentDropChance { get; set; } = 0.0003;
     public double BossDropMultiplier { get; set; } = 3.0;
 }
 
@@ -396,7 +395,7 @@ public class DiscardValuesConfig
     public decimal InstrumentPart { get; set; } = 25m;
 
     /// <summary>Base Fidelis gained from discarding a forged weapon.</summary>
-    public decimal Weapon { get; set; } = 30m;
+    public decimal Weapon { get; set; } = 50m;
 }
 
 /// <summary>
@@ -650,6 +649,9 @@ public class BossModeConfig
 
     /// <summary>Path to the boss mode background image.</summary>
     public string BackgroundPath { get; set; } = "/sprites/games/my-tuno/backgrounds/jeans.png";
+
+    /// <summary>Piggies (Leitão) cost configuration for mid-game upgrades.</summary>
+    public PiggiesCostConfig Piggies { get; set; } = new();
 }
 
 /// <summary>
@@ -688,8 +690,13 @@ public class BossModeDropRates
     public double CanhaoDropChance { get; set; } = 0.0006;
     public double PenaltyDropChance { get; set; } = 0.0004;
     public double InstrumentPartDropChance { get; set; } = 0.0006;
-    public double EquipmentDropChance { get; set; } = 0.0006;
     public double FitabDropChance { get; set; } = 0.005;
+
+    /// <summary>Leitão drop chance per boss kill (Boss Mode exclusive currency). Drops exactly 1 on success.</summary>
+    public double LeitaoDropChance { get; set; } = 0.15;
+
+    /// <summary>Extra Leitão per N boss stages cleared in a single run.</summary>
+    public int LeitaoBonusEveryNBosses { get; set; } = 5;
 }
 
 /// <summary>
@@ -698,4 +705,50 @@ public class BossModeDropRates
 public class BossModeFidelisRewards
 {
     public decimal BossWin { get; set; } = 430m;
+}
+
+/// <summary>
+/// Piggies (Leitão) cost configuration — determines how many Leitão are required
+/// for various upgrade types once the player reaches mid-game levels.
+/// Cost = BaseCost + floor(currentLevel / CostEveryNLevels) for levels >= StartLevel.
+/// </summary>
+public class PiggiesCostConfig
+{
+    /// <summary>Stat upgrade: level at which Leitão cost kicks in.</summary>
+    public int StatUpgradeStartLevel { get; set; } = 10;
+    /// <summary>Base Leitão cost for stat upgrades.</summary>
+    public int StatUpgradeBaseCost { get; set; } = 1;
+    /// <summary>Every N upgrade levels, add +1 Leitão cost.</summary>
+    public int StatUpgradeCostEveryNLevels { get; set; } = 5;
+
+    /// <summary>Improvement upgrade: level at which Leitão cost kicks in.</summary>
+    public int ImprovementStartLevel { get; set; } = 5;
+    public int ImprovementBaseCost { get; set; } = 1;
+    public int ImprovementCostEveryNLevels { get; set; } = 5;
+
+    /// <summary>Power upgrade: level at which Leitão cost kicks in.</summary>
+    public int PowerStartLevel { get; set; } = 5;
+    public int PowerBaseCost { get; set; } = 1;
+    public int PowerCostEveryNLevels { get; set; } = 5;
+
+    /// <summary>Weapon upgrade: level at which Leitão cost kicks in.</summary>
+    public int WeaponUpgradeStartLevel { get; set; } = 5;
+    public int WeaponUpgradeBaseCost { get; set; } = 1;
+    public int WeaponUpgradeCostEveryNLevels { get; set; } = 5;
+
+    /// <summary>Equipment slot upgrade: level at which Leitão cost kicks in.</summary>
+    public int EquipmentUpgradeStartLevel { get; set; } = 5;
+    public int EquipmentUpgradeBaseCost { get; set; } = 1;
+    public int EquipmentUpgradeCostEveryNLevels { get; set; } = 5;
+
+    /// <summary>
+    /// Calculates the Leitão cost for a given upgrade level.
+    /// Returns 0 if below the start level.
+    /// </summary>
+    public static int CalculateCost(int currentLevel, int startLevel, int baseCost, int costEveryNLevels)
+    {
+        if (currentLevel < startLevel) return 0;
+        var levelsAbove = currentLevel - startLevel;
+        return baseCost + (costEveryNLevels > 0 ? levelsAbove / costEveryNLevels : 0);
+    }
 }
