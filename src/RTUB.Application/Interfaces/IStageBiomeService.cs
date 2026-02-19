@@ -94,6 +94,12 @@ public interface IStageBiomeService
     StageEnemyTierConfig GetEnemyTierForStage(int stageNumber);
 
     /// <summary>
+    /// Returns the continuous per-stage multiplier for scaling stats and rewards.
+    /// Formula: 1.0 + (stageNumber - 1) * PerStageGrowthRate.
+    /// </summary>
+    double GetStageProgressionMultiplier(int stageNumber);
+
+    /// <summary>
     /// Gets the background image path for a given stage number
     /// </summary>
     /// <param name="stageNumber">The stage number</param>

@@ -347,6 +347,12 @@ public class StageBiomeService : IStageBiomeService
         return tiers[^1];
     }
 
+    /// <inheritdoc />
+    public double GetStageProgressionMultiplier(int stageNumber)
+    {
+        return 1.0 + Math.Max(0, stageNumber - 1) * _config.StageMode.PerStageGrowthRate;
+    }
+
     /// <summary>
     /// Calculates scaled enemy stats for a given stage using the tiered enemy system.
     /// </summary>

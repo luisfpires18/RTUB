@@ -193,6 +193,7 @@
             this._enemyAttackPending = Array(this.enemyCount).fill(false);
             this._spellPending = false;
             this._cooldownTickAccum = 0;
+            this._consumableTickAccum = 0; // real-time accumulator (unaffected by battle speed)
 
             // Spell bar UI elements
             this.spellButtons = [];
@@ -1547,6 +1548,7 @@
             this._enemyAttackPending = Array(this.enemyCount).fill(false);
             this._spellPending = false;
             this._cooldownTickAccum = 0;
+            this._consumableTickAccum = 0;
         }
 
         /** Called when a spell button is clicked. */
@@ -1616,22 +1618,31 @@
                 const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds);
                 if (json) {
                     const data = JSON.parse(json);
-                    // New format: { spells: {...}, consumables: {...} }
+                    // New format: { spells: {...} }
                     const spellCooldowns = data.spells ?? data;
                     for (const [id, remaining] of Object.entries(spellCooldowns)) {
                         this.spellCooldowns[id] = remaining;
                     }
-                    // Update consumable cooldowns from server
-                    const consumCooldowns = data.consumables;
-                    if (consumCooldowns) {
-                        for (const [type, remaining] of Object.entries(consumCooldowns)) {
-                            this.consumableCooldowns[type] = remaining;
-                        }
-                        this.updateConsumableCooldownVisuals();
-                    }
                 }
             } catch (e) {
                 console.warn('OnTickCooldowns error:', e);
+            }
+        }
+
+        /** Tick consumable cooldowns on the server using real elapsed time (not scaled by battle speed). */
+        async requestTickConsumableCooldowns(realElapsedSeconds) {
+            if (!this.dotNetRef || this.battleFinished) return;
+            try {
+                const json = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns', realElapsedSeconds);
+                if (json) {
+                    const data = JSON.parse(json);
+                    for (const [type, remaining] of Object.entries(data)) {
+                        this.consumableCooldowns[type] = remaining;
+                    }
+                    this.updateConsumableCooldownVisuals();
+                }
+            } catch (e) {
+                console.warn('OnTickConsumableCooldowns error:', e);
             }
         }
 
@@ -2173,22 +2184,28 @@
                     }
                 }
 
-                // Tick cooldowns on server periodically (~200ms)
+                // Tick spell cooldowns on server ~200ms of sim time (scales with battle speed)
                 this._cooldownTickAccum += simDelta;
                 if (this._cooldownTickAccum >= 200) {
-                    const elapsed = this._cooldownTickAccum / 1000;
+                    const spellElapsed = this._cooldownTickAccum / 1000;
                     this._cooldownTickAccum = 0;
-                    // Also decrement client-side for visual responsiveness
                     for (const id of Object.keys(this.spellCooldowns)) {
-                        this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - elapsed);
-                    }
-                    // Decrement consumable cooldowns client-side for responsive visuals
-                    for (const type of Object.keys(this.consumableCooldowns)) {
-                        this.consumableCooldowns[type] = Math.max(0, this.consumableCooldowns[type] - elapsed);
+                        this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - spellElapsed);
                     }
                     this.updateSpellCooldownVisuals();
+                    this.requestTickCooldowns(spellElapsed);
+                }
+
+                // Tick consumable cooldowns on server ~200ms of REAL time (not affected by speed)
+                this._consumableTickAccum += deltaMs;
+                if (this._consumableTickAccum >= 200) {
+                    const realElapsed = this._consumableTickAccum / 1000;
+                    this._consumableTickAccum = 0;
+                    for (const type of Object.keys(this.consumableCooldowns)) {
+                        this.consumableCooldowns[type] = Math.max(0, this.consumableCooldowns[type] - realElapsed);
+                    }
                     this.updateConsumableCooldownVisuals();
-                    this.requestTickCooldowns(elapsed);
+                    this.requestTickConsumableCooldowns(realElapsed);
                 }
 
                 return; // Don't process pre-computed events

@@ -546,6 +546,13 @@ public class StageService : IStageService
         }
 
         var actionTime = GetEnemyActionTimeForStage(stageNumber);
+
+        // Apply per-stage continuous growth multiplier on top of tier base stats
+        var stageMult = _biomeService.GetStageProgressionMultiplier(stageNumber);
+        baseHP = Math.Max(1, (long)Math.Round(baseHP * stageMult));
+        basePower = Math.Max(1, (long)Math.Round(basePower * stageMult));
+        baseDefense = Math.Max(1, (long)Math.Round(baseDefense * stageMult));
+
         return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseDefense, baseCriticalChance, enemyName, actionTime);
     }
 
@@ -605,12 +612,14 @@ public class StageService : IStageService
         var tier = _biomeService.GetEnemyTierForStage(stageNumber);
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
 
-        var xpReward = tier.XpReward * enemyCount;
+        // Apply per-stage continuous growth multiplier to rewards
+        var stageMult = _biomeService.GetStageProgressionMultiplier(stageNumber);
+        var xpReward = (int)Math.Round(tier.XpReward * enemyCount * stageMult);
 
-        // Fidelis: tier base × biome reward multiplier × enemy count
+        // Fidelis: tier base × biome reward multiplier × enemy count × stage multiplier
         var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(stageNumber);
         var baseFidelis = tier.FidelisReward;
-        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)biomeRewardMult, 2);
+        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(biomeRewardMult * stageMult), 2);
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
         // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
@@ -861,8 +870,9 @@ public class StageService : IStageService
     {
         var tier = _biomeService.GetEnemyTierForStage(stageNumber);
         var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(stageNumber);
-        var xp = tier.XpReward * enemyCount;
-        var fidelis = Math.Round(tier.FidelisReward * enemyCount * (decimal)biomeRewardMult, 2);
+        var stageMult = _biomeService.GetStageProgressionMultiplier(stageNumber);
+        var xp = (int)Math.Round(tier.XpReward * enemyCount * stageMult);
+        var fidelis = Math.Round(tier.FidelisReward * enemyCount * (decimal)(biomeRewardMult * stageMult), 2);
         return (xp, fidelis);
     }
 

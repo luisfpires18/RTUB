@@ -448,11 +448,12 @@ public class BossModeService : IBossModeService
         var bossConfig = _config.BossMode;
         var tier = _biomeService.GetEnemyTierForStage(equivalentStage);
         var bossMult = bossConfig.BossStatMultiplier;
+        var stageMult = _biomeService.GetStageProgressionMultiplier(equivalentStage);
 
-        // Use tier boss stats, further amplified by boss mode multiplier
-        var hp = Math.Max(1, (long)(tier.BossHP * bossMult));
-        var power = Math.Max(1, (long)(tier.BossPower * bossMult));
-        var defense = Math.Max(1, (long)(tier.BossDefense * bossMult));
+        // Use tier boss stats, further amplified by boss mode multiplier + per-stage growth
+        var hp = Math.Max(1, (long)(tier.BossHP * bossMult * stageMult));
+        var power = Math.Max(1, (long)(tier.BossPower * bossMult * stageMult));
+        var defense = Math.Max(1, (long)(tier.BossDefense * bossMult * stageMult));
         var speed = (long)tier.Speed;
         var critChance = Math.Min(tier.CritChance, _config.Combat.CriticalChanceCap);
 
@@ -541,10 +542,6 @@ public class BossModeService : IBossModeService
             progress.CurrentBossStage = progress.DailyBossStage;
             progress.AdvanceBossStage();
             await _bossModeProgressRepository.UpdateAsync(progress);
-
-            _logger.LogInformation(
-                "Corrected interactive win for user {UserId}: advanced boss stage to {Stage}",
-                userId, progress.CurrentBossStage);
         }
     }
 

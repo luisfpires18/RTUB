@@ -303,6 +303,13 @@ public class StageModeConfig
     /// Encounter rules for stage progression
     /// </summary>
     public EncounterRulesConfig EncounterRules { get; set; } = new();
+
+    /// <summary>
+    /// Per-stage growth rate applied as a continuous multiplier on top of tier stats/rewards.
+    /// Formula: multiplier = 1.0 + (stageNumber - 1) * PerStageGrowthRate.
+    /// Default 0.001 = +0.1% per stage, so stage 1000 gets ~2.0×, stage 10000 gets ~11.0×.
+    /// </summary>
+    public double PerStageGrowthRate { get; set; } = 0.0015;
 }
 
 /// <summary>

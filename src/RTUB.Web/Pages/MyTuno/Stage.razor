@@ -527,19 +527,8 @@
             character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
 
             // Create interactive combat session from enemy metadata
-            // This drives the REAL combat — player auto-attacks + spell clicks
-            // Determine instrument type from equipped weapon for unique special attack
-            RTUB.Core.Enums.InstrumentType? combatInstrumentType = null;
-            if (character.EquippedWeapon1.HasValue)
-            {
-                var weapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
-                var equippedWeapon = weapons.FirstOrDefault(w => w.Id == character.EquippedWeapon1.Value);
-                if (equippedWeapon != null)
-                {
-                    combatInstrumentType = RTUB.Core.Helpers.InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
-                }
-            }
-            var starterSpells = RTUB.Application.Data.SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
+            // This drives the REAL combat — player auto-attacks only (no special attacks in stage mode for now)
+            List<RTUB.Core.Entities.SpecialAttack>? starterSpells = null;
             var enemyStates = currentBattle.EnemyStats.Select((e, i) => new RTUB.Application.DTOs.CombatantState
             {
                 Identifier = $"Enemy{i}",
@@ -660,17 +649,7 @@
                             e.MaxHP,
                             ActionTime = e.ActionTimeSeconds
                         }),
-                        Spells = starterSpells.Select(s => new
-                        {
-                            s.AttackId,
-                            s.Name,
-                            s.Icon,
-                            VfxType = (int)s.VfxType,
-                            s.VfxColor,
-                            s.CooldownSeconds,
-                            s.ScreenShake,
-                            Target = (int)s.Target
-                        }),
+                        Spells = Array.Empty<object>(),
                         Consumables = new
                         {
                             Fino = _finoQty,
@@ -861,14 +840,20 @@
             return Task.FromResult("{}");
 
         var cooldowns = CombatActionService.TickCooldowns(_combatSession, elapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(new { spells = cooldowns }, _spellJsonOptions));
+    }
 
-        // Include consumable cooldowns in the response so JS can show them
-        var result = new Dictionary<string, object>
-        {
-            ["spells"] = cooldowns,
-            ["consumables"] = new Dictionary<string, double>(_combatSession.ConsumableCooldowns)
-        };
-        return Task.FromResult(JsonSerializer.Serialize(result, _spellJsonOptions));
+    /// <summary>
+    /// Called by JS to tick consumable cooldowns using real elapsed time (not battle-speed-scaled).
+    /// </summary>
+    [JSInvokable]
+    public Task<string> OnTickConsumableCooldowns(double realElapsedSeconds)
+    {
+        if (_combatSession == null || _combatSession.IsComplete)
+            return Task.FromResult("{}");
+
+        var cooldowns = CombatActionService.TickConsumableCooldowns(_combatSession, realElapsedSeconds);
+        return Task.FromResult(JsonSerializer.Serialize(cooldowns, _spellJsonOptions));
     }
 
     /// <summary>

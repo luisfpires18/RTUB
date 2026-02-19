@@ -221,7 +221,7 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
             .Include(c => c.User)
             .Where(c => c.Id != excludeCharacterId)
             .OrderByDescending(c => c.Level)
-            .ThenByDescending(c => c.ArenaWins)
+            .ThenByDescending(c => c.ArenaRating)
             .ToListAsync();
     }
 }

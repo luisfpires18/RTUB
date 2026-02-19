@@ -50,9 +50,14 @@ public interface ICombatActionService
     CombatActionResult ProcessEnemyAttack(CombatSession session, int enemyIndex);
 
     /// <summary>
-    /// Advances spell cooldowns by the given elapsed time (called by JS after each tick).
+    /// Advances spell cooldowns by the given elapsed sim-time (called by JS after each tick).
     /// </summary>
     Dictionary<string, double> TickCooldowns(CombatSession session, double elapsedSeconds);
+
+    /// <summary>
+    /// Advances consumable cooldowns by real elapsed time (independent of battle speed).
+    /// </summary>
+    Dictionary<string, double> TickConsumableCooldowns(CombatSession session, double realElapsedSeconds);
 
     /// <summary>
     /// Applies a consumable item to the current combat session.

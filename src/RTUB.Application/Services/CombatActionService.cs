@@ -677,12 +677,6 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             session.SpellCooldowns[key] = Math.Max(0, session.SpellCooldowns[key] - elapsedSeconds);
         }
 
-        // ── Consumable cooldowns (Fino 1min, Caneca 2min) ──
-        foreach (var key in session.ConsumableCooldowns.Keys.ToList())
-        {
-            session.ConsumableCooldowns[key] = Math.Max(0, session.ConsumableCooldowns[key] - elapsedSeconds);
-        }
-
         // ── Regen tick (Bandolim Serenade) ──
         if (session.PlayerRegen.TicksRemaining > 0)
         {
@@ -692,6 +686,16 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         }
 
         return new Dictionary<string, double>(session.SpellCooldowns);
+    }
+
+    /// <inheritdoc />
+    public Dictionary<string, double> TickConsumableCooldowns(CombatSession session, double realElapsedSeconds)
+    {
+        foreach (var key in session.ConsumableCooldowns.Keys.ToList())
+        {
+            session.ConsumableCooldowns[key] = Math.Max(0, session.ConsumableCooldowns[key] - realElapsedSeconds);
+        }
+        return new Dictionary<string, double>(session.ConsumableCooldowns);
     }
 
     // ── Private helpers ──
