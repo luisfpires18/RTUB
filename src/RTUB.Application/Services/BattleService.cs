@@ -65,10 +65,6 @@ public class BattleService : IBattleService
         if (playerCharacter == null)
             throw new EntityNotFoundException(nameof(Character), playerCharacterId);
 
-        // Check if player character is alive
-        if (!playerCharacter.IsAlive())
-            throw new InvalidOperationException("Personagem derrotado. Precisa de reviver antes de lutar.");
-
         // Load opponent character
         var opponentCharacter = await _characterRepository.GetByIdAsync(opponentCharacterId);
         if (opponentCharacter == null)
@@ -90,11 +86,11 @@ public class BattleService : IBattleService
         // Check if shot buff is active and create buffed copy for combat
         var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
         var hasPenaltyBuff = playerCharacter.PenaltyBuffActive > 0;
+        var hasCigarroBuff = playerCharacter.CigarroShieldHitsRemaining > 0;
+        var hasCanhaoBuff = playerCharacter.CanhaoDamageBoostHitsRemaining > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(playerCharacter) 
             : playerCharacter;
-        if (hasPenaltyBuff)
-            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
@@ -104,6 +100,9 @@ public class BattleService : IBattleService
 
         // Calculate rewards based on outcome
         var (xpReward, fidelisReward) = CalculateRewards(combatResult.Outcome, playerCharacter, opponentCharacter);
+
+        // Calculate arena rating change
+        var ratingChange = CalculateRatingChange(combatResult.Outcome, playerCharacter, opponentCharacter);
 
         // Serialize replay events to JSON
         var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
@@ -131,10 +130,9 @@ public class BattleService : IBattleService
             ShotBuffUsed = hasShotBuff,
             ShotBuffExpired = shotBuffExpired,
             ShotBuffBattlesRemaining = shotBuffRemaining,
-            AttackerCigarroShieldRemaining = combatResult.AttackerCigarroShieldRemaining,
-            AttackerCanhaoBoostRemaining = combatResult.AttackerCanhaoBoostRemaining,
             PenaltyBuffUsed = hasPenaltyBuff,
-            PenaltyBuffExpired = penaltyBuffExpired
+            PenaltyBuffExpired = penaltyBuffExpired,
+            RatingChange = ratingChange
         };
     }
 
@@ -198,13 +196,12 @@ public class BattleService : IBattleService
             return true;
         }
 
-        // Apply battle HP result — arena battles use persistent HP
-        // AttackerFinalHP is in buffed scale if buff was active; ExpireShotBuff will scale it down
-        playerCharacter.CurrentHP = result.AttackerFinalHP > 0 ? result.AttackerFinalHP : 0;
+        // Always restore full HP after arena battle — players no longer lose HP between battles
+        playerCharacter.CurrentHP = null;
 
-        // Write back consumable buff remaining counts from combat
-        playerCharacter.CigarroShieldHitsRemaining = result.AttackerCigarroShieldRemaining;
-        playerCharacter.CanhaoDamageBoostHitsRemaining = result.AttackerCanhaoBoostRemaining;
+        // Expire run-based buffs after arena battle
+        playerCharacter.ExpireCigarroBuff();
+        playerCharacter.ExpireCanhaoBuff();
 
         // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
         if (result.ShotBuffUsed)
@@ -237,33 +234,12 @@ public class BattleService : IBattleService
         playerCharacter.LastBattleAt = DateTime.UtcNow;
         playerCharacter.LastBattleId = result.BattleId;
 
-        // Apply rewards — modify user entity directly (no intermediate save)
+        // Apply arena rating change (min 0)
+        playerCharacter.ArenaRating = Math.Max(0, playerCharacter.ArenaRating + result.RatingChange);
+
+        // Arena battles no longer award XP or Fidelis — only rating
+        // (kept for drop logic below)
         var user = await _dbContext.Users.FindAsync(new object[] { playerCharacter.UserId }, cancellationToken);
-        if (user != null)
-        {
-            // Apply Fidelis earned multiplier from Improvements upgrade
-            var fidelisAmount = result.AttackerFidelis * (decimal)playerCharacter.FidelisEarnedMultiplier;
-            user.FidelisBalance += fidelisAmount;
-        }
-        playerCharacter.AddXP(result.AttackerXP);
-
-        // If player died and has no Fino/Caneca to heal, auto-heal to full HP
-        // Use a single inventory query to check relevant quantities
-        if (!playerCharacter.IsAlive())
-        {
-            var inventory = await _inventoryRepository.GetUserInventoryAsync(playerCharacter.UserId, cancellationToken);
-            var finoQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Fino)?.Quantity ?? 0;
-            var canecaQty = inventory?.FirstOrDefault(i => i.Type == InventoryItemType.Caneca)?.Quantity ?? 0;
-            var hasHealingItems = finoQty > 0 || canecaQty > 0;
-
-            if (!hasHealingItems)
-            {
-                playerCharacter.RestoreHP();
-                _logger.LogInformation(
-                    "Auto-healed character {CharacterId} after arena death (no healing items available)",
-                    playerCharacter.Id);
-            }
-        }
 
         await _characterRepository.UpdateAsync(playerCharacter);
 
@@ -279,9 +255,8 @@ public class BattleService : IBattleService
     }
 
     /// <summary>
-    /// Calculates XP and Fidelis rewards based on battle outcome, level difference, and attacker level.
-    /// Rewards scale with attacker level (level^LevelScalePower) so high-level arena battles
-    /// give rewards comparable to stage mode.
+    /// Calculates XP and Fidelis rewards based on battle outcome and level difference.
+    /// In v5, arena rewards are flat base values scaled only by level difference (no level-power scaling).
     /// </summary>
     private (int xp, decimal fidelis) CalculateRewards(BattleOutcome outcome, Character attacker, Character defender)
     {
@@ -289,23 +264,48 @@ public class BattleService : IBattleService
 
         // Unified level-diff multiplier for both XP and Fidelis
         var levelDiff = defender.Level - attacker.Level;
-        var levelDiffMult = Math.Max(rewards.MinRewardMultiplier,
-            Math.Min(rewards.MaxRewardMultiplier, 1.0 + levelDiff * rewards.LevelDiffScale));
-
-        // Level-based scaling: rewards grow with attacker level (like stage mode)
-        var levelScale = Math.Pow(attacker.Level, rewards.LevelScalePower);
+        var levelDiffMult = Math.Clamp(1.0 + levelDiff * rewards.LevelDiffScale,
+            1.0 - rewards.LevelDiffCap, 1.0 + rewards.LevelDiffCap);
 
         return outcome switch
         {
             BattleOutcome.AttackerWon => (
-                (int)Math.Round(rewards.BaseWinXP * levelScale * levelDiffMult),
-                (decimal)Math.Round((double)rewards.WinReward * levelScale * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseWinXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.WinReward * levelDiffMult, 2)),
             BattleOutcome.DefenderWon => (0, 0m),
             BattleOutcome.Draw => (
-                (int)Math.Round(rewards.BaseDrawXP * levelScale * levelDiffMult),
-                (decimal)Math.Round((double)rewards.DrawReward * levelScale * levelDiffMult, 2)),
+                (int)Math.Round(rewards.BaseDrawXP * levelDiffMult),
+                (decimal)Math.Round((double)rewards.DrawReward * levelDiffMult, 2)),
             _ => (0, 0m)
         };
+    }
+
+    /// <summary>
+    /// Calculates arena rating change based on battle outcome and level/rating differences.
+    /// Win: +15 if opponent rating is above yours, +10 if close level, +0 if 10+ levels above opponent.
+    /// Lose: -10 rating. Draw: 0.
+    /// </summary>
+    private static int CalculateRatingChange(BattleOutcome outcome, Character attacker, Character defender)
+    {
+        if (outcome == BattleOutcome.Draw)
+            return 0;
+
+        if (outcome == BattleOutcome.DefenderWon)
+            return -10;
+
+        // AttackerWon — check if rating should be awarded
+        var levelDiff = attacker.Level - defender.Level;
+
+        // If attacker is 10+ levels above defender, no rating gain
+        if (levelDiff >= 10)
+            return 0;
+
+        // If defender's rating is above attacker's, award +15
+        if (defender.ArenaRating > attacker.ArenaRating)
+            return 15;
+
+        // Otherwise close level match, award +10
+        return 10;
     }
 
     /// <summary>

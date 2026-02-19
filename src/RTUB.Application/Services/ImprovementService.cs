@@ -22,6 +22,7 @@ public class ImprovementService : IImprovementService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ImprovementService>? _logger;
     private readonly MyTunoScalingConfiguration _config;
+    private readonly IInventoryRepository _inventoryRepository;
 
     private const int MaxRetryAttempts = 3;
 
@@ -30,6 +31,7 @@ public class ImprovementService : IImprovementService
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         IOptions<MyTunoScalingConfiguration> config,
+        IInventoryRepository inventoryRepository,
         ILogger<ImprovementService>? logger = null)
     {
         _characterService = characterService;
@@ -37,11 +39,12 @@ public class ImprovementService : IImprovementService
         _context = context;
         _logger = logger;
         _config = config.Value;
+        _inventoryRepository = inventoryRepository;
     }
 
     /// <summary>
     /// Calculates the cost for upgrading a specific improvement.
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+    /// Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
     /// </summary>
     public async Task<decimal> GetImprovementCostAsync(string userId, ImprovementType improvementType, CancellationToken cancellationToken = default)
     {
@@ -52,7 +55,7 @@ public class ImprovementService : IImprovementService
         var upgradeCount = character != null ? GetUpgradeCount(character, improvementType) : 0;
         var stat = GetImprovementStatConfig(improvementType);
 
-        var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+        var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -61,14 +64,14 @@ public class ImprovementService : IImprovementService
     /// </summary>
     public Dictionary<ImprovementType, decimal> GetAllImprovementCosts(Character character)
     {
-        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen, ImprovementType.ShotBuffBonus, ImprovementType.FidelisEarned };
+        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen };
         var result = new Dictionary<ImprovementType, decimal>();
 
         foreach (var type in types)
         {
             var upgradeCount = GetUpgradeCount(character, type);
             var stat = GetImprovementStatConfig(type);
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+            var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
             result[type] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -121,13 +124,36 @@ public class ImprovementService : IImprovementService
                         return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
                     }
 
-                    var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+                    var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     if (user.FidelisBalance < cost)
                     {
                         await transaction.RollbackAsync();
                         return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:F2}, Disponível: {user.FidelisBalance:F2}");
+                    }
+
+                    // Check Leitão cost (mid-game currency from Boss Mode)
+                    var piggies = _config.BossMode.Piggies;
+                    var leitaoCost = PiggiesCostConfig.CalculateCost(
+                        currentCount, piggies.ImprovementStartLevel,
+                        piggies.ImprovementBaseCost, piggies.ImprovementCostEveryNLevels);
+
+                    if (leitaoCost > 0)
+                    {
+                        var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                        if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+                        }
+
+                        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+                        if (!consumed)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
+                        }
                     }
 
                     user.FidelisBalance -= cost;
@@ -170,8 +196,6 @@ public class ImprovementService : IImprovementService
     {
         ImprovementType.EnergyAmount => character.EnergyAmountUpgrades,
         ImprovementType.EnergyRegen => character.EnergyRegenUpgrades,
-        ImprovementType.ShotBuffBonus => character.ShotBuffUpgrades,
-        ImprovementType.FidelisEarned => character.FidelisEarnedUpgrades,
         _ => 0
     };
 
@@ -185,21 +209,13 @@ public class ImprovementService : IImprovementService
             case ImprovementType.EnergyRegen:
                 character.UpgradeEnergyRegen();
                 break;
-            case ImprovementType.ShotBuffBonus:
-                character.UpgradeShotBuff();
-                break;
-            case ImprovementType.FidelisEarned:
-                character.UpgradeFidelisEarned();
-                break;
         }
     }
 
-    private MyTunoUpgradeStat GetImprovementStatConfig(ImprovementType type) => type switch
+    private UpgradeFlatStat GetImprovementStatConfig(ImprovementType type) => type switch
     {
         ImprovementType.EnergyAmount => _config.Improvements.EnergyAmount,
         ImprovementType.EnergyRegen => _config.Improvements.EnergyRegen,
-        ImprovementType.ShotBuffBonus => _config.Improvements.ShotBuffBonus,
-        ImprovementType.FidelisEarned => _config.Improvements.FidelisEarned,
         _ => throw new ArgumentException($"Unknown improvement type: {type}", nameof(type))
     };
 
@@ -221,11 +237,28 @@ public class ImprovementService : IImprovementService
             if (stat.MaxUpgrades > 0 && currentCount >= stat.MaxUpgrades)
                 return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
 
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+            var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)
                 return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:F2}, Disponível: {user.FidelisBalance:F2}");
+
+            // Check Leitão cost (mid-game currency from Boss Mode)
+            var piggies = _config.BossMode.Piggies;
+            var leitaoCost = PiggiesCostConfig.CalculateCost(
+                currentCount, piggies.ImprovementStartLevel,
+                piggies.ImprovementBaseCost, piggies.ImprovementCostEveryNLevels);
+
+            if (leitaoCost > 0)
+            {
+                var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                    return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+                if (!consumed)
+                    return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
+            }
 
             user.FidelisBalance -= cost;
             ApplyUpgrade(character, improvementType);

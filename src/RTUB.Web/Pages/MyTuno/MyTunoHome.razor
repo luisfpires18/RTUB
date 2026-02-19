@@ -8,7 +8,6 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Base
-@using RTUB.Application.DTOs
 @using RTUB.Shared.Components.UI
 @using RTUB.Application.Configuration
 @using RTUB.Core.Helpers
@@ -20,7 +19,6 @@
 @inject IUpgradeService UpgradeService
 @inject IImprovementService ImprovementService
 @inject IPowerService PowerService
-@inject ICharacterRepository CharacterRepository
 @inject IInventoryService InventoryService
 @inject INaipeService NaipeService
 @inject IStageService StageService
@@ -45,9 +43,9 @@
                 </p>
             </div>
             <div class="page-header-actions justify-content-lg-end">
-                <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
-                    <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
-                </button>
+                <a href="/my-tuno/all-characters" class="btn btn-outline-primary">
+                    <i class="bi bi-trophy-fill me-2"></i>Classificação
+                </a>
                 <AuthorizeView Roles="Owner">
                     <Authorized>
                         <a href="/owner/stage-enemies" class="btn btn-outline-warning">
@@ -55,9 +53,6 @@
                         </a>
                         <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
                             <i class="bi bi-sliders me-1"></i>Config Armas/Bebidas
-                        </a>
-                        <a href="/owner/all-characters" class="btn btn-outline-warning">
-                            <i class="bi bi-people me-1"></i>Todos Personagens
                         </a>
                     </Authorized>
                 </AuthorizeView>
@@ -77,7 +72,6 @@
     }
     else
     {
-        var isCharacterDead = character != null && (character.CurrentHP ?? GetDisplayMaxHP(character)) <= 0;
         var displayMaxHpForCheck = GetDisplayMaxHP(character);
         var isFullHp = character != null && (character.CurrentHP ?? GetDisplayMaxHP(character)) >= displayMaxHpForCheck;
 
@@ -99,6 +93,13 @@
                     <div class="fidelis-bar__info">
                         <span class="fidelis-bar__label" style="color: #e040fb;">FITAB</span>
                         <span class="fidelis-bar__value">@currentUser.FitabBalance</span>
+                    </div>
+                    <div class="fidelis-bar__icon ms-3" style="color: #f8bbd0;">
+                        <span>🐷</span>
+                    </div>
+                    <div class="fidelis-bar__info">
+                        <span class="fidelis-bar__label" style="color: #f8bbd0;">Leitões</span>
+                        <span class="fidelis-bar__value">@leitaoQuantity</span>
                     </div>
                     <div class="ms-auto">
                         @if (CanClaimDailyReward)
@@ -164,18 +165,18 @@
 
                             @if (inventoryTab == 0)
                             {
-                                <!-- Consumables: Fino, Caneca, Cigarro, Canhão, Shot -->
+                                <!-- Consumables: ordered by unlock stage -->
                                 <div class="item-grid">
                                     @{
                                         var consumableHighestStage = stageProgress?.HighestStage ?? 1;
-                                        var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
+                                        var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled, string? CombatOnlyTooltip)[]
                                         {
-                                            ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, character == null || isFullHp),
-                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
-                                            ("Cigarro", "bi-cloud", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
-                                            ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 501, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
-                                            ("Canhão", "bi-bullseye", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                            ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, true, "Apenas utilizável em combate"),
+                                            ("Cigarro", "bi-cloud", "bi-cloud", "+10% Esquiva x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
+                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || character?.ShotBuffBattlesRemaining > 0, null),
+                                            ("Canhão", "bi-bullseye", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.CanhaoDamageBoostHitsRemaining > 0, null),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.PenaltyBuffActive > 0, null),
+                                            ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 11001, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, true, "Apenas utilizável em combate"),
                                         };
                                     }
 
@@ -183,14 +184,14 @@
                                     {
                                         var isConsumableLocked = c.UnlockStage > consumableHighestStage;
                                         var unlockBiomeName = isConsumableLocked
-                                            ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= c.UnlockStage && b.StageMax >= c.UnlockStage)?.Name ?? $"Stage {c.UnlockStage}"
+                                            ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= c.UnlockStage && b.StageMax >= c.UnlockStage)?.Name ?? $"Floor {c.UnlockStage}"
                                             : "";
                                         var isActionDisabled = isConsumableLocked || c.Using || c.Qty == 0 || c.ExtraDisabled;
 
                                         <div class="item-card item-card--@c.CssVariant @(isConsumableLocked ? "item-card--locked" : "")"
-                                             @onclick="async () => { if (!isConsumableLocked) await c.UseAction(); }"
+                                             @onclick="async () => { if (!isActionDisabled) await c.UseAction(); }"
                                              style="cursor: @(isActionDisabled ? "not-allowed" : "pointer")"
-                                             title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Stage {c.UnlockStage} ({unlockBiomeName})" : c.Name)">
+                                             title="@(isConsumableLocked ? $"{c.Name} — Desbloqueia no Floor {c.UnlockStage} ({unlockBiomeName})" : c.CombatOnlyTooltip ?? c.Name)">
                                             <div class="item-card__qty">
                                                 @if (isConsumableLocked)
                                                 {
@@ -308,20 +309,7 @@
                                     var wIcon = WeaponTypeHelper.GetIcon(weapon.WeaponType);
                                     equipableItems.Add(("weapon", wTitle, wIcon, null, weapon));
                                 }
-                                foreach (var kvp in equipmentItems)
-                                {
-                                    // Skip equipment that is currently equipped on the character
-                                    if (IsItemCurrentlyEquipped(kvp.Key)) continue;
 
-                                    var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
-                                    var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
-                                    var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
-                                    // Expand: one card per unit instead of stacking
-                                    for (int i = 0; i < kvp.Value; i++)
-                                    {
-                                        equipableItems.Add(("equipment", eqName, eqIcon, kvp.Key, null));
-                                    }
-                                }
                                 var totalEquipablePages = Math.Max(1, (int)Math.Ceiling(equipableItems.Count / (double)EquipablePageSize));
                                 if (equipablePage > totalEquipablePages) equipablePage = totalEquipablePages;
                                 var pagedItems = equipableItems.Skip((equipablePage - 1) * EquipablePageSize).Take(EquipablePageSize).ToList();
@@ -426,7 +414,7 @@
             </div>
 
             <!-- Character Summary Card -->
-            <div class="col-lg-4 order-2">
+            <div class="col-lg-4 order-1">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
@@ -454,27 +442,6 @@
                                 <span class="xp-max">@Fmt(displayMaxHP)</span>
                             </div>
                         </div>
-
-                        @if (currentHP < displayMaxHP && finoQuantity <= 0 && canecaQuantity <= 0)
-                        {
-                            var isDead = currentHP <= 0;
-                            var healCost = isDead
-                                ? MyTunoConfig.Value.BattleRewards.ReviveCost
-                                : MyTunoConfig.Value.BattleRewards.RestoreHPCost;
-                            var canAffordHeal = currentUser != null && currentUser.FidelisBalance >= healCost;
-                            <div class="text-center mb-2">
-                                <button class="btn btn-sm btn-outline-success @(canAffordHeal ? "" : "disabled")"
-                                        @onclick="HealWithFidelis"
-                                        disabled="@(!canAffordHeal || healingWithFidelis)">
-                                    @if (healingWithFidelis)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1"></span>
-                                    }
-                                    <i class="bi bi-heart-pulse me-1"></i>
-                                    @(isDead ? "Reviver" : "Curar") — @Fmt(healCost) Fidelis
-                                </button>
-                            </div>
-                        }
                         
                         <!-- Character Sprite -->
                         <div class="text-center mb-3">
@@ -510,87 +477,27 @@
                         </div>
                         <hr />
                         
-                        <!-- Colored Stat Boxes -->
-                        <div class="d-flex flex-column gap-2">
-                            <!-- HP Stat Box -->
-                            @{
-                                var hasEnhancementHP = character.ShotBuffBattlesRemaining > 0;
-                                var hpColorClass = hasEnhancementHP ? "text-info" : "text-danger";
-                                var hpBorderClass = hasEnhancementHP ? "border-info" : "border-danger";
-                            }
-                            <div class="p-2 border @hpBorderClass rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-heart-fill @hpColorClass me-2"></i>
-                                    <span>HP</span>
-                                    @if (hasEnhancementHP)
-                                    {
-                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
-                                    }
-                                </span>
-                                <strong class="@hpColorClass">@Fmt(currentHP) / @Fmt(displayMaxHP)</strong>
-                            </div>
-                            
-
-                            
-                            @{
-                                var hasEnhancement = character.ShotBuffBattlesRemaining > 0;
-                                var enhancedClass = hasEnhancement ? "text-info" : "";
-                                var enhancedBorderClass = hasEnhancement ? "border-info" : "border-success";
-                                var enhancedSpeedBorderClass = hasEnhancement ? "border-info" : "border-primary";
-                                var enhancedCritBorderClass = hasEnhancement ? "border-info" : "border-warning";
-                            }
-                            
-                            <!-- Power Stat Box -->
-                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-success") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-lightning-fill @(hasEnhancement ? "text-info" : "text-success") me-2"></i>
-                                    <span>Poder</span>
-                                    @if (hasEnhancement)
-                                    {
-                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
-                                    }
-                                </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "text-success")">@Fmt(character.TotalPower)</strong>
-                            </div>
-                            
-                            <!-- Speed Stat Box -->
-                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-primary") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-speedometer2 @(hasEnhancement ? "text-info" : "text-primary") me-2"></i>
-                                    <span>Velocidade</span>
-                                    @if (hasEnhancement)
-                                    {
-                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
-                                    }
-                                </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "text-primary")">@($"{character.ActionTime:F1}s")</strong>
-                            </div>
-                            
-                            <!-- Critical Stat Box -->
-                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-warning") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-bullseye @(hasEnhancement ? "text-info" : "text-warning") me-2"></i>
-                                    <span>Crítico</span>
-                                    @if (hasEnhancement)
-                                    {
-                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
-                                    }
-                                </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "text-warning")">@($"{character.TotalCriticalChance * 100:F1}%")</strong>
-                            </div>
-                            
-                            <!-- Defense Stat Box -->
-                            <div class="p-2 border @(hasEnhancement ? "border-info" : "border-secondary") rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                                <span class="d-flex align-items-center">
-                                    <i class="bi bi-shield-fill @(hasEnhancement ? "text-info" : "") me-2" style="color: @(hasEnhancement ? "" : "white")"></i>
-                                    <span>Defesa</span>
-                                    @if (hasEnhancement)
-                                    {
-                                        <i class="bi bi-arrow-up-circle-fill text-info ms-1" title="+20% (Shot)"></i>
-                                    }
-                                </span>
-                                <strong class="@(hasEnhancement ? "text-info" : "")" style="color: @(hasEnhancement ? "" : "white")">@Fmt(character.TotalDefense)</strong>
-                            </div>
+                        <!-- Stat Tiles Grid -->
+                        @{
+                            var hasEnhancementHP = character.ShotBuffBattlesRemaining > 0;
+                            var hasEnhancement = character.ShotBuffBattlesRemaining > 0;
+                        }
+                        <div class="ftile-grid ftile-grid--3col">
+                            <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"{Fmt(currentHP)}/{Fmt(displayMaxHP)}")"
+                                         Color="red" Size="md" Highlighted="@hasEnhancementHP"
+                                         Tooltip="@(hasEnhancementHP ? "+20% (Shot)" : "")" />
+                            <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(character.TotalPower)"
+                                         Color="green" Size="md" Highlighted="@hasEnhancement"
+                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                            <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(character.TotalDefense)"
+                                         Color="gray" Size="md" Highlighted="@hasEnhancement"
+                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                            <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{character.ActionTime:F1}s")"
+                                         Color="blue" Size="md" Highlighted="@hasEnhancement"
+                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                            <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{character.TotalCriticalChance * 100:F1}%")"
+                                         Color="yellow" Size="md" Highlighted="@hasEnhancement"
+                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
                         </div>
                         
                         <!-- Active Enhancements Section -->
@@ -612,10 +519,10 @@
                                 {
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
-                                            <i class="bi bi-shield-fill text-info me-2"></i>
-                                            <span>Cigarro (Escudo)</span>
+                                            <i class="bi bi-wind text-info me-2"></i>
+                                            <span>Cigarro (Esquiva)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining/3 ataques por bloquear</span>
+                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining corridas com esquiva</span>
                                     </div>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
@@ -623,9 +530,9 @@
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-bullseye text-info me-2"></i>
-                                            <span>Canhão (+30% Dano)</span>
+                                            <span>Canhão (AOE)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano</span>
+                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
                                     </div>
                                 }
                                 @if (character.PenaltyBuffActive > 0)
@@ -633,7 +540,7 @@
                                     <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
-                                            <span>Penalty (0.5s + 100% Crit)</span>
+                                            <span>Penalty — Lifesteal 0.5% HP por hit</span>
                                         </span>
                                         <span class="badge bg-warning text-dark">Ativo</span>
                                     </div>
@@ -650,63 +557,23 @@
                         }
                         
                         <hr />
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-lg flex-fill" @onclick="NavigateToArena" disabled="@(currentHP <= 0)">
-                                <i class="bi bi-sword me-2"></i>Arena
-                            </button>
-                            <button class="btn btn-success btn-lg flex-fill" @onclick="OpenStageModal" disabled="@(currentHP <= 0)">
-                                <i class="bi bi-layers me-2"></i>Stages
-                            </button>
-                        </div>
-                        <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-warning btn-lg flex-fill" @onclick="OpenBossModeModal" disabled="@(currentHP <= 0)">
-                                <i class="bi bi-lightning-fill me-2"></i>Boss Mode
-                            </button>
-                            <button class="btn btn-danger btn-lg flex-fill" @onclick="OpenSurviveModeModal" disabled="@(currentHP <= 0)">
-                                <i class="bi bi-bullseye me-2"></i>Survive
-                            </button>
+                        <div class="ftile-grid ftile-grid--2col">
+                            <FantasyTile Icon="bi-trophy" Label="Arena" Color="blue" Size="lg"
+                                         Clickable="true" OnClick="@NavigateToArena" />
+                            <FantasyTile Icon="bi-layers" Label="Floors" Color="green" Size="lg"
+                                         Clickable="true" OnClick="@OpenStageModal" />
+                            <FantasyTile Icon="bi-lightning-fill" Label="Boss Mode" Color="gold" Size="lg"
+                                         Clickable="true" OnClick="@OpenBossModeModal" />
+                            <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
+                                         Disabled="true" Tooltip="Soon..." />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Leaderboard -->
-            <div class="col-lg-4 order-1">
-                <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
-            </div>
-        </div>
-
-        <!-- Bottom Row: Equipment + Destilaria + Forja + Upgrades + Powers + Improvements -->
-        <div class="row g-4 mt-2">
-            <!-- Upgrade Shop -->
-            <div class="col-lg-4 order-4">
-                <MyTunoUpgradeShop Character="@character"
-                                   FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                                   Purchasing="@purchasing"
-                                   PurchasingStat="@purchasingStat"
-                                   OnPurchaseRequested="PurchaseUpgrade" />
-            </div>
-
-            <!-- Improvements Section -->
-            <div class="col-lg-4 order-5">
-                <MyTunoImprovements Character="@character"
-                                  FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                                  Purchasing="@purchasingImprovement"
-                                  PurchasingType="@purchasingImprovementType"
-                                  OnPurchaseRequested="PurchaseImprovement" />
-            </div>
-
-            <!-- Powers Section -->
-            <div class="col-lg-4 order-last">
-                <MyTunoPowers Character="@character"
-                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                               Purchasing="@purchasingPower"
-                               PurchasingType="@purchasingPowerType"
-                               OnPurchaseRequested="PurchasePower" />
-            </div>
 
             <!-- Equipment Section -->
-            <div class="col-lg-4 order-1">
+            <div class="col-lg-4 order-2">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Equipamento</h5>
@@ -741,81 +608,63 @@
                                 </div>
                             </div>
                         }
-                        else
-                        {
-                            <div class="text-center py-1">
-                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens das Stages para ganhar bónus!</small>
-                            </div>
-                        }
 
                         <div class="equip-layout">
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
-                                @{ var headItem = character!.EquippedHead; var headHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentHead); }
-                                <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
-                                     @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
-                                     style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
-                                    @if (headItem.HasValue)
+                                @{ var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head); }
+                                <div class="equip-slot equip-slot--filled" title="HEAD — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentHead)"
+                                     style="cursor: pointer">
+                                    @if (headLevel > 0)
                                     {
-                                        var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head);
-                                        if (headLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@headLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@headLevel</div>
                                     }
-                                    @if (headItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
                                     {
                                         <img src="@CacheBuster.Bust(headImg)" alt="Head" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">HEAD</span>
                                 </div>
 
-                                @{ var shouldersItem = character.EquippedShoulders; var shouldersHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentShoulders); }
-                                <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
-                                     @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
-                                     style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
-                                    @if (shouldersItem.HasValue)
+                                @{ var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders); }
+                                <div class="equip-slot equip-slot--filled" title="SHOULDERS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentShoulders)"
+                                     style="cursor: pointer">
+                                    @if (shouldersLevel > 0)
                                     {
-                                        var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders);
-                                        if (shouldersLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@shouldersLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@shouldersLevel</div>
                                     }
-                                    @if (shouldersItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
                                     {
                                         <img src="@CacheBuster.Bust(shouldersImg)" alt="Shoulders" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">SHOULDERS</span>
                                 </div>
 
-                                @{ var chestItem = character.EquippedChest; var chestHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentChest); }
-                                <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
-                                     @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
-                                     style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
-                                    @if (chestItem.HasValue)
+                                @{ var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest); }
+                                <div class="equip-slot equip-slot--filled" title="CHEST — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentChest)"
+                                     style="cursor: pointer">
+                                    @if (chestLevel > 0)
                                     {
-                                        var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest);
-                                        if (chestLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@chestLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@chestLevel</div>
                                     }
-                                    @if (chestItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
                                     {
                                         <img src="@CacheBuster.Bust(chestImg)" alt="Chest" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">CHEST</span>
                                 </div>
@@ -830,71 +679,59 @@
 
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
-                                @{ var glovesItem = character.EquippedGloves; var glovesHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentGloves); }
-                                <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
-                                     @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
-                                     style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
-                                    @if (glovesItem.HasValue)
+                                @{ var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves); }
+                                <div class="equip-slot equip-slot--filled" title="GLOVES — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentGloves)"
+                                     style="cursor: pointer">
+                                    @if (glovesLevel > 0)
                                     {
-                                        var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves);
-                                        if (glovesLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@glovesLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@glovesLevel</div>
                                     }
-                                    @if (glovesItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
                                     {
                                         <img src="@CacheBuster.Bust(glovesImg)" alt="Gloves" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">GLOVES</span>
                                 </div>
 
-                                @{ var legsItem = character.EquippedLegs; var legsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentLegs); }
-                                <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
-                                     @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
-                                     style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
-                                    @if (legsItem.HasValue)
+                                @{ var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs); }
+                                <div class="equip-slot equip-slot--filled" title="LEGS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentLegs)"
+                                     style="cursor: pointer">
+                                    @if (legsLevel > 0)
                                     {
-                                        var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs);
-                                        if (legsLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@legsLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@legsLevel</div>
                                     }
-                                    @if (legsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
                                     {
                                         <img src="@CacheBuster.Bust(legsImg)" alt="Legs" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">LEGS</span>
                                 </div>
 
-                                @{ var bootsItem = character.EquippedBoots; var bootsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentBoots); }
-                                <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
-                                     @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
-                                     style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
-                                    @if (bootsItem.HasValue)
+                                @{ var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots); }
+                                <div class="equip-slot equip-slot--filled" title="BOOTS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentBoots)"
+                                     style="cursor: pointer">
+                                    @if (bootsLevel > 0)
                                     {
-                                        var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots);
-                                        if (bootsLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@bootsLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@bootsLevel</div>
                                     }
-                                    @if (bootsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
                                     {
                                         <img src="@CacheBuster.Bust(bootsImg)" alt="Boots" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(bootsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">BOOTS</span>
                                 </div>
@@ -962,7 +799,7 @@
             </div>
 
             <!-- Destilaria (Resource Gathering) -->
-            <div class="col-lg-4 order-2">
+            <div class="col-lg-4 order-4">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-moisture me-2"></i>Destilaria</h5>
@@ -1014,7 +851,7 @@
                                 var unlockBiome = isLocked ? MyTunoConfig.Value.StageMode.Biomes.FirstOrDefault(b => b.StageMin <= res.UnlockStage && b.StageMax >= res.UnlockStage) : null;
                                 <div class="gather-node gather-node--@cssModifier @(gathering == resType ? "gather-node--active" : "") @(isDisabled ? "gather-node--disabled" : "") @(isLocked ? "gather-node--locked" : "")"
                                      @onclick="async () => { if (!isLocked) await GatherResource(resType); }"
-                                     title="@(isLocked ? $"{res.Name} — Desbloqueia no Stage {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
+                                     title="@(isLocked ? $"{res.Name} — Desbloqueia no Floor {res.UnlockStage} ({unlockBiome?.Name ?? "?"})" : $"{res.Name} — {res.EnergyCost} Energia")">
                                     <div class="gather-node__cost">
                                         @if (isLocked)
                                         {
@@ -1053,7 +890,7 @@
                                     <div class="gather-node__name">@res.Name</div>
                                     @if (isLocked)
                                     {
-                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Stage {res.UnlockStage}")</div>
+                                        <div class="gather-node__qty" style="font-size: 0.6rem; opacity: 0.6;">@(unlockBiome?.Name ?? $"Floor {res.UnlockStage}")</div>
                                     }
                                     else
                                     {
@@ -1071,7 +908,7 @@
             </div>
 
             <!-- Forging Section -->
-            <div class="col-lg-4 order-3">
+            <div class="col-lg-4 order-5">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
@@ -1209,27 +1046,86 @@
                             var forgeDrinkQtyHave = forgeDrink.HasValue ? GetResourceQuantity(forgeDrink.Value) : 0;
                             var forgeCanAfford = forgeDrinkQtyHave >= forgeDrinkQtyNeeded;
                         }
-                        <button class="btn btn-primary w-100 mb-3" 
-                                @onclick="StartForge"
-                                disabled="@(!forgeInstrument.HasValue || !forgeDrink.HasValue || !forgeCanAfford || forging)">
-                            <i class="bi bi-hammer me-2"></i>Forjar Arma
-                            @if (forgeDrink.HasValue && forgeDrinkQtyNeeded > 1)
-                            {
-                                <small class="opacity-75">(@forgeDrinkQtyNeeded x @(forgeDrinkResource?.Name ?? "bebida"))</small>
-                            }
-                        </button>
+                        <div class="d-flex gap-2 flex-wrap justify-content-center mb-3">
+                            <FantasyTile Icon="bi-hammer"
+                                         Label="Forjar Arma"
+                                         Value="@(forgeDrink.HasValue && forgeDrinkQtyNeeded > 1 ? $"{forgeDrinkQtyNeeded}× {forgeDrinkResource?.Name ?? "bebida"}" : "")"
+                                         Color="gold"
+                                         Clickable="true"
+                                         Disabled="@(!forgeInstrument.HasValue || !forgeDrink.HasValue || !forgeCanAfford || forging)"
+                                         Insufficient="@(forgeDrink.HasValue && !forgeCanAfford)"
+                                         OnClick="StartForge" />
 
-                        <!-- Forged Weapons Button -->
-                        <button class="btn btn-outline-light w-100 mt-2" @onclick="() => showWeaponsListModal = true">
-                            <i class="bi bi-backpack2-fill me-2"></i>Armas Forjadas
-                            @if (forgedWeapons.Any())
-                            {
-                                <span class="badge bg-warning text-dark ms-2">@forgedWeapons.Count</span>
-                            }
-                        </button>
+                            <FantasyTile Icon="bi-backpack2-fill"
+                                         Label="Armas Forjadas"
+                                         Badge="@(forgedWeapons.Any() ? forgedWeapons.Count.ToString() : null)"
+                                         Color="purple"
+                                         Clickable="true"
+                                         OnClick="@(() => showWeaponsListModal = true)" />
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Upgrades (merged: Stats + Melhorias + Poderes) -->
+            <div class="col-lg-4 order-6">
+                <div class="card h-100">
+                    <div class="card-header text-white" style="background-color: #6f42c1;">
+                        <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
+                    </div>
+                    <div class="card-body p-3 d-flex flex-column">
+                        <!-- Purple toggle tabs -->
+                        <div class="d-flex gap-1 mb-3">
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 0 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 0 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 0">
+                                <i class="bi bi-bar-chart-fill me-1"></i>Stats
+                            </button>
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 1 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 1 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 1">
+                                <i class="bi bi-lightning-fill me-1"></i>Melhorias
+                            </button>
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 2 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 2 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 2">
+                                <i class="bi bi-stars me-1"></i>Poderes
+                            </button>
+                        </div>
+
+                        <div class="upgrades-embedded">
+                        @if (upgradesTab == 0)
+                        {
+                            <MyTunoUpgradeShop Character="@character"
+                                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                               LeitaoBalance="@leitaoQuantity"
+                                               Purchasing="@purchasing"
+                                               PurchasingStat="@purchasingStat"
+                                               OnPurchaseRequested="PurchaseUpgrade" />
+                        }
+                        else if (upgradesTab == 1)
+                        {
+                            <MyTunoImprovements Character="@character"
+                                              FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                              LeitaoBalance="@leitaoQuantity"
+                                              Purchasing="@purchasingImprovement"
+                                              PurchasingType="@purchasingImprovementType"
+                                              OnPurchaseRequested="PurchaseImprovement" />
+                        }
+                        else
+                        {
+                            <MyTunoPowers Character="@character"
+                                           FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                           LeitaoBalance="@leitaoQuantity"
+                                           Purchasing="@purchasingPower"
+                                           PurchasingType="@purchasingPowerType"
+                                           OnPurchaseRequested="PurchasePower" />
+                        }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     }
 
@@ -1308,13 +1204,13 @@
                         @WeaponTypeHelper.GetDisplayName(lastForgedWeapon.WeaponType)
                     </span>
                     <div class="equip-confirm-stats mt-3">
-                        <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
-                        <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            @if (lastForgedWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(lastForgedWeapon.BonusHP) HP</span> }
-                            @if (lastForgedWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(lastForgedWeapon.BonusPower) Poder</span> }
-                            @if (lastForgedWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@Fmt(lastForgedWeapon.BonusSpeed) Vel</span> }
-                            @if (lastForgedWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(lastForgedWeapon.BonusDefense) Def</span> }
-                            @if (lastForgedWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{lastForgedWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
+                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                        <div class="ftile-grid ftile-grid--bonus">
+                            @if (lastForgedWeapon.BonusHP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(lastForgedWeapon.BonusHP)}")" Color="red" Size="sm" /> }
+                            @if (lastForgedWeapon.BonusPower > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(lastForgedWeapon.BonusPower)}")" Color="green" Size="sm" /> }
+                            @if (lastForgedWeapon.BonusSpeed > 0) { <FantasyTile Icon="bi-speedometer2" Label="Vel" Value="@($"+{Fmt(lastForgedWeapon.BonusSpeed)}")" Color="blue" Size="sm" /> }
+                            @if (lastForgedWeapon.BonusDefense > 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(lastForgedWeapon.BonusDefense)}")" Color="gray" Size="sm" /> }
+                            @if (lastForgedWeapon.BonusCriticalChance > 0) { <FantasyTile Icon="bi-bullseye" Label="Crit" Value="@($"+{lastForgedWeapon.BonusCriticalChance * 100:F1}%")" Color="yellow" Size="sm" /> }
                         </div>
                     </div>
                 </div>
@@ -1337,7 +1233,10 @@
         var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
         var hasFidelis = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
         var hasDrinks = wpnDrinkHave >= wpnDrinkQty;
-        var canAffordUpgrade = hasFidelis && hasDrinks;
+        var wpnPiggies = MyTunoConfig.Value.BossMode.Piggies;
+        var wpnLeitaoCost = PiggiesCostConfig.CalculateCost(pendingWeapon.Level, wpnPiggies.WeaponUpgradeStartLevel, wpnPiggies.WeaponUpgradeBaseCost, wpnPiggies.WeaponUpgradeCostEveryNLevels);
+        var hasLeitaoWpn = wpnLeitaoCost == 0 || leitaoQuantity >= wpnLeitaoCost;
+        var canAffordUpgrade = hasFidelis && hasDrinks && hasLeitaoWpn;
         var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
         <Modal Show="@showWeaponActionModal"
                ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
@@ -1370,13 +1269,13 @@
 
                 <!-- Bonus Stats -->
                 <div class="equip-confirm-stats mb-3">
-                    <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
-                    <div class="d-flex flex-wrap gap-1 justify-content-center">
-                        @if (pendingWeapon.BonusHP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(pendingWeapon.BonusHP) HP</span> }
-                        @if (pendingWeapon.BonusPower > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(pendingWeapon.BonusPower) Poder</span> }
-                        @if (pendingWeapon.BonusSpeed > 0) { <span class="badge bg-primary bg-opacity-25 text-primary">+@Fmt(pendingWeapon.BonusSpeed) Vel</span> }
-                        @if (pendingWeapon.BonusDefense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(pendingWeapon.BonusDefense) Def</span> }
-                        @if (pendingWeapon.BonusCriticalChance > 0) { <span class="badge bg-warning bg-opacity-25 text-warning">+@($"{pendingWeapon.BonusCriticalChance * 100:F1}%") Crit</span> }
+                    <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                    <div class="ftile-grid ftile-grid--bonus">
+                        @if (pendingWeapon.BonusHP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(pendingWeapon.BonusHP)}")" Color="red" Size="sm" /> }
+                        @if (pendingWeapon.BonusPower > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(pendingWeapon.BonusPower)}")" Color="green" Size="sm" /> }
+                        @if (pendingWeapon.BonusSpeed > 0) { <FantasyTile Icon="bi-speedometer2" Label="Vel" Value="@($"+{Fmt(pendingWeapon.BonusSpeed)}")" Color="blue" Size="sm" /> }
+                        @if (pendingWeapon.BonusDefense > 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(pendingWeapon.BonusDefense)}")" Color="gray" Size="sm" /> }
+                        @if (pendingWeapon.BonusCriticalChance > 0) { <FantasyTile Icon="bi-bullseye" Label="Crit" Value="@($"+{pendingWeapon.BonusCriticalChance * 100:F1}%")" Color="yellow" Size="sm" /> }
                     </div>
                 </div>
 
@@ -1385,34 +1284,22 @@
                     <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;">
                         <i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(pendingWeapon.Level + 1):
                     </small>
-                    <div class="d-flex flex-column gap-2">
-                        <!-- Fidelis cost -->
-                        <div class="wpn-upgrade-req @(hasFidelis ? "" : "wpn-upgrade-req--missing")">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-coin" style="color: var(--bs-warning); font-size: 1rem;"></i>
-                                <span style="color: #e2e2e2; font-size: 0.85rem;">@Fmt(upgradeCost) Fidelis</span>
-                            </div>
-                            <span class="badge @(hasFidelis ? "bg-success bg-opacity-25 text-success" : "bg-danger bg-opacity-25 text-danger")" style="font-size: 0.7rem;">
-                                @Fmt(currentUser?.FidelisBalance ?? 0)
-                            </span>
-                        </div>
-                        <!-- Drink cost -->
-                        <div class="wpn-upgrade-req @(hasDrinks ? "" : "wpn-upgrade-req--missing")">
-                            <div class="d-flex align-items-center gap-2">
-                                @if (GetDrinkPictureUrl(wpnDrinkType) is string wpnDrinkImg)
-                                {
-                                    <img src="@CacheBuster.Bust(wpnDrinkImg)" alt="@wpnDrinkName" style="width: 20px; height: 20px; object-fit: contain;" />
-                                }
-                                else
-                                {
-                                    <i class="bi @(wpnDrinkRes?.Icon ?? "bi-cup-straw")" style="font-size: 1rem; color: var(--bs-info);"></i>
-                                }
-                                <span style="color: #e2e2e2; font-size: 0.85rem;">@wpnDrinkQty @wpnDrinkName</span>
-                            </div>
-                            <span class="badge @(hasDrinks ? "bg-success bg-opacity-25 text-success" : "bg-danger bg-opacity-25 text-danger")" style="font-size: 0.7rem;">
-                                @wpnDrinkHave
-                            </span>
-                        </div>
+                    <div class="ftile-grid ftile-grid--2col">
+                        <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(upgradeCost)"
+                                     Color="gold" Size="md" Insufficient="@(!hasFidelis)">
+                            <span class="ftile-stock @(hasFidelis ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
+                        </FantasyTile>
+                        <FantasyTile ImageUrl="@(GetDrinkPictureUrl(wpnDrinkType))" Icon="@(wpnDrinkRes?.Icon ?? "bi-cup-straw")" Label="@wpnDrinkName" Value="@($"×{wpnDrinkQty}")"
+                                     Color="purple" Size="md" Insufficient="@(!hasDrinks)">
+                            <span class="ftile-stock @(hasDrinks ? "ftile-stock--ok" : "ftile-stock--low")">@wpnDrinkHave</span>
+                        </FantasyTile>
+                        @if (wpnLeitaoCost > 0)
+                        {
+                            <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{wpnLeitaoCost}")"
+                                         Color="pink" Size="md" Insufficient="@(!hasLeitaoWpn)">
+                                <span class="ftile-stock @(hasLeitaoWpn ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
+                            </FantasyTile>
+                        }
                     </div>
                 </div>
             </BodyContent>
@@ -1582,37 +1469,26 @@
                     {
                         <span class="badge bg-info bg-opacity-25 text-info mt-1"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
                     }
-                    @if (actionIsEquip && actionQualityPct > 0)
-                    {
-                        var qColor = actionQualityPct >= 105 ? "text-success" : (actionQualityPct <= 95 ? "text-danger" : "text-warning");
-                        <div class="mt-1">
-                            <span class="badge bg-dark bg-opacity-75 @qColor" style="font-size: 0.7rem;">
-                                <i class="bi bi-stars me-1"></i>Qualidade: @actionQualityPct%
-                            </span>
-                        </div>
-                    }
-                    @if (actionIsEquip && !pendingActionIsEquipped)
-                    {
-                        <div class="mt-1">
-                            <small class="text-muted" style="font-size: 0.65rem;"><i class="bi bi-shuffle me-1"></i>Qualidade aleatória ao equipar (85%-115%)</small>
-                        </div>
-                    }
+
                 </div>
                 @if (actionItemStats != null && actionIsEquip)
                 {
                     <div class="equip-confirm-stats mb-3">
-                        <small class="d-block mb-1" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
-                        <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            @if (actionItemStats.HP > 0) { <span class="badge bg-danger bg-opacity-25 text-danger">+@Fmt(actionItemStats.HP) HP</span> }
-                            @if (actionItemStats.Power > 0) { <span class="badge bg-success bg-opacity-25 text-success">+@Fmt(actionItemStats.Power) Poder</span> }
-                            @if (actionItemStats.Defense > 0) { <span class="badge bg-secondary bg-opacity-25">+@Fmt(actionItemStats.Defense) Def</span> }
+                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-plus-circle me-1"></i>Bónus:</small>
+                        <div class="ftile-grid ftile-grid--bonus">
+                            @if (actionItemStats.HP > 0) { <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"+{Fmt(actionItemStats.HP)}")" Color="red" Size="sm" /> }
+                            @if (actionItemStats.Power > 0) { <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@($"+{Fmt(actionItemStats.Power)}")" Color="green" Size="sm" /> }
+                            @if (actionItemStats.Defense > 0) { <FantasyTile Icon="bi-shield-fill" Label="Def" Value="@($"+{Fmt(actionItemStats.Defense)}")" Color="gray" Size="sm" /> }
                         </div>
                     </div>
                 }
-                <div class="discard-fidelis-reward">
-                    <i class="bi bi-trash text-danger me-1"></i>
-                    <span class="text-danger">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
-                </div>
+                @if (!actionIsEquip)
+                {
+                    <div class="discard-fidelis-reward">
+                        <i class="bi bi-trash text-danger me-1"></i>
+                        <span class="text-danger">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
+                    </div>
+                }
             </BodyContent>
             <FooterContent>
                 @if (actionIsEquip && actionSlot.HasValue)
@@ -1623,46 +1499,48 @@
                     var eqDrinkName = GetResourceName(eqDrinkType);
                     var eqDrinkHave = GetResourceQuantity(eqDrinkType);
                     var eqDrinkRes = activeResources.FirstOrDefault(r => r.Type == eqDrinkType.ToString());
-                    var canAffordEqUpgrade = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost && eqDrinkHave >= eqDrinkQty;
+                    var eqPiggies = MyTunoConfig.Value.BossMode.Piggies;
+                    var eqLeitaoCost = PiggiesCostConfig.CalculateCost(eqSlotBonusLevel, eqPiggies.EquipmentUpgradeStartLevel, eqPiggies.EquipmentUpgradeBaseCost, eqPiggies.EquipmentUpgradeCostEveryNLevels);
+                    var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
+                    var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
+                    var hasDrinksEq = eqDrinkHave >= eqDrinkQty;
+                    var canAffordEqUpgrade = hasFidelisEq && hasDrinksEq && hasLeitaoEq;
                     var upgradeSlot = actionSlot.Value;
-                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100">
+                    <div class="wpn-upgrade-section mb-2">
+                        <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(actionSlotLevel + 1):</small>
+                        <div class="ftile-grid ftile-grid--2col">
+                            <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@Fmt(eqUpgradeCost)"
+                                         Color="gold" Size="md" Insufficient="@(!hasFidelisEq)">
+                                <span class="ftile-stock @(hasFidelisEq ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
+                            </FantasyTile>
+                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(eqDrinkType))" Icon="@(eqDrinkRes?.Icon ?? "bi-cup-straw")" Label="@eqDrinkName" Value="@($"×{eqDrinkQty}")"
+                                         Color="purple" Size="md" Insufficient="@(!hasDrinksEq)">
+                                <span class="ftile-stock @(hasDrinksEq ? "ftile-stock--ok" : "ftile-stock--low")">@eqDrinkHave</span>
+                            </FantasyTile>
+                            @if (eqLeitaoCost > 0)
+                            {
+                                <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{eqLeitaoCost}")"
+                                             Color="pink" Size="md" Insufficient="@(!hasLeitaoEq)">
+                                    <span class="ftile-stock @(hasLeitaoEq ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
+                                </FantasyTile>
+                            }
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center w-100">
                         <button class="btn btn-outline-light btn-sm" @onclick="() => ConfirmEquipmentSlotUpgrade(upgradeSlot)" disabled="@(itemActioning || !canAffordEqUpgrade)">
                             <i class="bi bi-arrow-up-circle me-1"></i>Upgrade +@(actionSlotLevel + 1)
-                            <small class="opacity-75 ms-1">@Fmt(eqUpgradeCost) <i class="bi bi-coin"></i></small>
-                            <span class="ms-1 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                                + @eqDrinkQty
-                                @if (GetDrinkPictureUrl(eqDrinkType) is string eqDrinkImg)
-                                {
-                                    <img src="@CacheBuster.Bust(eqDrinkImg)" alt="@eqDrinkName" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle;" />
-                                }
-                                else
-                                {
-                                    <i class="bi @(eqDrinkRes?.Icon ?? "bi-cup-straw")"></i>
-                                }
-                            </span>
                         </button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    @if (pendingActionIsEquipped)
-                    {
-                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                            <i class="bi bi-box-arrow-down me-2"></i>Desequipar
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                            <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
-                        </button>
-                    }
                     </div>
                 }
-                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                        <i class="bi bi-trash me-1"></i>Descartar
-                        <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
-                    </button>
-                </div>
+                @if (!actionIsEquip)
+                {
+                    <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
+                        <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                            <i class="bi bi-trash me-1"></i>Descartar
+                            <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
+                        </button>
+                    </div>
+                }
             </FooterContent>
         </Modal>
     }
@@ -1681,7 +1559,7 @@
                     <div class="text-center mb-3">
                         <h5 class="mb-0">
                             <i class="bi bi-trophy text-warning me-2"></i>
-                            Maior Stage Alcançado: <span class="text-success">Stage @stageProgress.HighestStage</span>
+                            Maior Floor Alcançado: <span class="text-success">Floor @stageProgress.HighestStage</span>
                         </h5>
                     </div>
                     
@@ -1708,7 +1586,7 @@
                                     <i class="bi @icon" style="color: @color; font-size: 1.2rem; width: 22px; text-align: center;"></i>
                                     <div style="flex: 1; min-width: 0;">
                                         <div style="font-weight: 700; font-size: 0.9rem; color: #eee;">@biome.Name</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Stages @rangeText</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.35);">Floors @rangeText</div>
                                     </div>
                                     @if (isCompleted)
                                     {
@@ -1798,7 +1676,7 @@
 
                 <div class="alert text-white" style="background-color: #6a1b9a;">
                     <i class="bi bi-arrow-repeat me-2"></i>
-                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e stage) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
+                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e floor) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
                 </div>
                 
                 @if ((character?.Level ?? 0) < 10)
@@ -1812,7 +1690,7 @@
                 {
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Não tens FITAB suficiente! FITAB é um drop raro nos Stages e Arena.
+                        Não tens FITAB suficiente! FITAB é um drop raro nos Floors e Arena.
                     </div>
                 }
             </BodyContent>
@@ -1912,38 +1790,9 @@
         </Modal>
     }
 
-    <!-- Info Modal -->
-    @if (showInfoModal)
-    {
-        <DetailsModal Show="@showInfoModal"
-                      ShowChanged="@((bool show) => showInfoModal = show)"
-                      Title="Sobre My Tuno"
-                      HeaderTitle="My Tuno"
-                      ImageUrl="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")"
-                      UseRectangularImage="false"
-                      OnClose="CloseInfoModal">
-            <BadgesContent>
-                <span class="badge bg-primary">Versão @myTunoVersion</span>
-            </BadgesContent>
-            <Sections>
-                <InfoSection SectionTitle="Descrição" IconClass="bi-info-circle">
-                    <p class="text-white-full mb-0">@myTunoDescription</p>
-                </InfoSection>
-                <InfoSection SectionTitle="Próximas Funcionalidades" IconClass="bi-star">
-                    <p class="text-white-full mb-0">@myTunoNextFeatures</p>
-                </InfoSection>
-            </Sections>
-        </DetailsModal>
-    }
 </div>
 
 @code {
-    // Configuration defaults - fallbacks in case configuration fails to load
-    // Authoritative values are in scaling.config.json
-    private const string DefaultVersion = "1.0.0";
-    private const string DefaultDescription = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
-    private const string DefaultNextFeatures = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
-    
     /// <summary>
     /// Gets the uploaded image URL for a weapon type, or null if none uploaded.
     /// Reads from pre-loaded itemTypePictures dictionary.
@@ -1989,10 +1838,8 @@
     
     private Character? character;
     private ApplicationUser? currentUser;
-    private List<MyTunoLeaderboardEntry>? leaderboardEntries;
     private StageProgress? stageProgress;
     private bool loading = true;
-    private bool leaderboardLoading = false;
 
     private int finoQuantity = 0;
     private int canecaQuantity = 0;
@@ -2000,9 +1847,9 @@
     private int canhaoQuantity = 0;
     private int shotQuantity = 0;
     private int penaltyQuantity = 0;
+    private int leitaoQuantity = 0;
     private bool usingFino = false;
     private bool usingCaneca = false;
-    private bool healingWithFidelis = false;
     private bool usingCigarro = false;
     private bool usingCanhao = false;
     private bool usingShot = false;
@@ -2031,6 +1878,7 @@
     private Dictionary<string, string> forgeComboPictures = new();
     private bool equipping = false;
     private int inventoryTab = 0;
+    private int upgradesTab = 0;
     private int equipablePage = 1;
     private const int EquipablePageSize = 16;
     
@@ -2066,12 +1914,6 @@
     private int highestStageForEquip = 0; // cached highest stage for per-slot level calc
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
-    
-    // Info modal state
-    private bool showInfoModal = false;
-    private string myTunoVersion = DefaultVersion;
-    private string myTunoDescription = DefaultDescription;
-    private string myTunoNextFeatures = DefaultNextFeatures;
     
     // Stage modal state
     private bool showStageModal = false;
@@ -2175,12 +2017,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load configuration values from scaling config with fallback to constants
-        var scalingConfig = MyTunoConfig.Value;
-        myTunoVersion = !string.IsNullOrEmpty(scalingConfig.Version) ? scalingConfig.Version : DefaultVersion;
-        myTunoDescription = !string.IsNullOrEmpty(scalingConfig.Description) ? scalingConfig.Description : DefaultDescription;
-        myTunoNextFeatures = !string.IsNullOrEmpty(scalingConfig.NextFeatures) ? scalingConfig.NextFeatures : DefaultNextFeatures;
-        
         await LoadDataAsync();
     }
 
@@ -2209,7 +2045,6 @@
                         var itemConfigsTask = ItemTypeConfigService.GetAllConfigsAsync();
                         var forgeComboPicturesTask = ItemTypeConfigService.GetAllForgeComboPicturesAsync();
                         var forgedWeaponsTask = InventoryService.GetForgedWeaponsAsync(currentUser.Id);
-                        var leaderboardTask = CharacterRepository.GetTopLeaderboardAsync(50);
 
                         await Task.WhenAll(
                             inventorySummaryTask,
@@ -2217,8 +2052,7 @@
                             naipeConfigsTask,
                             itemConfigsTask,
                             forgeComboPicturesTask,
-                            forgedWeaponsTask,
-                            leaderboardTask);
+                            forgedWeaponsTask);
 
                         // Extract inventory quantities from the single summary
                         var inventorySummary = inventorySummaryTask.Result;
@@ -2228,6 +2062,7 @@
                         canhaoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Canhao);
                         shotQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Shot);
                         penaltyQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Penalty);
+                        leitaoQuantity = inventorySummary.GetValueOrDefault(InventoryItemType.Leitao);
 
                         // Extract instrument parts and equipment from the same summary
                         instrumentParts = inventorySummary
@@ -2272,19 +2107,11 @@
                         
                         forgeComboPictures = forgeComboPicturesTask.Result;
                         forgedWeapons = forgedWeaponsTask.Result;
-
-                        // Leaderboard (already awaited above)
-                        leaderboardEntries = leaderboardTask.Result;
-                        leaderboardLoading = false;
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
                     }
                 }
-            }
-            else
-            {
-                await LoadLeaderboardAsync();
             }
         }
         catch (Exception ex)
@@ -2296,24 +2123,6 @@
         finally
         {
             loading = false;
-        }
-    }
-
-    private async Task LoadLeaderboardAsync()
-    {
-        try
-        {
-            leaderboardLoading = true;
-            leaderboardEntries = await CharacterRepository.GetTopLeaderboardAsync(50);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading leaderboard data");
-            leaderboardEntries = new List<MyTunoLeaderboardEntry>();
-        }
-        finally
-        {
-            leaderboardLoading = false;
         }
     }
 
@@ -2336,6 +2145,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 toastMessage = $"Upgrade de {purchasingStat} comprado com sucesso!";
@@ -2379,6 +2191,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 // Refresh energy bar and regen timer to reflect upgrades
@@ -2430,6 +2245,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 toastMessage = $"Poder comprado com sucesso!";
@@ -2599,16 +2417,6 @@
 
     private static string GetBiomeColor(string biomeName) => BiomeDisplayHelper.GetBiomeColor(biomeName);
 
-    private void OpenInfoModal()
-    {
-        showInfoModal = true;
-    }
-
-    private void CloseInfoModal()
-    {
-        showInfoModal = false;
-    }
-
 
 
     private async Task LoadCharacterAsync()
@@ -2624,58 +2432,6 @@
             Logger.LogError(ex, "Error loading character");
             toastMessage = "Erro ao carregar personagem.";
             toastIsError = true;
-        }
-    }
-
-    private async Task HealWithFidelis()
-    {
-        try
-        {
-            healingWithFidelis = true;
-            StateHasChanged();
-
-            if (currentUser == null || character == null)
-            {
-                toastMessage = "Erro ao identificar usuário";
-                toastIsError = true;
-                return;
-            }
-
-            var maxHp = GetDisplayMaxHP(character);
-            var hp = character.CurrentHP ?? maxHp;
-            var isDead = hp <= 0;
-            var cost = isDead
-                ? MyTunoConfig.Value.BattleRewards.ReviveCost
-                : MyTunoConfig.Value.BattleRewards.RestoreHPCost;
-
-            if (currentUser.FidelisBalance < cost)
-            {
-                toastMessage = "Fidelis insuficiente!";
-                toastIsError = true;
-                return;
-            }
-
-            // Deduct Fidelis
-            currentUser.FidelisBalance -= cost;
-            await UserManager.UpdateAsync(currentUser);
-
-            // Heal to full
-            character.CurrentHP = null; // null = full HP
-            await CharacterService.UpdateCharacterAsync(character);
-
-            toastMessage = isDead ? $"Revivido! (-{Fmt(cost)} Fidelis)" : $"HP restaurado! (-{Fmt(cost)} Fidelis)";
-            toastIsError = false;
-        }
-        catch (Exception ex)
-        {
-            toastMessage = "Erro ao curar personagem";
-            toastIsError = true;
-            Logger.LogError(ex, "Error healing character with Fidelis");
-        }
-        finally
-        {
-            healingWithFidelis = false;
-            StateHasChanged();
         }
     }
 
@@ -2786,7 +2542,7 @@
             {
                 cigarroQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Cigarro ativado! Os próximos 3 hits não causam dano.";
+                toastMessage = "Cigarro ativado! +10% chance de esquiva por 5 corridas.";
                 toastIsError = false;
             }
             else
@@ -2828,7 +2584,7 @@
             {
                 canhaoQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Canhão ativado! Os próximos 3 ataques causam +30% dano.";
+                toastMessage = "Canhão ativado! Ataques AOE por 5 corridas.";
                 toastIsError = false;
             }
             else
@@ -2870,7 +2626,7 @@
             {
                 penaltyQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
+                toastMessage = "Penalty ativado! Lifesteal 0.5% HP por hit durante 5 corridas.";
                 toastIsError = false;
             }
             else
@@ -3480,7 +3236,9 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                 pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
-                // Refresh drink quantities (drinks consumed during upgrade)
+                // Refresh drink quantities and Leitão (consumed during upgrade)
+                var wpnInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = wpnInv.GetValueOrDefault(InventoryItemType.Leitao);
                 foreach (var res in activeResources)
                 {
                     if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
@@ -3524,7 +3282,9 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
                 highestStageForEquip = stageProgress?.HighestStage ?? 0;
-                // Refresh drink quantities (drinks consumed during upgrade)
+                // Refresh drink quantities and Leitão (consumed during upgrade)
+                var eqInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = eqInv.GetValueOrDefault(InventoryItemType.Leitao);
                 foreach (var res in activeResources)
                 {
                     if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))

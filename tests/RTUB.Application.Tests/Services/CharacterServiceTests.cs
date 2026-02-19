@@ -9,6 +9,7 @@ using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -104,9 +105,9 @@ public class CharacterServiceTests
         result.UserId.Should().Be(userId);
         result.Level.Should().Be(1);
         result.XP.Should().Be(0);
-        result.HP.Should().Be(100);
-        result.Power.Should().Be(10);
-        result.Speed.Should().Be(10);
+        result.HP.Should().Be(MyTunoScaling.BaseHp);
+        result.Power.Should().Be(MyTunoScaling.BasePower);
+        result.Speed.Should().Be(MyTunoScaling.BaseSpeed);
         _mockCharacterRepository.Verify(r => r.GetByUserIdFreshAsync(userId), Times.Once);
         _mockCharacterRepository.Verify(r => r.AddAsync(It.IsAny<Character>()), Times.Once);
     }
@@ -227,31 +228,31 @@ public class CharacterServiceTests
     [Fact]
     public void GetDailyRewardAmount_Level1_ShouldReturnBaseReward()
     {
-        // Default config: BaseFidelis=15, PerLevelFidelis=2, BalancePercent=0.05
+        // Default config: BaseFidelis=500, PerLevelFidelis=5, BalancePercent=0.0
         var result = _service.GetDailyRewardAmount(1);
-        result.Should().Be(17m); // 15 + (1 * 2) + 0 balance
+        result.Should().Be(505m); // 500 + (1 * 5) + 0 balance
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level50_ShouldScaleWithLevel()
     {
         var result = _service.GetDailyRewardAmount(50);
-        result.Should().Be(115m); // 15 + (50 * 2) + 0 balance
+        result.Should().Be(750m); // 500 + (50 * 5) + 0 balance
     }
 
     [Fact]
     public void GetDailyRewardAmount_Level0_ShouldReturnBase()
     {
         var result = _service.GetDailyRewardAmount(0);
-        result.Should().Be(15m); // 15 + (0 * 2) + 0 balance
+        result.Should().Be(500m); // 500 + (0 * 5) + 0 balance
     }
 
     [Fact]
     public void GetDailyRewardAmount_WithBalance_ShouldIncludePercentBonus()
     {
-        // Default config: BalancePercent=0.05 (5%)
+        // Default config: BalancePercent=0.0 (no balance bonus in v5)
         var result = _service.GetDailyRewardAmount(1, 10_000m);
-        result.Should().Be(517m); // 15 + (1 * 2) + (10000 * 0.05 = 500)
+        result.Should().Be(505m); // 500 + (1 * 5) + (10000 * 0 = 0)
     }
 
     #endregion
@@ -284,8 +285,8 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(40m); // 15 + (10 * 2) + (100 * 0.05 = 5)
-        testUser.FidelisBalance.Should().Be(140m); // 100 + 40
+        reward.Should().Be(550m); // 500 + (10 * 5) + (100 * 0.0 = 0)
+        testUser.FidelisBalance.Should().Be(650m); // 100 + 550
         testUser.LastDailyRewardClaim.Should().NotBeNull();
         testUser.LastDailyRewardClaim!.Value.Date.Should().Be(DateTime.UtcNow.Date);
     }
@@ -356,8 +357,8 @@ public class CharacterServiceTests
 
         // Assert
         success.Should().BeTrue();
-        reward.Should().Be(42m); // 15 + (1 * 2) + (500 * 0.05 = 25)
-        testUser.FidelisBalance.Should().Be(542m); // 500 + 42
+        reward.Should().Be(505m); // 500 + (1 * 5) + (500 * 0.0 = 0)
+        testUser.FidelisBalance.Should().Be(1005m); // 500 + 505
     }
 
     [Theory]

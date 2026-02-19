@@ -15,6 +15,8 @@
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
+@using Microsoft.Extensions.Options
+@using RTUB.Application.Configuration
 @attribute [Authorize]
 @inject IBossModeService BossModeService
 @inject ICharacterService CharacterService
@@ -29,11 +31,12 @@
 @inject IStageService StageService
 @inject ICombatActionService CombatActionService
 @inject IInventoryRepository InventoryRepository
+@inject IOptions<MyTunoScalingConfiguration> ScalingConfigOptions
 @implements IAsyncDisposable
 
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
 
-<div class="stage-page container-fluid">
+<div class="stage-page">
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex justify-content-between align-items-center gap-3">
             <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
@@ -66,36 +69,32 @@
     {
         @if (showBattleAnimation)
         {
-            <div class="card mb-4 battle-card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-lightning-fill text-warning me-2"></i>
-                        @if (currentBattle != null)
-                        {
-                            <text>Boss #@currentBattle.BossStage</text>
-                        }
-                        else
-                        {
-                            <text>A carregar batalha...</text>
-                        }
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")"
-                                @onclick="() => SetBattleSpeed(1.0)">1x</button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")"
-                                @onclick="() => SetBattleSpeed(2.0)">2x</button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")"
-                                @onclick="() => SetBattleSpeed(3.0)">3x</button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+            <div class="battle-screen">
+                <div id="phaserBattleContainer" class="battle-canvas"></div>
+                <div class="battle-top-bar">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 text-white">
+                            <i class="bi bi-lightning-fill text-warning me-2"></i>
+                            @if (currentBattle != null)
+                            {
+                                <text>Boss #@currentBattle.BossStage</text>
+                            }
+                            else
+                            {
+                                <text>A carregar...</text>
+                            }
+                        </h5>
+                    </div>
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
-                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        <button class="battle-ctrl-btn battle-ctrl-btn--stop" @onclick="EndRunEarly" title="Acabar">
+                            <i class="bi bi-stop-fill"></i>
                         </button>
                     </div>
-                </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer"></div>
                 </div>
             </div>
 
@@ -106,19 +105,19 @@
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-shield-fill me-1"></i>@character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                            <i class="bi bi-wind me-1"></i>@character.CigarroShieldHitsRemaining corridas com esquiva
                         </span>
                     }
                     @if (character.CanhaoDamageBoostHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE
                         </span>
                     }
                     @if (character.PenaltyBuffActive > 0)
                     {
                         <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty (0.5s + 100% Crit)
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas
                         </span>
                     }
                 </div>
@@ -133,12 +132,15 @@
                             <span class="badge bg-success">
                                 <i class="bi bi-check-circle me-1"></i>@Fmt(bossesCleared) Bosses
                             </span>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
-                            </span>
                             <span class="badge bg-info text-dark">
                                 <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
                             </span>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <span class="badge" style="background-color: #ffb6c1; color: #333;">
+                                    <span class="me-1">🐷</span>+@Fmt(totalLeitaoDropped) Leitão
+                                </span>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <span class="badge bg-warning text-dark">
@@ -234,13 +236,16 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@Fmt(totalXPEarned) XP</span>
-                            </div>
-                            <div class="defeat-reward-row">
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span>+@Fmt(totalLeitaoDropped) Leitão</span>
+                                </div>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <div class="defeat-reward-row">
@@ -292,19 +297,6 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row">
-                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
-                            }
                         </div>
                     }
 
@@ -323,13 +315,13 @@
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
                                     <span class="badge bg-info buff-badge">
-                                        <i class="bi bi-shield-fill me-1"></i>Cigarro (@character.CigarroShieldHitsRemaining/3 hits)
+                                        <i class="bi bi-wind me-1"></i>Cigarro (@character.CigarroShieldHitsRemaining corridas)
                                     </span>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
                                 {
                                     <span class="badge bg-danger buff-badge">
-                                        <i class="bi bi-bullseye me-1"></i>Canhão (@character.CanhaoDamageBoostHitsRemaining/3 hits)
+                                        <i class="bi bi-bullseye me-1"></i>Canhão (@character.CanhaoDamageBoostHitsRemaining corridas)
                                     </span>
                                 }
                                 @if (character.PenaltyBuffActive > 0)
@@ -371,10 +363,10 @@
                                 var isFullHp = character != null && character.CurrentHP >= character.TotalHP;
                                 var buffConsumables = new (string Name, string Icon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
                                 {
-                                    ("Shot", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
-                                    ("Cigarro", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
-                                    ("Canhão", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                    ("Penalty", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
+                                    ("Cigarro", "bi-cloud", "+10% Esquiva x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                    ("Shot", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
+                                    ("Canhão", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
+                                    ("Penalty", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
                                 };
                             }
 
@@ -447,13 +439,16 @@
                                 <span>@Fmt(bossesCleared) Bosses Derrotados</span>
                             </div>
                             <div class="defeat-reward-row">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@Fmt(totalXPEarned) XP</span>
-                            </div>
-                            <div class="defeat-reward-row">
                                 <i class="bi bi-coin" style="color: #7c4dff;"></i>
                                 <span>+@Fmt(totalFidelisEarned) Fidelis</span>
                             </div>
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <span style="font-size: 1rem;">🐷</span>
+                                    <span>+@Fmt(totalLeitaoDropped) Leitão</span>
+                                </div>
+                            }
                             @if (totalFinosDropped > 0)
                             {
                                 <div class="defeat-reward-row">
@@ -505,19 +500,6 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row">
-                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
-                            }
                         </div>
                     }
                     else
@@ -551,8 +533,8 @@
     private bool audioEnabled = true;
 
     // Accumulated loot tracker
-    private int totalXPEarned = 0;
     private decimal totalFidelisEarned = 0;
+    private int totalLeitaoDropped = 0;
     private int totalFinosDropped = 0;
     private int totalCanecasDropped = 0;
     private int totalCigarrosDropped = 0;
@@ -560,14 +542,13 @@
     private int totalShotsDropped = 0;
     private int totalPenaltiesDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
-    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private int bossesCleared = 0;
 
     // Run state tracking
     private long? runStartingHp;
     private int runStartingShotBuffBattles = 0;
-    private int runStartingCigarroShield = 0;
-    private int runStartingCanhaoBoost = 0;
+    private int runStartingCigarroBuff = 0;
+    private int runStartingCanhaoBuff = 0;
     private int runStartingPenaltyBuff = 0;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
@@ -762,8 +743,8 @@
             {
                 runStartingHp = character.CurrentHP;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
-                runStartingCigarroShield = character.CigarroShieldHitsRemaining;
-                runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+                runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
+                runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
 
@@ -800,8 +781,8 @@
             var preBattleHp = character.CurrentHP ?? character.TotalHP;
             var preBattleShotBuff = character.ShotBuffBattlesRemaining > 0;
             var preBattlePenaltyBuff = character.PenaltyBuffActive > 0;
-            var preBattleCigarroShield = character.CigarroShieldHitsRemaining;
-            var preBattleCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+            var preBattleCigarroBuff = character.CigarroShieldHitsRemaining;
+            var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
 
             currentBattle = await BossModeService.ExecuteBossBattleAsync(character.Id);
 
@@ -873,19 +854,11 @@
                     // consumable buff charges so the interactive session starts with the correct
                     // state (ExecuteBossBattleAsync already consumed them in the pre-computed sim).
                     var savedHp = character.CurrentHP;
-                    var savedCigarroShield = character.CigarroShieldHitsRemaining;
-                    var savedCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
                     character.CurrentHP = preBattleHp;
-                    character.CigarroShieldHitsRemaining = preBattleCigarroShield;
-                    character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBoost;
                     Character sessionChar = character;
                     if (preBattleShotBuff)
                         sessionChar = Character.CreateShotBuffedCopy(character);
-                    if (preBattlePenaltyBuff)
-                        sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
                     character.CurrentHP = savedHp; // Restore post-battle HP
-                    character.CigarroShieldHitsRemaining = savedCigarroShield;
-                    character.CanhaoDamageBoostHitsRemaining = savedCanhaoBoost;
 
                     _combatSession = CombatActionService.CreateSession(
                         sessionChar, enemyStates, currentBattle.Seed, _starterSpells, "boss");
@@ -940,8 +913,8 @@
                         ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
                         ActiveBuffs = new
                         {
-                            Cigarro = _combatSession.CigarroShieldRemaining > 0,
-                            Canhao = _combatSession.CanhaoBoostRemaining > 0,
+                            Cigarro = _combatSession.HasCigarroBuff,
+                            Canhao = _combatSession.HasCanhaoBuff,
                             Shot = _combatSession.HasShotBuff,
                             Penalty = _combatSession.HasPenaltyBuff
                         }
@@ -1105,8 +1078,7 @@
         {
             character.CurrentHP = _combatSession.Player.CurrentHP > 0
                 ? _combatSession.Player.CurrentHP : null;
-            character.CigarroShieldHitsRemaining = _combatSession.CigarroShieldRemaining;
-            character.CanhaoDamageBoostHitsRemaining = _combatSession.CanhaoBoostRemaining;
+            // Buff remaining counts are now per-run (not per-hit), no session sync needed
             try
             {
                 await CharacterService.UpdateCharacterAsync(character);
@@ -1145,8 +1117,8 @@
         if (didWin)
         {
             // Accumulate rewards
-            totalXPEarned += currentBattle.XPReward;
             totalFidelisEarned += currentBattle.FidelisReward;
+            totalLeitaoDropped += currentBattle.LeitaoDropped;
             totalFinosDropped += currentBattle.FinosDropped;
             totalCanecasDropped += currentBattle.CanecasDropped;
             totalCigarrosDropped += currentBattle.CigarrosDropped;
@@ -1155,20 +1127,17 @@
             totalPenaltiesDropped += currentBattle.PenaltiesDropped;
             bossesCleared++;
 
+            // Bonus Leitão every N bosses in a single run
+            var bonusEvery = ScalingConfigOptions.Value.BossMode.DropRates.LeitaoBonusEveryNBosses;
+            if (bonusEvery > 0 && bossesCleared % bonusEvery == 0)
+                totalLeitaoDropped++;
+
             foreach (var part in currentBattle.InstrumentPartsDropped)
             {
                 if (totalInstrumentPartsDropped.ContainsKey(part))
                     totalInstrumentPartsDropped[part]++;
                 else
                     totalInstrumentPartsDropped[part] = 1;
-            }
-
-            foreach (var equip in currentBattle.EquipmentDropped)
-            {
-                if (totalEquipmentDropped.ContainsKey(equip))
-                    totalEquipmentDropped[equip]++;
-                else
-                    totalEquipmentDropped[equip] = 1;
             }
 
             // Reload character to get updated HP
@@ -1258,10 +1227,9 @@
                 try
                 {
                     await BossModeService.ApplyBossRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                        character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                         runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                         expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                         expirePenaltyBuff: false);
                 }
@@ -1272,7 +1240,7 @@
             }
             else if (character != null && runStartingHp.HasValue)
             {
-                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
             }
 
             runInProgress = false;
@@ -1392,8 +1360,8 @@
         // Re-store run starting state with current buffs
         runStartingHp = character.CurrentHP;
         runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
-        runStartingCigarroShield = character.CigarroShieldHitsRemaining;
-        runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+        runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
+        runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
         runStartingPenaltyBuff = character.PenaltyBuffActive;
         runInProgress = true;
         pendingDefeatRewards = true;
@@ -1416,10 +1384,9 @@
             try
             {
                 await BossModeService.ApplyBossRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                    character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                     expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }
@@ -1437,7 +1404,7 @@
                 character.ExpirePenaltyBuff();
                 await CharacterService.UpdateCharacterAsync(character);
             }
-            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, 0);
+            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, 0);
         }
 
         pendingDefeatRewards = false;
@@ -1507,7 +1474,7 @@
             {
                 cigarroQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Cigarro ativado! Os próximos 3 hits não causam dano.";
+                buffToastMessage = "Cigarro ativado! +10% chance de esquiva por 5 corridas.";
                 buffToastIsError = false;
             }
             else
@@ -1541,7 +1508,7 @@
             {
                 canhaoQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Canhão ativado! Os próximos 3 ataques causam +30% dano.";
+                buffToastMessage = "Canhão ativado! Ataques AOE por 5 corridas.";
                 buffToastIsError = false;
             }
             else
@@ -1575,7 +1542,7 @@
             {
                 penaltyQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
+                buffToastMessage = "Penalty ativado! Lifesteal 0.5% HP por hit durante 5 corridas.";
                 buffToastIsError = false;
             }
             else
@@ -1599,8 +1566,8 @@
 
     private void ResetRunTotals()
     {
-        totalXPEarned = 0;
         totalFidelisEarned = 0;
+        totalLeitaoDropped = 0;
         totalFinosDropped = 0;
         totalCanecasDropped = 0;
         totalCigarrosDropped = 0;
@@ -1608,7 +1575,6 @@
         totalShotsDropped = 0;
         totalPenaltiesDropped = 0;
         totalInstrumentPartsDropped.Clear();
-        totalEquipmentDropped.Clear();
         bossesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -1622,7 +1588,7 @@
         {
             try
             {
-                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
             }
             catch (Exception ex)
             {
@@ -1643,10 +1609,9 @@
             try
             {
                 await BossModeService.ApplyBossRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
+                    character.Id, totalFidelisEarned, totalLeitaoDropped, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
                     expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
             }

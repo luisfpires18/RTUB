@@ -61,27 +61,29 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets the number of enemies for a given stage
+    /// Gets the number of enemies for a given stage.
+    /// Boss and miniboss stages always have 1 enemy.
+    /// Normal stages: stage offset 1-9 within each 10-stage block = 1-9 enemies.
     /// </summary>
     public int GetEnemyCountForStage(int stageNumber)
     {
+        // Boss stages (every 100) and miniboss stages (every 10) have 1 enemy
+        if (IsBossStage(stageNumber) || IsMiniBossStage(stageNumber))
+        {
+            return 1;
+        }
+
         var encounterRules = _config.StageMode.EncounterRules;
         if (encounterRules?.EnemyCountByStageOffset == null || encounterRules.EnemyCountByStageOffset.Count == 0)
         {
-            // Fallback to default: 1 enemy per stage
-            _logger.LogWarning("No encounter rules configured, defaulting to 1 enemy");
-            return 1;
+            // Fallback: offset within 10-stage block directly = enemy count (1-9)
+            var fallbackOffset = ((stageNumber - 1) % 10) + 1;
+            return Math.Min(fallbackOffset, 9);
         }
 
-        // Boss stages have 1 enemy (the boss)
-        if (IsBossStage(stageNumber))
-        {
-            return 1;
-        }
-
-        // Calculate stage offset within the current "decade"
-        var bossInterval = encounterRules.BossEveryNStages;
-        var offset = ((stageNumber - 1) % bossInterval) + 1;
+        // Calculate stage offset within the current miniboss cycle (10-stage block)
+        var minibossInterval = encounterRules.MinibossEveryNStages;
+        var offset = ((stageNumber - 1) % minibossInterval) + 1;
 
         // Find matching rule
         foreach (var rule in encounterRules.EnemyCountByStageOffset)
@@ -94,18 +96,28 @@ public class StageBiomeService : IStageBiomeService
 
         // Default fallback
         _logger.LogWarning(
-            "No matching enemy count rule for stage {StageNumber} (offset {Offset}), defaulting to 1",
+            "No matching enemy count rule for stage {StageNumber} (offset {Offset}), defaulting to offset value",
             stageNumber, offset);
-        return 1;
+        return Math.Min(offset, 9);
     }
 
     /// <summary>
-    /// Determines if a stage is a boss stage
+    /// Determines if a stage is a boss stage (every 100 stages)
     /// </summary>
     public bool IsBossStage(int stageNumber)
     {
-        var bossInterval = _config.StageMode.EncounterRules?.BossEveryNStages ?? 10;
+        var bossInterval = _config.StageMode.EncounterRules?.BossEveryNStages ?? 100;
         return stageNumber % bossInterval == 0;
+    }
+
+    /// <summary>
+    /// Determines if a stage is a miniboss stage (every 10 stages, but NOT boss stages)
+    /// </summary>
+    public bool IsMiniBossStage(int stageNumber)
+    {
+        if (IsBossStage(stageNumber)) return false;
+        var minibossInterval = _config.StageMode.EncounterRules?.MinibossEveryNStages ?? 10;
+        return stageNumber % minibossInterval == 0;
     }
 
     /// <summary>
@@ -233,31 +245,16 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets boss sprite path for a given boss stage from the database
-    /// Bosses are explicitly defined per stage (10, 20, 30, etc.)
+    /// Gets boss sprite path for a given stage — deterministic by floor number.
+    /// Within each 1000-stage biome the 10 bosses map 1:1 to boss_1 … boss_10
+    /// (boss_1 at floor 100, boss_2 at 200, …, boss_10 at 1000).
+    /// No random selection — the same stage always shows the same boss.
     /// </summary>
     public async Task<string> GetBossSpriteAsync(int stageNumber)
     {
-        // First, try to get the boss from the database (preferred method)
-        var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
-        
-        if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
-        {
-            return boss.SpritePath;
-        }
-
-        // Fallback: pick a random existing boss from any region
-        var fallbackBoss = await _stageEnemyRepository.GetRandomEnemyAsync(EnemyType.Boss, GetRegionForBiome(GetBiomeForStage(stageNumber)));
-        if (fallbackBoss != null && !string.IsNullOrEmpty(fallbackBoss.SpritePath))
-        {
-            _logger.LogWarning("No boss configured for stage {StageNumber}, using fallback boss: {BossName}", stageNumber, fallbackBoss.Name);
-            return fallbackBoss.SpritePath;
-        }
-
-        // Last resort: file system based approach
         var biomeName = GetBiomeForStage(stageNumber);
         var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b => b.Name == biomeName);
-        
+
         if (biomeConfig == null)
         {
             _logger.LogWarning("No biome configured for {BiomeName}, using default boss sprite", biomeName);
@@ -265,17 +262,17 @@ public class StageBiomeService : IStageBiomeService
         }
 
         var bossSprites = await GetBossSpritesForBiomeAsync(biomeConfig);
-        
+
         if (bossSprites.Count == 0)
         {
             _logger.LogWarning("No boss sprites found for biome {BiomeName}, using default boss sprite", biomeName);
             return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
         }
 
-        // Calculate which boss this is (1st boss = stage 10, 2nd boss = stage 20, etc.)
-        int bossIndex = (stageNumber / 10) - 1;
+        // Deterministic: boss_1 at stage 100/1100/2100…, boss_2 at 200/1200/2200…, etc.
+        int bossIndex = ((stageNumber - 1) % 1000) / 100;
         bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
-        
+
         return bossSprites[bossIndex];
     }
 
@@ -304,19 +301,13 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets boss sprite path with placement info for a given boss stage
+    /// Gets boss sprite path with placement info for a given boss stage.
+    /// Deterministic — always returns the same sprite for the same stage.
     /// </summary>
     public async Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber)
     {
-        var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
-        if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
-        {
-            return (boss.SpritePath, (int)boss.Placement);
-        }
-
-        // Fallback: use GetBossSpriteAsync and default to terrestrial
         var sprite = await GetBossSpriteAsync(stageNumber);
-        return (sprite, 0);
+        return (sprite, 0); // default terrestrial placement
     }
 
     /// <summary>
@@ -339,26 +330,37 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Computes the unified difficulty curve value for a given stage.
-    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
-    /// Single curve for ALL enemy stats — the Unity way.
+    /// Looks up the enemy tier configuration for a given stage number.
+    /// Returns the tier whose [MinStage, MaxStage] range contains the stage,
+    /// or the highest tier if the stage exceeds all defined ranges.
     /// </summary>
-    public double GetUnifiedDifficultyCurve(int stageNumber)
+    public StageEnemyTierConfig GetEnemyTierForStage(int stageNumber)
     {
-        if (stageNumber <= 1) return 1.0;
-        var curve = _config.StageMode.DifficultyCurve;
-        return 1.0 + curve.ScalingRate * Math.Pow(stageNumber - 1, curve.GrowthExponent);
+        var tiers = _config.StageMode.EnemyTiers;
+        foreach (var tier in tiers)
+        {
+            if (stageNumber >= tier.MinStage && stageNumber <= tier.MaxStage)
+                return tier;
+        }
+
+        // Fallback: return the highest tier
+        return tiers[^1];
     }
 
     /// <summary>
-    /// Computes the unified reward curve value for a given stage.
-    /// Formula: 1 + scalingRate × (stage - 1) ^ growthExponent.
+    /// Calculates scaled enemy stats for a given stage using the tiered enemy system.
     /// </summary>
-    public double GetUnifiedRewardCurve(int stageNumber)
+    public (long hp, long damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
     {
-        if (stageNumber <= 1) return 1.0;
-        var curve = _config.StageMode.RewardCurve;
-        return 1.0 + curve.ScalingRate * Math.Pow(stageNumber - 1, curve.GrowthExponent);
+        var tier = GetEnemyTierForStage(stageNumber);
+        var bossMult = isBoss ? _config.StageMode.BossMultiplier : 1.0;
+
+        // Use tier stats as the scaling reference; template base stats are ratios
+        var tierFactor = tier.HP / 150.0; // 150 = tier-1 baseline HP
+        var scaledHp = Math.Max(1, (long)(baseHp * tierFactor * bossMult));
+        var scaledDamage = Math.Max(1, (long)(baseDamage * tierFactor * bossMult));
+
+        return (scaledHp, scaledDamage);
     }
 
     /// <summary>
@@ -377,21 +379,6 @@ public class StageBiomeService : IStageBiomeService
         }
 
         return biomes.OrderByDescending(b => b.StageMax).First();
-    }
-
-    /// <summary>
-    /// Calculates scaled enemy stats for a given stage using the unified difficulty curve.
-    /// </summary>
-    public (long hp, long damage) CalculateScaledStats(int stageNumber, int baseHp, int baseDamage, bool isBoss)
-    {
-        var curve = GetUnifiedDifficultyCurve(stageNumber);
-        var diffMult = isBoss ? GetBossesDifficultyMultiplier(stageNumber) : GetEnemiesDifficultyMultiplier(stageNumber);
-        var bossMult = isBoss ? _config.StageMode.BossMultiplier : 1.0;
-
-        var scaledHp = Math.Max(1, (long)(baseHp * curve * diffMult * bossMult));
-        var scaledDamage = Math.Max(1, (long)(baseDamage * curve * diffMult * bossMult));
-
-        return (scaledHp, scaledDamage);
     }
 
     /// <summary>

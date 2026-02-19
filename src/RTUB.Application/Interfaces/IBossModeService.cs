@@ -41,7 +41,7 @@ public interface IBossModeService
     /// When expireShotBuff/expirePenaltyBuff are true, the corresponding buff
     /// is expired once (1 charge consumed per run, not per boss).
     /// </summary>
-    Task ApplyBossRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expireShotBuff = false, bool expirePenaltyBuff = false, CancellationToken cancellationToken = default);
+    Task ApplyBossRunRewardsAsync(int characterId, decimal fidelis, int leitao, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expireShotBuff = false, bool expirePenaltyBuff = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Cancels a boss mode run, restoring character state.

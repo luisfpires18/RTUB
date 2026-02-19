@@ -109,12 +109,9 @@ public class StageService : IStageService
         
         // Check if shot buff is active - in stage mode, buff lasts until death
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
-        var hasPenaltyBuff = character.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(character) 
             : character;
-        if (hasPenaltyBuff)
-            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
         
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
@@ -137,9 +134,9 @@ public class StageService : IStageService
         
         if (region == RegionType.Arena)
         {
-            // Arena uses filesystem-based sprites (like boss mode / survive mode).
+            // Arena (20001+) uses filesystem-based sprites.
             // Drop new sprites into wwwroot/sprites/games/my-tuno/enemies/arena/
-            // without touching SeedAllBiomeEnemiesAsync. boss_* files appear every 10 stages.
+            // without touching SeedAllBiomeEnemiesAsync. boss_* files appear every 100 stages.
             if (enemyType == EnemyType.Boss)
             {
                 var bossSprite = await _biomeService.GetBossSpriteForArenaAsync(stageNumber);
@@ -173,8 +170,10 @@ public class StageService : IStageService
         }
         else
         {
-            // Single query: GetRandomEnemiesAsync returns full StageEnemy objects
-            var randomEnemies = await _stageEnemyRepository.GetRandomEnemiesAsync(enemyType, region, enemyCount);
+            // MiniBoss floors: pick a random Normal enemy from the same region
+            // (no dedicated MiniBoss sprites exist — they're just buffed normals)
+            var queryType = enemyType == EnemyType.MiniBoss ? EnemyType.Normal : enemyType;
+            var randomEnemies = await _stageEnemyRepository.GetRandomEnemiesAsync(queryType, region, enemyCount);
             foreach (var e in randomEnemies)
             {
                 enemyTemplates.Add(e);
@@ -239,7 +238,7 @@ public class StageService : IStageService
         });
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped) =
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage);
 
         // Update character HP and stage progress in-memory only (no DB save per battle)
@@ -265,7 +264,6 @@ public class StageService : IStageService
             ShotsDropped = shotsDropped,
             PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
-            EquipmentDropped = equipmentDropped,
             FitabDropped = fitabDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP,
@@ -457,22 +455,20 @@ public class StageService : IStageService
     /// </summary>
     private Character CreateTemporaryEnemyCharacter(StageEnemy? template, int stageNumber, EnemyType type)
     {
-        var isBoss = _biomeService.IsBossStage(stageNumber);
-        return CreateEnemyUnifiedScaling(template, stageNumber, type, isBoss);
+        var isBoss = type == EnemyType.Boss;
+        var isMiniBoss = type == EnemyType.MiniBoss;
+        return CreateEnemyUnifiedScaling(template, stageNumber, type, isBoss, isMiniBoss);
     }
 
     /// <summary>
-    /// Unified scaling: ONE difficulty curve for ALL stats.
-    /// EnemyStat = baseStat × curve × difficultyMult × bossMult
-    /// Action time is determined by stage tier (every 100 stages = 0.5s faster, min 1.0s)
+    /// Creates an enemy character using the tiered enemy stat system.
+    /// Normal enemies use tier stats directly; minibosses use tier miniboss overrides;
+    /// bosses use tier boss overrides.
+    /// Action time decreases every 100 stages (5.0s → 1.0s min).
     /// </summary>
-    private Character CreateEnemyUnifiedScaling(StageEnemy? template, int stageNumber, EnemyType type, bool isBoss)
+    private Character CreateEnemyUnifiedScaling(StageEnemy? template, int stageNumber, EnemyType type, bool isBoss, bool isMiniBoss = false)
     {
-        var stageConfig = _myTunoScalingConfig.StageMode;
-        var baseStats = stageConfig.BaseEnemyStats;
-        var curve = _biomeService.GetUnifiedDifficultyCurve(stageNumber);
-        var diffMult = isBoss ? _biomeService.GetBossesDifficultyMultiplier(stageNumber) : _biomeService.GetEnemiesDifficultyMultiplier(stageNumber);
-        var bossMult = isBoss ? stageConfig.BossMultiplier : 1.0;
+        var tier = _biomeService.GetEnemyTierForStage(stageNumber);
 
         long baseHP, basePower, baseSpeed, baseDefense;
         double baseCriticalChance;
@@ -480,36 +476,66 @@ public class StageService : IStageService
 
         if (template != null)
         {
-            // Template provides base stats; we apply unified curve on top
-            baseHP = Math.Max(1, (long)(template.BaseHP * curve * diffMult * bossMult));
-            basePower = Math.Max(1, (long)(template.BasePower * curve * diffMult * bossMult));
-            baseSpeed = Math.Max(1, (long)(template.BaseSpeed * curve * diffMult * bossMult));
-            baseDefense = Math.Max(1, (long)(template.BaseDefense * curve * diffMult * bossMult));
-            baseCriticalChance = template.BaseCriticalChance;
+            // Template provides name only; stats come from the tier
             enemyName = template.Name;
+
+            if (isBoss)
+            {
+                baseHP = tier.BossHP;
+                basePower = tier.BossPower;
+                baseDefense = tier.BossDefense;
+                baseSpeed = tier.Speed;
+            }
+            else if (isMiniBoss)
+            {
+                baseHP = tier.MinibossHP;
+                basePower = tier.MinibossPower;
+                baseDefense = tier.MinibossDefense;
+                baseSpeed = tier.Speed;
+            }
+            else
+            {
+                baseHP = tier.HP;
+                basePower = tier.Power;
+                baseDefense = tier.Defense;
+                baseSpeed = tier.Speed;
+            }
+
+            baseCriticalChance = Math.Min(tier.CritChance, _myTunoScalingConfig.Combat.CriticalChanceCap);
+        }
+        else if (isBoss)
+        {
+            baseHP = tier.BossHP;
+            basePower = tier.BossPower;
+            baseDefense = tier.BossDefense;
+            baseSpeed = tier.Speed;
+            baseCriticalChance = Math.Min(tier.CritChance, _myTunoScalingConfig.Combat.CriticalChanceCap);
+
+            var biomeName = _biomeService.GetBiomeForStage(stageNumber);
+            enemyName = $"{biomeName} Boss (Stage {stageNumber})";
+        }
+        else if (isMiniBoss)
+        {
+            baseHP = tier.MinibossHP;
+            basePower = tier.MinibossPower;
+            baseDefense = tier.MinibossDefense;
+            baseSpeed = tier.Speed;
+            baseCriticalChance = Math.Min(tier.CritChance, _myTunoScalingConfig.Combat.CriticalChanceCap);
+
+            var biomeName = _biomeService.GetBiomeForStage(stageNumber);
+            enemyName = $"{biomeName} MiniBoss (Stage {stageNumber})";
         }
         else
         {
-            var typeStats = type switch
-            {
-                EnemyType.Boss => baseStats.Boss,
-                _ => baseStats.Normal
-            };
-
-            baseHP = Math.Max(1, (long)(typeStats.Hp * curve * diffMult * bossMult));
-            basePower = Math.Max(1, (long)(typeStats.Power * curve * diffMult * bossMult));
-            baseSpeed = Math.Max(1, (long)(typeStats.Speed * curve * diffMult * bossMult));
-            baseDefense = Math.Max(1, (long)(typeStats.Defense * curve * diffMult * bossMult));
-
-            var critGrowth = (stageNumber - 1) * 0.003; // Gentle crit growth
-            baseCriticalChance = Math.Min(typeStats.CriticalChance + critGrowth, _myTunoScalingConfig.Combat.CriticalChanceCap);
+            // Normal enemies use tier stats directly
+            baseHP = tier.HP;
+            basePower = tier.Power;
+            baseDefense = tier.Defense;
+            baseSpeed = tier.Speed;
+            baseCriticalChance = Math.Min(tier.CritChance, _myTunoScalingConfig.Combat.CriticalChanceCap);
 
             var biomeName = _biomeService.GetBiomeForStage(stageNumber);
-            enemyName = type switch
-            {
-                EnemyType.Boss => $"{biomeName} Boss (Stage {stageNumber})",
-                _ => $"{biomeName} Enemy (Stage {stageNumber})"
-            };
+            enemyName = $"{biomeName} Enemy (Stage {stageNumber})";
         }
 
         var actionTime = GetEnemyActionTimeForStage(stageNumber);
@@ -517,14 +543,14 @@ public class StageService : IStageService
     }
 
     /// <summary>
-    /// Returns the enemy action time (in seconds) based on stage tier.
-    /// Every 100 stages reduces action time by 0.5s, minimum 1.0s.
-    /// Stage 1-100: 5.0s, 101-200: 4.5s, ..., 801+: 1.0s
+    /// Returns the enemy action time (in seconds) based on biome (1000-floor blocks).
+    /// Every biome reduces action time by 0.2s, minimum 1.0s.
+    /// Floors 1-1000: 5.0s, 1001-2000: 4.8s, ..., 19001-20000: 1.2s, 20001+: 1.0s
     /// </summary>
     private static double GetEnemyActionTimeForStage(int stageNumber)
     {
-        var tier = (stageNumber - 1) / 100; // 0 for 1-100, 1 for 101-200, etc.
-        var actionTime = 5.0 - (tier * 0.5);
+        var biomeIndex = (stageNumber - 1) / 1000; // 0 for 1-1000, 1 for 1001-2000, etc.
+        var actionTime = 5.0 - (biomeIndex * 0.2);
         return Math.Max(1.0, actionTime);
     }
 
@@ -537,7 +563,7 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, List<InventoryItemType> equipment, int fitab) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
@@ -546,7 +572,7 @@ public class StageService : IStageService
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), new List<InventoryItemType>(), 0);
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0);
         }
 
         var random = Random.Shared;
@@ -558,49 +584,29 @@ public class StageService : IStageService
         var penaltiesDropped = 0;
         var fitabDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
-        var equipmentDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
         var dropRates = stageConfig.DropRates;
-        var fidelisRewardsConfig = stageConfig.FidelisRewards;
 
+        // v5: Tier-based XP and Fidelis rewards (no formula — designer-tuned per tier)
+        var tier = _biomeService.GetEnemyTierForStage(stageNumber);
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
-        var xpMultiplier = enemyType switch
-        {
-            EnemyType.Boss => stageConfig.BossXPMultiplier,
-            _ => 1
-        };
 
-        // XP: enemy-level-based formula (same for both scaling modes — already clean)
-        var enemyLevel = (double)stageNumber;
-        var enemyLevelFactor = Math.Pow(enemyLevel, stageConfig.EnemyLevelXPPower);
-        var levelDiff = Math.Max(0, characterLevel - stageNumber);
-        var levelDiffMult = Math.Max(stageConfig.MinXPLevelMultiplier, 1.0 - levelDiff * stageConfig.XpLevelPenaltyRate);
-        var xpReward = (int)Math.Round(stageConfig.XpPerEnemyLevel * enemyLevelFactor * enemyCount * xpMultiplier * levelDiffMult);
+        var xpReward = tier.XpReward * enemyCount;
 
-        // Fidelis: unified reward curve × biome reward multiplier × level bonus
-        var baseFidelis = enemyType switch
-        {
-            EnemyType.Boss => fidelisRewardsConfig.BossWin,
-            _ => fidelisRewardsConfig.NormalWin
-        };
-
-        var rewardCurve = _biomeService.GetUnifiedRewardCurve(stageNumber);
+        // Fidelis: tier base × biome reward multiplier × enemy count
         var biomeRewardMult = _biomeService.GetRewardMultiplierForStage(stageNumber);
-        var rewardConfig = stageConfig.RewardCurve;
-        var rawLevelBonus = 1.0 + (characterLevel - 1) * rewardConfig.LevelBonusPerLevel;
-        var levelBonus = Math.Min(rawLevelBonus, rewardConfig.LevelBonusCap);
-        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(rewardCurve * biomeRewardMult * levelBonus), 2);
+        var baseFidelis = tier.FidelisReward;
+        var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)biomeRewardMult, 2);
 
-        // Gate consumable drops behind biome progression
-        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        // Gate consumable drops behind biome progression (1000-floor biomes)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var finoChance = highestStage >= 1 ? dropRates.FinoDropChance : 0;
-        var canecaChance = highestStage >= 501 ? dropRates.CanecaDropChance : 0;
-        var cigarroChance = highestStage >= 301 ? dropRates.CigarroDropChance : 0;
-        var canhaoChance = highestStage >= 701 ? dropRates.CanhaoDropChance : 0;
-        var shotChance = highestStage >= 101 ? dropRates.ShotDropChance : 0;
-        var penaltyChance = highestStage >= 901 ? dropRates.PenaltyDropChance : 0;
+        var canecaChance = highestStage >= 5001 ? dropRates.CanecaDropChance : 0;
+        var cigarroChance = highestStage >= 3001 ? dropRates.CigarroDropChance : 0;
+        var canhaoChance = highestStage >= 7001 ? dropRates.CanhaoDropChance : 0;
+        var shotChance = highestStage >= 1001 ? dropRates.ShotDropChance : 0;
+        var penaltyChance = highestStage >= 9001 ? dropRates.PenaltyDropChance : 0;
         var instrumentPartChance = dropRates.InstrumentPartDropChance;
-        var equipmentChance = dropRates.EquipmentDropChance;
         if (enemyType == EnemyType.Boss)
         {
             finoChance *= dropRates.BossDropMultiplier;
@@ -610,11 +616,9 @@ public class StageService : IStageService
             shotChance *= dropRates.BossDropMultiplier;
             penaltyChance *= dropRates.BossDropMultiplier;
             instrumentPartChance *= dropRates.BossDropMultiplier;
-            equipmentChance *= dropRates.BossDropMultiplier;
         }
 
         var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
-        var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         for (int i = 0; i < enemyCount; i++)
         {
@@ -633,13 +637,6 @@ public class StageService : IStageService
                 instrumentPartsDropped.Add(InstrumentTypeHelper.ToInventoryPartType(randomInstrument));
             }
 
-            // Roll for equipment drop (slightly above instrument parts)
-            if (random.NextDouble() < equipmentChance)
-            {
-                var randomSlot = (EquipmentSlot)equipmentSlots.GetValue(random.Next(equipmentSlots.Length))!;
-                equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
-            }
-
             // Roll for FITAB drop (very rare — currency for Boss Mode entry)
             var fitabChance = _myTunoScalingConfig.BossMode.FitabDropChanceStage;
             if (enemyType == EnemyType.Boss)
@@ -648,7 +645,7 @@ public class StageService : IStageService
                 fitabDropped++;
         }
 
-        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped, fitabDropped);
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped);
     }
 
     /// <summary>
@@ -656,14 +653,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, Dictionary<InventoryItemType, int>? equipment = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, equipment, expirePenaltyBuff, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -684,10 +681,9 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, Dictionary<InventoryItemType, int>? equipment, bool expirePenaltyBuff, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
-        var hasEquipment = equipment != null && equipment.Count > 0;
 
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -696,26 +692,30 @@ public class StageService : IStageService
             return;
         }
 
-        // Restore HP to the value the player had before the run started
-        // null restoreHp means the player entered with full HP (CurrentHP was null)
-        character.CurrentHP = restoreHp;
+        // Always restore full HP after run — players no longer lose HP between battles
+        character.CurrentHP = null;
         
-        // Consume shot buff if it was active during this run
-        // ExpireShotBuff handles scaling CurrentHP proportionally when buff reaches 0
+        // Expire all active buffs (one run consumed per call)
         if (character.ShotBuffBattlesRemaining > 0)
         {
             character.ExpireShotBuff();
         }
-
-        // Consume penalty buff if it was active during this run and should expire (defeat)
-        if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
+        if (character.CigarroShieldHitsRemaining > 0)
+        {
+            character.ExpireCigarroBuff();
+        }
+        if (character.CanhaoDamageBoostHitsRemaining > 0)
+        {
+            character.ExpireCanhaoBuff();
+        }
+        if (character.PenaltyBuffActive > 0)
         {
             character.ExpirePenaltyBuff();
         }
         
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts && !hasEquipment)
+        if (xp <= 0 && fidelis <= 0 && fitab <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts)
             return;
 
         // Apply XP
@@ -750,18 +750,12 @@ public class StageService : IStageService
                 allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
-        if (hasEquipment)
-        {
-            foreach (var (equipType, quantity) in equipment!)
-                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
-        }
-
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
         _logger.LogInformation(
-            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts, +{Equipment} equipment",
-            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0, equipment?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts",
+            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0);
     }
 
     /// <summary>
@@ -787,9 +781,6 @@ public class StageService : IStageService
             character.CurrentHP = null; // Defeated — restore to full on next run
         }
 
-        // Write back consumable buff remaining counts from combat
-        character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
-        character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
 
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
         {
@@ -849,13 +840,14 @@ public class StageService : IStageService
 
     /// <summary>
     /// Gets the enemy type for a stage using biome config.
-    /// Uses BossEveryNStages from config instead of hardcoded values.
+    /// Boss every 100 stages, MiniBoss every 10 stages (excluding boss stages).
     /// </summary>
     private EnemyType GetEnemyTypeForStageFromConfig(int stageNumber)
     {
-        // Use biome service's config-driven boss determination
         if (_biomeService.IsBossStage(stageNumber))
             return EnemyType.Boss;
+        if (_biomeService.IsMiniBossStage(stageNumber))
+            return EnemyType.MiniBoss;
         
         return EnemyType.Normal;
     }
@@ -867,8 +859,8 @@ public class StageService : IStageService
 
         if (highestStage <= 1) return checkpoints;
 
-        // Add checkpoints every 10 stages (after each boss), starting at 11
-        // Each biome has 10 bosses at stages 10, 20, 30... so checkpoints at 11, 21, 31...
+        // Add checkpoints every 10 floors (after each miniboss), starting at 11
+        // Each biome has minibosses at floors 10, 20, 30... so checkpoints at 11, 21, 31...
         for (int stage = 11; stage <= highestStage; stage += 10)
         {
             checkpoints.Add(stage);
@@ -889,8 +881,8 @@ public class StageService : IStageService
             checkpoints.Add(stageMin);
         }
 
-        // Add checkpoints every 10 stages after bosses
-        // Bosses are at stages 10, 20, 30... relative to global. Checkpoints at 11, 21, 31...
+        // Add checkpoints every 10 floors after minibosses
+        // Minibosses at floors 10, 20, 30... relative to global. Checkpoints at 11, 21, 31...
         var firstCheckpointAfterBoss = stageMin == 1 ? 11 : stageMin + 10;
         for (int stage = firstCheckpointAfterBoss; stage <= maxReachable; stage += 10)
         {

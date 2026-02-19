@@ -365,26 +365,29 @@
             // Clear container
             container.innerHTML = '';
 
-            // Create PixiJS app
+            // Create PixiJS app — use container size for fullscreen
+            const containerW = container.clientWidth || this.vpWidth;
+            const containerH = container.clientHeight || this.vpHeight;
+            // Update viewport dimensions to match container
+            this.vpWidth = containerW;
+            this.vpHeight = containerH;
+
             if (!app) {
                 app = new PIXI.Application();
                 await app.init({
-                    width: this.vpWidth,
-                    height: this.vpHeight,
+                    width: containerW,
+                    height: containerH,
                     backgroundColor: 0x1a1a2e,
                     antialias: true,
                     resolution: window.devicePixelRatio || 1,
                     autoDensity: true,
+                    resizeTo: container,
                 });
             } else {
-                app.renderer.resize(this.vpWidth, this.vpHeight);
+                app.renderer.resize(containerW, containerH);
             }
 
             container.appendChild(app.canvas);
-            app.canvas.style.width = '100%';
-            app.canvas.style.maxWidth = this.vpWidth + 'px';
-            app.canvas.style.height = 'auto';
-            app.canvas.style.borderRadius = '8px';
 
             // World container (scrollable) 
             this.worldContainer = new PIXI.Container();

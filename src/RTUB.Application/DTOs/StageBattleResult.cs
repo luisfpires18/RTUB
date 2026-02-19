@@ -95,12 +95,6 @@ public class StageBattleResult
     public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
 
     /// <summary>
-    /// Equipment pieces dropped (rare drops for crafting).
-    /// Each entry is the InventoryItemType of the equipment slot.
-    /// </summary>
-    public List<InventoryItemType> EquipmentDropped { get; set; } = new();
-
-    /// <summary>
     /// Number of FITAB dropped (very rare currency for Boss Mode entry).
     /// </summary>
     public int FitabDropped { get; set; }

@@ -724,12 +724,12 @@ namespace RTUB.Migrations
                     b.Property<int>("CurrentBossStage")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("DailyBossMaxHP")
+                    b.Property<long>("DailyBossMaxHP")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
+                        .HasDefaultValue(0L);
 
-                    b.Property<int?>("DailyBossRemainingHP")
+                    b.Property<long?>("DailyBossRemainingHP")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("DailyBossStage")
@@ -787,6 +787,9 @@ namespace RTUB.Migrations
                     b.Property<int>("ArenaLosses")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ArenaRating")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ArenaWins")
                         .HasColumnType("INTEGER");
 
@@ -808,7 +811,7 @@ namespace RTUB.Migrations
                     b.Property<int>("CriticalUpgrades")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("CurrentHP")
+                    b.Property<long?>("CurrentHP")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Defense")
@@ -4116,25 +4119,6 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<double>("BaseCriticalChance")
-                        .HasColumnType("REAL");
-
-                    b.Property<int>("BaseDefense")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("BaseFidelisDrop")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("BaseHP")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BasePower")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BaseSpeed")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("BossStageNumber")
                         .HasColumnType("INTEGER");
 
@@ -4143,9 +4127,6 @@ namespace RTUB.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
-
-                    b.Property<double>("FinoDropChance")
-                        .HasColumnType("REAL");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4157,9 +4138,6 @@ namespace RTUB.Migrations
 
                     b.Property<int>("Region")
                         .HasColumnType("INTEGER");
-
-                    b.Property<double>("ShotDropChance")
-                        .HasColumnType("REAL");
 
                     b.Property<string>("SpritePath")
                         .HasMaxLength(500)

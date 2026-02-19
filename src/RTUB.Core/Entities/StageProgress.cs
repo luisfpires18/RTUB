@@ -95,13 +95,23 @@ public class StageProgress : BaseEntity
     }
 
     /// <summary>
-    /// Advances to the next stage after clearing the current one
-    /// Updates checkpoints and region accordingly
+    /// Advances to the next floor after clearing the current one.
+    /// After floor 20000 (last Light boss), jumps to 20001 (Arena).
     /// </summary>
     public void AdvanceStage()
     {
         TotalStagesCleared++;
-        CurrentStage++;
+
+        // Jump from floor 20000 (end of biomes) to 20001 (Arena start)
+        if (CurrentStage == 20000)
+        {
+            CurrentStage = 20001;
+        }
+        else
+        {
+            CurrentStage++;
+        }
+
         EnemiesDefeatedInCurrentStage = 0; // Reset for new stage
 
         if (CurrentStage > HighestStage)
@@ -125,14 +135,15 @@ public class StageProgress : BaseEntity
     }
 
     /// <summary>
-    /// Records defeating a boss
+    /// Records defeating a boss.
+    /// Unlocks Arena (endless mode) when the player beats floor 20000 boss.
     /// </summary>
     public void RecordBossDefeat()
     {
         TotalBossesDefeated++;
 
-        // Check if player beat the stage 2000 boss (last Light boss, unlocks Arena)
-        if (CurrentStage == 2000)
+        // Check if player beat floor 20000 boss (last Light boss, unlocks Arena)
+        if (CurrentStage == 20000)
         {
             EndlessModeUnlocked = true;
         }
@@ -149,62 +160,56 @@ public class StageProgress : BaseEntity
     }
 
     /// <summary>
-    /// Calculates the checkpoint for a given stage
-    /// - All stages: checkpoint every 10 stages (1, 11, 21, 31... after each boss)
-    /// - After stage 2000: no new checkpoints (Arena)
+    /// Calculates the checkpoint for a given floor.
+    /// Checkpoint every 10 floors (after each miniboss): 1, 11, 21, ...
+    /// After floor 20000: no new checkpoints (Arena).
     /// </summary>
     public static int CalculateCheckpoint(int stage)
     {
         if (stage <= 1) return 1;
 
-        // Arena - no checkpoints after 2000
-        if (stage > 2000)
+        // Arena — no checkpoints after 20000
+        if (stage > 20000)
         {
-            return 2000;
+            return 20001;
         }
 
-        // Checkpoint every 10 stages: 1, 11, 21, 31, ...
+        // Checkpoint every 10 floors: 1, 11, 21, 31, ...
         var checkpoint = ((stage - 1) / 10) * 10 + 1;
         return checkpoint;
     }
 
     /// <summary>
-    /// Gets the region for a given stage number
-    /// Stages 1-100: Forest, 101-200: Swamp, 201-300: Mountains,
-    /// 301-400: Snowy, 401-500: Tropical, 501-600: Caverns,
-    /// 601-700: Desert, 701-800: Volcanic, 801-900: Ruins,
-    /// 901-1000: Sky, 1001-1100: Underwater, 1101-1200: Underground,
-    /// 1201-1300: Mechanical, 1301-1400: Frostfire, 1401-1500: Corruption,
-    /// 1501-1600: Dark, 1601-1700: Alien, 1701-1800: Void,
-    /// 1801-1900: Timerift, 1901-2000: Light, 2001+: Arena
+    /// Gets the region for a given floor number.
+    /// 20 biomes × 1000 floors (1-20000), Arena is 20001+ (endless).
+    /// Floors 1-1000: Forest, 1001-2000: Swamp, ..., 19001-20000: Light, 20001+: Arena
     /// </summary>
     public static RegionType GetRegionForStage(int stage)
     {
-        if (stage > 2000) return RegionType.Arena;
+        if (stage > 20000) return RegionType.Arena;
 
-        var regionIndex = (stage - 1) / 100;
+        var regionIndex = (stage - 1) / 1000;
+        if (regionIndex > 19) regionIndex = 19;
         return (RegionType)regionIndex;
     }
 
     /// <summary>
-    /// Gets the enemy type for a given stage
-    /// - Boss stages determined by config (bossEveryNStages = 10)
-    /// - All other stages: Normal enemy
+    /// Gets the enemy type for a given stage.
+    /// Boss every 100 stages, MiniBoss every 10 (excluding boss stages).
     /// </summary>
     public static EnemyType GetEnemyTypeForStage(int stage)
     {
-        // Boss every 10 stages (config-driven via bossEveryNStages)
-        if (stage % 10 == 0) return EnemyType.Boss;
-
+        if (stage % 100 == 0) return EnemyType.Boss;
+        if (stage % 10 == 0) return EnemyType.MiniBoss;
         return EnemyType.Normal;
     }
 
     /// <summary>
-    /// Checks if the current stage is in the Arena (endless)
+    /// Checks if the current floor is in the Arena (endless, 20001+).
     /// </summary>
     public bool IsInArena()
     {
-        return CurrentStage > 2000;
+        return CurrentStage > 20000;
     }
 
     /// <summary>

@@ -56,5 +56,6 @@ public static class AuditConfiguration
         "ForgeComboConfig",
         "SurviveModeProgress",
         "StageEnemy",
+        "ForgedWeapon",
     };
 }

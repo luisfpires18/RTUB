@@ -22,8 +22,8 @@ public class BossModeBattleResult
     public int CanhaosDropped { get; set; }
     public int ShotsDropped { get; set; }
     public int PenaltiesDropped { get; set; }
+    public int LeitaoDropped { get; set; }
     public List<InventoryItemType> InstrumentPartsDropped { get; set; } = new();
-    public List<InventoryItemType> EquipmentDropped { get; set; } = new();
     public string ReplayJson { get; set; } = string.Empty;
     public long PlayerFinalHP { get; set; }
 }

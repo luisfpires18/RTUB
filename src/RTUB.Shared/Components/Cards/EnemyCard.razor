@@ -1,10 +1,10 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 
-@* EnemyCard Component - Displays an enemy character card for My Tuno battles with HP/XP bars *@
+@* EnemyCard Component - Displays an enemy character card for My Tuno battles with fantasy-style stats *@
 
 <div class="enemy-card card h-100">
-    <div class="card-header bg-primary text-white">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h6 class="mb-0">
             <i class="bi bi-person me-2"></i>
             @if (Character?.User != null)
@@ -16,13 +16,18 @@
                 <text>Personagem</text>
             }
         </h6>
+        @if (ArenaRating > 0)
+        {
+            <span class="badge" style="background-color: #ffc107; color: #000;" title="Arena Rating">
+                <i class="bi bi-graph-up-arrow me-1"></i>@ArenaRating
+            </span>
+        }
     </div>
     <div class="card-body d-flex flex-column">
-        <!-- Avatar and User Info - Reusing AvatarCard pattern -->
+        <!-- Avatar and User Info -->
         @if (Character?.User != null)
         {
             <div class="text-center mb-3">
-                <!-- Avatar Image Wrapper (reusing AvatarCard pattern) -->
                 <div class="avatar-card-image-wrapper d-inline-block mb-2" style="width: 80px; height: 80px;">
                     <img src="@CacheBuster.Bust(Character.User.ImageUrl ?? "/images/default-avatar.webp")" 
                          alt="Avatar" 
@@ -30,7 +35,6 @@
                          onerror="this.onerror=null; this.src='/images/default-avatar.webp';"
                          style="width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--bs-primary);" />
                 </div>
-                <!-- User Info Content (reusing AvatarCard pattern) -->
                 <div class="avatar-card-content">
                     @if (!string.IsNullOrEmpty(Character.User.Nickname))
                     {
@@ -43,11 +47,24 @@
                 </div>
             </div>
         }
+
+        <!-- Rating Gain Badge (if in arena context) -->
+        @if (RatingGain >= 0 && ArenaRating > 0)
+        {
+            var ratingColor = RatingGain == 0 ? "gray" : RatingGain >= 15 ? "gold" : "green";
+            <div class="text-center mb-2">
+                <FantasyTile Icon="bi-trophy-fill"
+                             Label="Vitória"
+                             Value="@($"+{RatingGain}")"
+                             Color="@ratingColor"
+                             Size="sm"
+                             Tooltip="Rating que ganhas se venceres" />
+            </div>
+        }
         
         <!-- HP Bar -->
         @{
             var currentHP = Character?.CurrentHP ?? Character?.TotalHP ?? 100;
-            // Account for shot buff - use CreateShotBuffedCopy to get exact same max HP as arena
             long maxHP;
             if (Character != null && Character.ShotBuffBattlesRemaining > 0)
             {
@@ -85,7 +102,6 @@
             var xpProgress = xpToNextLevel > 0 ? Math.Min(100, (currentXP * 100.0 / xpToNextLevel)) : 0;
             
             <div class="level-xp-container mb-3">
-                <!-- Level Display -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="d-flex align-items-center">
                         <i class="bi bi-star-fill text-warning me-2"></i>
@@ -94,7 +110,6 @@
                     <strong class="text-warning">@(Character?.Level ?? 1)</strong>
                 </div>
                 
-                <!-- XP Bar -->
                 <div class="xp-bar-container">
                     <div class="xp-bar-bg">
                         <div class="xp-bar-fill" 
@@ -124,52 +139,13 @@
         
         <hr />
         
-        <!-- Colored Stat Boxes -->
-        <div class="d-flex flex-column gap-2 mb-3">
-            <!-- HP Stat Box -->
-            <div class="p-2 border border-danger rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                <span class="d-flex align-items-center">
-                    <i class="bi bi-heart-fill text-danger me-2"></i>
-                    <span>HP</span>
-                </span>
-                <strong class="text-danger">@NumberFormatter.Compact(currentHP) / @NumberFormatter.Compact(maxHP)</strong>
-            </div>
-            
-            <!-- Power Stat Box -->
-            <div class="p-2 border border-success rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                <span class="d-flex align-items-center">
-                    <i class="bi bi-lightning-fill text-success me-2"></i>
-                    <span>Power</span>
-                </span>
-                <strong class="text-success">@NumberFormatter.Compact(Character?.TotalPower ?? 0)</strong>
-            </div>
-            
-            <!-- Speed Stat Box -->
-            <div class="p-2 border border-primary rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                <span class="d-flex align-items-center">
-                    <i class="bi bi-speedometer2 text-primary me-2"></i>
-                    <span>Speed</span>
-                </span>
-                <strong class="text-primary">@($"{(Character?.ActionTime ?? 5.0):F1}s")</strong>
-            </div>
-            
-            <!-- Critical Stat Box -->
-            <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                <span class="d-flex align-items-center">
-                    <i class="bi bi-bullseye text-warning me-2"></i>
-                    <span>Crítico</span>
-                </span>
-                <strong class="text-warning">@($"{(Character?.TotalCriticalChance ?? 0) * 100:F1}%")</strong>
-            </div>
-            
-            <!-- Defense Stat Box -->
-            <div class="p-2 border border-secondary rounded d-flex justify-content-between align-items-center" style="background-color: #1e1e1e;">
-                <span class="d-flex align-items-center">
-                    <i class="bi bi-shield-fill me-2" style="color: white;"></i>
-                    <span style="color: white;">Defense</span>
-                </span>
-                <strong style="color: white;">@NumberFormatter.Compact(Character?.TotalDefense ?? 0)</strong>
-            </div>
+        <!-- Fantasy Stat Tiles -->
+        <div class="d-flex flex-wrap gap-1 justify-content-center mb-3">
+            <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"{NumberFormatter.Compact(currentHP)}/{NumberFormatter.Compact(maxHP)}")" Color="red" Size="sm" />
+            <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@NumberFormatter.Compact(Character?.TotalPower ?? 0)" Color="green" Size="sm" />
+            <FantasyTile Icon="bi-speedometer2" Label="Veloc." Value="@($"{(Character?.ActionTime ?? 5.0):F1}s")" Color="blue" Size="sm" />
+            <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{(Character?.TotalCriticalChance ?? 0) * 100:F1}%")" Color="yellow" Size="sm" />
+            <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@NumberFormatter.Compact(Character?.TotalDefense ?? 0)" Color="gray" Size="sm" />
         </div>
 
         <!-- Fight Button -->
@@ -207,4 +183,12 @@
 
     [Parameter]
     public bool ShowLevelAndXP { get; set; } = false;
+
+    /// <summary>Arena rating of the opponent (0 = don't show rating section)</summary>
+    [Parameter]
+    public int ArenaRating { get; set; } = 0;
+
+    /// <summary>Rating gain if you win (shown only when ArenaRating > 0)</summary>
+    [Parameter]
+    public int RatingGain { get; set; } = 0;
 }

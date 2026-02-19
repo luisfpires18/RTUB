@@ -337,58 +337,12 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
+    public Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null,
         CancellationToken cancellationToken = default)
     {
-        var character = await _characterRepository.GetByIdAsync(characterId)
-            ?? throw new InvalidOperationException("Character not found");
-
-        // Apply XP
-        if (xp > 0)
-        {
-            character.AddXP(xp);
-        }
-
-        // Batch all inventory drops into a single DB round-trip
-        var allDrops = new Dictionary<InventoryItemType, int>();
-        if (finos > 0) allDrops[InventoryItemType.Fino] = finos;
-        if (canecas > 0) allDrops[InventoryItemType.Caneca] = canecas;
-        if (cigarros > 0) allDrops[InventoryItemType.Cigarro] = cigarros;
-        if (canhaos > 0) allDrops[InventoryItemType.Canhao] = canhaos;
-        if (shots > 0) allDrops[InventoryItemType.Shot] = shots;
-        if (penalties > 0) allDrops[InventoryItemType.Penalty] = penalties;
-
-        if (instrumentParts != null)
-        {
-            foreach (var (partType, quantity) in instrumentParts)
-                allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
-        }
-
-        if (equipment != null)
-        {
-            foreach (var (equipType, quantity) in equipment)
-                allDrops[equipType] = allDrops.GetValueOrDefault(equipType) + quantity;
-        }
-
-        if (allDrops.Count > 0)
-            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
-
-        await _characterRepository.UpdateAsync(character);
-
-        // Apply Fidelis in a short-lived context to avoid change tracker pollution.
-        // Using IDbContextFactory prevents stale ConcurrencyStamp issues in the
-        // long-lived scoped DbContext that Blazor Server circuits share.
-        if (fidelis > 0)
-        {
-            await using var fidelisContext = _contextFactory.CreateDbContext();
-            var user = await fidelisContext.Users.FindAsync(new object[] { character.UserId }, cancellationToken)
-                ?? throw new InvalidOperationException("User not found");
-            // Apply Fidelis earned multiplier from Improvements upgrade
-            user.FidelisBalance += fidelis * (decimal)character.FidelisEarnedMultiplier;
-            await fidelisContext.SaveChangesAsync(cancellationToken);
-        }
+        // Survive mode no longer grants rewards — no-op.
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -514,83 +468,7 @@ public class SurviveModeService : ISurviveModeService
     private SurviveModeLevelResult CalculateRewards(int level, SurviveModeLevelConfig config,
         int characterLevel, int enemiesKilled, double survivalTimeSeconds, bool survived, int highestStage = 1)
     {
-        var diffMult = config.DifficultyMultiplier;
-        var rewardMult = config.RewardMultiplier;
-
-        // Per-level reward scaling: level 1 = 1x, level 2 = 1.15x, level 12 = 2.65x
-        var levelScale = 1.0 + (level - 1) * RewardScalePerLevel;
-
-        // Base XP from level completion + kill bonus
-        var baseXP = (int)(BaseXPPerLevel * level * diffMult * levelScale);
-        var killXP = (int)(enemiesKilled * XPPerEnemyKill * Math.Sqrt(level) * levelScale);
-        var xpReward = survived ? baseXP + killXP : killXP; // Only full XP on survival
-
-        // Fidelis reward
-        var baseFidelis = BaseFidelisPerLevel * level * (decimal)(rewardMult * levelScale);
-        var killFidelis = (int)(enemiesKilled * FidelisPerEnemyKill * levelScale);
-        var fidelisReward = survived ? baseFidelis + killFidelis : killFidelis;
-
-        // Character level bonus (higher character level = slightly more rewards)
-        var levelBonus = 1.0 + Math.Min(characterLevel * 0.005, 0.5);
-        xpReward = (int)(xpReward * levelBonus);
-        fidelisReward = Math.Round(fidelisReward * (decimal)levelBonus, 2);
-
-        // Drop calculations
-        var dropRates = _config.StageMode?.DropRates;
-        // Gate consumable drops behind biome progression
-        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), CanhÃ£o=701(Volcanic)
-        var finoChance = highestStage >= 1 ? (dropRates?.FinoDropChance ?? 0.1) : 0;
-        var canecaChance = highestStage >= 501 ? (dropRates?.CanecaDropChance ?? 0.04) : 0;
-        var cigarroChance = highestStage >= 301 ? (dropRates?.CigarroDropChance ?? 0.05) : 0;
-        var canhaoChance = highestStage >= 701 ? (dropRates?.CanhaoDropChance ?? 0.05) : 0;
-        var shotChance = highestStage >= 101 ? (dropRates?.ShotDropChance ?? 0.01) : 0;
-        var penaltyChance = highestStage >= 901 ? (dropRates?.PenaltyDropChance ?? 0.003) : 0;
-        var instrChance = dropRates?.InstrumentPartDropChance ?? 0.005;
-        var equipChance = dropRates?.EquipmentDropChance ?? 0.008;
-
-        // More kills = more drop rolls, scaled by level difficulty
-        var dropRolls = enemiesKilled;
-        var finos = 0;
-        var canecas = 0;
-        var cigarros = 0;
-        var canhaos = 0;
-        var shots = 0;
-        var penalties = 0;
-        var fitab = 0;
-        var instrParts = new List<InventoryItemType>();
-        var equipPieces = new List<InventoryItemType>();
-
-        var instrPartTypes = InstrumentTypeHelper.GameInstrumentPartTypes.ToArray();
-
-        var equipSlotTypes = new[]
-        {
-            InventoryItemType.EquipmentHead, InventoryItemType.EquipmentShoulders,
-            InventoryItemType.EquipmentChest, InventoryItemType.EquipmentGloves,
-            InventoryItemType.EquipmentLegs, InventoryItemType.EquipmentBoots
-        };
-
-        for (int i = 0; i < dropRolls; i++)
-        {
-            if (Random.Shared.NextDouble() < finoChance * rewardMult)
-                finos++;
-            if (Random.Shared.NextDouble() < canecaChance * rewardMult)
-                canecas++;
-            if (Random.Shared.NextDouble() < cigarroChance * rewardMult)
-                cigarros++;
-            if (Random.Shared.NextDouble() < canhaoChance * rewardMult)
-                canhaos++;
-            if (Random.Shared.NextDouble() < shotChance * rewardMult)
-                shots++;
-            if (Random.Shared.NextDouble() < penaltyChance * rewardMult)
-                penalties++;
-            if (Random.Shared.NextDouble() < instrChance * rewardMult)
-                instrParts.Add(instrPartTypes[Random.Shared.Next(instrPartTypes.Length)]);
-            if (Random.Shared.NextDouble() < equipChance * rewardMult)
-                equipPieces.Add(equipSlotTypes[Random.Shared.Next(equipSlotTypes.Length)]);
-            if (Random.Shared.NextDouble() < 0.002 * rewardMult)
-                fitab++;
-        }
-
+        // Survive mode no longer grants rewards — it's a pure challenge mode.
         return new SurviveModeLevelResult
         {
             Level = level,
@@ -600,17 +478,16 @@ public class SurviveModeService : ISurviveModeService
             SurvivalTimeSeconds = survivalTimeSeconds,
             RequiredTimeSeconds = config.TimerDurationSeconds,
             EnemiesKilled = enemiesKilled,
-            XPReward = xpReward,
-            FidelisReward = fidelisReward,
-            FinosDropped = finos,
-            CanecasDropped = canecas,
-            CigarrosDropped = cigarros,
-            CanhaosDropped = canhaos,
-            ShotsDropped = shots,
-            PenaltiesDropped = penalties,
-            InstrumentPartsDropped = instrParts,
-            EquipmentDropped = equipPieces,
-            FitabDropped = fitab
+            XPReward = 0,
+            FidelisReward = 0,
+            FinosDropped = 0,
+            CanecasDropped = 0,
+            CigarrosDropped = 0,
+            CanhaosDropped = 0,
+            ShotsDropped = 0,
+            PenaltiesDropped = 0,
+            InstrumentPartsDropped = new List<InventoryItemType>(),
+            FitabDropped = 0
         };
     }
 }

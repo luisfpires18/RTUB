@@ -166,7 +166,9 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
                 DisplayName = c.User.Nickname ?? c.User.UserName ?? "Jogador",
                 c.User.ImageUrl,
                 c.Level,
-                c.ArenaWins
+                c.ArenaWins,
+                c.ArenaLosses,
+                c.ArenaRating
             })
             .ToListAsync();
 
@@ -194,6 +196,8 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
                 DisplayName = c.DisplayName,
                 AvatarUrl = c.ImageUrl,
                 Wins = c.ArenaWins,
+                Losses = c.ArenaLosses,
+                ArenaRating = c.ArenaRating,
                 Level = c.Level,
                 HighestStage = stageProgressData.ContainsKey(c.UserId) ? stageProgressData[c.UserId] : 0,
                 HighestBossStage = bossModeProgressData.ContainsKey(c.UserId) ? bossModeProgressData[c.UserId] : 0,

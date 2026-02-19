@@ -29,10 +29,10 @@ public class InventoryService : IInventoryService
     private const double FinoHealPercentage = 0.25;
     // Caneca heals 50% of total HP
     private const double CanecaHealPercentage = 0.50;
-    // Cigarro shields next 3 incoming hits
-    private const int CigarroShieldHits = 3;
-    // Canhão boosts next 3 outgoing hits by 30%
-    private const int CanhaoDamageBoostHits = 3;
+    // Cigarro grants +10% dodge for N runs
+    private const int CigarroBuffRuns = 5;
+    // Canhão grants AOE attacks for N runs
+    private const int CanhaoBuffRuns = 5;
 
     public InventoryService(
         IInventoryRepository inventoryRepository,
@@ -130,7 +130,7 @@ public class InventoryService : IInventoryService
 
         if (character.CigarroShieldHitsRemaining > 0)
         {
-            return (false, "Já tens um escudo de cigarro ativo");
+            return (false, "Já tens um cigarro ativo");
         }
 
         // 2. Atomically consume item (prevents TOCTOU race)
@@ -141,10 +141,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.CigarroShieldHitsRemaining = CigarroShieldHits;
+        character.CigarroShieldHitsRemaining = CigarroBuffRuns;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Cigarro ativado! Próximos {CigarroShieldHits} hits não causam dano");
+        return (true, $"Cigarro ativado! +10% dodge por {CigarroBuffRuns} runs");
     }
 
     /// <summary>
@@ -168,7 +168,7 @@ public class InventoryService : IInventoryService
 
         if (character.CanhaoDamageBoostHitsRemaining > 0)
         {
-            return (false, "Já tens um boost de canhão ativo");
+            return (false, "Já tens um canhão ativo");
         }
 
         // 2. Atomically consume item (prevents TOCTOU race)
@@ -179,10 +179,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.CanhaoDamageBoostHitsRemaining = CanhaoDamageBoostHits;
+        character.CanhaoDamageBoostHitsRemaining = CanhaoBuffRuns;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Canhão ativado! Próximos {CanhaoDamageBoostHits} ataques causam +30% dano");
+        return (true, $"Canhão ativado! AOE por {CanhaoBuffRuns} runs");
     }
 
     /// <summary>
@@ -217,10 +217,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.PenaltyBuffActive = 1;
+        character.PenaltyBuffActive = 5;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, "Penalty ativado! -0.5s ataque + 50% crit até morrer");
+        return (true, "Penalty ativado! 0.5% lifesteal por 5 runs");
     }
 
     /// <summary>
@@ -279,7 +279,7 @@ public class InventoryService : IInventoryService
 
     // Shot empowers the next 5 arena battles or stage runs
     private const int ShotBuffBattles = 5;
-    private const double ShotBuffMultiplier = 1.20; // 20% boost
+    private const double ShotBuffMultiplier = 1.05; // 5% boost
 
     /// <summary>
     /// Uses a shot to empower the character's next 5 arena battles
@@ -330,7 +330,7 @@ public class InventoryService : IInventoryService
         
         await _characterRepository.UpdateAsync(character);
 
-        return (true, ShotBuffBattles, "Shot ativado! +20% stats na próxima batalha");
+        return (true, ShotBuffBattles, "Shot ativado! +5% stats por 5 runs");
     }
 
     /// <summary>
@@ -1024,8 +1024,6 @@ public class InventoryService : IInventoryService
     private async Task RecalculateEquipmentBonusesAsync(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
-        var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
-        var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
 
         // Stage-derived base enhancement level (global)
@@ -1036,19 +1034,20 @@ public class InventoryService : IInventoryService
 
         int hp = 0, power = 0, defense = 0;
 
-        // Use stored per-slot quality (randomized on equip). Fall back to average if 0 (legacy data).
-        var qualityAvg = (qualityMin + qualityMax) / 2.0;
-        double GetQ(double stored) => stored > 0 ? stored : qualityAvg;
+        // All 6 armor pieces are permanently equipped — always compute bonuses.
+        // Quality defaults to 1.0 for characters created after the refactor.
+        // Legacy characters with quality 0 fall back to 1.0.
+        double GetQ(double stored) => stored > 0 ? stored : 1.0;
 
         // Per-slot enhancement: each slot has its own bonus level
         double SlotEnhMult(EquipmentSlot slot) => 1.0 + (stageDerived + character.GetSlotBonusLevel(slot)) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
 
-        if (character.EquippedHead.HasValue) { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
-        if (character.EquippedShoulders.HasValue) { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
-        if (character.EquippedChest.HasValue) { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
-        if (character.EquippedGloves.HasValue) { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
-        if (character.EquippedLegs.HasValue) { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
-        if (character.EquippedBoots.HasValue) { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
 
         // Add weapon bonuses from forged weapons (with character level scaling)
         var weaponLevelScale = 1.0 + character.Level * _scalingConfig.StageMode.WeaponCharacterLevelScale;
@@ -1087,7 +1086,7 @@ public class InventoryService : IInventoryService
     public decimal GetWeaponUpgradeCost(int currentLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
-        return forging.WeaponUpgradeBaseCost * (decimal)Math.Pow((double)forging.WeaponUpgradeCostMultiplier, currentLevel);
+        return forging.WeaponUpgradeBaseCost + currentLevel * forging.WeaponUpgradeCostPerLevel;
     }
 
     /// <summary>
@@ -1147,6 +1146,23 @@ public class InventoryService : IInventoryService
         if (!consumed)
             return (false, "Erro ao consumir bebida");
 
+        // Check Leitão cost (mid-game currency from Boss Mode)
+        var piggies = _scalingConfig.BossMode.Piggies;
+        var leitaoCost = PiggiesCostConfig.CalculateCost(
+            weapon.Level, piggies.WeaponUpgradeStartLevel,
+            piggies.WeaponUpgradeBaseCost, piggies.WeaponUpgradeCostEveryNLevels);
+
+        if (leitaoCost > 0)
+        {
+            var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+            if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+            if (!leitaoConsumed)
+                return (false, "Erro ao consumir Leitões");
+        }
+
         user.FidelisBalance -= cost;
         weapon.Level += 1;
 
@@ -1203,12 +1219,12 @@ public class InventoryService : IInventoryService
 
     /// <summary>
     /// Gets the Fidelis cost to upgrade equipment enhancement to the next level.
-    /// Formula: baseCost * (multiplier ^ currentBonusLevel)
+    /// Formula: baseCost + currentBonusLevel * costPerLevel
     /// </summary>
     public decimal GetEquipmentUpgradeCost(int currentBonusLevel)
     {
         var forging = _scalingConfig.StageMode.Forging;
-        return Math.Round(forging.EquipmentUpgradeBaseCost * (decimal)Math.Pow((double)forging.EquipmentUpgradeCostMultiplier, currentBonusLevel), 2);
+        return Math.Round(forging.EquipmentUpgradeBaseCost + currentBonusLevel * forging.EquipmentUpgradeCostPerLevel, 2);
     }
 
     /// <summary>
@@ -1240,6 +1256,23 @@ public class InventoryService : IInventoryService
         var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
         if (!consumed)
             return (false, "Erro ao consumir bebida");
+
+        // Check Leitão cost (mid-game currency from Boss Mode)
+        var piggies = _scalingConfig.BossMode.Piggies;
+        var leitaoCost = PiggiesCostConfig.CalculateCost(
+            currentSlotLevel, piggies.EquipmentUpgradeStartLevel,
+            piggies.EquipmentUpgradeBaseCost, piggies.EquipmentUpgradeCostEveryNLevels);
+
+        if (leitaoCost > 0)
+        {
+            var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+            if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                return (false, $"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+            var leitaoConsumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+            if (!leitaoConsumed)
+                return (false, "Erro ao consumir Leitões");
+        }
 
         user.FidelisBalance -= cost;
         character.SetSlotBonusLevel(slot, currentSlotLevel + 1);

@@ -10,11 +10,5 @@ public enum ImprovementType
     EnergyAmount = 0,
 
     /// <summary>Increases energy regeneration speed</summary>
-    EnergyRegen = 1,
-
-    /// <summary>Increases the stat bonus given by the Shot buff</summary>
-    ShotBuffBonus = 2,
-
-    /// <summary>Increases Fidelis earned from all sources</summary>
-    FidelisEarned = 3
+    EnergyRegen = 1
 }

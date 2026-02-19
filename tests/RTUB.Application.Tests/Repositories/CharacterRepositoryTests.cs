@@ -44,7 +44,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Level up to 5
         for (int i = 1; i < 5; i++)
         {
-            playerCharacter.AddXP(playerCharacter.Level * 100);
+            playerCharacter.AddXP(Character.XpForLevel(playerCharacter.Level));
         }
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
@@ -65,7 +65,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
             // Level up to target level
             for (int i = 1; i < level; i++)
             {
-                character.AddXP(character.Level * 100);
+                character.AddXP(Character.XpForLevel(character.Level));
             }
             await _context.Characters.AddAsync(character);
             opponents.Add(character);
@@ -102,7 +102,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Level up to 5
         for (int i = 1; i < 5; i++)
         {
-            playerCharacter.AddXP(playerCharacter.Level * 100);
+            playerCharacter.AddXP(Character.XpForLevel(playerCharacter.Level));
         }
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
@@ -121,7 +121,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
             // Level up to target level
             for (int i = 1; i < level; i++)
             {
-                character.AddXP(character.Level * 100);
+                character.AddXP(Character.XpForLevel(character.Level));
             }
             await _context.Characters.AddAsync(character);
         }
@@ -154,7 +154,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
         // Level up to 10
         for (int i = 1; i < 10; i++)
         {
-            playerCharacter.AddXP(playerCharacter.Level * 100);
+            playerCharacter.AddXP(Character.XpForLevel(playerCharacter.Level));
         }
         await _context.Characters.AddAsync(playerCharacter);
         await _context.SaveChangesAsync();
@@ -173,7 +173,7 @@ public class CharacterRepositoryTests : IClassFixture<DatabaseFixture>, IDisposa
             // Level up to target level
             for (int i = 1; i < level; i++)
             {
-                character.AddXP(character.Level * 100);
+                character.AddXP(Character.XpForLevel(character.Level));
             }
             await _context.Characters.AddAsync(character);
         }

@@ -29,249 +29,128 @@
 @inject ICombatActionService CombatActionService
 @inject IInventoryService InventoryService
 @inject IInventoryRepository InventoryRepository
+@inject IItemTypeConfigService ItemTypeConfigService
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
 
-<div class="stage-page container-fluid">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center gap-3">
-            <!-- Left: Back button -->
-            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
-                <i class="bi bi-arrow-left"></i>
-            </button>
-            
-            <!-- Center: Title (takes remaining space + centers text) -->
-            <div class="flex-grow-1 text-center">
-                <h1 class="mb-2"><i class="bi bi-trophy"></i> Stage Mode</h1>
-            </div>
-            
-            <!-- Right: Invisible spacer (maintains symmetry) -->
-            <div style="width: 48px;"></div>
-        </div>
-    </div>
-
+<div class="stage-page">
     @if (loading)
     {
-        <LoadingSpinner />
+        <div class="stage-loading">
+            <LoadingSpinner />
+        </div>
     }
     else if (character == null)
     {
-        <EmptyState Title="Personagem não encontrado"
-                    Message="Ocorreu um erro ao carregar o teu personagem."
-                    Icon="bi-person-x" />
+        <div class="stage-loading">
+            <EmptyState Title="Personagem não encontrado"
+                        Message="Ocorreu um erro ao carregar o teu personagem."
+                        Icon="bi-person-x" />
+        </div>
     }
     else if (errorMessage != string.Empty)
     {
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        <div class="stage-loading">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+            </div>
         </div>
     }
     else
     {
-        <!-- Battle Screen - Always show container when animating to preserve PixiJS game -->
         @if (showBattleAnimation)
         {
-            <div class="card mb-4 battle-card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-sword me-2"></i>
+            <!-- ═══ Fullscreen Battle Screen (WOO-inspired) ═══ -->
+            <div class="battle-screen">
+                <!-- Canvas fills the entire battle area -->
+                <div id="phaserBattleContainer" class="battle-canvas"></div>
+
+                <!-- ── TOP BAR: Back + Floor (center) + Rewards + Controls ── -->
+                <div class="battle-top-bar">
+                    <!-- Left: Back button -->
+                    <button class="battle-back-btn" @onclick="GoBack" title="Voltar">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    <!-- Center: Floor indicator (absolutely positioned) -->
+                    <div class="battle-floor-indicator">
+                        <span class="floor-label">FLOOR</span>
                         @if (currentBattle != null)
                         {
-                            <text>Stage @currentBattle.StageNumber</text>
+                            <span class="floor-num">@currentBattle.StageNumber</span>
                         }
                         else
                         {
-                            <text>A carregar batalha...</text>
+                            <span class="floor-num">—</span>
                         }
-                    </h5>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(1.0)">
-                            1x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(3.0)">
-                            3x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 5.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(5.0)">
-                            5x
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
+                    </div>
+
+                    <!-- Left-middle: Compact rewards tracker -->
+                    @if (stagesCleared > 0)
+                    {
+                        <div class="battle-rewards-strip">
+                            <span class="reward-tag reward-tag--xp">
+                                <i class="bi bi-star-fill"></i> @Fmt(totalXPEarned) XP
+                            </span>
+                            <span class="reward-tag reward-tag--fidelis">
+                                <i class="bi bi-coin"></i> @Fmt(totalFidelisEarned) Fidelis
+                            </span>
+                            @{
+                                var totalConsumablesDropped = totalFinosDropped + totalCanecasDropped + totalCigarrosDropped + totalShotsDropped + totalCanhaosDropped + totalPenaltiesDropped;
+                            }
+                            @if (totalConsumablesDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalConsumablesDropped) Consumíveis
+                                </span>
+                            }
+                            @if (totalInstrumentPartsDropped.Count > 0)
+                            {
+                                <span class="reward-tag reward-tag--instrument">
+                                    <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Parts
+                                </span>
+                            }
+
+                        </div>
+                    }
+                    
+                    <!-- Controls (right side) -->
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="Acabar Stage">
-                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        <button class="battle-ctrl-btn battle-ctrl-btn--stop" @onclick="EndRunEarly" title="Acabar">
+                            <i class="bi bi-stop-fill"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer"></div>
-                </div>
-            </div>
 
-            <!-- Active Buff Indicators -->
-            @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
-            {
-                <div class="d-flex gap-2 mb-3 flex-wrap">
-                    @if (character.ShotBuffBattlesRemaining > 0)
-                    {
-                        <span class="badge fs-6" style="background-color: #7b1fa2;">
-                            <i class="bi bi-cup me-1"></i>Shot +20% (@character.ShotBuffBattlesRemaining batalhas)
-                        </span>
-                    }
-                    @if (character.CigarroShieldHitsRemaining > 0)
-                    {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-shield-fill me-1"></i>@character.CigarroShieldHitsRemaining/3 ataques por bloquear
-                        </span>
-                    }
-                    @if (character.CanhaoDamageBoostHitsRemaining > 0)
-                    {
-                        <span class="badge bg-danger fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
-                        </span>
-                    }
-                    @if (character.PenaltyBuffActive > 0)
-                    {
-                        <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty (0.5s + 100% Crit)
-                        </span>
-                    }
-                </div>
-            }
-
-            <!-- Accumulated Loot Tracker - Separate card on mobile for better visibility -->
-            @if (stagesCleared > 0)
-            {
-                <div class="card mb-4 rewards-card">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>@Fmt(stagesCleared) Stages
-                            </span>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill me-1"></i>+@Fmt(totalXPEarned) XP
-                            </span>
-                            <span class="badge bg-info text-dark">
-                                <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
-                            </span>
-                            @if (totalFinosDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalFinosDropped) Fino
-                                </span>
-                            }
-                            @if (totalCanecasDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalCanecasDropped) Caneca
-                                </span>
-                            }
-                            @if (totalCigarrosDropped > 0)
-                            {
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-cloud me-1"></i>+@Fmt(totalCigarrosDropped) Cigarro
-                                </span>
-                            }
-                            @if (totalCanhaosDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-bullseye me-1"></i>+@Fmt(totalCanhaosDropped) Canhão
-                                </span>
-                            }
-                            @if (totalShotsDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
-                                </span>
-                            }
-                            @if (totalPenaltiesDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-lightning-charge-fill me-1"></i>+@Fmt(totalPenaltiesDropped) Penalty
-                                </span>
-                            }
-                            @if (totalFitabDropped > 0)
-                            {
-                                <span class="badge text-white" style="background-color: #e040fb;">
-                                    <i class="bi bi-lightning-fill me-1"></i>+@totalFitabDropped FITAB
-                                </span>
-                            }
-                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
-                            {
-                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
-                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
-                                var imageUrl = instrumentPartImages.GetValueOrDefault(partType);
-                                <span class="badge bg-purple text-white instrument-drop-badge">
-                                    @if (!string.IsNullOrEmpty(imageUrl))
-                                    {
-                                        <img src="@CacheBuster.Bust(imageUrl)" alt="@instrumentName" class="instrument-drop-icon me-1" />
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-music-note me-1"></i>
-                                    }
-                                    +@qty @instrumentName
-                                </span>
-                            }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var equipSprite = GetEquipmentSpritePath(slot);
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <span class="badge bg-equipment text-white equipment-drop-badge">
-                                        @if (!string.IsNullOrEmpty(equipSprite))
-                                        {
-                                            <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon me-1" />
-                                        }
-                                        else
-                                        {
-                                            <i class="bi @fallbackIcon me-1"></i>
-                                        }
-                                        +1 @equipName
-                                    </span>
-                                }
-                            }
-                        </div>
-                    </div>
-                </div>
-            }
-
-            <!-- Enemy Stats Card -->
-            @if (currentEnemyStats.Count > 0)
-            {
-                <div class="card mb-4 enemy-stats-card">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-person-fill-exclamation me-2"></i>Stats dos Inimigos:</h6>
-                        @foreach (var enemy in currentEnemyStats)
+                <!-- ── Active Buff Indicators (below top bar) ── -->
+                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+                {
+                    <div class="battle-buffs-strip">
+                        @if (character.ShotBuffBattlesRemaining > 0)
                         {
-                            <div class="mb-2">
-                                <small class="fw-bold d-block mb-1">@enemy.Name</small>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="badge bg-danger">
-                                        <i class="bi bi-heart-fill me-1"></i>@Fmt(enemy.HP) HP
-                                    </span>
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-lightning-fill me-1"></i>@Fmt(enemy.Power) Poder
-                                    </span>
-                                    <span class="badge bg-info text-dark">
-                                        <i class="bi bi-shield-fill me-1"></i>@Fmt(enemy.Defense) Defesa
-                                    </span>
-                                    <span class="badge bg-secondary">
-                                        <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
-                                    </span>
-                                </div>
-                            </div>
+                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>@character.ShotBuffBattlesRemaining</span>
+                        }
+                        @if (character.CigarroShieldHitsRemaining > 0)
+                        {
+                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>@character.CigarroShieldHitsRemaining corridas com esquiva</span>
+                        }
+                        @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                        {
+                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
+                        }
+                        @if (character.PenaltyBuffActive > 0)
+                        {
+                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i></span>
                         }
                     </div>
-                </div>
-            }
+                }
+            </div>
         }
 
         @if (showDefeatSummary)
@@ -279,15 +158,15 @@
             <div class="defeat-overlay">
                 <div class="defeat-panel">
                     <div class="defeat-banner">
-                        <span>STAGE LIMPA</span>
+                        <span>STAGE END</span>
                     </div>
-                    <div class="defeat-stage">Stage @defeatedAtStage</div>
+                    <div class="defeat-stage">Floor @defeatedAtStage</div>
                     @if (stagesCleared > 0)
                     {
                         <div class="defeat-rewards">
                             <div class="defeat-reward-row">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>@Fmt(stagesCleared) Stages</span>
+                                <span>@Fmt(stagesCleared) Floors</span>
                             </div>
                             <div class="defeat-reward-row">
                                 <i class="bi bi-star-fill text-warning"></i>
@@ -363,36 +242,20 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var equipSprite = GetEquipmentSpritePath(slot);
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row equipment-reward">
-                                        @if (!string.IsNullOrEmpty(equipSprite))
-                                        {
-                                            <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon" />
-                                        }
-                                        else
-                                        {
-                                            <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        }
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
-                            }
                         </div>
                     }
                     else
                     {
-                        <p class="defeat-no-rewards">Nenhuma stage completada.</p>
+                        <p class="defeat-no-rewards">Nenhum floor completado.</p>
                     }
-                    <button class="defeat-btn" @onclick="DefeatGoBack">
-                        IR MY TUNO
-                    </button>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="defeat-btn" @onclick="RetryFromCheckpoint">
+                            <i class="bi bi-arrow-clockwise me-1"></i>RECOMEÇAR
+                        </button>
+                        <button class="defeat-btn" @onclick="DefeatGoBack">
+                            IR MY TUNO
+                        </button>
+                    </div>
                 </div>
             </div>
         }
@@ -431,15 +294,14 @@
     private int totalFitabDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
     private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
-    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
     private long? runStartingHp;
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
-    private int runStartingCigarroShield = 0;
-    private int runStartingCanhaoBoost = 0;
+    private int runStartingCigarroBuff = 0;
+    private int runStartingCanhaoBuff = 0;
     private int runStartingPenaltyBuff = 0;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
@@ -449,6 +311,7 @@
     private bool showDefeatSummary = false;
     private int defeatedAtStage = 0;
     private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
+    private int? retryStartStage; // The stage the user started the run from (for RECOMEÇAR)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -475,6 +338,9 @@
     // Consumable cooldowns (persist across stage transitions within a run)
     // Key = consumable type ("fino", "caneca"), Value = remaining cooldown in seconds
     private Dictionary<string, double> _consumableCooldowns = new();
+
+    // Consumable image URLs from ItemTypeConfig (Cloudflare)
+    private Dictionary<string, string> _consumableImages = new();
 
     // Spell cooldowns preserved across stage transitions (copied from old session before destroy)
     private Dictionary<string, double>? _preservedSpellCooldowns;
@@ -594,8 +460,8 @@
                 runStartingHp = character.CurrentHP;
                 runStartingStage = stageProgress.CurrentStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
-                runStartingCigarroShield = character.CigarroShieldHitsRemaining;
-                runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+                runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
+                runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
                 // Reset cooldowns for the new run
@@ -618,6 +484,22 @@
                 {
                     Logger.LogWarning(ex, "Failed to load consumable quantities for stage run");
                 }
+
+                // Load consumable image URLs from config (Cloudflare CDN)
+                try
+                {
+                    if (_consumableImages.Count == 0)
+                    {
+                        var allConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
+                        _consumableImages = allConfigs
+                            .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
+                            .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load consumable images for stage run");
+                }
             }
             
             // Only update UI if we weren't already animating (first battle)
@@ -633,16 +515,16 @@
             // The deterministic engine sets character.CurrentHP to null on predicted loss
             // and consumes cigarro/canhao charges — but the interactive session drives real combat.
             var preBattleHp = character.CurrentHP;
-            var preBattleCigarroShield = character.CigarroShieldHitsRemaining;
-            var preBattleCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+            var preBattleCigarroBuff = character.CigarroShieldHitsRemaining;
+            var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
 
             // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
-            character.CigarroShieldHitsRemaining = preBattleCigarroShield;
-            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBoost;
+            character.CigarroShieldHitsRemaining = preBattleCigarroBuff;
+            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks + spell clicks
@@ -674,8 +556,6 @@
             Character sessionChar = character;
             if (character.ShotBuffBattlesRemaining > 0)
                 sessionChar = Character.CreateShotBuffedCopy(character);
-            if (character.PenaltyBuffActive > 0)
-                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
             _combatSession = CombatActionService.CreateSession(
                 sessionChar,
                 enemyStates,
@@ -707,6 +587,8 @@
             {
                 // Save the pre-run HP before clearing run state
                 defeatRestoreHp = runStartingHp;
+                // Save starting stage for RECOMEÇAR before clearing
+                retryStartStage = runStartingStage ?? currentStageNumber;
                 // Mark run as finished IMMEDIATELY
                 runInProgress = false;
                 runStartingHp = null;
@@ -798,12 +680,19 @@
                             Shot = _shotQty,
                             Penalty = _penaltyQty
                         },
+                        ConsumableImages = new
+                        {
+                            Fino = _consumableImages.GetValueOrDefault("Fino"),
+                            Caneca = _consumableImages.GetValueOrDefault("Caneca"),
+                            Cigarro = _consumableImages.GetValueOrDefault("Cigarro"),
+                            Canhao = _consumableImages.GetValueOrDefault("Canhao")
+                        },
                         ConsumableCooldowns = new Dictionary<string, double>(_combatSession.ConsumableCooldowns),
                         SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),
                         ActiveBuffs = new
                         {
-                            Cigarro = _combatSession.CigarroShieldRemaining > 0,
-                            Canhao = _combatSession.CanhaoBoostRemaining > 0,
+                            Cigarro = _combatSession.HasCigarroBuff,
+                            Canhao = _combatSession.HasCanhaoBuff,
                             Shot = _combatSession.HasShotBuff,
                             Penalty = _combatSession.HasPenaltyBuff
                         }
@@ -1091,9 +980,7 @@
             character.CurrentHP = _combatSession.Player.CurrentHP > 0
                 ? _combatSession.Player.CurrentHP
                 : null;
-            // Update buff remaining counts from session
-            character.CigarroShieldHitsRemaining = _combatSession.CigarroShieldRemaining;
-            character.CanhaoDamageBoostHitsRemaining = _combatSession.CanhaoBoostRemaining;
+            // Buff remaining counts are now per-run (not per-hit), no session sync needed
         }
 
         if (didWin && currentBattle != null)
@@ -1124,15 +1011,6 @@
                     {
                         await LoadInstrumentPartImageAsync(partType);
                     }
-                }
-
-                // Accumulate equipment drops
-                foreach (var equipType in currentBattle.EquipmentDropped)
-                {
-                    if (totalEquipmentDropped.ContainsKey(equipType))
-                        totalEquipmentDropped[equipType]++;
-                    else
-                        totalEquipmentDropped[equipType] = 1;
                 }
 
                 stagesCleared++;
@@ -1168,8 +1046,7 @@
                 {
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
                 }
                 catch (Exception ex)
                 {
@@ -1178,6 +1055,8 @@
             }
 
             // Mark run as complete (may already be false from FightStageEnemy)
+            // Save the starting stage BEFORE clearing run state — used by RECOMEÇAR
+            retryStartStage ??= runStartingStage ?? currentStageNumber;
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
@@ -1277,7 +1156,7 @@
                 // Re-check after acquiring lock (fight may have finished and cleared runInProgress)
                 if (runInProgress && runStartingHp.HasValue && runStartingStage.HasValue)
                 {
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
                 }
             }
             catch (Exception ex)
@@ -1309,7 +1188,6 @@
         totalPenaltiesDropped = 0;
         totalFitabDropped = 0;
         totalInstrumentPartsDropped.Clear();
-        totalEquipmentDropped.Clear();
         stagesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -1317,8 +1195,51 @@
     private void DefeatGoBack()
     {
         showDefeatSummary = false;
+        retryStartStage = null;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
+    }
+
+    /// <summary>
+    /// Retry from the last checkpoint — reloads data and auto-starts a new run.
+    /// </summary>
+    private async Task RetryFromCheckpoint()
+    {
+        showDefeatSummary = false;
+        ResetRunTotals();
+        battleAutoStarted = false;
+        showBattleAnimation = false;
+        fighting = false;
+        _endingRun = false;
+        currentBattle = null;
+        _combatSession = null;
+
+        // Destroy JS scene so nextBattle creates a fresh one on the new DOM element
+        try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroySceneOnly"); }
+        catch { /* scene may already be gone */ }
+
+        // Restore stage to the checkpoint the user STARTED from (not the latest checkpoint)
+        if (retryStartStage.HasValue && currentUser != null)
+        {
+            await StageService.SetStartStageAsync(currentUser.Id, retryStartStage.Value);
+        }
+        retryStartStage = null;
+
+        // Reload character + stage progress from DB
+        await LoadDataAsync();
+        StateHasChanged();
+
+        // Auto-start battle (same as first render)
+        if (character != null && hasRendered)
+        {
+            battleAutoStarted = true;
+            await Task.Delay(150);
+            if (!_disposed)
+            {
+                try { await FightStageEnemy(); }
+                catch (Exception ex) { Logger.LogError(ex, "Retry auto-start failed"); }
+            }
+        }
     }
 
     private void StartWatchdog()
@@ -1391,7 +1312,6 @@
                         await StageService.ApplyRunRewardsAsync(
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null,
                             expirePenaltyBuff: false);
                     }
                     catch (Exception ex)
@@ -1402,7 +1322,7 @@
                 else if (character != null && runStartingHp.HasValue)
                 {
                     // No stages cleared — restore HP to pre-run value
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
                 }
 
                 // Clear run state
@@ -1524,8 +1444,7 @@
             {
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
             }
             catch (Exception)
             {

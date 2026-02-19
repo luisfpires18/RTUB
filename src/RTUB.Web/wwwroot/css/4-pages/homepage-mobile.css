@@ -1,0 +1,46 @@
+/* ==========================================
+   Homepage – Mobile Layout Overrides
+   ==========================================
+   Mobile order (≤767px):
+     1. Navbar (MainLayout)
+     2. Logo
+     3. Content area
+     4. Social Media (2×2 grid)
+     5. Footer
+     6. Fixed bottom nav (portal buttons)
+   Carousel & desktop portal buttons hidden on mobile.
+   ========================================== */
+
+@media (max-width: 767px) {
+    /* Hide the slideshow carousel on mobile */
+    .homepage-carousel {
+        display: none !important;
+    }
+
+    /* Hide the desktop inline portal-navigation buttons on mobile */
+    .homepage-portal-nav-desktop {
+        display: none !important;
+    }
+
+    /* Add bottom padding so content isn't hidden behind fixed bottom nav */
+    .homepage-content {
+        padding-bottom: 4.5rem;
+    }
+
+    /* Tighten spacing for mobile */
+    .homepage-logo {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .homepage-social {
+        margin-bottom: 1.5rem !important;
+    }
+
+    /* Full-width container on homepage for mobile */
+    body:has(.homepage-content) .content-main .container-xxl {
+        max-width: 100%;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0;
+    }
+}

@@ -327,12 +327,15 @@
         }
 
         async initPixi() {
+            const containerW = this.container.clientWidth || DEFAULT_WIDTH;
+            const containerH = this.container.clientHeight || DEFAULT_HEIGHT;
             this.app = new PIXI.Application();
             await this.app.init({
-                width: DEFAULT_WIDTH,
-                height: DEFAULT_HEIGHT,
+                width: containerW,
+                height: containerH,
                 backgroundColor: 0x1a1a1a,
-                antialias: true
+                antialias: true,
+                resizeTo: this.container
             });
 
             this.container.appendChild(this.app.canvas);
@@ -427,16 +430,35 @@
         }
 
         createCharacters(width, height) {
-            const groundOffset = 60;
-            const attackerX = width * 0.25;
-            const defenderX = width * 0.75;
-            const characterY = height - groundOffset;
+            // Mobile portrait: player bottom-center, enemy top-center
+            this.isMobile = width <= height || width < 500;
+
+            // Reserve space at bottom for interactive controls
+            const bottomBarReserve = this.interactiveMode ? Math.min(140, height * 0.15) : 0;
+            const groundOffset = 60 + bottomBarReserve;
+
+            let attackerX, attackerY, defenderX, defenderY;
+            if (this.isMobile) {
+                // Mobile: player at bottom center, enemy at top center
+                attackerX = width * 0.5;
+                attackerY = height - groundOffset;
+                defenderX = width * 0.5;
+                defenderY = height * 0.3;
+            } else {
+                // Desktop: player left, enemy right
+                attackerX = width * 0.25;
+                attackerY = height - groundOffset;
+                defenderX = width * 0.75;
+                defenderY = height - groundOffset;
+            }
+
+            const maxSpriteHeight = this.isMobile ? height * 0.25 : height * 0.45;
 
             const attackerSprite = PIXI.Sprite.from('attackerSprite');
             attackerSprite.anchor.set(0.5, 1);
             attackerSprite.x = attackerX;
-            attackerSprite.y = characterY;
-            const attackerScale = this.getSpriteScale(attackerSprite, height);
+            attackerSprite.y = attackerY;
+            const attackerScale = this.getSpriteScale(attackerSprite, maxSpriteHeight);
             attackerSprite.scale.set(attackerScale);
             
             // Add blue aura BEFORE sprite so it renders behind
@@ -447,7 +469,7 @@
                 this.attackerAura.circle(0, 0, auraSize);
                 this.attackerAura.fill({ color: 0x44bbff, alpha: 0.35 });
                 this.attackerAura.x = attackerX;
-                this.attackerAura.y = characterY - attackerSprite.height / 2;
+                this.attackerAura.y = attackerY - attackerSprite.height / 2;
                 this.stage.addChild(this.attackerAura);
             }
             
@@ -456,14 +478,14 @@
             const defenderSprite = PIXI.Sprite.from('defenderSprite');
             defenderSprite.anchor.set(0.5, 1);
             defenderSprite.x = defenderX;
-            defenderSprite.y = characterY;
-            const defenderScale = this.getSpriteScale(defenderSprite, height);
+            defenderSprite.y = defenderY;
+            const defenderScale = this.getSpriteScale(defenderSprite, maxSpriteHeight);
             defenderSprite.scale.set(defenderScale);
             this.stage.addChild(defenderSprite);
 
             this.characterSprites = {
-                attacker: { sprite: attackerSprite, originX: attackerX, originY: characterY },
-                defender: { sprite: defenderSprite, originX: defenderX, originY: characterY }
+                attacker: { sprite: attackerSprite, originX: attackerX, originY: attackerY },
+                defender: { sprite: defenderSprite, originX: defenderX, originY: defenderY }
             };
 
             this.startIdleAnimation(attackerSprite);
@@ -480,7 +502,7 @@
             });
             this.nameTexts.attacker.anchor.set(0.5, 0);
             this.nameTexts.attacker.x = attackerX;
-            this.nameTexts.attacker.y = characterY - attackerSprite.height * attackerScale - 20;
+            this.nameTexts.attacker.y = attackerY - attackerSprite.height * attackerScale - 20;
             this.stage.addChild(this.nameTexts.attacker);
 
             this.nameTexts.defender = new PIXI.Text({
@@ -494,7 +516,7 @@
             });
             this.nameTexts.defender.anchor.set(0.5, 0);
             this.nameTexts.defender.x = defenderX;
-            this.nameTexts.defender.y = characterY - defenderSprite.height * defenderScale - 20;
+            this.nameTexts.defender.y = defenderY - defenderSprite.height * defenderScale - 20;
             this.stage.addChild(this.nameTexts.defender);
         }
 
@@ -508,8 +530,7 @@
             };
         }
 
-        getSpriteScale(sprite, height) {
-            const maxSpriteHeight = height * 0.45;
+        getSpriteScale(sprite, maxSpriteHeight) {
             if (!sprite.texture || !sprite.texture.height) {
                 return 0.6;
             }
@@ -553,9 +574,15 @@
         }
 
         drawHpBars() {
-            const barWidth = 200;
-            const barHeight = 24;
-            const paddingTop = 30;
+            const width = this.app.screen.width;
+            const height = this.app.screen.height;
+            const isMobile = width < 768;
+            const barWidth = isMobile ? Math.min(180, width * 0.35) : Math.min(400, width * 0.40);
+            const barHeight = isMobile ? Math.min(20, height * 0.03) : Math.min(36, height * 0.055);
+            const topBarHeight = 54;
+            const paddingTop = topBarHeight + 8;
+            const paddingLeft = Math.min(16, width * 0.03);
+            const radius = barHeight / 2;
 
             if (!this.hpGraphics) {
                 this.hpGraphics = new PIXI.Graphics();
@@ -567,56 +594,75 @@
                 const hpPercent = maxHp > 0 ? currentHp / maxHp : 0;
                 const fillColor = hpPercent > 0.5 ? 0x4caf50 : hpPercent > 0.25 ? 0xff9800 : 0xf44336;
 
-                this.hpGraphics.rect(x, paddingTop, barWidth, barHeight);
-                this.hpGraphics.fill(0x333333);
-                this.hpGraphics.rect(x, paddingTop, barWidth * hpPercent, barHeight);
-                this.hpGraphics.fill(fillColor);
-                this.hpGraphics.rect(x, paddingTop, barWidth, barHeight);
-                this.hpGraphics.stroke({ width: 2, color: 0xffffff });
+                // Dark background
+                this.hpGraphics.roundRect(x, paddingTop, barWidth, barHeight, radius);
+                this.hpGraphics.fill({ color: 0x1a1a1a, alpha: 0.85 });
+                // Fill
+                if (hpPercent > 0) {
+                    this.hpGraphics.roundRect(x, paddingTop, barWidth * hpPercent, barHeight, radius);
+                    this.hpGraphics.fill(fillColor);
+                }
+                // Border
+                this.hpGraphics.roundRect(x, paddingTop, barWidth, barHeight, radius);
+                this.hpGraphics.stroke({ width: 1.5, color: 0x66bb6a });
             };
 
-            drawBar(50, this.currentHp.attacker, this.maxHp.attacker);
-            drawBar(this.app.screen.width - 50 - barWidth, this.currentHp.defender, this.maxHp.defender);
+            drawBar(paddingLeft, this.currentHp.attacker, this.maxHp.attacker);
+            drawBar(width - paddingLeft - barWidth, this.currentHp.defender, this.maxHp.defender);
 
+            const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
             if (!this.hpTexts.attacker) {
                 this.hpTexts.attacker = new PIXI.Text({
                     text: '',
                     style: {
-                        fontFamily: 'Arial',
-                        fontSize: 14,
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: hpFontSize,
                         fontWeight: 'bold',
-                        fill: 0xffffff
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
                     }
                 });
-                this.hpTexts.attacker.anchor.set(0.5, 0);
-                this.hpTexts.attacker.x = 50 + barWidth / 2;
-                this.hpTexts.attacker.y = paddingTop + 4;
+                this.hpTexts.attacker.anchor.set(0.5, 0.5);
                 this.stage.addChild(this.hpTexts.attacker);
             }
+            this.hpTexts.attacker.x = paddingLeft + barWidth / 2;
+            this.hpTexts.attacker.y = paddingTop + barHeight / 2;
+
             if (!this.hpTexts.defender) {
                 this.hpTexts.defender = new PIXI.Text({
                     text: '',
                     style: {
-                        fontFamily: 'Arial',
-                        fontSize: 14,
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: hpFontSize,
                         fontWeight: 'bold',
-                        fill: 0xffffff
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
                     }
                 });
-                this.hpTexts.defender.anchor.set(0.5, 0);
-                this.hpTexts.defender.x = this.app.screen.width - 50 - barWidth / 2;
-                this.hpTexts.defender.y = paddingTop + 4;
+                this.hpTexts.defender.anchor.set(0.5, 0.5);
                 this.stage.addChild(this.hpTexts.defender);
             }
+            this.hpTexts.defender.x = width - paddingLeft - barWidth / 2;
+            this.hpTexts.defender.y = paddingTop + barHeight / 2;
 
             this.hpTexts.attacker.text = `${formatNum(this.currentHp.attacker)} / ${formatNum(this.maxHp.attacker)} HP`;
             this.hpTexts.defender.text = `${formatNum(this.currentHp.defender)} / ${formatNum(this.maxHp.defender)} HP`;
+
+            // Store layout for speed bars
+            this._hpBarLayout = { barWidth, barHeight, paddingTop, paddingLeft, isMobile };
         }
 
         drawSpeedBars() {
-            const barWidth = 200;
-            const barHeight = 8;
-            const paddingTop = 58; // Below HP bar
+            const layout = this._hpBarLayout || {};
+            const width = this.app.screen.width;
+            const barWidth = layout.barWidth || 200;
+            const hpBarHeight = layout.barHeight || 24;
+            const hpPaddingTop = layout.paddingTop || 62;
+            const paddingLeft = layout.paddingLeft || 16;
+            const isMobile = layout.isMobile || false;
+            const barHeight = isMobile ? Math.min(8, 8) : Math.min(18, 18);
+            const paddingTop = hpPaddingTop + hpBarHeight + 3;
+            const radius = barHeight / 2;
 
             if (!this.speedBarGraphics) {
                 this.speedBarGraphics = new PIXI.Graphics();
@@ -625,27 +671,50 @@
             this.speedBarGraphics.clear();
 
             const drawSpeedBar = (x, timerMs, actionTimeMs) => {
-                // Speed bar fills from right to left as timer drains
                 const speedPercent = actionTimeMs > 0 ? timerMs / actionTimeMs : 0;
                 
                 // Background
-                this.speedBarGraphics.rect(x, paddingTop, barWidth, barHeight);
-                this.speedBarGraphics.fill(0x222222);
+                this.speedBarGraphics.roundRect(x, paddingTop, barWidth, barHeight, radius);
+                this.speedBarGraphics.fill({ color: 0x111111, alpha: 0.85 });
                 
-                // Fill - cyan/blue color for speed
-                this.speedBarGraphics.rect(x, paddingTop, barWidth * speedPercent, barHeight);
-                this.speedBarGraphics.fill(0x00bcd4);
-                
-                // Border
-                this.speedBarGraphics.rect(x, paddingTop, barWidth, barHeight);
-                this.speedBarGraphics.stroke({ width: 1, color: 0x666666 });
+                // Fill - cyan
+                if (speedPercent > 0) {
+                    this.speedBarGraphics.roundRect(x, paddingTop, barWidth * speedPercent, barHeight, radius);
+                    this.speedBarGraphics.fill(0x00bcd4);
+                }
             };
 
             const attackerActionTimeMs = this.actionTime.attacker * 1000;
             const defenderActionTimeMs = this.actionTime.defender * 1000;
 
-            drawSpeedBar(50, this.speedBarTimers.attacker, attackerActionTimeMs);
-            drawSpeedBar(this.app.screen.width - 50 - barWidth, this.speedBarTimers.defender, defenderActionTimeMs);
+            drawSpeedBar(paddingLeft, this.speedBarTimers.attacker, attackerActionTimeMs);
+            drawSpeedBar(width - paddingLeft - barWidth, this.speedBarTimers.defender, defenderActionTimeMs);
+
+            // Speed text (inside bars, white text with black stroke — like HP)
+            const speedFontSize = isMobile ? Math.min(7, barHeight * 0.8) : Math.min(14, barHeight * 0.8);
+            if (!this._speedTexts) {
+                const mkText = () => new PIXI.Text({
+                    text: '',
+                    style: {
+                        fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
+                    }
+                });
+                this._speedTexts = { attacker: mkText(), defender: mkText() };
+                this._speedTexts.attacker.anchor.set(0.5, 0.5);
+                this._speedTexts.defender.anchor.set(0.5, 0.5);
+                this.stage.addChild(this._speedTexts.attacker);
+                this.stage.addChild(this._speedTexts.defender);
+            }
+            const atkSec = Math.max(0, this.speedBarTimers.attacker / 1000).toFixed(1);
+            const defSec = Math.max(0, this.speedBarTimers.defender / 1000).toFixed(1);
+            this._speedTexts.attacker.text = `${atkSec}s`;
+            this._speedTexts.attacker.x = paddingLeft + barWidth / 2;
+            this._speedTexts.attacker.y = paddingTop + barHeight / 2;
+            this._speedTexts.defender.text = `${defSec}s`;
+            this._speedTexts.defender.x = width - paddingLeft - barWidth / 2;
+            this._speedTexts.defender.y = paddingTop + barHeight / 2;
         }
 
         // ── Interactive Mode Methods (Blade Crafter spell system) ──────────
@@ -685,8 +754,9 @@
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = 52;
-            const btnGap = 10;
+            const isMobile = width < 768;
+            const btnSize = isMobile ? 52 : 68;
+            const btnGap = isMobile ? 10 : 14;
             const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;
             const barY = height - btnSize - 8;
@@ -721,7 +791,7 @@
 
                 const iconText = new PIXI.Text({
                     text: icon,
-                    style: { fontSize: 22, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                    style: { fontSize: isMobile ? 22 : 28, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
                 });
                 iconText.anchor.set(0.5);
                 iconText.x = btnSize / 2;
@@ -730,7 +800,7 @@
 
                 const nameText = new PIXI.Text({
                     text: name.length > 6 ? name.substring(0, 6) : name,
-                    style: { fontSize: 8, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                    style: { fontSize: isMobile ? 8 : 10, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
                 });
                 nameText.anchor.set(0.5);
                 nameText.x = btnSize / 2;

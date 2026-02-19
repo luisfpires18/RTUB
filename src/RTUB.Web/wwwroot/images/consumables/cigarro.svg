@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Cigarro (shield/smoke) -->
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#64b5f6"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+    <linearGradient id="shieldInner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#90caf9"/>
+      <stop offset="100%" stop-color="#42a5f5"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield body -->
+  <path d="M32 6 L52 16 L52 34 Q52 52 32 58 Q12 52 12 34 L12 16 Z" fill="url(#shieldGrad)" stroke="#0d47a1" stroke-width="1.5"/>
+  <!-- Inner shield detail -->
+  <path d="M32 12 L46 20 L46 32 Q46 46 32 52 Q18 46 18 32 L18 20 Z" fill="url(#shieldInner)" opacity="0.5"/>
+  <!-- Shield cross/emblem -->
+  <line x1="32" y1="20" x2="32" y2="46" stroke="#fff" stroke-width="2.5" opacity="0.6"/>
+  <line x1="22" y1="30" x2="42" y2="30" stroke="#fff" stroke-width="2.5" opacity="0.6"/>
+  <!-- Smoke wisps -->
+  <path d="M48 10 Q52 6 50 2" stroke="rgba(200,200,200,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M52 14 Q56 10 54 5" stroke="rgba(200,200,200,0.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
+</svg>

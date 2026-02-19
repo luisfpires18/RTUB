@@ -27,16 +27,16 @@ public class Character : BaseEntity
     // Current HP (null means full HP, for backwards compatibility)
     public long? CurrentHP { get; set; } = null;
 
-    // Shot buff - number of battles remaining with empowerment
+    // Shot buff - number of runs remaining with +5% all stats
     public int ShotBuffBattlesRemaining { get; set; } = 0;
 
-    // Cigarro buff - number of hits remaining where damage is absorbed
+    // Cigarro buff - number of runs remaining with +10% dodge chance
     public int CigarroShieldHitsRemaining { get; set; } = 0;
 
-    // Canhão buff - number of hits remaining where damage is boosted by 30%
+    // Canhão buff - number of runs remaining with AOE attacks
     public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
 
-    // Penalty buff - reduces action time by 0.5s + adds 50% crit chance for 1 run/battle
+    // Penalty buff - number of runs remaining with 0.5% HP lifesteal per hit
     public int PenaltyBuffActive { get; set; } = 0;
 
     // Arena Statistics
@@ -54,6 +54,11 @@ public class Character : BaseEntity
     /// Total number of arena draws
     /// </summary>
     public int ArenaDraws { get; set; } = 0;
+
+    /// <summary>
+    /// Arena rating (min 0). Won by winning arena battles, lost by losing.
+    /// </summary>
+    public int ArenaRating { get; set; } = 0;
 
     /// <summary>
     /// Last opponent character ID (for cooldown tracking)
@@ -186,36 +191,38 @@ public class Character : BaseEntity
     public virtual ApplicationUser User { get; set; } = null!;
 
     // Computed properties (not stored in database)
-    // Stats scale with level (polynomial) × upgrades (compound exponential):
-    // stat = base × levelScale × (1 + mult)^upgrades + equipment
-    // Each upgrade multiplies the stat by a fixed factor — absolute gains grow with each one.
-    // Math.Round avoids truncation bias that causes non-monotonic marginal upgrade gains.
+    // Stats scale with level (linear) + upgrades (flat additive):
+    // stat = (base + flatBonus × n) × levelFactor + equipment
+    // Linear per-upgrade growth with level amplification.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades))
-        + EquipmentHPBonus;
+    public long TotalHP => SafeAdd(
+        ClampToLong((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor()),
+        EquipmentHPBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades))
-        + EquipmentPowerBonus;
+    public long TotalPower => SafeAdd(
+        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor()),
+        EquipmentPowerBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
-        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedUpgradeMultiplier)
-        + EquipmentSpeedBonus;
+    public long TotalSpeed => SafeAdd(
+        SafeAdd(
+            ClampToLong(Speed * LevelScaleFactor()),
+            ClampToLong(SpeedUpgrades * MyTunoScaling.SpeedFlatBonus)),
+        EquipmentSpeedBonus);
 
     /// <summary>
-    /// Maximum critical chance cap (50%)
+    /// Maximum critical chance cap (uses config value, default 40%)
     /// </summary>
-    public const double MaxCriticalChance = 0.5;
+    public static double MaxCriticalChance => MyTunoScaling.MaxCriticalChance;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double TotalCriticalChance
     {
         get
         {
-            var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChanceUpgradeMultiplier);
-            // Penalty buff explicitly allows up to 100% crit — skip the normal 50% cap
-            var upgradeCrit = PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
+            var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChancePerUpgrade);
+            var upgradeCrit = Math.Min(MaxCriticalChance, raw);
             // Equipment crit bonus stacks on top of upgrade-capped value (absolute cap 100%)
             return Math.Min(1.0, upgradeCrit + EquipmentCriticalBonus);
         }
@@ -230,25 +237,29 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades))
-        + EquipmentDefenseBonus;
+    public long TotalDefense => SafeAdd(
+        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor()),
+        EquipmentDefenseBonus);
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalHP => (long)Math.Round(HP * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.HpUpgradeMultiplier, HpUpgrades + 1))
-        + EquipmentHPBonus;
+    public long NextTotalHP => SafeAdd(
+        ClampToLong((HP + MyTunoScaling.HpFlatBonus * (HpUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentHPBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalPower => (long)Math.Round(Power * LevelScaleFactor() * Math.Pow(1 + MyTunoScaling.PowerUpgradeMultiplier, PowerUpgrades + 1))
-        + EquipmentPowerBonus;
+    public long NextTotalPower => SafeAdd(
+        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * (PowerUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentPowerBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalDefense => (long)Math.Round(EffectiveDefense * DefenseLevelScaleFactor() * Math.Pow(1 + MyTunoScaling.DefenseUpgradeMultiplier, DefenseUpgrades + 1))
-        + EquipmentDefenseBonus;
+    public long NextTotalDefense => SafeAdd(
+        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentDefenseBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance =>
-        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChanceUpgradeMultiplier)) + EquipmentCriticalBonus);
+        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChancePerUpgrade)) + EquipmentCriticalBonus);
 
     // ── Improvements computed properties ──
 
@@ -267,18 +278,16 @@ public class Character : BaseEntity
     public double EffectiveRegenInterval => Math.Max(5.0, MyTunoScaling.BaseRegenInterval - EnergyRegenUpgrades * MyTunoScaling.RegenReductionPerUpgrade);
 
     /// <summary>
-    /// Effective shot buff multiplier including upgrades.
-    /// Each upgrade adds ShotBuffBonusPerUpgrade (0.005 = +0.5%) to the base multiplier.
+    /// Effective shot buff multiplier (base value, no upgrades).
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier + ShotBuffUpgrades * MyTunoScaling.ShotBuffBonusPerUpgrade;
+    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier;
 
     /// <summary>
-    /// Fidelis earned bonus multiplier (1.0 = no bonus, 1.05 = +5%).
-    /// Each upgrade adds FidelisEarnedBonusPerUpgrade to 1.0.
+    /// Fidelis earned bonus multiplier (always 1.0 — improvement removed).
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double FidelisEarnedMultiplier => 1.0 + FidelisEarnedUpgrades * MyTunoScaling.FidelisEarnedBonusPerUpgrade;
+    public double FidelisEarnedMultiplier => 1.0;
 
     // ── Powers computed properties ──
 
@@ -297,25 +306,36 @@ public class Character : BaseEntity
     public double SpecialAttackDamageBonus => SpecialAttackUpgrades * MyTunoScaling.SpecialAttackBonusPerUpgrade;
 
     /// <summary>
-    /// Computes the level-based stat multiplier using polynomial growth.
-    /// Formula: 1 + multiplier * (level-1)^(1+exponent)
-    /// When exponent=0 this is simple linear: 1 + multiplier * (level-1)
+    /// Computes the level-based stat multiplier using linear growth.
+    /// Formula: 1 + BonusPerLevel × (Level - 1).
+    /// At level 100: 1 + 0.008 × 99 = 1.792.
     /// </summary>
     private double LevelScaleFactor()
     {
         var levelsGained = Level - 1;
         if (levelsGained <= 0) return 1.0;
-        var exponent = MyTunoScaling.StatGrowthExponent;
-        if (exponent == 0.0)
-            return 1.0 + levelsGained * MyTunoScaling.StatMultiplierPerLevel;
-        return 1.0 + MyTunoScaling.StatMultiplierPerLevel * Math.Pow(levelsGained, 1.0 + exponent);
+        return 1.0 + levelsGained * MyTunoScaling.BonusPerLevel;
     }
 
-    /// <summary>
-    /// Defense uses sqrt of the main scale factor so it grows much slower
-    /// than offensive stats, preventing late-game damage stalemates.
-    /// </summary>
-    private double DefenseLevelScaleFactor() => Math.Sqrt(LevelScaleFactor());
+    // ── Overflow-safe arithmetic helpers ──
+    // At extreme upgrade/level counts the double result of Math.Round can exceed
+    // long.MaxValue (~9.2×10¹⁸). A direct (long) cast wraps to long.MinValue,
+    // which kills the character. We clamp to long.MaxValue instead.
+
+    /// <summary>Safely converts a positive double to long, clamping to [0, long.MaxValue].</summary>
+    private static long ClampToLong(double value)
+    {
+        if (value >= (double)long.MaxValue) return long.MaxValue;
+        if (value <= 0) return 0;
+        return (long)Math.Round(value);
+    }
+
+    /// <summary>Adds two non-negative longs, clamping to long.MaxValue on overflow.</summary>
+    private static long SafeAdd(long a, long b)
+    {
+        if (a > 0 && b > long.MaxValue - a) return long.MaxValue;
+        return a + b;
+    }
 
     /// <summary>
     /// Base action time in seconds (how long before a character can attack)
@@ -361,11 +381,9 @@ public class Character : BaseEntity
     {
         get
         {
-            // Stage enemies and penalty-buffed characters use a direct override.
-            // Penalty buff allows going below MinActionTime (down to PenaltyMinActionTime = 0.5s),
-            // so use the lower floor when an override is set.
+            // Stage enemies use a direct override for action time.
             if (ActionTimeOverride.HasValue)
-                return Math.Max(PenaltyMinActionTime, ActionTimeOverride.Value);
+                return Math.Max(AbsoluteMinActionTime, ActionTimeOverride.Value);
 
             // Speed upgrades provide the flat reduction: 5.0s → 1.0s over 41 upgrades
             var time = BaseActionTime - SpeedUpgrades * ActionTimeReductionPerUpgrade;
@@ -442,19 +460,19 @@ public class Character : BaseEntity
             SpeedUpgrades = 0,
             CriticalUpgrades = 0,
             DefenseUpgrades = 0,
-            // No equipment equipped by default
-            EquippedHead = null,
-            EquippedShoulders = null,
-            EquippedChest = null,
-            EquippedGloves = null,
-            EquippedLegs = null,
-            EquippedBoots = null,
-            EquippedHeadQuality = 0,
-            EquippedShouldersQuality = 0,
-            EquippedChestQuality = 0,
-            EquippedGlovesQuality = 0,
-            EquippedLegsQuality = 0,
-            EquippedBootsQuality = 0,
+            // All 6 armor pieces equipped by default (permanent, cannot be unequipped)
+            EquippedHead = InventoryItemType.EquipmentHead,
+            EquippedShoulders = InventoryItemType.EquipmentShoulders,
+            EquippedChest = InventoryItemType.EquipmentChest,
+            EquippedGloves = InventoryItemType.EquipmentGloves,
+            EquippedLegs = InventoryItemType.EquipmentLegs,
+            EquippedBoots = InventoryItemType.EquipmentBoots,
+            EquippedHeadQuality = 1.0,
+            EquippedShouldersQuality = 1.0,
+            EquippedChestQuality = 1.0,
+            EquippedGlovesQuality = 1.0,
+            EquippedLegsQuality = 1.0,
+            EquippedBootsQuality = 1.0,
             EquippedHeadBonusLevel = 0,
             EquippedShouldersBonusLevel = 0,
             EquippedChestBonusLevel = 0,
@@ -649,93 +667,9 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Penalty buff speed reduction in seconds (subtracted from current action time).
-    /// </summary>
-    public const double PenaltySpeedReduction = 0.5;
-
-    /// <summary>
-    /// Penalty buff critical chance bonus (additive).
-    /// A player with 50% crit becomes 100%, a player with 1% crit becomes 51%.
-    /// </summary>
-    public const double PenaltyCritBonus = 0.5;
-
-    /// <summary>
-    /// Minimum action time when penalty buff is active (allows going below normal MinActionTime).
-    /// </summary>
-    public const double PenaltyMinActionTime = 0.5;
-
-    /// <summary>
-    /// Creates a copy of the character with Penalty buff applied.
-    /// Reduces action time by 0.5s (min 0.5s) and adds +50% crit chance (capped at 100%).
-    /// </summary>
-    public static Character CreatePenaltyBuffedCopy(Character source)
-    {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
-
-        // Additive crit: +50% (capped at 1.0)
-        var penaltyCrit = Math.Min(1.0, source.TotalCriticalChance + PenaltyCritBonus);
-        // Speed reduction: -0.5s from current action time (min 0.5s)
-        var penaltyActionTime = Math.Max(PenaltyMinActionTime, source.ActionTime - PenaltySpeedReduction);
-
-        return new Character
-        {
-            Id = source.Id,
-            UserId = source.UserId,
-            Level = source.Level,
-            XP = source.XP,
-            HP = source.HP,
-            Power = source.Power,
-            Speed = source.Speed,
-            Defense = source.Defense,
-            CriticalChance = penaltyCrit,
-            HpUpgrades = source.HpUpgrades,
-            PowerUpgrades = source.PowerUpgrades,
-            SpeedUpgrades = source.SpeedUpgrades,
-            // Upgrades already baked into penaltyCrit — zero out to prevent double-counting
-            CriticalUpgrades = 0,
-            DefenseUpgrades = source.DefenseUpgrades,
-            EquippedHead = source.EquippedHead,
-            EquippedShoulders = source.EquippedShoulders,
-            EquippedChest = source.EquippedChest,
-            EquippedGloves = source.EquippedGloves,
-            EquippedLegs = source.EquippedLegs,
-            EquippedBoots = source.EquippedBoots,
-            EquippedHeadQuality = source.EquippedHeadQuality,
-            EquippedShouldersQuality = source.EquippedShouldersQuality,
-            EquippedChestQuality = source.EquippedChestQuality,
-            EquippedGlovesQuality = source.EquippedGlovesQuality,
-            EquippedLegsQuality = source.EquippedLegsQuality,
-            EquippedBootsQuality = source.EquippedBootsQuality,
-            EquippedHeadBonusLevel = source.EquippedHeadBonusLevel,
-            EquippedShouldersBonusLevel = source.EquippedShouldersBonusLevel,
-            EquippedChestBonusLevel = source.EquippedChestBonusLevel,
-            EquippedGlovesBonusLevel = source.EquippedGlovesBonusLevel,
-            EquippedLegsBonusLevel = source.EquippedLegsBonusLevel,
-            EquippedBootsBonusLevel = source.EquippedBootsBonusLevel,
-            EquippedWeapon1 = source.EquippedWeapon1,
-            EquippedWeapon2 = source.EquippedWeapon2,
-            EquipmentHPBonus = source.EquipmentHPBonus,
-            EquipmentPowerBonus = source.EquipmentPowerBonus,
-            EquipmentSpeedBonus = source.EquipmentSpeedBonus,
-            EquipmentDefenseBonus = source.EquipmentDefenseBonus,
-            EquipmentCriticalBonus = source.EquipmentCriticalBonus,
-            ActionTimeOverride = penaltyActionTime,
-            CurrentHP = source.CurrentHP,
-            User = source.User,
-            CreatedAt = source.CreatedAt,
-            UpdatedAt = source.UpdatedAt,
-            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
-            CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
-            CanhaoDamageBoostHitsRemaining = source.CanhaoDamageBoostHitsRemaining,
-            PenaltyBuffActive = source.PenaltyBuffActive
-        };
-    }
-
-    /// <summary>
     /// Calculates XP required to advance from a given level to the next.
-    /// Uses exponential formula: XpPerLevelBase × Level^XpGrowthExponent.
-    /// Early levels are fast, late levels take days.
+    /// Uses formula: XpPerLevelBase × Level^XpGrowthExponent.
+    /// With exponent 1.5: level 1→2 = 100 XP, level 50→51 ≈ 35,355 XP, level 99→100 ≈ 98,505 XP.
     /// </summary>
     public static int XpForLevel(int level) =>
         (int)Math.Round(MyTunoScaling.XpPerLevelBase * Math.Pow(level, MyTunoScaling.XpGrowthExponent));
@@ -939,12 +873,30 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Expires the penalty buff (sets PenaltyBuffActive to 0).
-    /// No HP scaling needed — penalty only affects speed and crit.
+    /// Decrements the penalty lifesteal buff by 1 run.
     /// </summary>
     public void ExpirePenaltyBuff()
     {
-        PenaltyBuffActive = 0;
+        if (PenaltyBuffActive > 0)
+            PenaltyBuffActive--;
+    }
+
+    /// <summary>
+    /// Decrements the cigarro dodge buff by 1 run.
+    /// </summary>
+    public void ExpireCigarroBuff()
+    {
+        if (CigarroShieldHitsRemaining > 0)
+            CigarroShieldHitsRemaining--;
+    }
+
+    /// <summary>
+    /// Decrements the canhão AOE buff by 1 run.
+    /// </summary>
+    public void ExpireCanhaoBuff()
+    {
+        if (CanhaoDamageBoostHitsRemaining > 0)
+            CanhaoDamageBoostHitsRemaining--;
     }
 
     /// <summary>
@@ -967,7 +919,7 @@ public class Character : BaseEntity
             var unbuffedMaxHp = TotalHP;
             var currentHp = CurrentHP ?? buffedMaxHp;
             var hpRatio = (double)currentHp / buffedMaxHp;
-            CurrentHP = Math.Max(1, (long)Math.Round(hpRatio * unbuffedMaxHp));
+            CurrentHP = Math.Max(1, ClampToLong(hpRatio * unbuffedMaxHp));
         }
     }
 

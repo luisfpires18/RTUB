@@ -13,7 +13,6 @@
 @using RTUB.Core.Helpers
 @using RTUB.Shared
 @using RTUB.Shared.Base
-@using RTUB.Shared.Components.Cards
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
@@ -32,7 +31,7 @@
 
 <PageTitle>Arena - My Tuno - RTUB</PageTitle>
 
-<div class="arena-page container-fluid">
+<div class="arena-page">
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex justify-content-between align-items-center gap-3">
             <!-- Left: Back button -->
@@ -68,34 +67,25 @@
         <!-- Live Battle Animation -->
         @if (showBattleAnimation && currentBattle != null)
         {
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(1.0)">
-                            1x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(2.0)">
-                            2x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(3.0)">
-                            3x
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
+            <div class="arena-battle-fullscreen">
+            <div class="arena-battle-screen">
+                <div id="phaserBattleContainer" class="arena-battle-canvas"></div>
+                <div class="battle-top-bar">
+                    <button class="battle-back-btn" @onclick="GoBack"><i class="bi bi-chevron-left"></i></button>
+                    <div class="battle-floor-indicator">
+                        <span class="floor-label">ARENA</span>
+                    </div>
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer"></div>
-                </div>
+            </div>
             </div>
         }
-
-        <!-- Battle Result Summary (game-style panel) -->
         @if (showResultSummary && currentBattle != null)
         {
             <div class="result-overlay">
@@ -106,12 +96,19 @@
                     <div class="result-subtitle">Arena</div>
                     <div class="result-rewards">
                         <div class="result-reward-row">
-                            <i class="bi bi-star-fill text-warning"></i>
-                            <span>+@Fmt(currentBattle.AttackerXP) XP</span>
-                        </div>
-                        <div class="result-reward-row">
-                            <i class="bi bi-coin" style="color: #7c4dff;"></i>
-                            <span>+@Fmt(currentBattle.AttackerFidelis) Fidelis</span>
+                            <i class="bi bi-graph-up-arrow" style="color: #ffc107;"></i>
+                            @if (currentBattle.RatingChange > 0)
+                            {
+                                <span class="text-success">+@currentBattle.RatingChange Rating</span>
+                            }
+                            else if (currentBattle.RatingChange < 0)
+                            {
+                                <span class="text-danger">@currentBattle.RatingChange Rating</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">+0 Rating</span>
+                            }
                         </div>
                     </div>
                     @if (character?.ShotBuffBattlesRemaining > 0)
@@ -126,9 +123,9 @@
                     @if (character?.CigarroShieldHitsRemaining > 0)
                     {
                         <div class="result-buff-row">
-                            <i class="bi bi-shield-fill text-info"></i>
+                            <i class="bi bi-wind text-info"></i>
                             <span>
-                                @character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                                @character.CigarroShieldHitsRemaining corridas com esquiva
                             </span>
                         </div>
                     }
@@ -137,7 +134,7 @@
                         <div class="result-buff-row">
                             <i class="bi bi-bullseye text-info"></i>
                             <span>
-                                @character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                                @character.CanhaoDamageBoostHitsRemaining corridas com AOE
                             </span>
                         </div>
                     }
@@ -146,7 +143,7 @@
                         <div class="result-buff-row">
                             <i class="bi bi-lightning-charge-fill text-warning"></i>
                             <span>
-                                Penalty (0.5s + 100% Crit)
+                                Penalty — Lifesteal 0.5% HP por hit
                             </span>
                         </div>
                     }
@@ -167,6 +164,10 @@
         {
             <div class="d-flex justify-content-center gap-3 mb-4">
                 <div class="stat-box-square">
+                    <span class="badge fs-5" style="background-color: #ffc107; color: #000;">@Fmt(character.ArenaRating)</span>
+                    <p class="mb-0 small text-muted">Rating</p>
+                </div>
+                <div class="stat-box-square">
                     <span class="badge bg-success fs-5">@Fmt(character.ArenaWins)</span>
                     <p class="mb-0 small text-muted">Vitórias</p>
                 </div>
@@ -180,55 +181,111 @@
         <!-- Opponent Selection - Only show when battle/result is not active -->
         @if (!showBattleAnimation && !showResultSummary)
         {
-            @if (character != null && !character.IsAlive())
+            @if (opponentCharacters == null || !opponentCharacters.Any())
             {
-                <div class="alert alert-danger text-center mb-4" role="alert">
-                    <i class="bi bi-heart-fill me-2"></i>
-                    <strong>O teu personagem está derrotado!</strong> Usa uma cerveja para reviver antes de lutar.
-                </div>
+                <EmptyState Title="Nenhum oponente disponível"
+                            Message="Ainda não há outros personagens para lutar."
+                            Icon="bi-person-x" />
             }
+            else
+            {
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 mb-4">
+                    @foreach (var opponent in opponentCharacters)
+                    {
+                        var levelDiff = (character?.Level ?? 0) - opponent.Level;
+                        var potentialRating = levelDiff >= 10 ? 0
+                            : opponent.ArenaRating > (character?.ArenaRating ?? 0) ? 15
+                            : 10;
+                        var ratingColor = potentialRating == 0 ? "gray" : potentialRating >= 15 ? "#ffc107" : "#4caf50";
+                        var rank = RankHelper.GetRank(opponent.ArenaRating);
+                        var isFightingThis = fightingOpponentId == opponent.Id;
+                        var isDisabled = fighting || showBattleAnimation;
 
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
-                </div>
-                <div class="card-body">
-                    @if (opponentCharacters == null || !opponentCharacters.Any())
-                    {
-                        <EmptyState Title="Nenhum oponente disponível"
-                                    Message="Ainda não há outros personagens para lutar."
-                                    Icon="bi-person-x" />
-                    }
-                    else
-                    {
-                        <div class="row g-3">
-                            @foreach (var opponent in opponentCharacters)
-                            {
-                                <div class="col-md-6 col-lg-4 col-xl-3">
-                                    <EnemyCard Character="@opponent"
-                                              OnFight="() => FightOpponent(opponent)"
-                                              IsDisabled="@(fighting || showBattleAnimation)"
-                                              IsFighting="@(fightingOpponentId == opponent.Id)"
-                                              ShowLevelAndXP="true" />
+                        <div class="col" @key="opponent.Id">
+                            <div class="arena-opponent-card">
+                                <!-- Avatar + Name -->
+                                <div class="arena-opponent-card-header">
+                                    @if (opponent.User != null && !string.IsNullOrEmpty(opponent.User.ProfilePictureSrc))
+                                    {
+                                        <img src="@CacheBuster.Bust(opponent.User.ProfilePictureSrc)"
+                                             alt="@GetOpponentName(opponent)"
+                                             class="arena-opponent-avatar"
+                                             loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <div class="arena-opponent-avatar-placeholder">
+                                            <i class="bi bi-person"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <h6 class="mb-0">@GetOpponentName(opponent)</h6>
+                                        <span class="badge bg-primary">Nível @opponent.Level</span>
+                                    </div>
                                 </div>
-                            }
-                        </div>
 
-                        @if (totalItems > pageSize)
-                        {
-                            <div class="mt-3">
-                                <TablePagination CurrentPage="@currentPage"
-                                                PageSize="@pageSize"
-                                                TotalItems="@totalItems"
-                                                ItemLabel="oponentes"
-                                                PageSizeOptions="@(new[] { 8, 16, 32, 48, 60 })"
-                                                OnPageChanged="@HandlePageChanged"
-                                                OnPageSizeChanged="@HandlePageSizeChanged" />
+                                <!-- Rank Badge -->
+                                <div class="arena-opponent-rank" style="border-color: @rank.Color;">
+                                    <i class="bi @rank.Icon" style="color: @rank.Color;"></i>
+                                    <span style="color: @rank.Color; font-weight: 600;">@rank.Name</span>
+                                    <span class="text-muted ms-auto" style="font-size: 0.8rem;">@opponent.ArenaRating</span>
+                                </div>
+
+                                <!-- Player Stats -->
+                                <div class="arena-opponent-section-label"><i class="bi bi-bar-chart-fill me-1"></i>Estatísticas</div>
+                                <div class="arena-opponent-stats">
+                                    <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@Fmt(opponent.TotalHP)" Color="red" Size="sm" />
+                                    <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(opponent.TotalPower)" Color="green" Size="sm" />
+                                    <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(opponent.TotalDefense)" Color="gray" Size="sm" />
+                                    <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{opponent.ActionTime:F1}s")" Color="blue" Size="sm" />
+                                    <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{opponent.TotalCriticalChance * 100:F1}%")" Color="yellow" Size="sm" />
+                                </div>
+
+                                <hr class="arena-opponent-divider" />
+
+                                <!-- Rating Gain + Fight -->
+                                <div class="arena-opponent-section-label"><i class="bi bi-trophy-fill me-1"></i>Recompensa</div>
+                                <div class="text-center mb-2">
+                                    <FantasyTile Icon="bi-graph-up-arrow"
+                                                 Label="Vitória"
+                                                 Value="@($"+{potentialRating}")"
+                                                 Color="@(potentialRating == 0 ? "gray" : potentialRating >= 15 ? "gold" : "green")"
+                                                 Size="sm"
+                                                 Tooltip="Rating que ganhas se venceres" />
+                                </div>
+
+                                <button class="btn btn-primary w-100 arena-fight-btn"
+                                        @onclick="() => FightOpponent(opponent)"
+                                        disabled="@(isDisabled || !opponent.IsAlive())">
+                                    @if (isFightingThis)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <text>A lutar...</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-sword me-2"></i>
+                                        <text>Lutar</text>
+                                    }
+                                </button>
                             </div>
-                        }
+                        </div>
                     }
                 </div>
-            </div>
+
+                @if (totalItems > pageSize)
+                {
+                    <div class="mt-3">
+                        <TablePagination CurrentPage="@currentPage"
+                                        PageSize="@pageSize"
+                                        TotalItems="@totalItems"
+                                        ItemLabel="oponentes"
+                                        PageSizeOptions="@(new[] { 8, 16, 32, 48, 60 })"
+                                        OnPageChanged="@HandlePageChanged"
+                                        OnPageSizeChanged="@HandlePageSizeChanged" />
+                    </div>
+                }
+            }
         }
     }
 
@@ -241,6 +298,12 @@
 @code {
     private static string Fmt(long value) => NumberFormatter.Compact(value);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
+
+    private static string GetOpponentName(Character c)
+    {
+        if (c.User == null) return "Personagem";
+        return !string.IsNullOrEmpty(c.User.Nickname) ? c.User.Nickname : "Personagem";
+    }
 
     private Character? character;
     private ApplicationUser? currentUser;
@@ -348,7 +411,7 @@
             allOpponentCharacters = await CharacterRepository.GetArenaOpponentsAsync(character.Id);
             
             // Opponents always fight as CPU snapshots at full HP
-            // Clear their HP and buff state so EnemyCard displays 100% HP
+            // Clear their HP and buff state so opponent card displays 100% HP
             foreach (var opponent in allOpponentCharacters)
             {
                 opponent.CurrentHP = null; // null = full HP (TotalHP)
@@ -464,8 +527,6 @@
             Character sessionChar = character;
             if (character.ShotBuffBattlesRemaining > 0)
                 sessionChar = Character.CreateShotBuffedCopy(character);
-            if (character.PenaltyBuffActive > 0)
-                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
             _combatSession = CombatActionService.CreateSession(
                 sessionChar,
                 new List<Character> { opponentSnapshot },
@@ -651,8 +712,6 @@
             // Sync interactive session state back to BattleResult so FinalizeAndApplyRewardsAsync
             // persists the correct buff remaining counts and HP (not the pre-computed ones).
             currentBattle.AttackerFinalHP = _combatSession.Player.CurrentHP;
-            currentBattle.AttackerCigarroShieldRemaining = _combatSession.CigarroShieldRemaining;
-            currentBattle.AttackerCanhaoBoostRemaining = _combatSession.CanhaoBoostRemaining;
         }
         _combatSession = null;
         

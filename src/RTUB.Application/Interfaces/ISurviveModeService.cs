@@ -53,7 +53,6 @@ public interface ISurviveModeService
     /// </summary>
     Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0,
         Dictionary<InventoryItemType, int>? instrumentParts = null,
-        Dictionary<InventoryItemType, int>? equipment = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -1,8 +1,8 @@
 namespace RTUB.Core.Enums;
 
 /// <summary>
-/// Represents the biome/region in Stage Mode
-/// 20 biomes × 100 stages each (1-2000), Arena is 2001+ (endless)
+/// Represents the biome/region in Stage Mode.
+/// 20 biomes × 1000 floors each (1-20000), Arena is 20001+ (endless).
 /// </summary>
 public enum RegionType
 {
@@ -67,8 +67,8 @@ public enum RegionType
     Light = 19,
 
     /// <summary>
-    /// Stages 2001+: The Arena (Endless mode)
-    /// All enemies and bosses are drawn randomly from previous stages
+    /// Floors 20001+: The Arena (Endless mode).
+    /// All enemies and bosses are drawn randomly from previous stages.
     /// </summary>
     Arena = 20
 }

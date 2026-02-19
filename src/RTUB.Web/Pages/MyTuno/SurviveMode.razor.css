@@ -2,6 +2,52 @@
    Survive Mode — Scoped Styles
    ═══════════════════════════════════════════ */
 
+/* ─── Fullscreen Battle Layout ─── */
+.stage-page {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.battle-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    overflow: hidden;
+}
+
+.battle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    background: #1a1a2e;
+}
+
+::deep .battle-canvas canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.battle-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent);
+}
+
 /* Re-use biome card styles from stage modal */
 .stage-biomes-list {
     display: flex;
@@ -38,23 +84,7 @@
     padding: 0.65rem 0.85rem;
 }
 
-/* Game container */
-#surviveGameContainer {
-    background: #1a1a2e;
-    border-radius: 0 0 8px 8px;
-    overflow: hidden;
-}
-
-.battle-card {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.battle-card .card-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+/* Game container — fullscreen styles applied via .battle-canvas */
 
 /* ─── Defeat / End Summary (mirrors Stage) ─── */
 .defeat-overlay {

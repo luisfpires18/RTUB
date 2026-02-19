@@ -57,10 +57,11 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         {
             Upgrades = new MyTunoUpgrades
             {
-                HP = new MyTunoUpgradeStat { BaseCost = 50m },
-                Power = new MyTunoUpgradeStat { BaseCost = 75m },
-                Speed = new MyTunoUpgradeStat { BaseCost = 100m },
-                CriticalChance = new MyTunoUpgradeStat { BaseCost = 150m }
+                HP = new UpgradeLogStat { BaseCost = 80m, CostPerLevel = 80m },
+                Power = new UpgradeLogStat { BaseCost = 80m, CostPerLevel = 80m },
+                Speed = new UpgradeFlatStat { BaseCost = 175m, CostPerLevel = 175m },
+                CriticalChance = new UpgradeFlatStat { BaseCost = 140m, CostPerLevel = 140m },
+                Defense = new UpgradeLogStat { BaseCost = 80m, CostPerLevel = 80m }
             }
         };
         var mockConfig = new Mock<IOptions<MyTunoScalingConfiguration>>();
@@ -70,7 +71,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _characterService,
             _mockUserManager.Object,
             _context,
-            mockConfig.Object);
+            mockConfig.Object,
+            new Mock<IInventoryRepository>().Object);
 
         // Create test user
         var userId = "upgrade-test-user";
@@ -124,7 +126,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.HP);
 
         // Assert
-        cost.Should().Be(50m); // BaseCostHP
+        cost.Should().Be(80m); // BaseCostHP
     }
 
     [Fact]
@@ -138,7 +140,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.Power);
 
         // Assert
-        cost.Should().Be(75m); // BaseCostPower
+        cost.Should().Be(80m); // BaseCostPower
     }
 
     [Fact]
@@ -152,7 +154,7 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.Speed);
 
         // Assert
-        cost.Should().Be(100m); // BaseCostSpeed
+        cost.Should().Be(175m); // BaseCostSpeed
     }
 
     [Fact]
@@ -167,8 +169,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var cost = await _upgradeService.GetUpgradeCostAsync(_testUser.Id, StatType.HP);
 
         // Assert
-        // Formula: 50 * (1 + 2) ^ CostExponent(1.5) = 50 * 3^1.5 = 50 * 5.196 = 259.81
-        cost.Should().BeApproximately(259.81m, 0.1m);
+        // Linear formula: BaseCost(80) + UpgradeCount(2) * CostPerLevel(80) = 80 + 160 = 240
+        cost.Should().Be(240m);
     }
 
     [Theory]

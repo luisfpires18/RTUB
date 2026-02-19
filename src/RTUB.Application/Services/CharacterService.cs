@@ -217,9 +217,8 @@ public class CharacterService : ICharacterService
                 .Where(s => s.UserId == userId).ToListAsync(cancellationToken);
             _dbContext.SurviveModeProgresses.RemoveRange(surviveModeProgress);
 
-            var gameScores = await _dbContext.GameScores
-                .Where(g => g.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.GameScores.RemoveRange(gameScores);
+            // NOTE: GameScores are NOT deleted here — they belong to other games
+            // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
 
             _dbContext.Characters.Remove(character);
 
@@ -232,6 +231,49 @@ public class CharacterService : ICharacterService
         {
             _logger.LogError(ex, "Error deleting character for user {UserId}", userId);
             return (false, "Erro ao eliminar personagem.");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> ResetAllGameDataAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Delete all game data across all users in dependency order
+            var forgedWeapons = await _dbContext.ForgedWeapons.ToListAsync(cancellationToken);
+            _dbContext.ForgedWeapons.RemoveRange(forgedWeapons);
+
+            var inventoryItems = await _dbContext.InventoryItems.ToListAsync(cancellationToken);
+            _dbContext.InventoryItems.RemoveRange(inventoryItems);
+
+            var stageEnemies = await _dbContext.StageEnemies.ToListAsync(cancellationToken);
+            _dbContext.StageEnemies.RemoveRange(stageEnemies);
+
+            var stageProgress = await _dbContext.StageProgresses.ToListAsync(cancellationToken);
+            _dbContext.StageProgresses.RemoveRange(stageProgress);
+
+            var bossModeProgress = await _dbContext.BossModeProgresses.ToListAsync(cancellationToken);
+            _dbContext.BossModeProgresses.RemoveRange(bossModeProgress);
+
+            var surviveModeProgress = await _dbContext.SurviveModeProgresses.ToListAsync(cancellationToken);
+            _dbContext.SurviveModeProgresses.RemoveRange(surviveModeProgress);
+
+            // NOTE: GameScores are NOT deleted here — they belong to other games
+            // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
+
+            var characters = await _dbContext.Characters.ToListAsync(cancellationToken);
+            _dbContext.Characters.RemoveRange(characters);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var count = characters.Count;
+            _logger.LogWarning("Owner reset ALL game data: {Count} characters and all related entities deleted", count);
+            return (true, $"Todos os dados de jogo foram resetados. {count} personagens eliminados.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting all game data");
+            return (false, "Erro ao resetar dados de jogo.");
         }
     }
 }

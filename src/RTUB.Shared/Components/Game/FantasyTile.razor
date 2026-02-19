@@ -1,0 +1,95 @@
+@namespace RTUB.Shared.Components.Game
+
+@* FantasyTile — reusable RPG-themed square tile for stats, costs, actions.
+   Supports icons or images, labels, values, badges, click handlers, and
+   multiple color/size variants.  Designed for 2-col or 3-col CSS grids. *@
+
+<div class="ftile ftile--@Size ftile--@Color @(Clickable ? "ftile--click" : "") @(Disabled ? "ftile--off" : "") @(Highlighted ? "ftile--glow" : "") @(Insufficient ? "ftile--miss" : "") @CssClass"
+     @onclick="HandleClick"
+     role="@(Clickable ? "button" : "")"
+     title="@Tooltip">
+
+    @if (!string.IsNullOrEmpty(Badge))
+    {
+        <span class="ftile__badge">@Badge</span>
+    }
+
+    <div class="ftile__icon">
+        @if (!string.IsNullOrEmpty(ImageUrl))
+        {
+            <img src="@ImageUrl" alt="@Label" />
+        }
+        else if (!string.IsNullOrEmpty(Icon))
+        {
+            <i class="bi @Icon"></i>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span class="ftile__label">@Label</span>
+    }
+
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <span class="ftile__value">@Value</span>
+    }
+
+    @if (ChildContent != null)
+    {
+        @ChildContent
+    }
+</div>
+
+@code {
+    /// <summary>Bootstrap icon class (e.g. "bi-heart-fill").</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>Optional image URL (takes precedence over icon).</summary>
+    [Parameter] public string? ImageUrl { get; set; }
+
+    /// <summary>Small label text below the icon.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>Large value text (stat, cost, etc.).</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>Small badge text (top-right corner).</summary>
+    [Parameter] public string? Badge { get; set; }
+
+    /// <summary>Browser tooltip on hover.</summary>
+    [Parameter] public string? Tooltip { get; set; }
+
+    /// <summary>Color theme: purple, red, green, blue, yellow, orange, cyan, gray, gold.</summary>
+    [Parameter] public string Color { get; set; } = "purple";
+
+    /// <summary>Tile size: sm, md, lg.</summary>
+    [Parameter] public string Size { get; set; } = "md";
+
+    /// <summary>Whether the tile can be clicked (shows pointer cursor + hover effect).</summary>
+    [Parameter] public bool Clickable { get; set; }
+
+    /// <summary>Greyed out, non-interactive state.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Cyan glow border (e.g. active buff highlight).</summary>
+    [Parameter] public bool Highlighted { get; set; }
+
+    /// <summary>Red border to indicate missing resources.</summary>
+    [Parameter] public bool Insufficient { get; set; }
+
+    /// <summary>Additional CSS class(es) on the root element.</summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    /// <summary>Click handler (requires Clickable=true).</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Optional child content rendered below the value.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (!Disabled && OnClick.HasDelegate)
+            await OnClick.InvokeAsync();
+    }
+}

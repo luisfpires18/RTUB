@@ -22,6 +22,7 @@ public class PowerService : IPowerService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PowerService>? _logger;
     private readonly MyTunoScalingConfiguration _config;
+    private readonly IInventoryRepository _inventoryRepository;
 
     private const int MaxRetryAttempts = 3;
 
@@ -30,6 +31,7 @@ public class PowerService : IPowerService
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         IOptions<MyTunoScalingConfiguration> config,
+        IInventoryRepository inventoryRepository,
         ILogger<PowerService>? logger = null)
     {
         _characterService = characterService;
@@ -37,11 +39,12 @@ public class PowerService : IPowerService
         _context = context;
         _logger = logger;
         _config = config.Value;
+        _inventoryRepository = inventoryRepository;
     }
 
     /// <summary>
     /// Calculates the cost for upgrading a specific power.
-    /// Formula: Cost = BaseCost * (1 + UpgradeCount) ^ CostExponent
+    /// Formula: Cost = BaseCost + UpgradeCount * CostPerLevel
     /// </summary>
     public async Task<decimal> GetPowerCostAsync(string userId, PowerType powerType, CancellationToken cancellationToken = default)
     {
@@ -52,7 +55,7 @@ public class PowerService : IPowerService
         var upgradeCount = character != null ? GetUpgradeCount(character, powerType) : 0;
         var stat = GetPowerStatConfig(powerType);
 
-        var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+        var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
         return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -68,7 +71,7 @@ public class PowerService : IPowerService
         {
             var upgradeCount = GetUpgradeCount(character, type);
             var stat = GetPowerStatConfig(type);
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + upgradeCount, stat.CostExponent);
+            var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
             result[type] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -121,13 +124,36 @@ public class PowerService : IPowerService
                         return UpgradeResult.CreateFailure($"Nível máximo de poder alcançado ({stat.MaxUpgrades}).");
                     }
 
-                    var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+                    var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
                     cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
                     if (user.FidelisBalance < cost)
                     {
                         await transaction.RollbackAsync();
                         return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:F2}, Disponível: {user.FidelisBalance:F2}");
+                    }
+
+                    // Check Leitão cost (mid-game currency from Boss Mode)
+                    var piggies = _config.BossMode.Piggies;
+                    var leitaoCost = PiggiesCostConfig.CalculateCost(
+                        currentCount, piggies.PowerStartLevel,
+                        piggies.PowerBaseCost, piggies.PowerCostEveryNLevels);
+
+                    if (leitaoCost > 0)
+                    {
+                        var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                        if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+                        }
+
+                        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+                        if (!consumed)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
+                        }
                     }
 
                     user.FidelisBalance -= cost;
@@ -186,7 +212,7 @@ public class PowerService : IPowerService
         }
     }
 
-    private MyTunoUpgradeStat GetPowerStatConfig(PowerType type) => type switch
+    private UpgradeFlatStat GetPowerStatConfig(PowerType type) => type switch
     {
         PowerType.HeavyAttack => _config.Powers.HeavyAttack,
         PowerType.SpecialAttack => _config.Powers.SpecialAttack,
@@ -211,11 +237,28 @@ public class PowerService : IPowerService
             if (stat.MaxUpgrades > 0 && currentCount >= stat.MaxUpgrades)
                 return UpgradeResult.CreateFailure($"Nível máximo de poder alcançado ({stat.MaxUpgrades}).");
 
-            var cost = stat.BaseCost * (decimal)Math.Pow(1 + currentCount, stat.CostExponent);
+            var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
             cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
 
             if (user.FidelisBalance < cost)
                 return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:F2}, Disponível: {user.FidelisBalance:F2}");
+
+            // Check Leitão cost (mid-game currency from Boss Mode)
+            var piggies = _config.BossMode.Piggies;
+            var leitaoCost = PiggiesCostConfig.CalculateCost(
+                currentCount, piggies.PowerStartLevel,
+                piggies.PowerBaseCost, piggies.PowerCostEveryNLevels);
+
+            if (leitaoCost > 0)
+            {
+                var leitaoItem = await _inventoryRepository.GetItemAsync(userId, InventoryItemType.Leitao, cancellationToken);
+                if (leitaoItem == null || leitaoItem.Quantity < leitaoCost)
+                    return UpgradeResult.CreateFailure($"Leitões insuficientes. Necessário: {leitaoCost}, Disponível: {leitaoItem?.Quantity ?? 0}");
+
+                var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Leitao, leitaoCost, cancellationToken);
+                if (!consumed)
+                    return UpgradeResult.CreateFailure("Erro ao consumir Leitões");
+            }
 
             user.FidelisBalance -= cost;
             ApplyUpgrade(character, powerType);

@@ -40,7 +40,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsHeavyMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(PowerType.HeavyAttack)"
-                        disabled="@(Purchasing || heavyCostLoading || IsHeavyMaxed || FidelisBalance < heavyCost)">
+                        disabled="@(Purchasing || heavyCostLoading || IsHeavyMaxed || FidelisBalance < heavyCost || (heavyLeitaoCost > 0 && LeitaoBalance < heavyLeitaoCost))">
                     @if (Purchasing && PurchasingType == PowerType.HeavyAttack)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -62,6 +62,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(heavyCost)</span>
+                        @if (heavyLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < heavyLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @heavyLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -93,7 +97,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsSpecialMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(PowerType.SpecialAttack)"
-                        disabled="@(Purchasing || specialCostLoading || IsSpecialMaxed || FidelisBalance < specialCost)">
+                        disabled="@(Purchasing || specialCostLoading || IsSpecialMaxed || FidelisBalance < specialCost || (specialLeitaoCost > 0 && LeitaoBalance < specialLeitaoCost))">
                     @if (Purchasing && PurchasingType == PowerType.SpecialAttack)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -115,23 +119,28 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(specialCost)</span>
+                        @if (specialLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < specialLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @specialLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
         </div>
-
-        </div>
+    </div>
     </div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public Character Character { get; set; } = default!;
     [Parameter] public decimal FidelisBalance { get; set; }
+    [Parameter] public int LeitaoBalance { get; set; }
     [Parameter] public bool Purchasing { get; set; }
     [Parameter] public PowerType? PurchasingType { get; set; }
     [Parameter] public EventCallback<PowerType> OnPurchaseRequested { get; set; }
 
     private decimal heavyCost, specialCost;
+    private int heavyLeitaoCost, specialLeitaoCost;
     private bool heavyCostLoading = true, specialCostLoading = true;
 
     private int MaxHeavyUpgrades => MyTunoConfig.Value.Powers.HeavyAttack.MaxUpgrades;
@@ -152,6 +161,11 @@
             var costs = PowerService.GetAllPowerCosts(Character);
             heavyCost = costs.GetValueOrDefault(PowerType.HeavyAttack);
             specialCost = costs.GetValueOrDefault(PowerType.SpecialAttack);
+
+            // Leitão costs
+            var p = MyTunoConfig.Value.BossMode.Piggies;
+            heavyLeitaoCost = PiggiesCostConfig.CalculateCost(Character.HeavyAttackUpgrades, p.PowerStartLevel, p.PowerBaseCost, p.PowerCostEveryNLevels);
+            specialLeitaoCost = PiggiesCostConfig.CalculateCost(Character.SpecialAttackUpgrades, p.PowerStartLevel, p.PowerBaseCost, p.PowerCostEveryNLevels);
         }
         catch
         {

@@ -1,0 +1,180 @@
+/* ===========================================
+   FantasyTile — RPG-themed square tile
+   =========================================== */
+.ftile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+    border: 2px solid rgba(111, 66, 193, 0.3);
+    border-radius: 12px;
+    padding: 0.6rem 0.4rem;
+    position: relative;
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    gap: 0.2rem;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* ---- Color variants ---- */
+.ftile--purple { border-color: rgba(111, 66, 193, 0.4); }
+.ftile--red    { border-color: rgba(220, 53, 69, 0.4);  background: linear-gradient(180deg, #1e1015 0%, #140a0e 100%); }
+.ftile--green  { border-color: rgba(40, 167, 69, 0.4);  background: linear-gradient(180deg, #0f1e14 0%, #0a1510 100%); }
+.ftile--blue   { border-color: rgba(13, 110, 253, 0.4); background: linear-gradient(180deg, #0f1a2e 0%, #0a1018 100%); }
+.ftile--yellow { border-color: rgba(255, 193, 7, 0.4);  background: linear-gradient(180deg, #1f1c0f 0%, #15120a 100%); }
+.ftile--orange { border-color: rgba(255, 152, 0, 0.4);  background: linear-gradient(180deg, #2e1a0f 0%, #1a0f08 100%); }
+.ftile--cyan   { border-color: rgba(13, 202, 240, 0.4); background: linear-gradient(180deg, #0f1a2e 0%, #081018 100%); }
+.ftile--gray   { border-color: rgba(127, 140, 141, 0.4);background: linear-gradient(180deg, #1a1a1e 0%, #121215 100%); }
+.ftile--gold   { border-color: rgba(243, 156, 18, 0.5); background: linear-gradient(180deg, #2a2210 0%, #1a1608 100%); }
+
+/* ---- Icon colors ---- */
+.ftile--purple .ftile__icon { color: #a88ee5; }
+.ftile--red    .ftile__icon { color: #dc3545; }
+.ftile--green  .ftile__icon { color: #28a745; }
+.ftile--blue   .ftile__icon { color: #0d6efd; }
+.ftile--yellow .ftile__icon { color: #ffc107; }
+.ftile--orange .ftile__icon { color: #ff9800; }
+.ftile--cyan   .ftile__icon { color: #0dcaf0; }
+.ftile--gray   .ftile__icon { color: #7f8c8d; }
+.ftile--gold   .ftile__icon { color: #f39c12; }
+
+/* ---- Sizes ---- */
+.ftile--sm { padding: 0.3rem; border-radius: 8px; gap: 0.1rem; }
+.ftile--md { padding: 0.55rem 0.4rem; }
+.ftile--lg { padding: 0.75rem 0.5rem; border-radius: 14px; }
+
+/* ---- Icon ---- */
+.ftile__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.ftile--sm .ftile__icon { font-size: 1.1rem; }
+.ftile--sm .ftile__icon img { width: 20px; height: 20px; object-fit: contain; }
+
+.ftile--md .ftile__icon { font-size: 1.5rem; }
+.ftile--md .ftile__icon img { width: 28px; height: 28px; object-fit: contain; }
+
+.ftile--lg .ftile__icon { font-size: 2rem; }
+.ftile--lg .ftile__icon img { width: 36px; height: 36px; object-fit: contain; }
+
+/* ---- Label ---- */
+.ftile__label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.ftile--lg .ftile__label { font-size: 0.8rem; }
+
+/* ---- Value ---- */
+.ftile__value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.ftile--sm .ftile__value { font-size: 0.75rem; }
+.ftile--lg .ftile__value { font-size: 1.05rem; }
+
+/* Value inherits accent color */
+.ftile--red    .ftile__value { color: #ff6b7a; }
+.ftile--green  .ftile__value { color: #5dd879; }
+.ftile--blue   .ftile__value { color: #6ea8fe; }
+.ftile--yellow .ftile__value { color: #ffd54f; }
+.ftile--orange .ftile__value { color: #ffb74d; }
+.ftile--cyan   .ftile__value { color: #67e8f9; }
+.ftile--gold   .ftile__value { color: #f7c948; }
+
+/* ---- Badge (top-right) ---- */
+.ftile__badge {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 20px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border-radius: 9px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(243, 156, 18, 0.5);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* ---- Clickable ---- */
+.ftile--click {
+    cursor: pointer;
+    user-select: none;
+}
+
+.ftile--click:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(111, 66, 193, 0.3);
+}
+
+.ftile--click:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Clickable per-color hover glow */
+.ftile--click.ftile--red:hover    { box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3); }
+.ftile--click.ftile--green:hover  { box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3); }
+.ftile--click.ftile--blue:hover   { box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3); }
+.ftile--click.ftile--yellow:hover { box-shadow: 0 6px 20px rgba(255, 193, 7, 0.3); }
+.ftile--click.ftile--orange:hover { box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3); }
+.ftile--click.ftile--gold:hover   { box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3); }
+
+/* ---- Disabled ---- */
+.ftile--off {
+    opacity: 0.35;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    filter: grayscale(0.5);
+}
+
+/* ---- Highlighted (buff active) ---- */
+.ftile--glow {
+    border-color: rgba(13, 202, 240, 0.6) !important;
+    box-shadow: 0 0 14px rgba(13, 202, 240, 0.2);
+}
+
+.ftile--glow .ftile__icon  { color: #0dcaf0 !important; }
+.ftile--glow .ftile__value { color: #67e8f9 !important; }
+
+/* ---- Insufficient resources ---- */
+.ftile--miss {
+    border-color: rgba(220, 53, 69, 0.5) !important;
+    background: linear-gradient(180deg, #1e1015 0%, #140a0e 100%) !important;
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 768px) {
+    .ftile--lg { padding: 0.55rem 0.4rem; }
+    .ftile--lg .ftile__icon  { font-size: 1.5rem; }
+    .ftile--lg .ftile__label { font-size: 0.7rem; }
+    .ftile--lg .ftile__value { font-size: 0.9rem; }
+}

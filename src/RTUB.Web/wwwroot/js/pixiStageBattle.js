@@ -149,6 +149,10 @@
             this.idleAnimationTime = 0;
             this.enemyIdleOffsets = []; // Store original Y positions for idle bob
             
+            // Attack animation flags — prevent idle from overriding lunge positions
+            this._playerAttacking = false;
+            this._enemyAttacking = {}; // keyed by enemy index
+            
             // Speed bar system - time-based combat
             this.playerActionTime = 3.5; // Reduced from 5.0 to 3.5 seconds for faster combat
             this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
@@ -216,6 +220,22 @@
                 shot: !!(abData.shot ?? abData.Shot),
                 penalty: !!(abData.penalty ?? abData.Penalty)
             };
+            // Consumable image URLs from Cloudflare CDN (fallback to local SVGs)
+            const defaultConsumableImages = {
+                fino: '/images/consumables/fino.svg',
+                caneca: '/images/consumables/caneca.svg',
+                cigarro: '/images/consumables/cigarro.svg',
+                canhao: '/images/consumables/canhao.svg'
+            };
+            const ciData = data?.consumableImages ?? data?.ConsumableImages ?? {};
+            this.consumableImages = {
+                fino: ciData.fino ?? ciData.Fino ?? defaultConsumableImages.fino,
+                caneca: ciData.caneca ?? ciData.Caneca ?? defaultConsumableImages.caneca,
+                cigarro: ciData.cigarro ?? ciData.Cigarro ?? defaultConsumableImages.cigarro,
+                canhao: ciData.canhao ?? ciData.Canhao ?? defaultConsumableImages.canhao
+            };
+            console.log('[StageBattle] Consumable images:', JSON.stringify(this.consumableImages));
+
             // Consumable cooldowns — persisted across stages
             const ccData = data?.consumableCooldowns ?? data?.ConsumableCooldowns ?? {};
             this.consumableCooldowns = {
@@ -286,13 +306,18 @@
             while (this.container.firstChild) {
                 this.container.removeChild(this.container.firstChild);
             }
+
+            // Use container's actual dimensions (fullscreen) instead of fixed size
+            const containerW = this.container.clientWidth || DEFAULT_WIDTH;
+            const containerH = this.container.clientHeight || DEFAULT_HEIGHT;
             
             this.app = new PIXI.Application();
             await this.app.init({
-                width: DEFAULT_WIDTH,
-                height: DEFAULT_HEIGHT,
+                width: containerW,
+                height: containerH,
                 backgroundColor: 0x1a1a1a,
-                antialias: true
+                antialias: true,
+                resizeTo: this.container
             });
 
             this.container.appendChild(this.app.canvas);
@@ -310,6 +335,14 @@
                 console.log('WebGL context restored');
             };
             this.app.canvas.addEventListener('webglcontextrestored', this._onContextRestored);
+
+            // Handle window resize — rebuild layout when container dimensions change
+            this._onResize = () => {
+                if (!this.app || !this.stage) return;
+                // PixiJS resizeTo handles canvas size; we just need to reposition sprites
+                // For now, the layout scales via the aspect ratio
+            };
+            window.addEventListener('resize', this._onResize);
 
             await this.loadAssets();
             this.create();
@@ -370,6 +403,9 @@
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
+
+            // Mobile portrait: player bottom-center, enemies top-center
+            this.isMobile = width <= height || width < 500;
 
             this.backgroundSprite = PIXI.Sprite.from(this.bgAlias);
             this.backgroundSprite.width = width;
@@ -480,16 +516,28 @@
         }
 
         createPlayer(width, height) {
-            const groundOffset = 60;
-            const playerX = width * 0.25;
-            const playerY = height - groundOffset;
+            // Reserve space at bottom for spell bar + consumable bar
+            const bottomBarReserve = Math.min(140, height * 0.15);
+            const groundOffset = bottomBarReserve + 10;
+
+            let playerX, playerY;
+            if (this.isMobile) {
+                // Mobile: player at bottom center
+                playerX = width * 0.5;
+                playerY = height - groundOffset;
+            } else {
+                // Desktop: player on the left
+                playerX = width * 0.25;
+                playerY = height - groundOffset;
+            }
             
             this.playerSprite = PIXI.Sprite.from(this._playerAlias);
             this.playerSprite.anchor.set(0.5, 1);
             this.playerSprite.x = playerX;
             this.playerSprite.y = playerY;
             
-            const maxSpriteHeight = height * 0.45;
+            // Mobile: smaller player to leave room for enemies; Desktop: unchanged
+            const maxSpriteHeight = this.isMobile ? height * 0.25 : height * 0.45;
             const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
             this.playerSprite.scale.set(scale);
             
@@ -521,82 +569,93 @@
             };
         }
 
-        /** Draw player HP bar and speed bar at top of canvas (HUD style, like battle mode). */
+        /** Draw player HP bar and speed bar below the HTML top bar overlay (WOO-style). */
         createHudBars(width, height) {
-            const barWidth = 200;
-            const barHeight = 24;
-            const paddingTop = 20;
-            const paddingLeft = 50;
+            const isMobile = this.isMobile;
+            const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.40);
+            const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
+            // Push below the HTML top bar overlay
+            const topBarHeight = 54;
+            const paddingTop = topBarHeight + 8;
+            const paddingLeft = Math.min(16, width * 0.03);
 
-            // HP bar background
+            // == HP Bar ==
+            // Dark rounded background
             const hpBg = new PIXI.Graphics();
-            hpBg.rect(paddingLeft, paddingTop, barWidth, barHeight);
-            hpBg.fill(0x333333);
+            hpBg.roundRect(paddingLeft, paddingTop, barWidth, barHeight, barHeight / 2);
+            hpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
+            hpBg.stroke({ color: 0x333333, width: 1 });
             this.stage.addChild(hpBg);
 
-            // HP bar fill
+            // HP fill (green gradient look)
             const hpFill = new PIXI.Graphics();
-            hpFill.rect(0, 0, barWidth, barHeight);
+            hpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
             hpFill.fill(0x4caf50);
             hpFill.x = paddingLeft;
             hpFill.y = paddingTop;
             this.stage.addChild(hpFill);
 
-            // HP bar border
+            // HP border
             const hpBorder = new PIXI.Graphics();
-            hpBorder.rect(paddingLeft, paddingTop, barWidth, barHeight);
-            hpBorder.stroke({ width: 2, color: 0xffffff });
+            hpBorder.roundRect(paddingLeft, paddingTop, barWidth, barHeight, barHeight / 2);
+            hpBorder.stroke({ width: 1.5, color: 0x66bb6a });
             this.stage.addChild(hpBorder);
 
-            // HP text
+            // HP text centered on bar (e.g. "1.28K / 1.28K HP")
+            const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
             const hpText = new PIXI.Text({
                 text: '',
-                style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xffffff }
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
             });
-            hpText.anchor.set(0.5, 0);
+            hpText.anchor.set(0.5, 0.5);
             hpText.x = paddingLeft + barWidth / 2;
-            hpText.y = paddingTop + 4;
+            hpText.y = paddingTop + barHeight / 2;
             this.stage.addChild(hpText);
 
             this.playerHpBar = {
                 bar: hpFill, barBg: hpBg, border: hpBorder,
-                text: hpText, maxWidth: barWidth, barHeight: barHeight
+                text: hpText, maxWidth: barWidth, barHeight: barHeight,
+                x: paddingLeft, y: paddingTop
             };
 
-            // Speed bar below HP bar
-            const speedBarHeight = 8;
-            const speedBarY = paddingTop + barHeight + 4;
+            // == Speed Bar (below HP) ==
+            const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
+            const speedBarY = paddingTop + barHeight + 3;
 
             const speedBg = new PIXI.Graphics();
-            speedBg.rect(paddingLeft, speedBarY, barWidth, speedBarHeight);
-            speedBg.fill(0x222222);
+            speedBg.roundRect(paddingLeft, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+            speedBg.fill({ color: 0x111111, alpha: 0.85 });
             this.stage.addChild(speedBg);
 
             const speedFill = new PIXI.Graphics();
-            speedFill.rect(0, 0, barWidth, speedBarHeight);
+            speedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
             speedFill.fill(0x00bcd4);
             speedFill.x = paddingLeft;
             speedFill.y = speedBarY;
             this.stage.addChild(speedFill);
 
-            const speedBorder = new PIXI.Graphics();
-            speedBorder.rect(paddingLeft, speedBarY, barWidth, speedBarHeight);
-            speedBorder.stroke({ width: 1, color: 0x666666 });
-            this.stage.addChild(speedBorder);
-
-            // Speed text (shows action time e.g. "1.0s")
+            // Speed countdown text (shows remaining seconds: "3.2s") — centered INSIDE the bar
+            const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
             const speedText = new PIXI.Text({
                 text: '',
-                style: { fontFamily: 'Arial', fontSize: 10, fontWeight: 'bold', fill: 0x00e5ff }
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
             });
-            speedText.anchor.set(0, 0.5);
-            speedText.x = paddingLeft + barWidth + 6;
+            speedText.anchor.set(0.5, 0.5);
+            speedText.x = paddingLeft + barWidth / 2;
             speedText.y = speedBarY + speedBarHeight / 2;
             this.stage.addChild(speedText);
 
             this.playerSpeedBar = {
-                bar: speedFill, barBg: speedBg, border: speedBorder, maxWidth: barWidth,
-                text: speedText
+                bar: speedFill, barBg: speedBg, maxWidth: barWidth,
+                text: speedText, barHeight: speedBarHeight
             };
         }
 
@@ -605,10 +664,22 @@
             this.enemyHpBars = [];
             this.enemyIdleOffsets = []; // Store base positions for idle animation
             
-            const isMobile = width <= height || width < 500;
-            const groundOffset = 60;
-            const enemyX = width * 0.72; // Shift left slightly to give more room
-            const baseEnemyY = height - groundOffset;
+            const isMobile = this.isMobile;
+            // Reserve space at bottom for spell bar + consumable bar
+            const bottomBarReserve = Math.min(140, height * 0.15);
+            const groundOffset = bottomBarReserve + 10;
+
+            let enemyX, baseEnemyY;
+            if (isMobile) {
+                // Mobile: enemies at top center area — push down so sprites + HP bars clear top bar
+                enemyX = width * 0.5;
+                const topBarHeight = 60; // HTML overlay top bar
+                baseEnemyY = topBarHeight + height * 0.32;
+            } else {
+                // Desktop: enemies on the right
+                enemyX = width * 0.72;
+                baseEnemyY = height - groundOffset;
+            }
             
             // Pass placements to calculate positions
             const positions = this.calculateEnemyPositions(isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements);
@@ -617,14 +688,34 @@
             // More enemies = smaller sprites to fit them all
             const isBoss = this.enemyType && this.enemyType.toLowerCase() === 'boss';
             let countScaleFactor = 1.0;
-            if (this.enemyCount >= 6) {
-                countScaleFactor = 0.55;
-            } else if (this.enemyCount >= 5) {
-                countScaleFactor = 0.65;
-            } else if (this.enemyCount >= 4) {
-                countScaleFactor = 0.85;
-            } else if (this.enemyCount >= 3) {
-                countScaleFactor = 0.92;
+            if (isMobile) {
+                // Mobile: much more aggressive scaling for large groups
+                if (this.enemyCount >= 9) {
+                    countScaleFactor = 0.38;
+                } else if (this.enemyCount >= 8) {
+                    countScaleFactor = 0.42;
+                } else if (this.enemyCount >= 7) {
+                    countScaleFactor = 0.48;
+                } else if (this.enemyCount >= 6) {
+                    countScaleFactor = 0.52;
+                } else if (this.enemyCount >= 5) {
+                    countScaleFactor = 0.60;
+                } else if (this.enemyCount >= 4) {
+                    countScaleFactor = 0.75;
+                } else if (this.enemyCount >= 3) {
+                    countScaleFactor = 0.85;
+                }
+            } else {
+                // Desktop: keep existing values
+                if (this.enemyCount >= 6) {
+                    countScaleFactor = 0.55;
+                } else if (this.enemyCount >= 5) {
+                    countScaleFactor = 0.65;
+                } else if (this.enemyCount >= 4) {
+                    countScaleFactor = 0.85;
+                } else if (this.enemyCount >= 3) {
+                    countScaleFactor = 0.92;
+                }
             }
             
             // Boss gets a size boost
@@ -656,8 +747,8 @@
                 enemy.x = pos.x;
                 enemy.y = pos.y;
                 
-                // Calculate base scale from height
-                const mobileScale = isMobile ? 0.22 : 0.40;
+                // Calculate base scale from height — mobile enemies bigger to be clearly visible
+                const mobileScale = isMobile ? 0.28 : 0.40;
                 const maxSpriteHeight = height * mobileScale;
                 const baseScale = Math.min(1, maxSpriteHeight / enemy.height);
                 
@@ -751,15 +842,24 @@
             
             // Adjust spacing based on enemy count - tighter when more enemies
             let hSpacing, vSpacing;
-            if (enemyCount >= 6) {
-                hSpacing = isMobile ? 55 : 90;
-                vSpacing = isMobile ? 70 : 90;
+            if (enemyCount >= 9) {
+                hSpacing = isMobile ? 45 : 80;
+                vSpacing = isMobile ? 55 : 80;
+            } else if (enemyCount >= 8) {
+                hSpacing = isMobile ? 48 : 85;
+                vSpacing = isMobile ? 58 : 85;
+            } else if (enemyCount >= 7) {
+                hSpacing = isMobile ? 52 : 90;
+                vSpacing = isMobile ? 62 : 90;
+            } else if (enemyCount >= 6) {
+                hSpacing = isMobile ? 58 : 90;
+                vSpacing = isMobile ? 68 : 90;
             } else if (enemyCount >= 5) {
-                hSpacing = isMobile ? 80 : 130;
-                vSpacing = isMobile ? 95 : 130;
+                hSpacing = isMobile ? 70 : 130;
+                vSpacing = isMobile ? 80 : 130;
             } else if (enemyCount >= 4) {
                 hSpacing = isMobile ? 75 : 115;
-                vSpacing = isMobile ? 90 : 115;
+                vSpacing = isMobile ? 85 : 115;
             } else {
                 hSpacing = isMobile ? 90 : 140;
                 vSpacing = isMobile ? 100 : 130;
@@ -767,9 +867,11 @@
             
             const aerialOffset = isMobile ? 80 : 120; // How high aerial enemies fly
             
-            // Calculate max X to keep enemies on screen (with some padding)
+            // Calculate X bounds to keep enemies on screen
             const maxX = width - 40;
-            const minX = width * 0.45; // Don't go past middle of screen
+            // On mobile (vertical layout), enemies are centered — allow full width
+            // On desktop, don't go past middle of screen (player is on left)
+            const minX = isMobile ? 40 : width * 0.45;
             
             // Calculate positions for each enemy
             const tempPositions = Array(enemyCount).fill(null);
@@ -854,6 +956,42 @@
                     tempPositions[3] = { x: startX - hSpacing, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
                     tempPositions[4] = { x: startX, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
                     tempPositions[5] = { x: startX + hSpacing, y: baseYForType, isAerial: aerialIndices.length === enemyCount };
+                }
+                // For 7 enemies: 3-1-3 pattern
+                else if (enemyCount === 7) {
+                    const isA = aerialIndices.length === enemyCount;
+                    tempPositions[0] = { x: baseX - hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[1] = { x: baseX,              y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[2] = { x: baseX + hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[3] = { x: baseX,              y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[4] = { x: baseX - hSpacing, y: baseYForType, isAerial: isA };
+                    tempPositions[5] = { x: baseX,              y: baseYForType, isAerial: isA };
+                    tempPositions[6] = { x: baseX + hSpacing, y: baseYForType, isAerial: isA };
+                }
+                // For 8 enemies: 3-2-3 pattern
+                else if (enemyCount === 8) {
+                    const isA = aerialIndices.length === enemyCount;
+                    tempPositions[0] = { x: baseX - hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[1] = { x: baseX,              y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[2] = { x: baseX + hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[3] = { x: baseX - hSpacing * 0.5, y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[4] = { x: baseX + hSpacing * 0.5, y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[5] = { x: baseX - hSpacing, y: baseYForType, isAerial: isA };
+                    tempPositions[6] = { x: baseX,              y: baseYForType, isAerial: isA };
+                    tempPositions[7] = { x: baseX + hSpacing, y: baseYForType, isAerial: isA };
+                }
+                // For 9 enemies: 3-3-3 pattern
+                else if (enemyCount >= 9) {
+                    const isA = aerialIndices.length === enemyCount;
+                    tempPositions[0] = { x: baseX - hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[1] = { x: baseX,              y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[2] = { x: baseX + hSpacing, y: baseYForType - smallVOffset, isAerial: isA };
+                    tempPositions[3] = { x: baseX - hSpacing, y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[4] = { x: baseX,              y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[5] = { x: baseX + hSpacing, y: baseYForType - smallVOffset / 2, isAerial: isA };
+                    tempPositions[6] = { x: baseX - hSpacing, y: baseYForType, isAerial: isA };
+                    tempPositions[7] = { x: baseX,              y: baseYForType, isAerial: isA };
+                    tempPositions[8] = { x: baseX + hSpacing, y: baseYForType, isAerial: isA };
                 }
             }
             
@@ -958,25 +1096,30 @@
             }
         }
 
-        /** Create the spell button bar on the left side of the canvas (vertical layout). */
+        /** Create the spell button bar — horizontal, centered, above the consumable bar. */
         createSpellBar() {
             if (!this.spells || this.spells.length === 0) return;
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = 48;
-            const btnGap = 6;
-            const totalHeight = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
-            const startX = 8;
-            const startY = 60; // below HUD bars
+            const isMobile = width < 768;
+            const btnSize = isMobile
+                ? Math.min(52, Math.floor(width / (this.spells.length + 2)))
+                : Math.min(68, Math.floor(width / (this.spells.length + 2)));
+            const btnGap = isMobile ? 6 : 10;
+            const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
+            const startX = (width - totalWidth) / 2;
+            // Position above consumable bar — must match actual consumable btn sizing
+            const consumableBtnSize = isMobile ? 60 : 76;
+            const barY = height - consumableBtnSize - 10 - btnSize - 18;
 
             this.spellBarContainer = new PIXI.Container();
             this.stage.addChild(this.spellBarContainer);
 
             // Semi-transparent backdrop behind spell bar
             const backdrop = new PIXI.Graphics();
-            backdrop.roundRect(startX - 4, startY - 4, btnSize + 8, totalHeight + 8, 8);
-            backdrop.fill({ color: 0x000000, alpha: 0.5 });
+            backdrop.roundRect(startX - 8, barY - 4, totalWidth + 16, btnSize + 8, 10);
+            backdrop.fill({ color: 0x0d1117, alpha: 0.65 });
             this.spellBarContainer.addChild(backdrop);
 
             this.spellButtons = [];
@@ -987,23 +1130,23 @@
                 const name = spell.name ?? spell.Name ?? attackId;
                 const icon = spell.icon ?? spell.Icon ?? '⚡';
                 const cooldown = spell.cooldownSeconds ?? spell.CooldownSeconds ?? 10;
-                const y = startY + i * (btnSize + btnGap);
+                const x = startX + i * (btnSize + btnGap);
 
                 const btnContainer = new PIXI.Container();
-                btnContainer.x = startX;
-                btnContainer.y = y;
+                btnContainer.x = x;
+                btnContainer.y = barY;
 
                 // Button background
                 const bg = new PIXI.Graphics();
-                bg.roundRect(0, 0, btnSize, btnSize, 6);
-                bg.fill({ color: 0x2a2a4a, alpha: 0.9 });
-                bg.stroke({ color: 0x6666aa, width: 2 });
+                bg.roundRect(0, 0, btnSize, btnSize, 8);
+                bg.fill({ color: 0x1a1a3a, alpha: 0.95 });
+                bg.stroke({ color: 0x5566cc, width: 2 });
                 btnContainer.addChild(bg);
 
                 // Icon text
                 const iconText = new PIXI.Text({
                     text: icon,
-                    style: { fontSize: 22, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                    style: { fontSize: isMobile ? Math.min(22, btnSize * 0.4) : Math.min(28, btnSize * 0.42), fontFamily: 'Arial, sans-serif', fill: 0xffffff }
                 });
                 iconText.anchor.set(0.5);
                 iconText.x = btnSize / 2;
@@ -1012,17 +1155,17 @@
 
                 // Spell name (small, below icon)
                 const nameText = new PIXI.Text({
-                    text: name.length > 6 ? name.substring(0, 6) : name,
-                    style: { fontSize: 8, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                    text: name.length > 7 ? name.substring(0, 7) : name,
+                    style: { fontSize: isMobile ? 7 : 9, fontFamily: 'Arial, sans-serif', fill: 0x999999 }
                 });
                 nameText.anchor.set(0.5);
                 nameText.x = btnSize / 2;
-                nameText.y = btnSize - 6;
+                nameText.y = btnSize - 5;
                 btnContainer.addChild(nameText);
 
-                // Cooldown overlay (dark semi-transparent, hidden when ready)
+                // Cooldown overlay
                 const cdOverlay = new PIXI.Graphics();
-                cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
                 cdOverlay.fill({ color: 0x000000, alpha: 0.7 });
                 cdOverlay.visible = false;
                 btnContainer.addChild(cdOverlay);
@@ -1030,7 +1173,7 @@
                 // Cooldown timer text
                 const cdText = new PIXI.Text({
                     text: '',
-                    style: { fontSize: 16, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
+                    style: { fontSize: 14, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
                 });
                 cdText.anchor.set(0.5);
                 cdText.x = btnSize / 2;
@@ -1059,36 +1202,35 @@
             }
         }
 
-        /** Create the consumable bar at the center-bottom of the canvas. */
+        /** Create the consumable bar at the bottom of the canvas (healing items: Fino, Caneca). */
         createConsumableBar() {
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnGap = 4;
+            const isMobile = width < 768;
+            const btnGap = isMobile ? 6 : 10;
 
             const consumables = [
-                { type: 'fino',    icon: '🍺', name: 'Fino',    color: 0xf5a623 },
-                { type: 'caneca',  icon: '🍻', name: 'Caneca',  color: 0xf5a623 },
-                { type: 'cigarro', icon: '🛡️', name: 'Cigarro', color: 0x90caf9 },
-                { type: 'canhao',  icon: '💣', name: 'Canhão',  color: 0xef5350 },
-                { type: 'shot',    icon: '🥃', name: 'Shot',    color: 0xab47bc },
-                { type: 'penalty', icon: '⚡', name: 'Penalty', color: 0xffee58 }
+                { type: 'fino',    name: 'Fino',    color: 0xf5a623, fallbackIcon: '🍺' },
+                { type: 'caneca',  name: 'Caneca',  color: 0xf5a623, fallbackIcon: '🍻' }
             ];
 
-            // Compute button size to fit all consumables within the canvas width
-            const maxBarWidth = width - 24; // 12px padding on each side
-            const btnSize = Math.min(64, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
+            // Responsive button size — larger on desktop
+            const maxBarWidth = isMobile ? Math.min(width * 0.9, 320) : Math.min(width * 0.9, 420);
+            const btnSize = isMobile
+                ? Math.min(60, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length))
+                : Math.min(76, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
 
             const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;
-            const barY = height - btnSize - 8;
+            const barY = height - btnSize - 10;
 
             this.consumableBarContainer = new PIXI.Container();
             this.stage.addChild(this.consumableBarContainer);
 
             // Semi-transparent backdrop
             const backdrop = new PIXI.Graphics();
-            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 8);
-            backdrop.fill({ color: 0x000000, alpha: 0.45 });
+            backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 10);
+            backdrop.fill({ color: 0x0d1117, alpha: 0.7 });
             this.consumableBarContainer.addChild(backdrop);
 
             this.consumableButtons = [];
@@ -1102,42 +1244,80 @@
                 btnContainer.x = x;
                 btnContainer.y = barY;
 
-                // Background
+                // Button background
                 const bg = new PIXI.Graphics();
-                bg.roundRect(0, 0, btnSize, btnSize, 6);
-                bg.fill({ color: qty > 0 ? 0x1e3a2f : 0x2a2a2a, alpha: 0.9 });
-                bg.stroke({ color: qty > 0 ? c.color : 0x555555, width: 2 });
+                bg.roundRect(0, 0, btnSize, btnSize, 8);
+                bg.fill({ color: qty > 0 ? 0x1a2332 : 0x1a1a1a, alpha: 0.95 });
+                bg.stroke({ color: qty > 0 ? c.color : 0x444444, width: 2 });
                 btnContainer.addChild(bg);
 
-                // Icon
-                const iconText = new PIXI.Text({
-                    text: c.icon,
-                    style: { fontSize: 20, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
-                });
-                iconText.anchor.set(0.5);
-                iconText.x = btnSize / 2;
-                iconText.y = btnSize / 2 - 6;
-                btnContainer.addChild(iconText);
+                // Sprite image from CDN (or fallback emoji)
+                const imageUrl = this.consumableImages[c.type];
+                let iconDisplay;
+                if (imageUrl) {
+                    // Load async sprite — start with placeholder, swap when ready
+                    const spriteAlias = `consumable_${c.type}_${imageUrl}`;
+                    const spriteContainer = new PIXI.Container();
+                    spriteContainer.x = btnSize / 2;
+                    spriteContainer.y = btnSize / 2 - 2;
+                    btnContainer.addChild(spriteContainer);
 
-                // Name label
+                    // Load sprite texture asynchronously
+                    (async () => {
+                        try {
+                            if (!loadedAssetAliases.has(spriteAlias)) {
+                                await PIXI.Assets.load({ alias: spriteAlias, src: imageUrl });
+                                loadedAssetAliases.add(spriteAlias);
+                            }
+                            const spr = PIXI.Sprite.from(spriteAlias);
+                            spr.anchor.set(0.5);
+                            const maxDim = btnSize * 0.6;
+                            const scale = Math.min(maxDim / spr.width, maxDim / spr.height);
+                            spr.scale.set(scale);
+                            spriteContainer.addChild(spr);
+                        } catch (e) {
+                            // Fallback: show emoji icon
+                            const fallback = new PIXI.Text({
+                                text: c.fallbackIcon,
+                                style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' }
+                            });
+                            fallback.anchor.set(0.5);
+                            spriteContainer.addChild(fallback);
+                        }
+                    })();
+                    iconDisplay = spriteContainer;
+                } else {
+                    // No image URL — show emoji fallback
+                    const fallbackText = new PIXI.Text({
+                        text: c.fallbackIcon,
+                        style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' }
+                    });
+                    fallbackText.anchor.set(0.5);
+                    fallbackText.x = btnSize / 2;
+                    fallbackText.y = btnSize / 2 - 2;
+                    btnContainer.addChild(fallbackText);
+                    iconDisplay = fallbackText;
+                }
+
+                // Name label at bottom
                 const nameText = new PIXI.Text({
                     text: c.name.length > 7 ? c.name.substring(0, 7) : c.name,
-                    style: { fontSize: 7, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                    style: { fontSize: 7, fontFamily: 'Arial, sans-serif', fill: 0x888888 }
                 });
                 nameText.anchor.set(0.5);
                 nameText.x = btnSize / 2;
-                nameText.y = btnSize - 6;
+                nameText.y = btnSize - 5;
                 btnContainer.addChild(nameText);
 
                 // Quantity badge (top-right corner)
                 const qtyBg = new PIXI.Graphics();
-                qtyBg.circle(btnSize - 4, 4, 10);
-                qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x555555, alpha: 0.95 });
+                qtyBg.circle(btnSize - 4, 4, 9);
+                qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x444444, alpha: 0.95 });
                 btnContainer.addChild(qtyBg);
 
                 const qtyText = new PIXI.Text({
                     text: qty.toString(),
-                    style: { fontSize: 10, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
+                    style: { fontSize: 9, fontFamily: 'Arial, sans-serif', fontWeight: 'bold', fill: 0xffffff }
                 });
                 qtyText.anchor.set(0.5);
                 qtyText.x = btnSize - 4;
@@ -1146,16 +1326,16 @@
 
                 // Greyed out overlay when qty == 0 or buff already active
                 const emptyOverlay = new PIXI.Graphics();
-                emptyOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                emptyOverlay.roundRect(0, 0, btnSize, btnSize, 8);
                 emptyOverlay.fill({ color: 0x000000, alpha: 0.6 });
-                const isBuffType = ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type);
+                const isBuffType = ['cigarro', 'canhao'].includes(c.type);
                 const isActive = isBuffType && (this.activeBuffs[c.type] ?? false);
                 emptyOverlay.visible = qty <= 0 || isActive;
                 btnContainer.addChild(emptyOverlay);
 
-                // Cooldown overlay (dark semi-transparent, hidden when ready)
+                // Cooldown overlay
                 const cdOverlay = new PIXI.Graphics();
-                cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+                cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
                 cdOverlay.fill({ color: 0x000000, alpha: 0.65 });
                 const initCd = this.consumableCooldowns[c.type] ?? 0;
                 cdOverlay.visible = initCd > 0;
@@ -1182,10 +1362,10 @@
                 this.consumableBarContainer.addChild(btnContainer);
 
                 this.consumableButtons.push({
-                    container: btnContainer, bg, iconText, nameText,
+                    container: btnContainer, bg, iconText: iconDisplay, nameText,
                     qtyBg, qtyText, emptyOverlay, cdOverlay, cdText,
                     type: c.type, color: c.color, btnSize,
-                    isBuffType: ['cigarro', 'canhao', 'shot', 'penalty'].includes(c.type)
+                    isBuffType: ['cigarro', 'canhao'].includes(c.type)
                 });
             }
         }
@@ -1200,7 +1380,7 @@
             const cd = this.consumableCooldowns[type] ?? 0;
             if (cd > 0) return;
             // Block if this buff is already active
-            const isBuffType = ['cigarro', 'canhao', 'shot', 'penalty'].includes(type);
+            const isBuffType = ['cigarro', 'canhao'].includes(type);
             if (isBuffType && this.activeBuffs[type]) return;
 
             this._consumablePending = true;
@@ -1305,23 +1485,23 @@
 
             // Update badge color
             btn.qtyBg.clear();
-            btn.qtyBg.circle(sz - 4, 4, 10);
-            btn.qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x555555, alpha: 0.95 });
+            btn.qtyBg.circle(sz - 4, 4, 9);
+            btn.qtyBg.fill({ color: qty > 0 ? 0x2e7d32 : 0x444444, alpha: 0.95 });
 
             // Update button style - active buffs get bright glow
             btn.bg.clear();
-            btn.bg.roundRect(0, 0, sz, sz, 6);
+            btn.bg.roundRect(0, 0, sz, sz, 8);
             if (isActive) {
                 btn.bg.fill({ color: btn.color, alpha: 0.35 });
                 btn.bg.stroke({ color: btn.color, width: 3 });
             } else {
-                btn.bg.fill({ color: qty > 0 ? 0x1e3a2f : 0x2a2a2a, alpha: 0.9 });
-                btn.bg.stroke({ color: qty > 0 ? btn.color : 0x555555, width: 2 });
+                btn.bg.fill({ color: qty > 0 ? 0x1a2332 : 0x1a1a1a, alpha: 0.95 });
+                btn.bg.stroke({ color: qty > 0 ? btn.color : 0x444444, width: 2 });
             }
 
             // Update name label - show "ATIVO" when active
             btn.nameText.text = isActive ? 'ATIVO' : (type === 'canhao' ? 'Canhão' : type.charAt(0).toUpperCase() + type.slice(1));
-            btn.nameText.style.fill = isActive ? btn.color : 0xcccccc;
+            btn.nameText.style.fill = isActive ? btn.color : 0x888888;
             btn.nameText.style.fontWeight = isActive ? 'bold' : 'normal';
 
             // Cooldown overlay and timer
@@ -2080,8 +2260,8 @@
         updateIdleAnimation(deltaMs) {
             this.idleAnimationTime += deltaMs * 0.002; // Slow animation speed
 
-            // Animate player with gentle bobbing
-            if (this.playerSprite && !this.playerSprite.destroyed && this.playerIdleOffset && this.playerCurrentHp > 0) {
+            // Animate player with gentle bobbing (skip during attack lunge)
+            if (this.playerSprite && !this.playerSprite.destroyed && this.playerIdleOffset && this.playerCurrentHp > 0 && !this._playerAttacking) {
                 const po = this.playerIdleOffset;
                 const bobY = Math.sin(this.idleAnimationTime * 1.5 + po.phase) * po.bobAmplitude;
                 const swayX = Math.sin(this.idleAnimationTime * 0.8 + po.phase * 1.3) * po.swayAmplitude;
@@ -2105,6 +2285,9 @@
                 
                 if (!enemy || !offset || this.enemyHPs[i]?.current <= 0) continue;
                 
+                // Skip idle repositioning while this enemy is lunging
+                if (this._enemyAttacking[i]) continue;
+                
                 const phase = offset.phase;
                 const bobAmplitude = offset.bobAmplitude || 3;
                 const swayAmplitude = offset.swayAmplitude || 2;
@@ -2126,12 +2309,14 @@
 
         updatePlayerSpeedBar() {
             if (!this.playerSpeedBar) return;
-            const ratio = Math.max(0, this.playerSpeedBarTimer / (this.playerActionTime * 1000));
+            const totalMs = this.playerActionTime * 1000;
+            const ratio = Math.max(0, this.playerSpeedBarTimer / totalMs);
             const newWidth = this.playerSpeedBar.maxWidth * ratio;
             this.playerSpeedBar.bar.width = newWidth;
-            // Update speed text label
+            // Show countdown: remaining seconds (e.g. "2.1s")
             if (this.playerSpeedBar.text) {
-                this.playerSpeedBar.text.text = `${this.playerActionTime.toFixed(1)}s`;
+                const remainingSec = Math.max(0, this.playerSpeedBarTimer / 1000);
+                this.playerSpeedBar.text.text = `${remainingSec.toFixed(1)}s`;
             }
         }
 
@@ -2240,12 +2425,13 @@
             // Clamp ratio to [0,1] to prevent bar overflow when CurrentHP > MaxHP
             const ratio = Math.min(1, Math.max(0, this.playerCurrentHp / this.playerMaxHp));
             const maxWidth = this.playerHpBar.maxWidth || 200;
-            const barHeight = this.playerHpBar.barHeight || 24;
+            const barHeight = this.playerHpBar.barHeight || 22;
+            const radius = barHeight / 2;
 
             // Update bar color based on HP percentage
             const fillColor = ratio > 0.5 ? 0x4caf50 : ratio > 0.25 ? 0xff9800 : 0xf44336;
             this.playerHpBar.bar.clear();
-            this.playerHpBar.bar.rect(0, 0, maxWidth, barHeight);
+            this.playerHpBar.bar.roundRect(0, 0, maxWidth, barHeight, radius);
             this.playerHpBar.bar.fill(fillColor);
 
             this.animateTo(this.playerHpBar.bar, { width: maxWidth * ratio }, 200);
@@ -2398,23 +2584,52 @@
         animatePlayerAttack(isCritical) {
             if (!this.playerSprite) return;
             
-            const originalX = this.playerSprite.x;
+            this._playerAttacking = true;
             const lungeDistance = isCritical ? 80 : 60;
             const lungeDuration = isCritical ? 120 : 150;
-            this.animateTo(this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
-                this.animateTo(this.playerSprite, { x: originalX }, 240);
-            });
+
+            if (this.isMobile) {
+                // Mobile: lunge upward toward enemies
+                const originalY = this.playerSprite.y;
+                this.animateTo(this.playerSprite, { y: originalY - lungeDistance }, lungeDuration, () => {
+                    this.animateTo(this.playerSprite, { y: originalY }, 240, () => {
+                        this._playerAttacking = false;
+                    });
+                });
+            } else {
+                // Desktop: lunge rightward toward enemies
+                const originalX = this.playerSprite.x;
+                this.animateTo(this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
+                    this.animateTo(this.playerSprite, { x: originalX }, 240, () => {
+                        this._playerAttacking = false;
+                    });
+                });
+            }
         }
 
         animateEnemyAttack(isCritical) {
             this.enemySprites.forEach((enemy, index) => {
-                const originalX = enemy.x;
+                this._enemyAttacking[index] = true;
                 const lungeDistance = isCritical ? 80 : 60;
                 const lungeDuration = isCritical ? 120 : 150;
                 setTimeout(() => {
-                    this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-                        this.animateTo(enemy, { x: originalX }, 240);
-                    });
+                    if (this.isMobile) {
+                        // Mobile: lunge downward toward player
+                        const originalY = enemy.y;
+                        this.animateTo(enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
+                            this.animateTo(enemy, { y: originalY }, 240, () => {
+                                this._enemyAttacking[index] = false;
+                            });
+                        });
+                    } else {
+                        // Desktop: lunge leftward toward player
+                        const originalX = enemy.x;
+                        this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
+                            this.animateTo(enemy, { x: originalX }, 240, () => {
+                                this._enemyAttacking[index] = false;
+                            });
+                        });
+                    }
                 }, (index * 50) / this.battleSpeed);
             });
         }
@@ -2423,12 +2638,24 @@
             if (enemyIndex >= 0 && enemyIndex < this.enemySprites.length) {
                 const enemy = this.enemySprites[enemyIndex];
                 if (enemy) {
-                    const originalX = enemy.x;
+                    this._enemyAttacking[enemyIndex] = true;
                     const lungeDistance = isCritical ? 80 : 60;
                     const lungeDuration = isCritical ? 120 : 150;
-                    this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-                        this.animateTo(enemy, { x: originalX }, 240);
-                    });
+                    if (this.isMobile) {
+                        const originalY = enemy.y;
+                        this.animateTo(enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
+                            this.animateTo(enemy, { y: originalY }, 240, () => {
+                                this._enemyAttacking[enemyIndex] = false;
+                            });
+                        });
+                    } else {
+                        const originalX = enemy.x;
+                        this.animateTo(enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
+                            this.animateTo(enemy, { x: originalX }, 240, () => {
+                                this._enemyAttacking[enemyIndex] = false;
+                            });
+                        });
+                    }
                 }
             }
         }
@@ -2913,6 +3140,11 @@
         }
 
         destroy() {
+            // Remove resize listener
+            if (this._onResize) {
+                window.removeEventListener('resize', this._onResize);
+                this._onResize = null;
+            }
             // Remove context-loss/restore listeners
             if (this._onContextLost && this.app?.canvas) {
                 this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);
@@ -3019,6 +3251,23 @@
                     canhao: cData.canhao ?? cData.Canhao ?? this.consumableQuantities.canhao,
                     shot: cData.shot ?? cData.Shot ?? this.consumableQuantities.shot,
                     penalty: cData.penalty ?? cData.Penalty ?? this.consumableQuantities.penalty
+                };
+            }
+
+            // Update consumable images from server (fallback to local SVGs)
+            const defaultConsumableImages = {
+                fino: '/images/consumables/fino.svg',
+                caneca: '/images/consumables/caneca.svg',
+                cigarro: '/images/consumables/cigarro.svg',
+                canhao: '/images/consumables/canhao.svg'
+            };
+            const ciData = data?.consumableImages ?? data?.ConsumableImages;
+            if (ciData) {
+                this.consumableImages = {
+                    fino: ciData.fino ?? ciData.Fino ?? this.consumableImages.fino ?? defaultConsumableImages.fino,
+                    caneca: ciData.caneca ?? ciData.Caneca ?? this.consumableImages.caneca ?? defaultConsumableImages.caneca,
+                    cigarro: ciData.cigarro ?? ciData.Cigarro ?? this.consumableImages.cigarro ?? defaultConsumableImages.cigarro,
+                    canhao: ciData.canhao ?? ciData.Canhao ?? this.consumableImages.canhao ?? defaultConsumableImages.canhao
                 };
             }
 
@@ -3172,9 +3421,15 @@
             this.enemySpeedBarTimers = Array(this.enemyCount).fill(3500);
             this.enemyActionTimes = Array(this.enemyCount).fill(3.5);
             
+            // Reset attack animation flags
+            this._playerAttacking = false;
+            this._enemyAttacking = {};
+            
             // Create new enemies (player persists — no recreation)
             const width = this.app.screen.width;
             const height = this.app.screen.height;
+            // Refresh mobile flag in case viewport changed (device rotation)
+            this.isMobile = width <= height || width < 500;
             this.createEnemies(width, height);
             
             // Fade in new enemies for a smooth transition
@@ -3261,6 +3516,7 @@
             const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
             const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
             const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
+            const consumableImages = battleData?.consumableImages ?? battleData?.ConsumableImages ?? {};
             const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? {};
 
             stageScene = new StageBattleScene(container, {
@@ -3283,6 +3539,7 @@
                 playerActionTime: playerActionTime,
                 enemies: enemies,
                 consumables: consumables,
+                consumableImages: consumableImages,
                 activeBuffs: activeBuffs
             });
             
@@ -3361,6 +3618,7 @@
             const playerActionTime = battleData?.playerActionTime ?? battleData?.PlayerActionTime ?? null;
             const enemies = battleData?.enemies ?? battleData?.Enemies ?? [];
             const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
+            const consumableImages = battleData?.consumableImages ?? battleData?.ConsumableImages ?? {};
             const consumableCooldowns = battleData?.consumableCooldowns ?? battleData?.ConsumableCooldowns ?? {};
             const spellCooldowns = battleData?.spellCooldowns ?? battleData?.SpellCooldowns ?? {};
             const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? null;
@@ -3386,6 +3644,7 @@
                 playerActionTime: playerActionTime,
                 enemies: enemies,
                 consumables: consumables,
+                consumableImages: consumableImages,
                 consumableCooldowns: consumableCooldowns,
                 spellCooldowns: spellCooldowns,
                 activeBuffs: activeBuffs

@@ -67,10 +67,9 @@ public class StageServiceTests : IDisposable
             },
             StageMode = new StageModeConfig
             {
-                BaseEnemyStats = new BaseEnemyStats
+                EnemyTiers = new List<StageEnemyTierConfig>
                 {
-                    Normal = new EnemyTypeStat { Hp = 100, Power = 10, Speed = 10, Defense = 5, CriticalChance = 0.03 },
-                    Boss = new EnemyTypeStat { Hp = 500, Power = 50, Speed = 20, Defense = 25, CriticalChance = 0.10 }
+                    new StageEnemyTierConfig { Tier = 1, MinStage = 1, MaxStage = 999999999, HP = 150, Power = 15, Defense = 5, Speed = 10, CritChance = 0.03, FidelisReward = 10m, XpReward = 10, BossHP = 500, BossPower = 50, BossDefense = 25 }
                 }
             }
         };
@@ -91,8 +90,7 @@ public class StageServiceTests : IDisposable
         _biomeServiceMock.Setup(x => x.GetEnemiesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetBossesDifficultyMultiplier(It.IsAny<int>())).Returns(1.0);
         _biomeServiceMock.Setup(x => x.GetRewardMultiplierForStage(It.IsAny<int>())).Returns(1.0);
-        _biomeServiceMock.Setup(x => x.GetUnifiedDifficultyCurve(It.IsAny<int>())).Returns(1.0);
-        _biomeServiceMock.Setup(x => x.GetUnifiedRewardCurve(It.IsAny<int>())).Returns(1.0);
+        _biomeServiceMock.Setup(x => x.GetEnemyTierForStage(It.IsAny<int>())).Returns(new StageEnemyTierConfig { Tier = 1, MinStage = 1, MaxStage = 999999999, HP = 150, Power = 15, Defense = 5, Speed = 10, CritChance = 0.03, FidelisReward = 10m, XpReward = 10, BossHP = 500, BossPower = 50, BossDefense = 25 });
 
         _stageService = new StageService(
             _stageProgressRepository,
@@ -424,9 +422,9 @@ public class StageServiceTests : IDisposable
         var battle = await _stageService.ExecuteStageBattleAsync(character.Id);
 
         // Assert - rewards are calculated but NOT applied immediately (deferred until run ends)
-        // Stage 1, level 1: XP = xpPerEnemyLevel(12) * sqrt(1) * enemyCount(1) * bossXPMult(1) * levelDiffMult(1.0) = 12
-        battle.XPReward.Should().Be(12);
-        battle.FidelisReward.Should().Be(10m); // round(NormalWin(10) * rewardCurve(1.0) * biomeRewardMult(1.0) * levelBonus(1.0), 2) = 10
+        // v5: tier-based flat XP: tier.XpReward(10) * enemyCount(1) = 10
+        battle.XPReward.Should().Be(10);
+        battle.FidelisReward.Should().Be(10m); // round(tier.FidelisReward(10) * enemyCount(1) * biomeRewardMult(1.0), 2) = 10
 
         // Verify character XP was NOT updated yet (deferred rewards)
         var updatedCharacter = await _characterRepository.GetByIdAsync(character.Id);
@@ -440,7 +438,7 @@ public class StageServiceTests : IDisposable
 
         // Assert - rewards are now applied and HP is restored to pre-run value
         var finalCharacter = await _characterRepository.GetByIdAsync(character.Id);
-        finalCharacter!.XP.Should().Be(initialXP + 12);
+        finalCharacter!.XP.Should().Be(initialXP + 10);
         finalCharacter.CurrentHP.Should().Be(3000, "HP should be restored to the value before the stage run started");
 
         _userManagerMock.Verify(m => m.UpdateAsync(It.Is<ApplicationUser>(u =>
@@ -555,12 +553,12 @@ public class StageServiceTests : IDisposable
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
 
-        // Create progress at stage 10 (boss stage)
+        // Create progress at stage 100 (boss stage: stage%100==0)
         var progress = StageProgress.Create("user1");
-        for (int i = 1; i < 10; i++)
-        {
-            progress.AdvanceStage();
-        }
+        progress.CurrentStage = 100;
+        progress.HighestStage = 100;
+        progress.LastCheckpoint = 91;
+        progress.CurrentRegion = RegionType.Forest;
         await _stageProgressRepository.AddAsync(progress);
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
@@ -587,8 +585,8 @@ public class StageServiceTests : IDisposable
 
         // Assert
         battle.EnemyType.Should().Be(EnemyType.Boss);
-        // Stage 10, level 1: XP = xpPerEnemyLevel(12) * sqrt(10) * enemyCount(1) * bossXPMult(8) * levelDiffMult(1.0) ≈ 304
-        battle.XPReward.Should().Be(304);
+        // v5: tier-based flat XP = tier.XpReward(10) * enemyCount(1) = 10
+        battle.XPReward.Should().Be(10);
 
         // Verify boss defeat was recorded
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
@@ -596,7 +594,7 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteStageBattleAsync_WhenFightingBossAtStage2000_ShouldUnlockEndlessMode()
+    public async Task ExecuteStageBattleAsync_WhenFightingBossAtStage20000_ShouldUnlockEndlessMode()
     {
         // Arrange
         var user = CreateTestUser();
@@ -606,12 +604,12 @@ public class StageServiceTests : IDisposable
         await _context.Characters.AddAsync(character);
         await _context.SaveChangesAsync();
 
-        // Create progress at stage 2000 (final Light boss)
+        // Create progress at stage 20000 (final Light boss)
         var progress = StageProgress.Create("user1");
-        for (int i = 1; i < 2000; i++)
-        {
-            progress.AdvanceStage();
-        }
+        progress.CurrentStage = 20000;
+        progress.HighestStage = 20000;
+        progress.LastCheckpoint = 19991;
+        progress.CurrentRegion = RegionType.Light;
         await _stageProgressRepository.AddAsync(progress);
 
         _userManagerMock.Setup(m => m.FindByIdAsync("user1"))
@@ -638,7 +636,7 @@ public class StageServiceTests : IDisposable
 
         // Assert
         battle.EnemyType.Should().Be(EnemyType.Boss);
-        battle.StageNumber.Should().Be(2000);
+        battle.StageNumber.Should().Be(20000);
 
         // Verify endless mode was unlocked
         var updatedProgress = await _stageProgressRepository.GetByUserIdAsync("user1");
@@ -736,11 +734,11 @@ public class StageServiceTests : IDisposable
 
         var progress = StageProgress.Create(userId);
 
-        // Advance to stage 2015 (in the Arena — checkpoint falls back to 2000)
-        for (int i = 1; i < 2015; i++)
-        {
-            progress.AdvanceStage();
-        }
+        // Set progress to stage 20015 directly (in the Arena — checkpoint falls back to 20001)
+        progress.CurrentStage = 20015;
+        progress.HighestStage = 20015;
+        progress.LastCheckpoint = 20001;
+        progress.CurrentRegion = RegionType.Arena;
 
         await _stageProgressRepository.AddAsync(progress);
 
@@ -748,8 +746,8 @@ public class StageServiceTests : IDisposable
         var result = await _stageService.ReturnToCheckpointAsync(userId);
 
         // Assert
-        result.CurrentStage.Should().Be(2000); // Arena has no new checkpoints, falls back to 2000
-        result.CurrentRegion.Should().Be(RegionType.Light); // Stage 2000 is Light region
+        result.CurrentStage.Should().Be(20001); // Arena has no new checkpoints after 20001
+        result.CurrentRegion.Should().Be(RegionType.Arena); // Stage 20001+ is Arena region
     }
 
     #endregion
@@ -774,15 +772,18 @@ public class StageServiceTests : IDisposable
     [InlineData(201, 201)] // First Mountains stage
     [InlineData(250, 241)]
     [InlineData(999, 991)]
-    [InlineData(1000, 991)] // Boss stage (last Sky boss)
-    [InlineData(1001, 1001)] // Underwater biome — still has checkpoints
+    [InlineData(1000, 991)] // Boss stage (last Forest boss)
+    [InlineData(1001, 1001)] // Swamp biome — still has checkpoints
     [InlineData(1050, 1041)]
-    [InlineData(1100, 1091)] // Boss stage (last Underwater boss)
-    [InlineData(1101, 1101)] // Underground biome — still has checkpoints
+    [InlineData(1100, 1091)] // Boss stage in Swamp
+    [InlineData(1101, 1101)] // Continues Swamp
     [InlineData(1500, 1491)]
-    [InlineData(2000, 1991)] // Boss stage (last Light boss)
-    [InlineData(2001, 2000)] // Arena — no new checkpoints
-    [InlineData(5000, 2000)]
+    [InlineData(2000, 1991)] // Boss stage (last Swamp boss)
+    [InlineData(2001, 2001)] // Mountains — still has checkpoints
+    [InlineData(5000, 4991)] // Tropical — checkpoints continue
+    [InlineData(20000, 19991)] // Last Light boss
+    [InlineData(20001, 20001)] // Arena — no new checkpoints
+    [InlineData(25000, 20001)]
     public void CalculateCheckpoint_ShouldReturnCorrectCheckpoint(int stage, int expectedCheckpoint)
     {
         // Act
@@ -793,38 +794,37 @@ public class StageServiceTests : IDisposable
     }
 
     [Theory]
-    [InlineData(1, RegionType.Forest)]
-    [InlineData(50, RegionType.Forest)]
-    [InlineData(100, RegionType.Forest)]
-    [InlineData(101, RegionType.Swamp)]
-    [InlineData(200, RegionType.Swamp)]
-    [InlineData(201, RegionType.Mountains)]
-    [InlineData(300, RegionType.Mountains)]
-    [InlineData(301, RegionType.Snowy)]
-    [InlineData(400, RegionType.Snowy)]
-    [InlineData(401, RegionType.Tropical)]
-    [InlineData(500, RegionType.Tropical)]
-    [InlineData(501, RegionType.Caverns)]
-    [InlineData(600, RegionType.Caverns)]
-    [InlineData(601, RegionType.Desert)]
-    [InlineData(700, RegionType.Desert)]
-    [InlineData(701, RegionType.Volcanic)]
-    [InlineData(800, RegionType.Volcanic)]
-    [InlineData(801, RegionType.Ruins)]
-    [InlineData(900, RegionType.Ruins)]
-    [InlineData(901, RegionType.Sky)]
-    [InlineData(1000, RegionType.Sky)]
-    [InlineData(1001, RegionType.Underwater)]
-    [InlineData(1050, RegionType.Underwater)]
-    [InlineData(1100, RegionType.Underwater)]
-    [InlineData(1101, RegionType.Underground)]
-    [InlineData(1500, RegionType.Corruption)]
-    [InlineData(1700, RegionType.Alien)]
-    [InlineData(1900, RegionType.Timerift)]
-    [InlineData(2000, RegionType.Light)]
-    [InlineData(2001, RegionType.Arena)]
-    [InlineData(5000, RegionType.Arena)]
-    [InlineData(10000, RegionType.Arena)]
+    [InlineData(1, RegionType.Forest)]       // 1-1000
+    [InlineData(500, RegionType.Forest)]
+    [InlineData(1000, RegionType.Forest)]
+    [InlineData(1001, RegionType.Swamp)]     // 1001-2000
+    [InlineData(2000, RegionType.Swamp)]
+    [InlineData(2001, RegionType.Mountains)] // 2001-3000
+    [InlineData(3000, RegionType.Mountains)]
+    [InlineData(3001, RegionType.Snowy)]     // 3001-4000
+    [InlineData(4000, RegionType.Snowy)]
+    [InlineData(4001, RegionType.Tropical)]  // 4001-5000
+    [InlineData(5000, RegionType.Tropical)]
+    [InlineData(5001, RegionType.Caverns)]   // 5001-6000
+    [InlineData(6000, RegionType.Caverns)]
+    [InlineData(6001, RegionType.Desert)]    // 6001-7000
+    [InlineData(7000, RegionType.Desert)]
+    [InlineData(7001, RegionType.Volcanic)]  // 7001-8000
+    [InlineData(8000, RegionType.Volcanic)]
+    [InlineData(8001, RegionType.Ruins)]     // 8001-9000
+    [InlineData(9000, RegionType.Ruins)]
+    [InlineData(9001, RegionType.Sky)]       // 9001-10000
+    [InlineData(10000, RegionType.Sky)]
+    [InlineData(10001, RegionType.Underwater)]  // 10001-11000
+    [InlineData(10500, RegionType.Underwater)]
+    [InlineData(11000, RegionType.Underwater)]
+    [InlineData(11001, RegionType.Underground)] // 11001-12000
+    [InlineData(14001, RegionType.Corruption)]  // 14001-15000
+    [InlineData(16001, RegionType.Alien)]       // 16001-17000
+    [InlineData(18001, RegionType.Timerift)]    // 18001-19000
+    [InlineData(20000, RegionType.Light)]       // 19001-20000
+    [InlineData(20001, RegionType.Arena)]       // 20001+
+    [InlineData(25000, RegionType.Arena)]
     [InlineData(99999, RegionType.Arena)]
     public void GetRegionForStage_ShouldReturnCorrectRegion(int stage, RegionType expectedRegion)
     {
@@ -839,18 +839,18 @@ public class StageServiceTests : IDisposable
     [InlineData(1, EnemyType.Normal)]
     [InlineData(5, EnemyType.Normal)]
     [InlineData(9, EnemyType.Normal)]
-    [InlineData(10, EnemyType.Boss)]
+    [InlineData(10, EnemyType.MiniBoss)]  // MiniBoss every 10 (not 100)
     [InlineData(11, EnemyType.Normal)]
-    [InlineData(20, EnemyType.Boss)]
-    [InlineData(50, EnemyType.Boss)]
+    [InlineData(20, EnemyType.MiniBoss)]
+    [InlineData(50, EnemyType.MiniBoss)]
     [InlineData(99, EnemyType.Normal)]
-    [InlineData(100, EnemyType.Boss)]
-    [InlineData(110, EnemyType.Boss)]
+    [InlineData(100, EnemyType.Boss)]     // Boss every 100
+    [InlineData(110, EnemyType.MiniBoss)]
     [InlineData(200, EnemyType.Boss)]
     [InlineData(1000, EnemyType.Boss)]
     [InlineData(1001, EnemyType.Normal)]
     [InlineData(1005, EnemyType.Normal)]
-    [InlineData(1010, EnemyType.Boss)]
+    [InlineData(1010, EnemyType.MiniBoss)]
     public void GetEnemyTypeForStage_ShouldReturnCorrectType(int stage, EnemyType expectedType)
     {
         // Act
@@ -868,8 +868,10 @@ public class StageServiceTests : IDisposable
     [InlineData(1100, false)]
     [InlineData(1101, false)]
     [InlineData(2000, false)]
-    [InlineData(2001, true)] // Arena starts at 2001
-    [InlineData(5000, true)]
+    [InlineData(2001, false)]  // 2001 is Swamp, not Arena
+    [InlineData(5000, false)]  // 5000 is Tropical, not Arena
+    [InlineData(20000, false)] // Last Light stage
+    [InlineData(20001, true)]  // Arena starts at 20001
     [InlineData(99999, true)]
     public void IsInVoid_ShouldReturnCorrectValue(int stage, bool expected)
     {
@@ -929,17 +931,15 @@ public class StageServiceTests : IDisposable
         // Arrange
         var progress = StageProgress.Create("user1");
 
-        // Advance to stage 2000 (end of Light)
-        for (int i = 1; i < 2000; i++)
-        {
-            progress.AdvanceStage();
-        }
+        // Set progress to stage 20000 directly (end of Light region)
+        progress.CurrentStage = 20000;
+        progress.HighestStage = 20000;
 
-        // Act - advance to stage 2001 (Arena region)
+        // Act - advance to stage 20001 (Arena region)
         progress.AdvanceStage();
 
         // Assert
-        progress.CurrentStage.Should().Be(2001);
+        progress.CurrentStage.Should().Be(20001);
         progress.CurrentRegion.Should().Be(RegionType.Arena);
     }
 
@@ -957,16 +957,14 @@ public class StageServiceTests : IDisposable
     }
 
     [Fact]
-    public void RecordBossDefeat_AtStage2000_ShouldUnlockEndlessMode()
+    public void RecordBossDefeat_AtStage20000_ShouldUnlockEndlessMode()
     {
         // Arrange
         var progress = StageProgress.Create("user1");
 
-        // Advance to stage 2000 (last Light boss)
-        for (int i = 1; i < 2000; i++)
-        {
-            progress.AdvanceStage();
-        }
+        // Set to stage 20000 directly (last Light boss)
+        progress.CurrentStage = 20000;
+        progress.HighestStage = 20000;
 
         // Act
         progress.RecordBossDefeat();

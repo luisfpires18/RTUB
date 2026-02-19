@@ -75,4 +75,10 @@ public interface ICharacterService
     /// Deletes a character and ALL associated game entities for the given user.
     /// </summary>
     Task<(bool Success, string Message)> DeleteCharacterAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resets ALL game data for ALL users (owner operation).
+    /// Deletes all characters, inventories, weapons, stage/boss/survive progress, and scores.
+    /// </summary>
+    Task<(bool Success, string Message)> ResetAllGameDataAsync(CancellationToken cancellationToken = default);
 }
