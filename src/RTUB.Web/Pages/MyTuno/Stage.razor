@@ -108,12 +108,7 @@
                                     <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Parts
                                 </span>
                             }
-                            @if (totalEquipmentDropped.Count > 0)
-                            {
-                                <span class="reward-tag reward-tag--equip">
-                                    <i class="bi bi-gem"></i> @totalEquipmentDropped.Values.Sum() Equip
-                                </span>
-                            }
+
                         </div>
                     }
                     
@@ -244,27 +239,6 @@
                                     }
                                     <span>+@qty @instrumentName</span>
                                 </div>
-                            }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var equipSprite = GetEquipmentSpritePath(slot);
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row equipment-reward">
-                                        @if (!string.IsNullOrEmpty(equipSprite))
-                                        {
-                                            <img src="@CacheBuster.Bust(equipSprite)" alt="@equipName" class="equipment-drop-icon" />
-                                        }
-                                        else
-                                        {
-                                            <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        }
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
                             }
                         </div>
                     }
@@ -1037,15 +1011,6 @@
                     {
                         await LoadInstrumentPartImageAsync(partType);
                     }
-                }
-
-                // Accumulate equipment drops
-                foreach (var equipType in currentBattle.EquipmentDropped)
-                {
-                    if (totalEquipmentDropped.ContainsKey(equipType))
-                        totalEquipmentDropped[equipType]++;
-                    else
-                        totalEquipmentDropped[equipType] = 1;
                 }
 
                 stagesCleared++;

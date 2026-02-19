@@ -179,7 +179,6 @@ Boss kills apply **×3** drop rate multiplier (`bossDropMultiplier`).
 | Canhão | 0.03% | Unlocks floor 7,001 |
 | Penalty | 0.02% | Unlocks floor 9,001 |
 | Instrument Part | 0.03% | — |
-| Equipment | 0.03% | — |
 
 ---
 

@@ -62,17 +62,7 @@
         "baseCost": 300,
         "costPerLevel": 300
       },
-      "shotBuffBonus": {
-        "flatBonus": 0.005,
-        "baseCost": 500,
-        "costPerLevel": 500,
-        "maxUpgrades": 40
-      },
-      "fidelisEarned": {
-        "flatBonus": 0.02,
-        "baseCost": 200,
-        "costPerLevel": 200
-      }
+
     },
 
     "powers": {
@@ -137,7 +127,7 @@
         "canhaoDropChance": 0.0003,
         "penaltyDropChance": 0.0002,
         "instrumentPartDropChance": 0.0003,
-        "equipmentDropChance": 0.0003,
+        "equipmentDropChance": 0,
         "bossDropMultiplier": 3.0
       },
 
@@ -281,7 +271,7 @@
         "canhaoDropChance": 0.0006,
         "penaltyDropChance": 0.0004,
         "instrumentPartDropChance": 0.0006,
-        "equipmentDropChance": 0.0006,
+        "equipmentDropChance": 0,
         "fitabDropChance": 0.005
       },
 
@@ -300,16 +290,16 @@
       "regenIntervalSeconds": 60,
       "castTimeSeconds": 3,
       "resources": [
-        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "forgeCost": 1, "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1    },
-        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "forgeCost": 1, "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 1001 },
-        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "forgeCost": 2, "icon": "bi-cup",             "isActive": true, "unlockStage": 2001 },
-        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "forgeCost": 2, "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 3001 },
-        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "forgeCost": 3, "icon": "bi-hurricane",       "isActive": true, "unlockStage": 4001 },
-        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "forgeCost": 3, "icon": "bi-droplet",         "isActive": true, "unlockStage": 5001 },
-        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "forgeCost": 4, "icon": "bi-moisture",        "isActive": true, "unlockStage": 6001 },
-        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "forgeCost": 5, "icon": "bi-fire",            "isActive": true, "unlockStage": 7001 },
-        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "forgeCost": 6, "icon": "bi-radioactive",     "isActive": true, "unlockStage": 8001 },
-        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "forgeCost": 8, "icon": "bi-lightning-fill",  "isActive": true, "unlockStage": 9001 }
+        { "type": "Cerveja",    "name": "Cerveja",    "energyCost": 1,  "forgeCost": 1, "icon": "bi-cup-straw",       "isActive": true, "unlockStage": 1     },
+        { "type": "Vinho",      "name": "Vinho",      "energyCost": 2,  "forgeCost": 1, "icon": "bi-droplet-fill",    "isActive": true, "unlockStage": 2001  },
+        { "type": "Licor",      "name": "Licor",      "energyCost": 3,  "forgeCost": 2, "icon": "bi-cup",             "isActive": true, "unlockStage": 4001  },
+        { "type": "Rum",        "name": "Rum",        "energyCost": 4,  "forgeCost": 2, "icon": "bi-cup-hot",         "isActive": true, "unlockStage": 6001  },
+        { "type": "Tequilla",   "name": "Tequilla",   "energyCost": 5,  "forgeCost": 3, "icon": "bi-hurricane",       "isActive": true, "unlockStage": 8001  },
+        { "type": "Vodka",      "name": "Vodka",      "energyCost": 6,  "forgeCost": 3, "icon": "bi-droplet",         "isActive": true, "unlockStage": 10001 },
+        { "type": "Gin",        "name": "Gin",        "energyCost": 7,  "forgeCost": 4, "icon": "bi-moisture",        "isActive": true, "unlockStage": 12001 },
+        { "type": "Whisky",     "name": "Whisky",     "energyCost": 8,  "forgeCost": 5, "icon": "bi-fire",            "isActive": true, "unlockStage": 14001 },
+        { "type": "Absinto",    "name": "Absinto",    "energyCost": 9,  "forgeCost": 6, "icon": "bi-radioactive",     "isActive": true, "unlockStage": 16001 },
+        { "type": "Aguardente", "name": "Aguardente", "energyCost": 10, "forgeCost": 8, "icon": "bi-lightning-fill",  "isActive": true, "unlockStage": 18001 }
       ]
     },
 

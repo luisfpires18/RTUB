@@ -204,11 +204,6 @@ public class MyTunoImprovements
     /// <summary>Increase energy regeneration speed</summary>
     public UpgradeFlatStat EnergyRegen { get; set; } = new() { FlatBonus = 2.0, BaseCost = 300, CostPerLevel = 300 };
 
-    /// <summary>Increase shot buff stat bonus by 0.5%</summary>
-    public UpgradeFlatStat ShotBuffBonus { get; set; } = new() { FlatBonus = 0.005, BaseCost = 500, CostPerLevel = 500, MaxUpgrades = 40 };
-
-    /// <summary>Increase fidelis earned from all sources</summary>
-    public UpgradeFlatStat FidelisEarned { get; set; } = new() { FlatBonus = 0.02, BaseCost = 200, CostPerLevel = 200 };
 }
 
 /// <summary>

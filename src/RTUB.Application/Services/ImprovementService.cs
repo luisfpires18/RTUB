@@ -61,7 +61,7 @@ public class ImprovementService : IImprovementService
     /// </summary>
     public Dictionary<ImprovementType, decimal> GetAllImprovementCosts(Character character)
     {
-        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen, ImprovementType.ShotBuffBonus, ImprovementType.FidelisEarned };
+        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen };
         var result = new Dictionary<ImprovementType, decimal>();
 
         foreach (var type in types)
@@ -170,8 +170,6 @@ public class ImprovementService : IImprovementService
     {
         ImprovementType.EnergyAmount => character.EnergyAmountUpgrades,
         ImprovementType.EnergyRegen => character.EnergyRegenUpgrades,
-        ImprovementType.ShotBuffBonus => character.ShotBuffUpgrades,
-        ImprovementType.FidelisEarned => character.FidelisEarnedUpgrades,
         _ => 0
     };
 
@@ -185,12 +183,6 @@ public class ImprovementService : IImprovementService
             case ImprovementType.EnergyRegen:
                 character.UpgradeEnergyRegen();
                 break;
-            case ImprovementType.ShotBuffBonus:
-                character.UpgradeShotBuff();
-                break;
-            case ImprovementType.FidelisEarned:
-                character.UpgradeFidelisEarned();
-                break;
         }
     }
 
@@ -198,8 +190,6 @@ public class ImprovementService : IImprovementService
     {
         ImprovementType.EnergyAmount => _config.Improvements.EnergyAmount,
         ImprovementType.EnergyRegen => _config.Improvements.EnergyRegen,
-        ImprovementType.ShotBuffBonus => _config.Improvements.ShotBuffBonus,
-        ImprovementType.FidelisEarned => _config.Improvements.FidelisEarned,
         _ => throw new ArgumentException($"Unknown improvement type: {type}", nameof(type))
     };
 

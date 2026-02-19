@@ -308,20 +308,7 @@
                                     var wIcon = WeaponTypeHelper.GetIcon(weapon.WeaponType);
                                     equipableItems.Add(("weapon", wTitle, wIcon, null, weapon));
                                 }
-                                foreach (var kvp in equipmentItems)
-                                {
-                                    // Skip equipment that is currently equipped on the character
-                                    if (IsItemCurrentlyEquipped(kvp.Key)) continue;
 
-                                    var eqSlot = EquipmentDropHelper.FromInventoryItemType(kvp.Key);
-                                    var eqName = eqSlot.HasValue ? EquipmentDropHelper.GetDisplayName(eqSlot.Value) : kvp.Key.ToString();
-                                    var eqIcon = eqSlot.HasValue ? EquipmentDropHelper.GetFallbackIcon(eqSlot.Value) : "bi-gem";
-                                    // Expand: one card per unit instead of stacking
-                                    for (int i = 0; i < kvp.Value; i++)
-                                    {
-                                        equipableItems.Add(("equipment", eqName, eqIcon, kvp.Key, null));
-                                    }
-                                }
                                 var totalEquipablePages = Math.Max(1, (int)Math.Ceiling(equipableItems.Count / (double)EquipablePageSize));
                                 if (equipablePage > totalEquipablePages) equipablePage = totalEquipablePages;
                                 var pagedItems = equipableItems.Skip((equipablePage - 1) * EquipablePageSize).Take(EquipablePageSize).ToList();
@@ -670,11 +657,33 @@
                 </div>
             </div>
 
-            <!-- Leaderboard -->
-            <div class="col-lg-4 order-1">
-                <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
+            <!-- Leaderboard Button -->
+            <div class="col-lg-4 order-1 d-flex align-items-stretch">
+                <button class="btn btn-outline-light w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-2" 
+                        style="min-height: 80px; border-color: #6f42c1; color: #6f42c1;"
+                        @onclick="OpenLeaderboardModal">
+                    <i class="bi bi-trophy-fill" style="font-size: 2rem;"></i>
+                    <span class="fw-bold">Classificação</span>
+                </button>
             </div>
         </div>
+
+        @* Leaderboard Modal *@
+        @if (showLeaderboardModal)
+        {
+            <Modal Show="@showLeaderboardModal"
+                   ShowChanged="@((bool show) => { if (!show) showLeaderboardModal = false; })"
+                   Title="Classificação"
+                   Size="Modal.ModalSize.Large"
+                   Centered="true">
+                <BodyContent>
+                    <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
+                </BodyContent>
+                <FooterContent>
+                    <button class="btn btn-secondary" @onclick="() => showLeaderboardModal = false">Fechar</button>
+                </FooterContent>
+            </Modal>
+        }
 
         <!-- Bottom Row: Equipment + Destilaria + Forja + Upgrades + Powers + Improvements -->
         <div class="row g-4 mt-2">
@@ -741,81 +750,63 @@
                                 </div>
                             </div>
                         }
-                        else
-                        {
-                            <div class="text-center py-1">
-                                <small class="text-muted" style="font-size: 0.7rem;">Equipa itens dos Floors para ganhar bónus!</small>
-                            </div>
-                        }
 
                         <div class="equip-layout">
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
-                                @{ var headItem = character!.EquippedHead; var headHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentHead); }
-                                <div class="equip-slot @(headItem.HasValue ? "equip-slot--filled" : "") @(!headItem.HasValue && headHasInv ? "equip-slot--available" : "")" title="@(headItem.HasValue ? "HEAD — Click to unequip" : (headHasInv ? "HEAD — Click to equip" : "HEAD"))"
-                                     @onclick="() => OnEquipSlotClick(headItem.HasValue ? headItem : (headHasInv ? InventoryItemType.EquipmentHead : null))"
-                                     style="cursor: @(headItem.HasValue || headHasInv ? "pointer" : "default")">
-                                    @if (headItem.HasValue)
+                                @{ var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head); }
+                                <div class="equip-slot equip-slot--filled" title="HEAD — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentHead)"
+                                     style="cursor: pointer">
+                                    @if (headLevel > 0)
                                     {
-                                        var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head);
-                                        if (headLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@headLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@headLevel</div>
                                     }
-                                    @if (headItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentHead) is string headImg)
                                     {
                                         <img src="@CacheBuster.Bust(headImg)" alt="Head" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(headItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">HEAD</span>
                                 </div>
 
-                                @{ var shouldersItem = character.EquippedShoulders; var shouldersHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentShoulders); }
-                                <div class="equip-slot @(shouldersItem.HasValue ? "equip-slot--filled" : "") @(!shouldersItem.HasValue && shouldersHasInv ? "equip-slot--available" : "")" title="@(shouldersItem.HasValue ? "SHOULDERS — Click to unequip" : (shouldersHasInv ? "SHOULDERS — Click to equip" : "SHOULDERS"))"
-                                     @onclick="() => OnEquipSlotClick(shouldersItem.HasValue ? shouldersItem : (shouldersHasInv ? InventoryItemType.EquipmentShoulders : null))"
-                                     style="cursor: @(shouldersItem.HasValue || shouldersHasInv ? "pointer" : "default")">
-                                    @if (shouldersItem.HasValue)
+                                @{ var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders); }
+                                <div class="equip-slot equip-slot--filled" title="SHOULDERS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentShoulders)"
+                                     style="cursor: pointer">
+                                    @if (shouldersLevel > 0)
                                     {
-                                        var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders);
-                                        if (shouldersLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@shouldersLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@shouldersLevel</div>
                                     }
-                                    @if (shouldersItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentShoulders) is string shouldersImg)
                                     {
                                         <img src="@CacheBuster.Bust(shouldersImg)" alt="Shoulders" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(shouldersItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">SHOULDERS</span>
                                 </div>
 
-                                @{ var chestItem = character.EquippedChest; var chestHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentChest); }
-                                <div class="equip-slot @(chestItem.HasValue ? "equip-slot--filled" : "") @(!chestItem.HasValue && chestHasInv ? "equip-slot--available" : "")" title="@(chestItem.HasValue ? "CHEST — Click to unequip" : (chestHasInv ? "CHEST — Click to equip" : "CHEST"))"
-                                     @onclick="() => OnEquipSlotClick(chestItem.HasValue ? chestItem : (chestHasInv ? InventoryItemType.EquipmentChest : null))"
-                                     style="cursor: @(chestItem.HasValue || chestHasInv ? "pointer" : "default")">
-                                    @if (chestItem.HasValue)
+                                @{ var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest); }
+                                <div class="equip-slot equip-slot--filled" title="CHEST — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentChest)"
+                                     style="cursor: pointer">
+                                    @if (chestLevel > 0)
                                     {
-                                        var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest);
-                                        if (chestLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@chestLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@chestLevel</div>
                                     }
-                                    @if (chestItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentChest) is string chestImg)
                                     {
                                         <img src="@CacheBuster.Bust(chestImg)" alt="Chest" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(chestItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">CHEST</span>
                                 </div>
@@ -830,71 +821,59 @@
 
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
-                                @{ var glovesItem = character.EquippedGloves; var glovesHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentGloves); }
-                                <div class="equip-slot @(glovesItem.HasValue ? "equip-slot--filled" : "") @(!glovesItem.HasValue && glovesHasInv ? "equip-slot--available" : "")" title="@(glovesItem.HasValue ? "GLOVES — Click to unequip" : (glovesHasInv ? "GLOVES — Click to equip" : "GLOVES"))"
-                                     @onclick="() => OnEquipSlotClick(glovesItem.HasValue ? glovesItem : (glovesHasInv ? InventoryItemType.EquipmentGloves : null))"
-                                     style="cursor: @(glovesItem.HasValue || glovesHasInv ? "pointer" : "default")">
-                                    @if (glovesItem.HasValue)
+                                @{ var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves); }
+                                <div class="equip-slot equip-slot--filled" title="GLOVES — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentGloves)"
+                                     style="cursor: pointer">
+                                    @if (glovesLevel > 0)
                                     {
-                                        var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves);
-                                        if (glovesLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@glovesLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@glovesLevel</div>
                                     }
-                                    @if (glovesItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentGloves) is string glovesImg)
                                     {
                                         <img src="@CacheBuster.Bust(glovesImg)" alt="Gloves" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(glovesItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">GLOVES</span>
                                 </div>
 
-                                @{ var legsItem = character.EquippedLegs; var legsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentLegs); }
-                                <div class="equip-slot @(legsItem.HasValue ? "equip-slot--filled" : "") @(!legsItem.HasValue && legsHasInv ? "equip-slot--available" : "")" title="@(legsItem.HasValue ? "LEGS — Click to unequip" : (legsHasInv ? "LEGS — Click to equip" : "LEGS"))"
-                                     @onclick="() => OnEquipSlotClick(legsItem.HasValue ? legsItem : (legsHasInv ? InventoryItemType.EquipmentLegs : null))"
-                                     style="cursor: @(legsItem.HasValue || legsHasInv ? "pointer" : "default")">
-                                    @if (legsItem.HasValue)
+                                @{ var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs); }
+                                <div class="equip-slot equip-slot--filled" title="LEGS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentLegs)"
+                                     style="cursor: pointer">
+                                    @if (legsLevel > 0)
                                     {
-                                        var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs);
-                                        if (legsLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@legsLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@legsLevel</div>
                                     }
-                                    @if (legsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentLegs) is string legsImg)
                                     {
                                         <img src="@CacheBuster.Bust(legsImg)" alt="Legs" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(legsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">LEGS</span>
                                 </div>
 
-                                @{ var bootsItem = character.EquippedBoots; var bootsHasInv = equipmentItems.ContainsKey(InventoryItemType.EquipmentBoots); }
-                                <div class="equip-slot @(bootsItem.HasValue ? "equip-slot--filled" : "") @(!bootsItem.HasValue && bootsHasInv ? "equip-slot--available" : "")" title="@(bootsItem.HasValue ? "BOOTS — Click to unequip" : (bootsHasInv ? "BOOTS — Click to equip" : "BOOTS"))"
-                                     @onclick="() => OnEquipSlotClick(bootsItem.HasValue ? bootsItem : (bootsHasInv ? InventoryItemType.EquipmentBoots : null))"
-                                     style="cursor: @(bootsItem.HasValue || bootsHasInv ? "pointer" : "default")">
-                                    @if (bootsItem.HasValue)
+                                @{ var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots); }
+                                <div class="equip-slot equip-slot--filled" title="BOOTS — Clica para upgrade"
+                                     @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentBoots)"
+                                     style="cursor: pointer">
+                                    @if (bootsLevel > 0)
                                     {
-                                        var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots);
-                                        if (bootsLevel > 0)
-                                        {
-                                            <div class="equip-slot__level">+@bootsLevel</div>
-                                        }
+                                        <div class="equip-slot__level">+@bootsLevel</div>
                                     }
-                                    @if (bootsItem.HasValue && GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
+                                    @if (GetEquipmentPictureUrl(InventoryItemType.EquipmentBoots) is string bootsImg)
                                     {
                                         <img src="@CacheBuster.Bust(bootsImg)" alt="Boots" class="gather-sprite" />
                                     }
                                     else
                                     {
-                                        <i class="bi @(bootsItem.HasValue ? "bi-shield-shaded" : "bi-box-arrow-in-down")"></i>
+                                        <i class="bi bi-shield-shaded"></i>
                                     }
                                     <span class="equip-slot__label">BOOTS</span>
                                 </div>
@@ -1582,21 +1561,7 @@
                     {
                         <span class="badge bg-info bg-opacity-25 text-info mt-1"><i class="bi bi-hammer me-1"></i>Material de Craft</span>
                     }
-                    @if (actionIsEquip && actionQualityPct > 0)
-                    {
-                        var qColor = actionQualityPct >= 105 ? "text-success" : (actionQualityPct <= 95 ? "text-danger" : "text-warning");
-                        <div class="mt-1">
-                            <span class="badge bg-dark bg-opacity-75 @qColor" style="font-size: 0.7rem;">
-                                <i class="bi bi-stars me-1"></i>Qualidade: @actionQualityPct%
-                            </span>
-                        </div>
-                    }
-                    @if (actionIsEquip && !pendingActionIsEquipped)
-                    {
-                        <div class="mt-1">
-                            <small class="text-muted" style="font-size: 0.65rem;"><i class="bi bi-shuffle me-1"></i>Qualidade aleatória ao equipar (85%-115%)</small>
-                        </div>
-                    }
+
                 </div>
                 @if (actionItemStats != null && actionIsEquip)
                 {
@@ -1609,10 +1574,13 @@
                         </div>
                     </div>
                 }
-                <div class="discard-fidelis-reward">
-                    <i class="bi bi-trash text-danger me-1"></i>
-                    <span class="text-danger">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
-                </div>
+                @if (!actionIsEquip)
+                {
+                    <div class="discard-fidelis-reward">
+                        <i class="bi bi-trash text-danger me-1"></i>
+                        <span class="text-danger">Descartar: <strong>+@Fmt(actionFidelisValue) Fidelis</strong></span>
+                    </div>
+                }
             </BodyContent>
             <FooterContent>
                 @if (actionIsEquip && actionSlot.HasValue)
@@ -1642,27 +1610,16 @@
                             </span>
                         </button>
                     </div>
+                }
+                @if (!actionIsEquip)
+                {
                     <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    @if (pendingActionIsEquipped)
-                    {
-                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                            <i class="bi bi-box-arrow-down me-2"></i>Desequipar
+                        <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
+                            <i class="bi bi-trash me-1"></i>Descartar
+                            <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
                         </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-purple" @onclick="() => ConfirmItemAction(false)" disabled="@itemActioning">
-                            <i class="bi bi-box-arrow-in-up me-2"></i>Equipar
-                        </button>
-                    }
                     </div>
                 }
-                <div class="d-flex flex-wrap gap-2 justify-content-center w-100 mt-2">
-                    <button class="btn btn-danger btn-sm" @onclick="() => ConfirmItemAction(true)" disabled="@itemActioning">
-                        <i class="bi bi-trash me-1"></i>Descartar
-                        <small class="opacity-75">(@Fmt(actionFidelisValue) <i class="bi bi-coin"></i>)</small>
-                    </button>
-                </div>
             </FooterContent>
         </Modal>
     }
@@ -2067,6 +2024,9 @@
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
     
+    // Leaderboard modal state
+    private bool showLeaderboardModal = false;
+
     // Info modal state
     private bool showInfoModal = false;
     private string myTunoVersion = DefaultVersion;
@@ -2297,6 +2257,12 @@
         {
             loading = false;
         }
+    }
+
+    private async Task OpenLeaderboardModal()
+    {
+        showLeaderboardModal = true;
+        await LoadLeaderboardAsync();
     }
 
     private async Task LoadLeaderboardAsync()

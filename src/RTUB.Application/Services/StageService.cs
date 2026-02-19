@@ -612,7 +612,6 @@ public class StageService : IStageService
         var shotChance = highestStage >= 1001 ? dropRates.ShotDropChance : 0;
         var penaltyChance = highestStage >= 9001 ? dropRates.PenaltyDropChance : 0;
         var instrumentPartChance = dropRates.InstrumentPartDropChance;
-        var equipmentChance = dropRates.EquipmentDropChance;
         if (enemyType == EnemyType.Boss)
         {
             finoChance *= dropRates.BossDropMultiplier;
@@ -622,11 +621,9 @@ public class StageService : IStageService
             shotChance *= dropRates.BossDropMultiplier;
             penaltyChance *= dropRates.BossDropMultiplier;
             instrumentPartChance *= dropRates.BossDropMultiplier;
-            equipmentChance *= dropRates.BossDropMultiplier;
         }
 
         var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
-        var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
 
         for (int i = 0; i < enemyCount; i++)
         {
@@ -643,13 +640,6 @@ public class StageService : IStageService
                 // Pick a random instrument type (Saxofone and Fagote excluded)
                 var randomInstrument = instrumentTypes[random.Next(instrumentTypes.Length)];
                 instrumentPartsDropped.Add(InstrumentTypeHelper.ToInventoryPartType(randomInstrument));
-            }
-
-            // Roll for equipment drop (slightly above instrument parts)
-            if (random.NextDouble() < equipmentChance)
-            {
-                var randomSlot = (EquipmentSlot)equipmentSlots.GetValue(random.Next(equipmentSlots.Length))!;
-                equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
             }
 
             // Roll for FITAB drop (very rare — currency for Boss Mode entry)

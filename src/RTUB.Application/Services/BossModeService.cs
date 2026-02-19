@@ -520,18 +520,10 @@ public class BossModeService : IBossModeService
         if (highestStage >= 901 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
         var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
-        var equipmentSlots = Enum.GetValues(typeof(EquipmentSlot));
-
         if (random.NextDouble() < dropRates.InstrumentPartDropChance)
         {
             var randomInstrument = instrumentTypes[random.Next(instrumentTypes.Length)];
             instrumentPartsDropped.Add(InstrumentTypeHelper.ToInventoryPartType(randomInstrument));
-        }
-
-        if (random.NextDouble() < dropRates.EquipmentDropChance)
-        {
-            var randomSlot = (EquipmentSlot)equipmentSlots.GetValue(random.Next(equipmentSlots.Length))!;
-            equipmentDropped.Add(EquipmentDropHelper.ToInventoryItemType(randomSlot));
         }
 
         return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, equipmentDropped);

@@ -118,12 +118,6 @@ public static class MyTunoScaling
     /// <summary>Regen interval reduction per upgrade level (seconds).</summary>
     public static double RegenReductionPerUpgrade { get; private set; } = 2.0;
 
-    /// <summary>Shot buff multiplier bonus per upgrade (0.005 = +0.5% per upgrade).</summary>
-    public static double ShotBuffBonusPerUpgrade { get; private set; } = 0.005;
-
-    /// <summary>Fidelis earned bonus per upgrade (0.02 = +2% per upgrade).</summary>
-    public static double FidelisEarnedBonusPerUpgrade { get; private set; } = 0.02;
-
     // ── Powers (combat power enhancements) ──
 
     /// <summary>Heavy attack damage bonus per upgrade (additive to base 2.0x multiplier).</summary>
@@ -161,8 +155,6 @@ public static class MyTunoScaling
         double energyAmountPerUpgrade = 2.0,
         double baseRegenInterval = 60.0,
         double regenReductionPerUpgrade = 2.0,
-        double shotBuffBonusPerUpgrade = 0.005,
-        double fidelisEarnedBonusPerUpgrade = 0.02,
         double heavyAttackBonusPerUpgrade = 0.05,
         double specialAttackBonusPerUpgrade = 0.05,
         double finoHealPercent = 0.25,
@@ -202,8 +194,6 @@ public static class MyTunoScaling
         EnergyAmountPerUpgrade = energyAmountPerUpgrade;
         BaseRegenInterval = baseRegenInterval;
         RegenReductionPerUpgrade = regenReductionPerUpgrade;
-        ShotBuffBonusPerUpgrade = shotBuffBonusPerUpgrade;
-        FidelisEarnedBonusPerUpgrade = fidelisEarnedBonusPerUpgrade;
         HeavyAttackBonusPerUpgrade = heavyAttackBonusPerUpgrade;
         SpecialAttackBonusPerUpgrade = specialAttackBonusPerUpgrade;
         FinoHealPercent = finoHealPercent;

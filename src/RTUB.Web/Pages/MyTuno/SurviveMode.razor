@@ -246,19 +246,6 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
-                            @foreach (var (equipType, qty) in totalEquipmentDropped)
-                            {
-                                var slot = EquipmentDropHelper.FromInventoryItemType(equipType);
-                                var equipName = slot.HasValue ? EquipmentDropHelper.GetDisplayName(slot.Value) : equipType.ToString();
-                                var fallbackIcon = slot.HasValue ? EquipmentDropHelper.GetFallbackIcon(slot.Value) : "bi-gem";
-                                @for (var i = 0; i < qty; i++)
-                                {
-                                    <div class="defeat-reward-row">
-                                        <i class="bi @fallbackIcon" style="color: #f59e0b;"></i>
-                                        <span>+1 @equipName</span>
-                                    </div>
-                                }
-                            }
                         </div>
                     }
                     else
@@ -674,13 +661,6 @@
                 totalInstrumentPartsDropped[part] = 1;
         }
 
-        foreach (var equip in result.EquipmentDropped)
-        {
-            if (totalEquipmentDropped.ContainsKey(equip))
-                totalEquipmentDropped[equip]++;
-            else
-                totalEquipmentDropped[equip] = 1;
-        }
     }
 
     private void ResetRunTotals()

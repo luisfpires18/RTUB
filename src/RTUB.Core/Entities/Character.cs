@@ -266,18 +266,16 @@ public class Character : BaseEntity
     public double EffectiveRegenInterval => Math.Max(5.0, MyTunoScaling.BaseRegenInterval - EnergyRegenUpgrades * MyTunoScaling.RegenReductionPerUpgrade);
 
     /// <summary>
-    /// Effective shot buff multiplier including upgrades.
-    /// Each upgrade adds ShotBuffBonusPerUpgrade (0.005 = +0.5%) to the base multiplier.
+    /// Effective shot buff multiplier (base value, no upgrades).
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier + ShotBuffUpgrades * MyTunoScaling.ShotBuffBonusPerUpgrade;
+    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier;
 
     /// <summary>
-    /// Fidelis earned bonus multiplier (1.0 = no bonus, 1.05 = +5%).
-    /// Each upgrade adds FidelisEarnedBonusPerUpgrade to 1.0.
+    /// Fidelis earned bonus multiplier (always 1.0 — improvement removed).
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double FidelisEarnedMultiplier => 1.0 + FidelisEarnedUpgrades * MyTunoScaling.FidelisEarnedBonusPerUpgrade;
+    public double FidelisEarnedMultiplier => 1.0;
 
     // ── Powers computed properties ──
 
@@ -432,19 +430,19 @@ public class Character : BaseEntity
             SpeedUpgrades = 0,
             CriticalUpgrades = 0,
             DefenseUpgrades = 0,
-            // No equipment equipped by default
-            EquippedHead = null,
-            EquippedShoulders = null,
-            EquippedChest = null,
-            EquippedGloves = null,
-            EquippedLegs = null,
-            EquippedBoots = null,
-            EquippedHeadQuality = 0,
-            EquippedShouldersQuality = 0,
-            EquippedChestQuality = 0,
-            EquippedGlovesQuality = 0,
-            EquippedLegsQuality = 0,
-            EquippedBootsQuality = 0,
+            // All 6 armor pieces equipped by default (permanent, cannot be unequipped)
+            EquippedHead = InventoryItemType.EquipmentHead,
+            EquippedShoulders = InventoryItemType.EquipmentShoulders,
+            EquippedChest = InventoryItemType.EquipmentChest,
+            EquippedGloves = InventoryItemType.EquipmentGloves,
+            EquippedLegs = InventoryItemType.EquipmentLegs,
+            EquippedBoots = InventoryItemType.EquipmentBoots,
+            EquippedHeadQuality = 1.0,
+            EquippedShouldersQuality = 1.0,
+            EquippedChestQuality = 1.0,
+            EquippedGlovesQuality = 1.0,
+            EquippedLegsQuality = 1.0,
+            EquippedBootsQuality = 1.0,
             EquippedHeadBonusLevel = 0,
             EquippedShouldersBonusLevel = 0,
             EquippedChestBonusLevel = 0,

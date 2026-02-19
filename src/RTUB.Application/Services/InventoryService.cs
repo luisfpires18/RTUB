@@ -1024,8 +1024,6 @@ public class InventoryService : IInventoryService
     private async Task RecalculateEquipmentBonusesAsync(Character character, CancellationToken cancellationToken = default)
     {
         var stats = _scalingConfig.StageMode.EquipmentStats;
-        var qualityMin = _scalingConfig.StageMode.EquipmentQualityMin;
-        var qualityMax = _scalingConfig.StageMode.EquipmentQualityMax;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
 
         // Stage-derived base enhancement level (global)
@@ -1036,19 +1034,20 @@ public class InventoryService : IInventoryService
 
         int hp = 0, power = 0, defense = 0;
 
-        // Use stored per-slot quality (randomized on equip). Fall back to average if 0 (legacy data).
-        var qualityAvg = (qualityMin + qualityMax) / 2.0;
-        double GetQ(double stored) => stored > 0 ? stored : qualityAvg;
+        // All 6 armor pieces are permanently equipped — always compute bonuses.
+        // Quality defaults to 1.0 for characters created after the refactor.
+        // Legacy characters with quality 0 fall back to 1.0.
+        double GetQ(double stored) => stored > 0 ? stored : 1.0;
 
         // Per-slot enhancement: each slot has its own bonus level
         double SlotEnhMult(EquipmentSlot slot) => 1.0 + (stageDerived + character.GetSlotBonusLevel(slot)) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
 
-        if (character.EquippedHead.HasValue) { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
-        if (character.EquippedShoulders.HasValue) { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
-        if (character.EquippedChest.HasValue) { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
-        if (character.EquippedGloves.HasValue) { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
-        if (character.EquippedLegs.HasValue) { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
-        if (character.EquippedBoots.HasValue) { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
+        { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
 
         // Add weapon bonuses from forged weapons (with character level scaling)
         var weaponLevelScale = 1.0 + character.Level * _scalingConfig.StageMode.WeaponCharacterLevelScale;

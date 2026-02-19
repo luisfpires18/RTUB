@@ -546,7 +546,6 @@ public class SurviveModeService : ISurviveModeService
         var shotChance = highestStage >= 101 ? (dropRates?.ShotDropChance ?? 0.01) : 0;
         var penaltyChance = highestStage >= 901 ? (dropRates?.PenaltyDropChance ?? 0.003) : 0;
         var instrChance = dropRates?.InstrumentPartDropChance ?? 0.005;
-        var equipChance = dropRates?.EquipmentDropChance ?? 0.008;
 
         // More kills = more drop rolls, scaled by level difficulty
         var dropRolls = enemiesKilled;
@@ -561,13 +560,6 @@ public class SurviveModeService : ISurviveModeService
         var equipPieces = new List<InventoryItemType>();
 
         var instrPartTypes = InstrumentTypeHelper.GameInstrumentPartTypes.ToArray();
-
-        var equipSlotTypes = new[]
-        {
-            InventoryItemType.EquipmentHead, InventoryItemType.EquipmentShoulders,
-            InventoryItemType.EquipmentChest, InventoryItemType.EquipmentGloves,
-            InventoryItemType.EquipmentLegs, InventoryItemType.EquipmentBoots
-        };
 
         for (int i = 0; i < dropRolls; i++)
         {
@@ -585,8 +577,6 @@ public class SurviveModeService : ISurviveModeService
                 penalties++;
             if (Random.Shared.NextDouble() < instrChance * rewardMult)
                 instrParts.Add(instrPartTypes[Random.Shared.Next(instrPartTypes.Length)]);
-            if (Random.Shared.NextDouble() < equipChance * rewardMult)
-                equipPieces.Add(equipSlotTypes[Random.Shared.Next(equipSlotTypes.Length)]);
             if (Random.Shared.NextDouble() < 0.002 * rewardMult)
                 fitab++;
         }

@@ -149,8 +149,6 @@ public class Program
                 energyAmountPerUpgrade: myTunoScaling.Improvements.EnergyAmount.FlatBonus,
                 baseRegenInterval: myTunoScaling.Gathering.RegenIntervalSeconds,
                 regenReductionPerUpgrade: myTunoScaling.Improvements.EnergyRegen.FlatBonus,
-                shotBuffBonusPerUpgrade: myTunoScaling.Improvements.ShotBuffBonus.FlatBonus,
-                fidelisEarnedBonusPerUpgrade: myTunoScaling.Improvements.FidelisEarned.FlatBonus,
                 heavyAttackBonusPerUpgrade: myTunoScaling.Powers.HeavyAttack.FlatBonus,
                 specialAttackBonusPerUpgrade: myTunoScaling.Powers.SpecialAttack.FlatBonus,
                 finoHealPercent: myTunoScaling.Consumables.FinoHealPercent,
