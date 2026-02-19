@@ -133,6 +133,7 @@
 .ftile--click:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(111, 66, 193, 0.3);
+    z-index: 2;
 }
 
 .ftile--click:active {

@@ -99,12 +99,11 @@ public class StageEnemyRepository : Repository<StageEnemy>, IStageEnemyRepositor
         var boss = all.FirstOrDefault(e => e.Type == EnemyType.Boss && e.BossStageNumber == stageNumber);
         if (boss != null) return boss;
 
-        // No exact match — pick a random boss from any region.
-        // This covers biomes that have no seeded bosses (Underwater, Underground, etc.)
-        // as well as the Arena (floor > 20000).
+        // No exact match — deterministic fallback based on stage number.
+        // Uses modular indexing so the same stage always returns the same boss.
         var allBosses = all.Where(e => e.Type == EnemyType.Boss).ToList();
         if (allBosses.Count > 0)
-            return allBosses[Random.Shared.Next(allBosses.Count)];
+            return allBosses[Math.Abs(stageNumber) % allBosses.Count];
 
         return null;
     }

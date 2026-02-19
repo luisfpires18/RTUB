@@ -1462,7 +1462,7 @@
     display: grid;
     gap: 0.5rem;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
     box-sizing: border-box;
 }

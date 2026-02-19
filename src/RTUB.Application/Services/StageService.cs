@@ -160,12 +160,15 @@ public class StageService : IStageService
         }
         else if (enemyType == EnemyType.Boss)
         {
+            // Deterministic boss selection: sprite is derived from the floor number
+            // (boss_1 at floor 100, boss_2 at 200, …, boss_10 at 1000) — NOT random.
+            var (bossSprite, bossPlacement) = await _biomeService.GetBossSpriteWithPlacementAsync(stageNumber);
             var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
             for (int i = 0; i < enemyCount; i++)
             {
                 enemyTemplates.Add(boss);
-                enemySpritePaths.Add(boss?.SpritePath ?? $"/sprites/games/my-tuno/enemies/{biomeName.ToLowerInvariant()}/boss_1.png");
-                enemyPlacements.Add(boss != null ? (int)boss.Placement : 0);
+                enemySpritePaths.Add(bossSprite);
+                enemyPlacements.Add(bossPlacement);
             }
         }
         else
@@ -544,14 +547,21 @@ public class StageService : IStageService
 
     /// <summary>
     /// Returns the enemy action time (in seconds) based on biome (1000-floor blocks).
-    /// Every biome reduces action time by 0.2s, minimum 1.0s.
-    /// Floors 1-1000: 5.0s, 1001-2000: 4.8s, ..., 19001-20000: 1.2s, 20001+: 1.0s
+    /// Every 2 biomes reduces action time by 0.5s.
+    /// Biomes 1-2: 5.0s, 3-4: 4.5s, 5-6: 4.0s, …, 19-20: 0.5s, 21 (Arena): 0.1s
     /// </summary>
     private static double GetEnemyActionTimeForStage(int stageNumber)
     {
         var biomeIndex = (stageNumber - 1) / 1000; // 0 for 1-1000, 1 for 1001-2000, etc.
-        var actionTime = 5.0 - (biomeIndex * 0.2);
-        return Math.Max(1.0, actionTime);
+
+        // Arena (biome 21+, floors 20001+)
+        if (biomeIndex >= 20)
+            return 0.1;
+
+        // Every 2 biomes drops 0.5s: pair 0 → 5.0, pair 1 → 4.5, …, pair 9 → 0.5
+        var pair = biomeIndex / 2; // integer division: 0-1→0, 2-3→1, …, 18-19→9
+        var actionTime = 5.0 - (pair * 0.5);
+        return Math.Max(0.5, actionTime);
     }
 
     /// <summary>
