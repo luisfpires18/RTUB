@@ -101,9 +101,6 @@ public class Program
         services.Configure<RTUB.Application.Configuration.ActivityReminderOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.ActivityReminderOptions.SectionName));
 
-        services.Configure<RTUB.Application.Configuration.AndroidTesterNotificationOptions>(
-            builder.Configuration.GetSection(RTUB.Application.Configuration.AndroidTesterNotificationOptions.SectionName));
-
         // Configure Games
         services.Configure<RTUB.Application.Configuration.AvoidQuestionsConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.AvoidQuestionsConfiguration.SectionName));
@@ -347,33 +344,6 @@ public class Program
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
 
-                        // Track Android Tester login (once per user-agent per day)
-                        // Only for users with IsAndroidTester = true
-                        var today = now.Date;
-                        var isAndroidTester = await db.Users
-                            .Where(u => u.Id == userId && u.IsAndroidTester)
-                            .AnyAsync();
-
-                        if (isAndroidTester)
-                        {
-                            var sanitizedUserAgent = string.IsNullOrWhiteSpace(cookieUserAgent) ? null : cookieUserAgent.Length > 512 ? cookieUserAgent[..512] : cookieUserAgent;
-                            var existingLogin = await db.AndroidTesterLogins
-                                .AnyAsync(l => l.UserId == userId && l.LoginDate == today && l.UserAgent == sanitizedUserAgent);
-
-                            if (!existingLogin)
-                            {
-                                db.AndroidTesterLogins.Add(new AndroidTesterLogin
-                                {
-                                    UserId = userId,
-                                    LoginDate = today,
-                                    CreatedAt = now,
-                                    UserAgent = sanitizedUserAgent
-                                });
-                                await db.SaveChangesAsync();
-                                logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date} ({Device})",
-                                    userId, today, UserAgentHelper.GetShortUserAgent(sanitizedUserAgent));
-                            }
-                        }
                     }
                     catch (Exception ex)
                     {
@@ -508,9 +478,6 @@ public class Program
 
         // Background worker for sending activity (event/rehearsal/meeting) reminders
         services.AddHostedService<ActivityReminderBackgroundService>();
-
-        // Background worker for sending Android tester reminder notifications
-        services.AddHostedService<AndroidTesterNotificationBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
@@ -832,29 +799,6 @@ public class Program
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                // Track Android Tester login (once per user-agent per day)
-                if (user.IsAndroidTester)
-                {
-                    var today = DateTime.UtcNow.Date;
-                    var loginUserAgent = http.Request.Headers["User-Agent"].ToString();
-                    var sanitizedLoginUserAgent = string.IsNullOrWhiteSpace(loginUserAgent) ? null : loginUserAgent.Length > 512 ? loginUserAgent[..512] : loginUserAgent;
-                    var existingLogin = await db.AndroidTesterLogins
-                        .AnyAsync(l => l.UserId == user.Id && l.LoginDate == today && l.UserAgent == sanitizedLoginUserAgent);
-
-                    if (!existingLogin)
-                    {
-                        db.AndroidTesterLogins.Add(new AndroidTesterLogin
-                        {
-                            UserId = user.Id,
-                            LoginDate = today,
-                            CreatedAt = DateTime.UtcNow,
-                            UserAgent = sanitizedLoginUserAgent
-                        });
-                        await db.SaveChangesAsync();
-                        logger.LogInformation("Recorded Android Tester login for user {UserId} on {Date} ({Device})",
-                            user.Id, today, UserAgentHelper.GetShortUserAgent(sanitizedLoginUserAgent));
-                    }
-                }
             }
             catch (Exception ex)
             {

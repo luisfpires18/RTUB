@@ -133,9 +133,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserBet> UserBets { get; set; }
     public DbSet<BetComment> BetComments { get; set; }
 
-    // Android Tester Login Tracking DbSet
-    public DbSet<AndroidTesterLogin> AndroidTesterLogins { get; set; }
-
     // My Tuno DbSets
     public DbSet<Character> Characters { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
