@@ -214,21 +214,12 @@ public class CharacterRepository : Repository<Character>, ICharacterRepository
 
     public async Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId)
     {
-        // Get all member user IDs
-        var memberUserIds = await _context.Users
-            .Where(u => u.Categories.Contains(MemberCategory.Caloiro) ||
-                       u.Categories.Contains(MemberCategory.Tuno) ||
-                       u.Categories.Contains(MemberCategory.Veterano) ||
-                       u.Categories.Contains(MemberCategory.Tunossauro))
-            .Select(u => u.Id)
-            .ToListAsync();
-
-        // Get all member opponents ordered by level (no minimum games filter)
+        // Return all characters except the current player — no category filter so
+        // every registered character is a valid arena opponent.
         return await _context.Characters
             .AsNoTracking()
             .Include(c => c.User)
-            .Where(c => memberUserIds.Contains(c.UserId)
-                     && c.Id != excludeCharacterId)
+            .Where(c => c.Id != excludeCharacterId)
             .OrderByDescending(c => c.Level)
             .ThenByDescending(c => c.ArenaWins)
             .ToListAsync();

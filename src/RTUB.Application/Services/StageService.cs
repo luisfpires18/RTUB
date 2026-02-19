@@ -192,7 +192,11 @@ public class StageService : IStageService
             
             // Create temporary enemy character with scaled stats
             var enemy = CreateTemporaryEnemyCharacter(template, stageNumber, enemyType);
-            enemy.User = new ApplicationUser { UserName = $"{biomeName} #{i + 1}" };
+            // Use the template's actual name (e.g. "Bee", "Spider") so each enemy
+            // appears distinct in the battle UI. Fall back to generic name when no
+            // DB template is available (Arena filesystem-sprite path).
+            var displayName = template?.Name ?? $"{biomeName} #{i + 1}";
+            enemy.User = new ApplicationUser { UserName = displayName };
             enemies.Add(enemy);
         }
 

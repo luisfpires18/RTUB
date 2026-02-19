@@ -951,6 +951,16 @@
             pendingDefeatRewards = false;
             runInProgress = true;
 
+            // The predicted-loss path cleared runStartingStage and saved it into
+            // retryStartStage. Restore it now so that any subsequent predicted-loss
+            // on the next stage still returns to the original starting checkpoint
+            // rather than snapping to the latest stage reached.
+            if (runStartingStage == null && retryStartStage.HasValue)
+            {
+                runStartingStage = retryStartStage.Value;
+                retryStartStage = null;
+            }
+
             // The deterministic engine predicted a loss, so
             // UpdateCharacterAndProgressInMemory skipped stage advancement.
             // Advance stage progress in memory now (no DB save during runs).
