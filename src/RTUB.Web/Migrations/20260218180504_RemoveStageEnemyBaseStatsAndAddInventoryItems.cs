@@ -53,41 +53,27 @@ namespace RTUB.Migrations
                 oldType: "INTEGER",
                 oldDefaultValue: 0);
 
-            migrationBuilder.CreateTable(
-                name: "InventoryItems",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    UserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: false),
-                    Type = table.Column<int>(type: "INTEGER", nullable: false),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_InventoryItems_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS ""InventoryItems"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_InventoryItems"" PRIMARY KEY AUTOINCREMENT,
+                    ""UserId"" TEXT NOT NULL COLLATE NOCASE,
+                    ""Type"" INTEGER NOT NULL,
+                    ""Quantity"" INTEGER NOT NULL,
+                    ""CreatedAt"" TEXT NOT NULL,
+                    ""CreatedBy"" TEXT NULL,
+                    ""UpdatedAt"" TEXT NULL,
+                    ""UpdatedBy"" TEXT NULL,
+                    CONSTRAINT ""FK_InventoryItems_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+                );
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_UserId",
-                table: "InventoryItems",
-                column: "UserId");
+            migrationBuilder.Sql(@"
+                CREATE INDEX IF NOT EXISTS ""IX_InventoryItems_UserId"" ON ""InventoryItems"" (""UserId"");
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_UserId_Type",
-                table: "InventoryItems",
-                columns: new[] { "UserId", "Type" },
-                unique: true);
+            migrationBuilder.Sql(@"
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_InventoryItems_UserId_Type"" ON ""InventoryItems"" (""UserId"", ""Type"");
+            ");
         }
 
         /// <inheritdoc />
