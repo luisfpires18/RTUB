@@ -195,17 +195,21 @@ public class Character : BaseEntity
     // stat = (base + flatBonus × n) × levelFactor + equipment
     // Linear per-upgrade growth with level amplification.
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalHP => (long)Math.Round((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor())
-        + EquipmentHPBonus;
+    public long TotalHP => SafeAdd(
+        ClampToLong((HP + MyTunoScaling.HpFlatBonus * HpUpgrades) * LevelScaleFactor()),
+        EquipmentHPBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalPower => (long)Math.Round((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor())
-        + EquipmentPowerBonus;
+    public long TotalPower => SafeAdd(
+        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * PowerUpgrades) * LevelScaleFactor()),
+        EquipmentPowerBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalSpeed => (long)Math.Round(Speed * LevelScaleFactor())
-        + (long)Math.Round(SpeedUpgrades * MyTunoScaling.SpeedFlatBonus)
-        + EquipmentSpeedBonus;
+    public long TotalSpeed => SafeAdd(
+        SafeAdd(
+            ClampToLong(Speed * LevelScaleFactor()),
+            ClampToLong(SpeedUpgrades * MyTunoScaling.SpeedFlatBonus)),
+        EquipmentSpeedBonus);
 
     /// <summary>
     /// Maximum critical chance cap (uses config value, default 40%)
@@ -233,21 +237,25 @@ public class Character : BaseEntity
     private int EffectiveDefense => Defense > 0 ? Defense : MyTunoScaling.BaseDefense;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long TotalDefense => (long)Math.Round((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor())
-        + EquipmentDefenseBonus;
+    public long TotalDefense => SafeAdd(
+        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * DefenseUpgrades) * LevelScaleFactor()),
+        EquipmentDefenseBonus);
 
     // Preview properties: what the stat will be after the next upgrade
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalHP => (long)Math.Round((HP + MyTunoScaling.HpFlatBonus * (HpUpgrades + 1)) * LevelScaleFactor())
-        + EquipmentHPBonus;
+    public long NextTotalHP => SafeAdd(
+        ClampToLong((HP + MyTunoScaling.HpFlatBonus * (HpUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentHPBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalPower => (long)Math.Round((Power + MyTunoScaling.PowerFlatBonus * (PowerUpgrades + 1)) * LevelScaleFactor())
-        + EquipmentPowerBonus;
+    public long NextTotalPower => SafeAdd(
+        ClampToLong((Power + MyTunoScaling.PowerFlatBonus * (PowerUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentPowerBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public long NextTotalDefense => (long)Math.Round((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor())
-        + EquipmentDefenseBonus;
+    public long NextTotalDefense => SafeAdd(
+        ClampToLong((EffectiveDefense + MyTunoScaling.DefenseFlatBonus * (DefenseUpgrades + 1)) * LevelScaleFactor()),
+        EquipmentDefenseBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double NextTotalCriticalChance =>
@@ -307,6 +315,26 @@ public class Character : BaseEntity
         var levelsGained = Level - 1;
         if (levelsGained <= 0) return 1.0;
         return 1.0 + levelsGained * MyTunoScaling.BonusPerLevel;
+    }
+
+    // ── Overflow-safe arithmetic helpers ──
+    // At extreme upgrade/level counts the double result of Math.Round can exceed
+    // long.MaxValue (~9.2×10¹⁸). A direct (long) cast wraps to long.MinValue,
+    // which kills the character. We clamp to long.MaxValue instead.
+
+    /// <summary>Safely converts a positive double to long, clamping to [0, long.MaxValue].</summary>
+    private static long ClampToLong(double value)
+    {
+        if (value >= (double)long.MaxValue) return long.MaxValue;
+        if (value <= 0) return 0;
+        return (long)Math.Round(value);
+    }
+
+    /// <summary>Adds two non-negative longs, clamping to long.MaxValue on overflow.</summary>
+    private static long SafeAdd(long a, long b)
+    {
+        if (a > 0 && b > long.MaxValue - a) return long.MaxValue;
+        return a + b;
     }
 
     /// <summary>
@@ -891,7 +919,7 @@ public class Character : BaseEntity
             var unbuffedMaxHp = TotalHP;
             var currentHp = CurrentHP ?? buffedMaxHp;
             var hpRatio = (double)currentHp / buffedMaxHp;
-            CurrentHP = Math.Max(1, (long)Math.Round(hpRatio * unbuffedMaxHp));
+            CurrentHP = Math.Max(1, ClampToLong(hpRatio * unbuffedMaxHp));
         }
     }
 

@@ -11,7 +11,7 @@
       "power": 25,
       "speed": 10,
       "defense": 20,
-      "criticalChance": 0.02
+      "criticalChance": 0.00
     },
 
     "levelScaling": {
@@ -24,30 +24,30 @@
     "upgrades": {
       "hp": {
         "flatBonus": 100,
-        "baseCost": 50,
-        "costPerLevel": 50
+        "baseCost": 80,
+        "costPerLevel": 80
       },
       "power": {
         "flatBonus": 15,
-        "baseCost": 50,
-        "costPerLevel": 50
+        "baseCost": 80,
+        "costPerLevel": 80
       },
       "speed": {
         "flatBonus": 1.5,
-        "baseCost": 150,
-        "costPerLevel": 150,
+        "baseCost": 175,
+        "costPerLevel": 175,
         "maxUpgrades": 41
       },
       "criticalChance": {
         "flatBonus": 0.005,
-        "baseCost": 120,
-        "costPerLevel": 120,
-        "maxUpgrades": 80
+        "baseCost": 140,
+        "costPerLevel": 140,
+        "maxUpgrades": 100
       },
       "defense": {
         "flatBonus": 12,
-        "baseCost": 50,
-        "costPerLevel": 50
+        "baseCost": 80,
+        "costPerLevel": 80
       }
     },
 
@@ -81,7 +81,7 @@
     "combat": {
       "defenseK": 500,
       "minDamage": 1,
-      "criticalChanceCap": 0.40,
+      "criticalChanceCap": 0.50,
       "critMultiplier": 2.0,
       "shotBuffMultiplier": 1.20
     },
@@ -171,7 +171,7 @@
         "speedRollChance": 0.25,
         "speedMin": 1,
         "speedMax": 5,
-        "upgradeLevelsPerDrinkTier": 5
+        "upgradeLevelsPerDrinkTier": 50
       },
 
       "enemyTiers": [
@@ -280,19 +280,21 @@
       },
 
       "piggies": {
-        "statUpgradeStartLevel": 10,
+        "statUpgradeStartLevel": 100,
         "statUpgradeBaseCost": 1,
         "statUpgradeCostEveryNLevels": 5,
-        "improvementStartLevel": 5,
+        "speedUpgradeStartLevel": 20,
+        "critUpgradeStartLevel": 50,
+        "improvementStartLevel": 20,
         "improvementBaseCost": 1,
         "improvementCostEveryNLevels": 5,
-        "powerStartLevel": 5,
+        "powerStartLevel": 20,
         "powerBaseCost": 1,
         "powerCostEveryNLevels": 5,
-        "weaponUpgradeStartLevel": 5,
+        "weaponUpgradeStartLevel": 12,
         "weaponUpgradeBaseCost": 1,
         "weaponUpgradeCostEveryNLevels": 5,
-        "equipmentUpgradeStartLevel": 5,
+        "equipmentUpgradeStartLevel": 12,
         "equipmentUpgradeBaseCost": 1,
         "equipmentUpgradeCostEveryNLevels": 5
       },

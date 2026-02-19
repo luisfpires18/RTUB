@@ -245,31 +245,16 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets boss sprite path for a given boss stage from the database
-    /// Bosses are explicitly defined per stage (10, 20, 30, etc.)
+    /// Gets boss sprite path for a given stage — deterministic by floor number.
+    /// Within each 1000-stage biome the 10 bosses map 1:1 to boss_1 … boss_10
+    /// (boss_1 at floor 100, boss_2 at 200, …, boss_10 at 1000).
+    /// No random selection — the same stage always shows the same boss.
     /// </summary>
     public async Task<string> GetBossSpriteAsync(int stageNumber)
     {
-        // First, try to get the boss from the database (preferred method)
-        var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
-        
-        if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
-        {
-            return boss.SpritePath;
-        }
-
-        // Fallback: pick a random existing boss from any region
-        var fallbackBoss = await _stageEnemyRepository.GetRandomEnemyAsync(EnemyType.Boss, GetRegionForBiome(GetBiomeForStage(stageNumber)));
-        if (fallbackBoss != null && !string.IsNullOrEmpty(fallbackBoss.SpritePath))
-        {
-            _logger.LogWarning("No boss configured for stage {StageNumber}, using fallback boss: {BossName}", stageNumber, fallbackBoss.Name);
-            return fallbackBoss.SpritePath;
-        }
-
-        // Last resort: file system based approach
         var biomeName = GetBiomeForStage(stageNumber);
         var biomeConfig = _config.StageMode.Biomes?.FirstOrDefault(b => b.Name == biomeName);
-        
+
         if (biomeConfig == null)
         {
             _logger.LogWarning("No biome configured for {BiomeName}, using default boss sprite", biomeName);
@@ -277,17 +262,17 @@ public class StageBiomeService : IStageBiomeService
         }
 
         var bossSprites = await GetBossSpritesForBiomeAsync(biomeConfig);
-        
+
         if (bossSprites.Count == 0)
         {
             _logger.LogWarning("No boss sprites found for biome {BiomeName}, using default boss sprite", biomeName);
             return "/sprites/games/my-tuno/enemies/forest/boss_1_bear.png";
         }
 
-        // Calculate which boss this is within the current biome (10 bosses per 1000-floor biome)
+        // Deterministic: boss_1 at stage 100/1100/2100…, boss_2 at 200/1200/2200…, etc.
         int bossIndex = ((stageNumber - 1) % 1000) / 100;
         bossIndex = Math.Max(0, Math.Min(bossIndex, bossSprites.Count - 1));
-        
+
         return bossSprites[bossIndex];
     }
 
@@ -316,19 +301,13 @@ public class StageBiomeService : IStageBiomeService
     }
 
     /// <summary>
-    /// Gets boss sprite path with placement info for a given boss stage
+    /// Gets boss sprite path with placement info for a given boss stage.
+    /// Deterministic — always returns the same sprite for the same stage.
     /// </summary>
     public async Task<(string SpritePath, int Placement)> GetBossSpriteWithPlacementAsync(int stageNumber)
     {
-        var boss = await _stageEnemyRepository.GetBossForStageAsync(stageNumber);
-        if (boss != null && !string.IsNullOrEmpty(boss.SpritePath))
-        {
-            return (boss.SpritePath, (int)boss.Placement);
-        }
-
-        // Fallback: use GetBossSpriteAsync and default to terrestrial
         var sprite = await GetBossSpriteAsync(stageNumber);
-        return (sprite, 0);
+        return (sprite, 0); // default terrestrial placement
     }
 
     /// <summary>

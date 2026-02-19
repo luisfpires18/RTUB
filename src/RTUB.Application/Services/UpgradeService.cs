@@ -190,7 +190,7 @@ public class UpgradeService : IUpgradeService
                     // Check Leitão cost (mid-game currency from Boss Mode)
                     var piggies = _config.BossMode.Piggies;
                     var leitaoCost = PiggiesCostConfig.CalculateCost(
-                        currentUpgradeCount, piggies.StatUpgradeStartLevel,
+                        currentUpgradeCount, piggies.GetStartLevelForStat(statType),
                         piggies.StatUpgradeBaseCost, piggies.StatUpgradeCostEveryNLevels);
 
                     if (leitaoCost > 0)
@@ -359,7 +359,7 @@ public class UpgradeService : IUpgradeService
             // Check Leitão cost (mid-game currency from Boss Mode)
             var piggies = _config.BossMode.Piggies;
             var leitaoCost = PiggiesCostConfig.CalculateCost(
-                currentUpgradeCount, piggies.StatUpgradeStartLevel,
+                currentUpgradeCount, piggies.GetStartLevelForStat(statType),
                 piggies.StatUpgradeBaseCost, piggies.StatUpgradeCostEveryNLevels);
 
             if (leitaoCost > 0)

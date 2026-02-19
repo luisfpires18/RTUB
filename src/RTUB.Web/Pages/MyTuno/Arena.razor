@@ -13,7 +13,6 @@
 @using RTUB.Core.Helpers
 @using RTUB.Shared
 @using RTUB.Shared.Base
-@using RTUB.Shared.Components.Cards
 @using RTUB.Shared.Components.UI
 @using System.Text.Json
 @using System.Text.Json.Serialization
@@ -182,56 +181,111 @@
         <!-- Opponent Selection - Only show when battle/result is not active -->
         @if (!showBattleAnimation && !showResultSummary)
         {
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Escolher Oponente</h5>
-                </div>
-                <div class="card-body">
-                    @if (opponentCharacters == null || !opponentCharacters.Any())
+            @if (opponentCharacters == null || !opponentCharacters.Any())
+            {
+                <EmptyState Title="Nenhum oponente disponível"
+                            Message="Ainda não há outros personagens para lutar."
+                            Icon="bi-person-x" />
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 mb-4">
+                    @foreach (var opponent in opponentCharacters)
                     {
-                        <EmptyState Title="Nenhum oponente disponível"
-                                    Message="Ainda não há outros personagens para lutar."
-                                    Icon="bi-person-x" />
-                    }
-                    else
-                    {
-                        <div class="row g-3">
-                            @foreach (var opponent in opponentCharacters)
-                            {
-                                var levelDiff = (character?.Level ?? 0) - opponent.Level;
-                                var potentialRating = levelDiff >= 10 ? 0
-                                    : opponent.ArenaRating > (character?.ArenaRating ?? 0) ? 15
-                                    : 10;
+                        var levelDiff = (character?.Level ?? 0) - opponent.Level;
+                        var potentialRating = levelDiff >= 10 ? 0
+                            : opponent.ArenaRating > (character?.ArenaRating ?? 0) ? 15
+                            : 10;
+                        var ratingColor = potentialRating == 0 ? "gray" : potentialRating >= 15 ? "#ffc107" : "#4caf50";
+                        var rank = RankHelper.GetRank(opponent.ArenaRating);
+                        var isFightingThis = fightingOpponentId == opponent.Id;
+                        var isDisabled = fighting || showBattleAnimation;
 
-                                <div class="col-md-6 col-lg-4 col-xl-3">
-                                    <div class="position-relative">
-                                        <EnemyCard Character="@opponent"
-                                                  OnFight="() => FightOpponent(opponent)"
-                                                  IsDisabled="@(fighting || showBattleAnimation)"
-                                                  IsFighting="@(fightingOpponentId == opponent.Id)"
-                                                  ShowLevelAndXP="true"
-                                                  ArenaRating="@opponent.ArenaRating"
-                                                  RatingGain="@potentialRating" />
+                        <div class="col" @key="opponent.Id">
+                            <div class="arena-opponent-card">
+                                <!-- Avatar + Name -->
+                                <div class="arena-opponent-card-header">
+                                    @if (opponent.User != null && !string.IsNullOrEmpty(opponent.User.ProfilePictureSrc))
+                                    {
+                                        <img src="@CacheBuster.Bust(opponent.User.ProfilePictureSrc)"
+                                             alt="@GetOpponentName(opponent)"
+                                             class="arena-opponent-avatar"
+                                             loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <div class="arena-opponent-avatar-placeholder">
+                                            <i class="bi bi-person"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <h6 class="mb-0">@GetOpponentName(opponent)</h6>
+                                        <span class="badge bg-primary">Nível @opponent.Level</span>
                                     </div>
                                 </div>
-                            }
-                        </div>
 
-                        @if (totalItems > pageSize)
-                        {
-                            <div class="mt-3">
-                                <TablePagination CurrentPage="@currentPage"
-                                                PageSize="@pageSize"
-                                                TotalItems="@totalItems"
-                                                ItemLabel="oponentes"
-                                                PageSizeOptions="@(new[] { 8, 16, 32, 48, 60 })"
-                                                OnPageChanged="@HandlePageChanged"
-                                                OnPageSizeChanged="@HandlePageSizeChanged" />
+                                <!-- Rank Badge -->
+                                <div class="arena-opponent-rank" style="border-color: @rank.Color;">
+                                    <i class="bi @rank.Icon" style="color: @rank.Color;"></i>
+                                    <span style="color: @rank.Color; font-weight: 600;">@rank.Name</span>
+                                    <span class="text-muted ms-auto" style="font-size: 0.8rem;">@opponent.ArenaRating</span>
+                                </div>
+
+                                <!-- Player Stats -->
+                                <div class="arena-opponent-section-label"><i class="bi bi-bar-chart-fill me-1"></i>Estatísticas</div>
+                                <div class="arena-opponent-stats">
+                                    <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@Fmt(opponent.TotalHP)" Color="red" Size="sm" />
+                                    <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(opponent.TotalPower)" Color="green" Size="sm" />
+                                    <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(opponent.TotalDefense)" Color="gray" Size="sm" />
+                                    <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{opponent.ActionTime:F1}s")" Color="blue" Size="sm" />
+                                    <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{opponent.TotalCriticalChance * 100:F1}%")" Color="yellow" Size="sm" />
+                                </div>
+
+                                <hr class="arena-opponent-divider" />
+
+                                <!-- Rating Gain + Fight -->
+                                <div class="arena-opponent-section-label"><i class="bi bi-trophy-fill me-1"></i>Recompensa</div>
+                                <div class="text-center mb-2">
+                                    <FantasyTile Icon="bi-graph-up-arrow"
+                                                 Label="Vitória"
+                                                 Value="@($"+{potentialRating}")"
+                                                 Color="@(potentialRating == 0 ? "gray" : potentialRating >= 15 ? "gold" : "green")"
+                                                 Size="sm"
+                                                 Tooltip="Rating que ganhas se venceres" />
+                                </div>
+
+                                <button class="btn btn-primary w-100 arena-fight-btn"
+                                        @onclick="() => FightOpponent(opponent)"
+                                        disabled="@(isDisabled || !opponent.IsAlive())">
+                                    @if (isFightingThis)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <text>A lutar...</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-sword me-2"></i>
+                                        <text>Lutar</text>
+                                    }
+                                </button>
                             </div>
-                        }
+                        </div>
                     }
                 </div>
-            </div>
+
+                @if (totalItems > pageSize)
+                {
+                    <div class="mt-3">
+                        <TablePagination CurrentPage="@currentPage"
+                                        PageSize="@pageSize"
+                                        TotalItems="@totalItems"
+                                        ItemLabel="oponentes"
+                                        PageSizeOptions="@(new[] { 8, 16, 32, 48, 60 })"
+                                        OnPageChanged="@HandlePageChanged"
+                                        OnPageSizeChanged="@HandlePageSizeChanged" />
+                    </div>
+                }
+            }
         }
     }
 
@@ -244,6 +298,12 @@
 @code {
     private static string Fmt(long value) => NumberFormatter.Compact(value);
     private static string Fmt(decimal value) => NumberFormatter.Compact(value);
+
+    private static string GetOpponentName(Character c)
+    {
+        if (c.User == null) return "Personagem";
+        return !string.IsNullOrEmpty(c.User.Nickname) ? c.User.Nickname : "Personagem";
+    }
 
     private Character? character;
     private ApplicationUser? currentUser;
@@ -351,7 +411,7 @@
             allOpponentCharacters = await CharacterRepository.GetArenaOpponentsAsync(character.Id);
             
             // Opponents always fight as CPU snapshots at full HP
-            // Clear their HP and buff state so EnemyCard displays 100% HP
+            // Clear their HP and buff state so opponent card displays 100% HP
             foreach (var opponent in allOpponentCharacters)
             {
                 opponent.CurrentHP = null; // null = full HP (TotalHP)

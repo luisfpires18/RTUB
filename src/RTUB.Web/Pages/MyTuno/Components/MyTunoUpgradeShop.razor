@@ -32,7 +32,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsHpMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(StatType.HP)"
-                        disabled="@(Purchasing || hpCostLoading || IsHpMaxed || FidelisBalance < hpCost)">
+                        disabled="@(Purchasing || hpCostLoading || IsHpMaxed || FidelisBalance < hpCost || (hpLeitaoCost > 0 && LeitaoBalance < hpLeitaoCost))">
                     @if (Purchasing && PurchasingStat == StatType.HP)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -54,6 +54,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(hpCost)</span>
+                        @if (hpLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < hpLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @hpLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -81,7 +85,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsPowerMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(StatType.Power)"
-                        disabled="@(Purchasing || powerCostLoading || IsPowerMaxed || FidelisBalance < powerCost)">
+                        disabled="@(Purchasing || powerCostLoading || IsPowerMaxed || FidelisBalance < powerCost || (powerLeitaoCost > 0 && LeitaoBalance < powerLeitaoCost))">
                     @if (Purchasing && PurchasingStat == StatType.Power)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -103,6 +107,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(powerCost)</span>
+                        @if (powerLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < powerLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @powerLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -130,7 +138,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsDefenseMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(StatType.Defense)"
-                        disabled="@(Purchasing || defenseCostLoading || IsDefenseMaxed || FidelisBalance < defenseCost)">
+                        disabled="@(Purchasing || defenseCostLoading || IsDefenseMaxed || FidelisBalance < defenseCost || (defenseLeitaoCost > 0 && LeitaoBalance < defenseLeitaoCost))">
                     @if (Purchasing && PurchasingStat == StatType.Defense)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -152,6 +160,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(defenseCost)</span>
+                        @if (defenseLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < defenseLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @defenseLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -179,7 +191,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsSpeedMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(StatType.Speed)"
-                        disabled="@(Purchasing || speedCostLoading || IsSpeedMaxed || FidelisBalance < speedCost)">
+                        disabled="@(Purchasing || speedCostLoading || IsSpeedMaxed || FidelisBalance < speedCost || (speedLeitaoCost > 0 && LeitaoBalance < speedLeitaoCost))">
                     @if (Purchasing && PurchasingStat == StatType.Speed)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -201,6 +213,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(speedCost)</span>
+                        @if (speedLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < speedLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @speedLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -228,7 +244,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsCriticalMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(StatType.CriticalChance)"
-                        disabled="@(Purchasing || criticalCostLoading || IsCriticalMaxed || FidelisBalance < criticalCost)">
+                        disabled="@(Purchasing || criticalCostLoading || IsCriticalMaxed || FidelisBalance < criticalCost || (criticalLeitaoCost > 0 && LeitaoBalance < criticalLeitaoCost))">
                     @if (Purchasing && PurchasingStat == StatType.CriticalChance)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -250,6 +266,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(criticalCost)</span>
+                        @if (criticalLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < criticalLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @criticalLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -262,12 +282,14 @@
 @code {
     [Parameter, EditorRequired] public Character Character { get; set; } = default!;
     [Parameter] public decimal FidelisBalance { get; set; }
+    [Parameter] public int LeitaoBalance { get; set; }
     [Parameter] public bool Purchasing { get; set; }
     [Parameter] public StatType? PurchasingStat { get; set; }
     [Parameter] public EventCallback<StatType> OnPurchaseRequested { get; set; }
 
     // Internal cost state
     private decimal hpCost, powerCost, defenseCost, speedCost, criticalCost;
+    private int hpLeitaoCost, powerLeitaoCost, defenseLeitaoCost, speedLeitaoCost, criticalLeitaoCost;
     private bool hpCostLoading = true, powerCostLoading = true, defenseCostLoading = true,
                  speedCostLoading = true, criticalCostLoading = true;
 
@@ -299,6 +321,14 @@
             speedCost = costs.GetValueOrDefault(StatType.Speed);
             criticalCost = costs.GetValueOrDefault(StatType.CriticalChance);
             defenseCost = costs.GetValueOrDefault(StatType.Defense);
+
+            // Leitão costs
+            var p = MyTunoConfig.Value.BossMode.Piggies;
+            hpLeitaoCost = PiggiesCostConfig.CalculateCost(Character.HpUpgrades, p.StatUpgradeStartLevel, p.StatUpgradeBaseCost, p.StatUpgradeCostEveryNLevels);
+            powerLeitaoCost = PiggiesCostConfig.CalculateCost(Character.PowerUpgrades, p.StatUpgradeStartLevel, p.StatUpgradeBaseCost, p.StatUpgradeCostEveryNLevels);
+            defenseLeitaoCost = PiggiesCostConfig.CalculateCost(Character.DefenseUpgrades, p.StatUpgradeStartLevel, p.StatUpgradeBaseCost, p.StatUpgradeCostEveryNLevels);
+            speedLeitaoCost = PiggiesCostConfig.CalculateCost(Character.SpeedUpgrades, p.SpeedUpgradeStartLevel, p.StatUpgradeBaseCost, p.StatUpgradeCostEveryNLevels);
+            criticalLeitaoCost = PiggiesCostConfig.CalculateCost(Character.CriticalUpgrades, p.CritUpgradeStartLevel, p.StatUpgradeBaseCost, p.StatUpgradeCostEveryNLevels);
         }
         catch
         {

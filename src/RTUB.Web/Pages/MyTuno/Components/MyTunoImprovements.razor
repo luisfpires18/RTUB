@@ -37,7 +37,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsEnergyAmountMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.EnergyAmount)"
-                        disabled="@(Purchasing || energyAmountCostLoading || IsEnergyAmountMaxed || FidelisBalance < energyAmountCost)">
+                        disabled="@(Purchasing || energyAmountCostLoading || IsEnergyAmountMaxed || FidelisBalance < energyAmountCost || (energyAmountLeitaoCost > 0 && LeitaoBalance < energyAmountLeitaoCost))">
                     @if (Purchasing && PurchasingType == ImprovementType.EnergyAmount)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -59,6 +59,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(energyAmountCost)</span>
+                        @if (energyAmountLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < energyAmountLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @energyAmountLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -87,7 +91,7 @@
             <div class="enhance-row__action">
                 <button class="btn enhance-row__btn @(IsEnergyRegenMaxed ? "enhance-row__btn--maxed" : "")"
                         @onclick="() => RequestPurchase(ImprovementType.EnergyRegen)"
-                        disabled="@(Purchasing || energyRegenCostLoading || IsEnergyRegenMaxed || FidelisBalance < energyRegenCost)">
+                        disabled="@(Purchasing || energyRegenCostLoading || IsEnergyRegenMaxed || FidelisBalance < energyRegenCost || (energyRegenLeitaoCost > 0 && LeitaoBalance < energyRegenLeitaoCost))">
                     @if (Purchasing && PurchasingType == ImprovementType.EnergyRegen)
                     {
                         <span class="spinner-border spinner-border-sm"></span>
@@ -109,6 +113,10 @@
                     else
                     {
                         <i class="bi bi-coin"></i> <span>@FormatCost(energyRegenCost)</span>
+                        @if (energyRegenLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < energyRegenLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @energyRegenLeitaoCost</span>
+                        }
                     }
                 </div>
             </div>
@@ -120,11 +128,13 @@
 @code {
     [Parameter, EditorRequired] public Character Character { get; set; } = default!;
     [Parameter] public decimal FidelisBalance { get; set; }
+    [Parameter] public int LeitaoBalance { get; set; }
     [Parameter] public bool Purchasing { get; set; }
     [Parameter] public ImprovementType? PurchasingType { get; set; }
     [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
 
     private decimal energyAmountCost, energyRegenCost;
+    private int energyAmountLeitaoCost, energyRegenLeitaoCost;
     private bool energyAmountCostLoading = true, energyRegenCostLoading = true;
 
     private int MaxEnergyAmountUpgrades => MyTunoConfig.Value.Improvements.EnergyAmount.MaxUpgrades;
@@ -145,6 +155,11 @@
             var costs = ImprovementService.GetAllImprovementCosts(Character);
             energyAmountCost = costs.GetValueOrDefault(ImprovementType.EnergyAmount);
             energyRegenCost = costs.GetValueOrDefault(ImprovementType.EnergyRegen);
+
+            // Leitão costs
+            var p = MyTunoConfig.Value.BossMode.Piggies;
+            energyAmountLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyAmountUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
+            energyRegenLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyRegenUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
         }
         catch
         {

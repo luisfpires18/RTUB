@@ -43,36 +43,32 @@ Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (f
 
 **Fidelis Cost Formula:** `Cost(n) = 40 + n × 40` Fidelis (where `n` = current slot bonus level)
 
-**Leitão Cost Formula:** `Cost(n) = 1 + (n - 5) / 5` (starts at level 5, +1 every 5 levels)
+**Leitão Cost Formula:** `Cost(n) = 1 + (n - 12) / 5` (starts at level 12, +1 every 5 levels)
 
-**Drink Requirement:** Uses tiered drinks. Every 5 levels advances to the next drink tier:
-- Levels 0–4: Cerveja (1× to 5×)
-- Levels 5–9: Vinho (1× to 5×)
-- Levels 10–14: Licor (1× to 5×)
-- Levels 15–19: Rum (1× to 5×)
+**Drink Requirement:** Uses tiered drinks. Every **50 levels** advances to the next drink tier:
+- Levels 0–49: Cerveja (1× to 50×)
+- Levels 50–99: Vinho (1× to 50×)
+- Levels 100–149: Licor (1× to 50×)
+- Levels 150–199: Rum (1× to 50×)
 - ... (continues through all 10 drink tiers)
-- Levels 45+: Aguardente (5× max)
+- Levels 450+: Aguardente (50× max)
 
-**Max Enhancement:** 15 per slot (configurable via `maxEquipmentEnhancement`)
+**No hard cap on per-slot bonus level.** Natural cost scaling (Fidelis + drinks + Leitão) acts as the soft ceiling.
 
-### Equipment Upgrade Cost Table (first 15 levels)
+### Equipment Upgrade Cost Table (sample levels)
 
 | Level | Fidelis Cost | Cumulative | Drink | Qty | Leitão |
 |------:|-----------:|-----------:|-------|----:|-------:|
 | 1 | 40 | 40 | Cerveja | 1 | 0 |
-| 2 | 80 | 120 | Cerveja | 2 | 0 |
-| 3 | 120 | 240 | Cerveja | 3 | 0 |
-| 4 | 160 | 400 | Cerveja | 4 | 0 |
-| 5 | 200 | 600 | Cerveja | 5 | 1 |
-| 6 | 240 | 840 | Vinho | 1 | 1 |
-| 7 | 280 | 1,120 | Vinho | 2 | 1 |
-| 8 | 320 | 1,440 | Vinho | 3 | 1 |
-| 9 | 360 | 1,800 | Vinho | 4 | 1 |
-| 10 | 400 | 2,200 | Vinho | 5 | 2 |
-| 11 | 440 | 2,640 | Licor | 1 | 2 |
-| 12 | 480 | 3,120 | Licor | 2 | 2 |
-| 13 | 520 | 3,640 | Licor | 3 | 2 |
-| 14 | 560 | 4,200 | Licor | 4 | 2 |
+| 5 | 200 | 600 | Cerveja | 5 | 0 |
+| 10 | 400 | 2,200 | Cerveja | 10 | 0 |
+| 12 | 480 | 3,120 | Cerveja | 12 | 1 |
+| 20 | 800 | 8,400 | Cerveja | 20 | 2 |
+| 30 | 1,200 | 18,600 | Cerveja | 30 | 4 |
+| 40 | 1,600 | 32,800 | Cerveja | 40 | 6 |
+| 50 | 2,000 | 51,000 | Cerveja | 50 | 8 |
+| 51 | 2,040 | 53,040 | Vinho | 1 | 8 |
+| 100 | 4,000 | 202,000 | Vinho | 50 | 18 |
 | 15 | 600 | 4,800 | Licor | 5 | 3 |
 
 ---
@@ -203,10 +199,10 @@ All values are defined in `scaling.config.json` under `stageMode`:
 
 | Key | Value | Description |
 |-----|------:|-------------|
-| `piggies.equipmentUpgradeStartLevel` | 5 | Level at which Leitão cost begins for equipment |
+| `piggies.equipmentUpgradeStartLevel` | 12 | Level at which Leitão cost begins for equipment |
 | `piggies.equipmentUpgradeBaseCost` | 1 | Base Leitão cost |
 | `piggies.equipmentUpgradeCostEveryNLevels` | 5 | +1 Leitão every N levels |
-| `piggies.weaponUpgradeStartLevel` | 5 | Level at which Leitão cost begins for weapons |
+| `piggies.weaponUpgradeStartLevel` | 12 | Level at which Leitão cost begins for weapons |
 | `piggies.weaponUpgradeBaseCost` | 1 | Base Leitão cost |
 | `piggies.weaponUpgradeCostEveryNLevels` | 5 | +1 Leitão every N levels |
 

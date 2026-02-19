@@ -689,6 +689,32 @@
 
             drawSpeedBar(paddingLeft, this.speedBarTimers.attacker, attackerActionTimeMs);
             drawSpeedBar(width - paddingLeft - barWidth, this.speedBarTimers.defender, defenderActionTimeMs);
+
+            // Speed text (inside bars, white text with black stroke — like HP)
+            const speedFontSize = isMobile ? Math.min(7, barHeight * 0.8) : Math.min(14, barHeight * 0.8);
+            if (!this._speedTexts) {
+                const mkText = () => new PIXI.Text({
+                    text: '',
+                    style: {
+                        fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
+                    }
+                });
+                this._speedTexts = { attacker: mkText(), defender: mkText() };
+                this._speedTexts.attacker.anchor.set(0.5, 0.5);
+                this._speedTexts.defender.anchor.set(0.5, 0.5);
+                this.stage.addChild(this._speedTexts.attacker);
+                this.stage.addChild(this._speedTexts.defender);
+            }
+            const atkSec = Math.max(0, this.speedBarTimers.attacker / 1000).toFixed(1);
+            const defSec = Math.max(0, this.speedBarTimers.defender / 1000).toFixed(1);
+            this._speedTexts.attacker.text = `${atkSec}s`;
+            this._speedTexts.attacker.x = paddingLeft + barWidth / 2;
+            this._speedTexts.attacker.y = paddingTop + barHeight / 2;
+            this._speedTexts.defender.text = `${defSec}s`;
+            this._speedTexts.defender.x = width - paddingLeft - barWidth / 2;
+            this._speedTexts.defender.y = paddingTop + barHeight / 2;
         }
 
         // ── Interactive Mode Methods (Blade Crafter spell system) ──────────
@@ -728,8 +754,9 @@
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = 52;
-            const btnGap = 10;
+            const isMobile = width < 768;
+            const btnSize = isMobile ? 52 : 68;
+            const btnGap = isMobile ? 10 : 14;
             const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;
             const barY = height - btnSize - 8;
@@ -764,7 +791,7 @@
 
                 const iconText = new PIXI.Text({
                     text: icon,
-                    style: { fontSize: 22, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                    style: { fontSize: isMobile ? 22 : 28, fontFamily: 'Arial, sans-serif', fill: 0xffffff }
                 });
                 iconText.anchor.set(0.5);
                 iconText.x = btnSize / 2;
@@ -773,7 +800,7 @@
 
                 const nameText = new PIXI.Text({
                     text: name.length > 6 ? name.substring(0, 6) : name,
-                    style: { fontSize: 8, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
+                    style: { fontSize: isMobile ? 8 : 10, fontFamily: 'Arial, sans-serif', fill: 0xcccccc }
                 });
                 nameText.anchor.set(0.5);
                 nameText.x = btnSize / 2;

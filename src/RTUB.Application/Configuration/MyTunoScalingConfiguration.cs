@@ -462,7 +462,7 @@ public class ForgingConfig
     public int SpeedMax { get; set; } = 5;
 
     /// <summary>Number of upgrade levels before advancing to the next drink tier.</summary>
-    public int UpgradeLevelsPerDrinkTier { get; set; } = 5;
+    public int UpgradeLevelsPerDrinkTier { get; set; } = 50;
 }
 
 /// <summary>
@@ -714,30 +714,34 @@ public class BossModeFidelisRewards
 /// </summary>
 public class PiggiesCostConfig
 {
-    /// <summary>Stat upgrade: level at which Leitão cost kicks in.</summary>
-    public int StatUpgradeStartLevel { get; set; } = 10;
+    /// <summary>Stat upgrade: level at which Leitão cost kicks in (stage ~10k).</summary>
+    public int StatUpgradeStartLevel { get; set; } = 100;
+    /// <summary>Speed upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
+    public int SpeedUpgradeStartLevel { get; set; } = 20;
+    /// <summary>Crit upgrade: level at which Leitão cost kicks in (mid-cap).</summary>
+    public int CritUpgradeStartLevel { get; set; } = 50;
     /// <summary>Base Leitão cost for stat upgrades.</summary>
     public int StatUpgradeBaseCost { get; set; } = 1;
     /// <summary>Every N upgrade levels, add +1 Leitão cost.</summary>
     public int StatUpgradeCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Improvement upgrade: level at which Leitão cost kicks in.</summary>
-    public int ImprovementStartLevel { get; set; } = 5;
+    public int ImprovementStartLevel { get; set; } = 20;
     public int ImprovementBaseCost { get; set; } = 1;
     public int ImprovementCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Power upgrade: level at which Leitão cost kicks in.</summary>
-    public int PowerStartLevel { get; set; } = 5;
+    public int PowerStartLevel { get; set; } = 20;
     public int PowerBaseCost { get; set; } = 1;
     public int PowerCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Weapon upgrade: level at which Leitão cost kicks in.</summary>
-    public int WeaponUpgradeStartLevel { get; set; } = 5;
+    public int WeaponUpgradeStartLevel { get; set; } = 12;
     public int WeaponUpgradeBaseCost { get; set; } = 1;
     public int WeaponUpgradeCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Equipment slot upgrade: level at which Leitão cost kicks in.</summary>
-    public int EquipmentUpgradeStartLevel { get; set; } = 5;
+    public int EquipmentUpgradeStartLevel { get; set; } = 12;
     public int EquipmentUpgradeBaseCost { get; set; } = 1;
     public int EquipmentUpgradeCostEveryNLevels { get; set; } = 5;
 
@@ -751,4 +755,15 @@ public class PiggiesCostConfig
         var levelsAbove = currentLevel - startLevel;
         return baseCost + (costEveryNLevels > 0 ? levelsAbove / costEveryNLevels : 0);
     }
+
+    /// <summary>
+    /// Gets the appropriate start level for a given stat type.
+    /// Speed and Crit have their own thresholds; HP/Power/Defense share StatUpgradeStartLevel.
+    /// </summary>
+    public int GetStartLevelForStat(Core.Enums.StatType statType) => statType switch
+    {
+        Core.Enums.StatType.Speed => SpeedUpgradeStartLevel,
+        Core.Enums.StatType.CriticalChance => CritUpgradeStartLevel,
+        _ => StatUpgradeStartLevel
+    };
 }

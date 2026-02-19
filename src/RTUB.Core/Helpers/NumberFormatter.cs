@@ -19,6 +19,7 @@ public static class NumberFormatter
     /// </summary>
     public static string Compact(long value)
     {
+        if (value == long.MinValue) return "-" + FormatPositive(long.MaxValue);
         return value < 0 ? "-" + FormatPositive(-value) : FormatPositive(value);
     }
 

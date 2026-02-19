@@ -638,18 +638,18 @@
             speedFill.y = speedBarY;
             this.stage.addChild(speedFill);
 
-            // Speed countdown text (shows remaining seconds: "3.2s")
-            const speedFontSize = isMobile ? Math.min(10, speedBarHeight + 2) : Math.min(14, speedBarHeight + 2);
+            // Speed countdown text (shows remaining seconds: "3.2s") — centered INSIDE the bar
+            const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
             const speedText = new PIXI.Text({
                 text: '',
                 style: {
                     fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
-                    fill: 0x00e5ff,
+                    fill: 0xffffff,
                     stroke: { color: 0x000000, width: 2 }
                 }
             });
-            speedText.anchor.set(0, 0.5);
-            speedText.x = paddingLeft + barWidth + 5;
+            speedText.anchor.set(0.5, 0.5);
+            speedText.x = paddingLeft + barWidth / 2;
             speedText.y = speedBarY + speedBarHeight / 2;
             this.stage.addChild(speedText);
 
@@ -1102,13 +1102,16 @@
 
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnSize = Math.min(52, Math.floor(width / (this.spells.length + 2)));
-            const btnGap = 6;
+            const isMobile = width < 768;
+            const btnSize = isMobile
+                ? Math.min(52, Math.floor(width / (this.spells.length + 2)))
+                : Math.min(68, Math.floor(width / (this.spells.length + 2)));
+            const btnGap = isMobile ? 6 : 10;
             const totalWidth = this.spells.length * btnSize + (this.spells.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;
-            // Position above consumable bar — consumable bar is at ~(height - 60 - 10), spell bar above it
-            const consumableBtnSize = Math.min(60, Math.floor((Math.min(width * 0.9, 320) - 3 * btnGap) / 4));
-            const barY = height - consumableBtnSize - 10 - btnSize - 14;
+            // Position above consumable bar — must match actual consumable btn sizing
+            const consumableBtnSize = isMobile ? 60 : 76;
+            const barY = height - consumableBtnSize - 10 - btnSize - 18;
 
             this.spellBarContainer = new PIXI.Container();
             this.stage.addChild(this.spellBarContainer);
@@ -1143,7 +1146,7 @@
                 // Icon text
                 const iconText = new PIXI.Text({
                     text: icon,
-                    style: { fontSize: Math.min(22, btnSize * 0.4), fontFamily: 'Arial, sans-serif', fill: 0xffffff }
+                    style: { fontSize: isMobile ? Math.min(22, btnSize * 0.4) : Math.min(28, btnSize * 0.42), fontFamily: 'Arial, sans-serif', fill: 0xffffff }
                 });
                 iconText.anchor.set(0.5);
                 iconText.x = btnSize / 2;
@@ -1153,7 +1156,7 @@
                 // Spell name (small, below icon)
                 const nameText = new PIXI.Text({
                     text: name.length > 7 ? name.substring(0, 7) : name,
-                    style: { fontSize: 7, fontFamily: 'Arial, sans-serif', fill: 0x999999 }
+                    style: { fontSize: isMobile ? 7 : 9, fontFamily: 'Arial, sans-serif', fill: 0x999999 }
                 });
                 nameText.anchor.set(0.5);
                 nameText.x = btnSize / 2;
@@ -1203,16 +1206,19 @@
         createConsumableBar() {
             const width = this.app.screen.width;
             const height = this.app.screen.height;
-            const btnGap = 6;
+            const isMobile = width < 768;
+            const btnGap = isMobile ? 6 : 10;
 
             const consumables = [
                 { type: 'fino',    name: 'Fino',    color: 0xf5a623, fallbackIcon: '🍺' },
                 { type: 'caneca',  name: 'Caneca',  color: 0xf5a623, fallbackIcon: '🍻' }
             ];
 
-            // Responsive button size
-            const maxBarWidth = Math.min(width * 0.9, 320);
-            const btnSize = Math.min(60, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
+            // Responsive button size — larger on desktop
+            const maxBarWidth = isMobile ? Math.min(width * 0.9, 320) : Math.min(width * 0.9, 420);
+            const btnSize = isMobile
+                ? Math.min(60, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length))
+                : Math.min(76, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
 
             const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
             const startX = (width - totalWidth) / 2;

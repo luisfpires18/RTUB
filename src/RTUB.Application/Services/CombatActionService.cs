@@ -435,7 +435,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                     dmg = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                     // Apply Powers special attack damage bonus
                     if (session.SpecialAttackDamageBonus > 0)
-                        dmg = (long)Math.Round(dmg * (1.0 + session.SpecialAttackDamageBonus));
+                        dmg = CombatMath.ClampToLong(dmg * (1.0 + session.SpecialAttackDamageBonus));
                     dmg = CombatMath.ApplyDefenseMitigation(dmg, GetEffectiveDefense(session, enemy));
                     enemy.CurrentHP = Math.Max(0, enemy.CurrentHP - dmg);
                 }
@@ -509,7 +509,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 rawDamage = CombatMath.CalculateSpellDamage(session.Player.Power, spell, session.Rng);
                 // Apply Powers special attack damage bonus
                 if (session.SpecialAttackDamageBonus > 0)
-                    rawDamage = (long)Math.Round(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
+                    rawDamage = CombatMath.ClampToLong(rawDamage * (1.0 + session.SpecialAttackDamageBonus));
                 rawDamage = CombatMath.ApplyDefenseMitigation(rawDamage, GetEffectiveDefense(session, target));
                 target.CurrentHP = Math.Max(0, target.CurrentHP - rawDamage);
             }
@@ -965,7 +965,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 character.ShotBuffBattlesRemaining = MyTunoScaling.ShotBuffRuns;
                 if (session != null)
                 {
-                    session.Player.Power = (long)Math.Round(session.Player.Power * MyTunoScaling.ShotBuffMultiplier);
+                    session.Player.Power = CombatMath.ClampToLong(session.Player.Power * MyTunoScaling.ShotBuffMultiplier);
                     session.HasShotBuff = true;
                 }
 

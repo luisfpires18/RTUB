@@ -17,6 +17,14 @@ public static class CombatMath
     /// <summary>Maximum variance multiplier applied to base power.</summary>
     public const double DamageVarianceMax = 1.2;
 
+    /// <summary>Safely converts a positive double to long, clamping to [0, long.MaxValue].</summary>
+    internal static long ClampToLong(double value)
+    {
+        if (value >= (double)long.MaxValue) return long.MaxValue;
+        if (value <= 0) return 0;
+        return (long)Math.Round(value, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>
     /// Calculates raw damage with variance and critical hit.
     /// Order of operations: Base Power → Variance → Critical (×2).
@@ -35,7 +43,7 @@ public static class CombatMath
         {
             damage *= 2;
         }
-        return ((long)Math.Round(damage, MidpointRounding.AwayFromZero), isCritical);
+        return (ClampToLong(damage), isCritical);
     }
 
     /// <summary>
@@ -51,7 +59,7 @@ public static class CombatMath
         var k = MyTunoScaling.DefenseK;
         var minDamage = MyTunoScaling.MinDamage;
         var multiplier = k / (k + defense);
-        var mitigatedDamage = (long)Math.Floor(rawDamage * multiplier);
+        var mitigatedDamage = ClampToLong(rawDamage * multiplier);
         return Math.Max(minDamage, mitigatedDamage);
     }
 
@@ -92,6 +100,6 @@ public static class CombatMath
             damage *= 2;
         }
 
-        return (long)Math.Round(damage, MidpointRounding.AwayFromZero);
+        return ClampToLong(damage);
     }
 }

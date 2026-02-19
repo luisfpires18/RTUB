@@ -96,10 +96,13 @@
                             <span class="reward-tag reward-tag--fidelis">
                                 <i class="bi bi-coin"></i> @Fmt(totalFidelisEarned) Fidelis
                             </span>
-                            @if (totalFinosDropped + totalCanecasDropped > 0)
+                            @{
+                                var totalConsumablesDropped = totalFinosDropped + totalCanecasDropped + totalCigarrosDropped + totalShotsDropped + totalCanhaosDropped + totalPenaltiesDropped;
+                            }
+                            @if (totalConsumablesDropped > 0)
                             {
                                 <span class="reward-tag reward-tag--drink">
-                                    <i class="bi bi-cup-straw"></i> @Fmt(totalFinosDropped + totalCanecasDropped) Drinks
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalConsumablesDropped) Consumíveis
                                 </span>
                             }
                             @if (totalInstrumentPartsDropped.Count > 0)
@@ -308,6 +311,7 @@
     private bool showDefeatSummary = false;
     private int defeatedAtStage = 0;
     private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
+    private int? retryStartStage; // The stage the user started the run from (for RECOMEÇAR)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -583,6 +587,8 @@
             {
                 // Save the pre-run HP before clearing run state
                 defeatRestoreHp = runStartingHp;
+                // Save starting stage for RECOMEÇAR before clearing
+                retryStartStage = runStartingStage ?? currentStageNumber;
                 // Mark run as finished IMMEDIATELY
                 runInProgress = false;
                 runStartingHp = null;
@@ -1049,6 +1055,8 @@
             }
 
             // Mark run as complete (may already be false from FightStageEnemy)
+            // Save the starting stage BEFORE clearing run state — used by RECOMEÇAR
+            retryStartStage ??= runStartingStage ?? currentStageNumber;
             runInProgress = false;
             runStartingHp = null;
             runStartingStage = null;
@@ -1187,6 +1195,7 @@
     private void DefeatGoBack()
     {
         showDefeatSummary = false;
+        retryStartStage = null;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
     }
@@ -1205,7 +1214,18 @@
         currentBattle = null;
         _combatSession = null;
 
-        // Reload character + stage progress from DB (checkpoint was already saved on defeat)
+        // Destroy JS scene so nextBattle creates a fresh one on the new DOM element
+        try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroySceneOnly"); }
+        catch { /* scene may already be gone */ }
+
+        // Restore stage to the checkpoint the user STARTED from (not the latest checkpoint)
+        if (retryStartStage.HasValue && currentUser != null)
+        {
+            await StageService.SetStartStageAsync(currentUser.Id, retryStartStage.Value);
+        }
+        retryStartStage = null;
+
+        // Reload character + stage progress from DB
         await LoadDataAsync();
         StateHasChanged();
 

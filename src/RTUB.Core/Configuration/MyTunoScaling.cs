@@ -13,7 +13,7 @@ public static class MyTunoScaling
     public static int BasePower { get; private set; } = 25;
     public static int BaseSpeed { get; private set; } = 10;
     public static int BaseDefense { get; private set; } = 20;
-    public static double BaseCriticalChance { get; private set; } = 0.02;
+    public static double BaseCriticalChance { get; private set; } = 0.00;
 
     // ── Level scaling (linear) ──
     public static int MaxLevel { get; private set; } = 100;
@@ -60,8 +60,8 @@ public static class MyTunoScaling
     /// <summary>Minimum damage floor after defense mitigation.</summary>
     public static int MinDamage { get; private set; } = 1;
 
-    /// <summary>Maximum critical chance cap (0.40 = 40%).</summary>
-    public static double MaxCriticalChance { get; private set; } = 0.40;
+    /// <summary>Maximum critical chance cap (0.50 = 50%).</summary>
+    public static double MaxCriticalChance { get; private set; } = 0.50;
 
     /// <summary>Critical hit damage multiplier.</summary>
     public static double CritMultiplier { get; private set; } = 2.0;

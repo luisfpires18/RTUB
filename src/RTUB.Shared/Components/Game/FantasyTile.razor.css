@@ -14,7 +14,9 @@
     transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     gap: 0.2rem;
     min-width: 0;
+    overflow: hidden;
     text-align: center;
+    box-sizing: border-box;
 }
 
 /* ---- Color variants ---- */
@@ -69,6 +71,10 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .ftile--lg .ftile__label { font-size: 0.8rem; }
@@ -79,6 +85,10 @@
     font-weight: 700;
     color: #e2e2e2;
     line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .ftile--sm .ftile__value { font-size: 0.75rem; }

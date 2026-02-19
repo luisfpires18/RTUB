@@ -8,7 +8,6 @@
 @using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Base
-@using RTUB.Application.DTOs
 @using RTUB.Shared.Components.UI
 @using RTUB.Application.Configuration
 @using RTUB.Core.Helpers
@@ -20,7 +19,6 @@
 @inject IUpgradeService UpgradeService
 @inject IImprovementService ImprovementService
 @inject IPowerService PowerService
-@inject ICharacterRepository CharacterRepository
 @inject IInventoryService InventoryService
 @inject INaipeService NaipeService
 @inject IStageService StageService
@@ -45,9 +43,9 @@
                 </p>
             </div>
             <div class="page-header-actions justify-content-lg-end">
-                <button class="btn btn-outline-primary" @onclick="OpenLeaderboardModal">
+                <a href="/my-tuno/all-characters" class="btn btn-outline-primary">
                     <i class="bi bi-trophy-fill me-2"></i>Classificação
-                </button>
+                </a>
                 <AuthorizeView Roles="Owner">
                     <Authorized>
                         <a href="/owner/stage-enemies" class="btn btn-outline-warning">
@@ -55,9 +53,6 @@
                         </a>
                         <a href="/owner/weapon-drink-config" class="btn btn-outline-warning">
                             <i class="bi bi-sliders me-1"></i>Config Armas/Bebidas
-                        </a>
-                        <a href="/owner/all-characters" class="btn btn-outline-warning">
-                            <i class="bi bi-people me-1"></i>Todos Personagens
                         </a>
                     </Authorized>
                 </AuthorizeView>
@@ -576,22 +571,6 @@
                 </div>
             </div>
 
-        @* Leaderboard Modal *@
-        @if (showLeaderboardModal)
-        {
-            <Modal Show="@showLeaderboardModal"
-                   ShowChanged="@((bool show) => { if (!show) showLeaderboardModal = false; })"
-                   Title="Classificação"
-                   Size="Modal.ModalSize.Large"
-                   Centered="true">
-                <BodyContent>
-                    <MyTunoLeaderboard Entries="@leaderboardEntries" Loading="@leaderboardLoading" />
-                </BodyContent>
-                <FooterContent>
-                    <button class="btn btn-secondary" @onclick="() => showLeaderboardModal = false">Fechar</button>
-                </FooterContent>
-            </Modal>
-        }
 
             <!-- Equipment Section -->
             <div class="col-lg-4 order-2">
@@ -1119,6 +1098,7 @@
                         {
                             <MyTunoUpgradeShop Character="@character"
                                                FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                               LeitaoBalance="@leitaoQuantity"
                                                Purchasing="@purchasing"
                                                PurchasingStat="@purchasingStat"
                                                OnPurchaseRequested="PurchaseUpgrade" />
@@ -1127,6 +1107,7 @@
                         {
                             <MyTunoImprovements Character="@character"
                                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                              LeitaoBalance="@leitaoQuantity"
                                               Purchasing="@purchasingImprovement"
                                               PurchasingType="@purchasingImprovementType"
                                               OnPurchaseRequested="PurchaseImprovement" />
@@ -1135,6 +1116,7 @@
                         {
                             <MyTunoPowers Character="@character"
                                            FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                           LeitaoBalance="@leitaoQuantity"
                                            Purchasing="@purchasingPower"
                                            PurchasingType="@purchasingPowerType"
                                            OnPurchaseRequested="PurchasePower" />
@@ -1251,7 +1233,10 @@
         var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
         var hasFidelis = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
         var hasDrinks = wpnDrinkHave >= wpnDrinkQty;
-        var canAffordUpgrade = hasFidelis && hasDrinks;
+        var wpnPiggies = MyTunoConfig.Value.BossMode.Piggies;
+        var wpnLeitaoCost = PiggiesCostConfig.CalculateCost(pendingWeapon.Level, wpnPiggies.WeaponUpgradeStartLevel, wpnPiggies.WeaponUpgradeBaseCost, wpnPiggies.WeaponUpgradeCostEveryNLevels);
+        var hasLeitaoWpn = wpnLeitaoCost == 0 || leitaoQuantity >= wpnLeitaoCost;
+        var canAffordUpgrade = hasFidelis && hasDrinks && hasLeitaoWpn;
         var weaponDiscardValue = InventoryService.GetWeaponDiscardValue(pendingWeapon, character?.Level ?? 1);
         <Modal Show="@showWeaponActionModal"
                ShowChanged="@((bool show) => { if (!show) showWeaponActionModal = false; })"
@@ -1308,6 +1293,13 @@
                                      Color="purple" Size="md" Insufficient="@(!hasDrinks)">
                             <span class="ftile-stock @(hasDrinks ? "ftile-stock--ok" : "ftile-stock--low")">@wpnDrinkHave</span>
                         </FantasyTile>
+                        @if (wpnLeitaoCost > 0)
+                        {
+                            <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{wpnLeitaoCost}")"
+                                         Color="pink" Size="md" Insufficient="@(!hasLeitaoWpn)">
+                                <span class="ftile-stock @(hasLeitaoWpn ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
+                            </FantasyTile>
+                        }
                     </div>
                 </div>
             </BodyContent>
@@ -1507,9 +1499,12 @@
                     var eqDrinkName = GetResourceName(eqDrinkType);
                     var eqDrinkHave = GetResourceQuantity(eqDrinkType);
                     var eqDrinkRes = activeResources.FirstOrDefault(r => r.Type == eqDrinkType.ToString());
-                    var canAffordEqUpgrade = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost && eqDrinkHave >= eqDrinkQty;
+                    var eqPiggies = MyTunoConfig.Value.BossMode.Piggies;
+                    var eqLeitaoCost = PiggiesCostConfig.CalculateCost(eqSlotBonusLevel, eqPiggies.EquipmentUpgradeStartLevel, eqPiggies.EquipmentUpgradeBaseCost, eqPiggies.EquipmentUpgradeCostEveryNLevels);
+                    var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
                     var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
                     var hasDrinksEq = eqDrinkHave >= eqDrinkQty;
+                    var canAffordEqUpgrade = hasFidelisEq && hasDrinksEq && hasLeitaoEq;
                     var upgradeSlot = actionSlot.Value;
                     <div class="wpn-upgrade-section mb-2">
                         <small class="d-block mb-2" style="color: #aaa; font-size: 0.75rem;"><i class="bi bi-arrow-up-circle me-1"></i>Upgrade para +@(actionSlotLevel + 1):</small>
@@ -1522,6 +1517,13 @@
                                          Color="purple" Size="md" Insufficient="@(!hasDrinksEq)">
                                 <span class="ftile-stock @(hasDrinksEq ? "ftile-stock--ok" : "ftile-stock--low")">@eqDrinkHave</span>
                             </FantasyTile>
+                            @if (eqLeitaoCost > 0)
+                            {
+                                <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{eqLeitaoCost}")"
+                                             Color="pink" Size="md" Insufficient="@(!hasLeitaoEq)">
+                                    <span class="ftile-stock @(hasLeitaoEq ? "ftile-stock--ok" : "ftile-stock--low")">@leitaoQuantity</span>
+                                </FantasyTile>
+                            }
                         </div>
                     </div>
                     <div class="d-flex justify-content-center w-100">
@@ -1836,10 +1838,8 @@
     
     private Character? character;
     private ApplicationUser? currentUser;
-    private List<MyTunoLeaderboardEntry>? leaderboardEntries;
     private StageProgress? stageProgress;
     private bool loading = true;
-    private bool leaderboardLoading = false;
 
     private int finoQuantity = 0;
     private int canecaQuantity = 0;
@@ -1914,9 +1914,6 @@
     private int highestStageForEquip = 0; // cached highest stage for per-slot level calc
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
-    
-    // Leaderboard modal state
-    private bool showLeaderboardModal = false;
     
     // Stage modal state
     private bool showStageModal = false;
@@ -2048,7 +2045,6 @@
                         var itemConfigsTask = ItemTypeConfigService.GetAllConfigsAsync();
                         var forgeComboPicturesTask = ItemTypeConfigService.GetAllForgeComboPicturesAsync();
                         var forgedWeaponsTask = InventoryService.GetForgedWeaponsAsync(currentUser.Id);
-                        var leaderboardTask = CharacterRepository.GetTopLeaderboardAsync(50);
 
                         await Task.WhenAll(
                             inventorySummaryTask,
@@ -2056,8 +2052,7 @@
                             naipeConfigsTask,
                             itemConfigsTask,
                             forgeComboPicturesTask,
-                            forgedWeaponsTask,
-                            leaderboardTask);
+                            forgedWeaponsTask);
 
                         // Extract inventory quantities from the single summary
                         var inventorySummary = inventorySummaryTask.Result;
@@ -2112,19 +2107,11 @@
                         
                         forgeComboPictures = forgeComboPicturesTask.Result;
                         forgedWeapons = forgedWeaponsTask.Result;
-
-                        // Leaderboard (already awaited above)
-                        leaderboardEntries = leaderboardTask.Result;
-                        leaderboardLoading = false;
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
                     }
                 }
-            }
-            else
-            {
-                await LoadLeaderboardAsync();
             }
         }
         catch (Exception ex)
@@ -2136,30 +2123,6 @@
         finally
         {
             loading = false;
-        }
-    }
-
-    private async Task OpenLeaderboardModal()
-    {
-        showLeaderboardModal = true;
-        await LoadLeaderboardAsync();
-    }
-
-    private async Task LoadLeaderboardAsync()
-    {
-        try
-        {
-            leaderboardLoading = true;
-            leaderboardEntries = await CharacterRepository.GetTopLeaderboardAsync(50);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading leaderboard data");
-            leaderboardEntries = new List<MyTunoLeaderboardEntry>();
-        }
-        finally
-        {
-            leaderboardLoading = false;
         }
     }
 
@@ -2182,6 +2145,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 toastMessage = $"Upgrade de {purchasingStat} comprado com sucesso!";
@@ -2225,6 +2191,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 // Refresh energy bar and regen timer to reflect upgrades
@@ -2276,6 +2245,9 @@
                 if (currentUser != null)
                 {
                     character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
                 }
 
                 toastMessage = $"Poder comprado com sucesso!";
@@ -3264,7 +3236,9 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
                 pendingWeapon = forgedWeapons.FirstOrDefault(w => w.Id == pendingWeapon.Id);
-                // Refresh drink quantities (drinks consumed during upgrade)
+                // Refresh drink quantities and Leitão (consumed during upgrade)
+                var wpnInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = wpnInv.GetValueOrDefault(InventoryItemType.Leitao);
                 foreach (var res in activeResources)
                 {
                     if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))
@@ -3308,7 +3282,9 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
                 highestStageForEquip = stageProgress?.HighestStage ?? 0;
-                // Refresh drink quantities (drinks consumed during upgrade)
+                // Refresh drink quantities and Leitão (consumed during upgrade)
+                var eqInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = eqInv.GetValueOrDefault(InventoryItemType.Leitao);
                 foreach (var res in activeResources)
                 {
                     if (Enum.TryParse<InventoryItemType>(res.Type, out var itemType))

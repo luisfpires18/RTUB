@@ -377,3 +377,75 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* ── Arena Opponent Cards (FantasyTile style) ── */
+.arena-opponent-card {
+    position: relative;
+    background: var(--bs-body-bg, #1a1a2e);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+}
+.arena-opponent-card:hover {
+    border-color: rgba(111, 66, 193, 0.5);
+}
+.arena-opponent-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.arena-opponent-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(111, 66, 193, 0.4);
+}
+.arena-opponent-avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(111, 66, 193, 0.2);
+    color: rgba(111, 66, 193, 0.6);
+    font-size: 1.5rem;
+    border: 2px solid rgba(111, 66, 193, 0.4);
+}
+.arena-opponent-rank {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid;
+    background: rgba(255,255,255,0.03);
+    font-size: 0.9rem;
+}
+.arena-opponent-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+.arena-opponent-section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: -0.25rem;
+}
+.arena-opponent-divider {
+    border-color: rgba(255,255,255,0.08);
+    margin: 0;
+}
+.arena-fight-btn {
+    margin-top: auto;
+    font-weight: 600;
+}
