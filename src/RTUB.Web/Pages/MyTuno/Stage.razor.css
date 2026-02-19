@@ -246,12 +246,12 @@
     border: 1px solid rgba(123, 31, 162, 0.7);
 }
 
-.buff-tag--shield {
+.buff-tag--dodge {
     background: rgba(0, 188, 212, 0.4);
     border: 1px solid rgba(0, 188, 212, 0.6);
 }
 
-.buff-tag--damage {
+.buff-tag--aoe {
     background: rgba(239, 83, 80, 0.4);
     border: 1px solid rgba(239, 83, 80, 0.6);
 }

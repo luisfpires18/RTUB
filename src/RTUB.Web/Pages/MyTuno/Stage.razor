@@ -115,7 +115,6 @@
                     <!-- Controls (right side) -->
                     <div class="battle-controls">
                         <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
-                        <button class="battle-ctrl-btn @(battleSpeed == 3.0 ? "active" : "")" @onclick="() => SetBattleSpeed(3.0)">3x</button>
                         <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
                         <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
@@ -136,11 +135,11 @@
                         }
                         @if (character.CigarroShieldHitsRemaining > 0)
                         {
-                            <span class="buff-tag buff-tag--shield"><i class="bi bi-shield-fill"></i>@character.CigarroShieldHitsRemaining</span>
+                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>@character.CigarroShieldHitsRemaining corridas com esquiva</span>
                         }
                         @if (character.CanhaoDamageBoostHitsRemaining > 0)
                         {
-                            <span class="buff-tag buff-tag--damage"><i class="bi bi-bullseye"></i>@character.CanhaoDamageBoostHitsRemaining</span>
+                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
                         }
                         @if (character.PenaltyBuffActive > 0)
                         {
@@ -294,8 +293,8 @@
     private long? runStartingHp;
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
-    private int runStartingCigarroShield = 0;
-    private int runStartingCanhaoBoost = 0;
+    private int runStartingCigarroBuff = 0;
+    private int runStartingCanhaoBuff = 0;
     private int runStartingPenaltyBuff = 0;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
@@ -453,8 +452,8 @@
                 runStartingHp = character.CurrentHP;
                 runStartingStage = stageProgress.CurrentStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
-                runStartingCigarroShield = character.CigarroShieldHitsRemaining;
-                runStartingCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+                runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
+                runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
                 runStartingPenaltyBuff = character.PenaltyBuffActive;
                 runInProgress = true;
                 // Reset cooldowns for the new run
@@ -484,11 +483,6 @@
                     if (_consumableImages.Count == 0)
                     {
                         var allConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
-                        Logger.LogInformation("Stage: Loaded {Count} item configs. Consumable PictureUrls: {Urls}",
-                            allConfigs.Count,
-                            string.Join(", ", allConfigs
-                                .Where(c => c.Category == "Consumable")
-                                .Select(c => $"{c.TypeKey}={c.PictureUrl ?? "(null)"}")));
                         _consumableImages = allConfigs
                             .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
                             .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
@@ -513,16 +507,16 @@
             // The deterministic engine sets character.CurrentHP to null on predicted loss
             // and consumes cigarro/canhao charges — but the interactive session drives real combat.
             var preBattleHp = character.CurrentHP;
-            var preBattleCigarroShield = character.CigarroShieldHitsRemaining;
-            var preBattleCanhaoBoost = character.CanhaoDamageBoostHitsRemaining;
+            var preBattleCigarroBuff = character.CigarroShieldHitsRemaining;
+            var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
 
             // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
-            character.CigarroShieldHitsRemaining = preBattleCigarroShield;
-            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBoost;
+            character.CigarroShieldHitsRemaining = preBattleCigarroBuff;
+            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks + spell clicks
@@ -554,8 +548,6 @@
             Character sessionChar = character;
             if (character.ShotBuffBattlesRemaining > 0)
                 sessionChar = Character.CreateShotBuffedCopy(character);
-            if (character.PenaltyBuffActive > 0)
-                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
             _combatSession = CombatActionService.CreateSession(
                 sessionChar,
                 enemyStates,
@@ -689,8 +681,8 @@
                         SpellCooldowns = new Dictionary<string, double>(_combatSession.SpellCooldowns),
                         ActiveBuffs = new
                         {
-                            Cigarro = _combatSession.CigarroShieldRemaining > 0,
-                            Canhao = _combatSession.CanhaoBoostRemaining > 0,
+                            Cigarro = _combatSession.HasCigarroBuff,
+                            Canhao = _combatSession.HasCanhaoBuff,
                             Shot = _combatSession.HasShotBuff,
                             Penalty = _combatSession.HasPenaltyBuff
                         }
@@ -978,9 +970,7 @@
             character.CurrentHP = _combatSession.Player.CurrentHP > 0
                 ? _combatSession.Player.CurrentHP
                 : null;
-            // Update buff remaining counts from session
-            character.CigarroShieldHitsRemaining = _combatSession.CigarroShieldRemaining;
-            character.CanhaoDamageBoostHitsRemaining = _combatSession.CanhaoBoostRemaining;
+            // Buff remaining counts are now per-run (not per-hit), no session sync needed
         }
 
         if (didWin && currentBattle != null)
@@ -1155,7 +1145,7 @@
                 // Re-check after acquiring lock (fight may have finished and cleared runInProgress)
                 if (runInProgress && runStartingHp.HasValue && runStartingStage.HasValue)
                 {
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
                 }
             }
             catch (Exception ex)
@@ -1280,7 +1270,7 @@
                 else if (character != null && runStartingHp.HasValue)
                 {
                     // No stages cleared — restore HP to pre-run value
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroShield, runStartingCanhaoBoost, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
                 }
 
                 // Clear run state

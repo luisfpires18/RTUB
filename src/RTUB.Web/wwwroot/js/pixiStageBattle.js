@@ -571,8 +571,9 @@
 
         /** Draw player HP bar and speed bar below the HTML top bar overlay (WOO-style). */
         createHudBars(width, height) {
-            const barWidth = Math.min(220, width * 0.32);
-            const barHeight = Math.min(22, height * 0.035);
+            const isMobile = this.isMobile;
+            const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.40);
+            const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
             // Push below the HTML top bar overlay
             const topBarHeight = 54;
             const paddingTop = topBarHeight + 8;
@@ -601,7 +602,7 @@
             this.stage.addChild(hpBorder);
 
             // HP text centered on bar (e.g. "1.28K / 1.28K HP")
-            const hpFontSize = Math.min(12, barHeight * 0.55);
+            const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
             const hpText = new PIXI.Text({
                 text: '',
                 style: {
@@ -622,7 +623,7 @@
             };
 
             // == Speed Bar (below HP) ==
-            const speedBarHeight = Math.min(10, height * 0.015);
+            const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
             const speedBarY = paddingTop + barHeight + 3;
 
             const speedBg = new PIXI.Graphics();
@@ -638,7 +639,7 @@
             this.stage.addChild(speedFill);
 
             // Speed countdown text (shows remaining seconds: "3.2s")
-            const speedFontSize = Math.min(10, speedBarHeight + 2);
+            const speedFontSize = isMobile ? Math.min(10, speedBarHeight + 2) : Math.min(14, speedBarHeight + 2);
             const speedText = new PIXI.Text({
                 text: '',
                 style: {
@@ -1198,7 +1199,7 @@
             }
         }
 
-        /** Create the consumable bar at the bottom of the canvas (4 items: Fino, Caneca, Cigarro, Canhão). */
+        /** Create the consumable bar at the bottom of the canvas (healing items: Fino, Caneca). */
         createConsumableBar() {
             const width = this.app.screen.width;
             const height = this.app.screen.height;
@@ -1206,9 +1207,7 @@
 
             const consumables = [
                 { type: 'fino',    name: 'Fino',    color: 0xf5a623, fallbackIcon: '🍺' },
-                { type: 'caneca',  name: 'Caneca',  color: 0xf5a623, fallbackIcon: '🍻' },
-                { type: 'cigarro', name: 'Cigarro', color: 0x90caf9, fallbackIcon: '🛡️' },
-                { type: 'canhao',  name: 'Canhão',  color: 0xef5350, fallbackIcon: '💣' }
+                { type: 'caneca',  name: 'Caneca',  color: 0xf5a623, fallbackIcon: '🍻' }
             ];
 
             // Responsive button size

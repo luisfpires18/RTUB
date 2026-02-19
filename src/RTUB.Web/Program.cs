@@ -155,13 +155,13 @@ public class Program
                 finoCooldownSeconds: myTunoScaling.Consumables.FinoCooldownSeconds,
                 canecaHealPercent: myTunoScaling.Consumables.CanecaHealPercent,
                 canecaCooldownSeconds: myTunoScaling.Consumables.CanecaCooldownSeconds,
-                cigarroShieldCharges: myTunoScaling.Consumables.CigarroShieldCharges,
-                canhaoBoostCharges: myTunoScaling.Consumables.CanhaoBoostCharges,
-                shotBuffBattles: myTunoScaling.Consumables.ShotBuffBattles,
-                shotPowerMultiplier: myTunoScaling.Consumables.ShotPowerMultiplier,
-                penaltySpeedReduction: myTunoScaling.Consumables.PenaltySpeedReduction,
-                penaltyCritIncrease: myTunoScaling.Consumables.PenaltyCritIncrease,
-                penaltyMinActionTime: myTunoScaling.Consumables.PenaltyMinActionTime);
+                shotBuffRuns: myTunoScaling.Consumables.ShotBuffRuns,
+                shotBuffMultiplierConsumable: myTunoScaling.Consumables.ShotBuffMultiplier,
+                cigarroBuffRuns: myTunoScaling.Consumables.CigarroBuffRuns,
+                cigarroDodgeChance: myTunoScaling.Consumables.CigarroDodgeChance,
+                canhaoBuffRuns: myTunoScaling.Consumables.CanhaoBuffRuns,
+                penaltyBuffRuns: myTunoScaling.Consumables.PenaltyBuffRuns,
+                penaltyLifestealPercent: myTunoScaling.Consumables.PenaltyLifestealPercent);
         }
 
         // ---------- DB: SQLite only ----------

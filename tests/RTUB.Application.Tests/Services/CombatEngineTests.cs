@@ -457,18 +457,18 @@ public class CombatEngineTests
     }
 
     /// <summary>
-    /// Verifies that TotalCriticalChance is capped at 0.5 (50%)
+    /// Verifies that TotalCriticalChance is capped at MaxCriticalChance (40%)
     /// </summary>
     [Fact]
-    public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToFiftyPercent()
+    public void TotalCriticalChance_WhenExceedsMax_ShouldBeClampedToMaxCap()
     {
         // Arrange
         var character = Character.Create("user1");
         character.CriticalChance = 0.50;
-        character.CriticalUpgrades = 200; // Way more than enough to exceed 50%
+        character.CriticalUpgrades = 200; // Way more than enough to exceed cap
 
-        // Act & Assert - Capped at 50%
-        character.TotalCriticalChance.Should().Be(0.5);
+        // Act & Assert - Capped at MaxCriticalChance (0.40)
+        character.TotalCriticalChance.Should().Be(MyTunoScaling.MaxCriticalChance);
     }
 
     /// <summary>
@@ -593,12 +593,12 @@ public class CombatEngineTests
     [Fact]
     public void Simulate_ShouldRollCritOncePerAttack()
     {
-        // Arrange - Use 50% crit to make it easy to verify single roll
+        // Arrange - Use max crit cap to make it easy to verify single roll
         var attacker = Character.Create("user1");
         attacker.HP = 500;
         attacker.Power = 100;
         attacker.Speed = 100;
-        attacker.CriticalChance = 0.50; // 50% crit
+        attacker.CriticalChance = MyTunoScaling.MaxCriticalChance; // max crit cap
 
         var defender = Character.Create("user2");
         defender.HP = 2000;
@@ -617,16 +617,17 @@ public class CombatEngineTests
             allDamages.AddRange(attackDamages);
         }
 
-        // Calculate crit rate - should be ~50%
+        // Calculate crit rate - should be ~MaxCriticalChance
         var critThreshold = (long)(attacker.Power * 1.3);
         var critCount = allDamages.Count(d => d > critThreshold);
         var totalAttacks = allDamages.Count;
         var observedCritRate = (double)critCount / totalAttacks;
+        var expectedRate = MyTunoScaling.MaxCriticalChance;
 
-        // Assert - If rolled multiple times, rate would be higher (e.g., 75% for 2 rolls)
+        // Assert - If rolled multiple times, rate would be higher
         totalAttacks.Should().BeGreaterThan(500, "need sufficient sample size");
-        observedCritRate.Should().BeGreaterThan(0.40, $"Crit rate too low: {observedCritRate:P1}");
-        observedCritRate.Should().BeLessThan(0.60, $"Crit rate too high (possible double-roll): {observedCritRate:P1}");
+        observedCritRate.Should().BeGreaterThan(expectedRate - 0.10, $"Crit rate too low: {observedCritRate:P1}");
+        observedCritRate.Should().BeLessThan(expectedRate + 0.10, $"Crit rate too high (possible double-roll): {observedCritRate:P1}");
     }
 
     #endregion
@@ -787,10 +788,10 @@ public class CombatEngineTests
     }
 
     [Theory]
-    [InlineData(0, 1.0)]    // No defense = no reduction
-    [InlineData(50, 0.5)]   // Defense equals K = 50% reduction
-    [InlineData(100, 0.333)] // Defense = 2K = ~33% multiplier
-    [InlineData(150, 0.25)]  // Defense = 3K = 25% multiplier
+    [InlineData(0, 1.0)]      // No defense = no reduction
+    [InlineData(500, 0.5)]    // Defense equals K = 50% reduction
+    [InlineData(1000, 0.333)] // Defense = 2K = ~33% multiplier
+    [InlineData(1500, 0.25)]  // Defense = 3K = 25% multiplier
     public void DefenseMitigation_DiminishingReturns_FollowsFormula(int defense, double expectedMultiplier)
     {
         // Arrange - Characters with controlled stats

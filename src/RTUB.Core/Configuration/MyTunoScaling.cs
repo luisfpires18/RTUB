@@ -67,7 +67,7 @@ public static class MyTunoScaling
     public static double CritMultiplier { get; private set; } = 2.0;
 
     /// <summary>Stat multiplier when a shot buff is active (1.20 = 20% boost).</summary>
-    public static double ShotBuffMultiplier { get; private set; } = 1.20;
+    public static double ShotBuffMultiplier { get; private set; } = 1.05;
 
     // ── Consumables ──
 
@@ -83,26 +83,23 @@ public static class MyTunoScaling
     /// <summary>Caneca cooldown in seconds after use.</summary>
     public static double CanecaCooldownSeconds { get; private set; } = 300;
 
-    /// <summary>Number of hits the Cigarro shield absorbs.</summary>
-    public static int CigarroShieldCharges { get; private set; } = 3;
+    /// <summary>Number of runs the Shot buff persists.</summary>
+    public static int ShotBuffRuns { get; private set; } = 5;
 
-    /// <summary>Number of hits with Canhão damage boost.</summary>
-    public static int CanhaoBoostCharges { get; private set; } = 3;
+    /// <summary>Number of runs the Cigarro dodge buff persists.</summary>
+    public static int CigarroBuffRuns { get; private set; } = 5;
 
-    /// <summary>Number of battles the Shot buff persists.</summary>
-    public static int ShotBuffBattles { get; private set; } = 5;
+    /// <summary>Dodge chance granted by Cigarro buff (0.10 = 10%).</summary>
+    public static double CigarroDodgeChance { get; private set; } = 0.10;
 
-    /// <summary>Power multiplier when Shot is used (1.20 = +20%).</summary>
-    public static double ShotPowerMultiplier { get; private set; } = 1.20;
+    /// <summary>Number of runs the Canhão AOE buff persists.</summary>
+    public static int CanhaoBuffRuns { get; private set; } = 5;
 
-    /// <summary>Seconds subtracted from action time by Penalty.</summary>
-    public static double PenaltySpeedReduction { get; private set; } = 0.5;
+    /// <summary>Number of runs the Penalty lifesteal buff persists.</summary>
+    public static int PenaltyBuffRuns { get; private set; } = 5;
 
-    /// <summary>Critical chance added by Penalty (0.5 = +50%).</summary>
-    public static double PenaltyCritIncrease { get; private set; } = 0.5;
-
-    /// <summary>Minimum action time floor after Penalty speed reduction.</summary>
-    public static double PenaltyMinActionTime { get; private set; } = 0.5;
+    /// <summary>HP lifesteal per hit from Penalty buff (0.005 = 0.5%).</summary>
+    public static double PenaltyLifestealPercent { get; private set; } = 0.005;
 
     // ── Improvements (game-wide improvements) ──
 
@@ -161,13 +158,13 @@ public static class MyTunoScaling
         double finoCooldownSeconds = 150,
         double canecaHealPercent = 0.50,
         double canecaCooldownSeconds = 300,
-        int cigarroShieldCharges = 3,
-        int canhaoBoostCharges = 3,
-        int shotBuffBattles = 5,
-        double shotPowerMultiplier = 1.20,
-        double penaltySpeedReduction = 0.5,
-        double penaltyCritIncrease = 0.5,
-        double penaltyMinActionTime = 0.5)
+        int shotBuffRuns = 5,
+        double shotBuffMultiplierConsumable = 1.05,
+        int cigarroBuffRuns = 5,
+        double cigarroDodgeChance = 0.10,
+        int canhaoBuffRuns = 5,
+        int penaltyBuffRuns = 5,
+        double penaltyLifestealPercent = 0.005)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -200,12 +197,12 @@ public static class MyTunoScaling
         FinoCooldownSeconds = finoCooldownSeconds;
         CanecaHealPercent = canecaHealPercent;
         CanecaCooldownSeconds = canecaCooldownSeconds;
-        CigarroShieldCharges = cigarroShieldCharges;
-        CanhaoBoostCharges = canhaoBoostCharges;
-        ShotBuffBattles = shotBuffBattles;
-        ShotPowerMultiplier = shotPowerMultiplier;
-        PenaltySpeedReduction = penaltySpeedReduction;
-        PenaltyCritIncrease = penaltyCritIncrease;
-        PenaltyMinActionTime = penaltyMinActionTime;
+        ShotBuffRuns = shotBuffRuns;
+        ShotBuffMultiplier = shotBuffMultiplierConsumable;
+        CigarroBuffRuns = cigarroBuffRuns;
+        CigarroDodgeChance = cigarroDodgeChance;
+        CanhaoBuffRuns = canhaoBuffRuns;
+        PenaltyBuffRuns = penaltyBuffRuns;
+        PenaltyLifestealPercent = penaltyLifestealPercent;
     }
 }

@@ -548,13 +548,13 @@ public class ConsumablesConfig
     public double FinoCooldownSeconds { get; set; } = 150;
     public double CanecaHealPercent { get; set; } = 0.50;
     public double CanecaCooldownSeconds { get; set; } = 300;
-    public int CigarroShieldCharges { get; set; } = 3;
-    public int CanhaoBoostCharges { get; set; } = 3;
-    public int ShotBuffBattles { get; set; } = 5;
-    public double ShotPowerMultiplier { get; set; } = 1.20;
-    public double PenaltySpeedReduction { get; set; } = 0.5;
-    public double PenaltyCritIncrease { get; set; } = 0.5;
-    public double PenaltyMinActionTime { get; set; } = 0.5;
+    public int ShotBuffRuns { get; set; } = 5;
+    public double ShotBuffMultiplier { get; set; } = 1.05;
+    public int CigarroBuffRuns { get; set; } = 5;
+    public double CigarroDodgeChance { get; set; } = 0.10;
+    public int CanhaoBuffRuns { get; set; } = 5;
+    public int PenaltyBuffRuns { get; set; } = 5;
+    public double PenaltyLifestealPercent { get; set; } = 0.005;
 }
 
 /// <summary>

@@ -171,12 +171,9 @@ public class BossModeService : IBossModeService
 
         // Check if shot buff is active
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
-        var hasPenaltyBuff = character.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff
             ? Character.CreateShotBuffedCopy(character)
             : character;
-        if (hasPenaltyBuff)
-            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Get boss sprite
         var bossSprite = await GetBossSpriteAsync(bossStage, cancellationToken);
@@ -283,6 +280,14 @@ public class BossModeService : IBossModeService
         if (expireShotBuff && character.ShotBuffBattlesRemaining > 0)
         {
             character.ExpireShotBuff();
+        }
+        if (character.CigarroShieldHitsRemaining > 0)
+        {
+            character.ExpireCigarroBuff();
+        }
+        if (character.CanhaoDamageBoostHitsRemaining > 0)
+        {
+            character.ExpireCanhaoBuff();
         }
         if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
         {
@@ -571,9 +576,6 @@ public class BossModeService : IBossModeService
                 else
                     character.CurrentHP = null;
 
-                // Write back consumable buff remaining counts from combat
-                character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
-                character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
 
                 // In boss mode, buffs are run-scoped (1 charge per entire run),
                 // NOT per-boss. Expiry happens when the run ends via

@@ -69,16 +69,6 @@ public class BattleResult
     public int ShotBuffBattlesRemaining { get; set; }
 
     /// <summary>
-    /// Remaining Cigarro shield hits after this battle
-    /// </summary>
-    public int AttackerCigarroShieldRemaining { get; set; }
-
-    /// <summary>
-    /// Remaining Canhão damage boost hits after this battle
-    /// </summary>
-    public int AttackerCanhaoBoostRemaining { get; set; }
-
-    /// <summary>
     /// Whether the penalty buff was active during this battle
     /// </summary>
     public bool PenaltyBuffUsed { get; set; }

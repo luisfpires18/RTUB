@@ -109,12 +109,9 @@ public class StageService : IStageService
         
         // Check if shot buff is active - in stage mode, buff lasts until death
         var hasShotBuff = character.ShotBuffBattlesRemaining > 0;
-        var hasPenaltyBuff = character.PenaltyBuffActive > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(character) 
             : character;
-        if (hasPenaltyBuff)
-            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
         
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
@@ -702,15 +699,20 @@ public class StageService : IStageService
         // null restoreHp means the player entered with full HP (CurrentHP was null)
         character.CurrentHP = restoreHp;
         
-        // Consume shot buff if it was active during this run
-        // ExpireShotBuff handles scaling CurrentHP proportionally when buff reaches 0
+        // Expire all active buffs (one run consumed per call)
         if (character.ShotBuffBattlesRemaining > 0)
         {
             character.ExpireShotBuff();
         }
-
-        // Consume penalty buff if it was active during this run and should expire (defeat)
-        if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
+        if (character.CigarroShieldHitsRemaining > 0)
+        {
+            character.ExpireCigarroBuff();
+        }
+        if (character.CanhaoDamageBoostHitsRemaining > 0)
+        {
+            character.ExpireCanhaoBuff();
+        }
+        if (character.PenaltyBuffActive > 0)
         {
             character.ExpirePenaltyBuff();
         }
@@ -789,9 +791,6 @@ public class StageService : IStageService
             character.CurrentHP = null; // Defeated — restore to full on next run
         }
 
-        // Write back consumable buff remaining counts from combat
-        character.CigarroShieldHitsRemaining = combatResult.AttackerCigarroShieldRemaining;
-        character.CanhaoDamageBoostHitsRemaining = combatResult.AttackerCanhaoBoostRemaining;
 
         if (combatResult.Outcome == BattleOutcome.AttackerWon)
         {

@@ -29,7 +29,7 @@
 
 <PageTitle>Survive Mode - My Tuno - RTUB</PageTitle>
 
-<div class="stage-page container-fluid">
+<div class="stage-page">
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex justify-content-between align-items-center gap-3">
             <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
@@ -63,25 +63,25 @@
         @* ─── Active Game ─── *@
         @if (showGame)
         {
-                <div class="card mb-4 battle-card">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
+            <div class="battle-screen">
+                <div id="surviveGameContainer" class="battle-canvas"></div>
+                <div class="battle-top-bar">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 text-white">
                             <i class="bi bi-bullseye text-danger me-2"></i>
                             Level @currentLevel — @currentBiomeName
                         </h5>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
-                                <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
-                                <i class="bi bi-stop-fill me-1"></i>Acabar
-                            </button>
-                        </div>
                     </div>
-                    <div class="card-body p-0 d-flex justify-content-center">
-                        <div id="surviveGameContainer" style="width: 100%; max-width: 800px; aspect-ratio: 8/5;"></div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Toggle sound">
+                            <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" @onclick="EndRunEarly" title="End Run">
+                            <i class="bi bi-stop-fill me-1"></i>Acabar
+                        </button>
                     </div>
                 </div>
+            </div>
 
             @* ─── Active Buff Indicators ─── *@
             @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
@@ -90,59 +90,33 @@
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-shield-fill me-1"></i>@character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                            <i class="bi bi-wind me-1"></i>@character.CigarroShieldHitsRemaining corridas com esquiva
                         </span>
                     }
                     @if (character.CanhaoDamageBoostHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE
                         </span>
                     }
                     @if (character.PenaltyBuffActive > 0)
                     {
                         <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty (0.5s + 100% Crit)
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas
                         </span>
                     }
                 </div>
             }
 
-            @* ─── Run Rewards Accumulator ─── *@
+            @* ─── Run Stats (no rewards in survive mode) ─── *@
             @if (levelsCompleted > 0)
             {
                 <div class="card mb-3">
                     <div class="card-header bg-dark text-white">
-                        <i class="bi bi-gift me-2"></i>Recompensas Acumuladas (Nível @levelsCompleted completados)
+                        <i class="bi bi-graph-up me-2"></i>Progresso (Nível @levelsCompleted completados)
                     </div>
                     <div class="card-body">
                         <div class="d-flex gap-3 flex-wrap">
-                            <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i>@Fmt(totalXPEarned) XP</span>
-                            <span class="badge bg-warning text-dark"><i class="bi bi-coin me-1"></i>@Fmt(totalFidelisEarned) Fidelis</span>
-                            @if (totalFinosDropped > 0)
-                            {
-                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalFinosDropped Fino</span>
-                            }
-                            @if (totalCanecasDropped > 0)
-                            {
-                                <span class="badge bg-info"><i class="bi bi-cup-straw me-1"></i>@totalCanecasDropped Caneca</span>
-                            }
-                            @if (totalCigarrosDropped > 0)
-                            {
-                                <span class="badge bg-secondary"><i class="bi bi-cloud me-1"></i>@totalCigarrosDropped Cigarro</span>
-                            }
-                            @if (totalCanhaosDropped > 0)
-                            {
-                                <span class="badge bg-danger"><i class="bi bi-bullseye me-1"></i>@totalCanhaosDropped Canhão</span>
-                            }
-                            @if (totalShotsDropped > 0)
-                            {
-                                <span class="badge bg-danger"><i class="bi bi-lightning me-1"></i>@totalShotsDropped Shots</span>
-                            }
-                            @if (totalPenaltiesDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark"><i class="bi bi-lightning-charge-fill me-1"></i>@totalPenaltiesDropped Penalty</span>
-                            }
                             @if (totalEnemiesKilled > 0)
                             {
                                 <span class="badge bg-secondary"><i class="bi bi-crosshair me-1"></i>@totalEnemiesKilled Inimigos</span>
@@ -184,66 +158,7 @@
                             {
                                 <div class="defeat-reward-row">
                                     <i class="bi bi-coin text-warning"></i>
-                                    <span>🪙 @Fmt(totalCoinsCollected) Moedas (+@((int)(totalCoinsCollected * 0.5))% bônus)</span>
-                                </div>
-                            }
-                            <div class="defeat-reward-row">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <span>+@Fmt(totalXPEarned) XP</span>
-                            </div>
-                            <div class="defeat-reward-row">
-                                <i class="bi bi-coin" style="color: #7c4dff;"></i>
-                                <span>+@Fmt(totalFidelisEarned) Fidelis</span>
-                            </div>
-                            @if (totalFinosDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-cup-straw text-warning"></i>
-                                    <span>+@Fmt(totalFinosDropped) Fino</span>
-                                </div>
-                            }
-                            @if (totalCanecasDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-cup-straw text-warning"></i>
-                                    <span>+@Fmt(totalCanecasDropped) Caneca</span>
-                                </div>
-                            }
-                            @if (totalCigarrosDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-cloud text-secondary"></i>
-                                    <span>+@Fmt(totalCigarrosDropped) Cigarro</span>
-                                </div>
-                            }
-                            @if (totalCanhaosDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-bullseye text-danger"></i>
-                                    <span>+@Fmt(totalCanhaosDropped) Canhão</span>
-                                </div>
-                            }
-                            @if (totalShotsDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-cup text-danger"></i>
-                                    <span>+@totalShotsDropped Shot</span>
-                                </div>
-                            }
-                            @if (totalPenaltiesDropped > 0)
-                            {
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
-                                    <span>+@totalPenaltiesDropped Penalty</span>
-                                </div>
-                            }
-                            @foreach (var (partType, qty) in totalInstrumentPartsDropped)
-                            {
-                                var instrumentType = InstrumentTypeHelper.FromInventoryPartType(partType);
-                                var instrumentName = instrumentType.HasValue ? InstrumentTypeHelper.GetDisplayName(instrumentType.Value) : partType.ToString();
-                                <div class="defeat-reward-row">
-                                    <i class="bi bi-music-note" style="color: #a855f7;"></i>
-                                    <span>+@qty @instrumentName</span>
+                                    <span>🪙 @Fmt(totalCoinsCollected) Moedas</span>
                                 </div>
                             }
                         </div>
@@ -281,20 +196,10 @@
     private int currentLevel = 1;
     private string currentBiomeName = "Forest";
 
-    // Run totals
+    // Run totals (stats only — no rewards in survive mode)
     private int levelsCompleted = 0;
-    private int totalXPEarned = 0;
-    private decimal totalFidelisEarned = 0;
-    private int totalFinosDropped = 0;
-    private int totalCanecasDropped = 0;
-    private int totalCigarrosDropped = 0;
-    private int totalCanhaosDropped = 0;
-    private int totalShotsDropped = 0;
-    private int totalPenaltiesDropped = 0;
     private int totalEnemiesKilled = 0;
     private int totalCoinsCollected = 0;
-    private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
-    private Dictionary<InventoryItemType, int> totalEquipmentDropped = new();
     private SurviveModeLevelResult? lastResult;
 
     // Defeat summary
@@ -471,12 +376,6 @@
         {
             var result = await SurviveModeService.CompleteLevelAsync(character.Id, enemiesKilled, survivalTime);
 
-            // Coin bonus: every 10 coins = +5% XP/Fidelis
-            var coinBonus = 1.0 + coinsCollected * 0.005;
-            result.XPReward = (int)(result.XPReward * coinBonus);
-            result.FidelisReward = Math.Round(result.FidelisReward * (decimal)coinBonus, 2);
-
-            AccumulateRewards(result);
             lastResult = result;
             levelsCompleted++;
             totalEnemiesKilled += enemiesKilled;
@@ -520,25 +419,10 @@
         {
             var result = await SurviveModeService.EndRunAsync(character.Id, enemiesKilled, survivalTime);
 
-            // Coin bonus: every 10 coins = +5% XP/Fidelis
-            var coinBonus = 1.0 + coinsCollected * 0.005;
-            result.XPReward = (int)(result.XPReward * coinBonus);
-            result.FidelisReward = Math.Round(result.FidelisReward * (decimal)coinBonus, 2);
-
-            AccumulateRewards(result);
             lastResult = result;
             totalEnemiesKilled += enemiesKilled;
             totalCoinsCollected += coinsCollected;
             defeatedAtLevel = currentLevel;
-
-            // Apply accumulated rewards
-            if (totalXPEarned > 0 || totalFidelisEarned > 0)
-            {
-                await SurviveModeService.ApplyRunRewardsAsync(
-                    character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                    totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
-            }
 
             // Destroy JS game
             try { await JSRuntime.InvokeVoidAsync("surviveModeGame.destroy"); }
@@ -578,22 +462,6 @@
             catch { }
 
             defeatedAtLevel = currentLevel;
-
-            // Apply accumulated rewards
-            if (character != null && (totalXPEarned > 0 || totalFidelisEarned > 0))
-            {
-                try
-                {
-                    await SurviveModeService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error applying rewards on early end");
-                }
-            }
 
             // Cancel the run
             if (character != null)
@@ -642,42 +510,11 @@
     }
 
     // ─── Helpers ──────────────────────────────────────────────────
-    private void AccumulateRewards(SurviveModeLevelResult result)
-    {
-        totalXPEarned += result.XPReward;
-        totalFidelisEarned += result.FidelisReward;
-        totalFinosDropped += result.FinosDropped;
-        totalCanecasDropped += result.CanecasDropped;
-        totalCigarrosDropped += result.CigarrosDropped;
-        totalCanhaosDropped += result.CanhaosDropped;
-        totalShotsDropped += result.ShotsDropped;
-        totalPenaltiesDropped += result.PenaltiesDropped;
-
-        foreach (var part in result.InstrumentPartsDropped)
-        {
-            if (totalInstrumentPartsDropped.ContainsKey(part))
-                totalInstrumentPartsDropped[part]++;
-            else
-                totalInstrumentPartsDropped[part] = 1;
-        }
-
-    }
-
     private void ResetRunTotals()
     {
         levelsCompleted = 0;
-        totalXPEarned = 0;
-        totalFidelisEarned = 0;
-        totalFinosDropped = 0;
-        totalCanecasDropped = 0;
-        totalCigarrosDropped = 0;
-        totalCanhaosDropped = 0;
-        totalShotsDropped = 0;
-        totalPenaltiesDropped = 0;
         totalEnemiesKilled = 0;
         totalCoinsCollected = 0;
-        totalInstrumentPartsDropped.Clear();
-        totalEquipmentDropped.Clear();
         lastResult = null;
     }
 
@@ -689,18 +526,11 @@
     {
         _disposed = true;
 
-        // Cancel active run and apply accumulated rewards
+        // Cancel active run
         if (runInProgress && character != null)
         {
             try
             {
-                if (totalXPEarned > 0 || totalFidelisEarned > 0)
-                {
-                    await SurviveModeService.ApplyRunRewardsAsync(
-                        character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                        totalEquipmentDropped.Count > 0 ? totalEquipmentDropped : null);
-                }
                 await SurviveModeService.CancelRunAsync(character.Id);
             }
             catch (Exception ex)

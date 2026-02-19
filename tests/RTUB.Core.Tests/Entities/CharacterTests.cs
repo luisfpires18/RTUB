@@ -1,4 +1,5 @@
 using FluentAssertions;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 
 namespace RTUB.Core.Tests.Entities;
@@ -21,9 +22,9 @@ public class CharacterTests
         character.UserId.Should().Be(userId);
         character.Level.Should().Be(1);
         character.XP.Should().Be(0);
-        character.HP.Should().Be(100);
-        character.Power.Should().Be(10);
-        character.Speed.Should().Be(10);
+        character.HP.Should().Be(MyTunoScaling.BaseHp);
+        character.Power.Should().Be(MyTunoScaling.BasePower);
+        character.Speed.Should().Be(MyTunoScaling.BaseSpeed);
         character.HpUpgrades.Should().Be(0);
         character.PowerUpgrades.Should().Be(0);
         character.SpeedUpgrades.Should().Be(0);
@@ -54,7 +55,7 @@ public class CharacterTests
         var character = Character.Create("user-123");
 
         // Act & Assert
-        character.TotalHP.Should().Be(100);
+        character.TotalHP.Should().Be(MyTunoScaling.BaseHp); // 200 with no upgrades at level 1
     }
 
     [Fact]
@@ -65,8 +66,8 @@ public class CharacterTests
         character.HpUpgrades = 5;
 
         // Act & Assert
-        // Multiplicative: (int)(100 * 1.0 * (1 + 5 * 0.02)) = 110
-        character.TotalHP.Should().Be(110);
+        // Flat bonus: (200 + 100*5) * 1.0 = 700
+        character.TotalHP.Should().Be(700);
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public class CharacterTests
         var character = Character.Create("user-123");
 
         // Act & Assert
-        character.TotalPower.Should().Be(10);
+        character.TotalPower.Should().Be(MyTunoScaling.BasePower); // 25 with no upgrades
     }
 
     [Fact]
@@ -87,8 +88,8 @@ public class CharacterTests
         character.PowerUpgrades = 3;
 
         // Act & Assert
-        // Multiplicative: Round(10 * 1.0 * 1.04^3) = Round(11.249) = 11
-        character.TotalPower.Should().Be(11);
+        // Flat bonus: (25 + 15*3) * 1.0 = 70
+        character.TotalPower.Should().Be(70);
     }
 
     [Fact]
@@ -98,7 +99,7 @@ public class CharacterTests
         var character = Character.Create("user-123");
 
         // Act & Assert
-        character.TotalSpeed.Should().Be(10);
+        character.TotalSpeed.Should().Be(MyTunoScaling.BaseSpeed); // 10 with no upgrades
     }
 
     [Fact]
@@ -109,7 +110,8 @@ public class CharacterTests
         character.SpeedUpgrades = 4;
 
         // Act & Assert
-        character.TotalSpeed.Should().Be(10 + (4 * 1)); // 10 + 4 = 14
+        // Speed = Round(10 * 1.0) + Round(4 * 1.5) = 10 + 6 = 16
+        character.TotalSpeed.Should().Be(16);
     }
 
     #endregion
@@ -217,7 +219,8 @@ public class CharacterTests
 
         // Assert
         character.HpUpgrades.Should().Be(1);
-        character.TotalHP.Should().Be(102); // (int)(100 * 1.0 * (1 + 1 * 0.02)) = 102
+        // (200 + 100*1) * 1.0 = 300
+        character.TotalHP.Should().Be(300);
     }
 
     [Fact]
@@ -231,7 +234,8 @@ public class CharacterTests
 
         // Assert
         character.PowerUpgrades.Should().Be(1);
-        character.TotalPower.Should().Be(10); // (int)(10 * 1.0 * (1 + 1 * 0.02)) = (int)(10.2) = 10
+        // (25 + 15*1) * 1.0 = 40
+        character.TotalPower.Should().Be(40);
     }
 
     [Fact]
@@ -245,7 +249,8 @@ public class CharacterTests
 
         // Assert
         character.SpeedUpgrades.Should().Be(1);
-        character.TotalSpeed.Should().Be(11); // 10 + (1 * 1)
+        // Round(10 * 1.0) + Round(1 * 1.5) = 10 + 2 = 12
+        character.TotalSpeed.Should().Be(12);
     }
 
     [Fact]
@@ -266,9 +271,12 @@ public class CharacterTests
         character.HpUpgrades.Should().Be(2);
         character.PowerUpgrades.Should().Be(1);
         character.SpeedUpgrades.Should().Be(3);
-        character.TotalHP.Should().Be(104); // (int)(100 * 1.0 * (1 + 2 * 0.02)) = 104
-        character.TotalPower.Should().Be(10); // (int)(10 * 1.0 * (1 + 1 * 0.02)) = 10
-        character.TotalSpeed.Should().Be(13); // 10 + (3 * 1) (additive for speed)
+        // (200 + 100*2) * 1.0 = 400
+        character.TotalHP.Should().Be(400);
+        // (25 + 15*1) * 1.0 = 40
+        character.TotalPower.Should().Be(40);
+        // Round(10 * 1.0) + Round(3 * 1.5) = 10 + Round(4.5) = 10 + 4 = 14
+        character.TotalSpeed.Should().Be(14);
     }
 
     #endregion
@@ -384,8 +392,8 @@ public class CharacterTests
         character.CriticalChance = 0.50; // 50% base
         character.CriticalUpgrades = 200; // Would add 200%
 
-        // Act & Assert - Should be capped at 0.5 (50%)
-        character.TotalCriticalChance.Should().Be(0.5);
+        // Act & Assert - Should be capped at MaxCriticalChance (0.40)
+        character.TotalCriticalChance.Should().Be(MyTunoScaling.MaxCriticalChance);
     }
 
     [Fact]

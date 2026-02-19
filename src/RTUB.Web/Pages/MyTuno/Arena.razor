@@ -32,7 +32,7 @@
 
 <PageTitle>Arena - My Tuno - RTUB</PageTitle>
 
-<div class="arena-page container-fluid">
+<div class="arena-page">
     <div class="d-flex flex-column gap-3 mb-4">
         <div class="d-flex justify-content-between align-items-center gap-3">
             <!-- Left: Back button -->
@@ -68,34 +68,25 @@
         <!-- Live Battle Animation -->
         @if (showBattleAnimation && currentBattle != null)
         {
-            <div class="card mb-4">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-sword me-2"></i>Batalha em Curso</h5>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Battle speed controls">
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 1.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(1.0)">
-                            1x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 2.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(2.0)">
-                            2x
-                        </button>
-                        <button type="button" class="btn btn-outline-light @(battleSpeed == 3.0 ? "active" : "")" 
-                                @onclick="() => SetBattleSpeed(3.0)">
-                            3x
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" @onclick="ToggleAudio" title="Alternar som">
+            <div class="arena-battle-fullscreen">
+            <div class="arena-battle-screen">
+                <div id="phaserBattleContainer" class="arena-battle-canvas"></div>
+                <div class="battle-top-bar">
+                    <button class="battle-back-btn" @onclick="GoBack"><i class="bi bi-chevron-left"></i></button>
+                    <div class="battle-floor-indicator">
+                        <span class="floor-label">ARENA</span>
+                    </div>
+                    <div class="battle-controls">
+                        <button class="battle-ctrl-btn @(battleSpeed == 1.0 ? "active" : "")" @onclick="() => SetBattleSpeed(1.0)">1x</button>
+                        <button class="battle-ctrl-btn @(battleSpeed == 5.0 ? "active" : "")" @onclick="() => SetBattleSpeed(5.0)">5x</button>
+                        <button class="battle-ctrl-btn battle-ctrl-btn--audio" @onclick="ToggleAudio" title="Som">
                             <i class="bi @(audioEnabled ? "bi-volume-up" : "bi-volume-mute")"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0 d-flex justify-content-center">
-                    <div id="phaserBattleContainer"></div>
-                </div>
+            </div>
             </div>
         }
-
-        <!-- Battle Result Summary (game-style panel) -->
         @if (showResultSummary && currentBattle != null)
         {
             <div class="result-overlay">
@@ -126,9 +117,9 @@
                     @if (character?.CigarroShieldHitsRemaining > 0)
                     {
                         <div class="result-buff-row">
-                            <i class="bi bi-shield-fill text-info"></i>
+                            <i class="bi bi-wind text-info"></i>
                             <span>
-                                @character.CigarroShieldHitsRemaining/3 ataques por bloquear
+                                @character.CigarroShieldHitsRemaining corridas com esquiva
                             </span>
                         </div>
                     }
@@ -137,7 +128,7 @@
                         <div class="result-buff-row">
                             <i class="bi bi-bullseye text-info"></i>
                             <span>
-                                @character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano
+                                @character.CanhaoDamageBoostHitsRemaining corridas com AOE
                             </span>
                         </div>
                     }
@@ -146,7 +137,7 @@
                         <div class="result-buff-row">
                             <i class="bi bi-lightning-charge-fill text-warning"></i>
                             <span>
-                                Penalty (0.5s + 100% Crit)
+                                Penalty — Lifesteal 0.5% HP por hit
                             </span>
                         </div>
                     }
@@ -464,8 +455,6 @@
             Character sessionChar = character;
             if (character.ShotBuffBattlesRemaining > 0)
                 sessionChar = Character.CreateShotBuffedCopy(character);
-            if (character.PenaltyBuffActive > 0)
-                sessionChar = Character.CreatePenaltyBuffedCopy(sessionChar);
             _combatSession = CombatActionService.CreateSession(
                 sessionChar,
                 new List<Character> { opponentSnapshot },
@@ -651,8 +640,6 @@
             // Sync interactive session state back to BattleResult so FinalizeAndApplyRewardsAsync
             // persists the correct buff remaining counts and HP (not the pre-computed ones).
             currentBattle.AttackerFinalHP = _combatSession.Player.CurrentHP;
-            currentBattle.AttackerCigarroShieldRemaining = _combatSession.CigarroShieldRemaining;
-            currentBattle.AttackerCanhaoBoostRemaining = _combatSession.CanhaoBoostRemaining;
         }
         _combatSession = null;
         

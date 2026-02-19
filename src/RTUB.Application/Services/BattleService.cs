@@ -90,11 +90,11 @@ public class BattleService : IBattleService
         // Check if shot buff is active and create buffed copy for combat
         var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
         var hasPenaltyBuff = playerCharacter.PenaltyBuffActive > 0;
+        var hasCigarroBuff = playerCharacter.CigarroShieldHitsRemaining > 0;
+        var hasCanhaoBuff = playerCharacter.CanhaoDamageBoostHitsRemaining > 0;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(playerCharacter) 
             : playerCharacter;
-        if (hasPenaltyBuff)
-            combatCharacter = Character.CreatePenaltyBuffedCopy(combatCharacter);
 
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
@@ -131,8 +131,6 @@ public class BattleService : IBattleService
             ShotBuffUsed = hasShotBuff,
             ShotBuffExpired = shotBuffExpired,
             ShotBuffBattlesRemaining = shotBuffRemaining,
-            AttackerCigarroShieldRemaining = combatResult.AttackerCigarroShieldRemaining,
-            AttackerCanhaoBoostRemaining = combatResult.AttackerCanhaoBoostRemaining,
             PenaltyBuffUsed = hasPenaltyBuff,
             PenaltyBuffExpired = penaltyBuffExpired
         };
@@ -202,9 +200,9 @@ public class BattleService : IBattleService
         // AttackerFinalHP is in buffed scale if buff was active; ExpireShotBuff will scale it down
         playerCharacter.CurrentHP = result.AttackerFinalHP > 0 ? result.AttackerFinalHP : 0;
 
-        // Write back consumable buff remaining counts from combat
-        playerCharacter.CigarroShieldHitsRemaining = result.AttackerCigarroShieldRemaining;
-        playerCharacter.CanhaoDamageBoostHitsRemaining = result.AttackerCanhaoBoostRemaining;
+        // Expire run-based buffs after arena battle
+        playerCharacter.ExpireCigarroBuff();
+        playerCharacter.ExpireCanhaoBuff();
 
         // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
         if (result.ShotBuffUsed)

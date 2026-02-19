@@ -48,6 +48,9 @@
                 <button class="btn btn-outline-primary" @onclick="OpenInfoModal">
                     <i class="bi bi-info-circle me-2"></i>Sobre My Tuno
                 </button>
+                <button class="btn btn-outline-primary" @onclick="OpenLeaderboardModal">
+                    <i class="bi bi-trophy-fill me-2"></i>Classificação
+                </button>
                 <AuthorizeView Roles="Owner">
                     <Authorized>
                         <a href="/owner/stage-enemies" class="btn btn-outline-warning">
@@ -164,18 +167,18 @@
 
                             @if (inventoryTab == 0)
                             {
-                                <!-- Consumables: Fino, Caneca, Cigarro, Canhão, Shot -->
+                                <!-- Consumables: ordered by unlock stage -->
                                 <div class="item-grid">
                                     @{
                                         var consumableHighestStage = stageProgress?.HighestStage ?? 1;
                                         var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
                                         {
                                             ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, character == null || isFullHp),
-                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+20% Stats", "shot", 101, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
-                                            ("Cigarro", "bi-cloud", "bi-cloud", "Escudo 3 hits", "shot", 301, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
-                                            ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 501, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
-                                            ("Canhão", "bi-bullseye", "bi-bullseye", "+30% Dano 3 hits", "shot", 701, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "-0.5s +50% Crit", "penalty", 901, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                            ("Cigarro", "bi-cloud", "bi-cloud", "+10% Esquiva x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
+                                            ("Canhão", "bi-bullseye", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || isCharacterDead || character?.PenaltyBuffActive > 0),
+                                            ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 11001, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, character == null || isFullHp),
                                         };
                                     }
 
@@ -599,10 +602,10 @@
                                 {
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
-                                            <i class="bi bi-shield-fill text-info me-2"></i>
-                                            <span>Cigarro (Escudo)</span>
+                                            <i class="bi bi-wind text-info me-2"></i>
+                                            <span>Cigarro (Esquiva)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining/3 ataques por bloquear</span>
+                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining corridas com esquiva</span>
                                     </div>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
@@ -610,9 +613,9 @@
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-bullseye text-info me-2"></i>
-                                            <span>Canhão (+30% Dano)</span>
+                                            <span>Canhão (AOE)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining/3 ataques com +30% dano</span>
+                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
                                     </div>
                                 }
                                 @if (character.PenaltyBuffActive > 0)
@@ -620,7 +623,7 @@
                                     <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
-                                            <span>Penalty (0.5s + 100% Crit)</span>
+                                            <span>Penalty — Lifesteal 0.5% HP por hit</span>
                                         </span>
                                         <span class="badge bg-warning text-dark">Ativo</span>
                                     </div>
@@ -649,24 +652,13 @@
                             <button class="btn btn-warning btn-lg flex-fill" @onclick="OpenBossModeModal" disabled="@(currentHP <= 0)">
                                 <i class="bi bi-lightning-fill me-2"></i>Boss Mode
                             </button>
-                            <button class="btn btn-danger btn-lg flex-fill" @onclick="OpenSurviveModeModal" disabled="@(currentHP <= 0)">
+                            <button class="btn btn-danger btn-lg flex-fill" disabled title="Soon...">
                                 <i class="bi bi-bullseye me-2"></i>Survive
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Leaderboard Button -->
-            <div class="col-lg-4 order-1 d-flex align-items-stretch">
-                <button class="btn btn-outline-light w-100 h-100 d-flex flex-column align-items-center justify-content-center gap-2" 
-                        style="min-height: 80px; border-color: #6f42c1; color: #6f42c1;"
-                        @onclick="OpenLeaderboardModal">
-                    <i class="bi bi-trophy-fill" style="font-size: 2rem;"></i>
-                    <span class="fw-bold">Classificação</span>
-                </button>
-            </div>
-        </div>
 
         @* Leaderboard Modal *@
         @if (showLeaderboardModal)
@@ -684,35 +676,6 @@
                 </FooterContent>
             </Modal>
         }
-
-        <!-- Bottom Row: Equipment + Destilaria + Forja + Upgrades + Powers + Improvements -->
-        <div class="row g-4 mt-2">
-            <!-- Upgrade Shop -->
-            <div class="col-lg-4 order-4">
-                <MyTunoUpgradeShop Character="@character"
-                                   FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                                   Purchasing="@purchasing"
-                                   PurchasingStat="@purchasingStat"
-                                   OnPurchaseRequested="PurchaseUpgrade" />
-            </div>
-
-            <!-- Improvements Section -->
-            <div class="col-lg-4 order-5">
-                <MyTunoImprovements Character="@character"
-                                  FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                                  Purchasing="@purchasingImprovement"
-                                  PurchasingType="@purchasingImprovementType"
-                                  OnPurchaseRequested="PurchaseImprovement" />
-            </div>
-
-            <!-- Powers Section -->
-            <div class="col-lg-4 order-last">
-                <MyTunoPowers Character="@character"
-                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
-                               Purchasing="@purchasingPower"
-                               PurchasingType="@purchasingPowerType"
-                               OnPurchaseRequested="PurchasePower" />
-            </div>
 
             <!-- Equipment Section -->
             <div class="col-lg-4 order-1">
@@ -941,7 +904,7 @@
             </div>
 
             <!-- Destilaria (Resource Gathering) -->
-            <div class="col-lg-4 order-2">
+            <div class="col-lg-4 order-4">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-moisture me-2"></i>Destilaria</h5>
@@ -1050,7 +1013,7 @@
             </div>
 
             <!-- Forging Section -->
-            <div class="col-lg-4 order-3">
+            <div class="col-lg-4 order-5">
                 <div class="card h-100">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
@@ -1209,6 +1172,63 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Upgrades (merged: Stats + Melhorias + Poderes) -->
+            <div class="col-lg-4 order-6">
+                <div class="card h-100">
+                    <div class="card-header text-white" style="background-color: #6f42c1;">
+                        <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Upgrades</h5>
+                    </div>
+                    <div class="card-body p-3 d-flex flex-column">
+                        <!-- Purple toggle tabs -->
+                        <div class="d-flex gap-1 mb-3">
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 0 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 0 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 0">
+                                <i class="bi bi-bar-chart-fill me-1"></i>Stats
+                            </button>
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 1 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 1 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 1">
+                                <i class="bi bi-lightning-fill me-1"></i>Melhorias
+                            </button>
+                            <button class="btn btn-sm flex-fill @(upgradesTab == 2 ? "" : "btn-outline-secondary")"
+                                    style="@(upgradesTab == 2 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => upgradesTab = 2">
+                                <i class="bi bi-stars me-1"></i>Poderes
+                            </button>
+                        </div>
+
+                        <div class="upgrades-embedded">
+                        @if (upgradesTab == 0)
+                        {
+                            <MyTunoUpgradeShop Character="@character"
+                                               FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                               Purchasing="@purchasing"
+                                               PurchasingStat="@purchasingStat"
+                                               OnPurchaseRequested="PurchaseUpgrade" />
+                        }
+                        else if (upgradesTab == 1)
+                        {
+                            <MyTunoImprovements Character="@character"
+                                              FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                              Purchasing="@purchasingImprovement"
+                                              PurchasingType="@purchasingImprovementType"
+                                              OnPurchaseRequested="PurchaseImprovement" />
+                        }
+                        else
+                        {
+                            <MyTunoPowers Character="@character"
+                                           FidelisBalance="@(currentUser?.FidelisBalance ?? 0)"
+                                           Purchasing="@purchasingPower"
+                                           PurchasingType="@purchasingPowerType"
+                                           OnPurchaseRequested="PurchasePower" />
+                        }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     }
 
@@ -1988,6 +2008,7 @@
     private Dictionary<string, string> forgeComboPictures = new();
     private bool equipping = false;
     private int inventoryTab = 0;
+    private int upgradesTab = 0;
     private int equipablePage = 1;
     private const int EquipablePageSize = 16;
     
@@ -2752,7 +2773,7 @@
             {
                 cigarroQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Cigarro ativado! Os próximos 3 hits não causam dano.";
+                toastMessage = "Cigarro ativado! +10% chance de esquiva por 5 corridas.";
                 toastIsError = false;
             }
             else
@@ -2794,7 +2815,7 @@
             {
                 canhaoQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Canhão ativado! Os próximos 3 ataques causam +30% dano.";
+                toastMessage = "Canhão ativado! Ataques AOE por 5 corridas.";
                 toastIsError = false;
             }
             else
@@ -2836,7 +2857,7 @@
             {
                 penaltyQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Penalty ativado! -0.5s ataque + 50% crit até morrer.";
+                toastMessage = "Penalty ativado! Lifesteal 0.5% HP por hit durante 5 corridas.";
                 toastIsError = false;
             }
             else

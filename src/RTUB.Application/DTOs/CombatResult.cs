@@ -29,15 +29,6 @@ public class CombatResult
     /// </summary>
     public long DefenderFinalHP { get; set; }
 
-    /// <summary>
-    /// Remaining Cigarro shield hits for the attacker after the battle
-    /// </summary>
-    public int AttackerCigarroShieldRemaining { get; set; }
-
-    /// <summary>
-    /// Remaining Canhão damage boost hits for the attacker after the battle
-    /// </summary>
-    public int AttackerCanhaoBoostRemaining { get; set; }
 }
 
 /// <summary>
@@ -85,6 +76,11 @@ public class CombatEvent
     /// Whether this attack was boosted by a Canhão damage buff (+30%)
     /// </summary>
     public bool? IsBoosted { get; set; }
+
+    /// <summary>
+    /// Whether this attack was an AOE hit (Canhão buff)
+    /// </summary>
+    public bool? IsAoe { get; set; }
 
     /// <summary>
     /// Character identifier (for HPUpdate, KO events)

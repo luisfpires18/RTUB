@@ -29,10 +29,10 @@ public class InventoryService : IInventoryService
     private const double FinoHealPercentage = 0.25;
     // Caneca heals 50% of total HP
     private const double CanecaHealPercentage = 0.50;
-    // Cigarro shields next 3 incoming hits
-    private const int CigarroShieldHits = 3;
-    // Canhão boosts next 3 outgoing hits by 30%
-    private const int CanhaoDamageBoostHits = 3;
+    // Cigarro grants +10% dodge for N runs
+    private const int CigarroBuffRuns = 5;
+    // Canhão grants AOE attacks for N runs
+    private const int CanhaoBuffRuns = 5;
 
     public InventoryService(
         IInventoryRepository inventoryRepository,
@@ -130,7 +130,7 @@ public class InventoryService : IInventoryService
 
         if (character.CigarroShieldHitsRemaining > 0)
         {
-            return (false, "Já tens um escudo de cigarro ativo");
+            return (false, "Já tens um cigarro ativo");
         }
 
         // 2. Atomically consume item (prevents TOCTOU race)
@@ -141,10 +141,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.CigarroShieldHitsRemaining = CigarroShieldHits;
+        character.CigarroShieldHitsRemaining = CigarroBuffRuns;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Cigarro ativado! Próximos {CigarroShieldHits} hits não causam dano");
+        return (true, $"Cigarro ativado! +10% dodge por {CigarroBuffRuns} runs");
     }
 
     /// <summary>
@@ -168,7 +168,7 @@ public class InventoryService : IInventoryService
 
         if (character.CanhaoDamageBoostHitsRemaining > 0)
         {
-            return (false, "Já tens um boost de canhão ativo");
+            return (false, "Já tens um canhão ativo");
         }
 
         // 2. Atomically consume item (prevents TOCTOU race)
@@ -179,10 +179,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.CanhaoDamageBoostHitsRemaining = CanhaoDamageBoostHits;
+        character.CanhaoDamageBoostHitsRemaining = CanhaoBuffRuns;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Canhão ativado! Próximos {CanhaoDamageBoostHits} ataques causam +30% dano");
+        return (true, $"Canhão ativado! AOE por {CanhaoBuffRuns} runs");
     }
 
     /// <summary>
@@ -217,10 +217,10 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.PenaltyBuffActive = 1;
+        character.PenaltyBuffActive = 5;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, "Penalty ativado! -0.5s ataque + 50% crit até morrer");
+        return (true, "Penalty ativado! 0.5% lifesteal por 5 runs");
     }
 
     /// <summary>
@@ -279,7 +279,7 @@ public class InventoryService : IInventoryService
 
     // Shot empowers the next 5 arena battles or stage runs
     private const int ShotBuffBattles = 5;
-    private const double ShotBuffMultiplier = 1.20; // 20% boost
+    private const double ShotBuffMultiplier = 1.05; // 5% boost
 
     /// <summary>
     /// Uses a shot to empower the character's next 5 arena battles
@@ -330,7 +330,7 @@ public class InventoryService : IInventoryService
         
         await _characterRepository.UpdateAsync(character);
 
-        return (true, ShotBuffBattles, "Shot ativado! +20% stats na próxima batalha");
+        return (true, ShotBuffBattles, "Shot ativado! +5% stats por 5 runs");
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using RTUB.Application.DTOs;
 using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Utilities;
@@ -33,9 +34,9 @@ public class DeterministicCombatEngine : ICombatEngine
         var attackerHP = attacker.CurrentHP ?? attacker.TotalHP;
         var defenderHP = defender.CurrentHP ?? defender.TotalHP;
 
-        // Initialize consumable buff counters for attacker
-        var attackerShieldHits = attacker.CigarroShieldHitsRemaining;
-        var attackerDamageBoostHits = attacker.CanhaoDamageBoostHitsRemaining;
+        // Initialize consumable buff flags
+        var hasCigarroDodge = attacker.CigarroShieldHitsRemaining > 0;
+        var hasPenaltyLifesteal = attacker.PenaltyBuffActive > 0;
 
         // Get action times (in seconds, convert to ms)
         var attackerActionTimeMs = attacker.ActionTime * 1000;
@@ -94,18 +95,16 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process attacker action if timer reached 0
             if (attackerTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
-                var isBoosted = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(attacker.TotalPower, attacker.TotalCriticalChance, defender.TotalDefense, rng);
 
-                // Apply Canhão damage boost (+30%) if active
-                if (attackerDamageBoostHits > 0)
-                {
-                    damage = (long)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
-                    attackerDamageBoostHits--;
-                    isBoosted = true;
-                }
-
                 defenderHP = Math.Max(0, defenderHP - damage);
+
+                // Penalty lifesteal: heal attacker for 0.5% of max HP per hit
+                if (hasPenaltyLifesteal && attackerHP > 0)
+                {
+                    var healAmount = (long)Math.Max(1, Math.Round(attacker.TotalHP * MyTunoScaling.PenaltyLifestealPercent));
+                    attackerHP = Math.Min(attacker.TotalHP, attackerHP + healAmount);
+                }
 
                 events.Add(new CombatEvent
                 {
@@ -114,7 +113,6 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Defender",
                     Damage = damage,
                     IsCritical = isCritical,
-                    IsBoosted = isBoosted ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
@@ -158,11 +156,10 @@ public class DeterministicCombatEngine : ICombatEngine
                 var isBlocked = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
 
-                // Apply Cigarro shield — absorb hit if active
-                if (attackerShieldHits > 0)
+                // Cigarro dodge — 10% chance to dodge incoming attack
+                if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
                 {
                     damage = 0;
-                    attackerShieldHits--;
                     isBlocked = true;
                 }
 
@@ -256,9 +253,7 @@ public class DeterministicCombatEngine : ICombatEngine
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = attackerHP,
-            DefenderFinalHP = defenderHP,
-            AttackerCigarroShieldRemaining = attackerShieldHits,
-            AttackerCanhaoBoostRemaining = attackerDamageBoostHits
+            DefenderFinalHP = defenderHP
         };
     }
 
@@ -284,9 +279,10 @@ public class DeterministicCombatEngine : ICombatEngine
         var playerActionTimeMs = player.ActionTime * 1000;
         var playerTimer = playerActionTimeMs;
 
-        // Initialize consumable buff counters for player
-        var playerShieldHits = player.CigarroShieldHitsRemaining;
-        var playerDamageBoostHits = player.CanhaoDamageBoostHitsRemaining;
+        // Initialize consumable buff flags
+        var hasCigarroDodge = player.CigarroShieldHitsRemaining > 0;
+        var hasCanhaoBuff = player.CanhaoDamageBoostHitsRemaining > 0;
+        var hasPenaltyLifesteal = player.PenaltyBuffActive > 0;
 
         // Initialize all enemy states with HP and action timers
         var enemyStates = enemies.Select((enemy, index) => new EnemyState
@@ -391,19 +387,16 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process player action if timer reached 0
             if (playerTimer <= 0 && playerHP > 0 && currentTargetIndex < enemyStates.Count)
             {
-                var target = enemyStates[currentTargetIndex];
-                if (target.HP > 0)
-                {
-                    var isBoosted = false;
-                    var (damage, isCritical) = CombatMath.CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
+                // Canhão AOE: attack ALL alive enemies; otherwise attack current target only
+                var targets = hasCanhaoBuff
+                    ? enemyStates.Where(e => e.HP > 0).ToList()
+                    : new List<EnemyState> { enemyStates[currentTargetIndex] };
 
-                    // Apply Canhão damage boost (+30%) if active
-                    if (playerDamageBoostHits > 0)
-                    {
-                        damage = (long)Math.Round(damage * CombatMath.CanhaoDamageMultiplier);
-                        playerDamageBoostHits--;
-                        isBoosted = true;
-                    }
+                foreach (var target in targets)
+                {
+                    if (target.HP <= 0) continue;
+
+                    var (damage, isCritical) = CombatMath.CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
 
                     target.HP = Math.Max(0, target.HP - damage);
 
@@ -414,7 +407,7 @@ public class DeterministicCombatEngine : ICombatEngine
                         Defender = $"Enemy{target.Index}",
                         Damage = damage,
                         IsCritical = isCritical,
-                        IsBoosted = isBoosted ? true : null,
+                        IsAoe = hasCanhaoBuff ? true : null,
                         SimTime = currentTime,
                         Timestamp = eventIndex++
                     });
@@ -440,6 +433,13 @@ public class DeterministicCombatEngine : ICombatEngine
                     }
                 }
 
+                // Penalty lifesteal: heal player for 0.5% of max HP per attack action
+                if (hasPenaltyLifesteal && playerHP > 0)
+                {
+                    var healAmount = (long)Math.Max(1, Math.Round(playerMaxHP * MyTunoScaling.PenaltyLifestealPercent));
+                    playerHP = Math.Min(playerMaxHP, playerHP + healAmount);
+                }
+
                 // Reset player timer
                 playerTimer = playerActionTimeMs;
             }
@@ -452,11 +452,10 @@ public class DeterministicCombatEngine : ICombatEngine
                 var isBlocked = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
 
-                // Apply Cigarro shield — absorb hit if active
-                if (playerShieldHits > 0)
+                // Cigarro dodge — 10% chance to dodge incoming attack
+                if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
                 {
                     damage = 0;
-                    playerShieldHits--;
                     isBlocked = true;
                 }
 
@@ -547,9 +546,7 @@ public class DeterministicCombatEngine : ICombatEngine
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = playerHP,
-            DefenderFinalHP = enemyStates.Sum(e => e.HP),
-            AttackerCigarroShieldRemaining = playerShieldHits,
-            AttackerCanhaoBoostRemaining = playerDamageBoostHits
+            DefenderFinalHP = enemyStates.Sum(e => e.HP)
         };
     }
 

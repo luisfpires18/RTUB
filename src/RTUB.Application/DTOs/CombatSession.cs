@@ -35,14 +35,14 @@ public class CombatSession
 
     // ── Buff Tracking ──
 
-    /// <summary>Remaining hits absorbed by the Cigarro shield.</summary>
-    public int CigarroShieldRemaining { get; set; }
-
-    /// <summary>Remaining hits with Canhão damage boost active.</summary>
-    public int CanhaoBoostRemaining { get; set; }
-
     /// <summary>Whether the Shot consumable buff is active.</summary>
     public bool HasShotBuff { get; set; }
+
+    /// <summary>Whether the Cigarro consumable buff is active.</summary>
+    public bool HasCigarroBuff { get; set; }
+
+    /// <summary>Whether the Canhão consumable buff is active.</summary>
+    public bool HasCanhaoBuff { get; set; }
 
     /// <summary>Whether the Penalty consumable buff is active.</summary>
     public bool HasPenaltyBuff { get; set; }

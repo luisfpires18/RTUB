@@ -17,9 +17,6 @@ public static class CombatMath
     /// <summary>Maximum variance multiplier applied to base power.</summary>
     public const double DamageVarianceMax = 1.2;
 
-    /// <summary>Canhão consumable damage bonus (+30%).</summary>
-    public const double CanhaoDamageMultiplier = 1.30;
-
     /// <summary>
     /// Calculates raw damage with variance and critical hit.
     /// Order of operations: Base Power → Variance → Critical (×2).

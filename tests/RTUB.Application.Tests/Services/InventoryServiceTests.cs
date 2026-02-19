@@ -66,9 +66,8 @@ public class InventoryServiceTests : IDisposable
         var userId = "user1";
         var character = Character.Create(userId);
 
-        // Set character HP to 60 out of 100 (TotalHP is based on base HP)
-        // Default base HP is 100, so TotalHP should be 100 at level 1
-        character.TakeDamage(40); // CurrentHP = 60
+        // Set character HP below max (TotalHP is 200 at level 1 with BaseHp=200)
+        character.TakeDamage(80); // CurrentHP = 120
 
         var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 5);
 
@@ -88,9 +87,9 @@ public class InventoryServiceTests : IDisposable
             .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        // Expected heal amount: 25% of TotalHP (100) = 25 HP
-        var expectedHealAmount = 25;
-        var expectedNewHP = 85; // 60 + 25 = 85
+        // Expected heal amount: 25% of TotalHP (200) = 50 HP
+        var expectedHealAmount = 50;
+        var expectedNewHP = 170; // 120 + 50 = 170
 
         // Act
         var result = await _inventoryService.UseFinoAsync(userId);
@@ -344,9 +343,9 @@ public class InventoryServiceTests : IDisposable
         var userId = "user1";
         var character = Character.Create(userId);
 
-        // Set character HP to 95 out of 100
-        // When healed by 25 HP, should cap at 100 (not 120)
-        character.TakeDamage(5); // CurrentHP = 95
+        // Set character HP to TotalHP-10 (190 out of 200)
+        // When healed by 50 HP, should cap at 200 (not 240)
+        character.TakeDamage(10); // CurrentHP = 190
 
         var finoItem = InventoryItem.Create(userId, InventoryItemType.Fino, 1);
 
@@ -366,8 +365,8 @@ public class InventoryServiceTests : IDisposable
             .Setup(r => r.ConsumeItemAsync(userId, InventoryItemType.Fino, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var expectedHealAmount = 25;
-        var expectedNewHP = character.TotalHP; // Should cap at max HP (100)
+        var expectedHealAmount = 50; // 25% of 200 = 50
+        var expectedNewHP = character.TotalHP; // Should cap at max HP (200)
 
         // Act
         var result = await _inventoryService.UseFinoAsync(userId);

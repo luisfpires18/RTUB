@@ -1,4 +1,106 @@
 /* ═══════════════════════════════════════════
+   Boss Mode — Fullscreen Battle Layout
+   ═══════════════════════════════════════════ */
+
+.stage-page {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.battle-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    overflow: hidden;
+}
+
+.battle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+::deep .battle-canvas canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.battle-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+    min-height: 44px;
+    flex-wrap: nowrap;
+}
+
+.battle-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.battle-ctrl-btn {
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0 4px;
+}
+
+.battle-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.battle-ctrl-btn.active {
+    background: rgba(124, 77, 255, 0.6);
+    border-color: rgba(124, 77, 255, 0.8);
+    color: #fff;
+}
+
+.battle-ctrl-btn--audio {
+    color: rgba(255, 193, 7, 0.8);
+}
+
+.battle-ctrl-btn--stop {
+    color: rgba(255, 68, 68, 0.8);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.battle-ctrl-btn--stop:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+}
+
+/* ═══════════════════════════════════════════
    Defeat Summary Panel
    ═══════════════════════════════════════════ */
 

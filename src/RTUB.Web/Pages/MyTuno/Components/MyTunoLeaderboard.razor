@@ -39,11 +39,6 @@
                         <i class="bi bi-lightning-fill me-1"></i>Boss
                     </button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link @(activeTab == "survive" ? "active" : "")" @onclick='() => activeTab = "survive"'>
-                        <i class="bi bi-bullseye me-1"></i>Survive
-                    </button>
-                </li>
             </ul>
             
             <div class="stats-card-grid">
@@ -54,8 +49,6 @@
                             ? Entries.OrderByDescending(e => e.Wins).ThenByDescending(e => e.Level).ToList()
                             : activeTab == "boss"
                                 ? Entries.OrderByDescending(e => e.HighestBossStage).ThenByDescending(e => e.Level).ToList()
-                                : activeTab == "survive"
-                                    ? Entries.OrderByDescending(e => e.HighestSurviveLevel).ThenByDescending(e => e.Level).ToList()
                                     : Entries.OrderByDescending(e => e.HighestStage).ThenByDescending(e => e.Level).ToList();
                     var paginatedItems = sortedLeaderboard.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
                 }
@@ -107,11 +100,6 @@
                             {
                                 <i class="bi bi-lightning-fill text-warning"></i>
                                 <span>@entry.HighestBossStage</span>
-                            }
-                            else if (activeTab == "survive")
-                            {
-                                <i class="bi bi-bullseye text-danger"></i>
-                                <span>Lv.@entry.HighestSurviveLevel</span>
                             }
                             else
                             {

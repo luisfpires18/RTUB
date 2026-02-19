@@ -1406,3 +1406,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================
+   Embedded Upgrades – strip nested card wrapper
+   ========================================== */
+::deep .upgrades-embedded > .card {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+::deep .upgrades-embedded > .card > .card-header {
+    display: none;
+}
+
+::deep .upgrades-embedded > .card > .card-body {
+    padding: 0;
+}

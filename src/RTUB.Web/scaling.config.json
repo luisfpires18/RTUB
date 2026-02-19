@@ -91,13 +91,13 @@
       "finoCooldownSeconds": 150,
       "canecaHealPercent": 0.50,
       "canecaCooldownSeconds": 300,
-      "cigarroShieldCharges": 3,
-      "canhaoBoostCharges": 3,
-      "shotBuffBattles": 5,
-      "shotPowerMultiplier": 1.20,
-      "penaltySpeedReduction": 0.5,
-      "penaltyCritIncrease": 0.5,
-      "penaltyMinActionTime": 0.5
+      "shotBuffRuns": 5,
+      "shotBuffMultiplier": 1.05,
+      "cigarroBuffRuns": 5,
+      "cigarroDodgeChance": 0.10,
+      "canhaoBuffRuns": 5,
+      "penaltyBuffRuns": 5,
+      "penaltyLifestealPercent": 0.005
     },
 
     "battleRewards": {

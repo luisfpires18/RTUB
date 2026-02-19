@@ -27,16 +27,16 @@ public class Character : BaseEntity
     // Current HP (null means full HP, for backwards compatibility)
     public long? CurrentHP { get; set; } = null;
 
-    // Shot buff - number of battles remaining with empowerment
+    // Shot buff - number of runs remaining with +5% all stats
     public int ShotBuffBattlesRemaining { get; set; } = 0;
 
-    // Cigarro buff - number of hits remaining where damage is absorbed
+    // Cigarro buff - number of runs remaining with +10% dodge chance
     public int CigarroShieldHitsRemaining { get; set; } = 0;
 
-    // Canhão buff - number of hits remaining where damage is boosted by 30%
+    // Canhão buff - number of runs remaining with AOE attacks
     public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
 
-    // Penalty buff - reduces action time by 0.5s + adds 50% crit chance for 1 run/battle
+    // Penalty buff - number of runs remaining with 0.5% HP lifesteal per hit
     public int PenaltyBuffActive { get; set; } = 0;
 
     // Arena Statistics
@@ -213,8 +213,7 @@ public class Character : BaseEntity
         get
         {
             var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChancePerUpgrade);
-            // Penalty buff explicitly allows up to 100% crit — skip the normal 50% cap
-            var upgradeCrit = PenaltyBuffActive > 0 ? Math.Min(1.0, raw) : Math.Min(MaxCriticalChance, raw);
+            var upgradeCrit = Math.Min(MaxCriticalChance, raw);
             // Equipment crit bonus stacks on top of upgrade-capped value (absolute cap 100%)
             return Math.Min(1.0, upgradeCrit + EquipmentCriticalBonus);
         }
@@ -349,11 +348,9 @@ public class Character : BaseEntity
     {
         get
         {
-            // Stage enemies and penalty-buffed characters use a direct override.
-            // Penalty buff allows going below MinActionTime (down to PenaltyMinActionTime = 0.5s),
-            // so use the lower floor when an override is set.
+            // Stage enemies use a direct override for action time.
             if (ActionTimeOverride.HasValue)
-                return Math.Max(PenaltyMinActionTime, ActionTimeOverride.Value);
+                return Math.Max(AbsoluteMinActionTime, ActionTimeOverride.Value);
 
             // Speed upgrades provide the flat reduction: 5.0s → 1.0s over 41 upgrades
             var time = BaseActionTime - SpeedUpgrades * ActionTimeReductionPerUpgrade;
@@ -637,90 +634,6 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Penalty buff speed reduction in seconds (subtracted from current action time).
-    /// </summary>
-    public const double PenaltySpeedReduction = 0.5;
-
-    /// <summary>
-    /// Penalty buff critical chance bonus (additive).
-    /// A player with 50% crit becomes 100%, a player with 1% crit becomes 51%.
-    /// </summary>
-    public const double PenaltyCritBonus = 0.5;
-
-    /// <summary>
-    /// Minimum action time when penalty buff is active (allows going below normal MinActionTime).
-    /// </summary>
-    public const double PenaltyMinActionTime = 0.5;
-
-    /// <summary>
-    /// Creates a copy of the character with Penalty buff applied.
-    /// Reduces action time by 0.5s (min 0.5s) and adds +50% crit chance (capped at 100%).
-    /// </summary>
-    public static Character CreatePenaltyBuffedCopy(Character source)
-    {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
-
-        // Additive crit: +50% (capped at 1.0)
-        var penaltyCrit = Math.Min(1.0, source.TotalCriticalChance + PenaltyCritBonus);
-        // Speed reduction: -0.5s from current action time (min 0.5s)
-        var penaltyActionTime = Math.Max(PenaltyMinActionTime, source.ActionTime - PenaltySpeedReduction);
-
-        return new Character
-        {
-            Id = source.Id,
-            UserId = source.UserId,
-            Level = source.Level,
-            XP = source.XP,
-            HP = source.HP,
-            Power = source.Power,
-            Speed = source.Speed,
-            Defense = source.Defense,
-            CriticalChance = penaltyCrit,
-            HpUpgrades = source.HpUpgrades,
-            PowerUpgrades = source.PowerUpgrades,
-            SpeedUpgrades = source.SpeedUpgrades,
-            // Upgrades already baked into penaltyCrit — zero out to prevent double-counting
-            CriticalUpgrades = 0,
-            DefenseUpgrades = source.DefenseUpgrades,
-            EquippedHead = source.EquippedHead,
-            EquippedShoulders = source.EquippedShoulders,
-            EquippedChest = source.EquippedChest,
-            EquippedGloves = source.EquippedGloves,
-            EquippedLegs = source.EquippedLegs,
-            EquippedBoots = source.EquippedBoots,
-            EquippedHeadQuality = source.EquippedHeadQuality,
-            EquippedShouldersQuality = source.EquippedShouldersQuality,
-            EquippedChestQuality = source.EquippedChestQuality,
-            EquippedGlovesQuality = source.EquippedGlovesQuality,
-            EquippedLegsQuality = source.EquippedLegsQuality,
-            EquippedBootsQuality = source.EquippedBootsQuality,
-            EquippedHeadBonusLevel = source.EquippedHeadBonusLevel,
-            EquippedShouldersBonusLevel = source.EquippedShouldersBonusLevel,
-            EquippedChestBonusLevel = source.EquippedChestBonusLevel,
-            EquippedGlovesBonusLevel = source.EquippedGlovesBonusLevel,
-            EquippedLegsBonusLevel = source.EquippedLegsBonusLevel,
-            EquippedBootsBonusLevel = source.EquippedBootsBonusLevel,
-            EquippedWeapon1 = source.EquippedWeapon1,
-            EquippedWeapon2 = source.EquippedWeapon2,
-            EquipmentHPBonus = source.EquipmentHPBonus,
-            EquipmentPowerBonus = source.EquipmentPowerBonus,
-            EquipmentSpeedBonus = source.EquipmentSpeedBonus,
-            EquipmentDefenseBonus = source.EquipmentDefenseBonus,
-            EquipmentCriticalBonus = source.EquipmentCriticalBonus,
-            ActionTimeOverride = penaltyActionTime,
-            CurrentHP = source.CurrentHP,
-            User = source.User,
-            CreatedAt = source.CreatedAt,
-            UpdatedAt = source.UpdatedAt,
-            ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
-            CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
-            CanhaoDamageBoostHitsRemaining = source.CanhaoDamageBoostHitsRemaining,
-            PenaltyBuffActive = source.PenaltyBuffActive
-        };
-    }
-
-    /// <summary>
     /// Calculates XP required to advance from a given level to the next.
     /// Uses formula: XpPerLevelBase × Level^XpGrowthExponent.
     /// With exponent 1.5: level 1→2 = 100 XP, level 50→51 ≈ 35,355 XP, level 99→100 ≈ 98,505 XP.
@@ -927,12 +840,30 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Expires the penalty buff (sets PenaltyBuffActive to 0).
-    /// No HP scaling needed — penalty only affects speed and crit.
+    /// Decrements the penalty lifesteal buff by 1 run.
     /// </summary>
     public void ExpirePenaltyBuff()
     {
-        PenaltyBuffActive = 0;
+        if (PenaltyBuffActive > 0)
+            PenaltyBuffActive--;
+    }
+
+    /// <summary>
+    /// Decrements the cigarro dodge buff by 1 run.
+    /// </summary>
+    public void ExpireCigarroBuff()
+    {
+        if (CigarroShieldHitsRemaining > 0)
+            CigarroShieldHitsRemaining--;
+    }
+
+    /// <summary>
+    /// Decrements the canhão AOE buff by 1 run.
+    /// </summary>
+    public void ExpireCanhaoBuff()
+    {
+        if (CanhaoDamageBoostHitsRemaining > 0)
+            CanhaoDamageBoostHitsRemaining--;
     }
 
     /// <summary>
