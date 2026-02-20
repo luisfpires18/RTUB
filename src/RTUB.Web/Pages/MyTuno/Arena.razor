@@ -159,21 +159,59 @@
             </div>
         }
 
-        <!-- Arena Statistics -->
+        <!-- Current Character Card -->
         @if (character != null && !showResultSummary)
         {
-            <div class="d-flex justify-content-center gap-3 mb-4">
-                <div class="stat-box-square">
-                    <span class="badge fs-5" style="background-color: #ffc107; color: #000;">@Fmt(character.ArenaRating)</span>
-                    <p class="mb-0 small text-muted">Rating</p>
-                </div>
-                <div class="stat-box-square">
-                    <span class="badge bg-success fs-5">@Fmt(character.ArenaWins)</span>
-                    <p class="mb-0 small text-muted">Vitórias</p>
-                </div>
-                <div class="stat-box-square">
-                    <span class="badge bg-danger fs-5">@Fmt(character.ArenaLosses)</span>
-                    <p class="mb-0 small text-muted">Derrotas</p>
+            var myRank = RankHelper.GetRank(character.ArenaRating);
+            <div class="d-flex justify-content-center mb-4">
+                <div class="arena-own-card">
+                    <!-- Avatar + Name -->
+                    <div class="arena-opponent-card-header">
+                        @if (currentUser != null && !string.IsNullOrEmpty(currentUser.ProfilePictureSrc))
+                        {
+                            <img src="@CacheBuster.Bust(currentUser.ProfilePictureSrc)"
+                                 alt="@GetOpponentName(character)"
+                                 class="arena-opponent-avatar"
+                                 loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="arena-opponent-avatar-placeholder">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        }
+                        <div>
+                            <h6 class="mb-0">@GetOpponentName(character)</h6>
+                            <span class="badge bg-primary">Nível @character.Level</span>
+                        </div>
+                    </div>
+
+                    <!-- Rank Badge -->
+                    <div class="arena-opponent-rank" style="border-color: @myRank.Color;">
+                        <i class="bi @myRank.Icon" style="color: @myRank.Color;"></i>
+                        <span style="color: @myRank.Color; font-weight: 600;">@myRank.Name</span>
+                        <span class="text-muted ms-auto" style="font-size: 0.8rem;">@character.ArenaRating</span>
+                    </div>
+
+                    <!-- Arena Record -->
+                    <div class="arena-opponent-section-label"><i class="bi bi-trophy-fill me-1"></i>Registo</div>
+                    <div class="arena-own-record">
+                        <FantasyTile Icon="bi-graph-up-arrow" Label="Rating" Value="@Fmt(character.ArenaRating)" Color="gold" Size="sm" />
+                        <FantasyTile Icon="bi-check-circle-fill" Label="Vitórias" Value="@Fmt(character.ArenaWins)" Color="green" Size="sm" />
+                        <FantasyTile Icon="bi-x-circle-fill" Label="Derrotas" Value="@Fmt(character.ArenaLosses)" Color="red" Size="sm" />
+                    </div>
+
+                    <hr class="arena-opponent-divider" />
+
+                    <!-- Player Stats -->
+                    <div class="arena-opponent-section-label"><i class="bi bi-bar-chart-fill me-1"></i>Estatísticas</div>
+                    <div class="arena-opponent-stats">
+                        <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@Fmt(character.TotalHP)" Color="red" Size="sm" />
+                        <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(character.TotalPower)" Color="green" Size="sm" />
+                        <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(character.TotalDefense)" Color="gray" Size="sm" />
+                        <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{character.ActionTime:F1}s")" Color="blue" Size="sm" />
+                        <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{character.TotalCriticalChance * 100:F1}%")" Color="yellow" Size="sm" />
+                    </div>
                 </div>
             </div>
         }
