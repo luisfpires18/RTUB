@@ -683,14 +683,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, startStage, endStage, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -711,7 +711,7 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
 
@@ -783,9 +783,37 @@ public class StageService : IStageService
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
+        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, instrumentParts, startStage, endStage);
+    }
+
+    private void LogRunRewards(
+        string username,
+        int xp, decimal fidelis, int fitab,
+        int finos, int canecas, int cigarros, int canhaos, int shots, int penalties,
+        Dictionary<InventoryItemType, int>? instrumentParts,
+        int startStage, int endStage)
+    {
+        var stageRange = startStage > 0 && endStage > 0
+            ? $"(Stage {startStage} - Stage {endStage})"
+            : string.Empty;
+
+        var loot = new List<string>();
+        if (xp > 0)       loot.Add($"+{xp} XP");
+        if (fidelis > 0)  loot.Add($"+{fidelis} Fidelis");
+        if (fitab > 0)    loot.Add($"+{fitab} FITAB");
+        if (finos > 0)    loot.Add($"+{finos} finos");
+        if (canecas > 0)  loot.Add($"+{canecas} canecas");
+        if (cigarros > 0) loot.Add($"+{cigarros} cigarros");
+        if (canhaos > 0)  loot.Add($"+{canhaos} canhaos");
+        if (shots > 0)    loot.Add($"+{shots} shots");
+        if (penalties > 0) loot.Add($"+{penalties} penalties");
+
+        var instrTotal = instrumentParts?.Values.Sum() ?? 0;
+        if (instrTotal > 0) loot.Add($"+{instrTotal} instrument parts");
+
         _logger.LogInformation(
-            "Applied run rewards for {Username} (Character ID: {CharacterId}): +{XP} XP, +{Fidelis} Fidelis, +{Fitab} FITAB, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots, +{InstrumentParts} instrument parts",
-            user?.UserName ?? "Unknown", characterId, xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, instrumentParts?.Values.Sum() ?? 0);
+            "Applied run rewards for {Username} {StageRange}: {Loot}",
+            username, stageRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
     }
 
     /// <summary>

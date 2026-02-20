@@ -1048,7 +1048,7 @@
                 {
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, runStartingStage ?? currentStageNumber, currentStageNumber);
                 }
                 catch (Exception ex)
                 {
@@ -1314,7 +1314,7 @@
                         await StageService.ApplyRunRewardsAsync(
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            expirePenaltyBuff: false);
+                            expirePenaltyBuff: false, runStartingStage ?? currentStageNumber, currentStageNumber);
                     }
                     catch (Exception ex)
                     {
@@ -1446,7 +1446,7 @@
             {
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null);
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, runStartingStage ?? currentStageNumber, currentStageNumber);
             }
             catch (Exception)
             {
