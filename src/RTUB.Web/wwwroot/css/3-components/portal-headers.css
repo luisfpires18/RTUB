@@ -15,6 +15,10 @@
     margin: 0;
 }
 
+.portal-section-title::first-letter {
+    text-transform: uppercase;
+}
+
 .portal-section-divider {
     height: 3px;
     background: linear-gradient(90deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.3) 100%);
@@ -41,4 +45,21 @@
     }
 }
 
+/* Shared wrapper for portal content pages — consistent max-width & margins */
+.portal-content-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .portal-content-wrapper {
+        padding: 0 0.75rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .portal-content-wrapper {
+        padding: 0 0.5rem;
+    }
+}
 

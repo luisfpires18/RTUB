@@ -5,8 +5,11 @@
 
 /* Header and Intro Section */
 .history-header {
-    max-width: 900px;
-    margin: 0 auto 3rem auto;
+    margin: 0 auto 2rem auto;
+    padding: 2rem;
+    background-color: rgba(21, 21, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem;
 }
 
 .history-subtitle {
@@ -27,14 +30,14 @@
 
 /* Mission & Identity Section */
 .history-mission-identity {
-    max-width: 900px;
-    margin: 0 auto 3rem auto;
+    margin: 0 auto 2rem auto;
 }
 
 .mission-identity-container {
     display: flex;
     gap: 0;
     background-color: rgba(21, 21, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 1rem;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -107,9 +110,9 @@
 
 /* Timeline Section */
 .history-timeline {
-    max-width: 900px;
-    margin: 0 auto 3rem auto;
+    margin: 0 auto 2rem auto;
     background-color: rgba(21, 21, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 1rem;
     padding: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -159,8 +162,7 @@
 
 /* Closing Callout Section */
 .history-closing {
-    max-width: 900px;
-    margin: 0 auto 3rem auto;
+    margin: 0 auto 2rem auto;
     background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.2) 0%, rgba(90, 47, 158, 0.2) 100%);
     border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
     border-radius: 1rem;
@@ -225,6 +227,11 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .history-header {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+    }
+
     .mission-identity-container {
         flex-direction: column;
         gap: 0;
@@ -270,11 +277,15 @@
     }
 
     .history-closing {
-        padding: 2rem 1.5rem;
+        padding: 1.5rem;
     }
 }
 
 @media (max-width: 375px) {
+    .history-header {
+        padding: 1.25rem;
+    }
+
     .history-subtitle {
         font-size: 1.25rem;
     }

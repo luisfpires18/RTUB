@@ -1,23 +1,25 @@
 /* ==========================================
    Homepage – Mobile / Tablet Layout Overrides
    ==========================================
-   Mobile + Tablet order (≤1024px):
-     1. Navbar (MainLayout)
-     2. Logo
-     3. Content area
-     4. Social Media (2×2 grid)
-     5. Footer
-     6. Fixed bottom nav (portal buttons)
-   Carousel & desktop portal buttons hidden on mobile/tablet.
+   Phone (≤767px):
+     Carousel hidden, bottom nav visible, 2×2 social grid
+   Tablet (768px–1024px):
+     Carousel visible, desktop portal buttons hidden,
+     bottom nav visible, 2×2 social grid
+   Desktop (≥1025px):
+     Full layout — carousel, inline nav, classic social row
    ========================================== */
 
-@media (max-width: 1024px) {
-    /* Hide the slideshow carousel on mobile */
+/* ---- Phone only: hide carousel ---- */
+@media (max-width: 767px) {
     .homepage-carousel {
         display: none !important;
     }
+}
 
-    /* Hide the desktop inline portal-navigation buttons on mobile */
+/* ---- Tablet + Phone: hide desktop portal buttons, mobile layout tweaks ---- */
+@media (max-width: 1024px) {
+    /* Hide the desktop inline portal-navigation buttons (bottom nav replaces them) */
     .homepage-portal-nav-desktop {
         display: none !important;
     }
@@ -27,7 +29,7 @@
         padding-bottom: 4.5rem;
     }
 
-    /* Tighten spacing for mobile */
+    /* Tighten spacing */
     .homepage-logo {
         margin-bottom: 1.5rem !important;
     }
@@ -36,7 +38,7 @@
         margin-bottom: 1.5rem !important;
     }
 
-    /* Full-width container on homepage for mobile */
+    /* Full-width container on homepage */
     body:has(.homepage-content) .content-main .container-xxl {
         max-width: 100%;
         padding-left: 0.75rem;

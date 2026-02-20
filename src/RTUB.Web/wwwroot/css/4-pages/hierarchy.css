@@ -1,13 +1,16 @@
 /* Hierarchy Page Styles */
 .hierarchy-page {
-    max-width: 1200px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
 /* Intro Section */
 .hierarchy-intro {
-    max-width: 800px;
-    margin: 0 auto 3rem;
+    margin: 0 auto 2rem;
+    padding: 2rem;
+    background-color: rgba(21, 21, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem;
 }
 
 .hierarchy-subtitle {
@@ -35,6 +38,7 @@
 /* Stage Card */
 .hierarchy-card {
     background-color: rgba(21, 21, 22, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 1rem;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -159,6 +163,15 @@
 
 /* Responsive Breakpoints */
 @media (max-width: 768px) {
+    .hierarchy-page {
+        padding: 0 0.75rem;
+    }
+
+    .hierarchy-intro {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+    }
+
     .hierarchy-subtitle {
         font-size: 1.25rem;
     }
@@ -177,6 +190,16 @@
     }
 }
 
+@media (max-width: 375px) {
+    .hierarchy-page {
+        padding: 0 0.5rem;
+    }
+
+    .hierarchy-intro {
+        padding: 1.25rem;
+    }
+}
+
 @media (min-width: 769px) and (max-width: 1024px) {
     .hierarchy-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -185,13 +208,13 @@
 
 @media (min-width: 1025px) {
     .hierarchy-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (min-width: 1400px) {
     .hierarchy-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 

@@ -5,6 +5,8 @@
 @inject ILogger<HistoryContent> Logger
 @namespace RTUB.Components.Portal
 
+<div class="portal-content-wrapper">
+
 <!-- Header + Intro -->
 <section class="history-header mb-5">
     <div class="portal-section-header">
@@ -93,6 +95,8 @@
         </div>
     </div>
 </section>
+
+</div> <!-- /portal-content-wrapper -->
 
 <!-- Edit Label Modal (at root level, outside cards) -->
 <Modal Show="@showEditModal" 

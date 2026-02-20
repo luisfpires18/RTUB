@@ -5,6 +5,8 @@
 @inject ILogger<JoinUsContent> Logger
 @namespace RTUB.Components.Portal
 
+<div class="portal-content-wrapper">
+
 <!-- Intro Area: Centered container with title, subtitle, and description -->
 <section class="join-us-intro mb-5">
     <div class="portal-section-header">
@@ -106,6 +108,8 @@
         <LabelEditButton CurrentLabel="@howToContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
 </section>
+
+</div> <!-- /portal-content-wrapper -->
 
 <!-- Edit Label Modal (at root level, outside cards) -->
 <Modal Show="@showEditModal" 
