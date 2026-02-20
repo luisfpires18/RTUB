@@ -1509,3 +1509,170 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* ═══════════════════════════════════════════
+   Boss Mode Modal — Fantasy Theme
+   ═══════════════════════════════════════════ */
+
+.bm-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bm-modal__hero {
+    text-align: center;
+    padding-bottom: 0.5rem;
+}
+
+.bm-modal__hero-icon {
+    font-size: 2.4rem;
+    color: #ffc107;
+    filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.5));
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.bm-modal__title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #fff;
+    margin: 0;
+}
+
+.bm-modal__subtitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    margin: 0.25rem 0 0;
+}
+
+.bm-modal__record {
+    text-align: center;
+    padding: 0.5rem 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+.bm-modal__record-val {
+    color: #ffc107;
+    font-weight: 700;
+}
+
+.bm-modal__record-runs {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 2px;
+}
+
+/* Info cards — gradient glass style */
+.bm-modal__info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.4;
+    border: 1px solid transparent;
+}
+
+.bm-modal__info-card i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.bm-modal__info-card--fitab {
+    background: linear-gradient(135deg, rgba(123, 31, 162, 0.45) 0%, rgba(103, 58, 183, 0.3) 100%);
+    border-color: rgba(156, 39, 176, 0.4);
+}
+
+.bm-modal__info-card--fitab i {
+    color: #ce93d8;
+}
+
+.bm-modal__info-card--level {
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.4) 0%, rgba(123, 31, 162, 0.25) 100%);
+    border-color: rgba(186, 104, 200, 0.35);
+}
+
+.bm-modal__info-card--level i {
+    color: #ba68c8;
+}
+
+.bm-modal__info-card--daily {
+    background: linear-gradient(135deg, rgba(106, 27, 154, 0.4) 0%, rgba(74, 20, 140, 0.25) 100%);
+    border-color: rgba(142, 36, 170, 0.35);
+}
+
+.bm-modal__info-card--daily i {
+    color: #ab47bc;
+}
+
+.bm-modal__warning {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    background: rgba(255, 152, 0, 0.12);
+    border: 1px solid rgba(255, 152, 0, 0.35);
+    color: #ffb74d;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.bm-modal__warning i {
+    color: #ff9800;
+    flex-shrink: 0;
+}
+
+/* Buttons */
+.bm-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.55rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bm-modal__btn--close {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.bm-modal__btn--close:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.bm-modal__btn--enter {
+    background: linear-gradient(135deg, #ffc107, #ff8f00);
+    color: #1a0a2e;
+    box-shadow: 0 3px 12px rgba(255, 193, 7, 0.35);
+}
+
+.bm-modal__btn--enter:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffd54f, #ffc107);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 18px rgba(255, 193, 7, 0.5);
+}
+
+.bm-modal__btn--enter:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

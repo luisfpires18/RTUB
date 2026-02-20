@@ -501,6 +501,12 @@
                         hpBarData.text.text = `${formatNum(hp)}/${formatNum(maxHP)}`;
                         hpBarData.text.visible = true;
                     }
+                    // Init boss HUD bar
+                    if (this.bossHpBar && enemyIndex === 0) {
+                        const ratio = Math.max(0, hp / maxHP);
+                        this.bossHpBar.bar.width = this.bossHpBar.maxWidth * ratio;
+                        this.bossHpBar.text.text = `${formatNum(hp)} / ${formatNum(maxHP)} HP`;
+                    }
                 }
             } else if (character === 'Defender' && this.enemyCount === 1) {
                 const enemyIndex = 0;
@@ -512,6 +518,12 @@
                     hpBarData.bar.width = hpBarData.maxWidth;
                     hpBarData.text.text = `${formatNum(hp)}/${formatNum(maxHP)}`;
                     hpBarData.text.visible = true;
+                }
+                // Init boss HUD bar
+                if (this.bossHpBar) {
+                    const ratio = Math.max(0, hp / maxHP);
+                    this.bossHpBar.bar.width = this.bossHpBar.maxWidth * ratio;
+                    this.bossHpBar.text.text = `${formatNum(hp)} / ${formatNum(maxHP)} HP`;
                 }
             }
         }
@@ -658,6 +670,84 @@
                 bar: speedFill, barBg: speedBg, maxWidth: barWidth,
                 text: speedText, barHeight: speedBarHeight
             };
+
+            // == Boss HUD bars (top-right, mirrored, red) ==
+            const isBossMode = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+            if (isBossMode) {
+                const rightX = width - paddingLeft - barWidth;
+
+                // Boss HP background
+                const bossHpBg = new PIXI.Graphics();
+                bossHpBg.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
+                bossHpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
+                bossHpBg.stroke({ color: 0x333333, width: 1 });
+                this.stage.addChild(bossHpBg);
+
+                // Boss HP fill (red)
+                const bossHpFill = new PIXI.Graphics();
+                bossHpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+                bossHpFill.fill(0xf44336);
+                bossHpFill.x = rightX;
+                bossHpFill.y = paddingTop;
+                this.stage.addChild(bossHpFill);
+
+                // Boss HP border (red)
+                const bossHpBorder = new PIXI.Graphics();
+                bossHpBorder.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
+                bossHpBorder.stroke({ width: 1.5, color: 0xef5350 });
+                this.stage.addChild(bossHpBorder);
+
+                // Boss HP text
+                const bossHpText = new PIXI.Text({
+                    text: '',
+                    style: {
+                        fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
+                    }
+                });
+                bossHpText.anchor.set(0.5, 0.5);
+                bossHpText.x = rightX + barWidth / 2;
+                bossHpText.y = paddingTop + barHeight / 2;
+                this.stage.addChild(bossHpText);
+
+                this.bossHpBar = {
+                    bar: bossHpFill, barBg: bossHpBg, border: bossHpBorder,
+                    text: bossHpText, maxWidth: barWidth, barHeight: barHeight,
+                    x: rightX, y: paddingTop
+                };
+
+                // Boss Speed Bar (below HP)
+                const bossSpeedBg = new PIXI.Graphics();
+                bossSpeedBg.roundRect(rightX, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+                bossSpeedBg.fill({ color: 0x111111, alpha: 0.85 });
+                this.stage.addChild(bossSpeedBg);
+
+                const bossSpeedFill = new PIXI.Graphics();
+                bossSpeedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
+                bossSpeedFill.fill(0x00bcd4);
+                bossSpeedFill.x = rightX;
+                bossSpeedFill.y = speedBarY;
+                this.stage.addChild(bossSpeedFill);
+
+                const bossSpeedText = new PIXI.Text({
+                    text: '',
+                    style: {
+                        fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+                        fill: 0xffffff,
+                        stroke: { color: 0x000000, width: 2 }
+                    }
+                });
+                bossSpeedText.anchor.set(0.5, 0.5);
+                bossSpeedText.x = rightX + barWidth / 2;
+                bossSpeedText.y = speedBarY + speedBarHeight / 2;
+                this.stage.addChild(bossSpeedText);
+
+                this.bossSpeedBar = {
+                    bar: bossSpeedFill, barBg: bossSpeedBg,
+                    text: bossSpeedText, maxWidth: barWidth, barHeight: speedBarHeight
+                };
+            }
         }
 
         createEnemies(width, height) {
@@ -822,6 +912,16 @@
                     barBg: speedBarBg,
                     maxWidth: hpBarWidth,
                     enemyIndex: i
+                });
+            }
+
+            // Hide per-sprite HP/speed bars for bosses (the HUD bar handles it)
+            if (isBoss && this.enemyCount === 1) {
+                this.enemyHpBars.forEach(d => {
+                    d.bar.visible = false; d.barBg.visible = false; d.text.visible = false;
+                });
+                this.enemySpeedBars.forEach(d => {
+                    d.bar.visible = false; d.barBg.visible = false;
                 });
             }
         }
@@ -2352,6 +2452,15 @@
             const ratio = Math.max(0, this.enemySpeedBarTimers[enemyIndex] / actionTimeMs);
             const newWidth = this.enemySpeedBars[enemyIndex].maxWidth * ratio;
             this.enemySpeedBars[enemyIndex].bar.width = newWidth;
+
+            // Sync boss HUD speed bar
+            if (this.bossSpeedBar && enemyIndex === 0) {
+                this.bossSpeedBar.bar.width = this.bossSpeedBar.maxWidth * ratio;
+                if (this.bossSpeedBar.text) {
+                    const remainingSec = Math.max(0, this.enemySpeedBarTimers[enemyIndex] / 1000);
+                    this.bossSpeedBar.text.text = `${remainingSec.toFixed(1)}s`;
+                }
+            }
         }
 
         processEvent(evt) {
@@ -2476,6 +2585,19 @@
             const newWidth = hpBarData.maxWidth * ratio;
             this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
             hpBarData.text.text = `${formatNum(Math.max(0, Math.round(enemyHP.current)))}/${formatNum(Math.round(enemyHP.max))}`;
+
+            // Sync boss HUD bar (1v1 boss)
+            if (this.bossHpBar && enemyIndex === 0) {
+                const maxW = this.bossHpBar.maxWidth;
+                const bh = this.bossHpBar.barHeight;
+                const r = bh / 2;
+                const fillColor = ratio > 0.5 ? 0xf44336 : ratio > 0.25 ? 0xd32f2f : 0xb71c1c;
+                this.bossHpBar.bar.clear();
+                this.bossHpBar.bar.roundRect(0, 0, maxW, bh, r);
+                this.bossHpBar.bar.fill(fillColor);
+                this.animateTo(this.bossHpBar.bar, { width: maxW * ratio }, 200);
+                this.bossHpBar.text.text = `${formatNum(Math.max(0, Math.round(enemyHP.current)))} / ${formatNum(Math.round(enemyHP.max))} HP`;
+            }
         }
 
         updateEnemyHPBar() {
@@ -2486,6 +2608,19 @@
                 this.animateTo(hpBarData.bar, { width: Math.max(0, newWidth) }, 200);
                 hpBarData.text.text = `${formatNum(Math.max(0, Math.round(this.enemyCurrentHp / this.enemyCount)))}/${formatNum(Math.round(this.enemyMaxHp / this.enemyCount))}`;
             });
+
+            // Sync boss HUD bar
+            if (this.bossHpBar) {
+                const maxW = this.bossHpBar.maxWidth;
+                const bh = this.bossHpBar.barHeight;
+                const r = bh / 2;
+                const fillColor = ratio > 0.5 ? 0xf44336 : ratio > 0.25 ? 0xd32f2f : 0xb71c1c;
+                this.bossHpBar.bar.clear();
+                this.bossHpBar.bar.roundRect(0, 0, maxW, bh, r);
+                this.bossHpBar.bar.fill(fillColor);
+                this.animateTo(this.bossHpBar.bar, { width: maxW * ratio }, 200);
+                this.bossHpBar.text.text = `${formatNum(Math.max(0, Math.round(this.enemyCurrentHp)))} / ${formatNum(Math.round(this.enemyMaxHp))} HP`;
+            }
         }
 
         handleAttack(evt) {
@@ -2745,6 +2880,19 @@
                         this.animateTo(speedBarData.bar, { alpha: 0 }, 300);
                         this.animateTo(speedBarData.barBg, { alpha: 0 }, 300);
                     }
+
+                    // Fade boss HUD bars on boss KO
+                    if (this.bossHpBar && enemyIndex === 0) {
+                        this.animateTo(this.bossHpBar.bar, { alpha: 0 }, 300);
+                        this.animateTo(this.bossHpBar.barBg, { alpha: 0 }, 300);
+                        this.animateTo(this.bossHpBar.border, { alpha: 0 }, 300);
+                        this.animateTo(this.bossHpBar.text, { alpha: 0 }, 300);
+                    }
+                    if (this.bossSpeedBar && enemyIndex === 0) {
+                        this.animateTo(this.bossSpeedBar.bar, { alpha: 0 }, 300);
+                        this.animateTo(this.bossSpeedBar.barBg, { alpha: 0 }, 300);
+                        if (this.bossSpeedBar.text) this.animateTo(this.bossSpeedBar.text, { alpha: 0 }, 300);
+                    }
                 }
             } else {
                 this.enemySprites.forEach((enemy, idx) => {
@@ -2765,6 +2913,19 @@
                         this.animateTo(speedBarData.barBg, { alpha: 0 }, 300);
                     }
                 });
+
+                // Fade boss HUD bars on generic enemy KO
+                if (this.bossHpBar) {
+                    this.animateTo(this.bossHpBar.bar, { alpha: 0 }, 300);
+                    this.animateTo(this.bossHpBar.barBg, { alpha: 0 }, 300);
+                    this.animateTo(this.bossHpBar.border, { alpha: 0 }, 300);
+                    this.animateTo(this.bossHpBar.text, { alpha: 0 }, 300);
+                }
+                if (this.bossSpeedBar) {
+                    this.animateTo(this.bossSpeedBar.bar, { alpha: 0 }, 300);
+                    this.animateTo(this.bossSpeedBar.barBg, { alpha: 0 }, 300);
+                    if (this.bossSpeedBar.text) this.animateTo(this.bossSpeedBar.text, { alpha: 0 }, 300);
+                }
             }
         }
 
@@ -3368,6 +3529,18 @@
                 if (this.playerSpeedBar.border) persistent.add(this.playerSpeedBar.border);
                 if (this.playerSpeedBar.text) persistent.add(this.playerSpeedBar.text);
             }
+            // Boss HUD bars (persisted so they're not destroyed between boss fights)
+            if (this.bossHpBar) {
+                persistent.add(this.bossHpBar.bar);
+                persistent.add(this.bossHpBar.barBg);
+                if (this.bossHpBar.border) persistent.add(this.bossHpBar.border);
+                persistent.add(this.bossHpBar.text);
+            }
+            if (this.bossSpeedBar) {
+                persistent.add(this.bossSpeedBar.bar);
+                persistent.add(this.bossSpeedBar.barBg);
+                if (this.bossSpeedBar.text) persistent.add(this.bossSpeedBar.text);
+            }
             // Keep consumable and spell bars — recreating them causes CDN image flicker
             if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
             if (this.spellBarContainer) persistent.add(this.spellBarContainer);
@@ -3416,6 +3589,27 @@
             // Reset player speed bar
             if (this.playerSpeedBar) {
                 this.playerSpeedBar.bar.width = this.playerSpeedBar.maxWidth;
+            }
+
+            // Reset boss HUD bars
+            if (this.bossHpBar) {
+                const bh = this.bossHpBar.barHeight;
+                const r = bh / 2;
+                this.bossHpBar.bar.clear();
+                this.bossHpBar.bar.roundRect(0, 0, this.bossHpBar.maxWidth, bh, r);
+                this.bossHpBar.bar.fill(0xf44336);
+                this.bossHpBar.bar.width = this.bossHpBar.maxWidth;
+                this.bossHpBar.bar.alpha = 1;
+                this.bossHpBar.barBg.alpha = 1;
+                this.bossHpBar.border.alpha = 1;
+                this.bossHpBar.text.alpha = 1;
+                this.bossHpBar.text.text = '100/100';
+            }
+            if (this.bossSpeedBar) {
+                this.bossSpeedBar.bar.width = this.bossSpeedBar.maxWidth;
+                this.bossSpeedBar.bar.alpha = 1;
+                this.bossSpeedBar.barBg.alpha = 1;
+                if (this.bossSpeedBar.text) this.bossSpeedBar.text.alpha = 1;
             }
             
             // Handle shot buff aura changes between stages

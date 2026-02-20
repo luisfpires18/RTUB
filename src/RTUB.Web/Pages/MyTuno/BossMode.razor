@@ -14,6 +14,7 @@
 @using RTUB.Shared
 @using RTUB.Shared.Base
 @using RTUB.Shared.Components.UI
+@using RTUB.Shared.Components.Game
 @using System.Text.Json
 @using Microsoft.Extensions.Options
 @using RTUB.Application.Configuration
@@ -37,16 +38,12 @@
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
 
 <div class="stage-page">
-    <div class="d-flex flex-column gap-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center gap-3">
-            <button class="btn btn-outline-secondary" @onclick="GoBack" title="Voltar">
-                <i class="bi bi-arrow-left"></i>
-            </button>
-            <div class="flex-grow-1 text-center">
-                <h1 class="mb-2"><i class="bi bi-lightning-fill text-warning"></i> Boss Mode</h1>
-            </div>
-            <div style="width: 48px;"></div>
-        </div>
+    <div class="boss-header">
+        <button class="boss-back-btn" @onclick="GoBack" title="Voltar">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h1 class="boss-title"><i class="bi bi-lightning-fill"></i> Boss Mode</h1>
+        <div class="boss-header-spacer"></div>
     </div>
 
     @if (loading)
@@ -61,8 +58,9 @@
     }
     else if (errorMessage != string.Empty)
     {
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        <div class="boss-error-panel">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@errorMessage</span>
         </div>
     }
     else
@@ -101,119 +99,77 @@
             <!-- Active Buff Indicators -->
             @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
             {
-                <div class="d-flex gap-2 mb-3 flex-wrap">
+                <div class="boss-buff-strip">
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-wind me-1"></i>10% Dodge @character.CigarroShieldHitsRemaining runs
-                        </span>
+                        <span class="boss-buff-tag boss-buff-tag--dodge"><i class="bi bi-wind"></i> 10% Dodge @character.CigarroShieldHitsRemaining runs</span>
                     }
                     @if (character.CanhaoDamageBoostHitsRemaining > 0)
                     {
-                        <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE
-                        </span>
+                        <span class="boss-buff-tag boss-buff-tag--aoe"><i class="bi bi-bullseye"></i> @character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
                     }
                     @if (character.PenaltyBuffActive > 0)
                     {
-                        <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas
-                        </span>
+                        <span class="boss-buff-tag boss-buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i> Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas</span>
                     }
                 </div>
             }
 
             @if (bossesCleared > 0)
             {
-                <div class="card mb-4 rewards-card">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="bi bi-gift me-2"></i>Progresso:</h6>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>@Fmt(bossesCleared) Bosses
-                            </span>
-                            <span class="badge bg-info text-dark">
-                                <i class="bi bi-coin me-1"></i>+@Fmt(totalFidelisEarned) Fidelis
-                            </span>
-                            @if (totalLeitaoDropped > 0)
-                            {
-                                <span class="badge" style="background-color: #ffb6c1; color: #333;">
-                                    <span class="me-1">🐷</span>+@Fmt(totalLeitaoDropped) Leitão
-                                </span>
-                            }
-                            @if (totalFinosDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalFinosDropped) Fino
-                                </span>
-                            }
-                            @if (totalCanecasDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-cup-straw me-1"></i>+@Fmt(totalCanecasDropped) Caneca
-                                </span>
-                            }
-                            @if (totalCigarrosDropped > 0)
-                            {
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-cloud me-1"></i>+@Fmt(totalCigarrosDropped) Cigarro
-                                </span>
-                            }
-                            @if (totalCanhaosDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-bullseye me-1"></i>+@Fmt(totalCanhaosDropped) Canhão
-                                </span>
-                            }
-                            @if (totalShotsDropped > 0)
-                            {
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-cup me-1"></i>+@Fmt(totalShotsDropped) Shot
-                                </span>
-                            }
-                            @if (totalPenaltiesDropped > 0)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-lightning-charge-fill me-1"></i>+@Fmt(totalPenaltiesDropped) Penalty
-                                </span>
-                            }
-                        </div>
+                <div class="boss-fantasy-panel">
+                    <div class="boss-panel-header"><i class="bi bi-gift"></i> Progresso</div>
+                    <div class="boss-loot-grid">
+                        <FantasyTile Icon="bi-check-circle-fill" Label="Bosses" Value="@Fmt(bossesCleared)" Color="green" Size="sm" />
+                        <FantasyTile Icon="bi-coin" Label="Fidelis" Value="@($"+{Fmt(totalFidelisEarned)}")" Color="purple" Size="sm" />
+                        @if (totalLeitaoDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-piggy-bank" Label="Leitão" Value="@($"+{Fmt(totalLeitaoDropped)}")" Color="red" Size="sm" />
+                        }
+                        @if (totalFinosDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-cup-straw" Label="Fino" Value="@($"+{Fmt(totalFinosDropped)}")" Color="yellow" Size="sm" />
+                        }
+                        @if (totalCanecasDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-cup-straw" Label="Caneca" Value="@($"+{Fmt(totalCanecasDropped)}")" Color="yellow" Size="sm" />
+                        }
+                        @if (totalCigarrosDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-cloud" Label="Cigarro" Value="@($"+{Fmt(totalCigarrosDropped)}")" Color="gray" Size="sm" />
+                        }
+                        @if (totalCanhaosDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-bullseye" Label="Canhão" Value="@($"+{Fmt(totalCanhaosDropped)}")" Color="red" Size="sm" />
+                        }
+                        @if (totalShotsDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-cup" Label="Shot" Value="@($"+{Fmt(totalShotsDropped)}")" Color="cyan" Size="sm" />
+                        }
+                        @if (totalPenaltiesDropped > 0)
+                        {
+                            <FantasyTile Icon="bi-lightning-charge-fill" Label="Penalty" Value="@($"+{Fmt(totalPenaltiesDropped)}")" Color="orange" Size="sm" />
+                        }
                     </div>
                 </div>
             }
 
             @if (currentEnemyStats.Count > 0)
             {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h6 class="mb-2"><i class="bi bi-lightning-fill text-warning me-2"></i>Boss Stats</h6>
-                        @foreach (var enemy in currentEnemyStats)
-                        {
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                <span class="badge bg-light text-dark fw-bold">@enemy.Name</span>
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-heart-fill me-1"></i>
-                                    @if (enemy.MaxHP is > 0 && enemy.HP < enemy.MaxHP)
-                                    {
-                                        <text>@Fmt(enemy.HP)/@Fmt(enemy.MaxHP.Value) HP</text>
-                                    }
-                                    else
-                                    {
-                                        <text>@Fmt(enemy.HP) HP</text>
-                                    }
-                                </span>
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-lightning-fill me-1"></i>@Fmt(enemy.Power) Poder
-                                </span>
-                                <span class="badge bg-primary">
-                                    <i class="bi bi-shield-fill me-1"></i>@Fmt(enemy.Defense) Defesa
-                                </span>
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-speedometer2 me-1"></i>@enemy.ActionTime.ToString("0.#") s
-                                </span>
-                            </div>
-                        }
-                    </div>
+                <div class="boss-fantasy-panel">
+                    <div class="boss-panel-header"><i class="bi bi-lightning-fill"></i> Boss Stats</div>
+                    @foreach (var enemy in currentEnemyStats)
+                    {
+                        <div class="boss-panel-enemy-name">@enemy.Name</div>
+                        <div class="boss-stats-grid">
+                            <FantasyTile Icon="bi-heart-fill" Label="HP"
+                                         Value="@(enemy.MaxHP is > 0 && enemy.HP < enemy.MaxHP ? $"{Fmt(enemy.HP)}/{Fmt(enemy.MaxHP.Value)}" : Fmt(enemy.HP))"
+                                         Color="red" Size="sm" />
+                            <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(enemy.Power)" Color="green" Size="sm" />
+                            <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(enemy.Defense)" Color="gray" Size="sm" />
+                            <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{enemy.ActionTime:0.#}s")" Color="blue" Size="sm" />
+                        </div>
+                    }
                 </div>
             }
         }
@@ -308,26 +264,26 @@
                             <div class="buff-active-list">
                                 @if (character.ShotBuffBattlesRemaining > 0)
                                 {
-                                    <span class="badge bg-info buff-badge">
-                                        <i class="bi bi-droplet-fill me-1"></i>Shot (@character.ShotBuffBattlesRemaining batalhas)
+                                    <span class="boss-buff-tag boss-buff-tag--dodge">
+                                        <i class="bi bi-droplet-fill"></i> Shot (@character.ShotBuffBattlesRemaining batalhas)
                                     </span>
                                 }
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
-                                    <span class="badge bg-info buff-badge">
-                                        <i class="bi bi-wind me-1"></i>Cigarro (10% Dodge @character.CigarroShieldHitsRemaining runs)
+                                    <span class="boss-buff-tag boss-buff-tag--dodge">
+                                        <i class="bi bi-wind"></i> Cigarro (10% Dodge @character.CigarroShieldHitsRemaining runs)
                                     </span>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
                                 {
-                                    <span class="badge bg-danger buff-badge">
-                                        <i class="bi bi-bullseye me-1"></i>Canhão (@character.CanhaoDamageBoostHitsRemaining corridas)
+                                    <span class="boss-buff-tag boss-buff-tag--aoe">
+                                        <i class="bi bi-bullseye"></i> Canhão (@character.CanhaoDamageBoostHitsRemaining corridas)
                                     </span>
                                 }
                                 @if (character.PenaltyBuffActive > 0)
                                 {
-                                    <span class="badge bg-warning text-dark buff-badge">
-                                        <i class="bi bi-lightning-charge-fill me-1"></i>Penalty Ativo
+                                    <span class="boss-buff-tag boss-buff-tag--penalty">
+                                        <i class="bi bi-lightning-charge-fill"></i> Penalty Ativo
                                     </span>
                                 }
                             </div>
@@ -554,6 +510,7 @@
     private bool pendingDefeatRewards = false;
     private bool _disposed = false;
     private bool _runAlreadyStarted = false;
+    private bool _precomputedWin = false;
 
     // Defeat summary
     private bool showDefeatSummary = false;
@@ -614,7 +571,7 @@
                 catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
                 {
                     errorMessage = ex.Message.Contains("Level")
-                        ? "Precisas de Level 10 para aceder ao Boss Mode."
+                        ? "Precisas de Level 100 para aceder ao Boss Mode."
                         : "Não tens FITAB suficiente para entrar no Boss Mode.";
                     Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
                     StateHasChanged();
@@ -670,10 +627,10 @@
 
                     if (character != null && bossModeProgress != null)
                     {
-                        // Level gate: must be level 10+
-                        if (character.Level < 10)
+                        // Level gate: must be level 100+
+                        if (character.Level < 100)
                         {
-                            errorMessage = "Precisas de Level 10 para aceder ao Boss Mode.";
+                            errorMessage = "Precisas de Level 100 para aceder ao Boss Mode.";
                             return;
                         }
 
@@ -686,7 +643,7 @@
         catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
         {
             errorMessage = ex.Message.Contains("Level")
-                ? "Precisas de Level 10 para aceder ao Boss Mode."
+                ? "Precisas de Level 100 para aceder ao Boss Mode."
                 : "Não tens FITAB suficiente para entrar no Boss Mode.";
             Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
         }
@@ -732,7 +689,7 @@
             catch (InvalidOperationException ex) when (ex.Message.Contains("FITAB") || ex.Message.Contains("Level"))
             {
                 errorMessage = ex.Message.Contains("Level")
-                    ? "Precisas de Level 10 para aceder ao Boss Mode."
+                    ? "Precisas de Level 100 para aceder ao Boss Mode."
                     : "Não tens FITAB suficiente para entrar no Boss Mode.";
                 Logger.LogWarning(ex, "User tried to enter Boss Mode without meeting requirements");
                 return;
@@ -785,6 +742,7 @@
             var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
 
             currentBattle = await BossModeService.ExecuteBossBattleAsync(character.Id);
+            _precomputedWin = currentBattle.Outcome == BattleOutcome.AttackerWon;
 
             if (currentBattle.Outcome != BattleOutcome.AttackerWon)
             {
@@ -1102,10 +1060,31 @@
             }
         }
 
+        // Capture interactive session boss state before nulling the session
+        long interactiveBossRemainingHP = _combatSession?.Enemies?.FirstOrDefault()?.CurrentHP ?? 0;
+        long interactiveBossMaxHP = _combatSession?.Enemies?.FirstOrDefault()?.MaxHP ?? 0;
+
         _combatSession = null;
 
         if (didWin)
         {
+            // Confirm the win — this is where the boss stage actually advances.
+            // AdvanceBossStage was deferred from ExecuteBossBattleAsync to prevent
+            // DailyBossStage from advancing if the player disconnects mid-animation.
+            // (Skip if CorrectInteractiveWinAsync already advanced it above.)
+            if (_precomputedWin && currentUser != null)
+            {
+                try
+                {
+                    await BossModeService.ConfirmBossVictoryAsync(currentUser.Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error confirming boss victory");
+                }
+            }
+            _precomputedWin = false;
+
             // Accumulate rewards
             totalFidelisEarned += currentBattle.FidelisReward;
             totalLeitaoDropped += currentBattle.LeitaoDropped;
@@ -1145,6 +1124,26 @@
         }
         else
         {
+            // If pre-computed said WIN but interactive session determined LOSS,
+            // record the defeat server-side (save boss HP, end run).
+            if (_precomputedWin && currentUser != null)
+            {
+                pendingDefeatRewards = true;
+                defeatRestoreHp = runStartingHp;
+                runInProgress = false;
+                runStartingHp = null;
+                try
+                {
+                    await BossModeService.RecordInteractiveDefeatAsync(
+                        currentUser.Id, interactiveBossRemainingHP, interactiveBossMaxHP);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error recording interactive defeat in boss mode");
+                }
+            }
+            _precomputedWin = false;
+
             // Defeated — show buff screen (use consumables & try again)
             defeatedAtBossStage = currentBattle.BossStage;
 

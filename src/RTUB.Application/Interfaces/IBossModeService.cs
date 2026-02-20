@@ -59,6 +59,19 @@ public interface IBossModeService
     string GetBackgroundPath();
 
     /// <summary>
+    /// Confirms a boss victory after the interactive combat session agrees with the
+    /// pre-computed win. Advances the boss stage — deferred from ExecuteBossBattleAsync
+    /// to prevent stage advancement if the player disconnects mid-animation.
+    /// </summary>
+    Task ConfirmBossVictoryAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records a defeat when the interactive session overrides a pre-computed win.
+    /// Saves the boss's remaining HP and ends the run.
+    /// </summary>
+    Task RecordInteractiveDefeatAsync(string userId, long bossRemainingHP, long bossMaxHP, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Corrects server-side boss progress when the interactive combat session
     /// wins a battle that the deterministic engine predicted as a loss.
     /// Undoes the EndRun that was saved during ExecuteBossBattleAsync and advances the boss stage.

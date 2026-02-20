@@ -124,8 +124,8 @@ public class BossModeService : IBossModeService
 
         // Check level requirement
         var character = await _characterRepository.GetByUserIdAsync(userId);
-        if (character == null || character.Level < 10)
-            throw new InvalidOperationException("Level 10 required to enter Boss Mode.");
+        if (character == null || character.Level < 100)
+            throw new InvalidOperationException("Level 100 required to enter Boss Mode.");
 
         if (user.FitabBalance < 1)
             throw new InvalidOperationException("Not enough FITAB to enter Boss Mode. You need at least 1 FITAB.");
@@ -327,9 +327,22 @@ public class BossModeService : IBossModeService
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
 
+        var loot = new List<string>();
+        if (fidelis > 0)  loot.Add($"+{fidelis} Fidelis");
+        if (leitao > 0)   loot.Add($"+{leitao} Leitão");
+        if (finos > 0)    loot.Add($"+{finos} finos");
+        if (canecas > 0)  loot.Add($"+{canecas} canecas");
+        if (cigarros > 0) loot.Add($"+{cigarros} cigarros");
+        if (canhaos > 0)  loot.Add($"+{canhaos} canhaos");
+        if (shots > 0)    loot.Add($"+{shots} shots");
+        if (penalties > 0) loot.Add($"+{penalties} penalties");
+
+        var instrTotal = instrumentParts?.Values.Sum() ?? 0;
+        if (instrTotal > 0) loot.Add($"+{instrTotal} instrument parts");
+
         _logger.LogInformation(
-            "Applied boss run rewards for {UserName}: +{Fidelis} Fidelis, +{Leitao} Leitão, +{Finos} finos, +{Canecas} canecas, +{Cigarros} cigarros, +{Canhaos} canhaos, +{Shots} shots",
-            user?.UserName ?? "unknown", fidelis, leitao, finos, canecas, cigarros, canhaos, shots);
+            "Applied boss run rewards for {UserName}: {Loot}",
+            user?.UserName ?? "unknown", loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
     }
 
     /// <inheritdoc />
@@ -528,6 +541,42 @@ public class BossModeService : IBossModeService
     /// On defeat, saves the boss's remaining HP so the next run continues where this one left off.
     /// </summary>
     /// <inheritdoc />
+    public async Task ConfirmBossVictoryAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+        // Only advance if the run is still active (CurrentBossStage > 0).
+        // This is the deferred advancement from UpdateProgressAfterBattle.
+        if (progress.CurrentBossStage > 0)
+        {
+            progress.AdvanceBossStage();
+            await _bossModeProgressRepository.UpdateAsync(progress);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task RecordInteractiveDefeatAsync(string userId, long bossRemainingHP, long bossMaxHP, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+        // Pre-computed engine predicted a win but the interactive session determined a loss.
+        // Save the boss's remaining HP and end the run.
+        if (progress.CurrentBossStage > 0)
+        {
+            if (bossRemainingHP > 0)
+                progress.SaveBossHP(bossRemainingHP, bossMaxHP);
+            progress.EndRun();
+            await _bossModeProgressRepository.UpdateAsync(progress);
+        }
+    }
+
+    /// <inheritdoc />
     public async Task CorrectInteractiveWinAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId))
@@ -569,7 +618,10 @@ public class BossModeService : IBossModeService
                 {
                     if (combatResult.Outcome == BattleOutcome.AttackerWon)
                     {
-                        progress.AdvanceBossStage();
+                        // Don't advance stage here — defer to ConfirmBossVictoryAsync
+                        // which is called from OnBattleFinished after the interactive
+                        // session confirms the win. This prevents DailyBossStage from
+                        // advancing prematurely if the player disconnects mid-animation.
                     }
                     else
                     {

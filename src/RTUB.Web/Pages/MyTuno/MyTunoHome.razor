@@ -1634,59 +1634,58 @@
                Size="Modal.ModalSize.Default"
                Centered="true">
             <BodyContent>
-                <div class="text-center mb-4">
-                    <h5 class="mb-2">
-                        <i class="bi bi-lightning-fill text-warning me-2"></i>Boss Mode
-                    </h5>
-                    <p class="text-muted">Enfrenta bosses cada vez mais fortes numa batalha sem fim!</p>
-                </div>
-                
-                @if (bossModeProgress != null)
-                {
-                    <div class="text-center mb-3">
-                        <h6>
-                            Recorde: <span class="text-warning">Boss #@bossModeProgress.HighestBossStage</span>
-                        </h6>
-                        <p class="text-muted small">Total de runs: @bossModeProgress.TotalRunsAttempted</p>
+                <div class="bm-modal">
+                    <div class="bm-modal__hero">
+                        <i class="bi bi-lightning-fill bm-modal__hero-icon"></i>
+                        <h5 class="bm-modal__title">Boss Mode</h5>
+                        <p class="bm-modal__subtitle">Enfrenta bosses cada vez mais fortes numa batalha sem fim!</p>
                     </div>
-                }
 
-                <div class="alert text-white" style="background-color: #7b1fa2;">
-                    <i class="bi bi-lightning-fill me-2"></i>
-                    Custa <strong>1 FITAB</strong> para entrar. Tens <strong>@(currentUser?.FitabBalance ?? 0) FITAB</strong>.
-                </div>
+                    @if (bossModeProgress != null)
+                    {
+                        <div class="bm-modal__record">
+                            <span>Recorde: <strong class="bm-modal__record-val">Boss #@bossModeProgress.HighestBossStage</strong></span>
+                            <span class="bm-modal__record-runs">Total de runs: @bossModeProgress.TotalRunsAttempted</span>
+                        </div>
+                    }
 
-                <div class="alert text-white" style="background-color: #9c27b0;">
-                    <i class="bi bi-shield-lock me-2"></i>
-                    Requer <strong>Level 10</strong> para entrar. O teu nível: <strong>@(character?.Level ?? 0)</strong>.
-                </div>
-
-                <div class="alert text-white" style="background-color: #6a1b9a;">
-                    <i class="bi bi-arrow-repeat me-2"></i>
-                    A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e floor) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.
-                </div>
-                
-                @if ((character?.Level ?? 0) < 10)
-                {
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Precisas de atingir Level 10 para aceder ao Boss Mode.
+                    <div class="bm-modal__info-card bm-modal__info-card--fitab">
+                        <i class="bi bi-lightning-fill"></i>
+                        <span>Custa <strong>1 FITAB</strong> para entrar. Tens <strong>@(currentUser?.FitabBalance ?? 0) FITAB</strong>.</span>
                     </div>
-                }
-                else if ((currentUser?.FitabBalance ?? 0) < 1)
-                {
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        Não tens FITAB suficiente! FITAB é um drop raro nos Floors e Arena.
+
+                    <div class="bm-modal__info-card bm-modal__info-card--level">
+                        <i class="bi bi-shield-lock"></i>
+                        <span>Requer <strong>Level 100</strong> para entrar. O teu nível: <strong>@(character?.Level ?? 0)</strong>.</span>
                     </div>
-                }
+
+                    <div class="bm-modal__info-card bm-modal__info-card--daily">
+                        <i class="bi bi-arrow-repeat"></i>
+                        <span>A batalha é <strong>contínua durante o dia</strong>. O progresso do boss (HP e floor) mantém-se entre runs até ao reset diário à <strong>00:00</strong>.</span>
+                    </div>
+
+                    @if ((character?.Level ?? 0) < 100)
+                    {
+                        <div class="bm-modal__warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Precisas de atingir Level 100 para aceder ao Boss Mode.</span>
+                        </div>
+                    }
+                    else if ((currentUser?.FitabBalance ?? 0) < 1)
+                    {
+                        <div class="bm-modal__warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Não tens FITAB suficiente! FITAB é um drop raro nos Floors e Arena.</span>
+                        </div>
+                    }
+                </div>
             </BodyContent>
             <FooterContent>
-                <button class="btn btn-secondary" @onclick="CloseBossModeModal">
-                    <i class="bi bi-x-lg me-2"></i>Fechar
+                <button class="bm-modal__btn bm-modal__btn--close" @onclick="CloseBossModeModal">
+                    <i class="bi bi-x-lg me-1"></i>Fechar
                 </button>
-                <button class="btn btn-warning" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 10)">
-                    <i class="bi bi-lightning-fill me-2"></i>Entrar (1 FITAB)
+                <button class="bm-modal__btn bm-modal__btn--enter" @onclick="StartBossMode" disabled="@((currentUser?.FitabBalance ?? 0) < 1 || (character?.Level ?? 0) < 100)">
+                    <i class="bi bi-lightning-fill me-1"></i>Entrar (1 FITAB)
                 </button>
             </FooterContent>
         </Modal>
