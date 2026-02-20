@@ -311,6 +311,7 @@
     private bool showDefeatSummary = false;
     private int defeatedAtStage = 0;
     private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
+    private int? defeatStartStage; // The starting stage of the run (saved at defeat for logging)
     private int? retryStartStage; // The stage the user started the run from (for RECOMEÇAR)
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
@@ -467,7 +468,7 @@
                 // Reset cooldowns for the new run
                 _consumableCooldowns.Clear();
                 _preservedSpellCooldowns = null;
-                Logger.LogInformation("Stage mode started by {UserName} at stage {Stage}", currentUser.UserName, stageProgress.CurrentStage);
+                Logger.LogInformation("Stage mode started by {UserName} at floor {Stage}", currentUser.UserName, stageProgress.CurrentStage);
 
                 // Load consumable quantities for in-fight bar (once per run)
                 try
@@ -576,7 +577,8 @@
             {
                 // Save the pre-run HP before clearing run state
                 defeatRestoreHp = runStartingHp;
-                // Save starting stage for RECOMEÇAR before clearing
+                // Save starting stage for logging and RECOMEÇAR before clearing
+                defeatStartStage = runStartingStage ?? currentStageNumber;
                 retryStartStage = runStartingStage ?? currentStageNumber;
                 // Mark run as finished IMMEDIATELY
                 runInProgress = false;
@@ -1048,7 +1050,7 @@
                 {
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, runStartingStage ?? currentStageNumber, currentStageNumber);
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? currentStageNumber, currentStageNumber);
                 }
                 catch (Exception ex)
                 {
@@ -1446,7 +1448,7 @@
             {
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, runStartingStage ?? currentStageNumber, currentStageNumber);
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? runStartingStage ?? currentStageNumber, currentStageNumber);
             }
             catch (Exception)
             {

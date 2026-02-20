@@ -794,7 +794,7 @@ public class StageService : IStageService
         int startStage, int endStage)
     {
         var stageRange = startStage > 0 && endStage > 0
-            ? $"(Stage {startStage} - Stage {endStage})"
+            ? $"(Floor {startStage} - Floor {endStage})"
             : string.Empty;
 
         var loot = new List<string>();

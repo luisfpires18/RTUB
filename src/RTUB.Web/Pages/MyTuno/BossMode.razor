@@ -502,6 +502,7 @@
 
     // Run state tracking
     private long? runStartingHp;
+    private int runStartingBossStage;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroBuff = 0;
     private int runStartingCanhaoBuff = 0;
@@ -699,6 +700,7 @@
         if (!runInProgress)
             {
                 runStartingHp = character.CurrentHP;
+                runStartingBossStage = bossModeProgress.CurrentBossStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
                 runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
@@ -1220,7 +1222,9 @@
                         runStartingHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                         expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                        expirePenaltyBuff: false);
+                        expirePenaltyBuff: false,
+                        startBossFloor: runStartingBossStage,
+                        endBossFloor: runStartingBossStage + bossesCleared - 1);
                 }
                 catch (Exception ex)
                 {
@@ -1377,7 +1381,9 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0,
+                    startBossFloor: runStartingBossStage,
+                    endBossFloor: defeatedAtBossStage);
             }
             catch (Exception ex)
             {
@@ -1602,7 +1608,9 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0);
+                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0,
+                    startBossFloor: runStartingBossStage,
+                    endBossFloor: defeatedAtBossStage);
             }
             catch (Exception) { }
             pendingDefeatRewards = false;

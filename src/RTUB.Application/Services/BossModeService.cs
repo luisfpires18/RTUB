@@ -263,6 +263,8 @@ public class BossModeService : IBossModeService
         Dictionary<InventoryItemType, int>? instrumentParts = null,
         bool expireShotBuff = false,
         bool expirePenaltyBuff = false,
+        int startBossFloor = 0,
+        int endBossFloor = 0,
         CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
@@ -340,9 +342,13 @@ public class BossModeService : IBossModeService
         var instrTotal = instrumentParts?.Values.Sum() ?? 0;
         if (instrTotal > 0) loot.Add($"+{instrTotal} instrument parts");
 
+        var floorRange = startBossFloor > 0 && endBossFloor > 0
+            ? $"(Floor {startBossFloor} - Floor {endBossFloor})"
+            : string.Empty;
+
         _logger.LogInformation(
-            "Applied boss run rewards for {UserName}: {Loot}",
-            user?.UserName ?? "unknown", loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
+            "Applied boss run rewards for {UserName} {FloorRange}: {Loot}",
+            user?.UserName ?? "unknown", floorRange, loot.Count > 0 ? string.Join(", ", loot) : "no rewards");
     }
 
     /// <inheritdoc />
