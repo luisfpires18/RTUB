@@ -8,30 +8,30 @@
 
 | Stat | baseCost | costPerLevel | Max Lvl | Flat Bonus/Lvl | Total Invested | Leitão Start Level |
 |------|----------|-------------|---------|----------------|----------------|--------------------|
-| HP | 80 | 80 | ∞ | +100 HP | 404,000 (at 100) | 100 |
-| Power | 80 | 80 | ∞ | +15 Power | 404,000 (at 100) | 100 |
-| Defense | 80 | 80 | ∞ | +12 Defense | 404,000 (at 100) | 100 |
+| HP | 80 | 80 | ∞ | +100 HP | 404,000 (at 100) | **300** |
+| Power | 80 | 80 | ∞ | +15 Power | 404,000 (at 100) | **300** |
+| Defense | 80 | 80 | ∞ | +12 Defense | 404,000 (at 100) | **300** |
 | **Speed** | **175** | **175** | **41** | +1.5 Speed | **150,675** | **20** |
 | **Crit** | **140** | **140** | **100** | +0.5% Crit | **714,000** | **50** |
 
 ### Leitão Costs for Stat Upgrades
 
-Leitão cost begins at **level 100** for stat upgrades (HP, Power, Defense). Since Speed (max 41) and Crit (max 80) are capped below 100, they **never require Leitão**.
+Leitão cost begins at **level 300** for stat upgrades (HP, Power, Defense). Speed (max 41) and Crit (max 100) are capped well below 300, so they **never require Leitão**.
 
 | Config Key | Value |
 |------------|------:|
-| `statUpgradeStartLevel` | 100 |
+| `statUpgradeStartLevel` | 300 |
 | `statUpgradeBaseCost` | 1 |
 | `statUpgradeCostEveryNLevels` | 5 |
 
 | Level Range | Leitão Cost |
 |-------------|------------:|
-| 1–99 | 0 |
-| 100–104 | 1 |
-| 105–109 | 2 |
-| 110–114 | 3 |
-| 115–119 | 4 |
-| 120–124 | 5 |
+| 1–299 | 0 |
+| 300–304 | 1 |
+| 305–309 | 2 |
+| 310–314 | 3 |
+| 315–319 | 4 |
+| 320–324 | 5 |
 | ... | +1 every 5 levels |
 
 Leitões are earned exclusively from **Boss Mode** victories.

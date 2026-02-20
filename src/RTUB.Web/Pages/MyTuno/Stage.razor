@@ -537,7 +537,7 @@
                 MaxHP = e.HP,
                 Power = e.Power,
                 Defense = e.Defense,
-                CriticalChance = 0.05, // Default enemy crit chance
+                CriticalChance = e.CritChance, // Biome-based enemy crit chance
                 ActionTimeSeconds = e.ActionTime
             }).ToList();
             // Use buffed copies when consumable buffs are active — matches the

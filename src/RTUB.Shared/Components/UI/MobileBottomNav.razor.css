@@ -1,7 +1,7 @@
 /* ==========================================
    Mobile Bottom Navigation Bar
    Fixed to bottom, dark/purple theme, white text
-   Only visible on mobile (≤767px)
+   Visible on mobile and tablet (≤1024px)
    ========================================== */
 
 /* Hidden on desktop by default */
@@ -9,7 +9,7 @@
     display: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
     .mobile-bottom-nav {
         display: flex;
         position: fixed;

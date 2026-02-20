@@ -836,7 +836,7 @@
                         if (equippedWeapon != null)
                             combatInstrumentType = InstrumentTypeHelper.FromInventoryPartType(equippedWeapon.SourceInstrument);
                     }
-                    _starterSpells = SpecialAttackDefinitions.GetCombatAbilities(combatInstrumentType);
+                    _starterSpells = null; // Special attacks disabled in Boss Mode
                     var enemyStates = currentEnemyStats.Select((e, i) => new CombatantState
                     {
                         Identifier = $"Enemy{i}",
@@ -890,17 +890,7 @@
                             e.MaxHP,
                             ActionTime = e.ActionTimeSeconds
                         }),
-                        Spells = _starterSpells.Select(s => new
-                        {
-                            s.AttackId,
-                            s.Name,
-                            s.Icon,
-                            VfxType = (int)s.VfxType,
-                            s.VfxColor,
-                            s.CooldownSeconds,
-                            s.ScreenShake,
-                            Target = (int)s.Target
-                        }),
+                        Spells = Array.Empty<object>(),
                         Consumables = new
                         {
                             Fino = _finoQty,

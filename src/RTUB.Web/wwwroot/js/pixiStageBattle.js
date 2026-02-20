@@ -844,29 +844,29 @@
             // Adjust spacing based on enemy count - tighter when more enemies
             let hSpacing, vSpacing;
             if (enemyCount >= 9) {
-                hSpacing = isMobile ? 45 : 80;
-                vSpacing = isMobile ? 55 : 80;
+                hSpacing = isMobile ? 45 : 105;
+                vSpacing = isMobile ? 55 : 105;
             } else if (enemyCount >= 8) {
-                hSpacing = isMobile ? 48 : 85;
-                vSpacing = isMobile ? 58 : 85;
+                hSpacing = isMobile ? 48 : 115;
+                vSpacing = isMobile ? 58 : 115;
             } else if (enemyCount >= 7) {
-                hSpacing = isMobile ? 52 : 90;
-                vSpacing = isMobile ? 62 : 90;
+                hSpacing = isMobile ? 52 : 125;
+                vSpacing = isMobile ? 62 : 125;
             } else if (enemyCount >= 6) {
-                hSpacing = isMobile ? 58 : 90;
-                vSpacing = isMobile ? 68 : 90;
+                hSpacing = isMobile ? 58 : 140;
+                vSpacing = isMobile ? 68 : 140;
             } else if (enemyCount >= 5) {
-                hSpacing = isMobile ? 70 : 130;
-                vSpacing = isMobile ? 80 : 130;
+                hSpacing = isMobile ? 70 : 165;
+                vSpacing = isMobile ? 80 : 165;
             } else if (enemyCount >= 4) {
-                hSpacing = isMobile ? 75 : 115;
-                vSpacing = isMobile ? 85 : 115;
+                hSpacing = isMobile ? 75 : 175;
+                vSpacing = isMobile ? 85 : 175;
             } else {
-                hSpacing = isMobile ? 90 : 140;
-                vSpacing = isMobile ? 100 : 130;
+                hSpacing = isMobile ? 90 : 190;
+                vSpacing = isMobile ? 100 : 175;
             }
             
-            const aerialOffset = isMobile ? 80 : 120; // How high aerial enemies fly
+            const aerialOffset = isMobile ? 80 : 200; // How high aerial enemies fly
             
             // Calculate X bounds to keep enemies on screen
             const maxX = width - 40;
@@ -931,7 +931,7 @@
             // If all same type with 5+ enemies, use staggered formation
             if (enemyCount >= 5 && (aerialIndices.length === enemyCount || terrestrialIndices.length === enemyCount)) {
                 const baseYForType = aerialIndices.length === enemyCount ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 55 : 80;
+                const smallVOffset = isMobile ? 55 : 130;
                 
                 // For 5 enemies: staggered 2-1-2 pattern with wider spread
                 if (enemyCount === 5) {
@@ -999,30 +999,34 @@
             // If 4 enemies of same type, use 2x2 grid
             if (enemyCount === 4 && (aerialIndices.length === 4 || terrestrialIndices.length === 4)) {
                 const baseYForType = aerialIndices.length === 4 ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 55 : 75;
+                const smallVOffset = isMobile ? 55 : 130;
+                // Desktop: use full hSpacing so each enemy has its own column
+                const colGap = isMobile ? hSpacing / 2 : hSpacing * 0.6;
                 
                 let centerX = baseX;
-                if (centerX + hSpacing/2 > maxX) centerX = maxX - hSpacing/2;
-                if (centerX - hSpacing/2 < minX) centerX = minX + hSpacing/2;
+                if (centerX + colGap > maxX) centerX = maxX - colGap;
+                if (centerX - colGap < minX) centerX = minX + colGap;
                 
-                tempPositions[0] = { x: centerX - hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
-                tempPositions[1] = { x: centerX + hSpacing/2, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
-                tempPositions[2] = { x: centerX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
-                tempPositions[3] = { x: centerX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 4 };
+                tempPositions[0] = { x: centerX - colGap, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[1] = { x: centerX + colGap, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 4 };
+                tempPositions[2] = { x: centerX - colGap, y: baseYForType, isAerial: aerialIndices.length === 4 };
+                tempPositions[3] = { x: centerX + colGap, y: baseYForType, isAerial: aerialIndices.length === 4 };
             }
             
             // If 3 enemies, triangle
             if (enemyCount === 3 && (aerialIndices.length === 3 || terrestrialIndices.length === 3)) {
                 const baseYForType = aerialIndices.length === 3 ? baseY - aerialOffset : baseY;
-                const smallVOffset = isMobile ? 55 : 75;
+                const smallVOffset = isMobile ? 55 : 130;
+                // Desktop: wider spread so sprites don't overlap
+                const colGap = isMobile ? hSpacing / 2 : hSpacing * 0.55;
                 
                 let centerX = baseX;
-                if (centerX + hSpacing/2 > maxX) centerX = maxX - hSpacing/2;
-                if (centerX - hSpacing/2 < minX) centerX = minX + hSpacing/2;
+                if (centerX + colGap > maxX) centerX = maxX - colGap;
+                if (centerX - colGap < minX) centerX = minX + colGap;
                 
                 tempPositions[0] = { x: centerX, y: baseYForType - smallVOffset, isAerial: aerialIndices.length === 3 };
-                tempPositions[1] = { x: centerX - hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
-                tempPositions[2] = { x: centerX + hSpacing/2, y: baseYForType, isAerial: aerialIndices.length === 3 };
+                tempPositions[1] = { x: centerX - colGap, y: baseYForType, isAerial: aerialIndices.length === 3 };
+                tempPositions[2] = { x: centerX + colGap, y: baseYForType, isAerial: aerialIndices.length === 3 };
             }
             
             return tempPositions;
@@ -1210,10 +1214,13 @@
             const isMobile = width < 768;
             const btnGap = isMobile ? 6 : 10;
 
-            const consumables = [
+            const allConsumables = [
                 { type: 'fino',    name: 'Fino',    color: 0xf5a623, fallbackIcon: '🍺' },
                 { type: 'caneca',  name: 'Caneca',  color: 0xf5a623, fallbackIcon: '🍻' }
             ];
+            // Only render buttons for consumables the player actually has
+            const consumables = allConsumables.filter(c => (this.consumableQuantities[c.type] ?? 0) > 0);
+            if (consumables.length === 0) return; // Nothing to show
 
             // Responsive button size — larger on desktop
             const maxBarWidth = isMobile ? Math.min(width * 0.9, 320) : Math.min(width * 0.9, 420);
@@ -1517,6 +1524,8 @@
             // Show/hide empty overlay (hidden when cooldown overlay is showing)
             btn.emptyOverlay.visible = !isOnCooldown && (qty <= 0 || (btn.isBuffType && isActive));
             btn.container.cursor = isDisabled ? 'not-allowed' : 'pointer';
+            // Hide the entire button when qty reaches 0 (only show when player has the item)
+            btn.container.visible = qty > 0;
         }
 
         /** Update cooldown visuals for all consumable buttons (called each tick). */
@@ -3358,6 +3367,9 @@
                 if (this.playerSpeedBar.border) persistent.add(this.playerSpeedBar.border);
                 if (this.playerSpeedBar.text) persistent.add(this.playerSpeedBar.text);
             }
+            // Keep consumable and spell bars — recreating them causes CDN image flicker
+            if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
+            if (this.spellBarContainer) persistent.add(this.spellBarContainer);
             
             // Remove ONLY non-persistent children (enemies, log, result text, floating text)
             // Guard: stage may have been destroyed by GL context loss during async loadAssets
@@ -3475,8 +3487,23 @@
             // Restart battle
             if (this.interactiveMode) {
                 this.initInteractiveState();
-                this.createSpellBar();
-                this.createConsumableBar();
+                // Spell bar: recreate only if spells changed (currently always empty)
+                if (this.spells && this.spells.length > 0) {
+                    if (this.spellBarContainer) {
+                        this.spellBarContainer.destroy({ children: true, texture: false });
+                        this.spellBarContainer = null;
+                        this.spellButtons = [];
+                    }
+                    this.createSpellBar();
+                }
+                // Consumable bar: update in place — no destroy/recreate to avoid CDN flicker
+                if (this.consumableBarContainer && this.consumableButtons.length > 0) {
+                    for (const btn of this.consumableButtons) {
+                        this.updateConsumableButton(btn.type);
+                    }
+                } else {
+                    this.createConsumableBar();
+                }
                 this.startInteractiveBattle();
             } else {
                 this.preprocessInitialEvents();

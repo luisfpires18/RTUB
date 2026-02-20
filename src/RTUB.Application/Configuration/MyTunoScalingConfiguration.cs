@@ -5,16 +5,6 @@ public class MyTunoScalingConfiguration
     public const string SectionName = "myTuno";
 
     /// <summary>
-    /// Game version string displayed in the UI
-    /// </summary>
-    public string Version { get; set; } = "5.0.0";
-
-    /// <summary>
-    /// Game description displayed in the UI (Portuguese)
-    /// </summary>
-    public string Description { get; set; } = "Luta contra oponentes AI e melhora o teu personagem através de combates estratégicos.";
-
-    /// <summary>
     /// Upcoming features text displayed in the UI (Portuguese)
     /// </summary>
     public string NextFeatures { get; set; } = "Novos modos de jogo, equipamento personalizável, e torneios entre jogadores.";
@@ -227,6 +217,12 @@ public class StageModeConfig
     /// Boss stat multiplier applied to all enemy stats when the enemy is a boss.
     /// </summary>
     public double BossMultiplier { get; set; } = 1.8;
+
+    /// <summary>
+    /// Global buff multiplier applied to all stage enemy HP, Power, and Defense.
+    /// 1.01 = enemies are 1% stronger than tier base values.
+    /// </summary>
+    public double EnemyStatBuff { get; set; } = 1.0;
 
     /// <summary>
     /// Drop rates for items

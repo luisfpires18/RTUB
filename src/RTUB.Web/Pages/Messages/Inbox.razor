@@ -1205,7 +1205,8 @@
 
     private async Task ScrollToLatestMessageAsync()
     {
-        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottom", messageThreadBody);
+        // Use delayed scroll to ensure Blazor has fully painted the message list before scrolling
+        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomDelayed", messageThreadBody, 300);
     }
 
     /// <summary>

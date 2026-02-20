@@ -1,9 +1,5 @@
 {
   "myTuno": {
-    "version": "5.0.0",
-    "description": "Luta contra inimigos e melhora o teu personagem atraves de combates! Jogo ira estar em constante mudanca",
-    "nextFeatures": "Novos modos de jogo, equipamento personalizavel, graficos melhorados.",
-
     "baseStats": {
       "level": 1,
       "xp": 0,
@@ -15,10 +11,10 @@
     },
 
     "levelScaling": {
-      "maxLevel": 100,
+      "maxLevel": 1000,
       "bonusPerLevel": 0.008,
       "xpPerLevelBase": 100,
-      "xpGrowthExponent": 1.5
+      "xpGrowthExponent": 1.85
     },
 
     "upgrades": {
@@ -65,19 +61,6 @@
 
     },
 
-    "powers": {
-      "heavyAttack": {
-        "flatBonus": 0.05,
-        "baseCost": 100,
-        "costPerLevel": 100
-      },
-      "specialAttack": {
-        "flatBonus": 0.05,
-        "baseCost": 250,
-        "costPerLevel": 250
-      }
-    },
-
     "combat": {
       "defenseK": 500,
       "minDamage": 1,
@@ -118,6 +101,7 @@
 
     "stageMode": {
       "bossMultiplier": 1.8,
+      "enemyStatBuff": 1.01,
 
       "dropRates": {
         "finoDropChance": 0.0015,
@@ -131,13 +115,13 @@
       },
 
       "equipmentStats": {
-        "head": { "hp": 60, "power": 10, "defense": 15 },
-        "shoulders": { "hp": 45, "power": 5, "defense": 20 },
-        "chest": { "hp": 100, "power": 15, "defense": 35 },
-        "gloves": { "hp": 10, "power": 25, "defense": 3 },
-        "legs": { "hp": 60, "power": 10, "defense": 15 },
-        "boots": { "hp": 30, "power": 5, "defense": 10 },
-        "instrument": { "hp": 8, "power": 12, "defense": 5 }
+        "head": { "hp": 75, "power": 13, "defense": 20 },
+        "shoulders": { "hp": 60, "power": 7, "defense": 25 },
+        "chest": { "hp": 130, "power": 20, "defense": 45 },
+        "gloves": { "hp": 15, "power": 32, "defense": 5 },
+        "legs": { "hp": 75, "power": 13, "defense": 20 },
+        "boots": { "hp": 40, "power": 6, "defense": 13 },
+        "instrument": { "hp": 10, "power": 16, "defense": 7 }
       },
       "equipmentQualityMin": 0.7,
       "equipmentQualityMax": 1.3,
@@ -175,27 +159,27 @@
       },
 
       "enemyTiers": [
-        { "tier": 1,  "minStage": 1,     "maxStage": 1000,  "hp": 150,    "power": 15,   "defense": 10,   "speed": 8,  "critChance": 0.03, "fidelisReward": 30,   "xpReward": 20,  "minibossHP": 400,    "minibossPower": 35,    "minibossDefense": 25,    "bossHP": 1200,    "bossPower": 80,     "bossDefense": 55     },
+        { "tier": 1,  "minStage": 1,     "maxStage": 1000,  "hp": 150,    "power": 15,   "defense": 10,   "speed": 8,  "critChance": 0.04, "fidelisReward": 30,   "xpReward": 20,  "minibossHP": 400,    "minibossPower": 35,    "minibossDefense": 25,    "bossHP": 1200,    "bossPower": 80,     "bossDefense": 55     },
         { "tier": 2,  "minStage": 1001,  "maxStage": 2000,  "hp": 350,    "power": 30,   "defense": 25,   "speed": 9,  "critChance": 0.04, "fidelisReward": 55,   "xpReward": 40,  "minibossHP": 900,    "minibossPower": 70,    "minibossDefense": 55,    "bossHP": 2800,    "bossPower": 180,    "bossDefense": 120    },
-        { "tier": 3,  "minStage": 2001,  "maxStage": 3000,  "hp": 700,    "power": 55,   "defense": 45,   "speed": 9,  "critChance": 0.04, "fidelisReward": 85,   "xpReward": 65,  "minibossHP": 1800,   "minibossPower": 130,   "minibossDefense": 100,   "bossHP": 5500,    "bossPower": 340,    "bossDefense": 230    },
-        { "tier": 4,  "minStage": 3001,  "maxStage": 4000,  "hp": 1200,   "power": 90,   "defense": 70,   "speed": 10, "critChance": 0.05, "fidelisReward": 110,  "xpReward": 85,  "minibossHP": 3000,   "minibossPower": 210,   "minibossDefense": 160,   "bossHP": 9500,    "bossPower": 560,    "bossDefense": 380    },
-        { "tier": 5,  "minStage": 4001,  "maxStage": 5000,  "hp": 1900,   "power": 140,  "defense": 110,  "speed": 10, "critChance": 0.05, "fidelisReward": 140,  "xpReward": 110, "minibossHP": 4800,   "minibossPower": 330,   "minibossDefense": 250,   "bossHP": 15000,   "bossPower": 880,    "bossDefense": 600    },
-        { "tier": 6,  "minStage": 5001,  "maxStage": 6000,  "hp": 2800,   "power": 200,  "defense": 160,  "speed": 11, "critChance": 0.06, "fidelisReward": 170,  "xpReward": 130, "minibossHP": 7000,   "minibossPower": 470,   "minibossDefense": 370,   "bossHP": 22000,   "bossPower": 1250,   "bossDefense": 870    },
-        { "tier": 7,  "minStage": 6001,  "maxStage": 7000,  "hp": 4000,   "power": 280,  "defense": 220,  "speed": 11, "critChance": 0.06, "fidelisReward": 210,  "xpReward": 155, "minibossHP": 10000,  "minibossPower": 660,   "minibossDefense": 510,   "bossHP": 31000,   "bossPower": 1750,   "bossDefense": 1200   },
-        { "tier": 8,  "minStage": 7001,  "maxStage": 8000,  "hp": 5800,   "power": 380,  "defense": 300,  "speed": 12, "critChance": 0.07, "fidelisReward": 260,  "xpReward": 180, "minibossHP": 14500,  "minibossPower": 900,   "minibossDefense": 690,   "bossHP": 45000,   "bossPower": 2400,   "bossDefense": 1650   },
-        { "tier": 9,  "minStage": 8001,  "maxStage": 9000,  "hp": 8000,   "power": 500,  "defense": 400,  "speed": 12, "critChance": 0.07, "fidelisReward": 310,  "xpReward": 200, "minibossHP": 20000,  "minibossPower": 1180,  "minibossDefense": 920,   "bossHP": 62000,   "bossPower": 3150,   "bossDefense": 2200   },
-        { "tier": 10, "minStage": 9001,  "maxStage": 10000, "hp": 11000,  "power": 650,  "defense": 520,  "speed": 13, "critChance": 0.08, "fidelisReward": 370,  "xpReward": 230, "minibossHP": 27500,  "minibossPower": 1530,  "minibossDefense": 1200,  "bossHP": 85000,   "bossPower": 4100,   "bossDefense": 2850   },
-        { "tier": 11, "minStage": 10001, "maxStage": 11000, "hp": 14000,  "power": 820,  "defense": 660,  "speed": 13, "critChance": 0.08, "fidelisReward": 430,  "xpReward": 260, "minibossHP": 35000,  "minibossPower": 1900,  "minibossDefense": 1500,  "bossHP": 108000,  "bossPower": 5200,   "bossDefense": 3600   },
-        { "tier": 12, "minStage": 11001, "maxStage": 12000, "hp": 17500,  "power": 1020, "defense": 830,  "speed": 14, "critChance": 0.09, "fidelisReward": 500,  "xpReward": 290, "minibossHP": 44000,  "minibossPower": 2400,  "minibossDefense": 1900,  "bossHP": 135000,  "bossPower": 6400,   "bossDefense": 4600   },
-        { "tier": 13, "minStage": 12001, "maxStage": 13000, "hp": 22000,  "power": 1280, "defense": 1050, "speed": 14, "critChance": 0.09, "fidelisReward": 570,  "xpReward": 320, "minibossHP": 55000,  "minibossPower": 3000,  "minibossDefense": 2400,  "bossHP": 170000,  "bossPower": 8100,   "bossDefense": 5800   },
-        { "tier": 14, "minStage": 13001, "maxStage": 14000, "hp": 27500,  "power": 1600, "defense": 1320, "speed": 14, "critChance": 0.09, "fidelisReward": 650,  "xpReward": 350, "minibossHP": 69000,  "minibossPower": 3800,  "minibossDefense": 3000,  "bossHP": 212000,  "bossPower": 10100,  "bossDefense": 7300   },
-        { "tier": 15, "minStage": 14001, "maxStage": 15000, "hp": 34000,  "power": 2000, "defense": 1660, "speed": 15, "critChance": 0.10, "fidelisReward": 740,  "xpReward": 380, "minibossHP": 85000,  "minibossPower": 4700,  "minibossDefense": 3800,  "bossHP": 262000,  "bossPower": 12600,  "bossDefense": 9100   },
-        { "tier": 16, "minStage": 15001, "maxStage": 16000, "hp": 42000,  "power": 2500, "defense": 2080, "speed": 15, "critChance": 0.10, "fidelisReward": 840,  "xpReward": 420, "minibossHP": 105000, "minibossPower": 5900,  "minibossDefense": 4800,  "bossHP": 323000,  "bossPower": 15750,  "bossDefense": 11400  },
-        { "tier": 17, "minStage": 16001, "maxStage": 17000, "hp": 52000,  "power": 3120, "defense": 2600, "speed": 15, "critChance": 0.10, "fidelisReward": 950,  "xpReward": 460, "minibossHP": 130000, "minibossPower": 7300,  "minibossDefense": 6000,  "bossHP": 400000,  "bossPower": 19700,  "bossDefense": 14300  },
-        { "tier": 18, "minStage": 17001, "maxStage": 18000, "hp": 65000,  "power": 3900, "defense": 3250, "speed": 16, "critChance": 0.11, "fidelisReward": 1070, "xpReward": 500, "minibossHP": 163000, "minibossPower": 9200,  "minibossDefense": 7500,  "bossHP": 500000,  "bossPower": 24600,  "bossDefense": 17900  },
-        { "tier": 19, "minStage": 18001, "maxStage": 19000, "hp": 81000,  "power": 4880, "defense": 4060, "speed": 16, "critChance": 0.11, "fidelisReward": 1200, "xpReward": 540, "minibossHP": 203000, "minibossPower": 11500, "minibossDefense": 9300,  "bossHP": 624000,  "bossPower": 30700,  "bossDefense": 22300  },
-        { "tier": 20, "minStage": 19001, "maxStage": 20000, "hp": 100000, "power": 6100, "defense": 5080, "speed": 17, "critChance": 0.12, "fidelisReward": 1350, "xpReward": 580, "minibossHP": 250000, "minibossPower": 14300, "minibossDefense": 11700, "bossHP": 770000,  "bossPower": 38400,  "bossDefense": 28000  },
-        { "tier": 21, "minStage": 20001, "maxStage": 999999999, "hp": 125000, "power": 7620, "defense": 6350, "speed": 17, "critChance": 0.12, "fidelisReward": 1500, "xpReward": 620, "minibossHP": 313000, "minibossPower": 17900, "minibossDefense": 14600, "bossHP": 963000, "bossPower": 48000, "bossDefense": 35000 }
+        { "tier": 3,  "minStage": 2001,  "maxStage": 3000,  "hp": 700,    "power": 55,   "defense": 45,   "speed": 9,  "critChance": 0.08, "fidelisReward": 85,   "xpReward": 65,  "minibossHP": 1800,   "minibossPower": 130,   "minibossDefense": 100,   "bossHP": 5500,    "bossPower": 340,    "bossDefense": 230    },
+        { "tier": 4,  "minStage": 3001,  "maxStage": 4000,  "hp": 1200,   "power": 90,   "defense": 70,   "speed": 10, "critChance": 0.08, "fidelisReward": 110,  "xpReward": 85,  "minibossHP": 3000,   "minibossPower": 210,   "minibossDefense": 160,   "bossHP": 9500,    "bossPower": 560,    "bossDefense": 380    },
+        { "tier": 5,  "minStage": 4001,  "maxStage": 5000,  "hp": 1900,   "power": 140,  "defense": 110,  "speed": 10, "critChance": 0.12, "fidelisReward": 140,  "xpReward": 110, "minibossHP": 4800,   "minibossPower": 330,   "minibossDefense": 250,   "bossHP": 15000,   "bossPower": 880,    "bossDefense": 600    },
+        { "tier": 6,  "minStage": 5001,  "maxStage": 6000,  "hp": 2800,   "power": 200,  "defense": 160,  "speed": 11, "critChance": 0.12, "fidelisReward": 170,  "xpReward": 130, "minibossHP": 7000,   "minibossPower": 470,   "minibossDefense": 370,   "bossHP": 22000,   "bossPower": 1250,   "bossDefense": 870    },
+        { "tier": 7,  "minStage": 6001,  "maxStage": 7000,  "hp": 4000,   "power": 280,  "defense": 220,  "speed": 11, "critChance": 0.16, "fidelisReward": 210,  "xpReward": 155, "minibossHP": 10000,  "minibossPower": 660,   "minibossDefense": 510,   "bossHP": 31000,   "bossPower": 1750,   "bossDefense": 1200   },
+        { "tier": 8,  "minStage": 7001,  "maxStage": 8000,  "hp": 5800,   "power": 380,  "defense": 300,  "speed": 12, "critChance": 0.16, "fidelisReward": 260,  "xpReward": 180, "minibossHP": 14500,  "minibossPower": 900,   "minibossDefense": 690,   "bossHP": 45000,   "bossPower": 2400,   "bossDefense": 1650   },
+        { "tier": 9,  "minStage": 8001,  "maxStage": 9000,  "hp": 8000,   "power": 500,  "defense": 400,  "speed": 12, "critChance": 0.20, "fidelisReward": 310,  "xpReward": 200, "minibossHP": 20000,  "minibossPower": 1180,  "minibossDefense": 920,   "bossHP": 62000,   "bossPower": 3150,   "bossDefense": 2200   },
+        { "tier": 10, "minStage": 9001,  "maxStage": 10000, "hp": 11000,  "power": 650,  "defense": 520,  "speed": 13, "critChance": 0.20, "fidelisReward": 370,  "xpReward": 230, "minibossHP": 27500,  "minibossPower": 1530,  "minibossDefense": 1200,  "bossHP": 85000,   "bossPower": 4100,   "bossDefense": 2850   },
+        { "tier": 11, "minStage": 10001, "maxStage": 11000, "hp": 14000,  "power": 820,  "defense": 660,  "speed": 13, "critChance": 0.24, "fidelisReward": 430,  "xpReward": 260, "minibossHP": 35000,  "minibossPower": 1900,  "minibossDefense": 1500,  "bossHP": 108000,  "bossPower": 5200,   "bossDefense": 3600   },
+        { "tier": 12, "minStage": 11001, "maxStage": 12000, "hp": 17500,  "power": 1020, "defense": 830,  "speed": 14, "critChance": 0.24, "fidelisReward": 500,  "xpReward": 290, "minibossHP": 44000,  "minibossPower": 2400,  "minibossDefense": 1900,  "bossHP": 135000,  "bossPower": 6400,   "bossDefense": 4600   },
+        { "tier": 13, "minStage": 12001, "maxStage": 13000, "hp": 22000,  "power": 1280, "defense": 1050, "speed": 14, "critChance": 0.28, "fidelisReward": 570,  "xpReward": 320, "minibossHP": 55000,  "minibossPower": 3000,  "minibossDefense": 2400,  "bossHP": 170000,  "bossPower": 8100,   "bossDefense": 5800   },
+        { "tier": 14, "minStage": 13001, "maxStage": 14000, "hp": 27500,  "power": 1600, "defense": 1320, "speed": 14, "critChance": 0.28, "fidelisReward": 650,  "xpReward": 350, "minibossHP": 69000,  "minibossPower": 3800,  "minibossDefense": 3000,  "bossHP": 212000,  "bossPower": 10100,  "bossDefense": 7300   },
+        { "tier": 15, "minStage": 14001, "maxStage": 15000, "hp": 34000,  "power": 2000, "defense": 1660, "speed": 15, "critChance": 0.32, "fidelisReward": 740,  "xpReward": 380, "minibossHP": 85000,  "minibossPower": 4700,  "minibossDefense": 3800,  "bossHP": 262000,  "bossPower": 12600,  "bossDefense": 9100   },
+        { "tier": 16, "minStage": 15001, "maxStage": 16000, "hp": 42000,  "power": 2500, "defense": 2080, "speed": 15, "critChance": 0.32, "fidelisReward": 840,  "xpReward": 420, "minibossHP": 105000, "minibossPower": 5900,  "minibossDefense": 4800,  "bossHP": 323000,  "bossPower": 15750,  "bossDefense": 11400  },
+        { "tier": 17, "minStage": 16001, "maxStage": 17000, "hp": 52000,  "power": 3120, "defense": 2600, "speed": 15, "critChance": 0.36, "fidelisReward": 950,  "xpReward": 460, "minibossHP": 130000, "minibossPower": 7300,  "minibossDefense": 6000,  "bossHP": 400000,  "bossPower": 19700,  "bossDefense": 14300  },
+        { "tier": 18, "minStage": 17001, "maxStage": 18000, "hp": 65000,  "power": 3900, "defense": 3250, "speed": 16, "critChance": 0.36, "fidelisReward": 1070, "xpReward": 500, "minibossHP": 163000, "minibossPower": 9200,  "minibossDefense": 7500,  "bossHP": 500000,  "bossPower": 24600,  "bossDefense": 17900  },
+        { "tier": 19, "minStage": 18001, "maxStage": 19000, "hp": 81000,  "power": 4880, "defense": 4060, "speed": 16, "critChance": 0.40, "fidelisReward": 1200, "xpReward": 540, "minibossHP": 203000, "minibossPower": 11500, "minibossDefense": 9300,  "bossHP": 624000,  "bossPower": 30700,  "bossDefense": 22300  },
+        { "tier": 20, "minStage": 19001, "maxStage": 20000, "hp": 100000, "power": 6100, "defense": 5080, "speed": 17, "critChance": 0.40, "fidelisReward": 1350, "xpReward": 580, "minibossHP": 250000, "minibossPower": 14300, "minibossDefense": 11700, "bossHP": 770000,  "bossPower": 38400,  "bossDefense": 28000  },
+        { "tier": 21, "minStage": 20001, "maxStage": 999999999, "hp": 125000, "power": 7620, "defense": 6350, "speed": 17, "critChance": 0.50, "fidelisReward": 1500, "xpReward": 620, "minibossHP": 313000, "minibossPower": 17900, "minibossDefense": 14600, "bossHP": 963000, "bossPower": 48000, "bossDefense": 35000 }
       ],
 
       "biomes": [
@@ -256,7 +240,7 @@
         "hp": 150,
         "power": 25,
         "speed": 6,
-        "defense": 10,
+        "defense": 5,
         "criticalChance": 0.15
       },
 
@@ -271,7 +255,7 @@
         "penaltyDropChance": 0.0004,
         "instrumentPartDropChance": 0.0006,
         "fitabDropChance": 0.005,
-        "leitaoDropChance": 0.15,
+        "leitaoDropChance": 0.50,
         "leitaoBonusEveryNBosses": 5
       },
 
@@ -280,7 +264,7 @@
       },
 
       "piggies": {
-        "statUpgradeStartLevel": 100,
+        "statUpgradeStartLevel": 500,
         "statUpgradeBaseCost": 1,
         "statUpgradeCostEveryNLevels": 5,
         "speedUpgradeStartLevel": 20,
@@ -291,10 +275,10 @@
         "powerStartLevel": 20,
         "powerBaseCost": 1,
         "powerCostEveryNLevels": 5,
-        "weaponUpgradeStartLevel": 12,
+        "weaponUpgradeStartLevel": 500,
         "weaponUpgradeBaseCost": 1,
         "weaponUpgradeCostEveryNLevels": 5,
-        "equipmentUpgradeStartLevel": 12,
+        "equipmentUpgradeStartLevel": 750,
         "equipmentUpgradeBaseCost": 1,
         "equipmentUpgradeCostEveryNLevels": 5
       },

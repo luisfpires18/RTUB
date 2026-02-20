@@ -134,4 +134,5 @@ public class StageBattleEnemyStat
     public long Power { get; set; }
     public long Defense { get; set; }
     public double ActionTime { get; set; } = 5.0;
+    public double CritChance { get; set; } = 0.04;
 }

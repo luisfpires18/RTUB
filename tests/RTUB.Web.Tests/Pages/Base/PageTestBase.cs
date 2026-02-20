@@ -28,6 +28,7 @@ public abstract class PageTestBase : TestContext
         JSInterop.SetupVoid("modalHelper.lockBodyScroll");
         JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
         JSInterop.SetupVoid("messageScroller.scrollToBottom");
+        JSInterop.SetupVoid("messageScroller.scrollToBottomDelayed");
 
         // Setup common mocks
         MockJSRuntime = new Mock<IJSRuntime>();

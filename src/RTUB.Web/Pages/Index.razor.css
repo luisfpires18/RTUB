@@ -150,8 +150,8 @@
    Match Profile.razor behavior - full height, no gaps, single scroll
    ======================================== */
 
-/* Mobile-only styles (max-width: 767px) for PWA/mobile devices */
-@media (max-width: 767px) {
+/* Mobile + tablet styles (max-width: 1024px) for PWA/mobile/tablet devices */
+@media (max-width: 1024px) {
     /* Wrapper container for homepage content */
     .homepage-content {
         width: 100%;

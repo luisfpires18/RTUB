@@ -284,7 +284,8 @@ public class StageService : IStageService
                 HP = e.TotalHP,
                 Power = e.TotalPower,
                 Defense = e.TotalDefense,
-                ActionTime = Math.Round(e.ActionTime, 1)
+                ActionTime = Math.Round(e.ActionTime, 1),
+                CritChance = e.CriticalChance
             }).ToList()
         };
     }
@@ -552,6 +553,12 @@ public class StageService : IStageService
         baseHP = Math.Max(1, (long)Math.Round(baseHP * stageMult));
         basePower = Math.Max(1, (long)Math.Round(basePower * stageMult));
         baseDefense = Math.Max(1, (long)Math.Round(baseDefense * stageMult));
+
+        // Apply global enemy stat buff (e.g. 1.01 = 1% stronger)
+        var enemyBuff = _myTunoScalingConfig.StageMode.EnemyStatBuff;
+        baseHP = Math.Max(1, (long)Math.Round(baseHP * enemyBuff));
+        basePower = Math.Max(1, (long)Math.Round(basePower * enemyBuff));
+        baseDefense = Math.Max(1, (long)Math.Round(baseDefense * enemyBuff));
 
         return Character.CreateStageEnemy(baseHP, basePower, baseSpeed, baseDefense, baseCriticalChance, enemyName, actionTime);
     }

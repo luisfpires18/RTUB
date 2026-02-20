@@ -18,13 +18,15 @@
 
 | Stat | Bonus/Lvl | Fidelis Formula | Max Lvl | Leitão Starts |
 |------|----------:|-----------------|--------:|--------------:|
-| HP | +100 | 80 + n×80 | ∞ | 100 |
-| Power | +15 | 80 + n×80 | ∞ | 100 |
-| Defense | +12 | 80 + n×80 | ∞ | 100 |
+| HP | +100 | 80 + n×80 | ∞ | **300** |
+| Power | +15 | 80 + n×80 | ∞ | **300** |
+| Defense | +12 | 80 + n×80 | ∞ | **300** |
 | Speed | +1.5 | 175 + n×175 | 41 | 20 |
 | Crit | +0.5% | 140 + n×140 | 100 (cap 50%) | 50 |
 
 **Leitão formula:** `1 + (n - startLevel) / 5` piggies (integer division). Leitão earned from Boss Mode.
+
+> HP/Power/Defense stats are free (Fidelis only) until upgrade level 300. Above 300 they cost Leitões — a significant mid/late-game gating mechanism.
 
 ---
 
@@ -32,17 +34,17 @@
 
 | Slot | Base HP | Base Power | Base Defense |
 |------|--------:|-----------:|-----------:|
-| Head | 60 | 10 | 15 |
-| Shoulders | 45 | 5 | 20 |
-| Chest | 100 | 15 | 35 |
-| Gloves | 10 | 25 | 3 |
-| Legs | 60 | 10 | 15 |
-| Boots | 30 | 5 | 10 |
-| **Total** | **305** | **70** | **98** |
+| Head | 75 | 13 | 20 |
+| Shoulders | 60 | 7 | 25 |
+| Chest | 130 | 20 | 45 |
+| Gloves | 15 | 32 | 5 |
+| Legs | 75 | 13 | 20 |
+| Boots | 40 | 6 | 13 |
+| **Total** | **395** | **91** | **128** |
 
 **Enhancement:** `stat × quality × (1 + effectiveLevel × 0.05)` where `effectiveLevel = floor(highestStage/100) + purchasedBonusLevel`.
 
-**Upgrade costs:** Fidelis (40 + n×40) + Drink (tiered, every 50 levels) + Leitão (from level 12).
+**Upgrade costs:** Fidelis (40 + n×40) + Drink (tiered, every 50 levels) + Leitão (from level **500**).
 
 **Drink tier schedule (50 levels each):**
 Cerveja → Vinho → Licor → Rum → Tequilla → Vodka → Gin → Whisky → Absinto → Aguardente
@@ -59,6 +61,8 @@ Cerveja → Vinho → Licor → Rum → Tequilla → Vodka → Gin → Whisky �
 ---
 
 ## Stage Mode (Biomes & Enemies)
+
+> **v6 changes:** Each enemy has a 1% global HP/Power/Defense buff (`enemyStatBuff: 1.01`). Crit chances now scale by biome (4%→50%). Special attacks are disabled — only normal attacks occur in Stage Mode.
 
 21 biomes, each spanning 1000 floors. Bosses every 100 floors, minibosses every 10.
 
@@ -114,19 +118,32 @@ Cerveja → Vinho → Licor → Rum → Tequilla → Vodka → Gin → Whisky �
 
 ---
 
-## Progression Milestones (Approximate)
+## Progression Milestones — Live Server Data
 
-| Level | Stage | Biome | Total HP (est.) | Total Power (est.) | Notes |
-|------:|------:|:------|----------------:|-------------------:|:------|
-| 1 | 1–10 | Forest | 505 | 95 | Fresh character + base equipment |
-| 10 | ~200 | Forest | 700 | 130 | A few stat upgrades, equipment +2 |
-| 20 | ~500 | Forest | 1,200 | 200 | Approaching first boss cycle |
-| 30 | 1000–1500 | Swamp | 2,500 | 350 | Vinho unlocked, equipment +10 |
-| 50 | 3000–4000 | Snowy | 6,000 | 700 | Licor unlocked, maxing speed |
-| 70 | 6000–8000 | Desert/Volcanic | 15,000 | 1,500 | Tequilla, forged weapons |
-| 100 | 10000+ | Sky/Underwater | 40,000+ | 4,000+ | Level cap, stat upgrades continue |
+The following is based on actual player data (DB snapshot). Stats include level scaling × (base + upgrades) + equipment bonuses.
 
-*Estimates assume moderate upgrade investment and average equipment quality.*
+| Player | Level | Stage | HP | Power | Defense | Crit | Notes |
+|:-------|------:|------:|---:|------:|--------:|-----:|:------|
+| calimero | 91 | 3,017 | ~35,800 | ~5,508 | ~3,503 | 25% | Leading player; Snowy biome |
+| mija | 89 | 2,868 | ~18,225 | ~2,856 | ~2,366 | 25% | End of Swamp |
+| atchim | 55 | 3,005* | ~15,450 | ~2,415 | ~968 | 25% | Highest 3005; currently replaying Forest |
+| elchapo | 48 | 1,816 | ~13,135 | ~1,988 | ~1,283 | 5.5% | Mid Swamp |
+| 22 | 28 | 457 | ~5,212 | ~629 | ~945 | 4.5% | Early Forest |
+
+*\* atchim's current stage is 491 (Forest); highest is 3,005 (Mountains).*
+
+**Enemy difficulty at current leading stages:**
+
+| Stage | Enemy HP | Enemy Power | Enemy Defense | Hits to kill (calimero) | Dmg/hit by enemy |
+|------:|---------:|------------:|--------------:|------------------------:|-------------------:|
+| 3,011 | ~6,684 | ~501 | ~390 | ~2 | ~62 |
+| 5,000 | ~16,307 | ~1,201 | ~944 | ~7–9 | ~150 |
+| 7,000 | ~46,460 | ~3,253 | ~2,552 | ~35–45 | ~378 |
+| 10,000 | ~177,760 | ~10,504 | ~8,403 | ~170+ | ~1,280 |
+
+*Dmg formula: `Power × (500 / (500 + EnemyDefense))`, with 25% crit doubling ~25% of hits.*
+
+**Conclusion:** Current top players (calimero, mija) are comfortable through tier 3 (stages 1–3,000). The next major difficulty wall is **tier 5–6 (stages 4,000–6,000)** where enemy HP and defense grow significantly faster than player stat gains via Fidelis alone. Heavy equipment investment and crit upgrades are critical from stage 3,000 onwards.
 
 ---
 

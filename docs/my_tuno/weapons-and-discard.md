@@ -69,9 +69,9 @@ Stat = InstrumentBase × drinkEnergyCost × qualityRoll × twoHandedMultiplier
 
 | Instrument Base | Value |
 |----------------|------:|
-| HP | 8 |
-| Power | 12 |
-| Defense | 5 |
+| HP | 10 |
+| Power | 16 |
+| Defense | 7 |
 
 - **qualityRoll** — random in `[0.85, 1.15]`
 - **twoHandedMultiplier** — 2.0 for 2H weapons, 1.0 for 1H
@@ -88,9 +88,9 @@ Two-handed weapons get **two independent rolls** for each bonus (can stack).
 ### Example — Aguardente + 1H Weapon
 
 ```
-HP    = 8  × 10 × Q  →  68 – 92  (avg 80)
-Power = 12 × 10 × Q  → 102 – 138 (avg 120)
-Def   = 5  × 10 × Q  →  42 – 58  (avg 50)
+HP    = 10 × 10 × Q  →   85 – 115 (avg 100)
+Power = 16 × 10 × Q  →  136 – 184 (avg 160)
+Def   = 7  × 10 × Q  →   60 –  81  (avg 70)
 ```
 
 ---
@@ -102,10 +102,10 @@ Def   = 5  × 10 × Q  →  42 – 58  (avg 50)
 ```
 Fidelis = 50 + currentLevel × 50
 Drink   = tier drink, quantity = (currentLevel % 5) + 1
-Leitão  = 0 if currentLevel < 5, else 1 + (currentLevel - 5) / 5
+Leitão  = 0 if currentLevel < 12, else 1 + (currentLevel - 12) / 5
 ```
 
-Drink tier advances every 5 levels (`upgradeLevelsPerDrinkTier = 5`). Leitão cost starts at level 5.
+Drink tier advances every 5 levels (`upgradeLevelsPerDrinkTier = 5`). Leitão cost starts at level **12**.
 
 | Level | Fidelis | Drink | Qty | Leitão |
 |------:|--------:|-------|----:|-------:|
@@ -113,13 +113,14 @@ Drink tier advances every 5 levels (`upgradeLevelsPerDrinkTier = 5`). Leitão co
 | 1 → 2 | 100 | Cerveja | 2 | 0 |
 | 2 → 3 | 150 | Cerveja | 3 | 0 |
 | 3 → 4 | 200 | Cerveja | 4 | 0 |
-| 4 → 5 | 250 | Cerveja | 5 | 1 |
-| 5 → 6 | 300 | Vinho | 1 | 1 |
-| 9 → 10 | 500 | Vinho | 5 | 2 |
-| 10 → 11 | 550 | Licor | 1 | 2 |
-| 14 → 15 | 750 | Licor | 5 | 3 |
-| 15 → 16 | 800 | Rum | 1 | 3 |
-| 19 → 20 | 1,000 | Rum | 5 | 4 |
+| 4 → 5 | 250 | Cerveja | 5 | 0 |
+| 5 → 6 | 300 | Vinho | 1 | 0 |
+| 9 → 10 | 500 | Vinho | 5 | 0 |
+| 10 → 11 | 550 | Licor | 1 | 0 |
+| 12 → 13 | 650 | Licor | 3 | 1 |
+| 14 → 15 | 750 | Licor | 5 | 1 |
+| 15 → 16 | 800 | Rum | 1 | 1 |
+| 19 → 20 | 1,000 | Rum | 5 | 2 |
 
 **Max level: 20**
 
@@ -140,21 +141,21 @@ Upgrades **recalculate** HP, Power, and Defense from base values. The original q
 ```
 Fidelis = 40 + currentSlotLevel × 40
 Drink   = tier drink, quantity = (currentSlotLevel % 5) + 1
-Leitão  = 0 if currentSlotLevel < 5, else 1 + (currentSlotLevel - 5) / 5
+Leitão  = 0 if currentSlotLevel < 500, else 1 + (currentSlotLevel - 500) / 5
 ```
 
-Same drink tier progression as weapons (every 5 levels). Leitão cost starts at level 5.
+Same drink tier progression as weapons (every 5 levels). Leitão cost starts at level **500** — effectively never required since max enhancement is 15.
 
 | Slot Level | Fidelis | Leitão |
 |-----------:|--------:|-------:|
 | 0 → 1 | 40 | 0 |
 | 1 → 2 | 80 | 0 |
 | 2 → 3 | 120 | 0 |
-| 4 → 5 | 200 | 1 |
-| 9 → 10 | 400 | 2 |
-| 14 → 15 | 600 | 3 |
+| 4 → 5 | 200 | 0 |
+| 9 → 10 | 400 | 0 |
+| 14 → 15 | 600 | 0 |
 
-**Max enhancement: 15 per slot**
+**Max enhancement: 15 per slot** (Leitão never required; equipment upgrades are Fidelis + Drinks only)
 
 ### Effect
 
@@ -259,11 +260,13 @@ All upgrades require Leitões (🐷) once above a threshold level. Leitões are 
 
 | Upgrade Type | Start Level | Base Cost | +1 Every N Levels |
 |-------------|------------:|----------:|------------------:|
-| Stat (HP/Pow/Def/Speed/Crit) | 10 | 1 | 5 |
-| Improvement | 5 | 1 | 5 |
-| Power | 5 | 1 | 5 |
-| Weapon | 5 | 1 | 5 |
-| Equipment | 5 | 1 | 5 |
+| HP / Power / Defense | 300 | 1 | 5 |
+| Speed | 20 | 1 | 5 |
+| Crit | 50 | 1 | 5 |
+| Improvement (Energy) | 20 | 1 | 5 |
+| Power (Heavy/Special) | 20 | 1 | 5 |
+| Weapon | 12 | 1 | 5 |
+| Equipment slot | 500 | 1 | 5 |
 
 **Formula:** `PiggiesCostConfig.CalculateCost(currentLevel, startLevel, baseCost, costEveryNLevels)`
 - Returns `0` below start level

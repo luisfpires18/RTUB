@@ -1,17 +1,17 @@
 /* ==========================================
-   Homepage – Mobile Layout Overrides
+   Homepage – Mobile / Tablet Layout Overrides
    ==========================================
-   Mobile order (≤767px):
+   Mobile + Tablet order (≤1024px):
      1. Navbar (MainLayout)
      2. Logo
      3. Content area
      4. Social Media (2×2 grid)
      5. Footer
      6. Fixed bottom nav (portal buttons)
-   Carousel & desktop portal buttons hidden on mobile.
+   Carousel & desktop portal buttons hidden on mobile/tablet.
    ========================================== */
 
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
     /* Hide the slideshow carousel on mobile */
     .homepage-carousel {
         display: none !important;

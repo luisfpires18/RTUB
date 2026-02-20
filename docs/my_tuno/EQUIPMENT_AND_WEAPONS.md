@@ -16,13 +16,13 @@ All 6 armor pieces are **permanently equipped** from character creation. They ca
 
 | Slot | Base HP | Base Power | Base Defense |
 |------|--------:|-----------:|-----------:|
-| Head | 60 | 10 | 15 |
-| Shoulders | 45 | 5 | 20 |
-| Chest | 100 | 15 | 35 |
-| Gloves | 10 | 25 | 3 |
-| Legs | 60 | 10 | 15 |
-| Boots | 30 | 5 | 10 |
-| **Total** | **305** | **70** | **98** |
+| Head | 75 | 13 | 20 |
+| Shoulders | 60 | 7 | 25 |
+| Chest | 130 | 20 | 45 |
+| Gloves | 15 | 32 | 5 |
+| Legs | 75 | 13 | 20 |
+| Boots | 40 | 6 | 13 |
+| **Total** | **395** | **91** | **128** |
 
 ### Stat Formula
 
@@ -39,11 +39,13 @@ Where:
 
 ### Upgrading Equipment
 
-Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (from level 5+).
+Each slot can be upgraded independently using **Fidelis + Drinks** (Leitões from level 500, effectively never required).
 
 **Fidelis Cost Formula:** `Cost(n) = 40 + n × 40` Fidelis (where `n` = current slot bonus level)
 
-**Leitão Cost Formula:** `Cost(n) = 1 + (n - 12) / 5` (starts at level 12, +1 every 5 levels)
+**Leitão Cost Formula:** `Cost(n) = 1 + (n - 500) / 5` (starts at level 500, +1 every 5 levels)
+
+> Since the equipment slot enhancement cap is **15**, Leitão is **never required** for equipment upgrades in practice.
 
 **Drink Requirement:** Uses tiered drinks. Every **50 levels** advances to the next drink tier:
 - Levels 0–49: Cerveja (1× to 50×)
@@ -53,7 +55,7 @@ Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (f
 - ... (continues through all 10 drink tiers)
 - Levels 450+: Aguardente (50× max)
 
-**No hard cap on per-slot bonus level.** Natural cost scaling (Fidelis + drinks + Leitão) acts as the soft ceiling.
+**Hard cap: 15 per slot** (`maxEquipmentEnhancement: 15`).
 
 ### Equipment Upgrade Cost Table (sample levels)
 
@@ -62,14 +64,10 @@ Each slot can be upgraded independently using **Fidelis + Drinks + Leitões** (f
 | 1 | 40 | 40 | Cerveja | 1 | 0 |
 | 5 | 200 | 600 | Cerveja | 5 | 0 |
 | 10 | 400 | 2,200 | Cerveja | 10 | 0 |
-| 12 | 480 | 3,120 | Cerveja | 12 | 1 |
-| 20 | 800 | 8,400 | Cerveja | 20 | 2 |
-| 30 | 1,200 | 18,600 | Cerveja | 30 | 4 |
-| 40 | 1,600 | 32,800 | Cerveja | 40 | 6 |
-| 50 | 2,000 | 51,000 | Cerveja | 50 | 8 |
-| 51 | 2,040 | 53,040 | Vinho | 1 | 8 |
-| 100 | 4,000 | 202,000 | Vinho | 50 | 18 |
-| 15 | 600 | 4,800 | Licor | 5 | 3 |
+| 12 | 480 | 3,120 | Cerveja | 12 | 0 |
+| 15 | 600 | 4,800 | Cerveja | 15 | 0 |
+
+**Max per-slot enhancement level: 15.** Leitão required from level 500 (unreachable — equipment is Fidelis + Drinks only).
 
 ---
 
@@ -114,7 +112,7 @@ Two-handed weapons occupy both weapon slots but get the `twoHandedMultiplier` (2
 
 ### Weapon Stat Formula
 
-Base stats come from the `instrument` config entry (`hp: 8, power: 12, defense: 5`):
+Base stats come from the `instrument` config entry (`hp: 10, power: 16, defense: 7`):
 
 $$\text{Stat} = \text{InstrumentBase} \times \text{drinkEnergyCost} \times Q_i \times H$$
 
@@ -137,11 +135,11 @@ Currently `weaponCharacterLevelScale = 0.0` so there's no level scaling. Speed a
 
 ### Weapon Upgrading
 
-Weapons can be upgraded using **Fidelis + Drinks + Leitões** (from level 5+).
+Weapons can be upgraded using **Fidelis + Drinks + Leitões** (from level **12**).
 
 **Fidelis Cost Formula:** `Cost(n) = 50 + n × 50` Fidelis (where `n` = current weapon level)
 
-**Leitão Cost Formula:** `Cost(n) = 1 + (n - 5) / 5` (starts at level 5, +1 every 5 levels)
+**Leitão Cost Formula:** `Cost(n) = 1 + (n - 12) / 5` (starts at level 12, +1 every 5 levels)
 
 **Stat bonus per level:** +5% of base stats per level (`weaponUpgradeStatBonus = 0.05`)
 
@@ -199,7 +197,7 @@ All values are defined in `scaling.config.json` under `stageMode`:
 
 | Key | Value | Description |
 |-----|------:|-------------|
-| `piggies.equipmentUpgradeStartLevel` | 12 | Level at which Leitão cost begins for equipment |
+| `piggies.equipmentUpgradeStartLevel` | **500** | Level at which Leitão cost begins for equipment |
 | `piggies.equipmentUpgradeBaseCost` | 1 | Base Leitão cost |
 | `piggies.equipmentUpgradeCostEveryNLevels` | 5 | +1 Leitão every N levels |
 | `piggies.weaponUpgradeStartLevel` | 12 | Level at which Leitão cost begins for weapons |
