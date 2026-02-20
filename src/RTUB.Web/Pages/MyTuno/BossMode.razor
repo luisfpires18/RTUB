@@ -105,7 +105,7 @@
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-wind me-1"></i>@character.CigarroShieldHitsRemaining corridas com esquiva
+                            <i class="bi bi-wind me-1"></i>10% Dodge @character.CigarroShieldHitsRemaining runs
                         </span>
                     }
                     @if (character.CanhaoDamageBoostHitsRemaining > 0)
@@ -315,7 +315,7 @@
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
                                     <span class="badge bg-info buff-badge">
-                                        <i class="bi bi-wind me-1"></i>Cigarro (@character.CigarroShieldHitsRemaining corridas)
+                                        <i class="bi bi-wind me-1"></i>Cigarro (10% Dodge @character.CigarroShieldHitsRemaining runs)
                                     </span>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
@@ -363,7 +363,7 @@
                                 var isFullHp = character != null && character.CurrentHP >= character.TotalHP;
                                 var buffConsumables = new (string Name, string Icon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
                                 {
-                                    ("Cigarro", "bi-cloud", "+10% Esquiva x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                    ("Cigarro", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
                                     ("Shot", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
                                     ("Canhão", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
                                     ("Penalty", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
@@ -1464,7 +1464,7 @@
             {
                 cigarroQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Cigarro ativado! +10% chance de esquiva por 5 corridas.";
+                buffToastMessage = "Cigarro activated! +10% Dodge for 5 runs.";
                 buffToastIsError = false;
             }
             else

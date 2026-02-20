@@ -172,7 +172,7 @@
                                         var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled, string? CombatOnlyTooltip)[]
                                         {
                                             ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, true, "Apenas utilizável em combate"),
-                                            ("Cigarro", "bi-cloud", "bi-cloud", "+10% Esquiva x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
+                                            ("Cigarro", "bi-cloud", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
                                             ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || character?.ShotBuffBattlesRemaining > 0, null),
                                             ("Canhão", "bi-bullseye", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.CanhaoDamageBoostHitsRemaining > 0, null),
                                             ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.PenaltyBuffActive > 0, null),
@@ -520,9 +520,9 @@
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-wind text-info me-2"></i>
-                                            <span>Cigarro (Esquiva)</span>
+                                            <span>Cigarro (Dodge)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CigarroShieldHitsRemaining corridas com esquiva</span>
+                                        <span class="badge bg-info">10% Dodge @character.CigarroShieldHitsRemaining runs</span>
                                     </div>
                                 }
                                 @if (character.CanhaoDamageBoostHitsRemaining > 0)
@@ -1898,7 +1898,6 @@
     private bool showWeaponsListModal = false;
     private ForgedWeapon? pendingWeapon = null;
     private bool weaponActioning = false;
-    private int highestStageForEquip = 0; // cached highest stage for per-slot level calc
     private bool discardingAll = false;
     private bool showDiscardAllConfirm = false;
     
@@ -2060,7 +2059,6 @@
                         // Stage progress
                         stageProgress = stageProgressTask.Result;
                         var highestStage = stageProgress?.HighestStage ?? 1;
-                        highestStageForEquip = highestStage;
 
                         // Resource quantities from the same inventory summary
                         gatheringConfig = MyTunoConfig.Value.Gathering;
@@ -2481,7 +2479,7 @@
             {
                 cigarroQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Cigarro ativado! +10% chance de esquiva por 5 corridas.";
+                toastMessage = "Cigarro activated! +10% Dodge for 5 runs.";
                 toastIsError = false;
             }
             else
@@ -2848,12 +2846,10 @@
         };
     }
 
-    /// <summary>Gets the enhancement level for a specific equipment slot: stageDerived + slotBonusLevel.</summary>
+    /// <summary>Gets the enhancement level for a specific equipment slot (manual upgrades only).</summary>
     private int GetSlotEnhancementLevel(EquipmentSlot slot)
     {
-        var stageDerived = highestStageForEquip / 100;
-        var slotBonus = character?.GetSlotBonusLevel(slot) ?? 0;
-        return stageDerived + slotBonus;
+        return character?.GetSlotBonusLevel(slot) ?? 0;
     }
 
     private bool IsItemCurrentlyEquipped(InventoryItemType itemType)
@@ -3220,7 +3216,6 @@
                 currentUser = await UserManager.FindByIdAsync(currentUser.Id);
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 stageProgress = await StageService.GetStageProgressAsync(currentUser.Id);
-                highestStageForEquip = stageProgress?.HighestStage ?? 0;
                 // Refresh drink quantities and Leitão (consumed during upgrade)
                 var eqInv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                 leitaoQuantity = eqInv.GetValueOrDefault(InventoryItemType.Leitao);

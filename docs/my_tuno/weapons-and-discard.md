@@ -162,10 +162,8 @@ Same drink tier progression as weapons (every 5 levels). Leitão cost starts at 
 Each slot bonus level adds **+5%** to that slot's stat multiplier:
 
 ```
-SlotBonus = BaseStat × quality × (1.0 + (stageDerived + slotBonusLevel) × 0.05)
+SlotBonus = BaseStat × quality × (1.0 + slotBonusLevel × 0.05)
 ```
-
-Where `stageDerived = highestStage / 100` (integer division).
 
 ---
 
@@ -177,7 +175,7 @@ Where `stageDerived = highestStage / 100` (integer division).
 Value = 20 × (1 + characterLevel × 0.05) × enhancementMultiplier
 ```
 
-Where `enhancementMultiplier = 1.0 + (stageDerived + slotBonusLevel) × 0.05`.
+Where `enhancementMultiplier = 1.0 + slotBonusLevel × 0.05`.
 
 ### Instrument Part Discard
 

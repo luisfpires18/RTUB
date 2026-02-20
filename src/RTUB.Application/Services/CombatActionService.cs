@@ -606,6 +606,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
 
         // ── Instrument Shield (Percussão) — absorb hit ──
         bool isBlocked = false;
+        bool isDodged = false;
         if (session.InstrumentShieldHits > 0)
         {
             damage = 0;
@@ -616,7 +617,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         else if (session.HasCigarroBuff && session.Rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
         {
             damage = 0;
-            isBlocked = true;
+            isDodged = true;
         }
 
         session.Player.CurrentHP = Math.Max(0, session.Player.CurrentHP - damage);
@@ -629,6 +630,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             Damage = damage,
             IsCritical = isCritical,
             IsBlocked = isBlocked ? true : null,
+            IsDodged = isDodged ? true : null,
             SimTime = simTime,
             Timestamp = session.EventTimestamp++
         };

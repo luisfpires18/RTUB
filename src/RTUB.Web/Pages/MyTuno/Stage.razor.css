@@ -218,11 +218,11 @@
     color: #ff4444;
 }
 
-/* -- Active Buff Indicators (below top bar) -- */
+/* -- Active Buff Indicators (below speed bar) -- */
 .battle-buffs-strip {
     position: absolute;
-    top: 48px;
-    top: calc(48px + env(safe-area-inset-top, 0px));
+    top: 105px;
+    top: calc(105px + env(safe-area-inset-top, 0px));
     left: 10px;
     z-index: 10;
     display: flex;
@@ -453,7 +453,7 @@
     }
 
     .battle-buffs-strip {
-        top: 52px;
+        top: 128px;
         gap: 6px;
     }
 

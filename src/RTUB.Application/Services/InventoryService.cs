@@ -677,13 +677,8 @@ public class InventoryService : IInventoryService
             var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
             if (slot.HasValue)
             {
-                var stageProgress = await _dbContext.StageProgresses
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
-                var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
                 var slotBonus = character.GetSlotBonusLevel(slot.Value);
-                var enhancementLevel = stageDerived + slotBonus;
-                enhancementMult = 1.0 + enhancementLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+                enhancementMult = 1.0 + slotBonus * _scalingConfig.StageMode.EquipmentEnhancementBonus;
             }
         }
 
@@ -721,18 +716,13 @@ public class InventoryService : IInventoryService
         var discardLevelScale = _scalingConfig.StageMode.DiscardLevelScale;
         var charLevelMult = 1.0 + charLevel * discardLevelScale;
 
-        // Per-slot enhancement multipliers for equipment
-        var stageProgress = await _dbContext.StageProgresses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
-        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
-
+        // Per-slot enhancement multipliers for equipment (manual upgrades only)
         double GetSlotEnhMult(InventoryItemType itemType)
         {
             var slot = EquipmentDropHelper.FromInventoryItemType(itemType);
             if (slot.HasValue && character != null)
             {
-                var slotLevel = stageDerived + character.GetSlotBonusLevel(slot.Value);
+                var slotLevel = character.GetSlotBonusLevel(slot.Value);
                 return 1.0 + slotLevel * _scalingConfig.StageMode.EquipmentEnhancementBonus;
             }
             return 1.0;
@@ -1026,12 +1016,6 @@ public class InventoryService : IInventoryService
         var stats = _scalingConfig.StageMode.EquipmentStats;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
 
-        // Stage-derived base enhancement level (global)
-        var stageProgress = await _dbContext.StageProgresses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sp => sp.UserId == character.UserId, cancellationToken);
-        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
-
         int hp = 0, power = 0, defense = 0;
 
         // All 6 armor pieces are permanently equipped — always compute bonuses.
@@ -1039,8 +1023,8 @@ public class InventoryService : IInventoryService
         // Legacy characters with quality 0 fall back to 1.0.
         double GetQ(double stored) => stored > 0 ? stored : 1.0;
 
-        // Per-slot enhancement: each slot has its own bonus level
-        double SlotEnhMult(EquipmentSlot slot) => 1.0 + (stageDerived + character.GetSlotBonusLevel(slot)) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+        // Per-slot enhancement: each slot has its own purchased bonus level (manual upgrades only)
+        double SlotEnhMult(EquipmentSlot slot) => 1.0 + character.GetSlotBonusLevel(slot) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
 
         { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
         { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
@@ -1198,23 +1182,15 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
-    /// Gets the enhancement level for a specific equipment slot.
-    /// Enhancement = floor(highestStage / 100) + slot purchased bonus level.
+    /// Gets the enhancement level for a specific equipment slot (manual upgrades only).
     /// </summary>
     public async Task<int> GetSlotEnhancementLevelAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default)
     {
-        var stageProgress = await _dbContext.StageProgresses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
-
-        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100; // integer division = floor
-
         var character = await _dbContext.Characters
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
-        var slotBonus = character?.GetSlotBonusLevel(slot) ?? 0;
-        return stageDerived + slotBonus;
+        return character?.GetSlotBonusLevel(slot) ?? 0;
     }
 
     /// <summary>
@@ -1282,11 +1258,7 @@ public class InventoryService : IInventoryService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        var stageProgress = await _dbContext.StageProgresses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(sp => sp.UserId == userId, cancellationToken);
-        var stageDerived = (stageProgress?.HighestStage ?? 0) / 100;
-        var newLevel = stageDerived + currentSlotLevel + 1;
+        var newLevel = currentSlotLevel + 1;
         var slotName = slot.ToString().ToUpperInvariant();
         return (true, $"{slotName} melhorado para +{newLevel}!");
     }

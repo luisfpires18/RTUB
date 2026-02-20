@@ -68,9 +68,14 @@ public class CombatEvent
     public bool? IsCritical { get; set; }
 
     /// <summary>
-    /// Whether this attack was blocked by a Cigarro shield (damage absorbed)
+    /// Whether this attack was blocked by an Instrument Shield (damage absorbed)
     /// </summary>
     public bool? IsBlocked { get; set; }
+
+    /// <summary>
+    /// Whether this attack was dodged via Cigarro buff (10% chance, damage nullified)
+    /// </summary>
+    public bool? IsDodged { get; set; }
 
     /// <summary>
     /// Whether this attack was boosted by a Canhão damage buff (+30%)

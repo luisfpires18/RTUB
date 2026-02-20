@@ -1533,9 +1533,10 @@
             const damageValue = damage ?? 0;
             const isCritical = evt?.isCritical === true || evt?.IsCritical === true;
             const isBlocked = evt?.isBlocked === true || evt?.IsBlocked === true;
+            const isDodged = evt?.isDodged === true || evt?.IsDodged === true;
             const isBoosted = evt?.isBoosted === true || evt?.IsBoosted === true;
 
-            this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
+            this.playSound((isBlocked || isDodged) ? 'block' : (isCritical ? 'critical' : 'attack'));
 
             const lungeDuration = isCritical ? 150 : 200;
             this.animateTo(attacker.sprite, { 
@@ -1550,8 +1551,8 @@
                 }, 240);
             });
 
-            if (isBlocked) {
-                // Blocked: cyan shield flash instead of red damage tint
+            if (isBlocked || isDodged) {
+                // Blocked/Dodged: cyan shield flash instead of red damage tint
                 defender.sprite.tint = 0x00e5ff;
                 setTimeout(() => defender.sprite.tint = 0xffffff, 300 / this.battleSpeed);
             } else {
@@ -1562,7 +1563,7 @@
 
             this.playSound('hit');
 
-            if (!isBlocked) {
+            if (!isBlocked && !isDodged) {
                 const defenderStartX = defender.sprite.x;
                 const recoilDistance = isCritical ? 30 : 20;
                 this.animateTo(defender.sprite, { 
@@ -1575,7 +1576,7 @@
             const impactX = defender.sprite.x;
             const impactY = defender.sprite.y - defender.sprite.height * 0.4;
             
-            const impactColor = isBlocked ? 0x00e5ff : (isCritical ? 0xffff00 : 0xffd54f);
+            const impactColor = (isBlocked || isDodged) ? 0x00e5ff : (isCritical ? 0xffff00 : 0xffd54f);
             const impactSize = isCritical ? 25 : 18;
             const impact = new PIXI.Graphics();
             impact.circle(impactX, impactY, impactSize);
@@ -1586,7 +1587,7 @@
                 this.stage.removeChild(impact);
             });
 
-            if (!isBlocked) {
+            if (!isBlocked && !isDodged) {
                 const slash = new PIXI.Graphics();
                 const slashColor = isCritical ? 0xffff00 : 0xffffff;
                 slash.moveTo(attacker.sprite.x, attacker.sprite.y - attacker.sprite.height * 0.5);
@@ -1600,7 +1601,26 @@
             }
 
             // Floating text on defender
-            if (isBlocked) {
+            if (isDodged) {
+                const dodgeText = this._getPooledText('DODGE', {
+                    fontFamily: 'Arial',
+                    fontSize: 28,
+                    fontWeight: 'bold',
+                    fill: 0x00e5ff,
+                    stroke: { color: 0x000000, width: 4 }
+                });
+                dodgeText.anchor.set(0.5);
+                dodgeText.x = defender.sprite.x;
+                dodgeText.y = defender.sprite.y - defender.sprite.height * 0.6;
+                this.stage.addChild(dodgeText);
+
+                this.animateTo(dodgeText, {
+                    y: dodgeText.y - 70,
+                    alpha: 0
+                }, 900, () => {
+                    this._releaseText(dodgeText);
+                });
+            } else if (isBlocked) {
                 const blockedText = this._getPooledText('BLOCKED', {
                     fontFamily: 'Arial',
                     fontSize: 28,
@@ -1665,7 +1685,7 @@
                 });
             }
             
-            if (!isBlocked) {
+            if (!isBlocked && !isDodged) {
                 const attackerText = this._getPooledText(`+${formatNum(damageValue)}`, {
                     fontFamily: 'Arial',
                     fontSize: 18,

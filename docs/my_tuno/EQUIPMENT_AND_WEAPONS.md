@@ -33,9 +33,8 @@ $$\text{SlotBonus} = \text{BaseStat} \times Q \times L \times E$$
 Where:
 - **Q** (Quality) = 1.0 for new characters (legacy characters may have randomized values 0.7–1.3)
 - **L** (Level Scale) = `1.0 + characterLevel × equipmentLevelScale` (currently `equipmentLevelScale = 0.0`, so L = 1.0)
-- **E** (Enhancement Multiplier) = `1.0 + (stageDerived + slotBonusLevel) × 0.05`
-  - `stageDerived` = `highestStage / 100` (integer division)
-  - `slotBonusLevel` = purchased upgrade level for that slot
+- **E** (Enhancement Multiplier) = `1.0 + slotBonusLevel × 0.05`
+  - `slotBonusLevel` = purchased upgrade level for that slot (manual upgrades only)
 
 ### Upgrading Equipment
 

@@ -2494,6 +2494,7 @@
             const damage = getEventField(evt, 'Damage') ?? 0;
             const isCritical = getEventField(evt, 'IsCritical') ?? false;
             const isBlocked = getEventField(evt, 'IsBlocked') ?? false;
+            const isDodged = getEventField(evt, 'IsDodged') ?? false;
             const isBoosted = getEventField(evt, 'IsBoosted') ?? false;
 
             if (attacker === 'Attacker' || attacker === 'Player') {
@@ -2530,8 +2531,8 @@
             } else if (attacker.startsWith('Enemy')) {
                 const enemyIndex = parseInt(attacker.replace('Enemy', ''));
                 this.animateSingleEnemyAttack(enemyIndex, isCritical);
-                if (isBlocked) {
-                    this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
+                if (isBlocked || isDodged) {
+                    this.showFloatingText(isDodged ? 'DODGE' : 'BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
                 } else {
                     this.flashPlayer(isCritical);
                     if (damage > 0) {
@@ -2540,8 +2541,8 @@
                 }
             } else {
                 this.animateEnemyAttack(isCritical);
-                if (isBlocked) {
-                    this.showFloatingText('BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
+                if (isBlocked || isDodged) {
+                    this.showFloatingText(isDodged ? 'DODGE' : 'BLOCKED', this.playerSprite.x, this.playerSprite.y - (this.playerSprite.height || 40) * 0.8, 0x00e5ff);
                 } else {
                     this.flashPlayer(isCritical);
                     if (damage > 0) {
@@ -2550,7 +2551,7 @@
                 }
             }
 
-            this.playSound(isBlocked ? 'block' : (isCritical ? 'critical' : 'attack'));
+            this.playSound((isBlocked || isDodged) ? 'block' : (isCritical ? 'critical' : 'attack'));
         }
 
         showDamageText(damage, isCritical, x, y) {

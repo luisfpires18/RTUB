@@ -153,14 +153,14 @@ public class DeterministicCombatEngine : ICombatEngine
             // Process defender action if timer reached 0
             if (defenderTimer <= 0 && attackerHP > 0 && defenderHP > 0)
             {
-                var isBlocked = false;
+                var isDodged = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
 
                 // Cigarro dodge — 10% chance to dodge incoming attack
                 if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
                 {
                     damage = 0;
-                    isBlocked = true;
+                    isDodged = true;
                 }
 
                 attackerHP = Math.Max(0, attackerHP - damage);
@@ -172,7 +172,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Attacker",
                     Damage = damage,
                     IsCritical = isCritical,
-                    IsBlocked = isBlocked ? true : null,
+                    IsDodged = isDodged ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
@@ -449,14 +449,14 @@ public class DeterministicCombatEngine : ICombatEngine
             {
                 if (playerHP <= 0) break;
 
-                var isBlocked = false;
+                var isDodged = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
 
                 // Cigarro dodge — 10% chance to dodge incoming attack
                 if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
                 {
                     damage = 0;
-                    isBlocked = true;
+                    isDodged = true;
                 }
 
                 playerHP = Math.Max(0, playerHP - damage);
@@ -468,7 +468,7 @@ public class DeterministicCombatEngine : ICombatEngine
                     Defender = "Player",
                     Damage = damage,
                     IsCritical = isCritical,
-                    IsBlocked = isBlocked ? true : null,
+                    IsDodged = isDodged ? true : null,
                     SimTime = currentTime,
                     Timestamp = eventIndex++
                 });
