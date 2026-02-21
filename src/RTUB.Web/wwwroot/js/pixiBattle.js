@@ -1838,8 +1838,11 @@
         }
 
         setReplaySpeed(speed) {
-            this.playbackSpeed = speed || 1;
-            this.battleSpeed = speed || 1;
+            // Only allow valid speeds to prevent console exploits
+            const allowedSpeeds = [1, 5];
+            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+            this.playbackSpeed = validSpeed;
+            this.battleSpeed = validSpeed;
         }
 
         jumpToEvent(index) {
@@ -2177,8 +2180,11 @@
         },
         setSpeed: (speed) => {
             if (activeScene) {
-                activeScene.playbackSpeed = speed;
-                activeScene.battleSpeed = speed;
+                // Only allow valid speeds to prevent console exploits
+                const allowedSpeeds = [1, 5];
+                const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+                activeScene.playbackSpeed = validSpeed;
+                activeScene.battleSpeed = validSpeed;
             }
         },
         toggleAudio: () => {

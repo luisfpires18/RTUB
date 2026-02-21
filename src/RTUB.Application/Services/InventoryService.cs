@@ -26,6 +26,11 @@ public class InventoryService : IInventoryService
     private GatheringConfig _gatheringConfig => _scalingConfig.Gathering;
     private readonly ApplicationDbContext _dbContext;
 
+    // Per-user lock to prevent multi-tab energy exploits (race conditions on read-modify-write).
+    // Static so it is shared across all scoped InventoryService instances (one per Blazor circuit).
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _userEnergyLocks = new();
+    private static SemaphoreSlim GetUserEnergyLock(string userId) => _userEnergyLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+
     // Fino heals 25% of total HP
     private const double FinoHealPercentage = 0.25;
     // Caneca heals 50% of total HP
@@ -430,40 +435,52 @@ public class InventoryService : IInventoryService
 
         var energyCost = resourceConfig.EnergyCost;
 
-        // Get character
-        var character = await _characterRepository.GetByUserIdAsync(userId);
-        if (character == null)
+        // Acquire per-user lock to prevent multi-tab race conditions.
+        // Without this, two tabs can both read Energy=10, both deduct, and both save Energy=9
+        // instead of the correct 10→9→8 sequence.
+        var userLock = GetUserEnergyLock(userId);
+        await userLock.WaitAsync(cancellationToken);
+        try
         {
-            _logger.LogWarning("User {UserId} attempted to gather but has no character", userId);
-            return (false, 0, 0, "Personagem não encontrado");
+            // Force a fresh read from DB inside the lock to pick up changes from other circuits
+            var character = await _characterRepository.GetByUserIdFreshAsync(userId);
+            if (character == null)
+            {
+                _logger.LogWarning("User {UserId} attempted to gather but has no character", userId);
+                return (false, 0, 0, "Personagem não encontrado");
+            }
+
+            // Apply passive energy regen first
+            ApplyEnergyRegen(character);
+
+            // Check if enough energy
+            if (character.Energy < energyCost)
+            {
+                return (false, 0, character.Energy, $"Energia insuficiente! Precisas de {energyCost} energia");
+            }
+
+            // Spend energy (don't reset LastEnergyRegenAt — preserve partial regen progress)
+            character.Energy -= energyCost;
+            await _characterRepository.UpdateAsync(character);
+
+            // Add resource to inventory
+            await _inventoryRepository.AddItemAsync(userId, resourceType, 1, cancellationToken);
+
+            var resourceName = resourceType switch
+            {
+                InventoryItemType.Vodka => "Vodka",
+                InventoryItemType.Gin => "Gin",
+                InventoryItemType.Whisky => "Whisky",
+                InventoryItemType.Absinto => "Absinto",
+                _ => resourceType.ToString()
+            };
+
+            return (true, 1, character.Energy, $"+1 {resourceName}!");
         }
-
-        // Apply passive energy regen first
-        ApplyEnergyRegen(character);
-
-        // Check if enough energy
-        if (character.Energy < energyCost)
+        finally
         {
-            return (false, 0, character.Energy, $"Energia insuficiente! Precisas de {energyCost} energia");
+            userLock.Release();
         }
-
-        // Spend energy (don't reset LastEnergyRegenAt — preserve partial regen progress)
-        character.Energy -= energyCost;
-        await _characterRepository.UpdateAsync(character);
-
-        // Add resource to inventory
-        await _inventoryRepository.AddItemAsync(userId, resourceType, 1, cancellationToken);
-
-        var resourceName = resourceType switch
-        {
-            InventoryItemType.Vodka => "Vodka",
-            InventoryItemType.Gin => "Gin",
-            InventoryItemType.Whisky => "Whisky",
-            InventoryItemType.Absinto => "Absinto",
-            _ => resourceType.ToString()
-        };
-
-        return (true, 1, character.Energy, $"+1 {resourceName}!");
     }
 
     /// <summary>

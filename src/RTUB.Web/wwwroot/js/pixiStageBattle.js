@@ -3807,7 +3807,10 @@
 
         setSpeed: function (speed) {
             if (stageScene) {
-                stageScene.setSpeed(speed);
+                // Validate speed before passing to scene
+                const allowedSpeeds = [1, 3, 5];
+                const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+                stageScene.setSpeed(validSpeed);
             }
         },
 
