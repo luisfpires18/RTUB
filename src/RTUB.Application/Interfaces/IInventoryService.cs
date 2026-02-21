@@ -183,11 +183,11 @@ public interface IInventoryService
     decimal GetWeaponUpgradeCost(int currentLevel);
 
     /// <summary>
-    /// Calculates which drink type and quantity are needed for an upgrade at a given level.
-    /// Every 3 levels advances to the next drink tier (1→2→3, then next drink 1→2→3...).
-    /// Used for WEAPON upgrades (single drink per tier).
+    /// Calculates ALL drink requirements for a WEAPON upgrade at a given level.
+    /// Weapons require ALL drink tiers from tier 0 through the current tier (cumulative).
+    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
     /// </summary>
-    (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel);
+    List<(InventoryItemType DrinkType, int Quantity)> GetUpgradeDrinkRequirement(int currentLevel);
 
     /// <summary>
     /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.

@@ -1135,43 +1135,50 @@ public class InventoryService : IInventoryService
     };
 
     /// <summary>
-    /// Calculates which drink and how many are needed for an upgrade at a given level.
-    /// Every N levels (configurable) advances to the next drink tier.
-    /// Within each tier the quantity scales from 1 up to N.
-    /// After exhausting all 10 tiers, stays at max× Aguardente.
-    /// Used for WEAPON upgrades (single drink per tier).
+    /// Calculates ALL drink requirements for a WEAPON upgrade at a given level.
+    /// Weapons now require ALL drink tiers from tier 0 through the current tier (cumulative).
+    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
     /// </summary>
-    public (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel)
+    public List<(InventoryItemType DrinkType, int Quantity)> GetUpgradeDrinkRequirement(int currentLevel)
     {
         var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
         if (perTier < 1) perTier = 5;
         var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
-        var quantity = (currentLevel % perTier) + 1;
-        // If past last tier, cap at max× last drink
+        var currentTierQty = (currentLevel % perTier) + 1;
         if (currentLevel / perTier >= DrinkTierOrder.Length)
-            quantity = perTier;
-        return (DrinkTierOrder[tierIndex], quantity);
+            currentTierQty = perTier;
+
+        var requirements = new List<(InventoryItemType DrinkType, int Quantity)>();
+        for (int i = 0; i <= tierIndex; i++)
+        {
+            // Previous tiers locked at perTier, current tier scales 1→perTier
+            var qty = i < tierIndex ? perTier : currentTierQty;
+            requirements.Add((DrinkTierOrder[i], qty));
+        }
+        return requirements;
     }
 
     /// <summary>
     /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.
     /// Equipment requires ALL drink tiers from tier 0 through the current tier (cumulative).
-    /// Each drink in the list uses the same quantity as the primary drink.
-    /// Example at level 102 (tier 2, perTier=50): Cerveja ×3, Vinho ×3, Licor ×3.
+    /// Previous tiers stay at max quantity (perTier), current tier scales from 1 to perTier.
+    /// Example at level 102 (tier 2, perTier=50): Cerveja ×50, Vinho ×50, Licor ×3.
     /// </summary>
     public List<(InventoryItemType DrinkType, int Quantity)> GetEquipmentUpgradeDrinkRequirements(int currentLevel)
     {
         var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
         if (perTier < 1) perTier = 5;
         var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
-        var quantity = (currentLevel % perTier) + 1;
+        var currentTierQty = (currentLevel % perTier) + 1;
         if (currentLevel / perTier >= DrinkTierOrder.Length)
-            quantity = perTier;
+            currentTierQty = perTier;
 
         var requirements = new List<(InventoryItemType DrinkType, int Quantity)>();
         for (int i = 0; i <= tierIndex; i++)
         {
-            requirements.Add((DrinkTierOrder[i], quantity));
+            // Previous tiers locked at perTier, current tier scales 1→perTier
+            var qty = i < tierIndex ? perTier : currentTierQty;
+            requirements.Add((DrinkTierOrder[i], qty));
         }
         return requirements;
     }
@@ -1192,17 +1199,26 @@ public class InventoryService : IInventoryService
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
-        // Require drinks based on current weapon level
-        var (drinkType, drinkQty) = GetUpgradeDrinkRequirement(weapon.Level);
-        var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
-        var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
-        var drinkName = drinkRes?.Name ?? drinkType.ToString();
-        if (drinkItem == null || drinkItem.Quantity < drinkQty)
-            return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+        // Require ALL drinks from tier 0 through current tier (cumulative)
+        var drinkRequirements = GetUpgradeDrinkRequirement(weapon.Level);
 
-        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
-        if (!consumed)
-            return (false, "Erro ao consumir bebida");
+        // Validate all drinks are available before consuming any (fail-fast)
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
+            var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
+            var drinkName = drinkRes?.Name ?? drinkType.ToString();
+            if (drinkItem == null || drinkItem.Quantity < drinkQty)
+                return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+        }
+
+        // Consume all drinks
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
+            if (!consumed)
+                return (false, "Erro ao consumir bebida");
+        }
 
         // Check Leitão cost (mid-game currency from Boss Mode)
         var piggies = _scalingConfig.BossMode.Piggies;

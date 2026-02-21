@@ -674,80 +674,96 @@
             // == Boss HUD bars (top-right, mirrored, red) ==
             const isBossMode = this.enemyType && this.enemyType.toLowerCase() === 'boss';
             if (isBossMode) {
-                const rightX = width - paddingLeft - barWidth;
-
-                // Boss HP background
-                const bossHpBg = new PIXI.Graphics();
-                bossHpBg.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
-                bossHpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
-                bossHpBg.stroke({ color: 0x333333, width: 1 });
-                this.stage.addChild(bossHpBg);
-
-                // Boss HP fill (red)
-                const bossHpFill = new PIXI.Graphics();
-                bossHpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
-                bossHpFill.fill(0xf44336);
-                bossHpFill.x = rightX;
-                bossHpFill.y = paddingTop;
-                this.stage.addChild(bossHpFill);
-
-                // Boss HP border (red)
-                const bossHpBorder = new PIXI.Graphics();
-                bossHpBorder.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
-                bossHpBorder.stroke({ width: 1.5, color: 0xef5350 });
-                this.stage.addChild(bossHpBorder);
-
-                // Boss HP text
-                const bossHpText = new PIXI.Text({
-                    text: '',
-                    style: {
-                        fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
-                        fill: 0xffffff,
-                        stroke: { color: 0x000000, width: 2 }
-                    }
-                });
-                bossHpText.anchor.set(0.5, 0.5);
-                bossHpText.x = rightX + barWidth / 2;
-                bossHpText.y = paddingTop + barHeight / 2;
-                this.stage.addChild(bossHpText);
-
-                this.bossHpBar = {
-                    bar: bossHpFill, barBg: bossHpBg, border: bossHpBorder,
-                    text: bossHpText, maxWidth: barWidth, barHeight: barHeight,
-                    x: rightX, y: paddingTop
-                };
-
-                // Boss Speed Bar (below HP)
-                const bossSpeedBg = new PIXI.Graphics();
-                bossSpeedBg.roundRect(rightX, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
-                bossSpeedBg.fill({ color: 0x111111, alpha: 0.85 });
-                this.stage.addChild(bossSpeedBg);
-
-                const bossSpeedFill = new PIXI.Graphics();
-                bossSpeedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
-                bossSpeedFill.fill(0x00bcd4);
-                bossSpeedFill.x = rightX;
-                bossSpeedFill.y = speedBarY;
-                this.stage.addChild(bossSpeedFill);
-
-                const bossSpeedText = new PIXI.Text({
-                    text: '',
-                    style: {
-                        fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
-                        fill: 0xffffff,
-                        stroke: { color: 0x000000, width: 2 }
-                    }
-                });
-                bossSpeedText.anchor.set(0.5, 0.5);
-                bossSpeedText.x = rightX + barWidth / 2;
-                bossSpeedText.y = speedBarY + speedBarHeight / 2;
-                this.stage.addChild(bossSpeedText);
-
-                this.bossSpeedBar = {
-                    bar: bossSpeedFill, barBg: bossSpeedBg,
-                    text: bossSpeedText, maxWidth: barWidth, barHeight: speedBarHeight
-                };
+                this.createBossHudBars(width, height);
             }
+        }
+
+        // Separate method so boss HUD bars can be created on-demand during resetForNextBattle
+        createBossHudBars(width, height) {
+            const isMobile = this.isMobile;
+            const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.40);
+            const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
+            const topBarHeight = 54;
+            const paddingTop = topBarHeight + 8;
+            const paddingLeft = Math.min(16, width * 0.03);
+            const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
+            const speedBarY = paddingTop + barHeight + 3;
+            const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
+            const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
+
+            const rightX = width - paddingLeft - barWidth;
+
+            // Boss HP background
+            const bossHpBg = new PIXI.Graphics();
+            bossHpBg.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
+            bossHpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
+            bossHpBg.stroke({ color: 0x333333, width: 1 });
+            this.stage.addChild(bossHpBg);
+
+            // Boss HP fill (red)
+            const bossHpFill = new PIXI.Graphics();
+            bossHpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+            bossHpFill.fill(0xf44336);
+            bossHpFill.x = rightX;
+            bossHpFill.y = paddingTop;
+            this.stage.addChild(bossHpFill);
+
+            // Boss HP border (red)
+            const bossHpBorder = new PIXI.Graphics();
+            bossHpBorder.roundRect(rightX, paddingTop, barWidth, barHeight, barHeight / 2);
+            bossHpBorder.stroke({ width: 1.5, color: 0xef5350 });
+            this.stage.addChild(bossHpBorder);
+
+            // Boss HP text
+            const bossHpText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            bossHpText.anchor.set(0.5, 0.5);
+            bossHpText.x = rightX + barWidth / 2;
+            bossHpText.y = paddingTop + barHeight / 2;
+            this.stage.addChild(bossHpText);
+
+            this.bossHpBar = {
+                bar: bossHpFill, barBg: bossHpBg, border: bossHpBorder,
+                text: bossHpText, maxWidth: barWidth, barHeight: barHeight,
+                x: rightX, y: paddingTop
+            };
+
+            // Boss Speed Bar (below HP)
+            const bossSpeedBg = new PIXI.Graphics();
+            bossSpeedBg.roundRect(rightX, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+            bossSpeedBg.fill({ color: 0x111111, alpha: 0.85 });
+            this.stage.addChild(bossSpeedBg);
+
+            const bossSpeedFill = new PIXI.Graphics();
+            bossSpeedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
+            bossSpeedFill.fill(0x00bcd4);
+            bossSpeedFill.x = rightX;
+            bossSpeedFill.y = speedBarY;
+            this.stage.addChild(bossSpeedFill);
+
+            const bossSpeedText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            bossSpeedText.anchor.set(0.5, 0.5);
+            bossSpeedText.x = rightX + barWidth / 2;
+            bossSpeedText.y = speedBarY + speedBarHeight / 2;
+            this.stage.addChild(bossSpeedText);
+
+            this.bossSpeedBar = {
+                bar: bossSpeedFill, barBg: bossSpeedBg,
+                text: bossSpeedText, maxWidth: barWidth, barHeight: speedBarHeight
+            };
         }
 
         createEnemies(width, height) {
@@ -3656,6 +3672,39 @@
             this.isMobile = width <= height || width < 500;
             this.createEnemies(width, height);
             
+            // Handle boss HUD bars — create if needed, show/hide based on enemy type
+            const isBossNow = this.enemyType && this.enemyType.toLowerCase() === 'boss';
+            if (isBossNow) {
+                if (!this.bossHpBar) {
+                    this.createBossHudBars(width, height);
+                }
+                // Show boss bars
+                if (this.bossHpBar) {
+                    this.bossHpBar.bar.visible = true;
+                    this.bossHpBar.barBg.visible = true;
+                    if (this.bossHpBar.border) this.bossHpBar.border.visible = true;
+                    this.bossHpBar.text.visible = true;
+                }
+                if (this.bossSpeedBar) {
+                    this.bossSpeedBar.bar.visible = true;
+                    this.bossSpeedBar.barBg.visible = true;
+                    if (this.bossSpeedBar.text) this.bossSpeedBar.text.visible = true;
+                }
+            } else {
+                // Hide boss bars for non-boss stages
+                if (this.bossHpBar) {
+                    this.bossHpBar.bar.visible = false;
+                    this.bossHpBar.barBg.visible = false;
+                    if (this.bossHpBar.border) this.bossHpBar.border.visible = false;
+                    this.bossHpBar.text.visible = false;
+                }
+                if (this.bossSpeedBar) {
+                    this.bossSpeedBar.bar.visible = false;
+                    this.bossSpeedBar.barBg.visible = false;
+                    if (this.bossSpeedBar.text) this.bossSpeedBar.text.visible = false;
+                }
+            }
+
             // Fade in new enemies for a smooth transition
             for (const enemy of this.enemySprites) {
                 if (enemy) {

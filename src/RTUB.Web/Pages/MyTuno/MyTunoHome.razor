@@ -1323,12 +1323,9 @@
     @if (showWeaponActionModal && pendingWeapon != null)
     {
         var upgradeCost = InventoryService.GetWeaponUpgradeCost(pendingWeapon.Level);
-        var (wpnDrinkType, wpnDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
-        var wpnDrinkName = GetResourceName(wpnDrinkType);
-        var wpnDrinkHave = GetResourceQuantity(wpnDrinkType);
-        var wpnDrinkRes = activeResources.FirstOrDefault(r => r.Type == wpnDrinkType.ToString());
+        var wpnDrinkReqs = InventoryService.GetUpgradeDrinkRequirement(pendingWeapon.Level);
         var hasFidelis = currentUser != null && currentUser.FidelisBalance >= upgradeCost;
-        var hasDrinks = wpnDrinkHave >= wpnDrinkQty;
+        var hasDrinks = wpnDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
         var wpnPiggies = MyTunoConfig.Value.BossMode.Piggies;
         var wpnLeitaoCost = PiggiesCostConfig.CalculateCost(pendingWeapon.Level, wpnPiggies.WeaponUpgradeStartLevel, wpnPiggies.WeaponUpgradeBaseCost, wpnPiggies.WeaponUpgradeCostEveryNLevels);
         var hasLeitaoWpn = wpnLeitaoCost == 0 || leitaoQuantity >= wpnLeitaoCost;
@@ -1385,10 +1382,17 @@
                                      Color="gold" Size="md" Insufficient="@(!hasFidelis)">
                             <span class="ftile-stock @(hasFidelis ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
                         </FantasyTile>
-                        <FantasyTile ImageUrl="@(GetDrinkPictureUrl(wpnDrinkType))" Icon="@(wpnDrinkRes?.Icon ?? "bi-cup-straw")" Label="@wpnDrinkName" Value="@($"×{wpnDrinkQty}")"
-                                     Color="purple" Size="md" Insufficient="@(!hasDrinks)">
-                            <span class="ftile-stock @(hasDrinks ? "ftile-stock--ok" : "ftile-stock--low")">@wpnDrinkHave</span>
-                        </FantasyTile>
+                        @foreach (var (drinkType, drinkQty) in wpnDrinkReqs)
+                        {
+                            var drinkName = GetResourceName(drinkType);
+                            var drinkHave = GetResourceQuantity(drinkType);
+                            var drinkRes = activeResources.FirstOrDefault(r => r.Type == drinkType.ToString());
+                            var hasDrink = drinkHave >= drinkQty;
+                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(drinkType))" Icon="@(drinkRes?.Icon ?? "bi-cup-straw")" Label="@drinkName" Value="@($"×{drinkQty}")"
+                                         Color="purple" Size="md" Insufficient="@(!hasDrink)">
+                                <span class="ftile-stock @(hasDrink ? "ftile-stock--ok" : "ftile-stock--low")">@drinkHave</span>
+                            </FantasyTile>
+                        }
                         @if (wpnLeitaoCost > 0)
                         {
                             <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{wpnLeitaoCost}")"
