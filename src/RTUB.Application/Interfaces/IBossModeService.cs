@@ -79,6 +79,14 @@ public interface IBossModeService
     Task CorrectInteractiveWinAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Overwrites the persisted boss remaining HP for the current daily boss.
+    /// Called after the interactive combat session finishes to correct the pre-computed
+    /// HP that was saved during ExecuteBossBattleAsync.
+    /// Works regardless of whether the run is still active (CurrentBossStage may be 0).
+    /// </summary>
+    Task SaveBossRemainingHPAsync(string userId, long bossRemainingHP, long bossMaxHP, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the equivalent stage mode difficulty for a boss stage number.
     /// Boss stage 1 = stage 500+ equivalent.
     /// </summary>

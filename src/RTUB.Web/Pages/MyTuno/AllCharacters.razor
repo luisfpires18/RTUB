@@ -72,11 +72,37 @@
                        OnSearch="UpdateSearch" />
         </div>
 
-        <!-- Stats -->
-        <div class="d-flex flex-wrap gap-3 mb-4">
+        <!-- Stats & Sort -->
+        var levelActive = SortHelper.SortColumn == "level";
+        var ratingActive = SortHelper.SortColumn == "rating";
+        var stageActive = SortHelper.SortColumn == "stage";
+        var sortArrow = SortHelper.SortAscending ? "bi-arrow-up" : "bi-arrow-down";
+        <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
             <div class="badge bg-primary fs-6 py-2 px-3">
                 <i class="bi bi-people me-1"></i> Total: @FilteredItems.Count
             </div>
+            <span class="text-muted small ms-2 me-1">Ordenar:</span>
+            <button class="btn sort-badge @(levelActive ? "sort-badge--active" : "")" @onclick="@(() => SortBy("level"))">
+                <i class="bi bi-star-fill me-1"></i>Nível
+                @if (levelActive)
+                {
+                    <i class="bi @sortArrow ms-1"></i>
+                }
+            </button>
+            <button class="btn sort-badge @(ratingActive ? "sort-badge--active" : "")" @onclick="@(() => SortBy("rating"))">
+                <i class="bi bi-trophy-fill me-1"></i>Rating
+                @if (ratingActive)
+                {
+                    <i class="bi @sortArrow ms-1"></i>
+                }
+            </button>
+            <button class="btn sort-badge @(stageActive ? "sort-badge--active" : "")" @onclick="@(() => SortBy("stage"))">
+                <i class="bi bi-layers me-1"></i>Stage
+                @if (stageActive)
+                {
+                    <i class="bi @sortArrow ms-1"></i>
+                }
+            </button>
         </div>
 
         <!-- Character Grid -->
@@ -279,6 +305,29 @@
     .fantasy-divider {
         border-color: rgba(255,255,255,0.08);
         margin: 0;
+    }
+    .sort-badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.15);
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sort-badge:hover {
+        background: rgba(111, 66, 193, 0.2);
+        border-color: rgba(111, 66, 193, 0.5);
+        color: #fff;
+    }
+    .sort-badge--active {
+        background: rgba(111, 66, 193, 0.35);
+        border-color: rgba(111, 66, 193, 0.7);
+        color: #fff;
     }
 </style>
 

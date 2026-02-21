@@ -571,15 +571,17 @@ public class BossModeService : IBossModeService
 
         var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
 
-        // Pre-computed engine predicted a win but the interactive session determined a loss.
-        // Save the boss's remaining HP and end the run.
+        // Always save the boss's remaining HP from the interactive session.
+        // The pre-computed engine may have already ended the run (CurrentBossStage=0)
+        // and saved a different boss HP — overwrite it with the interactive value.
+        if (bossRemainingHP > 0)
+            progress.SaveBossHP(bossRemainingHP, bossMaxHP);
+
+        // End the run if still active (pre-computed WIN case where EndRun was deferred).
         if (progress.CurrentBossStage > 0)
-        {
-            if (bossRemainingHP > 0)
-                progress.SaveBossHP(bossRemainingHP, bossMaxHP);
             progress.EndRun();
-            await _bossModeProgressRepository.UpdateAsync(progress);
-        }
+
+        await _bossModeProgressRepository.UpdateAsync(progress);
     }
 
     /// <inheritdoc />
@@ -598,6 +600,26 @@ public class BossModeService : IBossModeService
             progress.AdvanceBossStage();
             await _bossModeProgressRepository.UpdateAsync(progress);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task SaveBossRemainingHPAsync(string userId, long bossRemainingHP, long bossMaxHP, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID is required", nameof(userId));
+
+        var progress = await GetOrCreateBossModeProgressAsync(userId, cancellationToken);
+
+        if (bossRemainingHP > 0)
+            progress.SaveBossHP(bossRemainingHP, bossMaxHP);
+        else
+        {
+            // Boss was killed — clear remaining HP
+            progress.DailyBossRemainingHP = null;
+            progress.DailyBossMaxHP = 0;
+        }
+
+        await _bossModeProgressRepository.UpdateAsync(progress);
     }
 
     private async Task UpdateProgressAfterBattle(

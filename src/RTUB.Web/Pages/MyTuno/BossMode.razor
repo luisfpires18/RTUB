@@ -778,10 +778,10 @@
                         foreach (var stat in statsProp.EnumerateArray())
                         {
                             var name = stat.TryGetProperty("Name", out var np) ? np.GetString() ?? "Boss" : "Boss";
-                            var hp = stat.TryGetProperty("HP", out var hpP) ? hpP.GetInt32() : 0;
-                            var maxHp = stat.TryGetProperty("MaxHP", out var mhpP) ? mhpP.GetInt32() : hp;
-                            var power = stat.TryGetProperty("Power", out var ppP) ? ppP.GetInt32() : 0;
-                            var defense = stat.TryGetProperty("Defense", out var dp) ? dp.GetInt32() : 0;
+                            var hp = stat.TryGetProperty("HP", out var hpP) ? hpP.GetInt64() : 0L;
+                            var maxHp = stat.TryGetProperty("MaxHP", out var mhpP) ? mhpP.GetInt64() : hp;
+                            var power = stat.TryGetProperty("Power", out var ppP) ? ppP.GetInt64() : 0L;
+                            var defense = stat.TryGetProperty("Defense", out var dp) ? dp.GetInt64() : 0L;
                             var actionTime = stat.TryGetProperty("ActionTime", out var atp) ? atp.GetDouble() : 5.0;
                             currentEnemyStats.Add(new EnemyStatsInfo(name, hp, maxHp, power, defense, actionTime));
                         }
@@ -815,13 +815,19 @@
                     // state (ExecuteBossBattleAsync already consumed them in the pre-computed sim).
                     var savedHp = character.CurrentHP;
                     character.CurrentHP = preBattleHp;
+                    character.CigarroShieldHitsRemaining = preBattleCigarroBuff;
+                    character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
                     Character sessionChar = character;
                     if (preBattleShotBuff)
                         sessionChar = Character.CreateShotBuffedCopy(character);
-                    character.CurrentHP = savedHp; // Restore post-battle HP
 
+                    // Create the session BEFORE restoring post-battle HP — sessionChar is the
+                    // same reference as character (when no shot buff), so restoring afterward
+                    // would cause the session to start with post-battle HP instead of pre-battle.
                     _combatSession = CombatActionService.CreateSession(
                         sessionChar, enemyStates, currentBattle.Seed, _starterSpells, "boss");
+
+                    character.CurrentHP = savedHp; // Restore post-battle HP on the tracked entity
 
                     var battleData = new
                     {
@@ -1085,6 +1091,20 @@
                     Logger.LogWarning(ex, "Error confirming boss victory");
                 }
             }
+            else if (!_precomputedWin && currentUser != null)
+            {
+                // Pre-computed said LOSS but interactive said WIN.
+                // ConfirmBossVictoryAsync was already called via CorrectInteractiveWinAsync above,
+                // but we need to clear boss remaining HP since the boss was actually defeated.
+                try
+                {
+                    await BossModeService.SaveBossRemainingHPAsync(currentUser.Id, 0, 0);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error clearing boss HP after interactive win");
+                }
+            }
             _precomputedWin = false;
 
             // Accumulate rewards
@@ -1126,10 +1146,10 @@
         }
         else
         {
-            // If pre-computed said WIN but interactive session determined LOSS,
-            // record the defeat server-side (save boss HP, end run).
             if (_precomputedWin && currentUser != null)
             {
+                // Pre-computed said WIN but interactive session determined LOSS.
+                // Record the defeat server-side (save boss HP, end run).
                 pendingDefeatRewards = true;
                 defeatRestoreHp = runStartingHp;
                 runInProgress = false;
@@ -1142,6 +1162,22 @@
                 catch (Exception ex)
                 {
                     Logger.LogWarning(ex, "Error recording interactive defeat in boss mode");
+                }
+            }
+            else if (!_precomputedWin && currentUser != null)
+            {
+                // Both pre-computed and interactive agree: LOSS.
+                // The pre-computed engine already saved boss HP via UpdateProgressAfterBattle,
+                // but it saved the pre-computed HP which may differ from the interactive session.
+                // Overwrite with the correct interactive boss HP.
+                try
+                {
+                    await BossModeService.SaveBossRemainingHPAsync(
+                        currentUser.Id, interactiveBossRemainingHP, interactiveBossMaxHP);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error saving interactive boss HP after defeat");
                 }
             }
             _precomputedWin = false;
@@ -1205,6 +1241,11 @@
 
         try
         {
+            // Capture boss HP from the interactive session BEFORE destroying the game/session
+            long earlyStopBossHP = _combatSession?.Enemies?.FirstOrDefault()?.CurrentHP ?? 0;
+            long earlyStopBossMaxHP = _combatSession?.Enemies?.FirstOrDefault()?.MaxHP ?? 0;
+            _combatSession = null;
+
             if (hasRendered)
             {
                 try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
@@ -1233,22 +1274,41 @@
             }
             else if (character != null && runStartingHp.HasValue)
             {
+                // No bosses cleared, pre-computed engine predicted WIN —
+                // restore character to pre-run state and end the run.
                 await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
+            }
+            // else: pre-computed engine predicted LOSS on first boss (bossesCleared==0,
+            // runStartingHp==null). UpdateProgressAfterBattle already ended the run and
+            // saved *pre-computed* boss HP. We still need to overwrite it below.
+
+            // Always save interactive boss HP and ensure the run is ended server-side.
+            // This is critical because the pre-computed engine may have already saved a
+            // DIFFERENT boss HP (from its simulation) that doesn't match the interactive
+            // session. Without this, each early stop accumulates pre-computed damage.
+            // RecordInteractiveDefeatAsync is idempotent: saves HP unconditionally,
+            // calls EndRun only if the run is still active.
+            if (currentUser != null && earlyStopBossHP > 0 && earlyStopBossMaxHP > 0)
+            {
+                try
+                {
+                    await BossModeService.RecordInteractiveDefeatAsync(
+                        currentUser.Id, earlyStopBossHP, earlyStopBossMaxHP);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error saving boss HP on early end");
+                }
             }
 
             runInProgress = false;
             runStartingHp = null;
             pendingDefeatRewards = false;
 
-            // End boss mode run in progress
+            // Refresh progress and character from DB after the run has been ended server-side
             if (currentUser != null)
             {
                 bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
-                if (bossModeProgress != null && bossModeProgress.CurrentBossStage > 0)
-                {
-                    bossModeProgress.EndRun();
-                    // Progress is updated via service
-                }
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
             }
 
@@ -1408,14 +1468,20 @@
         showBuffScreen = false;
         currentBattle = null;
 
-        // End boss mode run
+        // Ensure the run is ended server-side. OnBattleFinished should have already
+        // ended the run, but call RecordInteractiveDefeatAsync as a safety net —
+        // it will EndRun only if still active, and always persists via the DB.
         if (currentUser != null)
         {
-            bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
-            if (bossModeProgress != null && bossModeProgress.CurrentBossStage > 0)
+            try
             {
-                bossModeProgress.EndRun();
+                await BossModeService.RecordInteractiveDefeatAsync(currentUser.Id, 0, 0);
             }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Error ending boss run from buff screen");
+            }
+            bossModeProgress = await BossModeService.GetBossModeProgressAsync(currentUser.Id);
         }
 
         // Navigate directly to My Tuno
@@ -1581,6 +1647,12 @@
     {
         if (runInProgress && character != null && runStartingHp.HasValue)
         {
+            // Capture interactive boss HP before destroying the session.
+            // Without this, navigating away mid-fight saves the pre-computed boss HP
+            // instead of the actual interactive HP.
+            long disposeBossHP = _combatSession?.Enemies?.FirstOrDefault()?.CurrentHP ?? 0;
+            long disposeBossMaxHP = _combatSession?.Enemies?.FirstOrDefault()?.MaxHP ?? 0;
+
             try
             {
                 await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
@@ -1589,6 +1661,21 @@
             {
                 Logger.LogError(ex, "Error cancelling boss run during disposal");
             }
+
+            // Overwrite pre-computed boss HP with the interactive session value.
+            if (currentUser != null && disposeBossHP > 0 && disposeBossMaxHP > 0)
+            {
+                try
+                {
+                    await BossModeService.SaveBossRemainingHPAsync(
+                        currentUser.Id, disposeBossHP, disposeBossMaxHP);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error saving boss HP during disposal");
+                }
+            }
+
             runInProgress = false;
         }
     }
@@ -1598,6 +1685,10 @@
         _disposed = true;
 
         await CancelRunIfInProgressAsync();
+
+        // Capture interactive boss HP before the session/game is destroyed.
+        long disposeBossHP = _combatSession?.Enemies?.FirstOrDefault()?.CurrentHP ?? 0;
+        long disposeBossMaxHP = _combatSession?.Enemies?.FirstOrDefault()?.MaxHP ?? 0;
 
         if (pendingDefeatRewards && character != null && bossesCleared > 0)
         {
@@ -1614,6 +1705,17 @@
             }
             catch (Exception) { }
             pendingDefeatRewards = false;
+        }
+
+        // Save interactive boss HP to overwrite any pre-computed value.
+        if (currentUser != null && disposeBossHP > 0 && disposeBossMaxHP > 0)
+        {
+            try
+            {
+                await BossModeService.RecordInteractiveDefeatAsync(
+                    currentUser.Id, disposeBossHP, disposeBossMaxHP);
+            }
+            catch (Exception) { }
         }
 
         if (hasRendered)
