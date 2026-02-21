@@ -26,7 +26,8 @@ public class StageService : IStageService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<StageService> _logger;
-    private readonly MyTunoScalingConfiguration _myTunoScalingConfig;
+    private readonly IOptionsSnapshot<MyTunoScalingConfiguration> _myTunoScalingOptions;
+    private MyTunoScalingConfiguration _myTunoScalingConfig => _myTunoScalingOptions.Value;
     private readonly IStageBiomeService _biomeService;
 
     public StageService(
@@ -37,7 +38,7 @@ public class StageService : IStageService
         IInventoryRepository inventoryRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<StageService> logger,
-        IOptions<MyTunoScalingConfiguration> myTunoScalingConfig,
+        IOptionsSnapshot<MyTunoScalingConfiguration> myTunoScalingConfig,
         IStageBiomeService biomeService)
     {
         _stageProgressRepository = stageProgressRepository;
@@ -47,7 +48,7 @@ public class StageService : IStageService
         _inventoryRepository = inventoryRepository;
         _userManager = userManager;
         _logger = logger;
-        _myTunoScalingConfig = myTunoScalingConfig.Value;
+        _myTunoScalingOptions = myTunoScalingConfig;
         _biomeService = biomeService;
     }
 

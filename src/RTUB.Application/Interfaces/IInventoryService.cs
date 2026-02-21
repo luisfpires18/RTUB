@@ -211,6 +211,12 @@ public interface IInventoryService
     Task<(bool Success, string Message)> UpgradeEquipmentSlotAsync(string userId, EquipmentSlot slot, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Recalculates all equipment bonuses for a user's character using the current formula/config.
+    /// Call on page load to ensure cached DB values are up-to-date after balance changes.
+    /// </summary>
+    Task RecalculateEquipmentBonusesForUserAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Calculates the Fidelis value for discarding a forged weapon.
     /// </summary>
     decimal GetWeaponDiscardValue(ForgedWeapon weapon, int characterLevel);

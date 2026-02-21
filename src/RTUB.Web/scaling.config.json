@@ -101,7 +101,7 @@
 
     "stageMode": {
       "bossMultiplier": 1.8,
-      "enemyStatBuff": 1.01,
+      "enemyStatBuff": 1.33,
 
       "dropRates": {
         "finoDropChance": 0.0015,
@@ -160,7 +160,7 @@
         "castTimeSeconds": 5,
         "weaponUpgradeBaseCost": 50,
         "weaponUpgradeCostPerLevel": 50,
-        "maxWeaponLevel": 20,
+        "maxWeaponLevel": 9999,
         "weaponUpgradeStatBonus": 0.05,
         "equipmentUpgradeBaseCost": 240,
         "equipmentUpgradeCostPerLevel": 240,
@@ -298,7 +298,7 @@
         "weaponUpgradeStartLevel": 500,
         "weaponUpgradeBaseCost": 1,
         "weaponUpgradeCostEveryNLevels": 5,
-        "equipmentUpgradeStartLevel": 750,
+        "equipmentUpgradeStartLevel": 500,
         "equipmentUpgradeBaseCost": 1,
         "equipmentUpgradeCostEveryNLevels": 5
       },

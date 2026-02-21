@@ -21,8 +21,9 @@ public class InventoryService : IInventoryService
     private readonly ICharacterRepository _characterRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<InventoryService> _logger;
-    private readonly GatheringConfig _gatheringConfig;
-    private readonly MyTunoScalingConfiguration _scalingConfig;
+    private readonly IOptionsSnapshot<MyTunoScalingConfiguration> _scalingOptions;
+    private MyTunoScalingConfiguration _scalingConfig => _scalingOptions.Value;
+    private GatheringConfig _gatheringConfig => _scalingConfig.Gathering;
     private readonly ApplicationDbContext _dbContext;
 
     // Fino heals 25% of total HP
@@ -39,15 +40,14 @@ public class InventoryService : IInventoryService
         ICharacterRepository characterRepository,
         UserManager<ApplicationUser> userManager,
         ILogger<InventoryService> logger,
-        IOptions<MyTunoScalingConfiguration> config,
+        IOptionsSnapshot<MyTunoScalingConfiguration> config,
         ApplicationDbContext dbContext)
     {
         _inventoryRepository = inventoryRepository;
         _characterRepository = characterRepository;
         _userManager = userManager;
         _logger = logger;
-        _scalingConfig = config.Value;
-        _gatheringConfig = config.Value.Gathering;
+        _scalingOptions = config;
         _dbContext = dbContext;
     }
 
@@ -1015,6 +1015,20 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
+    /// Public entry point to recalculate all equipment bonuses for a user's character.
+    /// Call this on page load to ensure bonuses reflect current formula/config.
+    /// </summary>
+    public async Task RecalculateEquipmentBonusesForUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var character = await _dbContext.Characters
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        if (character == null) return;
+
+        await RecalculateEquipmentBonusesAsync(character, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Recalculates all equipment stat bonuses based on currently equipped items.
     /// Each character gets unique equipment quality per slot via deterministic seeding
     /// (characterId × 7919 + slotIndex × 31), giving variety across players without DB changes.
@@ -1193,10 +1207,11 @@ public class InventoryService : IInventoryService
         user.FidelisBalance -= cost;
         weapon.Level += 1;
 
-        // Recalculate stats: increase base stats by upgrade bonus per level
+        // Recalculate stats: flat bonus per level (matches equipment/stat upgrade model)
+        var hpPerLvl = _scalingConfig.StageMode.EquipmentHpPerLevel;
+        var powPerLvl = _scalingConfig.StageMode.EquipmentPowerPerLevel;
+        var defPerLvl = _scalingConfig.StageMode.EquipmentDefensePerLevel;
         var forging = _scalingConfig.StageMode.Forging;
-        var statBonus = forging.WeaponUpgradeStatBonus;
-        var levelMultiplier = 1.0 + (weapon.Level * statBonus);
         var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
 
         // Find drink cost multiplier from the weapon's source drink
@@ -1207,11 +1222,11 @@ public class InventoryService : IInventoryService
         // 2H weapons get the two-handed multiplier to match dual-wielding 1H
         var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
 
-        var totalMult = drinkCostMultiplier * levelMultiplier * handedMult;
+        var scaleMult = drinkCostMultiplier * handedMult;
 
-        weapon.BonusHP = (int)Math.Round(baseStats.HP * totalMult);
-        weapon.BonusPower = (int)Math.Round(baseStats.Power * totalMult);
-        weapon.BonusDefense = (int)Math.Round(baseStats.Defense * totalMult);
+        weapon.BonusHP = (int)Math.Round((baseStats.HP + weapon.Level * hpPerLvl) * scaleMult);
+        weapon.BonusPower = (int)Math.Round((baseStats.Power + weapon.Level * powPerLvl) * scaleMult);
+        weapon.BonusDefense = (int)Math.Round((baseStats.Defense + weapon.Level * defPerLvl) * scaleMult);
 
         // Recalculate equipment bonuses if weapon is equipped
         if (weapon.IsEquipped)

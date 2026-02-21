@@ -535,19 +535,19 @@
                         <div class="ftile-grid ftile-grid--3col">
                             <FantasyTile Icon="bi-heart-fill" Label="HP" Value="@($"{Fmt(currentHP)}/{Fmt(displayMaxHP)}")"
                                          Color="red" Size="md" Highlighted="@hasEnhancementHP"
-                                         Tooltip="@(hasEnhancementHP ? "+20% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancementHP ? "+5% (Shot)" : "")" />
                             <FantasyTile Icon="bi-lightning-fill" Label="Poder" Value="@Fmt(character.TotalPower)"
                                          Color="green" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
                             <FantasyTile Icon="bi-shield-fill" Label="Defesa" Value="@Fmt(character.TotalDefense)"
                                          Color="gray" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
                             <FantasyTile Icon="bi-speedometer2" Label="Velocidade" Value="@($"{character.ActionTime:F1}s")"
                                          Color="blue" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
                             <FantasyTile Icon="bi-bullseye" Label="Crítico" Value="@($"{character.TotalCriticalChance * 100:F1}%")"
                                          Color="yellow" Size="md" Highlighted="@hasEnhancement"
-                                         Tooltip="@(hasEnhancement ? "+20% (Shot)" : "")" />
+                                         Tooltip="@(hasEnhancement ? "+5% (Shot)" : "")" />
                         </div>
                         
                         <!-- Active Enhancements Section -->
@@ -560,7 +560,7 @@
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-droplet-fill text-info me-2"></i>
-                                            <span>Shot (+20% stats)</span>
+                                            <span>Shot (+5% stats)</span>
                                         </span>
                                         <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
                                     </div>
@@ -2478,6 +2478,8 @@
 
         try
         {
+            // Recalculate equipment bonuses to reflect any formula/config changes
+            await InventoryService.RecalculateEquipmentBonusesForUserAsync(currentUser.Id);
             character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
         }
         catch (Exception ex)

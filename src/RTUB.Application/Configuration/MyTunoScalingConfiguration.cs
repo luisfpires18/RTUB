@@ -483,7 +483,7 @@ public class ForgingConfig
     public decimal WeaponUpgradeCostPerLevel { get; set; } = 50m;
 
     /// <summary>Maximum weapon upgrade level.</summary>
-    public int MaxWeaponLevel { get; set; } = 20;
+    public int MaxWeaponLevel { get; set; } = 9999;
 
     /// <summary>Stat increase percentage per weapon level (0.05 = +5% per level).</summary>
     public double WeaponUpgradeStatBonus { get; set; } = 0.05;
@@ -805,12 +805,12 @@ public class PiggiesCostConfig
     public int PowerCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Weapon upgrade: level at which Leitão cost kicks in.</summary>
-    public int WeaponUpgradeStartLevel { get; set; } = 12;
+    public int WeaponUpgradeStartLevel { get; set; } = 500;
     public int WeaponUpgradeBaseCost { get; set; } = 1;
     public int WeaponUpgradeCostEveryNLevels { get; set; } = 5;
 
     /// <summary>Equipment slot upgrade: level at which Leitão cost kicks in.</summary>
-    public int EquipmentUpgradeStartLevel { get; set; } = 12;
+    public int EquipmentUpgradeStartLevel { get; set; } = 500;
     public int EquipmentUpgradeBaseCost { get; set; } = 1;
     public int EquipmentUpgradeCostEveryNLevels { get; set; } = 5;
 
