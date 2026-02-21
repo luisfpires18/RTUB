@@ -111,7 +111,7 @@
         "canhaoDropChance": 0.0003,
         "penaltyDropChance": 0.0002,
         "instrumentPartDropChance": 0.0003,
-        "rareSetDropChance": 0.1,
+        "rareSetDropChance": 0.00005,
         "bossDropMultiplier": 3.0
       },
 
