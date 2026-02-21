@@ -235,6 +235,21 @@ public class StageModeConfig
     public EquipmentStatsConfig EquipmentStats { get; set; } = new();
 
     /// <summary>
+    /// Flat HP bonus per equipment enhancement level (matches stat upgrade flatBonus).
+    /// </summary>
+    public int EquipmentHpPerLevel { get; set; } = 100;
+
+    /// <summary>
+    /// Flat Power bonus per equipment enhancement level (matches stat upgrade flatBonus).
+    /// </summary>
+    public int EquipmentPowerPerLevel { get; set; } = 15;
+
+    /// <summary>
+    /// Flat Defense bonus per equipment enhancement level (matches stat upgrade flatBonus).
+    /// </summary>
+    public int EquipmentDefensePerLevel { get; set; } = 12;
+
+    /// <summary>
     /// Minimum quality multiplier for equipment pieces.
     /// Default 0.7 = worst quality gets 70% of base stats.
     /// </summary>
@@ -255,7 +270,7 @@ public class StageModeConfig
     /// <summary>
     /// Maximum equipment enhancement level.
     /// </summary>
-    public int MaxEquipmentEnhancement { get; set; } = 15;
+    public int MaxEquipmentEnhancement { get; set; } = 9999;
 
     /// <summary>
     /// Per-character-level scaling factor applied to equipped weapon stat bonuses.

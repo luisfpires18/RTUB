@@ -1524,8 +1524,7 @@
         var actionLevel = character?.Level ?? 1;
         var actionDiscardScale = 1.0 + actionLevel * MyTunoConfig.Value.StageMode.DiscardLevelScale;
         var actionSlotLevel = actionSlot.HasValue ? GetSlotEnhancementLevel(actionSlot.Value) : 0;
-        var actionEnhMult = actionIsEquip ? (1.0 + actionSlotLevel * MyTunoConfig.Value.StageMode.EquipmentEnhancementBonus) : 1.0;
-        var actionFidelisValue = Math.Round(actionBaseValue * (decimal)(actionDiscardScale * actionEnhMult), 2);
+        var actionFidelisValue = Math.Round(actionBaseValue * (decimal)actionDiscardScale, 2);
         var actionStoredQuality = actionSlot switch
         {
             EquipmentSlot.Head => character?.EquippedHeadQuality ?? 0,
@@ -1591,15 +1590,12 @@
                 {
                     var eqSlotBonusLevel = character?.GetSlotBonusLevel(actionSlot.Value) ?? 0;
                     var eqUpgradeCost = InventoryService.GetEquipmentUpgradeCost(eqSlotBonusLevel);
-                    var (eqDrinkType, eqDrinkQty) = InventoryService.GetUpgradeDrinkRequirement(eqSlotBonusLevel);
-                    var eqDrinkName = GetResourceName(eqDrinkType);
-                    var eqDrinkHave = GetResourceQuantity(eqDrinkType);
-                    var eqDrinkRes = activeResources.FirstOrDefault(r => r.Type == eqDrinkType.ToString());
+                    var eqDrinkReqs = InventoryService.GetEquipmentUpgradeDrinkRequirements(eqSlotBonusLevel);
                     var eqPiggies = MyTunoConfig.Value.BossMode.Piggies;
                     var eqLeitaoCost = PiggiesCostConfig.CalculateCost(eqSlotBonusLevel, eqPiggies.EquipmentUpgradeStartLevel, eqPiggies.EquipmentUpgradeBaseCost, eqPiggies.EquipmentUpgradeCostEveryNLevels);
                     var hasLeitaoEq = eqLeitaoCost == 0 || leitaoQuantity >= eqLeitaoCost;
                     var hasFidelisEq = currentUser != null && currentUser.FidelisBalance >= eqUpgradeCost;
-                    var hasDrinksEq = eqDrinkHave >= eqDrinkQty;
+                    var hasDrinksEq = eqDrinkReqs.All(d => GetResourceQuantity(d.DrinkType) >= d.Quantity);
                     var canAffordEqUpgrade = hasFidelisEq && hasDrinksEq && hasLeitaoEq;
                     var upgradeSlot = actionSlot.Value;
                     <div class="wpn-upgrade-section mb-2">
@@ -1609,10 +1605,17 @@
                                          Color="gold" Size="md" Insufficient="@(!hasFidelisEq)">
                                 <span class="ftile-stock @(hasFidelisEq ? "ftile-stock--ok" : "ftile-stock--low")">@Fmt(currentUser?.FidelisBalance ?? 0)</span>
                             </FantasyTile>
-                            <FantasyTile ImageUrl="@(GetDrinkPictureUrl(eqDrinkType))" Icon="@(eqDrinkRes?.Icon ?? "bi-cup-straw")" Label="@eqDrinkName" Value="@($"×{eqDrinkQty}")"
-                                         Color="purple" Size="md" Insufficient="@(!hasDrinksEq)">
-                                <span class="ftile-stock @(hasDrinksEq ? "ftile-stock--ok" : "ftile-stock--low")">@eqDrinkHave</span>
-                            </FantasyTile>
+                            @foreach (var (drinkType, drinkQty) in eqDrinkReqs)
+                            {
+                                var drinkName = GetResourceName(drinkType);
+                                var drinkHave = GetResourceQuantity(drinkType);
+                                var drinkRes = activeResources.FirstOrDefault(r => r.Type == drinkType.ToString());
+                                var hasDrink = drinkHave >= drinkQty;
+                                <FantasyTile ImageUrl="@(GetDrinkPictureUrl(drinkType))" Icon="@(drinkRes?.Icon ?? "bi-cup-straw")" Label="@drinkName" Value="@($"×{drinkQty}")"
+                                             Color="purple" Size="md" Insufficient="@(!hasDrink)">
+                                    <span class="ftile-stock @(hasDrink ? "ftile-stock--ok" : "ftile-stock--low")">@drinkHave</span>
+                                </FantasyTile>
+                            }
                             @if (eqLeitaoCost > 0)
                             {
                                 <FantasyTile Icon="bi-piggy-bank" Label="Leitões" Value="@($"×{eqLeitaoCost}")"
@@ -2948,10 +2951,12 @@
 
         if (baseStats == null || character == null) return baseStats;
 
-        // Apply same scaling as RecalculateEquipmentBonusesAsync
+        // Apply same scaling as RecalculateEquipmentBonusesAsync (flat per-level formula)
         var levelScale = 1.0 + character.Level * stageConfig.EquipmentLevelScale;
         var slotLevel = eqSlot.HasValue ? GetSlotEnhancementLevel(eqSlot.Value) : 0;
-        var enhMult = 1.0 + slotLevel * stageConfig.EquipmentEnhancementBonus;
+        var hpPerLvl = stageConfig.EquipmentHpPerLevel;
+        var powPerLvl = stageConfig.EquipmentPowerPerLevel;
+        var defPerLvl = stageConfig.EquipmentDefensePerLevel;
 
         // Use actual stored quality for equipped piece, average for inventory piece
         var qualityAvg = (stageConfig.EquipmentQualityMin + stageConfig.EquipmentQualityMax) / 2.0;
@@ -2967,15 +2972,14 @@
         };
         var isEquipped = pendingActionIsEquipped;
         var quality = isEquipped && storedQuality > 0 ? storedQuality : qualityAvg;
-        var totalMult = quality * levelScale * enhMult;
 
         return new EquipmentPieceStats
         {
-            HP = (int)Math.Round(baseStats.HP * totalMult),
-            Power = (int)Math.Round(baseStats.Power * totalMult),
-            Defense = (int)Math.Round(baseStats.Defense * totalMult),
-            Speed = (int)Math.Round(baseStats.Speed * totalMult),
-            CriticalChance = baseStats.CriticalChance * totalMult
+            HP = (int)Math.Round((baseStats.HP + slotLevel * hpPerLvl) * quality * levelScale),
+            Power = (int)Math.Round((baseStats.Power + slotLevel * powPerLvl) * quality * levelScale),
+            Defense = (int)Math.Round((baseStats.Defense + slotLevel * defPerLvl) * quality * levelScale),
+            Speed = (int)Math.Round(baseStats.Speed * quality * levelScale),
+            CriticalChance = baseStats.CriticalChance * quality * levelScale
         };
     }
 

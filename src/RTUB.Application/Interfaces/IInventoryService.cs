@@ -185,8 +185,15 @@ public interface IInventoryService
     /// <summary>
     /// Calculates which drink type and quantity are needed for an upgrade at a given level.
     /// Every 3 levels advances to the next drink tier (1→2→3, then next drink 1→2→3...).
+    /// Used for WEAPON upgrades (single drink per tier).
     /// </summary>
     (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel);
+
+    /// <summary>
+    /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.
+    /// Equipment requires ALL drink tiers from tier 0 through the current tier (cumulative).
+    /// </summary>
+    List<(InventoryItemType DrinkType, int Quantity)> GetEquipmentUpgradeDrinkRequirements(int currentLevel);
 
     /// <summary>
     /// Gets the enhancement level for a specific equipment slot: floor(highestStage / 100) + slot purchased bonus.

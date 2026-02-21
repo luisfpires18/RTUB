@@ -1024,6 +1024,11 @@ public class InventoryService : IInventoryService
         var stats = _scalingConfig.StageMode.EquipmentStats;
         var levelScale = 1.0 + character.Level * _scalingConfig.StageMode.EquipmentLevelScale;
 
+        // Flat per-level bonuses (match stat upgrade flat bonuses so equipment levels feel equivalent)
+        var hpPerLvl = _scalingConfig.StageMode.EquipmentHpPerLevel;
+        var powPerLvl = _scalingConfig.StageMode.EquipmentPowerPerLevel;
+        var defPerLvl = _scalingConfig.StageMode.EquipmentDefensePerLevel;
+
         int hp = 0, power = 0, defense = 0;
 
         // All 6 armor pieces are permanently equipped — always compute bonuses.
@@ -1031,15 +1036,21 @@ public class InventoryService : IInventoryService
         // Legacy characters with quality 0 fall back to 1.0.
         double GetQ(double stored) => stored > 0 ? stored : 1.0;
 
-        // Per-slot enhancement: each slot has its own purchased bonus level (manual upgrades only)
-        double SlotEnhMult(EquipmentSlot slot) => 1.0 + character.GetSlotBonusLevel(slot) * _scalingConfig.StageMode.EquipmentEnhancementBonus;
+        // New formula: (baseStat + bonusLevel × flatPerLevel) × quality × levelScale
+        void AddSlot(EquipmentPieceStats baseStats, double quality, int bonusLevel)
+        {
+            var q = GetQ(quality);
+            hp += (int)Math.Round((baseStats.HP + bonusLevel * hpPerLvl) * q * levelScale);
+            power += (int)Math.Round((baseStats.Power + bonusLevel * powPerLvl) * q * levelScale);
+            defense += (int)Math.Round((baseStats.Defense + bonusLevel * defPerLvl) * q * levelScale);
+        }
 
-        { var q = GetQ(character.EquippedHeadQuality); var m = SlotEnhMult(EquipmentSlot.Head); hp += (int)Math.Round(stats.Head.HP * q * levelScale * m); power += (int)Math.Round(stats.Head.Power * q * levelScale * m); defense += (int)Math.Round(stats.Head.Defense * q * levelScale * m); }
-        { var q = GetQ(character.EquippedShouldersQuality); var m = SlotEnhMult(EquipmentSlot.Shoulders); hp += (int)Math.Round(stats.Shoulders.HP * q * levelScale * m); power += (int)Math.Round(stats.Shoulders.Power * q * levelScale * m); defense += (int)Math.Round(stats.Shoulders.Defense * q * levelScale * m); }
-        { var q = GetQ(character.EquippedChestQuality); var m = SlotEnhMult(EquipmentSlot.Chest); hp += (int)Math.Round(stats.Chest.HP * q * levelScale * m); power += (int)Math.Round(stats.Chest.Power * q * levelScale * m); defense += (int)Math.Round(stats.Chest.Defense * q * levelScale * m); }
-        { var q = GetQ(character.EquippedGlovesQuality); var m = SlotEnhMult(EquipmentSlot.Gloves); hp += (int)Math.Round(stats.Gloves.HP * q * levelScale * m); power += (int)Math.Round(stats.Gloves.Power * q * levelScale * m); defense += (int)Math.Round(stats.Gloves.Defense * q * levelScale * m); }
-        { var q = GetQ(character.EquippedLegsQuality); var m = SlotEnhMult(EquipmentSlot.Legs); hp += (int)Math.Round(stats.Legs.HP * q * levelScale * m); power += (int)Math.Round(stats.Legs.Power * q * levelScale * m); defense += (int)Math.Round(stats.Legs.Defense * q * levelScale * m); }
-        { var q = GetQ(character.EquippedBootsQuality); var m = SlotEnhMult(EquipmentSlot.Boots); hp += (int)Math.Round(stats.Boots.HP * q * levelScale * m); power += (int)Math.Round(stats.Boots.Power * q * levelScale * m); defense += (int)Math.Round(stats.Boots.Defense * q * levelScale * m); }
+        AddSlot(stats.Head, character.EquippedHeadQuality, character.GetSlotBonusLevel(EquipmentSlot.Head));
+        AddSlot(stats.Shoulders, character.EquippedShouldersQuality, character.GetSlotBonusLevel(EquipmentSlot.Shoulders));
+        AddSlot(stats.Chest, character.EquippedChestQuality, character.GetSlotBonusLevel(EquipmentSlot.Chest));
+        AddSlot(stats.Gloves, character.EquippedGlovesQuality, character.GetSlotBonusLevel(EquipmentSlot.Gloves));
+        AddSlot(stats.Legs, character.EquippedLegsQuality, character.GetSlotBonusLevel(EquipmentSlot.Legs));
+        AddSlot(stats.Boots, character.EquippedBootsQuality, character.GetSlotBonusLevel(EquipmentSlot.Boots));
 
         // Add weapon bonuses from forged weapons (with character level scaling)
         var weaponLevelScale = 1.0 + character.Level * _scalingConfig.StageMode.WeaponCharacterLevelScale;
@@ -1097,6 +1108,7 @@ public class InventoryService : IInventoryService
     /// Every N levels (configurable) advances to the next drink tier.
     /// Within each tier the quantity scales from 1 up to N.
     /// After exhausting all 10 tiers, stays at max× Aguardente.
+    /// Used for WEAPON upgrades (single drink per tier).
     /// </summary>
     public (InventoryItemType DrinkType, int Quantity) GetUpgradeDrinkRequirement(int currentLevel)
     {
@@ -1108,6 +1120,29 @@ public class InventoryService : IInventoryService
         if (currentLevel / perTier >= DrinkTierOrder.Length)
             quantity = perTier;
         return (DrinkTierOrder[tierIndex], quantity);
+    }
+
+    /// <summary>
+    /// Calculates ALL drink requirements for an EQUIPMENT upgrade at a given level.
+    /// Equipment requires ALL drink tiers from tier 0 through the current tier (cumulative).
+    /// Each drink in the list uses the same quantity as the primary drink.
+    /// Example at level 102 (tier 2, perTier=50): Cerveja ×3, Vinho ×3, Licor ×3.
+    /// </summary>
+    public List<(InventoryItemType DrinkType, int Quantity)> GetEquipmentUpgradeDrinkRequirements(int currentLevel)
+    {
+        var perTier = _scalingConfig.StageMode.Forging.UpgradeLevelsPerDrinkTier;
+        if (perTier < 1) perTier = 5;
+        var tierIndex = Math.Min(currentLevel / perTier, DrinkTierOrder.Length - 1);
+        var quantity = (currentLevel % perTier) + 1;
+        if (currentLevel / perTier >= DrinkTierOrder.Length)
+            quantity = perTier;
+
+        var requirements = new List<(InventoryItemType DrinkType, int Quantity)>();
+        for (int i = 0; i <= tierIndex; i++)
+        {
+            requirements.Add((DrinkTierOrder[i], quantity));
+        }
+        return requirements;
     }
 
     public async Task<(bool Success, string Message)> UpgradeWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default)
@@ -1229,17 +1264,26 @@ public class InventoryService : IInventoryService
         if (user == null || user.FidelisBalance < cost)
             return (false, $"Fidelis insuficiente (necessário: {cost:F2})");
 
-        // Require drinks based on current equipment slot bonus level
-        var (drinkType, drinkQty) = GetUpgradeDrinkRequirement(currentSlotLevel);
-        var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
-        var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
-        var drinkName = drinkRes?.Name ?? drinkType.ToString();
-        if (drinkItem == null || drinkItem.Quantity < drinkQty)
-            return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+        // Require ALL drinks from tier 0 through current tier (cumulative)
+        var drinkRequirements = GetEquipmentUpgradeDrinkRequirements(currentSlotLevel);
 
-        var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
-        if (!consumed)
-            return (false, "Erro ao consumir bebida");
+        // Validate all drinks are available before consuming any (fail-fast)
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var drinkItem = await _inventoryRepository.GetItemAsync(userId, drinkType, cancellationToken);
+            var drinkRes = _scalingConfig.Gathering.Resources.FirstOrDefault(r => r.Type == drinkType.ToString());
+            var drinkName = drinkRes?.Name ?? drinkType.ToString();
+            if (drinkItem == null || drinkItem.Quantity < drinkQty)
+                return (false, $"Precisas de {drinkQty}x {drinkName} (tens {drinkItem?.Quantity ?? 0})");
+        }
+
+        // Consume all drinks
+        foreach (var (drinkType, drinkQty) in drinkRequirements)
+        {
+            var consumed = await _inventoryRepository.ConsumeItemAsync(userId, drinkType, drinkQty, cancellationToken);
+            if (!consumed)
+                return (false, "Erro ao consumir bebida");
+        }
 
         // Check Leitão cost (mid-game currency from Boss Mode)
         var piggies = _scalingConfig.BossMode.Piggies;
