@@ -125,6 +125,11 @@ public interface IInventoryService
     Task<Dictionary<InventoryItemType, int>> GetEquipmentItemsAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all rare set item quantities for a user
+    /// </summary>
+    Task<Dictionary<InventoryItemType, int>> GetRareSetItemsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Equips an item from inventory to the character's equipment slot.
     /// Consumes 1 from inventory and sets the equipped slot.
     /// </summary>
@@ -208,4 +213,13 @@ public interface IInventoryService
     /// Unequips the weapon first if it is currently equipped.
     /// </summary>
     Task<(bool Success, decimal FidelisGained, string Message)> DiscardWeaponAsync(string userId, int weaponId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Applies a rare set piece from inventory as a permanent upgrade to the matching equipment slot.
+    /// Consumes 1 item from inventory and sets the corresponding RareXxxApplied flag on the character.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="rareItemType">The rare set piece InventoryItemType (300–305)</param>
+    /// <returns>Success flag and message</returns>
+    Task<(bool Success, string Message)> ApplyRareSetUpgradeAsync(string userId, InventoryItemType rareItemType, CancellationToken cancellationToken = default);
 }

@@ -99,7 +99,7 @@ public class StageService : IStageService
     /// <summary>
     /// Executes a battle on the current stage
     /// </summary>
-    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, CancellationToken cancellationToken = default)
+    public async Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -244,9 +244,31 @@ public class StageService : IStageService
             WriteIndented = false
         });
 
+        // Build set of already-owned rare set pieces (applied flags + inventory + pending run drops) so we don't drop duplicates
+        var ownedRareSetPieces = new HashSet<InventoryItemType>();
+        foreach (var slot in Enum.GetValues<EquipmentSlot>())
+        {
+            var rareItemType = EquipmentDropHelper.ToRareInventoryItemType(slot);
+            if (character.IsRareSetSlotApplied(slot))
+                ownedRareSetPieces.Add(rareItemType);
+        }
+        // Also check inventory for unapplied rare pieces
+        var rareInventory = await _inventoryRepository.GetItemsByTypesAsync(character.UserId, EquipmentDropHelper.AllRareSetTypes, cancellationToken);
+        foreach (var item in rareInventory)
+        {
+            if (item.Quantity > 0)
+                ownedRareSetPieces.Add(item.Type);
+        }
+        // Exclude rare pieces already dropped in this run (deferred, not yet in DB)
+        if (pendingRareDrops != null)
+        {
+            foreach (var pending in pendingRareDrops)
+                ownedRareSetPieces.Add(pending);
+        }
+
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped) =
-            CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage);
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped) =
+            CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage, ownedRareSetPieces);
 
         // Update character HP and stage progress in-memory only (no DB save per battle)
         UpdateCharacterAndProgressInMemory(character, stageProgress, combatResult, enemyType, enemyCount);
@@ -272,6 +294,7 @@ public class StageService : IStageService
             PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
             FitabDropped = fitabDropped,
+            RareSetPiecesDropped = rareSetPiecesDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP,
             // Pre-parsed metadata so the UI doesn't need to re-deserialize ReplayJson
@@ -591,16 +614,17 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab, List<InventoryItemType> rareSetPieces) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
         int enemyCount = 1,
-        int highestStage = 1)
+        int highestStage = 1,
+        HashSet<InventoryItemType>? ownedRareSetPieces = null)
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0);
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0, new List<InventoryItemType>());
         }
 
         var random = Random.Shared;
@@ -611,6 +635,7 @@ public class StageService : IStageService
         var shotsDropped = 0;
         var penaltiesDropped = 0;
         var fitabDropped = 0;
+        var rareSetPiecesDropped = new List<InventoryItemType>();
         var instrumentPartsDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
         var dropRates = stageConfig.DropRates;
@@ -673,9 +698,37 @@ public class StageService : IStageService
                 fitabChance *= dropRates.BossDropMultiplier;
             if (random.NextDouble() < fitabChance)
                 fitabDropped++;
+
+            // Roll for rare set piece drop (ultra-rare)
+            var rareSetConfig = _myTunoScalingConfig.StageMode.RareSet;
+            var rareSetChance = dropRates.RareSetDropChance;
+            if (enemyType == EnemyType.Boss)
+                rareSetChance *= dropRates.BossDropMultiplier;
+            if (random.NextDouble() < rareSetChance && rareSetPiecesDropped.Count == 0)
+            {
+                // Build list of eligible slots (enabled, not already owned/applied)
+                var eligibleSlots = new List<InventoryItemType>();
+                foreach (var slot in Enum.GetValues<EquipmentSlot>())
+                {
+                    var rareItemType = EquipmentDropHelper.ToRareInventoryItemType(slot);
+                    var slotKey = EquipmentDropHelper.GetRareSetSlotKey(rareItemType);
+                    if (slotKey != null
+                        && rareSetConfig.Pieces.TryGetValue(slotKey, out var pieceConfig)
+                        && pieceConfig.Enabled
+                        && (ownedRareSetPieces == null || !ownedRareSetPieces.Contains(rareItemType)))
+                    {
+                        eligibleSlots.Add(rareItemType);
+                    }
+                }
+                if (eligibleSlots.Count > 0)
+                {
+                    var picked = eligibleSlots[random.Next(eligibleSlots.Count)];
+                    rareSetPiecesDropped.Add(picked);
+                }
+            }
         }
 
-        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped);
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped);
     }
 
     /// <summary>
@@ -683,14 +736,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, startStage, endStage, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, startStage, endStage, rareSetPieces, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -711,9 +764,10 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, List<InventoryItemType>? rareSetPieces, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
+        var hasRareSetPieces = rareSetPieces != null && rareSetPieces.Count > 0;
 
         var character = await _characterRepository.GetByIdAsync(characterId);
         if (character == null)
@@ -745,7 +799,7 @@ public class StageService : IStageService
         
         await _characterRepository.UpdateAsync(character);
 
-        if (xp <= 0 && fidelis <= 0 && fitab <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts)
+        if (xp <= 0 && fidelis <= 0 && fitab <= 0 && finos <= 0 && canecas <= 0 && cigarros <= 0 && canhaos <= 0 && shots <= 0 && penalties <= 0 && !hasInstrumentParts && !hasRareSetPieces)
             return;
 
         // Apply XP
@@ -780,10 +834,16 @@ public class StageService : IStageService
                 allDrops[partType] = allDrops.GetValueOrDefault(partType) + quantity;
         }
 
+        if (hasRareSetPieces)
+        {
+            foreach (var rareType in rareSetPieces!)
+                allDrops[rareType] = allDrops.GetValueOrDefault(rareType) + 1;
+        }
+
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
-        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, instrumentParts, startStage, endStage);
+        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, instrumentParts, rareSetPieces, startStage, endStage);
     }
 
     private void LogRunRewards(
@@ -791,6 +851,7 @@ public class StageService : IStageService
         int xp, decimal fidelis, int fitab,
         int finos, int canecas, int cigarros, int canhaos, int shots, int penalties,
         Dictionary<InventoryItemType, int>? instrumentParts,
+        List<InventoryItemType>? rareSetPieces,
         int startStage, int endStage)
     {
         var stageRange = startStage > 0 && endStage > 0
@@ -810,6 +871,9 @@ public class StageService : IStageService
 
         var instrTotal = instrumentParts?.Values.Sum() ?? 0;
         if (instrTotal > 0) loot.Add($"+{instrTotal} instrument parts");
+
+        var rareTotal = rareSetPieces?.Count ?? 0;
+        if (rareTotal > 0) loot.Add($"+{rareTotal} RARE SET pieces");
 
         _logger.LogInformation(
             "Applied run rewards for {Username} {StageRange}: {Loot}",

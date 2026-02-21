@@ -124,6 +124,61 @@ public class Character : BaseEntity
     /// <summary>Number of special attack damage upgrades purchased</summary>
     public int SpecialAttackUpgrades { get; set; }
 
+    // ── Rare Set Applied Flags (ultra-rare equipment upgrades) ──
+
+    /// <summary>Whether the rare head upgrade has been applied</summary>
+    public bool RareHeadApplied { get; set; }
+    /// <summary>Whether the rare shoulders upgrade has been applied</summary>
+    public bool RareShouldersApplied { get; set; }
+    /// <summary>Whether the rare chest upgrade has been applied</summary>
+    public bool RareChestApplied { get; set; }
+    /// <summary>Whether the rare gloves upgrade has been applied</summary>
+    public bool RareGlovesApplied { get; set; }
+    /// <summary>Whether the rare legs upgrade has been applied</summary>
+    public bool RareLegsApplied { get; set; }
+    /// <summary>Whether the rare boots upgrade has been applied</summary>
+    public bool RareBootsApplied { get; set; }
+
+    /// <summary>Number of rare set pieces currently applied.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int RareSetPiecesApplied =>
+        (RareHeadApplied ? 1 : 0) +
+        (RareShouldersApplied ? 1 : 0) +
+        (RareChestApplied ? 1 : 0) +
+        (RareGlovesApplied ? 1 : 0) +
+        (RareLegsApplied ? 1 : 0) +
+        (RareBootsApplied ? 1 : 0);
+
+    /// <summary>Whether the rare set bonus is active (5+ of 6 pieces applied). Replaces individual bonuses.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool HasRareSetBonus => RareSetPiecesApplied >= MyTunoScaling.RareSetBonusMinPieces;
+
+    /// <summary>Checks if a specific rare set slot has been applied.</summary>
+    public bool IsRareSetSlotApplied(Enums.EquipmentSlot slot) => slot switch
+    {
+        Enums.EquipmentSlot.Head => RareHeadApplied,
+        Enums.EquipmentSlot.Shoulders => RareShouldersApplied,
+        Enums.EquipmentSlot.Chest => RareChestApplied,
+        Enums.EquipmentSlot.Gloves => RareGlovesApplied,
+        Enums.EquipmentSlot.Legs => RareLegsApplied,
+        Enums.EquipmentSlot.Boots => RareBootsApplied,
+        _ => false
+    };
+
+    /// <summary>Sets a rare set slot as applied.</summary>
+    public void ApplyRareSetSlot(Enums.EquipmentSlot slot)
+    {
+        switch (slot)
+        {
+            case Enums.EquipmentSlot.Head: RareHeadApplied = true; break;
+            case Enums.EquipmentSlot.Shoulders: RareShouldersApplied = true; break;
+            case Enums.EquipmentSlot.Chest: RareChestApplied = true; break;
+            case Enums.EquipmentSlot.Gloves: RareGlovesApplied = true; break;
+            case Enums.EquipmentSlot.Legs: RareLegsApplied = true; break;
+            case Enums.EquipmentSlot.Boots: RareBootsApplied = true; break;
+        }
+    }
+
     // ── Equipped Items (null = empty slot) ──
 
     /// <summary>Equipment piece in head slot</summary>
@@ -224,7 +279,13 @@ public class Character : BaseEntity
             var raw = CriticalChance + (CriticalUpgrades * MyTunoScaling.CriticalChancePerUpgrade);
             var upgradeCrit = Math.Min(MaxCriticalChance, raw);
             // Equipment crit bonus stacks on top of upgrade-capped value (absolute cap 100%)
-            return Math.Min(1.0, upgradeCrit + EquipmentCriticalBonus);
+            var totalCrit = upgradeCrit + EquipmentCriticalBonus;
+            // Rare set: set bonus replaces individual piece bonuses
+            if (HasRareSetBonus)
+                totalCrit += MyTunoScaling.RareSetBonusCrit;
+            else
+                totalCrit += RareSetPiecesApplied * MyTunoScaling.RareSetCritPerPiece;
+            return Math.Min(1.0, totalCrit);
         }
     }
 
@@ -258,8 +319,20 @@ public class Character : BaseEntity
         EquipmentDefenseBonus);
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double NextTotalCriticalChance =>
-        Math.Min(1.0, Math.Min(MaxCriticalChance, CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChancePerUpgrade)) + EquipmentCriticalBonus);
+    public double NextTotalCriticalChance
+    {
+        get
+        {
+            var raw = CriticalChance + ((CriticalUpgrades + 1) * MyTunoScaling.CriticalChancePerUpgrade);
+            var upgradeCrit = Math.Min(MaxCriticalChance, raw);
+            var totalCrit = upgradeCrit + EquipmentCriticalBonus;
+            if (HasRareSetBonus)
+                totalCrit += MyTunoScaling.RareSetBonusCrit;
+            else
+                totalCrit += RareSetPiecesApplied * MyTunoScaling.RareSetCritPerPiece;
+            return Math.Min(1.0, totalCrit);
+        }
+    }
 
     // ── Improvements computed properties ──
 
@@ -390,6 +463,12 @@ public class Character : BaseEntity
 
             // Equipment speed bonus provides additional action time reduction beyond the upgrade cap
             time -= EquipmentSpeedBonus * ActionTimeReductionPerSpeedPoint;
+
+            // Rare set: set bonus replaces individual piece bonuses
+            if (HasRareSetBonus)
+                time -= MyTunoScaling.RareSetBonusSpeedReduction;
+            else
+                time -= RareSetPiecesApplied * MyTunoScaling.RareSetSpeedPerPiece;
 
             return Math.Max(AbsoluteMinActionTime, time);
         }
@@ -580,6 +659,13 @@ public class Character : BaseEntity
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,
             EquipmentDefenseBonus = source.EquipmentDefenseBonus,
             EquipmentCriticalBonus = source.EquipmentCriticalBonus,
+            // Carry over rare set flags
+            RareHeadApplied = source.RareHeadApplied,
+            RareShouldersApplied = source.RareShouldersApplied,
+            RareChestApplied = source.RareChestApplied,
+            RareGlovesApplied = source.RareGlovesApplied,
+            RareLegsApplied = source.RareLegsApplied,
+            RareBootsApplied = source.RareBootsApplied,
             // Key: Set CurrentHP to null = full HP (TotalHP)
             CurrentHP = null,
             User = source.User,
@@ -654,6 +740,13 @@ public class Character : BaseEntity
             EquipmentSpeedBonus = source.EquipmentSpeedBonus,
             EquipmentDefenseBonus = source.EquipmentDefenseBonus,
             EquipmentCriticalBonus = source.EquipmentCriticalBonus,
+            // Carry over rare set flags
+            RareHeadApplied = source.RareHeadApplied,
+            RareShouldersApplied = source.RareShouldersApplied,
+            RareChestApplied = source.RareChestApplied,
+            RareGlovesApplied = source.RareGlovesApplied,
+            RareLegsApplied = source.RareLegsApplied,
+            RareBootsApplied = source.RareBootsApplied,
             // Preserve current HP so combat starts with actual HP (damaged or full)
             CurrentHP = source.CurrentHP,
             User = source.User,

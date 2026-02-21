@@ -53,4 +53,13 @@ public interface IInventoryRepository : IRepository<InventoryItem>
     /// <param name="items">Dictionary of item type to quantity to add</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task AddItemsAsync(string userId, Dictionary<InventoryItemType, int> items, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets inventory items for a user filtered to specific item types.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="types">The item types to look up</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of matching inventory items (only those that exist)</returns>
+    Task<List<InventoryItem>> GetItemsByTypesAsync(string userId, IEnumerable<InventoryItemType> types, CancellationToken cancellationToken = default);
 }

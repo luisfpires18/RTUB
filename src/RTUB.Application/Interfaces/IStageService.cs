@@ -37,8 +37,9 @@ public interface IStageService
     /// Executes a battle on the current stage
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
+    /// <param name="pendingRareDrops">Rare set pieces already dropped in the current run (deferred, not yet in DB) to prevent duplicates</param>
     /// <returns>The stage battle result</returns>
-    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, CancellationToken cancellationToken = default);
+    Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the number of enemies remaining in the current stage
@@ -81,7 +82,7 @@ public interface IStageService
     /// Optionally restores the character's HP to the value they had before the run started.
     /// Stage range parameters used for logging clarity.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, CancellationToken cancellationToken = default);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the biome name for a given stage number

@@ -111,7 +111,24 @@
         "canhaoDropChance": 0.0003,
         "penaltyDropChance": 0.0002,
         "instrumentPartDropChance": 0.0003,
+        "rareSetDropChance": 0.1,
         "bossDropMultiplier": 3.0
+      },
+
+      "rareSet": {
+        "critBonusPerPiece": 0.05,
+        "speedReductionPerPiece": 0.05,
+        "setBonusMinPieces": 6,
+        "setBonusCrit": 0.50,
+        "setBonusSpeedReduction": 0.5,
+        "pieces": {
+          "head":      { "enabled": true, "name": "Cabelo de Cortinas" },
+          "shoulders": { "enabled": true, "name": "Ombros de Calhau" },
+          "chest":     { "enabled": true, "name": "Peito de Prepúcio" },
+          "gloves":    { "enabled": true, "name": "Unhas Pretas de Malelo" },
+          "legs":      { "enabled": true, "name": "Joelheiras do Indigesto" },
+          "boots":     { "enabled": true, "name": "Graxa do Bombeiro" }
+        }
       },
 
       "equipmentStats": {

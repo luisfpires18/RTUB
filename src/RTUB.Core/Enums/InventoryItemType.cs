@@ -132,5 +132,20 @@ public enum InventoryItemType
     /// <summary>Legs equipment piece - stage drop for crafting</summary>
     EquipmentLegs = 204,
     /// <summary>Boots equipment piece - stage drop for crafting</summary>
-    EquipmentBoots = 205
+    EquipmentBoots = 205,
+
+    // ── Rare Set Pieces (ultra-rare stage drops, upgrade existing equipment) ──
+
+    /// <summary>Rare head upgrade piece — applies +5% crit, -0.05s speed to head slot</summary>
+    RareHead = 300,
+    /// <summary>Rare shoulders upgrade piece</summary>
+    RareShoulders = 301,
+    /// <summary>Rare chest upgrade piece</summary>
+    RareChest = 302,
+    /// <summary>Rare gloves upgrade piece</summary>
+    RareGloves = 303,
+    /// <summary>Rare legs upgrade piece</summary>
+    RareLegs = 304,
+    /// <summary>Rare boots upgrade piece</summary>
+    RareBoots = 305
 }

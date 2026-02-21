@@ -76,6 +76,79 @@ public static class EquipmentDropHelper
     }
 
     /// <summary>
+    /// Checks if an InventoryItemType is a rare set piece.
+    /// </summary>
+    public static bool IsRareSetPiece(InventoryItemType itemType)
+    {
+        return (int)itemType >= 300 && (int)itemType <= 305;
+    }
+
+    /// <summary>
+    /// Converts an EquipmentSlot to its corresponding Rare Set InventoryItemType.
+    /// </summary>
+    public static InventoryItemType ToRareInventoryItemType(EquipmentSlot slot)
+    {
+        return slot switch
+        {
+            EquipmentSlot.Head => InventoryItemType.RareHead,
+            EquipmentSlot.Shoulders => InventoryItemType.RareShoulders,
+            EquipmentSlot.Chest => InventoryItemType.RareChest,
+            EquipmentSlot.Gloves => InventoryItemType.RareGloves,
+            EquipmentSlot.Legs => InventoryItemType.RareLegs,
+            EquipmentSlot.Boots => InventoryItemType.RareBoots,
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Unknown equipment slot")
+        };
+    }
+
+    /// <summary>
+    /// Converts a Rare Set InventoryItemType back to its EquipmentSlot.
+    /// Returns null if the item type is not a rare set piece.
+    /// </summary>
+    public static EquipmentSlot? FromRareInventoryItemType(InventoryItemType itemType)
+    {
+        return itemType switch
+        {
+            InventoryItemType.RareHead => EquipmentSlot.Head,
+            InventoryItemType.RareShoulders => EquipmentSlot.Shoulders,
+            InventoryItemType.RareChest => EquipmentSlot.Chest,
+            InventoryItemType.RareGloves => EquipmentSlot.Gloves,
+            InventoryItemType.RareLegs => EquipmentSlot.Legs,
+            InventoryItemType.RareBoots => EquipmentSlot.Boots,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Gets the config key (lowercase slot name) for a rare set piece.
+    /// </summary>
+    public static string? GetRareSetSlotKey(InventoryItemType itemType)
+    {
+        return itemType switch
+        {
+            InventoryItemType.RareHead => "head",
+            InventoryItemType.RareShoulders => "shoulders",
+            InventoryItemType.RareChest => "chest",
+            InventoryItemType.RareGloves => "gloves",
+            InventoryItemType.RareLegs => "legs",
+            InventoryItemType.RareBoots => "boots",
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Gets all rare set InventoryItemType values.
+    /// </summary>
+    public static IReadOnlyList<InventoryItemType> AllRareSetTypes { get; } = new List<InventoryItemType>
+    {
+        InventoryItemType.RareHead,
+        InventoryItemType.RareShoulders,
+        InventoryItemType.RareChest,
+        InventoryItemType.RareGloves,
+        InventoryItemType.RareLegs,
+        InventoryItemType.RareBoots
+    }.AsReadOnly();
+
+    /// <summary>
     /// Gets all equipment InventoryItemType values.
     /// </summary>
     public static IReadOnlyList<InventoryItemType> AllEquipmentTypes { get; } =

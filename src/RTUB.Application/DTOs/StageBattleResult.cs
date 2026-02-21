@@ -100,6 +100,12 @@ public class StageBattleResult
     public int FitabDropped { get; set; }
 
     /// <summary>
+    /// Rare set pieces dropped (ultra-rare equipment upgrades).
+    /// Each entry is the InventoryItemType of the rare set piece.
+    /// </summary>
+    public List<InventoryItemType> RareSetPiecesDropped { get; set; } = new();
+
+    /// <summary>
     /// Replay JSON data for battle animation
     /// </summary>
     public string ReplayJson { get; set; } = string.Empty;

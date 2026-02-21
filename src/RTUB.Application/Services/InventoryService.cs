@@ -515,6 +515,14 @@ public class InventoryService : IInventoryService
             .ToDictionary(i => i.Type, i => i.Quantity);
     }
 
+    public async Task<Dictionary<InventoryItemType, int>> GetRareSetItemsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var allItems = await _inventoryRepository.GetUserInventoryAsync(userId, cancellationToken);
+        return allItems
+            .Where(i => EquipmentDropHelper.IsRareSetPiece(i.Type) && i.Quantity > 0)
+            .ToDictionary(i => i.Type, i => i.Quantity);
+    }
+
     /// <summary>
     /// Equips an item from inventory to the corresponding character slot.
     /// Consumes 1 from inventory, unequips the current piece (returning it to inventory) if any,
@@ -1335,5 +1343,40 @@ public class InventoryService : IInventoryService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return (true, fidelisValue, $"{weaponName} descartada por {fidelisValue:F2} Fidelis!");
+    }
+
+    /// <inheritdoc />
+    public async Task<(bool Success, string Message)> ApplyRareSetUpgradeAsync(string userId, InventoryItemType rareItemType, CancellationToken cancellationToken = default)
+    {
+        // Validate the item is a rare set piece
+        var slot = EquipmentDropHelper.FromRareInventoryItemType(rareItemType);
+        if (slot == null)
+            return (false, "Item inválido — não é uma peça de conjunto raro.");
+
+        // Check player has the item in inventory
+        var inventoryItem = await _dbContext.InventoryItems
+            .FirstOrDefaultAsync(i => i.UserId == userId && i.Type == rareItemType, cancellationToken);
+        if (inventoryItem == null || inventoryItem.Quantity < 1)
+            return (false, "Não tens esta peça rara no inventário.");
+
+        // Check the character doesn't already have this slot applied
+        var character = await _dbContext.Characters
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+        if (character == null)
+            return (false, "Personagem não encontrado.");
+
+        if (character.IsRareSetSlotApplied(slot.Value))
+            return (false, "Esta peça rara já foi aplicada.");
+
+        // Consume the item from inventory
+        inventoryItem.ConsumeQuantity(1);
+
+        // Apply the rare set upgrade
+        character.ApplyRareSetSlot(slot.Value);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var slotName = EquipmentDropHelper.GetDisplayName(slot.Value);
+        return (true, $"Peça rara {slotName} aplicada com sucesso!");
     }
 }

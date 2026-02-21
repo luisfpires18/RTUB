@@ -30,6 +30,7 @@
 @inject IInventoryService InventoryService
 @inject IInventoryRepository InventoryRepository
 @inject IItemTypeConfigService ItemTypeConfigService
+@inject Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.MyTunoScalingConfiguration> ScalingConfig
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -109,6 +110,12 @@
                             {
                                 <span class="reward-tag reward-tag--instrument">
                                     <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Parts
+                                </span>
+                            }
+                            @if (totalRareSetDropped.Count > 0)
+                            {
+                                <span class="reward-tag reward-tag--rare" style="color: #ffd700; text-shadow: 0 0 6px #ffd700;">
+                                    <i class="bi bi-gem"></i> @totalRareSetDropped.Count RARE
                                 </span>
                             }
 
@@ -242,6 +249,17 @@
                                     <span>+@qty @instrumentName</span>
                                 </div>
                             }
+                            @foreach (var rareType in totalRareSetDropped)
+                            {
+                                var rareSlotKey = EquipmentDropHelper.GetRareSetSlotKey(rareType);
+                                var rareName = rareSlotKey != null
+                                    && ScalingConfig.Value.StageMode.RareSet.Pieces.TryGetValue(rareSlotKey, out var pc)
+                                    ? pc.Name : rareType.ToString();
+                                <div class="defeat-reward-row" style="color: #ffd700; text-shadow: 0 0 4px #ffd700;">
+                                    <i class="bi bi-gem" style="color: #ffd700;"></i>
+                                    <span>+1 @rareName <small style="opacity:.7">(RARE)</small></span>
+                                </div>
+                            }
                         </div>
                     }
                     else
@@ -294,6 +312,7 @@
     private int totalFitabDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
     private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
+    private List<InventoryItemType> totalRareSetDropped = new();
     private int stagesCleared = 0;
 
     // Run state tracking for cancel/exit functionality
@@ -520,7 +539,8 @@
             var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
-            currentBattle = await StageService.ExecuteStageBattleAsync(character.Id);
+            currentBattle = await StageService.ExecuteStageBattleAsync(character.Id,
+                totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
 
             // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
@@ -1017,6 +1037,12 @@
                     }
                 }
 
+                // Accumulate rare set piece drops
+                foreach (var rareType in currentBattle.RareSetPiecesDropped)
+                {
+                    totalRareSetDropped.Add(rareType);
+                }
+
                 stagesCleared++;
                 
                 // Brief delay then start next stage automatically
@@ -1050,7 +1076,8 @@
                 {
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? currentStageNumber, currentStageNumber);
+                        totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? currentStageNumber, currentStageNumber,
+                        totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
                 }
                 catch (Exception ex)
                 {
@@ -1192,6 +1219,7 @@
         totalPenaltiesDropped = 0;
         totalFitabDropped = 0;
         totalInstrumentPartsDropped.Clear();
+        totalRareSetDropped.Clear();
         stagesCleared = 0;
         currentEnemyStats.Clear();
     }
@@ -1316,7 +1344,8 @@
                         await StageService.ApplyRunRewardsAsync(
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
-                            expirePenaltyBuff: false, runStartingStage ?? currentStageNumber, currentStageNumber);
+                            expirePenaltyBuff: false, runStartingStage ?? currentStageNumber, currentStageNumber,
+                            totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
                     }
                     catch (Exception ex)
                     {
@@ -1448,7 +1477,8 @@
             {
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
-                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? runStartingStage ?? currentStageNumber, currentStageNumber);
+                    totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? runStartingStage ?? currentStageNumber, currentStageNumber,
+                    totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
             }
             catch (Exception)
             {

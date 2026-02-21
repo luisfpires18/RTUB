@@ -80,6 +80,18 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     }
 
     /// <summary>
+    /// Gets inventory items for a user filtered to specific item types.
+    /// </summary>
+    public async Task<List<InventoryItem>> GetItemsByTypesAsync(string userId, IEnumerable<InventoryItemType> types, CancellationToken cancellationToken = default)
+    {
+        var typeList = types.ToList();
+        return await _context.InventoryItems
+            .AsNoTracking()
+            .Where(i => i.UserId == userId && typeList.Contains(i.Type))
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Batch-adds multiple item types to inventory in a single DB round-trip.
     /// Loads all affected items at once, modifies in memory, and saves once.
     /// Replaces N sequential AddItemAsync calls (each doing query + reload + save).

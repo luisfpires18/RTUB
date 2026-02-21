@@ -123,6 +123,23 @@ public static class MyTunoScaling
     /// <summary>Special attack damage bonus per upgrade (additive to base multiplier).</summary>
     public static double SpecialAttackBonusPerUpgrade { get; private set; } = 0.05;
 
+    // ── Rare Set (ultra-rare equipment upgrades) ──
+
+    /// <summary>Crit chance bonus per applied rare set piece (0.05 = 5%).</summary>
+    public static double RareSetCritPerPiece { get; private set; } = 0.05;
+
+    /// <summary>Action time reduction per applied rare set piece in seconds.</summary>
+    public static double RareSetSpeedPerPiece { get; private set; } = 0.05;
+
+    /// <summary>Minimum rare set pieces needed to activate set bonus (replaces individual bonuses).</summary>
+    public static int RareSetBonusMinPieces { get; private set; } = 6;
+
+    /// <summary>Set bonus crit chance (replaces per-piece crit). 0.50 = 50%.</summary>
+    public static double RareSetBonusCrit { get; private set; } = 0.50;
+
+    /// <summary>Set bonus action time reduction in seconds (replaces per-piece speed).</summary>
+    public static double RareSetBonusSpeedReduction { get; private set; } = 0.5;
+
     /// <summary>
     /// Configures all scaling values at startup from <c>scaling.config.json</c>.
     /// </summary>
@@ -164,7 +181,12 @@ public static class MyTunoScaling
         double cigarroDodgeChance = 0.10,
         int canhaoBuffRuns = 5,
         int penaltyBuffRuns = 5,
-        double penaltyLifestealPercent = 0.005)
+        double penaltyLifestealPercent = 0.005,
+        double rareSetCritPerPiece = 0.05,
+        double rareSetSpeedPerPiece = 0.05,
+        int rareSetBonusMinPieces = 6,
+        double rareSetBonusCrit = 0.50,
+        double rareSetBonusSpeedReduction = 0.5)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -204,5 +226,10 @@ public static class MyTunoScaling
         CanhaoBuffRuns = canhaoBuffRuns;
         PenaltyBuffRuns = penaltyBuffRuns;
         PenaltyLifestealPercent = penaltyLifestealPercent;
+        RareSetCritPerPiece = rareSetCritPerPiece;
+        RareSetSpeedPerPiece = rareSetSpeedPerPiece;
+        RareSetBonusMinPieces = rareSetBonusMinPieces;
+        RareSetBonusCrit = rareSetBonusCrit;
+        RareSetBonusSpeedReduction = rareSetBonusSpeedReduction;
     }
 }

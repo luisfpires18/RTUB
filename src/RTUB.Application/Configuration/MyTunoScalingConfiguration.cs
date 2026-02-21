@@ -301,6 +301,11 @@ public class StageModeConfig
     public EncounterRulesConfig EncounterRules { get; set; } = new();
 
     /// <summary>
+    /// Rare set equipment configuration (ultra-rare drops that upgrade existing equipment).
+    /// </summary>
+    public RareSetConfig RareSet { get; set; } = new();
+
+    /// <summary>
     /// Per-stage growth rate applied as a continuous multiplier on top of tier stats/rewards.
     /// Formula: multiplier = 1.0 + (stageNumber - 1) * PerStageGrowthRate.
     /// Default 0.001 = +0.1% per stage, so stage 1000 gets ~2.0×, stage 10000 gets ~11.0×.
@@ -357,6 +362,7 @@ public class StageDropRates
     public double CanhaoDropChance { get; set; } = 0.0003;
     public double PenaltyDropChance { get; set; } = 0.0002;
     public double InstrumentPartDropChance { get; set; } = 0.0003;
+    public double RareSetDropChance { get; set; } = 0.00005;
     public double BossDropMultiplier { get; set; } = 3.0;
 }
 
@@ -370,6 +376,51 @@ public class EquipmentPieceStats
     public int Speed { get; set; }
     public int Defense { get; set; }
     public double CriticalChance { get; set; }
+}
+
+/// <summary>
+/// Configuration for the Rare Set equipment system.
+/// Ultra-rare pieces drop in Stage Mode and upgrade existing equipment slots.
+/// </summary>
+public class RareSetConfig
+{
+    /// <summary>Crit chance bonus per applied rare piece (0.05 = 5%).</summary>
+    public double CritBonusPerPiece { get; set; } = 0.05;
+
+    /// <summary>Action time reduction per applied rare piece in seconds.</summary>
+    public double SpeedReductionPerPiece { get; set; } = 0.05;
+
+    /// <summary>Minimum rare pieces required to activate set bonus (replaces individual bonuses).</summary>
+    public int SetBonusMinPieces { get; set; } = 6;
+
+    /// <summary>Set bonus crit chance (replaces per-piece crit when active). 0.50 = 50%.</summary>
+    public double SetBonusCrit { get; set; } = 0.50;
+
+    /// <summary>Set bonus action time reduction in seconds (replaces per-piece speed when active).</summary>
+    public double SetBonusSpeedReduction { get; set; } = 0.5;
+
+    /// <summary>Per-slot configuration for each rare set piece.</summary>
+    public Dictionary<string, RareSetPieceConfig> Pieces { get; set; } = new()
+    {
+        ["head"] = new() { Enabled = true, Name = "Rare Crown" },
+        ["shoulders"] = new() { Enabled = true, Name = "Rare Mantle" },
+        ["chest"] = new() { Enabled = true, Name = "Rare Vest" },
+        ["gloves"] = new() { Enabled = true, Name = "Rare Gauntlets" },
+        ["legs"] = new() { Enabled = true, Name = "Rare Greaves" },
+        ["boots"] = new() { Enabled = true, Name = "Rare Treads" }
+    };
+}
+
+/// <summary>
+/// Configuration for an individual rare set piece.
+/// </summary>
+public class RareSetPieceConfig
+{
+    /// <summary>Whether this piece can drop. If false, it never drops and is excluded from the set.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Display name shown in inventory and equipment UI.</summary>
+    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>

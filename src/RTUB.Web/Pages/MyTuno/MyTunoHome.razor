@@ -159,6 +159,12 @@
                                 <li class="nav-item">
                                     <button type="button" class="nav-link @(inventoryTab == 2 ? "active" : "")" @onclick="() => inventoryTab = 2">
                                         <i class="bi bi-shield-shaded me-1"></i>Equipável
+                                        @if (rareSetInventory.Count > 0)
+                                        {
+                                            <span class="badge ms-1" style="background: linear-gradient(135deg, #ffd700, #daa520); color: #1a1200; font-size: 0.55rem; vertical-align: top; animation: rare-tab-pulse 2s ease-in-out infinite;">
+                                                <i class="bi bi-gem"></i> @rareSetInventory.Count
+                                            </span>
+                                        }
                                     </button>
                                 </li>
                             </ul>
@@ -300,6 +306,50 @@
                             }
                             else
                             {
+                                @* ── Rare Set Pieces in Inventory (shown first) ── *@
+                                @if (rareSetInventory.Count > 0)
+                                {
+                                    <div class="mb-3 p-2 rounded" style="background: rgba(255, 215, 0, 0.06); border: 1px solid rgba(255, 215, 0, 0.25);">
+                                        <div class="d-flex align-items-center gap-1 mb-2" style="font-size: 0.75rem; color: #ffd700;">
+                                            <i class="bi bi-gem"></i>
+                                            <strong>Rare Set Pieces</strong>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var kv in rareSetInventory)
+                                            {
+                                                var rareSlotKey = Core.Helpers.EquipmentDropHelper.GetRareSetSlotKey(kv.Key);
+                                                var rareSlot = Core.Helpers.EquipmentDropHelper.FromRareInventoryItemType(kv.Key);
+                                                var alreadyApplied = rareSlot.HasValue && character!.IsRareSetSlotApplied(rareSlot.Value);
+                                                var pieceName = MyTunoConfig.Value.StageMode.RareSet.Pieces.GetValueOrDefault(rareSlotKey ?? "")?.Name ?? rareSlotKey?.ToUpper() ?? "RARE";
+                                                <div class="d-flex flex-column align-items-center p-2 rounded"
+                                                     style="background: rgba(255, 215, 0, 0.08); border: 1px solid rgba(255, 215, 0, 0.3); min-width: 90px;">
+                                                    <i class="bi bi-gem" style="color: #ffd700; font-size: 1.2rem;"></i>
+                                                    <span style="font-size: 0.6rem; color: #ffd700; font-weight: 600;">@pieceName</span>
+                                                    @if (alreadyApplied)
+                                                    {
+                                                        <span class="badge bg-secondary mt-1" style="font-size: 0.55rem;">Applied</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm mt-1 px-2 py-0" disabled="@applyingRarePiece"
+                                                                style="font-size: 0.6rem; background: linear-gradient(135deg, #ffd700, #daa520); color: #1a1200; font-weight: 700; border: none;"
+                                                                @onclick="() => ApplyRareSetPieceAsync(kv.Key)">
+                                                            @if (applyingRarePiece)
+                                                            {
+                                                                <span class="spinner-border spinner-border-sm"></span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-arrow-up-circle me-1"></i><text>APPLY</text>
+                                                            }
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
                                 // Equipable: Equipment pieces (unstacked) + Forged Weapons
                                 // Build flat list: each equipment unit as a separate entry
                                 var equipableItems = new List<(string Type, string Name, string Icon, InventoryItemType? ItemType, ForgedWeapon? Weapon)>();
@@ -609,11 +659,46 @@
                             </div>
                         }
 
+                        @* Rare Set Progress Indicator *@
+                        @if (character.RareSetPiecesApplied > 0)
+                        {
+                            <div class="equip-bonus-bar" style="@(character.HasRareSetBonus ? "border-color: #ffd700; box-shadow: 0 0 8px #ffd70066;" : "")">
+                                <div class="equip-bonus-bar__inner">
+                                    <div class="equip-bonus-bar__stat">
+                                        <span class="equip-bonus-bar__label" style="color: #ffd700;">
+                                            <i class="bi bi-gem"></i> Rare Set
+                                        </span>
+                                        <span class="equip-bonus-bar__value" style="color: #ffd700;">
+                                            @character.RareSetPiecesApplied/6
+                                        </span>
+                                    </div>
+                                    @if (character.HasRareSetBonus)
+                                    {
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label" style="color: #ffd700;">SET BONUS</span>
+                                            <span class="equip-bonus-bar__value" style="color: #ffd700;">+50% CRIT, -0.5s SPD</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label" style="color: #c0a040;">Crit</span>
+                                            <span class="equip-bonus-bar__value" style="color: #c0a040;">+@((character.RareSetPiecesApplied * 5))%</span>
+                                        </div>
+                                        <div class="equip-bonus-bar__stat">
+                                            <span class="equip-bonus-bar__label" style="color: #c0a040;">Spd</span>
+                                            <span class="equip-bonus-bar__value" style="color: #c0a040;">-@((character.RareSetPiecesApplied * 0.05).ToString("F2"))s</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
                         <div class="equip-layout">
                             <!-- Left slots (Head, Shoulders, Chest) -->
                             <div class="equip-layout__side">
                                 @{ var headLevel = GetSlotEnhancementLevel(EquipmentSlot.Head); }
-                                <div class="equip-slot equip-slot--filled" title="HEAD — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareHeadApplied ? "equip-slot--rare" : "")" title="HEAD — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentHead)"
                                      style="cursor: pointer">
                                     @if (headLevel > 0)
@@ -628,11 +713,15 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">HEAD</span>
+                                    @if (character.RareHeadApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Head)</span>
                                 </div>
 
                                 @{ var shouldersLevel = GetSlotEnhancementLevel(EquipmentSlot.Shoulders); }
-                                <div class="equip-slot equip-slot--filled" title="SHOULDERS — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareShouldersApplied ? "equip-slot--rare" : "")" title="SHOULDERS — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentShoulders)"
                                      style="cursor: pointer">
                                     @if (shouldersLevel > 0)
@@ -647,11 +736,15 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">SHOULDERS</span>
+                                    @if (character.RareShouldersApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Shoulders)</span>
                                 </div>
 
                                 @{ var chestLevel = GetSlotEnhancementLevel(EquipmentSlot.Chest); }
-                                <div class="equip-slot equip-slot--filled" title="CHEST — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareChestApplied ? "equip-slot--rare" : "")" title="CHEST — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentChest)"
                                      style="cursor: pointer">
                                     @if (chestLevel > 0)
@@ -666,7 +759,11 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">CHEST</span>
+                                    @if (character.RareChestApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Chest)</span>
                                 </div>
                             </div>
 
@@ -680,7 +777,7 @@
                             <!-- Right slots (Gloves, Legs, Boots) -->
                             <div class="equip-layout__side">
                                 @{ var glovesLevel = GetSlotEnhancementLevel(EquipmentSlot.Gloves); }
-                                <div class="equip-slot equip-slot--filled" title="GLOVES — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareGlovesApplied ? "equip-slot--rare" : "")" title="GLOVES — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentGloves)"
                                      style="cursor: pointer">
                                     @if (glovesLevel > 0)
@@ -695,11 +792,15 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">GLOVES</span>
+                                    @if (character.RareGlovesApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Gloves)</span>
                                 </div>
 
                                 @{ var legsLevel = GetSlotEnhancementLevel(EquipmentSlot.Legs); }
-                                <div class="equip-slot equip-slot--filled" title="LEGS — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareLegsApplied ? "equip-slot--rare" : "")" title="LEGS — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentLegs)"
                                      style="cursor: pointer">
                                     @if (legsLevel > 0)
@@ -714,11 +815,15 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">LEGS</span>
+                                    @if (character.RareLegsApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Legs)</span>
                                 </div>
 
                                 @{ var bootsLevel = GetSlotEnhancementLevel(EquipmentSlot.Boots); }
-                                <div class="equip-slot equip-slot--filled" title="BOOTS — Clica para upgrade"
+                                <div class="equip-slot equip-slot--filled @(character.RareBootsApplied ? "equip-slot--rare" : "")" title="BOOTS — Clica para upgrade"
                                      @onclick="() => OnEquipSlotClick(InventoryItemType.EquipmentBoots)"
                                      style="cursor: pointer">
                                     @if (bootsLevel > 0)
@@ -733,7 +838,11 @@
                                     {
                                         <i class="bi bi-shield-shaded"></i>
                                     }
-                                    <span class="equip-slot__label">BOOTS</span>
+                                    @if (character.RareBootsApplied)
+                                    {
+                                        <div class="equip-slot__rare-badge" title="Rare Upgrade Applied"><i class="bi bi-gem"></i></div>
+                                    }
+                                    <span class="equip-slot__label">@GetSlotLabel(EquipmentSlot.Boots)</span>
                                 </div>
                             </div>
                         </div>
@@ -1859,6 +1968,8 @@
     // Instrument parts and equipment inventory
     private Dictionary<InventoryItemType, int> instrumentParts = new();
     private Dictionary<InventoryItemType, int> equipmentItems = new();
+    private Dictionary<InventoryItemType, int> rareSetInventory = new();
+    private bool applyingRarePiece = false;
     private Dictionary<InstrumentType, string?> instrumentImages = new();
     private Dictionary<string, string> itemTypePictures = new();
     private Dictionary<string, string> forgeComboPictures = new();
@@ -2053,6 +2164,9 @@
                             .ToDictionary(kv => kv.Key, kv => kv.Value);
                         equipmentItems = inventorySummary
                             .Where(kv => Core.Helpers.EquipmentDropHelper.IsEquipment(kv.Key) && kv.Value > 0)
+                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+                        rareSetInventory = inventorySummary
+                            .Where(kv => Core.Helpers.EquipmentDropHelper.IsRareSetPiece(kv.Key) && kv.Value > 0)
                             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
                         // Stage progress
@@ -2703,6 +2817,7 @@
                 {
                     instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
                     equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+                    rareSetInventory = await InventoryService.GetRareSetItemsAsync(currentUser.Id);
                     currentUser = await UserManager.FindByIdAsync(currentUser.Id);
                     toastMessage = message;
                     toastIsError = false;
@@ -2758,12 +2873,31 @@
         if (instrType.HasValue)
             return InstrumentTypeHelper.GetDisplayName(instrType.Value);
 
-        // Equipment piece?
+        // Equipment piece — check if rare upgrade is applied for this slot
         var eqSlot = EquipmentDropHelper.FromInventoryItemType(itemType);
         if (eqSlot.HasValue)
+        {
+            if (character != null && character.IsRareSetSlotApplied(eqSlot.Value))
+            {
+                var slotKey = eqSlot.Value.ToString().ToLower();
+                if (MyTunoConfig.Value.StageMode.RareSet.Pieces.TryGetValue(slotKey, out var pieceConfig) && !string.IsNullOrEmpty(pieceConfig.Name))
+                    return pieceConfig.Name;
+            }
             return EquipmentDropHelper.GetDisplayName(eqSlot.Value);
+        }
 
         return itemType.ToString();
+    }
+
+    private string GetSlotLabel(EquipmentSlot slot)
+    {
+        if (character != null && character.IsRareSetSlotApplied(slot))
+        {
+            var slotKey = slot.ToString().ToLower();
+            if (MyTunoConfig.Value.StageMode.RareSet.Pieces.TryGetValue(slotKey, out var pieceConfig) && !string.IsNullOrEmpty(pieceConfig.Name))
+                return pieceConfig.Name;
+        }
+        return EquipmentDropHelper.GetDisplayName(slot);
     }
 
     private string GetEquipItemIcon(InventoryItemType itemType)
@@ -2873,6 +3007,7 @@
             character = await CharacterService.GetCharacterAsync(currentUser.Id);
             instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
             equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+            rareSetInventory = await InventoryService.GetRareSetItemsAsync(currentUser.Id);
             toastMessage = message;
             toastIsError = false;
         }
@@ -2893,6 +3028,7 @@
             character = await CharacterService.GetCharacterAsync(currentUser.Id);
             instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
             equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+            rareSetInventory = await InventoryService.GetRareSetItemsAsync(currentUser.Id);
             toastMessage = message;
             toastIsError = false;
         }
@@ -3308,6 +3444,7 @@
                 character = await CharacterService.GetCharacterAsync(currentUser!.Id);
                 instrumentParts = await InventoryService.GetInstrumentPartsAsync(currentUser.Id);
                 equipmentItems = await InventoryService.GetEquipmentItemsAsync(currentUser.Id);
+                rareSetInventory = await InventoryService.GetRareSetItemsAsync(currentUser.Id);
                 forgedWeapons = await InventoryService.GetForgedWeaponsAsync(currentUser.Id);
             }
             else
@@ -3325,6 +3462,44 @@
         finally
         {
             discardingAll = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ApplyRareSetPieceAsync(InventoryItemType rareItemType)
+    {
+        if (currentUser == null || character == null || applyingRarePiece) return;
+        applyingRarePiece = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, message) = await InventoryService.ApplyRareSetUpgradeAsync(currentUser.Id, rareItemType);
+            if (success)
+            {
+                character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                rareSetInventory = inv
+                    .Where(kv => Core.Helpers.EquipmentDropHelper.IsRareSetPiece(kv.Key) && kv.Value > 0)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying rare set piece {Type}", rareItemType);
+            toastMessage = "Error applying rare upgrade.";
+            toastIsError = true;
+        }
+        finally
+        {
+            applyingRarePiece = false;
             StateHasChanged();
         }
     }

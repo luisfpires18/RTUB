@@ -158,7 +158,12 @@ public class Program
                 cigarroDodgeChance: myTunoScaling.Consumables.CigarroDodgeChance,
                 canhaoBuffRuns: myTunoScaling.Consumables.CanhaoBuffRuns,
                 penaltyBuffRuns: myTunoScaling.Consumables.PenaltyBuffRuns,
-                penaltyLifestealPercent: myTunoScaling.Consumables.PenaltyLifestealPercent);
+                penaltyLifestealPercent: myTunoScaling.Consumables.PenaltyLifestealPercent,
+                rareSetCritPerPiece: myTunoScaling.StageMode.RareSet.CritBonusPerPiece,
+                rareSetSpeedPerPiece: myTunoScaling.StageMode.RareSet.SpeedReductionPerPiece,
+                rareSetBonusMinPieces: myTunoScaling.StageMode.RareSet.SetBonusMinPieces,
+                rareSetBonusCrit: myTunoScaling.StageMode.RareSet.SetBonusCrit,
+                rareSetBonusSpeedReduction: myTunoScaling.StageMode.RareSet.SetBonusSpeedReduction);
         }
 
         // ---------- DB: SQLite only ----------
