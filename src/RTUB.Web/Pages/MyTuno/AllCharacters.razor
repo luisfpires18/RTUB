@@ -365,11 +365,10 @@
             stageMap = stageTask.Result;
             bossMap = bossTask.Result;
 
-            // Default sort: Rating desc → Stage desc → Level desc
+            // Default sort: Level desc → Rating desc
             AllItems = AllItems
-                .OrderByDescending(c => c.ArenaRating)
-                .ThenByDescending(c => stageMap.TryGetValue(c.UserId, out var s) ? s : 0)
-                .ThenByDescending(c => c.Level)
+                .OrderByDescending(c => c.Level)
+                .ThenByDescending(c => c.ArenaRating)
                 .ToList();
 
             ApplyFiltersAndPagination();

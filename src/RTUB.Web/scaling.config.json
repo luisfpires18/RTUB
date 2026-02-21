@@ -123,8 +123,8 @@
         "setBonusSpeedReduction": 0.5,
         "pieces": {
           "head":      { "enabled": true, "name": "Cabelo de Cortinas" },
-          "shoulders": { "enabled": true, "name": "Ombros de Calhau" },
-          "chest":     { "enabled": true, "name": "Peito de Prepúcio" },
+          "shoulders": { "enabled": true, "name": "Ombros de Prepúcio" },
+          "chest":     { "enabled": true, "name": "Peito de Calhau" },
           "gloves":    { "enabled": true, "name": "Unhas Pretas de Malelo" },
           "legs":      { "enabled": true, "name": "Joelheiras do Indigesto" },
           "boots":     { "enabled": true, "name": "Graxa do Bombeiro" }
