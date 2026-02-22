@@ -46,7 +46,7 @@ public class CharacterService : ICharacterService
             throw new ArgumentException("User ID is required", nameof(userId));
 
         // Try to get existing character — use Fresh variant to pick up
-        // external DB changes (e.g., owner "Heal All" from another circuit).
+        // external DB changes from another circuit.
         var character = await _characterRepository.GetByUserIdFreshAsync(userId);
         if (character != null)
         {
@@ -88,29 +88,6 @@ public class CharacterService : ICharacterService
     public async Task<List<Character>> GetAllCharactersOrderedByLevelAsync(CancellationToken cancellationToken = default)
     {
         return await _characterRepository.GetAllOrderedByLevelAsync();
-    }
-
-    /// <summary>
-    /// Heals all characters to full HP (sets CurrentHP to null).
-    /// Owner-only operation for immediate full heal.
-    /// </summary>
-    public async Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default)
-    {
-        var damagedCharacters = (await _characterRepository
-            .FindAsync(c => c.CurrentHP != null))
-            .ToList();
-
-        foreach (var character in damagedCharacters)
-        {
-            character.CurrentHP = null; // null = full HP
-        }
-
-        if (damagedCharacters.Count > 0)
-        {
-            await _characterRepository.SaveChangesAsync();
-        }
-
-        return damagedCharacters.Count;
     }
 
     /// <inheritdoc />
@@ -157,36 +134,6 @@ public class CharacterService : ICharacterService
     }
 
     /// <inheritdoc />
-    public async Task<(bool Success, string Message)> LevelUpCharacterAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
-        if (character == null)
-            return (false, "Personagem não encontrado.");
-
-        if (!character.LevelUp())
-            return (false, "O personagem já está no nível máximo.");
-
-        await _characterRepository.UpdateAsync(character);
-        _logger.LogInformation("Owner leveled up character for user {UserId} to level {Level}", userId, character.Level);
-        return (true, $"Nível {character.Level}!");
-    }
-
-    /// <inheritdoc />
-    public async Task<(bool Success, string Message)> LevelDownCharacterAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var character = await _characterRepository.GetByUserIdFreshAsync(userId);
-        if (character == null)
-            return (false, "Personagem não encontrado.");
-
-        if (!character.LevelDown())
-            return (false, "O personagem já está no nível mínimo.");
-
-        await _characterRepository.UpdateAsync(character);
-        _logger.LogInformation("Owner leveled down character for user {UserId} to level {Level}", userId, character.Level);
-        return (true, $"Nível {character.Level}!");
-    }
-
-    /// <inheritdoc />
     public async Task<(bool Success, string Message)> DeleteCharacterAsync(string userId, CancellationToken cancellationToken = default)
     {
         try
@@ -196,26 +143,21 @@ public class CharacterService : ICharacterService
             if (character == null)
                 return (false, "Personagem não encontrado.");
 
-            // Delete all associated game entities for this user
-            var forgedWeapons = await _dbContext.ForgedWeapons
-                .Where(w => w.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.ForgedWeapons.RemoveRange(forgedWeapons);
+            // Delete all associated game entities for this user (bulk server-side deletes)
+            await _dbContext.ForgedWeapons
+                .Where(w => w.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            var inventoryItems = await _dbContext.InventoryItems
-                .Where(i => i.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.InventoryItems.RemoveRange(inventoryItems);
+            await _dbContext.InventoryItems
+                .Where(i => i.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            var stageProgress = await _dbContext.StageProgresses
-                .Where(s => s.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.StageProgresses.RemoveRange(stageProgress);
+            await _dbContext.StageProgresses
+                .Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            var bossModeProgress = await _dbContext.BossModeProgresses
-                .Where(b => b.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.BossModeProgresses.RemoveRange(bossModeProgress);
+            await _dbContext.BossModeProgresses
+                .Where(b => b.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
-            var surviveModeProgress = await _dbContext.SurviveModeProgresses
-                .Where(s => s.UserId == userId).ToListAsync(cancellationToken);
-            _dbContext.SurviveModeProgresses.RemoveRange(surviveModeProgress);
+            await _dbContext.SurviveModeProgresses
+                .Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
             // NOTE: GameScores are NOT deleted here — they belong to other games
             // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
@@ -239,30 +181,19 @@ public class CharacterService : ICharacterService
     {
         try
         {
-            // Delete all game data across all users in dependency order
-            var forgedWeapons = await _dbContext.ForgedWeapons.ToListAsync(cancellationToken);
-            _dbContext.ForgedWeapons.RemoveRange(forgedWeapons);
-
-            var inventoryItems = await _dbContext.InventoryItems.ToListAsync(cancellationToken);
-            _dbContext.InventoryItems.RemoveRange(inventoryItems);
-
-            var stageEnemies = await _dbContext.StageEnemies.ToListAsync(cancellationToken);
-            _dbContext.StageEnemies.RemoveRange(stageEnemies);
-
-            var stageProgress = await _dbContext.StageProgresses.ToListAsync(cancellationToken);
-            _dbContext.StageProgresses.RemoveRange(stageProgress);
-
-            var bossModeProgress = await _dbContext.BossModeProgresses.ToListAsync(cancellationToken);
-            _dbContext.BossModeProgresses.RemoveRange(bossModeProgress);
-
-            var surviveModeProgress = await _dbContext.SurviveModeProgresses.ToListAsync(cancellationToken);
-            _dbContext.SurviveModeProgresses.RemoveRange(surviveModeProgress);
+            // Delete all game data across all users in dependency order (bulk server-side deletes)
+            await _dbContext.ForgedWeapons.ExecuteDeleteAsync(cancellationToken);
+            await _dbContext.InventoryItems.ExecuteDeleteAsync(cancellationToken);
+            await _dbContext.StageEnemies.ExecuteDeleteAsync(cancellationToken);
+            await _dbContext.StageProgresses.ExecuteDeleteAsync(cancellationToken);
+            await _dbContext.BossModeProgresses.ExecuteDeleteAsync(cancellationToken);
+            await _dbContext.SurviveModeProgresses.ExecuteDeleteAsync(cancellationToken);
 
             // NOTE: GameScores are NOT deleted here — they belong to other games
             // (bebe-mais-rui, passaro-maluco, avoid-questions, tomato-thrower)
 
-            var characters = await _dbContext.Characters.ToListAsync(cancellationToken);
-            _dbContext.Characters.RemoveRange(characters);
+            var count = await _dbContext.Characters.CountAsync(cancellationToken);
+            await _dbContext.Characters.ExecuteDeleteAsync(cancellationToken);
 
             // Reset FidelisBalance and FitabBalance to 0 for ALL users
             await _dbContext.Users
@@ -272,7 +203,6 @@ public class CharacterService : ICharacterService
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var count = characters.Count;
             _logger.LogWarning("Owner reset ALL game data: {Count} characters, all related entities deleted, and all FidelisBalance/FitabBalance reset to 0", count);
             return (true, $"Todos os dados de jogo foram resetados. {count} personagens eliminados.");
         }

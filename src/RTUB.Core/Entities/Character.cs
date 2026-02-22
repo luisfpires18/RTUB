@@ -805,36 +805,6 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Increases the character's level by 1 (owner/admin operation).
-    /// Resets XP to 0 and heals to full HP. Respects MaxLevel cap.
-    /// </summary>
-    public bool LevelUp()
-    {
-        if (Level >= MyTunoScaling.MaxLevel)
-            return false;
-
-        Level++;
-        XP = 0;
-        CurrentHP = null; // full HP
-        return true;
-    }
-
-    /// <summary>
-    /// Decreases the character's level by 1 (owner/admin operation).
-    /// Resets XP to 0 and heals to full HP. Cannot go below level 1.
-    /// </summary>
-    public bool LevelDown()
-    {
-        if (Level <= 1)
-            return false;
-
-        Level--;
-        XP = 0;
-        CurrentHP = null; // full HP
-        return true;
-    }
-
-    /// <summary>
     /// Upgrades HP stat (increments HpUpgrades count)
     /// If the character was at full HP before the upgrade, heals to the new max HP
     /// Accounts for shot buff when determining full HP

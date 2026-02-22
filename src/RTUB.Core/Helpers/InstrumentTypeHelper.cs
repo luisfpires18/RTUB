@@ -166,4 +166,9 @@ public static class InstrumentTypeHelper
             .Where(t => !RemovedFromGame.Contains(t))
             .ToList()
             .AsReadOnly();
+
+    /// <summary>
+    /// Pre-cached array of active instrument types for random selection (avoids per-call ToArray).
+    /// </summary>
+    public static InstrumentType[] GameInstrumentTypesArray { get; } = [.. GameInstrumentTypes];
 }

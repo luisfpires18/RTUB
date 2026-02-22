@@ -132,12 +132,6 @@ public class SurviveModeService : ISurviveModeService
     }
 
     /// <inheritdoc />
-    public async Task<SurviveModeProgress?> GetProgressAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        return await _progressRepository.GetByUserIdAsync(userId);
-    }
-
-    /// <inheritdoc />
     public async Task<SurviveModeProgress> StartRunAsync(int characterId, CancellationToken cancellationToken = default)
     {
         var character = await _characterRepository.GetByIdAsync(characterId)

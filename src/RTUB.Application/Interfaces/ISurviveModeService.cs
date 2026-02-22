@@ -20,11 +20,6 @@ public interface ISurviveModeService
     Task<SurviveModeProgress> GetOrCreateProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets survive mode progress for a user (null if not started).
-    /// </summary>
-    Task<SurviveModeProgress?> GetProgressAsync(string userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Starts a new survive mode run. Validates character is alive.
     /// </summary>
     Task<SurviveModeProgress> StartRunAsync(int characterId, CancellationToken cancellationToken = default);

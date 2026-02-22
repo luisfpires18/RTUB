@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
@@ -41,7 +42,7 @@ public class AuditLogDisplayService : IAuditLogDisplayService
         {
             var formatted = JsonSerializer.Serialize(
                 JsonSerializer.Deserialize<object>(changes),
-                new JsonSerializerOptions { WriteIndented = true }
+                JsonSerializerConstants.Indented
             );
             return formatted;
         }
@@ -59,9 +60,6 @@ public class AuditLogDisplayService : IAuditLogDisplayService
     /// <returns>JSON string</returns>
     public string ExportToJson(IEnumerable<object> logs)
     {
-        return JsonSerializer.Serialize(logs, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+        return JsonSerializer.Serialize(logs, JsonSerializerConstants.Indented);
     }
 }

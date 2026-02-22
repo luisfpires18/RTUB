@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.Helpers;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -93,13 +94,6 @@ public class BossModeService : IBossModeService
             throw new ArgumentException("User ID is required", nameof(userId));
 
         return await _bossModeProgressRepository.GetByUserIdAsync(userId);
-    }
-
-    /// <inheritdoc />
-    public async Task<bool> CanEnterBossModeAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        return user != null && user.FitabBalance >= 1;
     }
 
     /// <inheritdoc />
@@ -219,10 +213,7 @@ public class BossModeService : IBossModeService
             }
         };
 
-        var replayJson = JsonSerializer.Serialize(battleData, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        var replayJson = JsonSerializer.Serialize(battleData, JsonSerializerConstants.Compact);
 
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(character.UserId);
         var highestStage = stageProgress?.HighestStage ?? 1;
@@ -320,7 +311,7 @@ public class BossModeService : IBossModeService
         }
 
         if (allDrops.Count > 0)
-            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops);
+            await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
         var loot = new List<string>();
         if (fidelis > 0)  loot.Add($"+{fidelis} Fidelis");
@@ -383,7 +374,7 @@ public class BossModeService : IBossModeService
                 if (attempt < maxRetries)
                 {
                     _logger.LogWarning(ex, "CancelBossRunAsync: Concurrency conflict, retrying ({Attempt}/{Max})...", attempt + 1, maxRetries);
-                    await Task.Delay(100 * (attempt + 1));
+                    await Task.Delay(100 * (attempt + 1), cancellationToken);
                     continue;
                 }
                 _logger.LogError(ex, "CancelBossRunAsync: Failed after {Max} retries for {UserName}", maxRetries, userName);
@@ -523,7 +514,7 @@ public class BossModeService : IBossModeService
         if (highestStage >= 1001 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
         if (highestStage >= 9001 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
-        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
+        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypesArray;
         if (random.NextDouble() < dropRates.InstrumentPartDropChance)
         {
             var randomInstrument = instrumentTypes[random.Next(instrumentTypes.Length)];

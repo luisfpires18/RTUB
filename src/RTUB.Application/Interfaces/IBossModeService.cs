@@ -22,11 +22,6 @@ public interface IBossModeService
     Task<BossModeProgress?> GetBossModeProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Checks if the user can enter Boss Mode (has at least 1 FITAB).
-    /// </summary>
-    Task<bool> CanEnterBossModeAsync(string userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Starts a new Boss Mode run. Deducts 1 FITAB from the user's balance.
     /// </summary>
     Task<BossModeProgress> StartBossModeRunAsync(string userId, CancellationToken cancellationToken = default);

@@ -339,26 +339,13 @@ public class DeterministicCombatEngine : ICombatEngine
 
         while (currentTime < MaxBattleTime && playerHP > 0)
         {
-            // Check if any enemies are alive
-            var aliveEnemies = enemyStates.Where(e => e.HP > 0).ToList();
-            if (aliveEnemies.Count == 0)
-            {
-                events.Add(new CombatEvent
-                {
-                    Type = "Victory",
-                    Winner = "Player",
-                    SimTime = currentTime,
-                    Timestamp = eventIndex++
-                });
-                break;
-            }
-
             // Update current target if it's defeated
             while (currentTargetIndex < enemyStates.Count && enemyStates[currentTargetIndex].HP <= 0)
             {
                 currentTargetIndex++;
             }
 
+            // Check if all enemies are defeated
             if (currentTargetIndex >= enemyStates.Count)
             {
                 events.Add(new CombatEvent
@@ -371,29 +358,33 @@ public class DeterministicCombatEngine : ICombatEngine
                 break;
             }
 
-            // Find the minimum time until next action
-            var timesToAction = new List<double> { playerTimer };
-            timesToAction.AddRange(aliveEnemies.Select(e => e.Timer));
-            var timeStep = timesToAction.Min();
+            // Find the minimum time until next action (no allocation)
+            var timeStep = playerTimer;
+            for (var i = 0; i < enemyStates.Count; i++)
+            {
+                if (enemyStates[i].HP > 0 && enemyStates[i].Timer < timeStep)
+                    timeStep = enemyStates[i].Timer;
+            }
 
             // Advance time
             currentTime += timeStep;
             playerTimer -= timeStep;
-            foreach (var enemy in aliveEnemies)
+            for (var i = 0; i < enemyStates.Count; i++)
             {
-                enemy.Timer -= timeStep;
+                if (enemyStates[i].HP > 0)
+                    enemyStates[i].Timer -= timeStep;
             }
 
             // Process player action if timer reached 0
             if (playerTimer <= 0 && playerHP > 0 && currentTargetIndex < enemyStates.Count)
             {
                 // Canhão AOE: attack ALL alive enemies; otherwise attack current target only
-                var targets = hasCanhaoBuff
-                    ? enemyStates.Where(e => e.HP > 0).ToList()
-                    : new List<EnemyState> { enemyStates[currentTargetIndex] };
+                var aoeStart = hasCanhaoBuff ? 0 : currentTargetIndex;
+                var aoeEnd = hasCanhaoBuff ? enemyStates.Count : currentTargetIndex + 1;
 
-                foreach (var target in targets)
+                for (var ti = aoeStart; ti < aoeEnd; ti++)
                 {
+                    var target = enemyStates[ti];
                     if (target.HP <= 0) continue;
 
                     var (damage, isCritical) = CombatMath.CalculateDamage(player.TotalPower, player.TotalCriticalChance, target.Enemy.TotalDefense, rng);
@@ -445,8 +436,10 @@ public class DeterministicCombatEngine : ICombatEngine
             }
 
             // Process enemy actions for all enemies whose timer reached 0
-            foreach (var enemy in aliveEnemies.Where(e => e.Timer <= 0 && e.HP > 0))
+            for (var ei = 0; ei < enemyStates.Count; ei++)
             {
+                var enemy = enemyStates[ei];
+                if (enemy.Timer > 0 || enemy.HP <= 0) continue;
                 if (playerHP <= 0) break;
 
                 var isDodged = false;
@@ -510,9 +503,11 @@ public class DeterministicCombatEngine : ICombatEngine
         // Handle timeout - determine winner by HP
         // When time runs out, player wins if they have more HP than all enemies combined.
         // Otherwise it's a defeat (enemies won by outlasting the player).
-        if (currentTime >= MaxBattleTime && playerHP > 0 && enemyStates.Any(e => e.HP > 0))
+        if (currentTime >= MaxBattleTime && playerHP > 0 && currentTargetIndex < enemyStates.Count)
         {
-            var totalEnemyHP = enemyStates.Sum(e => e.HP);
+            long totalEnemyHP = 0;
+            for (var i = 0; i < enemyStates.Count; i++)
+                totalEnemyHP += enemyStates[i].HP;
             
             if (playerHP > totalEnemyHP)
             {
@@ -541,12 +536,16 @@ public class DeterministicCombatEngine : ICombatEngine
         // Determine outcome
         var outcome = playerHP > 0 ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon;
 
+        long finalEnemyHP = 0;
+        for (var i = 0; i < enemyStates.Count; i++)
+            finalEnemyHP += enemyStates[i].HP;
+
         return new CombatResult
         {
             Outcome = outcome,
             Events = events,
             AttackerFinalHP = playerHP,
-            DefenderFinalHP = enemyStates.Sum(e => e.HP)
+            DefenderFinalHP = finalEnemyHP
         };
     }
 

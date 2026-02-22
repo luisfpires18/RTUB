@@ -141,7 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUpgradeService, UpgradeService>();
         services.AddScoped<IImprovementService, ImprovementService>();
         services.AddScoped<IPowerService, PowerService>();
-        services.AddScoped<ICombatEngine, DeterministicCombatEngine>();
+        services.AddSingleton<ICombatEngine, DeterministicCombatEngine>();
         services.AddScoped<ICombatActionService, CombatActionService>();
         services.AddScoped<IBattleService, BattleService>();
         services.AddScoped<IStageService, StageService>();

@@ -30,7 +30,7 @@ public class StageServiceTests : IDisposable
     private readonly Mock<ICombatEngine> _combatEngineMock;
     private readonly Mock<IInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<StageService>> _loggerMock;
-    private readonly Mock<IOptions<MyTunoScalingConfiguration>> _myTunoScalingConfigMock;
+    private readonly Mock<IOptionsSnapshot<MyTunoScalingConfiguration>> _myTunoScalingConfigMock;
     private readonly Mock<IStageBiomeService> _biomeServiceMock;
     private readonly IStageService _stageService;
 
@@ -73,7 +73,7 @@ public class StageServiceTests : IDisposable
                 }
             }
         };
-        _myTunoScalingConfigMock = new Mock<IOptions<MyTunoScalingConfiguration>>();
+        _myTunoScalingConfigMock = new Mock<IOptionsSnapshot<MyTunoScalingConfiguration>>();
         _myTunoScalingConfigMock.Setup(x => x.Value).Returns(myTunoScalingConfig);
 
         // Setup BiomeService mock

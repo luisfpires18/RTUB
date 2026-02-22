@@ -28,100 +28,24 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         List<SpecialAttack>? equippedSpells = null,
         string mode = "stage")
     {
-        ArgumentNullException.ThrowIfNull(player);
         ArgumentNullException.ThrowIfNull(enemies);
         if (enemies.Count == 0)
             throw new ArgumentException("Must have at least one enemy", nameof(enemies));
 
-        var session = new CombatSession
+        // Convert Character list to CombatantState list and delegate to the canonical overload
+        var enemyStates = enemies.Select((e, i) => new CombatantState
         {
-            Seed = seed,
-            Rng = new SeededRandom(seed),
-            Mode = mode,
-            Player = new CombatantState
-            {
-                Identifier = mode == "arena" ? "Attacker" : "Player",
-                Name = player.User?.UserName ?? "Player",
-                CurrentHP = Math.Min(player.CurrentHP ?? player.TotalHP, player.TotalHP),
-                MaxHP = player.TotalHP,
-                Power = player.TotalPower,
-                Defense = player.TotalDefense,
-                CriticalChance = player.TotalCriticalChance,
-                ActionTimeSeconds = player.ActionTime
-            },
-            Enemies = enemies.Select((e, i) => new CombatantState
-            {
-                Identifier = mode == "arena" ? "Defender" : $"Enemy{i}",
-                Name = e.User?.UserName ?? $"Enemy {i + 1}",
-                CurrentHP = e.CurrentHP ?? e.TotalHP,
-                MaxHP = e.TotalHP,
-                Power = e.TotalPower,
-                Defense = e.TotalDefense,
-                CriticalChance = e.TotalCriticalChance,
-                ActionTimeSeconds = e.ActionTime
-            }).ToList(),
-            CurrentTargetIndex = 0,
-            HasShotBuff = player.ShotBuffBattlesRemaining > 0,
-            HasCigarroBuff = player.CigarroShieldHitsRemaining > 0,
-            HasCanhaoBuff = player.HasCanhaoBuff,
-            HasPenaltyBuff = player.HasPenaltyBuff,
-            HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
-            SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
-            EquippedSpells = equippedSpells ?? [],
-            BattleStartedAt = DateTime.UtcNow,
-            LastPlayerActionAt = DateTime.UtcNow,
-            LastEnemyActionAt = new DateTime[enemies.Count],
-            EventTimestamp = 0
-        };
+            Identifier = mode == "arena" ? "Defender" : $"Enemy{i}",
+            Name = e.User?.UserName ?? $"Enemy {i + 1}",
+            CurrentHP = e.CurrentHP ?? e.TotalHP,
+            MaxHP = e.TotalHP,
+            Power = e.TotalPower,
+            Defense = e.TotalDefense,
+            CriticalChance = e.TotalCriticalChance,
+            ActionTimeSeconds = e.ActionTime
+        }).ToList();
 
-        // Initialize spell cooldowns (all ready at battle start)
-        foreach (var spell in session.EquippedSpells)
-        {
-            session.SpellCooldowns[spell.AttackId] = 0;
-        }
-
-        // Initialize enemy action timestamps
-        for (var i = 0; i < enemies.Count; i++)
-        {
-            session.LastEnemyActionAt[i] = DateTime.UtcNow;
-        }
-
-        // Emit initial HP/ActionTime events for player
-        session.RecordedEvents.Add(new CombatEvent
-        {
-            Type = "HPUpdate",
-            Character = session.Player.Identifier,
-            HP = session.Player.CurrentHP,
-            MaxHP = session.Player.MaxHP,
-            ActionTime = session.Player.ActionTimeSeconds,
-            SimTime = 0,
-            Timestamp = session.EventTimestamp++
-        });
-
-        // Emit initial HP/ActionTime events for all enemies
-        foreach (var enemy in session.Enemies)
-        {
-            session.RecordedEvents.Add(new CombatEvent
-            {
-                Type = "HPUpdate",
-                Character = enemy.Identifier,
-                HP = enemy.CurrentHP,
-                MaxHP = enemy.MaxHP,
-                ActionTime = enemy.ActionTimeSeconds,
-                SimTime = 0,
-                Timestamp = session.EventTimestamp++
-            });
-        }
-
-        // Emit BattleStart
-        session.RecordedEvents.Add(new CombatEvent
-        {
-            Type = "BattleStart",
-            SimTime = 0,
-            Timestamp = session.EventTimestamp++
-        });
-
-        return session;
+        return CreateSession(player, enemyStates, seed, equippedSpells, mode);
     }
 
     /// <inheritdoc />

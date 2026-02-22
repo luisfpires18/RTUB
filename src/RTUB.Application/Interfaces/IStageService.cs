@@ -27,34 +27,12 @@ public interface IStageService
     Task<StageProgress?> GetStageProgressAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the enemy for the current stage
-    /// </summary>
-    /// <param name="stageProgress">The player's stage progress</param>
-    /// <returns>The enemy for the current stage</returns>
-    Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Executes a battle on the current stage
     /// </summary>
     /// <param name="characterId">The player's character ID</param>
     /// <param name="pendingRareDrops">Rare set pieces already dropped in the current run (deferred, not yet in DB) to prevent duplicates</param>
     /// <returns>The stage battle result</returns>
     Task<StageBattleResult> ExecuteStageBattleAsync(int characterId, IReadOnlyList<InventoryItemType>? pendingRareDrops = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets the number of enemies remaining in the current stage
-    /// Used for multi-enemy stages where player fights enemies sequentially
-    /// </summary>
-    /// <param name="userId">The user's ID</param>
-    /// <returns>Number of enemies remaining to fight in current stage</returns>
-    Task<int> GetRemainingEnemiesInStageAsync(string userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Checks if the current stage is complete (all enemies defeated)
-    /// </summary>
-    /// <param name="userId">The user's ID</param>
-    /// <returns>True if stage is complete, false if more enemies remain</returns>
-    Task<bool> IsStageCompleteAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the player to their last checkpoint after defeat
@@ -85,32 +63,11 @@ public interface IStageService
     Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the biome name for a given stage number
-    /// </summary>
-    /// <param name="stageNumber">The stage number</param>
-    /// <returns>Biome name (e.g., "Forest", "Desert")</returns>
-    string GetBiomeNameForStage(int stageNumber);
-
-    /// <summary>
-    /// Gets the number of enemies for a given stage
-    /// </summary>
-    /// <param name="stageNumber">The stage number</param>
-    /// <returns>Number of enemies</returns>
-    int GetEnemyCountForStage(int stageNumber);
-
-    /// <summary>
     /// Calculates XP and Fidelis rewards for winning a given stage.
     /// Used when the interactive session wins but the deterministic sim predicted a loss
     /// (so the StageBattleResult has XPReward/FidelisReward = 0).
     /// </summary>
     (int xp, decimal fidelis) GetWinRewardsForStage(int stageNumber, int enemyCount, int highestStage);
-
-    /// <summary>
-    /// Checks if a stage is a boss stage
-    /// </summary>
-    /// <param name="stageNumber">The stage number</param>
-    /// <returns>True if boss stage, false otherwise</returns>
-    bool IsBossStage(int stageNumber);
 
     /// <summary>
     /// Sets the current stage for a user (checkpoint selection).

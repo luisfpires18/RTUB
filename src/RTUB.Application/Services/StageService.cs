@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -81,20 +82,6 @@ public class StageService : IStageService
             throw new ArgumentException("User ID is required", nameof(userId));
 
         return await _stageProgressRepository.GetByUserIdAsync(userId);
-    }
-
-    /// <summary>
-    /// Gets the enemy for the current stage
-    /// </summary>
-    public async Task<StageEnemy?> GetCurrentStageEnemyAsync(StageProgress stageProgress, CancellationToken cancellationToken = default)
-    {
-        if (stageProgress == null)
-            throw new ArgumentNullException(nameof(stageProgress));
-
-        var enemyType = GetEnemyTypeForStageFromConfig(stageProgress.CurrentStage);
-        var region = stageProgress.CurrentRegion;
-
-        return await _stageEnemyRepository.GetRandomEnemyAsync(enemyType, region);
     }
 
     /// <summary>
@@ -240,10 +227,7 @@ public class StageService : IStageService
             }).ToList()
         };
         
-        var replayJson = JsonSerializer.Serialize(battleData, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        var replayJson = JsonSerializer.Serialize(battleData, JsonSerializerConstants.Compact);
 
         // Build set of already-owned rare set pieces (applied flags + inventory + pending run drops) so we don't drop duplicates
         var ownedRareSetPieces = new HashSet<InventoryItemType>();
@@ -312,26 +296,6 @@ public class StageService : IStageService
                 CritChance = e.CriticalChance
             }).ToList()
         };
-    }
-
-    /// <summary>
-    /// Gets the number of enemies remaining in the current stage
-    /// </summary>
-    public async Task<int> GetRemainingEnemiesInStageAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var stageProgress = await GetOrCreateStageProgressAsync(userId, cancellationToken);
-        var totalEnemies = _biomeService.GetEnemyCountForStage(stageProgress.CurrentStage);
-        var defeated = stageProgress.EnemiesDefeatedInCurrentStage;
-        return Math.Max(0, totalEnemies - defeated);
-    }
-
-    /// <summary>
-    /// Checks if the current stage is complete
-    /// </summary>
-    public async Task<bool> IsStageCompleteAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        var remaining = await GetRemainingEnemiesInStageAsync(userId, cancellationToken);
-        return remaining == 0;
     }
 
     /// <summary>
@@ -674,7 +638,7 @@ public class StageService : IStageService
             instrumentPartChance *= dropRates.BossDropMultiplier;
         }
 
-        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
+        var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypesArray;
 
         for (int i = 0; i < enemyCount; i++)
         {
@@ -928,30 +892,6 @@ public class StageService : IStageService
     private static int GenerateSeed()
     {
         return Random.Shared.Next(int.MinValue, int.MaxValue);
-    }
-
-    /// <summary>
-    /// Gets biome information for a stage (for UI display)
-    /// </summary>
-    public string GetBiomeNameForStage(int stageNumber)
-    {
-        return _biomeService.GetBiomeForStage(stageNumber);
-    }
-
-    /// <summary>
-    /// Gets the number of enemies for a stage (for UI display)
-    /// </summary>
-    public int GetEnemyCountForStage(int stageNumber)
-    {
-        return _biomeService.GetEnemyCountForStage(stageNumber);
-    }
-
-    /// <summary>
-    /// Checks if a stage is a boss stage (for UI display)
-    /// </summary>
-    public bool IsBossStage(int stageNumber)
-    {
-        return _biomeService.IsBossStage(stageNumber);
     }
 
     /// <summary>

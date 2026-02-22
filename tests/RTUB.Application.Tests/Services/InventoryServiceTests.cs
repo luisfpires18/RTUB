@@ -35,7 +35,8 @@ public class InventoryServiceTests : IDisposable
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         var userManagerMock = new Mock<UserManager<ApplicationUser>>(userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        var config = Options.Create(new MyTunoScalingConfiguration());
+        var config = new Mock<IOptionsSnapshot<MyTunoScalingConfiguration>>();
+        config.Setup(x => x.Value).Returns(new MyTunoScalingConfiguration());
 
         var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"InventoryTests_{Guid.NewGuid()}")
@@ -50,7 +51,7 @@ public class InventoryServiceTests : IDisposable
             _characterRepositoryMock.Object,
             userManagerMock.Object,
             _loggerMock.Object,
-            config,
+            config.Object,
             _dbContext);
     }
 

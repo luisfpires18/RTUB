@@ -38,13 +38,6 @@ public interface ICharacterService
     Task<List<Character>> GetAllCharactersOrderedByLevelAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Heals all characters to full HP (sets CurrentHP to null).
-    /// Owner-only operation for immediate full heal.
-    /// </summary>
-    /// <returns>The number of characters healed</returns>
-    Task<int> HealAllCharactersAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Calculates the daily reward amount based on character level and current balance.
     /// </summary>
     /// <param name="characterLevel">The character's current level</param>
@@ -60,16 +53,6 @@ public interface ICharacterService
     /// <returns>Tuple of (Success, Message, RewardAmount)</returns>
     Task<(bool Success, string Message, decimal RewardAmount)> ClaimDailyRewardAsync(
         string userId, int characterLevel, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Increases a character's level by 1 (owner operation).
-    /// </summary>
-    Task<(bool Success, string Message)> LevelUpCharacterAsync(string userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Decreases a character's level by 1 (owner operation).
-    /// </summary>
-    Task<(bool Success, string Message)> LevelDownCharacterAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a character and ALL associated game entities for the given user.

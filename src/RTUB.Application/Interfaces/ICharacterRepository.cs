@@ -1,4 +1,3 @@
-using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Interfaces;
@@ -29,33 +28,10 @@ public interface ICharacterRepository : IRepository<Character>
     Task<List<Character>> GetAllOrderedByLevelAsync();
 
     /// <summary>
-    /// Gets all characters for member users (excluding a specific character)
-    /// </summary>
-    /// <param name="excludeCharacterId">Character ID to exclude from results</param>
-    /// <returns>List of member characters ordered by level</returns>
-    Task<List<Character>> GetMemberCharactersAsync(int excludeCharacterId);
-
-    /// <summary>
-    /// Gets opponents for a character, prioritizing by level difference
-    /// Priority: 1) Higher level (closest first), 2) Same level, 3) Lower level (closest first)
-    /// </summary>
-    /// <param name="excludeCharacterId">Character ID to exclude from results (player character)</param>
-    /// <param name="count">Number of opponents to return (default: 8)</param>
-    /// <returns>List of prioritized opponents</returns>
-    Task<List<Character>> GetRandomOpponentsAsync(int excludeCharacterId, int count = 8);
-
-    /// <summary>
     /// Gets all arena opponents (all member characters except the specified one)
     /// Ordered by level descending. Excludes the specified character.
     /// </summary>
     /// <param name="excludeCharacterId">Character ID to exclude from results</param>
     /// <returns>List of opponents ordered by level</returns>
     Task<List<Character>> GetArenaOpponentsAsync(int excludeCharacterId);
-
-    /// <summary>
-    /// Gets top leaderboard entries ranked by wins, then level
-    /// </summary>
-    /// <param name="count">Number of entries to return</param>
-    /// <returns>List of leaderboard entries</returns>
-    Task<List<MyTunoLeaderboardEntry>> GetTopLeaderboardAsync(int count);
 }

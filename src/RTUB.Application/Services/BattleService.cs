@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Configuration;
 using RTUB.Core.Entities;
@@ -105,10 +106,7 @@ public class BattleService : IBattleService
         var ratingChange = CalculateRatingChange(combatResult.Outcome, playerCharacter, opponentCharacter);
 
         // Serialize replay events to JSON
-        var replayJson = JsonSerializer.Serialize(combatResult.Events, new JsonSerializerOptions
-        {
-            WriteIndented = false
-        });
+        var replayJson = JsonSerializer.Serialize(combatResult.Events, JsonSerializerConstants.Compact);
 
         // Calculate shot buff state after this battle
         var shotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1;
