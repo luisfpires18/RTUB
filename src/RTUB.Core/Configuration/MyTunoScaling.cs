@@ -92,11 +92,11 @@ public static class MyTunoScaling
     /// <summary>Dodge chance granted by Cigarro buff (0.10 = 10%).</summary>
     public static double CigarroDodgeChance { get; private set; } = 0.10;
 
-    /// <summary>Number of runs the Canhão AOE buff persists.</summary>
-    public static int CanhaoBuffRuns { get; private set; } = 5;
+    /// <summary>Duration in minutes for the Canhão AOE buff.</summary>
+    public static int CanhaoBuffMinutes { get; private set; } = 6;
 
-    /// <summary>Number of runs the Penalty lifesteal buff persists.</summary>
-    public static int PenaltyBuffRuns { get; private set; } = 5;
+    /// <summary>Duration in minutes for the Penalty lifesteal buff.</summary>
+    public static int PenaltyBuffMinutes { get; private set; } = 3;
 
     /// <summary>HP lifesteal per hit from Penalty buff (0.005 = 0.5%).</summary>
     public static double PenaltyLifestealPercent { get; private set; } = 0.005;
@@ -191,8 +191,8 @@ public static class MyTunoScaling
         double shotBuffMultiplierConsumable = 1.05,
         int cigarroBuffRuns = 5,
         double cigarroDodgeChance = 0.10,
-        int canhaoBuffRuns = 5,
-        int penaltyBuffRuns = 5,
+        int canhaoBuffMinutes = 6,
+        int penaltyBuffMinutes = 3,
         double penaltyLifestealPercent = 0.005,
         double rareSetCritPerPiece = 0.05,
         double rareSetSpeedPerPiece = 0.05,
@@ -238,8 +238,8 @@ public static class MyTunoScaling
         ShotBuffMultiplier = shotBuffMultiplierConsumable;
         CigarroBuffRuns = cigarroBuffRuns;
         CigarroDodgeChance = cigarroDodgeChance;
-        CanhaoBuffRuns = canhaoBuffRuns;
-        PenaltyBuffRuns = penaltyBuffRuns;
+        CanhaoBuffMinutes = canhaoBuffMinutes;
+        PenaltyBuffMinutes = penaltyBuffMinutes;
         PenaltyLifestealPercent = penaltyLifestealPercent;
         RareSetCritPerPiece = rareSetCritPerPiece;
         RareSetSpeedPerPiece = rareSetSpeedPerPiece;

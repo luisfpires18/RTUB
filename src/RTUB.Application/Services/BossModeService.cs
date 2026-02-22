@@ -287,14 +287,7 @@ public class BossModeService : IBossModeService
         {
             character.ExpireCigarroBuff();
         }
-        if (character.CanhaoDamageBoostHitsRemaining > 0)
-        {
-            character.ExpireCanhaoBuff();
-        }
-        if (expirePenaltyBuff && character.PenaltyBuffActive > 0)
-        {
-            character.ExpirePenaltyBuff();
-        }
+        // Canhão and Penalty are now timed buffs — they expire automatically via DateTime
 
         await _characterRepository.UpdateAsync(character);
 
@@ -352,7 +345,7 @@ public class BossModeService : IBossModeService
     }
 
     /// <inheritdoc />
-    public async Task<bool> CancelBossRunAsync(int characterId, long restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
+    public async Task<bool> CancelBossRunAsync(int characterId, long restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         // Pre-fetch character for logging (available in catch blocks)
@@ -375,8 +368,8 @@ public class BossModeService : IBossModeService
                 character.CurrentHP = restoreHp;
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
                 character.CigarroShieldHitsRemaining = restoreCigarroShield;
-                character.CanhaoDamageBoostHitsRemaining = restoreCanhaoBoost;
-                character.PenaltyBuffActive = restorePenaltyBuff;
+                character.CanhaoBuffExpiresAt = restoreCanhaoExpiresAt;
+                character.PenaltyBuffExpiresAt = restorePenaltyExpiresAt;
                 await _characterRepository.UpdateAsync(character);
 
                 // End the run
@@ -521,14 +514,14 @@ public class BossModeService : IBossModeService
         var penaltiesDropped = 0;
         var instrumentPartsDropped = new List<InventoryItemType>();
 
-        // Gate consumable drops behind biome progression
-        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        // Gate consumable drops behind biome progression (1000-floor biomes)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
         if (highestStage >= 1 && random.NextDouble() < dropRates.FinoDropChance) finosDropped++;
-        if (highestStage >= 501 && random.NextDouble() < dropRates.CanecaDropChance) canecasDropped++;
-        if (highestStage >= 301 && random.NextDouble() < dropRates.CigarroDropChance) cigarrosDropped++;
-        if (highestStage >= 701 && random.NextDouble() < dropRates.CanhaoDropChance) canhaosDropped++;
-        if (highestStage >= 101 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
-        if (highestStage >= 901 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
+        if (highestStage >= 5001 && random.NextDouble() < dropRates.CanecaDropChance) canecasDropped++;
+        if (highestStage >= 3001 && random.NextDouble() < dropRates.CigarroDropChance) cigarrosDropped++;
+        if (highestStage >= 7001 && random.NextDouble() < dropRates.CanhaoDropChance) canhaosDropped++;
+        if (highestStage >= 1001 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;
+        if (highestStage >= 9001 && random.NextDouble() < dropRates.PenaltyDropChance) penaltiesDropped++;
 
         var instrumentTypes = InstrumentTypeHelper.GameInstrumentTypes.ToArray();
         if (random.NextDouble() < dropRates.InstrumentPartDropChance)

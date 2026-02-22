@@ -73,7 +73,7 @@ public interface IStageService
     /// <param name="restoreStage">The stage number to restore to</param>
     /// <param name="restoreShotBuffBattles">The shot buff battles remaining to restore</param>
     /// <returns>True if cancelled successfully</returns>
-    Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default);
+    Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.

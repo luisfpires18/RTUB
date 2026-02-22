@@ -85,9 +85,9 @@ public class BattleService : IBattleService
 
         // Check if shot buff is active and create buffed copy for combat
         var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
-        var hasPenaltyBuff = playerCharacter.PenaltyBuffActive > 0;
+        var hasPenaltyBuff = playerCharacter.HasPenaltyBuff;
         var hasCigarroBuff = playerCharacter.CigarroShieldHitsRemaining > 0;
-        var hasCanhaoBuff = playerCharacter.CanhaoDamageBoostHitsRemaining > 0;
+        var hasCanhaoBuff = playerCharacter.HasCanhaoBuff;
         var combatCharacter = hasShotBuff 
             ? Character.CreateShotBuffedCopy(playerCharacter) 
             : playerCharacter;
@@ -201,7 +201,7 @@ public class BattleService : IBattleService
 
         // Expire run-based buffs after arena battle
         playerCharacter.ExpireCigarroBuff();
-        playerCharacter.ExpireCanhaoBuff();
+        // Timed buffs (Canhão/Penalty) expire automatically via DateTime — no decrement needed
 
         // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
         if (result.ShotBuffUsed)
@@ -209,11 +209,7 @@ public class BattleService : IBattleService
             playerCharacter.ExpireShotBuff();
         }
 
-        // Expire penalty buff (consumed after 1 arena battle)
-        if (result.PenaltyBuffUsed)
-        {
-            playerCharacter.ExpirePenaltyBuff();
-        }
+        // Penalty buff is timed — no manual expire needed
 
         // Update arena statistics
         switch (result.Outcome)
@@ -336,8 +332,8 @@ public class BattleService : IBattleService
     {
         var rewards = _myTunoScalingConfig.BattleRewards;
 
-        // Gate consumable drops behind biome progression
-        // Fino=1(Forest), Shot=101(Swamp), Cigarro=301(Snowy), Caneca=501(Caverns), Canhão=701(Volcanic)
+        // Gate consumable drops behind biome progression (1000-floor biomes)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
         var highestStage = stageProgress?.HighestStage ?? 1;
 
@@ -346,16 +342,19 @@ public class BattleService : IBattleService
         if (highestStage >= 1 && Random.Shared.NextDouble() < rewards.FinoDropChance)
             drops[InventoryItemType.Fino] = 1;
 
-        if (highestStage >= 501 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
+        if (highestStage >= 5001 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
             drops[InventoryItemType.Caneca] = 1;
 
-        if (highestStage >= 301 && Random.Shared.NextDouble() < rewards.CigarroDropChance)
+        if (highestStage >= 3001 && Random.Shared.NextDouble() < rewards.CigarroDropChance)
             drops[InventoryItemType.Cigarro] = 1;
 
-        if (highestStage >= 701 && Random.Shared.NextDouble() < rewards.CanhaoDropChance)
+        if (highestStage >= 7001 && Random.Shared.NextDouble() < rewards.CanhaoDropChance)
             drops[InventoryItemType.Canhao] = 1;
 
-        if (highestStage >= 901 && Random.Shared.NextDouble() < rewards.PenaltyDropChance)
+        if (highestStage >= 1001 && Random.Shared.NextDouble() < rewards.ShotDropChance)
+            drops[InventoryItemType.Shot] = 1;
+
+        if (highestStage >= 9001 && Random.Shared.NextDouble() < rewards.PenaltyDropChance)
             drops[InventoryItemType.Penalty] = 1;
 
         if (drops.Count > 0)

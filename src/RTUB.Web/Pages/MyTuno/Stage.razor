@@ -31,6 +31,7 @@
 @inject IInventoryRepository InventoryRepository
 @inject IItemTypeConfigService ItemTypeConfigService
 @inject Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.MyTunoScalingConfiguration> ScalingConfig
+@inject IConfiguration Configuration
 @implements IAsyncDisposable
 
 <PageTitle>Stage Mode - My Tuno - RTUB</PageTitle>
@@ -169,7 +170,7 @@
                 </div>
 
                 <!-- ── Active Buff Indicators (below top bar) ── -->
-                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
                 {
                     <div class="battle-buffs-strip">
                         @if (character.ShotBuffBattlesRemaining > 0)
@@ -180,13 +181,13 @@
                         {
                             <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>10% Dodge @character.CigarroShieldHitsRemaining runs</span>
                         }
-                        @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                        @if (character.HasCanhaoBuff)
                         {
-                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
+                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
                         }
-                        @if (character.PenaltyBuffActive > 0)
+                        @if (character.HasPenaltyBuff)
                         {
-                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i></span>
+                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
                         }
                     </div>
                 }
@@ -331,7 +332,7 @@
 
     // Battle controls
     private double battleSpeed = 1.0;
-    private bool audioEnabled = true;
+    private bool audioEnabled = false;
 
     // Accumulated loot tracker for the current run
     private int totalXPEarned = 0;
@@ -353,8 +354,8 @@
     private int? runStartingStage;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroBuff = 0;
-    private int runStartingCanhaoBuff = 0;
-    private int runStartingPenaltyBuff = 0;
+    private DateTime? runStartingCanhaoBuff = null;
+    private DateTime? runStartingPenaltyBuff = null;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
     private bool _disposed = false;
@@ -392,8 +393,23 @@
     // Key = consumable type ("fino", "caneca"), Value = remaining cooldown in seconds
     private Dictionary<string, double> _consumableCooldowns = new();
 
-    // Consumable image URLs from ItemTypeConfig (Cloudflare)
+    // Consumable image URLs from ItemTypeConfig (proxied to avoid CORS)
     private Dictionary<string, string> _consumableImages = new();
+
+    /// <summary>
+    /// Converts a full Cloudflare R2 public URL to a same-origin proxy URL.
+    /// e.g. "https://pub-xxx.r2.dev/images/prod/fino.webp" → "/api/cdn/image?path=images/prod/fino.webp"
+    /// </summary>
+    private static string ToProxiedUrl(string fullUrl, string r2PublicUrl)
+    {
+        if (!string.IsNullOrEmpty(r2PublicUrl) && fullUrl.StartsWith(r2PublicUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            var relativePath = fullUrl[(r2PublicUrl.Length)..].TrimStart('/');
+            return $"/api/cdn/image?path={Uri.EscapeDataString(relativePath)}";
+        }
+        // Not an R2 URL — return as-is (local SVGs etc.)
+        return fullUrl;
+    }
 
     // Spell cooldowns preserved across stage transitions (copied from old session before destroy)
     private Dictionary<string, double>? _preservedSpellCooldowns;
@@ -514,8 +530,8 @@
                 runStartingStage = stageProgress.CurrentStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
-                runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
-                runStartingPenaltyBuff = character.PenaltyBuffActive;
+                runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
+                runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
                 runInProgress = true;
                 // Reset cooldowns for the new run
                 _consumableCooldowns.Clear();
@@ -538,15 +554,18 @@
                     Logger.LogWarning(ex, "Failed to load consumable quantities for stage run");
                 }
 
-                // Load consumable image URLs from config (Cloudflare CDN)
+                // Load consumable image URLs from config (proxied to avoid CORS)
                 try
                 {
                     if (_consumableImages.Count == 0)
                     {
+                        var r2PublicUrl = Configuration["Cloudflare:R2:PublicUrl"]?.TrimEnd('/') ?? "";
                         var allConfigs = await ItemTypeConfigService.GetAllConfigsAsync();
                         _consumableImages = allConfigs
                             .Where(c => !string.IsNullOrEmpty(c.PictureUrl))
-                            .ToDictionary(c => c.TypeKey, c => c.PictureUrl!);
+                            .ToDictionary(
+                                c => c.TypeKey,
+                                c => ToProxiedUrl(c.PictureUrl!, r2PublicUrl));
                     }
                 }
                 catch (Exception ex)
@@ -569,7 +588,7 @@
             // and consumes cigarro/canhao charges — but the interactive session drives real combat.
             var preBattleHp = character.CurrentHP;
             var preBattleCigarroBuff = character.CigarroShieldHitsRemaining;
-            var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
+            var preBattleCanhaoBuff = character.CanhaoBuffExpiresAt;
 
             // Execute stage battle (pre-computes for rewards/progression metadata)
             currentBattle = await StageService.ExecuteStageBattleAsync(character.Id,
@@ -578,7 +597,7 @@
             // Restore pre-battle state — the interactive session drives real combat
             character.CurrentHP = preBattleHp;
             character.CigarroShieldHitsRemaining = preBattleCigarroBuff;
-            character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
+            character.CanhaoBuffExpiresAt = preBattleCanhaoBuff;
 
             // Create interactive combat session from enemy metadata
             // This drives the REAL combat — player auto-attacks only (no special attacks in stage mode for now)
@@ -691,7 +710,7 @@
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,
                         HasShotBuff = character.ShotBuffBattlesRemaining > 0,
-                        HasPenaltyBuff = character.PenaltyBuffActive > 0,
+                        HasPenaltyBuff = character.HasPenaltyBuff,
                         // ── Interactive combat data (spells / Blade Crafter mode) ──
                         InteractiveMode = true,
                         PlayerHP = _combatSession!.Player.CurrentHP,

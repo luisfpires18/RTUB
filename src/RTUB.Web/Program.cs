@@ -159,8 +159,8 @@ public class Program
                 shotBuffMultiplierConsumable: myTunoScaling.Consumables.ShotBuffMultiplier,
                 cigarroBuffRuns: myTunoScaling.Consumables.CigarroBuffRuns,
                 cigarroDodgeChance: myTunoScaling.Consumables.CigarroDodgeChance,
-                canhaoBuffRuns: myTunoScaling.Consumables.CanhaoBuffRuns,
-                penaltyBuffRuns: myTunoScaling.Consumables.PenaltyBuffRuns,
+                canhaoBuffMinutes: myTunoScaling.Consumables.CanhaoBuffMinutes,
+                penaltyBuffMinutes: myTunoScaling.Consumables.PenaltyBuffMinutes,
                 penaltyLifestealPercent: myTunoScaling.Consumables.PenaltyLifestealPercent,
                 rareSetCritPerPiece: myTunoScaling.StageMode.RareSet.CritBonusPerPiece,
                 rareSetSpeedPerPiece: myTunoScaling.StageMode.RareSet.SpeedReductionPerPiece,
@@ -448,6 +448,13 @@ public class Program
             .ConfigureHttpClient(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
+            });
+
+        // HttpClient for CDN image proxy (avoids CORS issues with Cloudflare R2)
+        services.AddHttpClient("CdnProxy")
+            .ConfigureHttpClient(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
             });
 
         // Geocoding queue (singleton - shared state across all requests)

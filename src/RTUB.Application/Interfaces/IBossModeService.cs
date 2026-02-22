@@ -46,7 +46,7 @@ public interface IBossModeService
     /// <summary>
     /// Cancels a boss mode run, restoring character state.
     /// </summary>
-    Task<bool> CancelBossRunAsync(int characterId, long restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default);
+    Task<bool> CancelBossRunAsync(int characterId, long restoreHp, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a random boss sprite path for the current boss stage.

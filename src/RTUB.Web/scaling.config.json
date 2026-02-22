@@ -83,8 +83,8 @@
       "shotBuffMultiplier": 1.05,
       "cigarroBuffRuns": 5,
       "cigarroDodgeChance": 0.10,
-      "canhaoBuffRuns": 5,
-      "penaltyBuffRuns": 5,
+      "canhaoBuffMinutes": 6,
+      "penaltyBuffMinutes": 3,
       "penaltyLifestealPercent": 0.005
     },
 
@@ -101,7 +101,8 @@
       "cigarroDropChance": 0.0009,
       "canecaDropChance": 0.0004,
       "canhaoDropChance": 0.0003,
-      "penaltyDropChance": 0.0002
+      "penaltyDropChance": 0.0002,
+      "shotDropChance": 0.0009
     },
 
     "stageMode": {

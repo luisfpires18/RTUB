@@ -129,16 +129,16 @@
                             </span>
                         </div>
                     }
-                    @if (character?.CanhaoDamageBoostHitsRemaining > 0)
+                    @if (character?.HasCanhaoBuff == true)
                     {
                         <div class="result-buff-row">
                             <i class="bi bi-bullseye text-info"></i>
                             <span>
-                                @character.CanhaoDamageBoostHitsRemaining corridas com AOE
+                                AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
                             </span>
                         </div>
                     }
-                    @if (character?.PenaltyBuffActive > 0)
+                    @if (character?.HasPenaltyBuff == true)
                     {
                         <div class="result-buff-row">
                             <i class="bi bi-lightning-charge-fill text-warning"></i>

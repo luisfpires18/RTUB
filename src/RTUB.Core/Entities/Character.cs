@@ -33,11 +33,19 @@ public class Character : BaseEntity
     // Cigarro buff - number of runs remaining with +10% dodge chance
     public int CigarroShieldHitsRemaining { get; set; } = 0;
 
-    // Canhão buff - number of runs remaining with AOE attacks
-    public int CanhaoDamageBoostHitsRemaining { get; set; } = 0;
+    // Canhão buff - timed AOE attacks (expires at UTC datetime)
+    public DateTime? CanhaoBuffExpiresAt { get; set; }
 
-    // Penalty buff - number of runs remaining with 0.5% HP lifesteal per hit
-    public int PenaltyBuffActive { get; set; } = 0;
+    // Penalty buff - timed 0.5% HP lifesteal per hit (expires at UTC datetime)
+    public DateTime? PenaltyBuffExpiresAt { get; set; }
+
+    // Computed: whether the canhão AOE buff is currently active
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool HasCanhaoBuff => CanhaoBuffExpiresAt.HasValue && DateTime.UtcNow < CanhaoBuffExpiresAt.Value;
+
+    // Computed: whether the penalty lifesteal buff is currently active
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool HasPenaltyBuff => PenaltyBuffExpiresAt.HasValue && DateTime.UtcNow < PenaltyBuffExpiresAt.Value;
 
     // Arena Statistics
     /// <summary>
@@ -757,8 +765,8 @@ public class Character : BaseEntity
             UpdatedAt = source.UpdatedAt,
             ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
             CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
-            CanhaoDamageBoostHitsRemaining = source.CanhaoDamageBoostHitsRemaining,
-            PenaltyBuffActive = source.PenaltyBuffActive
+            CanhaoBuffExpiresAt = source.CanhaoBuffExpiresAt,
+            PenaltyBuffExpiresAt = source.PenaltyBuffExpiresAt
         };
     }
 
@@ -986,12 +994,11 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Decrements the penalty lifesteal buff by 1 run.
+    /// Clears the penalty lifesteal buff.
     /// </summary>
     public void ExpirePenaltyBuff()
     {
-        if (PenaltyBuffActive > 0)
-            PenaltyBuffActive--;
+        PenaltyBuffExpiresAt = null;
     }
 
     /// <summary>
@@ -1004,12 +1011,11 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Decrements the canhão AOE buff by 1 run.
+    /// Clears the canhão AOE buff.
     /// </summary>
     public void ExpireCanhaoBuff()
     {
-        if (CanhaoDamageBoostHitsRemaining > 0)
-            CanhaoDamageBoostHitsRemaining--;
+        CanhaoBuffExpiresAt = null;
     }
 
     /// <summary>

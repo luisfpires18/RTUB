@@ -14,7 +14,7 @@
     let stageScene = null;
     
     // Global audio state - persists between battles
-    let globalAudioEnabled = true;
+    let globalAudioEnabled = false;
     let globalSfxVolume = 0.5;
     let backgroundMusic = null;
     let backgroundMusicGainNode = null;
@@ -162,7 +162,16 @@
             this.enemySpeedBars = [];
             this.battleStartTime = 0;
             this.currentSimTime = 0;
-            this.battleSpeed = 1.0;
+            // Anti-exploit: use defineProperty so battleSpeed can only be set via setSpeed()
+            this._battleSpeed = 1.0;
+            Object.defineProperty(this, 'battleSpeed', {
+                get: () => this._battleSpeed,
+                set: (v) => {
+                    const allowed = [1, 3, 5];
+                    this._battleSpeed = allowed.includes(v) ? v : 1;
+                },
+                configurable: false
+            });
             this.battleEvents = null;
             
             // Use global audio state to persist settings between stages
@@ -323,6 +332,15 @@
 
             this.container.appendChild(this.app.canvas);
             this.stage = this.app.stage;
+
+            // Anti-exploit: remove PixiJS debug global and freeze ticker speed
+            delete globalThis.__PIXI_APP__;
+            delete globalThis.__PIXI_STAGE__;
+            try {
+                Object.defineProperty(this.app.ticker, 'speed', {
+                    value: 1, writable: false, configurable: false
+                });
+            } catch (_) { /* already frozen */ }
 
             // Log GL context loss but let PixiJS handle recovery automatically.
             // The battle continues — the ticker resumes once the context is restored.
@@ -3222,10 +3240,9 @@
         setSpeed(speed) {
             // Only allow valid speeds (1, 3, 5) to prevent console exploits
             const allowedSpeeds = [1, 3, 5];
-            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+            const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
             this.playbackSpeed = validSpeed;
-            // Convert playback speed to battle speed (1x = 1.0, 3x = 3.0, 5x = 5.0)
-            this.battleSpeed = validSpeed;
+            this._battleSpeed = validSpeed;
         }
 
         setAudioEnabled(enabled) {
@@ -3856,9 +3873,8 @@
 
         setSpeed: function (speed) {
             if (stageScene) {
-                // Validate speed before passing to scene
                 const allowedSpeeds = [1, 3, 5];
-                const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+                const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
                 stageScene.setSpeed(validSpeed);
             }
         },

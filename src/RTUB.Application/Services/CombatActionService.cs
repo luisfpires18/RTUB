@@ -63,8 +63,8 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             CurrentTargetIndex = 0,
             HasShotBuff = player.ShotBuffBattlesRemaining > 0,
             HasCigarroBuff = player.CigarroShieldHitsRemaining > 0,
-            HasCanhaoBuff = player.CanhaoDamageBoostHitsRemaining > 0,
-            HasPenaltyBuff = player.PenaltyBuffActive > 0,
+            HasCanhaoBuff = player.HasCanhaoBuff,
+            HasPenaltyBuff = player.HasPenaltyBuff,
             HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
             SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
             EquippedSpells = equippedSpells ?? [],
@@ -163,8 +163,8 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             CurrentTargetIndex = 0,
             HasShotBuff = player.ShotBuffBattlesRemaining > 0,
             HasCigarroBuff = player.CigarroShieldHitsRemaining > 0,
-            HasCanhaoBuff = player.CanhaoDamageBoostHitsRemaining > 0,
-            HasPenaltyBuff = player.PenaltyBuffActive > 0,
+            HasCanhaoBuff = player.HasCanhaoBuff,
+            HasPenaltyBuff = player.HasPenaltyBuff,
             HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
             SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
             EquippedSpells = equippedSpells ?? [],
@@ -945,19 +945,19 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             case "canhao":
             {
                 if (session == null) return ConsumableResult.Fail("Sessão inválida.");
-                if (character.CanhaoDamageBoostHitsRemaining > 0)
+                if (character.HasCanhaoBuff)
                     return ConsumableResult.Fail("Canhão já ativo!");
 
                 var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Canhao, 1, cancellationToken);
                 if (!consumed) return ConsumableResult.Fail("Sem Canhão disponível.");
 
-                character.CanhaoDamageBoostHitsRemaining = MyTunoScaling.CanhaoBuffRuns;
+                character.CanhaoBuffExpiresAt = DateTime.UtcNow.AddMinutes(MyTunoScaling.CanhaoBuffMinutes);
                 session.HasCanhaoBuff = true;
 
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"💣 AOE x{MyTunoScaling.CanhaoBuffRuns} runs", BuffActive = true
+                    BuffMessage = $"💣 AOE {MyTunoScaling.CanhaoBuffMinutes}min", BuffActive = true
                 };
             }
             case "shot":
@@ -983,13 +983,13 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             }
             case "penalty":
             {
-                if (character.PenaltyBuffActive > 0)
+                if (character.HasPenaltyBuff)
                     return ConsumableResult.Fail("Penalty já ativo!");
 
                 var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Penalty, 1, cancellationToken);
                 if (!consumed) return ConsumableResult.Fail("Sem Penalty disponível.");
 
-                character.PenaltyBuffActive = MyTunoScaling.PenaltyBuffRuns;
+                character.PenaltyBuffExpiresAt = DateTime.UtcNow.AddMinutes(MyTunoScaling.PenaltyBuffMinutes);
                 if (session != null)
                 {
                     session.HasPenaltyBuff = true;
@@ -998,7 +998,7 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"⚡ LIFESTEAL x{MyTunoScaling.PenaltyBuffRuns} runs", BuffActive = true
+                    BuffMessage = $"⚡ LIFESTEAL {MyTunoScaling.PenaltyBuffMinutes}min", BuffActive = true
                 };
             }
             default:

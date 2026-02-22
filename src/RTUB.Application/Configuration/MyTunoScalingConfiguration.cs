@@ -100,6 +100,11 @@ public class BattleRewards
     /// Chance of Penalty drop after winning an arena battle
     /// </summary>
     public double PenaltyDropChance { get; set; } = 0.0002;
+
+    /// <summary>
+    /// Chance of Shot drop after winning an arena battle
+    /// </summary>
+    public double ShotDropChance { get; set; } = 0.0009;
 }
 
 public class MyTunoBaseStats
@@ -630,8 +635,8 @@ public class ConsumablesConfig
     public double ShotBuffMultiplier { get; set; } = 1.05;
     public int CigarroBuffRuns { get; set; } = 5;
     public double CigarroDodgeChance { get; set; } = 0.10;
-    public int CanhaoBuffRuns { get; set; } = 5;
-    public int PenaltyBuffRuns { get; set; } = 5;
+    public int CanhaoBuffMinutes { get; set; } = 6;
+    public int PenaltyBuffMinutes { get; set; } = 3;
     public double PenaltyLifestealPercent { get; set; } = 0.005;
 }
 

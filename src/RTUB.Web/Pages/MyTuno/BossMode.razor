@@ -97,20 +97,20 @@
             </div>
 
             <!-- Active Buff Indicators -->
-            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
             {
                 <div class="boss-buff-strip">
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="boss-buff-tag boss-buff-tag--dodge"><i class="bi bi-wind"></i> 10% Dodge @character.CigarroShieldHitsRemaining runs</span>
                     }
-                    @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                    @if (character.HasCanhaoBuff)
                     {
-                        <span class="boss-buff-tag boss-buff-tag--aoe"><i class="bi bi-bullseye"></i> @character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
+                        <span class="boss-buff-tag boss-buff-tag--aoe"><i class="bi bi-bullseye"></i> AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")</span>
                     }
-                    @if (character.PenaltyBuffActive > 0)
+                    @if (character.HasPenaltyBuff)
                     {
-                        <span class="boss-buff-tag boss-buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i> Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas</span>
+                        <span class="boss-buff-tag boss-buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i> Penalty — Lifesteal 0.5% HP @(character.PenaltyBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.PenaltyBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")</span>
                     }
                 </div>
             }
@@ -259,7 +259,7 @@
                     @* Current Buffs Section *@
                     <div class="buff-section">
                         <h6 class="buff-section-title"><i class="bi bi-shield-check me-1"></i>Buffs Ativos</h6>
-                        @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+                        @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
                         {
                             <div class="buff-active-list">
                                 @if (character.ShotBuffBattlesRemaining > 0)
@@ -274,13 +274,13 @@
                                         <i class="bi bi-wind"></i> Cigarro (10% Dodge @character.CigarroShieldHitsRemaining runs)
                                     </span>
                                 }
-                                @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                                @if (character.HasCanhaoBuff)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--aoe">
-                                        <i class="bi bi-bullseye"></i> Canhão (@character.CanhaoDamageBoostHitsRemaining corridas)
+                                        <i class="bi bi-bullseye"></i> Canhão (AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : ""))
                                     </span>
                                 }
-                                @if (character.PenaltyBuffActive > 0)
+                                @if (character.HasPenaltyBuff)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--penalty">
                                         <i class="bi bi-lightning-charge-fill"></i> Penalty Ativo
@@ -321,8 +321,8 @@
                                 {
                                     ("Cigarro", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
                                     ("Shot", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
-                                    ("Canhão", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.CanhaoDamageBoostHitsRemaining > 0),
-                                    ("Penalty", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.PenaltyBuffActive > 0),
+                                    ("Canhão", "bi-bullseye", "AOE 6min", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.HasCanhaoBuff == true),
+                                    ("Penalty", "bi-lightning-charge-fill", "Lifesteal 0.5% HP 3min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.HasPenaltyBuff == true),
                                 };
                             }
 
@@ -505,8 +505,8 @@
     private int runStartingBossStage;
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroBuff = 0;
-    private int runStartingCanhaoBuff = 0;
-    private int runStartingPenaltyBuff = 0;
+    private DateTime? runStartingCanhaoBuff;
+    private DateTime? runStartingPenaltyBuff;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
     private bool _disposed = false;
@@ -703,8 +703,8 @@
                 runStartingBossStage = bossModeProgress.CurrentBossStage;
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
-                runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
-                runStartingPenaltyBuff = character.PenaltyBuffActive;
+                runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
+                runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
                 runInProgress = true;
 
                 // Load consumable quantities for in-fight bar (once per run)
@@ -739,9 +739,9 @@
             // consumed buff counts, but the interactive session needs the original pre-battle values.
             var preBattleHp = character.CurrentHP ?? character.TotalHP;
             var preBattleShotBuff = character.ShotBuffBattlesRemaining > 0;
-            var preBattlePenaltyBuff = character.PenaltyBuffActive > 0;
+            var preBattlePenaltyBuff = character.HasPenaltyBuff;
             var preBattleCigarroBuff = character.CigarroShieldHitsRemaining;
-            var preBattleCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
+            var preBattleCanhaoBuff = character.CanhaoBuffExpiresAt;
 
             currentBattle = await BossModeService.ExecuteBossBattleAsync(character.Id);
             _precomputedWin = currentBattle.Outcome == BattleOutcome.AttackerWon;
@@ -816,7 +816,7 @@
                     var savedHp = character.CurrentHP;
                     character.CurrentHP = preBattleHp;
                     character.CigarroShieldHitsRemaining = preBattleCigarroBuff;
-                    character.CanhaoDamageBoostHitsRemaining = preBattleCanhaoBuff;
+                    character.CanhaoBuffExpiresAt = preBattleCanhaoBuff;
                     Character sessionChar = character;
                     if (preBattleShotBuff)
                         sessionChar = Character.CreateShotBuffedCopy(character);
@@ -1382,7 +1382,7 @@
             character.ExpireShotBuff();
             needsSave = true;
         }
-        if (character.PenaltyBuffActive > 0)
+        if (character.HasPenaltyBuff)
         {
             character.ExpirePenaltyBuff();
             needsSave = true;
@@ -1416,8 +1416,8 @@
         runStartingHp = character.CurrentHP;
         runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
         runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
-        runStartingCanhaoBuff = character.CanhaoDamageBoostHitsRemaining;
-        runStartingPenaltyBuff = character.PenaltyBuffActive;
+        runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
+        runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
         runInProgress = true;
         pendingDefeatRewards = true;
         currentBattle = null;
@@ -1443,7 +1443,7 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff.HasValue || character.HasPenaltyBuff,
                     startBossFloor: runStartingBossStage,
                     endBossFloor: defeatedAtBossStage);
             }
@@ -1456,12 +1456,12 @@
         {
             // Cancel: expire any buff the player activated on the buff screen
             // (it was consumed from inventory so it should not persist)
-            if (character.PenaltyBuffActive > 0)
+            if (character.HasPenaltyBuff)
             {
                 character.ExpirePenaltyBuff();
                 await CharacterService.UpdateCharacterAsync(character);
             }
-            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, 0);
+            await BossModeService.CancelBossRunAsync(character.Id, runStartingHp.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, null);
         }
 
         pendingDefeatRewards = false;
@@ -1701,7 +1701,7 @@
                     defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                     expireShotBuff: runStartingShotBuffBattles > 0 || character.ShotBuffBattlesRemaining > 0,
-                    expirePenaltyBuff: runStartingPenaltyBuff > 0 || character.PenaltyBuffActive > 0,
+                    expirePenaltyBuff: runStartingPenaltyBuff.HasValue || character.HasPenaltyBuff,
                     startBossFloor: runStartingBossStage,
                     endBossFloor: defeatedAtBossStage);
             }

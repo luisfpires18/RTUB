@@ -180,8 +180,8 @@
                                             ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, true, "Apenas utilizável em combate"),
                                             ("Cigarro", "bi-cloud", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
                                             ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || character?.ShotBuffBattlesRemaining > 0, null),
-                                            ("Canhão", "bi-bullseye", "bi-bullseye", "AOE x5", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.CanhaoDamageBoostHitsRemaining > 0, null),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP x5", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.PenaltyBuffActive > 0, null),
+                                            ("Canhão", "bi-bullseye", "bi-bullseye", "AOE 6min", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.HasCanhaoBuff == true, null),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP 3min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.HasPenaltyBuff == true, null),
                                             ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 11001, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, true, "Apenas utilizável em combate"),
                                         };
                                     }
@@ -551,7 +551,7 @@
                         </div>
                         
                         <!-- Active Enhancements Section -->
-                        @if (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0)
+                        @if (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff)
                         {
                             <div class="mt-3">
                                 <h6 class="text-info mb-2"><i class="bi bi-magic me-2"></i>Melhorias Ativas</h6>
@@ -575,24 +575,24 @@
                                         <span class="badge bg-info">10% Dodge @character.CigarroShieldHitsRemaining runs</span>
                                     </div>
                                 }
-                                @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                                @if (character.HasCanhaoBuff)
                                 {
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-bullseye text-info me-2"></i>
                                             <span>Canhão (AOE)</span>
                                         </span>
-                                        <span class="badge bg-info">@character.CanhaoDamageBoostHitsRemaining corridas com AOE</span>
+                                        <span class="badge bg-info">@((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min restantes</span>
                                     </div>
                                 }
-                                @if (character.PenaltyBuffActive > 0)
+                                @if (character.HasPenaltyBuff)
                                 {
                                     <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
                                             <span>Penalty — Lifesteal 0.5% HP por hit</span>
                                         </span>
-                                        <span class="badge bg-warning text-dark">Ativo</span>
+                                        <span class="badge bg-warning text-dark">@((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min restantes</span>
                                     </div>
                                 }
                             </div>

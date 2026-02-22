@@ -408,7 +408,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, int restoreCanhaoBoost = 0, int restorePenaltyBuff = 0, CancellationToken cancellationToken = default)
+    public async Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -433,8 +433,8 @@ public class StageService : IStageService
                 character.CurrentHP = restoreHp;
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
                 character.CigarroShieldHitsRemaining = restoreCigarroShield;
-                character.CanhaoDamageBoostHitsRemaining = restoreCanhaoBoost;
-                character.PenaltyBuffActive = restorePenaltyBuff;
+                character.CanhaoBuffExpiresAt = restoreCanhaoExpiresAt;
+                character.PenaltyBuffExpiresAt = restorePenaltyExpiresAt;
                 await _characterRepository.UpdateAsync(character);
 
                 // Reload stageProgress from database to ensure clean change tracker state.
@@ -789,14 +789,7 @@ public class StageService : IStageService
         {
             character.ExpireCigarroBuff();
         }
-        if (character.CanhaoDamageBoostHitsRemaining > 0)
-        {
-            character.ExpireCanhaoBuff();
-        }
-        if (character.PenaltyBuffActive > 0)
-        {
-            character.ExpirePenaltyBuff();
-        }
+        // Canhão and Penalty are timed buffs — they expire automatically via DateTime
         
         await _characterRepository.UpdateAsync(character);
 

@@ -84,7 +84,7 @@
             </div>
 
             @* ─── Active Buff Indicators ─── *@
-            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.CanhaoDamageBoostHitsRemaining > 0 || character.PenaltyBuffActive > 0))
+            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
             {
                 <div class="d-flex gap-2 mb-3 flex-wrap">
                     @if (character.CigarroShieldHitsRemaining > 0)
@@ -93,16 +93,16 @@
                             <i class="bi bi-wind me-1"></i>10% Dodge @character.CigarroShieldHitsRemaining runs
                         </span>
                     }
-                    @if (character.CanhaoDamageBoostHitsRemaining > 0)
+                    @if (character.HasCanhaoBuff)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>@character.CanhaoDamageBoostHitsRemaining corridas com AOE
+                            <i class="bi bi-bullseye me-1"></i>AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
                         </span>
                     }
-                    @if (character.PenaltyBuffActive > 0)
+                    @if (character.HasPenaltyBuff)
                     {
                         <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal 0.5% HP x@(character.PenaltyBuffActive) corridas
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
                         </span>
                     }
                 </div>

@@ -36,7 +36,7 @@ public class DeterministicCombatEngine : ICombatEngine
 
         // Initialize consumable buff flags
         var hasCigarroDodge = attacker.CigarroShieldHitsRemaining > 0;
-        var hasPenaltyLifesteal = attacker.PenaltyBuffActive > 0;
+        var hasPenaltyLifesteal = attacker.HasPenaltyBuff;
 
         // Get action times (in seconds, convert to ms)
         var attackerActionTimeMs = attacker.ActionTime * 1000;
@@ -281,8 +281,8 @@ public class DeterministicCombatEngine : ICombatEngine
 
         // Initialize consumable buff flags
         var hasCigarroDodge = player.CigarroShieldHitsRemaining > 0;
-        var hasCanhaoBuff = player.CanhaoDamageBoostHitsRemaining > 0;
-        var hasPenaltyLifesteal = player.PenaltyBuffActive > 0;
+        var hasCanhaoBuff = player.HasCanhaoBuff;
+        var hasPenaltyLifesteal = player.HasPenaltyBuff;
 
         // Initialize all enemy states with HP and action timers
         var enemyStates = enemies.Select((enemy, index) => new EnemyState

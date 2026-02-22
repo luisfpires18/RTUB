@@ -38,7 +38,7 @@ public class InventoryService : IInventoryService
     // Cigarro grants +10% dodge for N runs
     private const int CigarroBuffRuns = 5;
     // Canhão grants AOE attacks for N runs
-    private const int CanhaoBuffRuns = 5;
+    // Canhão and Penalty are now timed — durations configured in scaling.config.json
 
     public InventoryService(
         IInventoryRepository inventoryRepository,
@@ -171,7 +171,7 @@ public class InventoryService : IInventoryService
             return (false, "Não podes usar canhão num personagem morto");
         }
 
-        if (character.CanhaoDamageBoostHitsRemaining > 0)
+        if (character.HasCanhaoBuff)
         {
             return (false, "Já tens um canhão ativo");
         }
@@ -184,10 +184,11 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.CanhaoDamageBoostHitsRemaining = CanhaoBuffRuns;
+        var canhaoMinutes = _scalingConfig.Consumables.CanhaoBuffMinutes;
+        character.CanhaoBuffExpiresAt = DateTime.UtcNow.AddMinutes(canhaoMinutes);
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Canhão ativado! AOE por {CanhaoBuffRuns} runs");
+        return (true, $"Canhão ativado! AOE por {canhaoMinutes} minutos");
     }
 
     /// <summary>
@@ -209,7 +210,7 @@ public class InventoryService : IInventoryService
             return (false, "Não podes usar penalty num personagem morto");
         }
 
-        if (character.PenaltyBuffActive > 0)
+        if (character.HasPenaltyBuff)
         {
             return (false, "Já tens um penalty ativo");
         }
@@ -222,10 +223,11 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        character.PenaltyBuffActive = 5;
+        var penaltyMinutes = _scalingConfig.Consumables.PenaltyBuffMinutes;
+        character.PenaltyBuffExpiresAt = DateTime.UtcNow.AddMinutes(penaltyMinutes);
         await _characterRepository.UpdateAsync(character);
 
-        return (true, "Penalty ativado! 0.5% lifesteal por 5 runs");
+        return (true, $"Penalty ativado! 0.5% lifesteal por {penaltyMinutes} minutos");
     }
 
     /// <summary>
