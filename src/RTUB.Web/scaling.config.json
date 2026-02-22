@@ -58,7 +58,12 @@
         "baseCost": 300,
         "costPerLevel": 300
       },
-
+      "castSpeed": {
+        "flatBonus": 0.1,
+        "baseCost": 500000,
+        "costPerLevel": 0
+      },
+      "minCastTime": 0.1
     },
 
     "combat": {

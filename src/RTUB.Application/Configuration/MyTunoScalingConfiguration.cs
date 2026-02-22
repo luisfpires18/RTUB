@@ -194,6 +194,16 @@ public class MyTunoImprovements
     /// <summary>Increase energy regeneration speed</summary>
     public UpgradeFlatStat EnergyRegen { get; set; } = new() { FlatBonus = 2.0, BaseCost = 300, CostPerLevel = 300 };
 
+    /// <summary>
+    /// Reduce gathering cast time (doubling cost: cost = BaseCost × 2^level).
+    /// FlatBonus = time reduction per upgrade in seconds.
+    /// BaseCost = starting cost (500K). CostPerLevel is unused (doubling formula).
+    /// </summary>
+    public UpgradeFlatStat CastSpeed { get; set; } = new() { FlatBonus = 0.1, BaseCost = 500_000m, CostPerLevel = 0 };
+
+    /// <summary>Minimum cast time in seconds (floor).</summary>
+    public double MinCastTime { get; set; } = 0.1;
+
 }
 
 /// <summary>

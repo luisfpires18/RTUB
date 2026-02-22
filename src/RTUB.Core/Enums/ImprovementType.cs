@@ -10,5 +10,8 @@ public enum ImprovementType
     EnergyAmount = 0,
 
     /// <summary>Increases energy regeneration speed</summary>
-    EnergyRegen = 1
+    EnergyRegen = 1,
+
+    /// <summary>Reduces gathering cast time ("A destilar Cerveja...")</summary>
+    CastSpeed = 2
 }

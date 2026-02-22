@@ -97,25 +97,58 @@
                             <span class="reward-tag reward-tag--fidelis">
                                 <i class="bi bi-coin"></i> @Fmt(totalFidelisEarned) Fidelis
                             </span>
-                            @{
-                                var totalConsumablesDropped = totalFinosDropped + totalCanecasDropped + totalCigarrosDropped + totalShotsDropped + totalCanhaosDropped + totalPenaltiesDropped;
-                            }
-                            @if (totalConsumablesDropped > 0)
+                            @if (totalFinosDropped > 0)
                             {
                                 <span class="reward-tag reward-tag--drink">
-                                    <i class="bi bi-cup-straw"></i> @Fmt(totalConsumablesDropped) Consumíveis
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalFinosDropped) Fino
+                                </span>
+                            }
+                            @if (totalCanecasDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup-straw"></i> @Fmt(totalCanecasDropped) Caneca
+                                </span>
+                            }
+                            @if (totalCigarrosDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cloud"></i> @Fmt(totalCigarrosDropped) Cigarro
+                                </span>
+                            }
+                            @if (totalCanhaosDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-bullseye"></i> @Fmt(totalCanhaosDropped) Canhão
+                                </span>
+                            }
+                            @if (totalShotsDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-cup"></i> @totalShotsDropped Shot
+                                </span>
+                            }
+                            @if (totalPenaltiesDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink">
+                                    <i class="bi bi-lightning-charge-fill"></i> @totalPenaltiesDropped Penalty
+                                </span>
+                            }
+                            @if (totalFitabDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink" style="color: #e040fb;">
+                                    <i class="bi bi-lightning-fill"></i> @totalFitabDropped FITAB
                                 </span>
                             }
                             @if (totalInstrumentPartsDropped.Count > 0)
                             {
                                 <span class="reward-tag reward-tag--instrument">
-                                    <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Parts
+                                    <i class="bi bi-music-note"></i> @totalInstrumentPartsDropped.Values.Sum() Instrumentos
                                 </span>
                             }
                             @if (totalRareSetDropped.Count > 0)
                             {
                                 <span class="reward-tag reward-tag--rare" style="color: #ffd700; text-shadow: 0 0 6px #ffd700;">
-                                    <i class="bi bi-gem"></i> @totalRareSetDropped.Count RARE
+                                    <i class="bi bi-gem"></i> @totalRareSetDropped.Count Equipamento Raro
                                 </span>
                             }
 
@@ -257,7 +290,7 @@
                                     ? pc.Name : rareType.ToString();
                                 <div class="defeat-reward-row" style="color: #ffd700; text-shadow: 0 0 4px #ffd700;">
                                     <i class="bi bi-gem" style="color: #ffd700;"></i>
-                                    <span>+1 @rareName <small style="opacity:.7">(RARE)</small></span>
+                                    <span>+1 @rareName <small style="opacity:.7">(Equipamento Raro)</small></span>
                                 </div>
                             }
                         </div>

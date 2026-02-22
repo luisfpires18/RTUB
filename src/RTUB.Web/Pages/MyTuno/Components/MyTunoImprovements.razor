@@ -121,6 +121,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- Cast Speed Upgrade Row -->
+        <div class="enhance-row @(IsCastSpeedMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--regen">
+                <i class="bi bi-stopwatch"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Destilação <span class="enhance-row__level">Lv@(Character.CastSpeedUpgrades)</span></div>
+                <div class="enhance-row__desc">Reduz o casting time da destilação</div>
+                <div class="enhance-row__stat">
+                    @if (IsCastSpeedMaxed)
+                    {
+                        <text>@Character.EffectiveCastTime.ToString("F1")s</text>
+                    }
+                    else
+                    {
+                        var nextCast = Math.Max(MyTunoConfig.Value.Improvements.MinCastTime, Character.EffectiveCastTime - MyTunoConfig.Value.Improvements.CastSpeed.FlatBonus);
+                        <text>@Character.EffectiveCastTime.ToString("F1")s → <span class="text-success">@nextCast.ToString("F1")s</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsCastSpeedMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.CastSpeed)"
+                        disabled="@(Purchasing || castSpeedCostLoading || IsCastSpeedMaxed || FidelisBalance < castSpeedCost || (castSpeedLeitaoCost > 0 && LeitaoBalance < castSpeedLeitaoCost))">
+                    @if (Purchasing && PurchasingType == ImprovementType.CastSpeed)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsCastSpeedMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (castSpeedCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(castSpeedCost)</span>
+                        @if (castSpeedLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < castSpeedLeitaoCost ? "text-danger" : "")" title="Leit\u00f5es">🐷 @castSpeedLeitaoCost</span>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
     </div>
     </div>
 </div>
@@ -133,15 +187,16 @@
     [Parameter] public ImprovementType? PurchasingType { get; set; }
     [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
 
-    private decimal energyAmountCost, energyRegenCost;
-    private int energyAmountLeitaoCost, energyRegenLeitaoCost;
-    private bool energyAmountCostLoading = true, energyRegenCostLoading = true;
+    private decimal energyAmountCost, energyRegenCost, castSpeedCost;
+    private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost;
+    private bool energyAmountCostLoading = true, energyRegenCostLoading = true, castSpeedCostLoading = true;
 
     private int MaxEnergyAmountUpgrades => MyTunoConfig.Value.Improvements.EnergyAmount.MaxUpgrades;
     private int MaxEnergyRegenUpgrades => MyTunoConfig.Value.Improvements.EnergyRegen.MaxUpgrades;
 
     private bool IsEnergyAmountMaxed => MaxEnergyAmountUpgrades > 0 && Character.EnergyAmountUpgrades >= MaxEnergyAmountUpgrades;
     private bool IsEnergyRegenMaxed => (MaxEnergyRegenUpgrades > 0 && Character.EnergyRegenUpgrades >= MaxEnergyRegenUpgrades) || Character.EffectiveRegenInterval <= 5.0;
+    private bool IsCastSpeedMaxed => Character.EffectiveCastTime <= MyTunoConfig.Value.Improvements.MinCastTime;
 
     protected override void OnParametersSet()
     {
@@ -155,11 +210,13 @@
             var costs = ImprovementService.GetAllImprovementCosts(Character);
             energyAmountCost = costs.GetValueOrDefault(ImprovementType.EnergyAmount);
             energyRegenCost = costs.GetValueOrDefault(ImprovementType.EnergyRegen);
+            castSpeedCost = costs.GetValueOrDefault(ImprovementType.CastSpeed);
 
             // Leitão costs
             var p = MyTunoConfig.Value.BossMode.Piggies;
             energyAmountLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyAmountUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
             energyRegenLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyRegenUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
+            castSpeedLeitaoCost = PiggiesCostConfig.CalculateCost(Character.CastSpeedUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
         }
         catch
         {
@@ -169,6 +226,7 @@
         {
             energyAmountCostLoading = false;
             energyRegenCostLoading = false;
+            castSpeedCostLoading = false;
         }
     }
 

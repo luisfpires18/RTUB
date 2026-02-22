@@ -3525,8 +3525,12 @@
         {
             // Start cast bar
             gathering = resourceType;
-            var castTime = gatheringConfig.CastTimeSeconds;
-            if (castTime <= 0) castTime = 3;
+            // Use effective cast time (reduced by CastSpeed upgrades)
+            var baseCastTime = (double)gatheringConfig.CastTimeSeconds;
+            if (baseCastTime <= 0) baseCastTime = 3;
+            var castTime = character != null
+                ? character.EffectiveCastTime
+                : baseCastTime;
             castTimeRemaining = castTime;
             castProgress = 0;
             castStartTime = DateTime.UtcNow;

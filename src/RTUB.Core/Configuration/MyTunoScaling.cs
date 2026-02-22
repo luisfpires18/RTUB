@@ -115,6 +115,15 @@ public static class MyTunoScaling
     /// <summary>Regen interval reduction per upgrade level (seconds).</summary>
     public static double RegenReductionPerUpgrade { get; private set; } = 2.0;
 
+    /// <summary>Base gathering cast time in seconds.</summary>
+    public static double BaseCastTime { get; private set; } = 3.0;
+
+    /// <summary>Cast time reduction per upgrade level (seconds).</summary>
+    public static double CastTimeReductionPerUpgrade { get; private set; } = 0.1;
+
+    /// <summary>Minimum cast time floor (seconds).</summary>
+    public static double MinCastTime { get; private set; } = 0.1;
+
     // ── Powers (combat power enhancements) ──
 
     /// <summary>Heavy attack damage bonus per upgrade (additive to base 2.0x multiplier).</summary>
@@ -169,6 +178,9 @@ public static class MyTunoScaling
         double energyAmountPerUpgrade = 2.0,
         double baseRegenInterval = 60.0,
         double regenReductionPerUpgrade = 2.0,
+        double baseCastTime = 3.0,
+        double castTimeReductionPerUpgrade = 0.1,
+        double minCastTime = 0.1,
         double heavyAttackBonusPerUpgrade = 0.05,
         double specialAttackBonusPerUpgrade = 0.05,
         double finoHealPercent = 0.25,
@@ -213,6 +225,9 @@ public static class MyTunoScaling
         EnergyAmountPerUpgrade = energyAmountPerUpgrade;
         BaseRegenInterval = baseRegenInterval;
         RegenReductionPerUpgrade = regenReductionPerUpgrade;
+        BaseCastTime = baseCastTime;
+        CastTimeReductionPerUpgrade = castTimeReductionPerUpgrade;
+        MinCastTime = minCastTime;
         HeavyAttackBonusPerUpgrade = heavyAttackBonusPerUpgrade;
         SpecialAttackBonusPerUpgrade = specialAttackBonusPerUpgrade;
         FinoHealPercent = finoHealPercent;

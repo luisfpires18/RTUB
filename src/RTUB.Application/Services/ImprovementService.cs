@@ -55,8 +55,8 @@ public class ImprovementService : IImprovementService
         var upgradeCount = character != null ? GetUpgradeCount(character, improvementType) : 0;
         var stat = GetImprovementStatConfig(improvementType);
 
-        var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
-        return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+        var cost = CalculateImprovementCost(improvementType, stat, upgradeCount);
+        return cost;
     }
 
     /// <summary>
@@ -64,15 +64,14 @@ public class ImprovementService : IImprovementService
     /// </summary>
     public Dictionary<ImprovementType, decimal> GetAllImprovementCosts(Character character)
     {
-        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen };
+        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen, ImprovementType.CastSpeed };
         var result = new Dictionary<ImprovementType, decimal>();
 
         foreach (var type in types)
         {
             var upgradeCount = GetUpgradeCount(character, type);
             var stat = GetImprovementStatConfig(type);
-            var cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
-            result[type] = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+            result[type] = CalculateImprovementCost(type, stat, upgradeCount);
         }
 
         return result;
@@ -124,8 +123,21 @@ public class ImprovementService : IImprovementService
                         return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
                     }
 
-                    var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
-                    cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+                    // CastSpeed: also check if already at minimum cast time
+                    if (improvementType == ImprovementType.CastSpeed)
+                    {
+                        var minCast = _config.Improvements.MinCastTime;
+                        var baseCast = _config.Gathering.CastTimeSeconds;
+                        var reduction = stat.FlatBonus;
+                        var currentCast = Math.Max(minCast, baseCast - currentCount * reduction);
+                        if (currentCast <= minCast)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure($"Tempo mínimo de destilação alcançado ({minCast:F1}s).");
+                        }
+                    }
+
+                    var cost = CalculateImprovementCost(improvementType, stat, currentCount);
 
                     if (user.FidelisBalance < cost)
                     {
@@ -196,6 +208,7 @@ public class ImprovementService : IImprovementService
     {
         ImprovementType.EnergyAmount => character.EnergyAmountUpgrades,
         ImprovementType.EnergyRegen => character.EnergyRegenUpgrades,
+        ImprovementType.CastSpeed => character.CastSpeedUpgrades,
         _ => 0
     };
 
@@ -209,6 +222,9 @@ public class ImprovementService : IImprovementService
             case ImprovementType.EnergyRegen:
                 character.UpgradeEnergyRegen();
                 break;
+            case ImprovementType.CastSpeed:
+                character.UpgradeCastSpeed();
+                break;
         }
     }
 
@@ -216,8 +232,29 @@ public class ImprovementService : IImprovementService
     {
         ImprovementType.EnergyAmount => _config.Improvements.EnergyAmount,
         ImprovementType.EnergyRegen => _config.Improvements.EnergyRegen,
+        ImprovementType.CastSpeed => _config.Improvements.CastSpeed,
         _ => throw new ArgumentException($"Unknown improvement type: {type}", nameof(type))
     };
+
+    /// <summary>
+    /// Calculates the Fidelis cost for a given improvement at a given upgrade count.
+    /// CastSpeed uses doubling formula: BaseCost × 2^n.
+    /// All others use linear formula: BaseCost + n × CostPerLevel.
+    /// </summary>
+    private decimal CalculateImprovementCost(ImprovementType type, UpgradeFlatStat stat, int upgradeCount)
+    {
+        decimal cost;
+        if (type == ImprovementType.CastSpeed)
+        {
+            // Doubling formula: 500K, 1M, 2M, 4M, 8M...
+            cost = stat.BaseCost * (decimal)Math.Pow(2, upgradeCount);
+        }
+        else
+        {
+            cost = stat.BaseCost + upgradeCount * stat.CostPerLevel;
+        }
+        return Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+    }
 
     private async Task<UpgradeResult> PurchaseWithoutTransactionAsync(string userId, ImprovementType improvementType, CancellationToken cancellationToken)
     {
@@ -237,8 +274,18 @@ public class ImprovementService : IImprovementService
             if (stat.MaxUpgrades > 0 && currentCount >= stat.MaxUpgrades)
                 return UpgradeResult.CreateFailure($"Nível máximo de melhoria alcançado ({stat.MaxUpgrades}).");
 
-            var cost = stat.BaseCost + currentCount * stat.CostPerLevel;
-            cost = Math.Round(cost, 2, MidpointRounding.AwayFromZero);
+            // CastSpeed: also check if already at minimum cast time
+            if (improvementType == ImprovementType.CastSpeed)
+            {
+                var minCast = _config.Improvements.MinCastTime;
+                var baseCast = _config.Gathering.CastTimeSeconds;
+                var reduction = stat.FlatBonus;
+                var currentCast = Math.Max(minCast, baseCast - currentCount * reduction);
+                if (currentCast <= minCast)
+                    return UpgradeResult.CreateFailure($"Tempo mínimo de destilação alcançado ({minCast:F1}s).");
+            }
+
+            var cost = CalculateImprovementCost(improvementType, stat, currentCount);
 
             if (user.FidelisBalance < cost)
                 return UpgradeResult.CreateFailure($"Saldo de Fidelis insuficiente. Necessário: {cost:F2}, Disponível: {user.FidelisBalance:F2}");

@@ -116,6 +116,9 @@ public class Character : BaseEntity
     /// <summary>Number of fidelis earned bonus upgrades purchased</summary>
     public int FidelisEarnedUpgrades { get; set; }
 
+    /// <summary>Number of cast speed (gathering time reduction) upgrades purchased</summary>
+    public int CastSpeedUpgrades { get; set; }
+
     // ── Powers (combat power enhancements) ──
 
     /// <summary>Number of heavy attack damage upgrades purchased</summary>
@@ -903,6 +906,23 @@ public class Character : BaseEntity
     {
         ShotBuffUpgrades++;
     }
+
+    /// <summary>
+    /// Upgrades cast speed (reduces gathering time)
+    /// </summary>
+    public void UpgradeCastSpeed()
+    {
+        CastSpeedUpgrades++;
+    }
+
+    /// <summary>
+    /// Effective gathering cast time in seconds, reduced by cast speed upgrades.
+    /// Each upgrade reduces by CastTimeReductionPerUpgrade, minimum MinCastTime.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double EffectiveCastTime => Math.Max(
+        MyTunoScaling.MinCastTime,
+        MyTunoScaling.BaseCastTime - CastSpeedUpgrades * MyTunoScaling.CastTimeReductionPerUpgrade);
 
     /// <summary>
     /// Upgrades fidelis earned bonus
