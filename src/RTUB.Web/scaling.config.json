@@ -181,7 +181,8 @@
         "speedRollChance": 0.25,
         "speedMin": 1,
         "speedMax": 5,
-        "upgradeLevelsPerDrinkTier": 50
+        "upgradeLevelsPerDrinkTier": 50,
+        "drinkStatBonusPerTier": 0.25
       },
 
       "enemyTiers": [

@@ -873,10 +873,14 @@ public class InventoryService : IInventoryService
         if (!consumedDrink)
             return (false, null, "Erro ao consumir bebida");
 
-        // Calculate weapon stats from config, scaled by drink energy cost
+        // Calculate weapon stats from config, scaled by drink tier
         var weaponStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
         var forging = _scalingConfig.StageMode.Forging;
-        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
+        var drinkEnergyCost = drinkResource?.EnergyCost ?? 1;
+
+        // Drink tier multiplier: higher-tier drinks produce stronger weapons
+        // Formula: 1.0 + (energyCost - 1) * bonusPerTier → Cerveja=1.0×, Vinho=1.25×, … Aguardente=3.25×
+        var drinkTierMult = 1.0 + (drinkEnergyCost - 1) * forging.DrinkStatBonusPerTier;
 
         // Roll random instrument quality within configured range
         var instrumentQuality = forging.InstrumentQualityMin +
@@ -886,7 +890,7 @@ public class InventoryService : IInventoryService
         var isTwoHanded = WeaponTypeHelper.IsTwoHanded(weaponType);
         var handedMult = isTwoHanded ? forging.TwoHandedMultiplier : 1.0;
 
-        var totalMult = drinkCostMultiplier * instrumentQuality * handedMult;
+        var totalMult = drinkTierMult * instrumentQuality * handedMult;
 
         // Roll crit and speed for high-tier drinks (unique, forge-time only)
         // 2H weapons get two independent rolls to match dual-wielding two 1H weapons
@@ -895,7 +899,7 @@ public class InventoryService : IInventoryService
         var bonusCrit = 0.0;
         for (int i = 0; i < rollCount; i++)
         {
-            if (drinkCostMultiplier >= forging.CritMinDrinkCost && Random.Shared.NextDouble() < forging.CritRollChance)
+            if (drinkEnergyCost >= forging.CritMinDrinkCost && Random.Shared.NextDouble() < forging.CritRollChance)
             {
                 bonusCrit += forging.CritMin + Random.Shared.NextDouble() * (forging.CritMax - forging.CritMin);
             }
@@ -905,7 +909,7 @@ public class InventoryService : IInventoryService
         var bonusSpeed = 0;
         for (int i = 0; i < rollCount; i++)
         {
-            if (drinkCostMultiplier >= forging.SpeedMinDrinkCost && Random.Shared.NextDouble() < forging.SpeedRollChance)
+            if (drinkEnergyCost >= forging.SpeedMinDrinkCost && Random.Shared.NextDouble() < forging.SpeedRollChance)
             {
                 bonusSpeed += Random.Shared.Next(forging.SpeedMin, forging.SpeedMax + 1);
             }
@@ -1249,15 +1253,16 @@ public class InventoryService : IInventoryService
         var forging = _scalingConfig.StageMode.Forging;
         var baseStats = _scalingConfig.StageMode.EquipmentStats.Instrument;
 
-        // Find drink cost multiplier from the weapon's source drink
+        // Find drink tier multiplier from the weapon's source drink
         var drinkResource = _scalingConfig.Gathering.Resources
             .FirstOrDefault(r => r.Type == weapon.SourceDrink.ToString());
-        var drinkCostMultiplier = drinkResource?.EnergyCost ?? 1;
+        var drinkEnergyCost = drinkResource?.EnergyCost ?? 1;
+        var drinkTierMult = 1.0 + (drinkEnergyCost - 1) * forging.DrinkStatBonusPerTier;
 
         // 2H weapons get the two-handed multiplier to match dual-wielding 1H
         var handedMult = weapon.IsTwoHanded ? forging.TwoHandedMultiplier : 1.0;
 
-        var scaleMult = drinkCostMultiplier * handedMult;
+        var scaleMult = drinkTierMult * handedMult;
 
         weapon.BonusHP = (int)Math.Round((baseStats.HP + weapon.Level * hpPerLvl) * scaleMult);
         weapon.BonusPower = (int)Math.Round((baseStats.Power + weapon.Level * powPerLvl) * scaleMult);

@@ -547,6 +547,13 @@ public class ForgingConfig
 
     /// <summary>Number of upgrade levels before advancing to the next drink tier.</summary>
     public int UpgradeLevelsPerDrinkTier { get; set; } = 50;
+
+    /// <summary>
+    /// Stat bonus multiplier per drink tier above Cerveja.
+    /// Formula: drinkTierMult = 1.0 + (energyCost - 1) × DrinkStatBonusPerTier.
+    /// With 0.25: Cerveja=1.0×, Vinho=1.25×, Licor=1.50×, … Aguardente=3.25×.
+    /// </summary>
+    public double DrinkStatBonusPerTier { get; set; } = 0.25;
 }
 
 /// <summary>
