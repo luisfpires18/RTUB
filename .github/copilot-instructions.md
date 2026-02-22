@@ -68,9 +68,33 @@ Follow this directive order:
 
 - Wrap calls in `try-catch` with `ILogger.LogWarning` — never let JS errors crash the circuit
 - Namespace JS functions under objects (e.g., `stageBattleGame.start(...)`, `rtubAudioPlayer.playAudio(...)`)
-- Game rendering uses **PixiJS 8** (`pixiStageBattle.js`, `pixiBattle.js`, `pixiSurviveMode.js`)
-- Audio uses **Web Audio API** oscillators for SFX and `AudioBufferSource` for background music
+- Game rendering uses **PixiJS 8** — TypeScript source in `src/RTUB.Web/pixi/`, built with Vite into IIFE bundles at `wwwroot/js/pixi-build/`
+- Audio uses **Web Audio API** oscillators for SFX and `AudioBufferSource` for background music (arena/stage); survive mode uses HTML `Audio()` element pools
 - Interactive combat: JS calls `[JSInvokable]` methods on Blazor (`OnPlayerAutoAttack`, `OnEnemyAttack`, `OnPlayerSpell`, `OnTickCooldowns`, `OnBattleFinished`)
+
+## PixiJS TypeScript Build
+
+Source: `src/RTUB.Web/pixi/` — Output: `wwwroot/js/pixi-build/` (gitignored, rebuild before publish)
+
+```
+pixi/
+  tsconfig.json          # strict, ES2022, ESNext modules
+  vite.config.ts         # IIFE lib mode, pixi.js external
+  global.d.ts            # DotNet, PIXI, Window augmentations
+  arena.ts               # entry → pixiBattle.js (arena battles)
+  stageBattle.ts          # entry → pixiStageBattle.js (stage + boss)
+  surviveMode.ts          # entry → pixiSurviveMode.js (survive)
+  types/                 # shared interfaces (battle-data, events, survive-data, etc.)
+  shared/                # shared modules (utils, audio, vfx, tween, text-pool)
+  scenes/                # ArenaBattleScene.ts, StageBattleScene.ts, SurviveScene.ts
+```
+
+| Action | Command |
+|---|---|
+| Build all | `npm run build:pixi` (from `src/RTUB.Web/`) |
+| Build one | `npm run build:pixi:arena`, `build:pixi:stage`, `build:pixi:survive` |
+
+When editing PixiJS code, modify the TypeScript source in `pixi/`, never edit `wwwroot/js/pixi-build/*.js` directly.
 
 ## Game System (My Tuno)
 

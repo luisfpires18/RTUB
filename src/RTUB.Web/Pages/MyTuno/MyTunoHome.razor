@@ -614,8 +614,16 @@
                                          Clickable="true" OnClick="@OpenStageModal" />
                             <FantasyTile Icon="bi-lightning-fill" Label="Boss Mode" Color="gold" Size="lg"
                                          Clickable="true" OnClick="@OpenBossModeModal" />
-                            <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
-                                         Disabled="true" Tooltip="Soon..." />
+                            <AuthorizeView Roles="Owner">
+                                <Authorized>
+                                    <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
+                                                 Clickable="true" OnClick="@OpenSurviveModeModal" />
+                                </Authorized>
+                                <NotAuthorized>
+                                    <FantasyTile Icon="bi-bullseye" Label="Survive" Color="red" Size="lg"
+                                                 Disabled="true" Tooltip="Soon..." />
+                                </NotAuthorized>
+                            </AuthorizeView>
                         </div>
                     </div>
                 </div>

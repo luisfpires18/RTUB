@@ -25,4 +25,10 @@
     <ProjectReference Include="..\RTUB.Application\RTUB.Application.csproj" />
     <ProjectReference Include="..\RTUB.Shared\RTUB.Shared.csproj" />
   </ItemGroup>
+
+  <!-- Build PixiJS TypeScript bundles before publish -->
+  <Target Name="BuildPixiTS" BeforeTargets="BeforePublish" Condition="Exists('package.json')">
+    <Exec Command="npm ci --ignore-scripts" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="npm run build:pixi" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
 </Project>
