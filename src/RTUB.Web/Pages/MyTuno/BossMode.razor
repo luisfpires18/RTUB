@@ -265,25 +265,25 @@
                                 @if (character.ShotBuffBattlesRemaining > 0)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--dodge">
-                                        <i class="bi bi-droplet-fill"></i> Shot (@character.ShotBuffBattlesRemaining batalhas)
+                                        <i class="bi bi-droplet-fill"></i> +5% Stats
                                     </span>
                                 }
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--dodge">
-                                        <i class="bi bi-wind"></i> Cigarro (10% Dodge @character.CigarroShieldHitsRemaining runs)
+                                        <i class="bi bi-wind"></i> 10% Dodge
                                     </span>
                                 }
                                 @if (character.HasCanhaoBuff)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--aoe">
-                                        <i class="bi bi-bullseye"></i> Canhão (AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : ""))
+                                        <i class="bi bi-bullseye"></i> AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")
                                     </span>
                                 }
                                 @if (character.HasPenaltyBuff)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--penalty">
-                                        <i class="bi bi-lightning-charge-fill"></i> Penalty Ativo
+                                        <i class="bi bi-lightning-charge-fill"></i> 0.5% Lifesteal
                                     </span>
                                 }
                             </div>

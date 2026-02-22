@@ -175,7 +175,7 @@
                     <div class="battle-buffs-strip">
                         @if (character.ShotBuffBattlesRemaining > 0)
                         {
-                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>@character.ShotBuffBattlesRemaining</span>
+                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>+5% Stats</span>
                         }
                         @if (character.CigarroShieldHitsRemaining > 0)
                         {
@@ -187,7 +187,7 @@
                         }
                         @if (character.HasPenaltyBuff)
                         {
-                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
+                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>0.5% Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
                         }
                     </div>
                 }
@@ -301,9 +301,29 @@
                         <p class="defeat-no-rewards">Nenhum floor completado.</p>
                     }
                     <div class="d-flex gap-2 justify-content-center">
-                        <button class="defeat-btn" @onclick="RetryFromCheckpoint">
-                            <i class="bi bi-arrow-clockwise me-1"></i>RECOMEÇAR
-                        </button>
+                        @if (showAfkChallenge)
+                        {
+                            <div class="afk-challenge">
+                                <p class="afk-challenge-text">@afkChallengeQuestion</p>
+                                <div class="d-flex gap-2 align-items-center justify-content-center">
+                                    <input type="number" class="afk-challenge-input" @bind="afkChallengeInput" @bind:event="oninput"
+                                           @onkeydown="AfkChallengeKeyDown" placeholder="?" />
+                                    <button class="defeat-btn" @onclick="SubmitAfkChallenge">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </div>
+                                @if (afkChallengeWrong)
+                                {
+                                    <p class="afk-challenge-wrong">Resposta errada!</p>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="defeat-btn" @onclick="RetryFromCheckpoint">
+                                <i class="bi bi-arrow-clockwise me-1"></i>RECOMEÇAR
+                            </button>
+                        }
                         <button class="defeat-btn" @onclick="DefeatGoBack">
                             IR MY TUNO
                         </button>
@@ -366,6 +386,15 @@
     private long? defeatRestoreHp; // HP to restore after defeat (saved from runStartingHp)
     private int? defeatStartStage; // The starting stage of the run (saved at defeat for logging)
     private int? retryStartStage; // The stage the user started the run from (for RECOMEÇAR)
+
+    // Anti-AFK: every N consecutive retries, show a simple math challenge
+    private int consecutiveRetries = 0;
+    private const int RetriesBeforeChallenge = 3;
+    private bool showAfkChallenge = false;
+    private string afkChallengeQuestion = "";
+    private int afkChallengeAnswer = 0;
+    private string afkChallengeInput = "";
+    private bool afkChallengeWrong = false;
     
     // Semaphore to prevent concurrent stage operations (fight/cancel) sharing the same DbContext
     private readonly SemaphoreSlim _stageLock = new(1, 1);
@@ -1282,6 +1311,8 @@
     {
         showDefeatSummary = false;
         retryStartStage = null;
+        consecutiveRetries = 0;
+        showAfkChallenge = false;
         ResetRunTotals();
         Navigation.NavigateTo("/my-tuno");
     }
@@ -1291,6 +1322,17 @@
     /// </summary>
     private async Task RetryFromCheckpoint()
     {
+        consecutiveRetries++;
+
+        // Check if we need an AFK challenge before proceeding
+        if (consecutiveRetries > 0 && consecutiveRetries % RetriesBeforeChallenge == 0 && !showAfkChallenge)
+        {
+            GenerateAfkChallenge();
+            showAfkChallenge = true;
+            return;
+        }
+
+        showAfkChallenge = false;
         showDefeatSummary = false;
         ResetRunTotals();
         battleAutoStarted = false;
@@ -1557,5 +1599,40 @@
         
         objRef?.Dispose();
         _stageLock.Dispose();
+    }
+
+    // ── Anti-AFK Challenge ──────────────────────────────────────────────
+
+    private void GenerateAfkChallenge()
+    {
+        var a = Random.Shared.Next(1, 20);
+        var b = Random.Shared.Next(1, 20);
+        afkChallengeQuestion = $"Quanto é {a} + {b}?";
+        afkChallengeAnswer = a + b;
+        afkChallengeInput = "";
+        afkChallengeWrong = false;
+    }
+
+    private async Task SubmitAfkChallenge()
+    {
+        if (int.TryParse(afkChallengeInput, out var answer) && answer == afkChallengeAnswer)
+        {
+            showAfkChallenge = false;
+            afkChallengeWrong = false;
+            await RetryFromCheckpoint();
+        }
+        else
+        {
+            afkChallengeWrong = true;
+            afkChallengeInput = "";
+        }
+    }
+
+    private async Task AfkChallengeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SubmitAfkChallenge();
+        }
     }
 }

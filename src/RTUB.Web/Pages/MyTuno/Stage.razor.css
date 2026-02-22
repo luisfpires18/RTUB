@@ -398,6 +398,54 @@
     box-shadow: 0 2px 8px rgba(124, 77, 255, 0.3);
 }
 
+/* Anti-AFK challenge */
+.afk-challenge {
+    width: 100%;
+    text-align: center;
+}
+
+.afk-challenge-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffd740;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 6px rgba(255, 215, 64, 0.4);
+}
+
+.afk-challenge-input {
+    width: 80px;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #7c4dff;
+    border-radius: 10px;
+    background: rgba(30, 30, 50, 0.9);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+}
+
+.afk-challenge-input::-webkit-outer-spin-button,
+.afk-challenge-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.afk-challenge-input:focus {
+    border-color: #ffd740;
+    box-shadow: 0 0 8px rgba(255, 215, 64, 0.3);
+}
+
+.afk-challenge-wrong {
+    color: #ff5252;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.4rem;
+    margin-bottom: 0;
+}
+
 /* Instrument / Equipment drop styles in defeat panel */
 .instrument-drop-icon,
 .equipment-drop-icon {
