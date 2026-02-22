@@ -113,12 +113,28 @@ Two-handed weapons occupy both weapon slots but get the `twoHandedMultiplier` (2
 
 Base stats come from the `instrument` config entry (`hp: 10, power: 16, defense: 7`):
 
-$$\text{Stat} = \text{InstrumentBase} \times \text{drinkEnergyCost} \times Q_i \times H$$
+$$\text{Stat} = \text{InstrumentBase} \times D_t \times Q_i \times H$$
 
 Where:
-- **drinkEnergyCost** = the `energyCost` of the drink used (1–10)
+- **$D_t$** (Drink Tier Multiplier) = `1.0 + (energyCost − 1) × drinkStatBonusPerTier`
+  - With `drinkStatBonusPerTier = 0.25`: Cerveja = 1.0×, Vinho = 1.25×, Licor = 1.50×, … Aguardente = 3.25×
 - **$Q_i$** (Instrument Quality) = random roll in `[0.85, 1.15]`
 - **H** (Handed Multiplier) = 2.0 for two-handed, 1.0 for one-handed
+
+**Drink Tier Multiplier Table:**
+
+| Drink | Energy Cost | Tier Mult | 1H Mult | 2H Mult |
+|-------|----------:|----------:|--------:|--------:|
+| Cerveja | 1 | 1.00× | 1.00× | 2.00× |
+| Vinho | 2 | 1.25× | 1.25× | 2.50× |
+| Licor | 3 | 1.50× | 1.50× | 3.00× |
+| Rum | 4 | 1.75× | 1.75× | 3.50× |
+| Tequilla | 5 | 2.00× | 2.00× | 4.00× |
+| Vodka | 6 | 2.25× | 2.25× | 4.50× |
+| Gin | 7 | 2.50× | 2.50× | 5.00× |
+| Whisky | 8 | 2.75× | 2.75× | 5.50× |
+| Absinto | 9 | 3.00× | 3.00× | 6.00× |
+| Aguardente | 10 | 3.25× | 3.25× | 6.50× |
 
 **Bonus rolls** (high-tier drinks only, drinkEnergyCost ≥ 7):
 - **Critical Chance**: 30% chance to roll +1%–10% crit (2H gets two independent rolls)
@@ -191,6 +207,7 @@ All values are defined in `scaling.config.json` under `stageMode`:
 | `forging.weaponUpgradeStatBonus` | 0.05 | +5% per weapon level |
 | `forging.maxWeaponLevel` | 20 | Weapon level cap |
 | `forging.upgradeLevelsPerDrinkTier` | 5 | Levels before next drink tier |
+| `forging.drinkStatBonusPerTier` | 0.25 | +25% stats per drink tier above Cerveja |
 
 ### Piggies (Leitão) Cost Config
 

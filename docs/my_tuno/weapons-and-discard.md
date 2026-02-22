@@ -64,7 +64,12 @@ Each forged weapon (`ForgedWeapon`) stores:
 ### Base Stat Formula
 
 ```
-Stat = InstrumentBase × drinkEnergyCost × qualityRoll × twoHandedMultiplier
+Stat = InstrumentBase × drinkTierMult × qualityRoll × twoHandedMultiplier
+```
+
+Where:
+```
+drinkTierMult = 1.0 + (energyCost − 1) × drinkStatBonusPerTier
 ```
 
 | Instrument Base | Value |
@@ -73,8 +78,24 @@ Stat = InstrumentBase × drinkEnergyCost × qualityRoll × twoHandedMultiplier
 | Power | 16 |
 | Defense | 7 |
 
+- **drinkStatBonusPerTier** = 0.25 (configurable)
 - **qualityRoll** — random in `[0.85, 1.15]`
 - **twoHandedMultiplier** — 2.0 for 2H weapons, 1.0 for 1H
+
+**Drink Tier Multiplier Table:**
+
+| Drink | Energy Cost | Tier Mult | 1H Mult | 2H Mult |
+|-------|----------:|----------:|--------:|--------:|
+| Cerveja | 1 | 1.00× | 1.00× | 2.00× |
+| Vinho | 2 | 1.25× | 1.25× | 2.50× |
+| Licor | 3 | 1.50× | 1.50× | 3.00× |
+| Rum | 4 | 1.75× | 1.75× | 3.50× |
+| Tequilla | 5 | 2.00× | 2.00× | 4.00× |
+| Vodka | 6 | 2.25× | 2.25× | 4.50× |
+| Gin | 7 | 2.50× | 2.50× | 5.00× |
+| Whisky | 8 | 2.75× | 2.75× | 5.50× |
+| Absinto | 9 | 3.00× | 3.00× | 6.00× |
+| Aguardente | 10 | 3.25× | 3.25× | 6.50× |
 
 ### Bonus Rolls (Gin tier or higher, i.e. drinkEnergyCost ≥ 7)
 
@@ -88,9 +109,19 @@ Two-handed weapons get **two independent rolls** for each bonus (can stack).
 ### Example — Aguardente + 1H Weapon
 
 ```
-HP    = 10 × 10 × Q  →   85 – 115 (avg 100)
-Power = 16 × 10 × Q  →  136 – 184 (avg 160)
-Def   = 7  × 10 × Q  →   60 –  81  (avg 70)
+drinkTierMult = 1.0 + (10 − 1) × 0.25 = 3.25
+HP    = 10 × 3.25 × Q  →  28 –  37 (avg 33)
+Power = 16 × 3.25 × Q  →  44 –  60 (avg 52)
+Def   = 7  × 3.25 × Q  →  19 –  26 (avg 23)
+```
+
+### Example — Cerveja + 1H Weapon
+
+```
+drinkTierMult = 1.0 + (1 − 1) × 0.25 = 1.00
+HP    = 10 × 1.00 × Q  →   9 –  12 (avg 10)
+Power = 16 × 1.00 × Q  →  14 –  18 (avg 16)
+Def   = 7  × 1.00 × Q  →   6 –   8 (avg 7)
 ```
 
 ---
@@ -127,10 +158,17 @@ Drink tier advances every 5 levels (`upgradeLevelsPerDrinkTier = 5`). Leitão co
 ### Stat Recalculation on Upgrade
 
 ```
-Stat = InstrumentBase × drinkEnergyCost × (1.0 + weaponLevel × 0.05) × twoHandedMultiplier
+Stat = (InstrumentBase + weaponLevel × statPerLevel) × drinkTierMult × twoHandedMultiplier
 ```
 
-Upgrades **recalculate** HP, Power, and Defense from base values. The original quality roll is replaced by the level multiplier (+5% per level). Speed and Critical Chance bonuses are **never modified** by upgrades.
+Where:
+```
+drinkTierMult = 1.0 + (energyCost − 1) × drinkStatBonusPerTier
+```
+
+Upgrades **recalculate** HP, Power, and Defense from base values. The original quality roll is replaced by the level-based formula. Speed and Critical Chance bonuses are **never modified** by upgrades.
+
+**Stat per level:** HP = +100, Power = +15, Defense = +12 (from `equipmentHpPerLevel`, `equipmentPowerPerLevel`, `equipmentDefensePerLevel`).
 
 ---
 
@@ -229,6 +267,7 @@ All values live in `scaling.config.json` with defaults in `MyTunoScalingConfigur
 | `instrumentQualityMin` | 0.85 | Min quality roll |
 | `instrumentQualityMax` | 1.15 | Max quality roll |
 | `upgradeLevelsPerDrinkTier` | 5 | Levels per drink tier |
+| `drinkStatBonusPerTier` | 0.25 | +25% stats per drink tier above Cerveja |
 
 ### Bonus Rolls
 

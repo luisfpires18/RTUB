@@ -54,9 +54,11 @@ Cerveja → Vinho → Licor → Rum → Tequilla → Vodka → Gin → Whisky �
 ## Weapons (Forged)
 
 - Max weapon level: **20** (upgrade: 50 + n×50 Fidelis + Leitão from level 12)
-- Stat bonus: **+5% per level** (`weaponUpgradeStatBonus: 0.05`)
-- Two-handed: **2× base stats**, costs 2× drinks to forge
+- Stat formula: `InstrumentBase × drinkTierMult × qualityRoll × handedMult`
+  - `drinkTierMult = 1.0 + (energyCost − 1) × 0.25` → Cerveja = 1.0×, Vinho = 1.25×, … Aguardente = 3.25×
+- Two-handed: **2× base stats** (balanced with dual-wielding two 1H of same drink)
 - Quality: 0.85–1.15 for instruments
+- Upgrade recalc: `(InstrumentBase + level × statPerLevel) × drinkTierMult × handedMult`
 
 ---
 
