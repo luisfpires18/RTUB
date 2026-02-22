@@ -209,6 +209,16 @@ public class MyTunoImprovements
     /// <summary>Minimum cast time in seconds (floor).</summary>
     public double MinCastTime { get; set; } = 0.1;
 
+    /// <summary>
+    /// Double gathering chance improvement (Destilaria).
+    /// FlatBonus = chance increase per upgrade (0.02 = 2%).
+    /// Uses doubling cost formula like CastSpeed.
+    /// </summary>
+    public UpgradeFlatStat DoubleGathering { get; set; } = new() { FlatBonus = 0.02, BaseCost = 200_000m, CostPerLevel = 0 };
+
+    /// <summary>Maximum double gathering chance cap (0.50 = 50%).</summary>
+    public double MaxDoubleGatheringChance { get; set; } = 0.50;
+
 }
 
 /// <summary>

@@ -127,6 +127,9 @@ public class Character : BaseEntity
     /// <summary>Number of cast speed (gathering time reduction) upgrades purchased</summary>
     public int CastSpeedUpgrades { get; set; }
 
+    /// <summary>Number of double gathering chance upgrades purchased (Destilaria)</summary>
+    public int DoubleGatheringUpgrades { get; set; }
+
     // ── Powers (combat power enhancements) ──
 
     /// <summary>Number of heavy attack damage upgrades purchased</summary>
@@ -366,6 +369,15 @@ public class Character : BaseEntity
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier;
+
+    /// <summary>
+    /// Double gathering chance (0.0–0.5), capped at MaxDoubleGatheringChance.
+    /// Each upgrade adds DoubleGatheringChancePerUpgrade.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double DoubleGatheringChance => Math.Min(
+        MyTunoScaling.MaxDoubleGatheringChance,
+        DoubleGatheringUpgrades * MyTunoScaling.DoubleGatheringChancePerUpgrade);
 
     /// <summary>
     /// Fidelis earned bonus multiplier (always 1.0 — improvement removed).
@@ -891,6 +903,14 @@ public class Character : BaseEntity
     public void UpgradeCastSpeed()
     {
         CastSpeedUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades double gathering chance (Destilaria improvement)
+    /// </summary>
+    public void UpgradeDoubleGathering()
+    {
+        DoubleGatheringUpgrades++;
     }
 
     /// <summary>

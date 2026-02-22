@@ -465,8 +465,13 @@ public class InventoryService : IInventoryService
             character.Energy -= energyCost;
             await _characterRepository.UpdateAsync(character);
 
+            // Check for double gathering (Destilaria improvement)
+            var doubleChance = character.DoubleGatheringChance;
+            var isDouble = doubleChance > 0 && Random.Shared.NextDouble() < doubleChance;
+            var gatherAmount = isDouble ? 2 : 1;
+
             // Add resource to inventory
-            await _inventoryRepository.AddItemAsync(userId, resourceType, 1, cancellationToken);
+            await _inventoryRepository.AddItemAsync(userId, resourceType, gatherAmount, cancellationToken);
 
             var resourceName = resourceType switch
             {
@@ -477,7 +482,11 @@ public class InventoryService : IInventoryService
                 _ => resourceType.ToString()
             };
 
-            return (true, 1, character.Energy, $"+1 {resourceName}!");
+            var message = isDouble
+                ? $"🔥 DUPLO! +{gatherAmount} {resourceName}!"
+                : $"+1 {resourceName}!";
+
+            return (true, gatherAmount, character.Energy, message);
         }
         finally
         {

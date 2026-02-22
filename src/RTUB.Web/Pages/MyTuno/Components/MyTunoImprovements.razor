@@ -169,7 +169,61 @@
                         <i class="bi bi-coin"></i> <span>@FormatCost(castSpeedCost)</span>
                         @if (castSpeedLeitaoCost > 0)
                         {
-                            <br /><span class="@(LeitaoBalance < castSpeedLeitaoCost ? "text-danger" : "")" title="Leit\u00f5es">🐷 @castSpeedLeitaoCost</span>
+                            <br /><span class="@(LeitaoBalance < castSpeedLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @castSpeedLeitaoCost</span>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Double Gathering (Destilaria) Upgrade Row -->
+        <div class="enhance-row @(IsDoubleGatheringMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon enhance-row__icon--energy" style="background: linear-gradient(135deg, #ff6b35, #ff9500);">
+                <i class="bi bi-fire"></i>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Destilaria <span class="enhance-row__level">Lv@(Character.DoubleGatheringUpgrades)</span></div>
+                <div class="enhance-row__desc">Chance de destilação dupla</div>
+                <div class="enhance-row__stat">
+                    @if (IsDoubleGatheringMaxed)
+                    {
+                        <text>@((Character.DoubleGatheringChance * 100).ToString("F0"))%</text>
+                    }
+                    else
+                    {
+                        var nextChance = Math.Min(MyTunoConfig.Value.Improvements.MaxDoubleGatheringChance, (Character.DoubleGatheringUpgrades + 1) * MyTunoScaling.DoubleGatheringChancePerUpgrade);
+                        <text>@((Character.DoubleGatheringChance * 100).ToString("F0"))% → <span class="text-success">@((nextChance * 100).ToString("F0"))%</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsDoubleGatheringMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestPurchase(ImprovementType.DoubleGathering)"
+                        disabled="@(Purchasing || doubleGatheringCostLoading || IsDoubleGatheringMaxed || FidelisBalance < doubleGatheringCost || (doubleGatheringLeitaoCost > 0 && LeitaoBalance < doubleGatheringLeitaoCost))">
+                    @if (Purchasing && PurchasingType == ImprovementType.DoubleGathering)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsDoubleGatheringMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (doubleGatheringCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(doubleGatheringCost)</span>
+                        @if (doubleGatheringLeitaoCost > 0)
+                        {
+                            <br /><span class="@(LeitaoBalance < doubleGatheringLeitaoCost ? "text-danger" : "")" title="Leitões">🐷 @doubleGatheringLeitaoCost</span>
                         }
                     }
                 </div>
@@ -187,9 +241,9 @@
     [Parameter] public ImprovementType? PurchasingType { get; set; }
     [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
 
-    private decimal energyAmountCost, energyRegenCost, castSpeedCost;
-    private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost;
-    private bool energyAmountCostLoading = true, energyRegenCostLoading = true, castSpeedCostLoading = true;
+    private decimal energyAmountCost, energyRegenCost, castSpeedCost, doubleGatheringCost;
+    private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost, doubleGatheringLeitaoCost;
+    private bool energyAmountCostLoading = true, energyRegenCostLoading = true, castSpeedCostLoading = true, doubleGatheringCostLoading = true;
 
     private int MaxEnergyAmountUpgrades => MyTunoConfig.Value.Improvements.EnergyAmount.MaxUpgrades;
     private int MaxEnergyRegenUpgrades => MyTunoConfig.Value.Improvements.EnergyRegen.MaxUpgrades;
@@ -197,6 +251,7 @@
     private bool IsEnergyAmountMaxed => MaxEnergyAmountUpgrades > 0 && Character.EnergyAmountUpgrades >= MaxEnergyAmountUpgrades;
     private bool IsEnergyRegenMaxed => (MaxEnergyRegenUpgrades > 0 && Character.EnergyRegenUpgrades >= MaxEnergyRegenUpgrades) || Character.EffectiveRegenInterval <= 5.0;
     private bool IsCastSpeedMaxed => Character.EffectiveCastTime <= MyTunoConfig.Value.Improvements.MinCastTime;
+    private bool IsDoubleGatheringMaxed => Character.DoubleGatheringChance >= MyTunoConfig.Value.Improvements.MaxDoubleGatheringChance;
 
     protected override void OnParametersSet()
     {
@@ -211,12 +266,14 @@
             energyAmountCost = costs.GetValueOrDefault(ImprovementType.EnergyAmount);
             energyRegenCost = costs.GetValueOrDefault(ImprovementType.EnergyRegen);
             castSpeedCost = costs.GetValueOrDefault(ImprovementType.CastSpeed);
+            doubleGatheringCost = costs.GetValueOrDefault(ImprovementType.DoubleGathering);
 
             // Leitão costs
             var p = MyTunoConfig.Value.BossMode.Piggies;
             energyAmountLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyAmountUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
             energyRegenLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyRegenUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
             castSpeedLeitaoCost = PiggiesCostConfig.CalculateCost(Character.CastSpeedUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
+            doubleGatheringLeitaoCost = PiggiesCostConfig.CalculateCost(Character.DoubleGatheringUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
         }
         catch
         {
@@ -227,6 +284,7 @@
             energyAmountCostLoading = false;
             energyRegenCostLoading = false;
             castSpeedCostLoading = false;
+            doubleGatheringCostLoading = false;
         }
     }
 

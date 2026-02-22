@@ -64,7 +64,7 @@ public class ImprovementService : IImprovementService
     /// </summary>
     public Dictionary<ImprovementType, decimal> GetAllImprovementCosts(Character character)
     {
-        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen, ImprovementType.CastSpeed };
+        var types = new[] { ImprovementType.EnergyAmount, ImprovementType.EnergyRegen, ImprovementType.CastSpeed, ImprovementType.DoubleGathering };
         var result = new Dictionary<ImprovementType, decimal>();
 
         foreach (var type in types)
@@ -134,6 +134,18 @@ public class ImprovementService : IImprovementService
                         {
                             await transaction.RollbackAsync();
                             return UpgradeResult.CreateFailure($"Tempo mínimo de destilação alcançado ({minCast:F1}s).");
+                        }
+                    }
+
+                    // DoubleGathering: check if already at max chance
+                    if (improvementType == ImprovementType.DoubleGathering)
+                    {
+                        var maxChance = _config.Improvements.MaxDoubleGatheringChance;
+                        var currentChance = currentCount * stat.FlatBonus;
+                        if (currentChance >= maxChance)
+                        {
+                            await transaction.RollbackAsync();
+                            return UpgradeResult.CreateFailure($"Chance máxima de destilação dupla alcançada ({maxChance * 100:F0}%).");
                         }
                     }
 
@@ -209,6 +221,7 @@ public class ImprovementService : IImprovementService
         ImprovementType.EnergyAmount => character.EnergyAmountUpgrades,
         ImprovementType.EnergyRegen => character.EnergyRegenUpgrades,
         ImprovementType.CastSpeed => character.CastSpeedUpgrades,
+        ImprovementType.DoubleGathering => character.DoubleGatheringUpgrades,
         _ => 0
     };
 
@@ -225,6 +238,9 @@ public class ImprovementService : IImprovementService
             case ImprovementType.CastSpeed:
                 character.UpgradeCastSpeed();
                 break;
+            case ImprovementType.DoubleGathering:
+                character.UpgradeDoubleGathering();
+                break;
         }
     }
 
@@ -233,6 +249,7 @@ public class ImprovementService : IImprovementService
         ImprovementType.EnergyAmount => _config.Improvements.EnergyAmount,
         ImprovementType.EnergyRegen => _config.Improvements.EnergyRegen,
         ImprovementType.CastSpeed => _config.Improvements.CastSpeed,
+        ImprovementType.DoubleGathering => _config.Improvements.DoubleGathering,
         _ => throw new ArgumentException($"Unknown improvement type: {type}", nameof(type))
     };
 
@@ -244,7 +261,7 @@ public class ImprovementService : IImprovementService
     private decimal CalculateImprovementCost(ImprovementType type, UpgradeFlatStat stat, int upgradeCount)
     {
         decimal cost;
-        if (type == ImprovementType.CastSpeed)
+        if (type == ImprovementType.CastSpeed || type == ImprovementType.DoubleGathering)
         {
             // Doubling formula: 500K, 1M, 2M, 4M, 8M...
             cost = stat.BaseCost * (decimal)Math.Pow(2, upgradeCount);
@@ -283,6 +300,15 @@ public class ImprovementService : IImprovementService
                 var currentCast = Math.Max(minCast, baseCast - currentCount * reduction);
                 if (currentCast <= minCast)
                     return UpgradeResult.CreateFailure($"Tempo mínimo de destilação alcançado ({minCast:F1}s).");
+            }
+
+            // DoubleGathering: check if already at max chance
+            if (improvementType == ImprovementType.DoubleGathering)
+            {
+                var maxChance = _config.Improvements.MaxDoubleGatheringChance;
+                var currentChance = currentCount * stat.FlatBonus;
+                if (currentChance >= maxChance)
+                    return UpgradeResult.CreateFailure($"Chance máxima de destilação dupla alcançada ({maxChance * 100:F0}%).");
             }
 
             var cost = CalculateImprovementCost(improvementType, stat, currentCount);

@@ -953,6 +953,23 @@
                             </div>
                         }
 
+                        <!-- Double Gathering Flash Effect -->
+                        @if (doubleGatherTriggered)
+                        {
+                            <div class="double-gather-flash">
+                                <div class="double-gather-flash__icon">🔥</div>
+                                <div class="double-gather-flash__text">DESTILAÇÃO DUPLA!</div>
+                            </div>
+                        }
+
+                        <!-- Double Gathering Chance (if upgraded) -->
+                        @if (character?.DoubleGatheringChance > 0)
+                        {
+                            <div class="text-center mb-2" style="font-size: 0.75rem; color: #ff9500;">
+                                <i class="bi bi-fire me-1"></i> @((character.DoubleGatheringChance * 100).ToString("F0"))% chance dupla
+                            </div>
+                        }
+
                         <!-- Resource Nodes -->
                         <div class="gather-grid">
                             @{
@@ -1978,6 +1995,7 @@
     private double castProgress = 0;
     private double castTimeRemaining = 0;
     private System.Threading.Timer? castBarTimer;
+    private bool doubleGatherTriggered = false;
     private DateTime castStartTime;
     
     // Instrument parts and equipment inventory
@@ -3572,7 +3590,19 @@
             if (success)
             {
                 currentEnergy = remainingEnergy;
-                resourceQuantities[resourceType] = GetResourceQuantity(resourceType) + 1;
+                resourceQuantities[resourceType] = GetResourceQuantity(resourceType) + gathered;
+
+                // Trigger double gathering visual effect
+                if (gathered > 1)
+                {
+                    doubleGatherTriggered = true;
+                    StateHasChanged();
+                    _ = Task.Delay(1800).ContinueWith(_ =>
+                    {
+                        doubleGatherTriggered = false;
+                        InvokeAsync(StateHasChanged);
+                    });
+                }
 
                 toastMessage = message;
                 toastIsError = false;

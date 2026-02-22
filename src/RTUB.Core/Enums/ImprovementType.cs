@@ -13,5 +13,8 @@ public enum ImprovementType
     EnergyRegen = 1,
 
     /// <summary>Reduces gathering cast time ("A destilar Cerveja...")</summary>
-    CastSpeed = 2
+    CastSpeed = 2,
+
+    /// <summary>Chance to double a drink gathering (max 50%)</summary>
+    DoubleGathering = 3
 }

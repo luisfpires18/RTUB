@@ -63,7 +63,13 @@
         "baseCost": 500000,
         "costPerLevel": 0
       },
-      "minCastTime": 0.1
+      "minCastTime": 0.1,
+      "doubleGathering": {
+        "flatBonus": 0.02,
+        "baseCost": 200000,
+        "costPerLevel": 0
+      },
+      "maxDoubleGatheringChance": 0.50
     },
 
     "combat": {

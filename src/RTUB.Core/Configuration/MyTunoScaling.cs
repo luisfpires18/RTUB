@@ -124,6 +124,12 @@ public static class MyTunoScaling
     /// <summary>Minimum cast time floor (seconds).</summary>
     public static double MinCastTime { get; private set; } = 0.1;
 
+    /// <summary>Double gathering chance per upgrade level (e.g. 0.02 = 2% per level).</summary>
+    public static double DoubleGatheringChancePerUpgrade { get; private set; } = 0.02;
+
+    /// <summary>Maximum double gathering chance cap (0.50 = 50%).</summary>
+    public static double MaxDoubleGatheringChance { get; private set; } = 0.50;
+
     // ── Powers (combat power enhancements) ──
 
     /// <summary>Heavy attack damage bonus per upgrade (additive to base 2.0x multiplier).</summary>
@@ -198,7 +204,9 @@ public static class MyTunoScaling
         double rareSetSpeedPerPiece = 0.05,
         int rareSetBonusMinPieces = 6,
         double rareSetBonusCrit = 0.50,
-        double rareSetBonusSpeedReduction = 0.5)
+        double rareSetBonusSpeedReduction = 0.5,
+        double doubleGatheringChancePerUpgrade = 0.02,
+        double maxDoubleGatheringChance = 0.50)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -246,5 +254,7 @@ public static class MyTunoScaling
         RareSetBonusMinPieces = rareSetBonusMinPieces;
         RareSetBonusCrit = rareSetBonusCrit;
         RareSetBonusSpeedReduction = rareSetBonusSpeedReduction;
+        DoubleGatheringChancePerUpgrade = doubleGatheringChancePerUpgrade;
+        MaxDoubleGatheringChance = maxDoubleGatheringChance;
     }
 }

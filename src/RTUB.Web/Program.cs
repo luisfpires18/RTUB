@@ -166,7 +166,9 @@ public class Program
                 rareSetSpeedPerPiece: myTunoScaling.StageMode.RareSet.SpeedReductionPerPiece,
                 rareSetBonusMinPieces: myTunoScaling.StageMode.RareSet.SetBonusMinPieces,
                 rareSetBonusCrit: myTunoScaling.StageMode.RareSet.SetBonusCrit,
-                rareSetBonusSpeedReduction: myTunoScaling.StageMode.RareSet.SetBonusSpeedReduction);
+                rareSetBonusSpeedReduction: myTunoScaling.StageMode.RareSet.SetBonusSpeedReduction,
+                doubleGatheringChancePerUpgrade: myTunoScaling.Improvements.DoubleGathering.FlatBonus,
+                maxDoubleGatheringChance: myTunoScaling.Improvements.MaxDoubleGatheringChance);
         }
 
         // ---------- DB: SQLite only ----------
