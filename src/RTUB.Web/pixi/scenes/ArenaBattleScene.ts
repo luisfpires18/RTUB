@@ -111,9 +111,13 @@ export class ArenaBattleScene implements VfxOwner {
   private speedBarTimers = { attacker: 0, defender: 0 };
   private battleStartTime = 0;
   private currentSimTime = 0;
+  // Anti-exploit: getter/setter restricts battleSpeed to allowed values
   private _battleSpeed = 1.0;
   get battleSpeed(): number { return this._battleSpeed; }
-  set battleSpeed(v: number) { this._battleSpeed = v === 5 ? 5 : 1; }
+  set battleSpeed(v: number) {
+    const allowed = [1, 5];
+    this._battleSpeed = allowed.includes(v) ? v : 1;
+  }
 
   // Replay state
   private currentEventIndex = 0;
@@ -260,6 +264,15 @@ export class ArenaBattleScene implements VfxOwner {
 
     this.container.appendChild(this.app.canvas);
     this.stage = this.app.stage;
+
+    // Anti-exploit: remove PixiJS debug global and freeze ticker speed
+    delete (globalThis as Record<string, unknown>).__PIXI_APP__;
+    delete (globalThis as Record<string, unknown>).__PIXI_STAGE__;
+    try {
+      Object.defineProperty(this.app.ticker, 'speed', {
+        value: 1, writable: false, configurable: false,
+      });
+    } catch (_) { /* already frozen */ }
 
     // WebGL context loss recovery
     this._onContextLost = (e: Event) => {
@@ -1287,7 +1300,7 @@ export class ArenaBattleScene implements VfxOwner {
   setReplaySpeed(speed: number): void {
     const validSpeed = speed === 5 ? 5 : 1;
     this.playbackSpeed = validSpeed;
-    this.battleSpeed = validSpeed;
+    this._battleSpeed = validSpeed;
   }
 
   jumpToEvent(index: number): void {

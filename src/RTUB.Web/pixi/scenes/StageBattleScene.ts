@@ -1307,9 +1307,10 @@ export class StageBattleScene implements VfxOwner {
     if (!this.dotNetRef || this._consumablePending) return;
     this._consumablePending = true;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as ConsumableResult | null;
-      if (!result) { this._consumablePending = false; return; }
+      const json = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as string | null;
+      if (!json) { this._consumablePending = false; return; }
 
+      const result = JSON.parse(json) as ConsumableResult;
       const success = result.success ?? result.Success ?? false;
       if (!success) { this._consumablePending = false; return; }
 
@@ -1450,27 +1451,33 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Interactive Server Calls ─────────────────────── */
 
   private async requestPlayerAutoAttack(): Promise<void> {
-    if (!this.dotNetRef || this._playerAttackPending || this.battleFinished) return;
-    this._playerAttackPending = true;
+    if (!this.dotNetRef || this.battleFinished) {
+      this._playerAttackPending = false;
+      return;
+    }
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as CombatActionResult | null;
-      if (result) this.processServerResult(result);
+      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as string | null;
+      if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestPlayerAutoAttack error:', (e as Error).message);
+    } finally {
+      this._playerAttackPending = false;
     }
-    this._playerAttackPending = false;
   }
 
   private async requestEnemyAttack(enemyIndex: number): Promise<void> {
-    if (!this.dotNetRef || this._enemyAttackPending[enemyIndex] || this.battleFinished) return;
-    this._enemyAttackPending[enemyIndex] = true;
+    if (!this.dotNetRef || this.battleFinished) {
+      this._enemyAttackPending[enemyIndex] = false;
+      return;
+    }
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as CombatActionResult | null;
-      if (result) this.processServerResult(result);
+      const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as string | null;
+      if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestEnemyAttack error:', (e as Error).message);
+    } finally {
+      this._enemyAttackPending[enemyIndex] = false;
     }
-    this._enemyAttackPending[enemyIndex] = false;
   }
 
   private async requestPlayerSpell(attackId: string, cooldownSeconds: number): Promise<void> {
@@ -1480,8 +1487,9 @@ export class StageBattleScene implements VfxOwner {
       this.spellCooldowns[attackId] = cooldownSeconds;
       this.updateSpellCooldownVisuals();
 
-      const result = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as CombatActionResult | null;
-      if (result) {
+      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as string | null;
+      if (json) {
+        const result = JSON.parse(json) as CombatActionResult;
         const serverCooldowns = (result.spellCooldowns ?? result.SpellCooldowns) as Record<string, number> | undefined;
         if (serverCooldowns) {
           for (const [id, rem] of Object.entries(serverCooldowns)) {
@@ -1492,35 +1500,44 @@ export class StageBattleScene implements VfxOwner {
       }
     } catch (e) {
       console.warn('requestPlayerSpell error:', (e as Error).message);
+    } finally {
+      this._spellPending = false;
+      this.updateSpellCooldownVisuals();
     }
-    this._spellPending = false;
-    this.updateSpellCooldownVisuals();
   }
 
-  private async requestTickCooldowns(): Promise<void> {
+  private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
     if (!this.dotNetRef || this.battleFinished) return;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns') as CooldownMap | null;
-      if (result) {
-        for (const [id, rem] of Object.entries(result)) {
-          this.spellCooldowns[id] = rem;
+      const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds) as string | null;
+      if (json) {
+        const data = JSON.parse(json);
+        // Server returns { spells: {...} } or direct map
+        const spellCooldowns = data.spells ?? data;
+        for (const [id, remaining] of Object.entries(spellCooldowns)) {
+          this.spellCooldowns[id] = remaining as number;
         }
         this.updateSpellCooldownVisuals();
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('OnTickCooldowns error:', (e as Error).message);
+    }
   }
 
-  private async requestTickConsumableCooldowns(): Promise<void> {
+  private async requestTickConsumableCooldowns(realElapsedSeconds: number): Promise<void> {
     if (!this.dotNetRef || this.battleFinished) return;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns') as CooldownMap | null;
-      if (result) {
-        for (const [type, rem] of Object.entries(result)) {
-          this.consumableCooldowns[type] = rem;
+      const json = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns', realElapsedSeconds) as string | null;
+      if (json) {
+        const data = JSON.parse(json) as Record<string, number>;
+        for (const [type, remaining] of Object.entries(data)) {
+          this.consumableCooldowns[type] = remaining;
         }
         this.updateConsumableCooldownVisuals();
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('OnTickConsumableCooldowns error:', (e as Error).message);
+    }
   }
 
   /* ──────────────── Server Result Processing ─────────────────────── */
@@ -1621,41 +1638,62 @@ export class StageBattleScene implements VfxOwner {
     const delta = this.app.ticker.deltaMS;
     this.idleAnimationTime += delta * 0.001;
 
-    if (this.interactiveMode && this.isPlaying) {
-      // Interactive mode: speed bars count down and trigger actions
-      const scaledDelta = delta * this.battleSpeed;
+    if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
+      // Interactive mode: speed bars count down and trigger server-side actions
+      const simDelta = delta * this.battleSpeed;
+      this.currentSimTime += simDelta;
 
-      // Player speed bar
-      this.playerSpeedBarTimer -= scaledDelta;
-      if (this.playerSpeedBarTimer <= 0) {
-        this.playerSpeedBarTimer = this.playerActionTime * 1000;
-        this.requestPlayerAutoAttack();
-      }
-      this.updatePlayerSpeedBar();
+      // Player speed bar (only tick if player is alive)
+      if (this.playerCurrentHp > 0) {
+        this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+        this.updatePlayerSpeedBar();
 
-      // Enemy speed bars
-      for (let i = 0; i < this.enemyCount; i++) {
-        this.enemySpeedBarTimers[i] -= scaledDelta;
-        if (this.enemySpeedBarTimers[i] <= 0) {
-          this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
-          this.requestEnemyAttack(i);
+        if (this.playerSpeedBarTimer <= 0 && !this._playerAttackPending) {
+          this._playerAttackPending = true;
+          this.playerSpeedBarTimer = this.playerActionTime * 1000;
+          this.requestPlayerAutoAttack();
         }
-        this.updateEnemySpeedBar(i);
       }
 
-      // Cooldown ticks (once per real second, unaffected by battle speed)
-      this._cooldownTickAccum += delta;
-      if (this._cooldownTickAccum >= 1000) {
-        this._cooldownTickAccum -= 1000;
-        this.requestTickCooldowns();
+      // Enemy speed bars (only tick if enemy is alive)
+      for (let i = 0; i < this.enemyCount; i++) {
+        if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
+          this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+          this.updateEnemySpeedBar(i);
+
+          if (this.enemySpeedBarTimers[i] <= 0 && !this._enemyAttackPending[i]) {
+            this._enemyAttackPending[i] = true;
+            this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
+            this.requestEnemyAttack(i);
+          }
+        }
       }
 
-      // Consumable cooldown ticks (real-time, unaffected by battle speed)
+      // Tick spell cooldowns every ~200ms of sim time (scales with battle speed)
+      this._cooldownTickAccum += simDelta;
+      if (this._cooldownTickAccum >= 200) {
+        const spellElapsed = this._cooldownTickAccum / 1000;
+        this._cooldownTickAccum = 0;
+        for (const id of Object.keys(this.spellCooldowns)) {
+          this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - spellElapsed);
+        }
+        this.updateSpellCooldownVisuals();
+        this.requestTickCooldowns(spellElapsed);
+      }
+
+      // Tick consumable cooldowns every ~200ms of REAL time (not battle-speed-scaled)
       this._consumableTickAccum += delta;
-      if (this._consumableTickAccum >= 1000) {
-        this._consumableTickAccum -= 1000;
-        this.requestTickConsumableCooldowns();
+      if (this._consumableTickAccum >= 200) {
+        const realElapsed = this._consumableTickAccum / 1000;
+        this._consumableTickAccum = 0;
+        for (const type of Object.keys(this.consumableCooldowns)) {
+          this.consumableCooldowns[type] = Math.max(0, this.consumableCooldowns[type] - realElapsed);
+        }
+        this.updateConsumableCooldownVisuals();
+        this.requestTickConsumableCooldowns(realElapsed);
       }
+
+      return; // Don't process pre-computed events
     } else if (!this.interactiveMode && this.isPlaying) {
       // Pre-computed (timed) mode: process events based on speed bar timing
       const scaledDelta = delta * this.battleSpeed;
