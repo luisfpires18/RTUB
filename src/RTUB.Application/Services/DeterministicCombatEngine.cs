@@ -37,6 +37,8 @@ public class DeterministicCombatEngine : ICombatEngine
         // Initialize consumable buff flags
         var hasCigarroDodge = attacker.CigarroShieldHitsRemaining > 0;
         var hasPenaltyLifesteal = attacker.HasPenaltyBuff;
+        var effectiveCigarroDodge = attacker.EffectiveCigarroDodgeChance;
+        var effectivePenaltyLifesteal = attacker.EffectivePenaltyLifesteal;
 
         // Get action times (in seconds, convert to ms)
         var attackerActionTimeMs = attacker.ActionTime * 1000;
@@ -99,10 +101,10 @@ public class DeterministicCombatEngine : ICombatEngine
 
                 defenderHP = Math.Max(0, defenderHP - damage);
 
-                // Penalty lifesteal: heal attacker for 0.5% of max HP per hit
+                // Penalty lifesteal: heal attacker for % of max HP per hit (scaled by upgrades)
                 if (hasPenaltyLifesteal && attackerHP > 0)
                 {
-                    var healAmount = (long)Math.Max(1, Math.Round(attacker.TotalHP * MyTunoScaling.PenaltyLifestealPercent));
+                    var healAmount = (long)Math.Max(1, Math.Round(attacker.TotalHP * effectivePenaltyLifesteal));
                     attackerHP = Math.Min(attacker.TotalHP, attackerHP + healAmount);
                 }
 
@@ -156,8 +158,8 @@ public class DeterministicCombatEngine : ICombatEngine
                 var isDodged = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(defender.TotalPower, defender.TotalCriticalChance, attacker.TotalDefense, rng);
 
-                // Cigarro dodge — 10% chance to dodge incoming attack
-                if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
+                // Cigarro dodge — chance to dodge incoming attack (scaled by upgrades)
+                if (hasCigarroDodge && rng.NextDouble() < effectiveCigarroDodge)
                 {
                     damage = 0;
                     isDodged = true;
@@ -283,6 +285,8 @@ public class DeterministicCombatEngine : ICombatEngine
         var hasCigarroDodge = player.CigarroShieldHitsRemaining > 0;
         var hasCanhaoBuff = player.HasCanhaoBuff;
         var hasPenaltyLifesteal = player.HasPenaltyBuff;
+        var effectiveCigarroDodge = player.EffectiveCigarroDodgeChance;
+        var effectivePenaltyLifesteal = player.EffectivePenaltyLifesteal;
 
         // Initialize all enemy states with HP and action timers
         var enemyStates = enemies.Select((enemy, index) => new EnemyState
@@ -424,10 +428,10 @@ public class DeterministicCombatEngine : ICombatEngine
                     }
                 }
 
-                // Penalty lifesteal: heal player for 0.5% of max HP per attack action
+                // Penalty lifesteal: heal player for % of max HP per attack action (scaled by upgrades)
                 if (hasPenaltyLifesteal && playerHP > 0)
                 {
-                    var healAmount = (long)Math.Max(1, Math.Round(playerMaxHP * MyTunoScaling.PenaltyLifestealPercent));
+                    var healAmount = (long)Math.Max(1, Math.Round(playerMaxHP * effectivePenaltyLifesteal));
                     playerHP = Math.Min(playerMaxHP, playerHP + healAmount);
                 }
 
@@ -445,8 +449,8 @@ public class DeterministicCombatEngine : ICombatEngine
                 var isDodged = false;
                 var (damage, isCritical) = CombatMath.CalculateDamage(enemy.Enemy.TotalPower, enemy.Enemy.TotalCriticalChance, player.TotalDefense, rng);
 
-                // Cigarro dodge — 10% chance to dodge incoming attack
-                if (hasCigarroDodge && rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
+                // Cigarro dodge — chance to dodge incoming attack (scaled by upgrades)
+                if (hasCigarroDodge && rng.NextDouble() < effectiveCigarroDodge)
                 {
                     damage = 0;
                     isDodged = true;

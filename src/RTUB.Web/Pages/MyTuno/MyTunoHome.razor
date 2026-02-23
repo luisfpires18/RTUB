@@ -18,6 +18,7 @@
 @inject ICharacterService CharacterService
 @inject IUpgradeService UpgradeService
 @inject IImprovementService ImprovementService
+@inject IConsumableUpgradeService ConsumableUpgradeService
 @inject IInventoryService InventoryService
 @inject INaipeService NaipeService
 @inject IStageService StageService
@@ -178,10 +179,10 @@
                                         var consumableUnlocks = new (string Name, string Icon, string FallbackIcon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled, string? CombatOnlyTooltip)[]
                                         {
                                             ("Fino", "bi-cup-straw", "bi-cup-straw", "Cura 25% HP", "beer", 1, finoQuantity, usingFino, InventoryItemType.Fino, UseFino, true, "Apenas utilizável em combate"),
-                                            ("Cigarro", "bi-cloud", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
-                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || character?.ShotBuffBattlesRemaining > 0, null),
-                                            ("Canhão", "bi-bullseye", "bi-bullseye", "AOE 6min", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.HasCanhaoBuff == true, null),
-                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", "Lifesteal 0.5% HP 3min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.HasPenaltyBuff == true, null),
+                                            ("Cigarro", "bi-cloud", "bi-cloud", $"+{(int)(character!.EffectiveCigarroDodgeChance * 100)}% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarro, character == null || character?.CigarroShieldHitsRemaining > 0, null),
+                                            ("Shot", "bi-droplet-fill", "bi-droplet-fill", $"+{(int)((character!.EffectiveShotBuffMultiplier - 1) * 100)}% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShot, character == null || character?.ShotBuffBattlesRemaining > 0, null),
+                                            ("Canhão", "bi-bullseye", "bi-bullseye", $"AOE {character!.EffectiveCanhaoMinutes} min", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhao, character == null || character?.HasCanhaoBuff == true, null),
+                                            ("Penalty", "bi-lightning-charge-fill", "bi-lightning-charge-fill", $"Lifesteal {(character!.EffectivePenaltyLifesteal * 100):F1}% HP {character!.EffectivePenaltyMinutes}min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenalty, character == null || character?.HasPenaltyBuff == true, null),
                                             ("Caneca", "bi-cup-hot", "bi-cup-hot", "Cura 50% HP", "beer", 11001, canecaQuantity, usingCaneca, InventoryItemType.Caneca, UseCaneca, true, "Apenas utilizável em combate"),
                                         };
                                     }
@@ -560,7 +561,7 @@
                                     <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-droplet-fill text-info me-2"></i>
-                                            <span>Shot (+5% stats)</span>
+                                            <span>Shot (+@((int)((character.EffectiveShotBuffMultiplier - 1) * 100))% stats)</span>
                                         </span>
                                         <span class="badge bg-info">Ativo @character.ShotBuffBattlesRemaining @(character.ShotBuffBattlesRemaining == 1 ? "charge" : "charges")</span>
                                     </div>
@@ -572,7 +573,7 @@
                                             <i class="bi bi-wind text-info me-2"></i>
                                             <span>Cigarro (Dodge)</span>
                                         </span>
-                                        <span class="badge bg-info">10% Dodge @character.CigarroShieldHitsRemaining runs</span>
+                                        <span class="badge bg-info">@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge @character.CigarroShieldHitsRemaining runs</span>
                                     </div>
                                 }
                                 @if (character.HasCanhaoBuff)
@@ -582,7 +583,7 @@
                                             <i class="bi bi-bullseye text-info me-2"></i>
                                             <span>Canhão (AOE)</span>
                                         </span>
-                                        <span class="badge bg-info">@((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min restantes</span>
+                                        <span class="badge bg-info">@character.CanhaoBuffRemainingFormatted restantes</span>
                                     </div>
                                 }
                                 @if (character.HasPenaltyBuff)
@@ -590,9 +591,9 @@
                                     <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
                                             <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
-                                            <span>Penalty — Lifesteal 0.5% HP por hit</span>
+                                            <span>Penalty — Lifesteal @((character.EffectivePenaltyLifesteal * 100).ToString("F1"))% HP por hit</span>
                                         </span>
-                                        <span class="badge bg-warning text-dark">@((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min restantes</span>
+                                        <span class="badge bg-warning text-dark">@character.PenaltyBuffRemainingFormatted restantes</span>
                                     </div>
                                 }
                             </div>
@@ -1239,7 +1240,10 @@
                                               LeitaoBalance="@leitaoQuantity"
                                               Purchasing="@purchasingImprovement"
                                               PurchasingType="@purchasingImprovementType"
-                                              OnPurchaseRequested="PurchaseImprovement" />
+                                              OnPurchaseRequested="PurchaseImprovement"
+                                              ConsumablePurchasing="@purchasingConsumableUpgrade"
+                                              ConsumablePurchasingType="@purchasingConsumableUpgradeType"
+                                              OnConsumablePurchaseRequested="PurchaseConsumableUpgrade" />
                         }
 
                         </div>
@@ -2062,6 +2066,10 @@
     private bool purchasingImprovement = false;
     private ImprovementType? purchasingImprovementType = null;
 
+    // Consumable upgrades shop state
+    private bool purchasingConsumableUpgrade = false;
+    private ConsumableUpgradeType? purchasingConsumableUpgradeType = null;
+
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
     private bool claimingDailyReward = false;
@@ -2164,6 +2172,20 @@
                     character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
                     if (character != null)
                     {
+                        // Safety net: if Canhão timer is actively ticking (ExpiresAt set),
+                        // pause it so it only counts down during stage runs.
+                        if (character.CanhaoBuffExpiresAt.HasValue)
+                        {
+                            character.PauseCanhaoBuff();
+                            await CharacterService.UpdateCharacterAsync(character);
+                        }
+                        // Safety net: same for Penalty
+                        if (character.PenaltyBuffExpiresAt.HasValue)
+                        {
+                            character.PausePenaltyBuff();
+                            await CharacterService.UpdateCharacterAsync(character);
+                        }
+
                         // Batch: single inventory query replaces ~13 individual calls
                         var inventorySummaryTask = InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
                         // These are independent of inventory — run in parallel
@@ -2352,6 +2374,52 @@
         {
             purchasingImprovement = false;
             purchasingImprovementType = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PurchaseConsumableUpgrade(ConsumableUpgradeType upgradeType)
+    {
+        if (currentUser == null) return;
+
+        purchasingConsumableUpgradeType = upgradeType;
+        purchasingConsumableUpgrade = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await ConsumableUpgradeService.PurchaseConsumableUpgradeAsync(currentUser.Id, upgradeType);
+
+            if (result.Success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                if (currentUser != null)
+                {
+                    character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                    // Refresh Leitão balance
+                    var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                    leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                }
+
+                toastMessage = $"Upgrade de consumível comprado com sucesso!";
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = result.ErrorMessage ?? "Erro ao comprar upgrade.";
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error purchasing consumable upgrade");
+            toastMessage = "Erro ao processar a compra. Por favor, tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            purchasingConsumableUpgrade = false;
+            purchasingConsumableUpgradeType = null;
             StateHasChanged();
         }
     }
@@ -2627,7 +2695,7 @@
             {
                 cigarroQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Cigarro activated! +10% Dodge for 5 runs.";
+                toastMessage = $"Cigarro activated! +{(int)(character!.EffectiveCigarroDodgeChance * 100)}% Dodge for 5 runs.";
                 toastIsError = false;
             }
             else
@@ -2669,7 +2737,7 @@
             {
                 canhaoQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Canhão ativado! Ataques AOE por 5 corridas.";
+                toastMessage = $"Canhão ativado! Ataques AOE por {character!.EffectiveCanhaoMinutes} minutos.";
                 toastIsError = false;
             }
             else
@@ -2711,7 +2779,7 @@
             {
                 penaltyQuantity--;
                 await LoadCharacterAsync();
-                toastMessage = "Penalty ativado! Lifesteal 0.5% HP por hit durante 5 corridas.";
+                toastMessage = $"Penalty ativado! Lifesteal {(character!.EffectivePenaltyLifesteal * 100):F1}% HP por hit durante {character!.EffectivePenaltyMinutes} minutos.";
                 toastIsError = false;
             }
             else

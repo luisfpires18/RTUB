@@ -34,18 +34,70 @@ public class Character : BaseEntity
     public int CigarroShieldHitsRemaining { get; set; } = 0;
 
     // Canhão buff - timed AOE attacks (expires at UTC datetime)
+    // When paused (between runs), ExpiresAt is null and RemainingMs holds the leftover time
     public DateTime? CanhaoBuffExpiresAt { get; set; }
 
+    // Canhão buff paused remaining milliseconds (> 0 means buff is paused but not expired)
+    public long CanhaoBuffRemainingMs { get; set; } = 0;
+
     // Penalty buff - timed 0.5% HP lifesteal per hit (expires at UTC datetime)
+    // When paused (between runs), ExpiresAt is null and RemainingMs holds the leftover time
     public DateTime? PenaltyBuffExpiresAt { get; set; }
 
-    // Computed: whether the canhão AOE buff is currently active
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public bool HasCanhaoBuff => CanhaoBuffExpiresAt.HasValue && DateTime.UtcNow < CanhaoBuffExpiresAt.Value;
+    // Penalty buff paused remaining milliseconds (> 0 means buff is paused but not expired)
+    public long PenaltyBuffRemainingMs { get; set; } = 0;
 
-    // Computed: whether the penalty lifesteal buff is currently active
+    // Computed: whether the canhão AOE buff is currently active (ticking) or paused (has remaining time)
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public bool HasPenaltyBuff => PenaltyBuffExpiresAt.HasValue && DateTime.UtcNow < PenaltyBuffExpiresAt.Value;
+    public bool HasCanhaoBuff => (CanhaoBuffExpiresAt.HasValue && DateTime.UtcNow < CanhaoBuffExpiresAt.Value)
+                                 || CanhaoBuffRemainingMs > 0;
+
+    /// <summary>
+    /// Returns the canhão buff remaining time formatted as "m:ss" (e.g. "1:23").
+    /// Works for both active (ExpiresAt) and paused (RemainingMs) states.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string CanhaoBuffRemainingFormatted
+    {
+        get
+        {
+            long totalMs;
+            if (CanhaoBuffExpiresAt.HasValue && DateTime.UtcNow < CanhaoBuffExpiresAt.Value)
+                totalMs = (long)(CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMilliseconds;
+            else if (CanhaoBuffRemainingMs > 0)
+                totalMs = CanhaoBuffRemainingMs;
+            else
+                return "0:00";
+            var totalSeconds = (int)(totalMs / 1000);
+            return $"{totalSeconds / 60}:{(totalSeconds % 60):D2}";
+        }
+    }
+
+    // Computed: whether the penalty lifesteal buff is currently active (ticking) or paused (has remaining time)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool HasPenaltyBuff => (PenaltyBuffExpiresAt.HasValue && DateTime.UtcNow < PenaltyBuffExpiresAt.Value)
+                                  || PenaltyBuffRemainingMs > 0;
+
+    /// <summary>
+    /// Returns the penalty buff remaining time formatted as "m:ss" (e.g. "1:23").
+    /// Works for both active (ExpiresAt) and paused (RemainingMs) states.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string PenaltyBuffRemainingFormatted
+    {
+        get
+        {
+            long totalMs;
+            if (PenaltyBuffExpiresAt.HasValue && DateTime.UtcNow < PenaltyBuffExpiresAt.Value)
+                totalMs = (long)(PenaltyBuffExpiresAt.Value - DateTime.UtcNow).TotalMilliseconds;
+            else if (PenaltyBuffRemainingMs > 0)
+                totalMs = PenaltyBuffRemainingMs;
+            else
+                return "0:00";
+            var totalSeconds = (int)(totalMs / 1000);
+            return $"{totalSeconds / 60}:{(totalSeconds % 60):D2}";
+        }
+    }
 
     // Arena Statistics
     /// <summary>
@@ -129,6 +181,20 @@ public class Character : BaseEntity
 
     /// <summary>Number of double gathering chance upgrades purchased (Destilaria)</summary>
     public int DoubleGatheringUpgrades { get; set; }
+
+    // ── Consumable Upgrades (improve consumable item effects) ──
+
+    /// <summary>Number of Cigarro dodge chance upgrades purchased (5 max)</summary>
+    public int CigarroDodgeUpgrades { get; set; }
+
+    /// <summary>Number of Shot stat buff upgrades purchased (5 max)</summary>
+    public int ShotStatBuffUpgrades { get; set; }
+
+    /// <summary>Number of Canhão timer upgrades purchased (3 max)</summary>
+    public int CanhaoTimerUpgrades { get; set; }
+
+    /// <summary>Number of Penalty timer + lifesteal upgrades purchased (3 max)</summary>
+    public int PenaltyTimerUpgrades { get; set; }
 
     // ── Powers (combat power enhancements) ──
 
@@ -365,10 +431,13 @@ public class Character : BaseEntity
     public double EffectiveRegenInterval => Math.Max(5.0, MyTunoScaling.BaseRegenInterval - EnergyRegenUpgrades * MyTunoScaling.RegenReductionPerUpgrade);
 
     /// <summary>
-    /// Effective shot buff multiplier (base value, no upgrades).
+    /// Effective shot buff multiplier including consumable upgrades.
+    /// Base 1.05 (+5%), each upgrade adds +5%, max 1.30 (+30%) at 5 upgrades.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public double EffectiveShotBuffMultiplier => MyTunoScaling.ShotBuffMultiplier;
+    public double EffectiveShotBuffMultiplier => Math.Min(
+        MyTunoScaling.MaxShotBuffMultiplier,
+        MyTunoScaling.ShotBuffMultiplier + ShotStatBuffUpgrades * MyTunoScaling.ShotBuffPerUpgrade);
 
     /// <summary>
     /// Double gathering chance (0.0–0.5), capped at MaxDoubleGatheringChance.
@@ -384,6 +453,44 @@ public class Character : BaseEntity
     /// </summary>
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public double FidelisEarnedMultiplier => 1.0;
+
+    // ── Consumable upgrade computed properties ──
+
+    /// <summary>
+    /// Effective Cigarro dodge chance including upgrades.
+    /// Base 10%, each upgrade adds +8%, max 50% at 5 upgrades.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double EffectiveCigarroDodgeChance => Math.Min(
+        MyTunoScaling.MaxCigarroDodge,
+        MyTunoScaling.CigarroDodgeChance + CigarroDodgeUpgrades * MyTunoScaling.CigarroDodgePerUpgrade);
+
+    /// <summary>
+    /// Effective Canhão buff duration in minutes including upgrades.
+    /// Base 2min, each upgrade adds +1min, max 5min at 3 upgrades.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int EffectiveCanhaoMinutes => Math.Min(
+        MyTunoScaling.MaxCanhaoMinutes,
+        MyTunoScaling.CanhaoBuffMinutes + CanhaoTimerUpgrades * MyTunoScaling.CanhaoMinutesPerUpgrade);
+
+    /// <summary>
+    /// Effective Penalty buff duration in minutes including upgrades.
+    /// Base 2min, each upgrade adds +1min, max 5min at 3 upgrades.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int EffectivePenaltyMinutes => Math.Min(
+        MyTunoScaling.MaxPenaltyMinutes,
+        MyTunoScaling.PenaltyBuffMinutes + PenaltyTimerUpgrades * MyTunoScaling.PenaltyMinutesPerUpgrade);
+
+    /// <summary>
+    /// Effective Penalty lifesteal percent including upgrades.
+    /// Base 0.5%, scales to 1.5% at 3 upgrades.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double EffectivePenaltyLifesteal => Math.Min(
+        MyTunoScaling.MaxPenaltyLifesteal,
+        MyTunoScaling.PenaltyLifestealPercent + PenaltyTimerUpgrades * MyTunoScaling.PenaltyLifestealPerUpgrade);
 
     // ── Powers computed properties ──
 
@@ -778,7 +885,9 @@ public class Character : BaseEntity
             ShotBuffBattlesRemaining = source.ShotBuffBattlesRemaining,
             CigarroShieldHitsRemaining = source.CigarroShieldHitsRemaining,
             CanhaoBuffExpiresAt = source.CanhaoBuffExpiresAt,
-            PenaltyBuffExpiresAt = source.PenaltyBuffExpiresAt
+            CanhaoBuffRemainingMs = source.CanhaoBuffRemainingMs,
+            PenaltyBuffExpiresAt = source.PenaltyBuffExpiresAt,
+            PenaltyBuffRemainingMs = source.PenaltyBuffRemainingMs
         };
     }
 
@@ -948,6 +1057,40 @@ public class Character : BaseEntity
         SpecialAttackUpgrades++;
     }
 
+    // ── Consumable upgrade methods ──
+
+    /// <summary>
+    /// Upgrades Cigarro dodge chance
+    /// </summary>
+    public void UpgradeCigarroDodge()
+    {
+        CigarroDodgeUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades Shot stat buff multiplier
+    /// </summary>
+    public void UpgradeShotStatBuff()
+    {
+        ShotStatBuffUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades Canhão AOE buff duration
+    /// </summary>
+    public void UpgradeCanhaoTimer()
+    {
+        CanhaoTimerUpgrades++;
+    }
+
+    /// <summary>
+    /// Upgrades Penalty buff duration and lifesteal percentage
+    /// </summary>
+    public void UpgradePenaltyTimer()
+    {
+        PenaltyTimerUpgrades++;
+    }
+
     /// <summary>
     /// Takes damage and updates CurrentHP
     /// </summary>
@@ -984,11 +1127,47 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Clears the penalty lifesteal buff.
+    /// Clears the penalty lifesteal buff (active + paused).
     /// </summary>
     public void ExpirePenaltyBuff()
     {
         PenaltyBuffExpiresAt = null;
+        PenaltyBuffRemainingMs = 0;
+    }
+
+    /// <summary>
+    /// Pauses the penalty buff timer. Saves remaining milliseconds and clears the active expiry.
+    /// Called when a run ends so the timer doesn't tick between runs.
+    /// </summary>
+    public void PausePenaltyBuff()
+    {
+        if (PenaltyBuffExpiresAt.HasValue)
+        {
+            var remainingMs = (long)(PenaltyBuffExpiresAt.Value - DateTime.UtcNow).TotalMilliseconds;
+            if (remainingMs > 0)
+            {
+                PenaltyBuffRemainingMs = remainingMs;
+                PenaltyBuffExpiresAt = null;
+            }
+            else
+            {
+                // Already expired
+                ExpirePenaltyBuff();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resumes a paused penalty buff. Restores the active expiry from remaining milliseconds.
+    /// Called when a new run begins.
+    /// </summary>
+    public void ResumePenaltyBuff()
+    {
+        if (PenaltyBuffRemainingMs > 0)
+        {
+            PenaltyBuffExpiresAt = DateTime.UtcNow.AddMilliseconds(PenaltyBuffRemainingMs);
+            PenaltyBuffRemainingMs = 0;
+        }
     }
 
     /// <summary>
@@ -1001,11 +1180,47 @@ public class Character : BaseEntity
     }
 
     /// <summary>
-    /// Clears the canhão AOE buff.
+    /// Clears the canhão AOE buff completely (active + paused).
     /// </summary>
     public void ExpireCanhaoBuff()
     {
         CanhaoBuffExpiresAt = null;
+        CanhaoBuffRemainingMs = 0;
+    }
+
+    /// <summary>
+    /// Pauses the canhão buff timer. Saves remaining milliseconds and clears the active expiry.
+    /// Called when a stage run ends so the timer doesn't tick between runs.
+    /// </summary>
+    public void PauseCanhaoBuff()
+    {
+        if (CanhaoBuffExpiresAt.HasValue)
+        {
+            var remainingMs = (long)(CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMilliseconds;
+            if (remainingMs > 0)
+            {
+                CanhaoBuffRemainingMs = remainingMs;
+                CanhaoBuffExpiresAt = null;
+            }
+            else
+            {
+                // Already expired
+                ExpireCanhaoBuff();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resumes a paused canhão buff. Restores the active expiry from remaining milliseconds.
+    /// Called when a new stage run begins.
+    /// </summary>
+    public void ResumeCanhaoBuff()
+    {
+        if (CanhaoBuffRemainingMs > 0)
+        {
+            CanhaoBuffExpiresAt = DateTime.UtcNow.AddMilliseconds(CanhaoBuffRemainingMs);
+            CanhaoBuffRemainingMs = 0;
+        }
     }
 
     /// <summary>

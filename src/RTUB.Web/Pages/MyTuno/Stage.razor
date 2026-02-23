@@ -140,6 +140,12 @@
                                     <i class="bi bi-lightning-fill"></i> @totalFitabDropped FITAB
                                 </span>
                             }
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <span class="reward-tag reward-tag--drink" style="color: #ff9800;">
+                                    <i class="bi bi-piggy-bank"></i> @totalLeitaoDropped Leitão
+                                </span>
+                            }
                             @if (totalInstrumentPartsDropped.Count > 0)
                             {
                                 <span class="reward-tag reward-tag--instrument">
@@ -170,24 +176,16 @@
                 </div>
 
                 <!-- ── Active Buff Indicators (below top bar) ── -->
-                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
+                @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0))
                 {
                     <div class="battle-buffs-strip">
                         @if (character.ShotBuffBattlesRemaining > 0)
                         {
-                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>+5% Stats</span>
+                            <span class="buff-tag buff-tag--shot"><i class="bi bi-cup"></i>+@((int)((character.EffectiveShotBuffMultiplier - 1) * 100))% Stats</span>
                         }
                         @if (character.CigarroShieldHitsRemaining > 0)
                         {
-                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>10% Dodge @character.CigarroShieldHitsRemaining runs</span>
-                        }
-                        @if (character.HasCanhaoBuff)
-                        {
-                            <span class="buff-tag buff-tag--aoe"><i class="bi bi-bullseye"></i>AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
-                        }
-                        @if (character.HasPenaltyBuff)
-                        {
-                            <span class="buff-tag buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i>0.5% Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min</span>
+                            <span class="buff-tag buff-tag--dodge"><i class="bi bi-wind"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge @character.CigarroShieldHitsRemaining runs</span>
                         }
                     </div>
                 }
@@ -264,6 +262,13 @@
                                 <div class="defeat-reward-row">
                                     <i class="bi bi-lightning-fill" style="color: #e040fb;"></i>
                                     <span>+@totalFitabDropped FITAB</span>
+                                </div>
+                            }
+                            @if (totalLeitaoDropped > 0)
+                            {
+                                <div class="defeat-reward-row">
+                                    <i class="bi bi-piggy-bank" style="color: #ff9800;"></i>
+                                    <span>+@totalLeitaoDropped Leitão</span>
                                 </div>
                             }
                             @foreach (var (partType, qty) in totalInstrumentPartsDropped)
@@ -364,6 +369,7 @@
     private int totalShotsDropped = 0;
     private int totalPenaltiesDropped = 0;
     private int totalFitabDropped = 0;
+    private int totalLeitaoDropped = 0;
     private Dictionary<InventoryItemType, int> totalInstrumentPartsDropped = new();
     private Dictionary<InventoryItemType, string?> instrumentPartImages = new();
     private List<InventoryItemType> totalRareSetDropped = new();
@@ -375,7 +381,9 @@
     private int runStartingShotBuffBattles = 0;
     private int runStartingCigarroBuff = 0;
     private DateTime? runStartingCanhaoBuff = null;
+    private long runStartingCanhaoRemainingMs = 0;
     private DateTime? runStartingPenaltyBuff = null;
+    private long runStartingPenaltyRemainingMs = 0;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
     private bool _disposed = false;
@@ -560,8 +568,25 @@
                 runStartingShotBuffBattles = character.ShotBuffBattlesRemaining;
                 runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
                 runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
+                runStartingCanhaoRemainingMs = character.CanhaoBuffRemainingMs;
                 runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
+                runStartingPenaltyRemainingMs = character.PenaltyBuffRemainingMs;
                 runInProgress = true;
+
+                // Resume paused Canhão buff so the timer starts ticking during the run
+                if (character.CanhaoBuffRemainingMs > 0)
+                {
+                    character.ResumeCanhaoBuff();
+                    // Persist to DB so the active ExpiresAt is stored — prevents timer from
+                    // resetting to the old paused value if the run ends or user navigates away.
+                    await CharacterService.UpdateCharacterAsync(character);
+                }
+                // Resume paused Penalty buff so the timer starts ticking during the run
+                if (character.PenaltyBuffRemainingMs > 0)
+                {
+                    character.ResumePenaltyBuff();
+                    await CharacterService.UpdateCharacterAsync(character);
+                }
                 // Reset cooldowns for the new run
                 _consumableCooldowns.Clear();
                 _preservedSpellCooldowns = null;
@@ -777,7 +802,15 @@
                             Canhao = _combatSession.HasCanhaoBuff,
                             Shot = _combatSession.HasShotBuff,
                             Penalty = _combatSession.HasPenaltyBuff
-                        }
+                        },
+                        // Canhão countdown bar: pass expiry UTC so JS can render a depleting timer bar
+                        CanhaoBuffExpiresAtUtc = character.CanhaoBuffExpiresAt.HasValue
+                            ? character.CanhaoBuffExpiresAt.Value.ToString("o")
+                            : (string?)null,
+                        // Penalty countdown bar: same pattern as Canhão
+                        PenaltyBuffExpiresAtUtc = character.PenaltyBuffExpiresAt.HasValue
+                            ? character.PenaltyBuffExpiresAt.Value.ToString("o")
+                            : (string?)null
                     };
 
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
@@ -1102,6 +1135,7 @@
                 totalShotsDropped += currentBattle.ShotsDropped;
                 totalPenaltiesDropped += currentBattle.PenaltiesDropped;
                 totalFitabDropped += currentBattle.FitabDropped;
+                totalLeitaoDropped += currentBattle.LeitaoDropped;
 
                 // Accumulate instrument part drops
                 foreach (var partType in currentBattle.InstrumentPartsDropped)
@@ -1158,7 +1192,7 @@
                     await StageService.ApplyRunRewardsAsync(
                         character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
                         totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? currentStageNumber, currentStageNumber,
-                        totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
+                        totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
                 }
                 catch (Exception ex)
                 {
@@ -1270,7 +1304,7 @@
                 // Re-check after acquiring lock (fight may have finished and cleared runInProgress)
                 if (runInProgress && runStartingHp.HasValue && runStartingStage.HasValue)
                 {
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage.Value, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff, runStartingCanhaoRemainingMs);
                 }
             }
             catch (Exception ex)
@@ -1301,6 +1335,7 @@
         totalShotsDropped = 0;
         totalPenaltiesDropped = 0;
         totalFitabDropped = 0;
+        totalLeitaoDropped = 0;
         totalInstrumentPartsDropped.Clear();
         totalRareSetDropped.Clear();
         stagesCleared = 0;
@@ -1441,7 +1476,7 @@
                             character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, runStartingHp,
                             totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null,
                             expirePenaltyBuff: false, runStartingStage ?? currentStageNumber, currentStageNumber,
-                            totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
+                            totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
                     }
                     catch (Exception ex)
                     {
@@ -1451,7 +1486,7 @@
                 else if (character != null && runStartingHp.HasValue)
                 {
                     // No stages cleared — restore HP to pre-run value
-                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff);
+                    await StageService.CancelRunAsync(character.Id, runStartingHp.Value, runStartingStage ?? currentStageNumber, runStartingShotBuffBattles, runStartingCigarroBuff, runStartingCanhaoBuff, runStartingPenaltyBuff, runStartingCanhaoRemainingMs);
                 }
 
                 // Clear run state
@@ -1574,7 +1609,7 @@
                 await StageService.ApplyRunRewardsAsync(
                     character.Id, totalXPEarned, totalFidelisEarned, totalFinosDropped, totalCanecasDropped, totalCigarrosDropped, totalCanhaosDropped, totalShotsDropped, totalPenaltiesDropped, totalFitabDropped, defeatRestoreHp,
                     totalInstrumentPartsDropped.Count > 0 ? totalInstrumentPartsDropped : null, true, defeatStartStage ?? runStartingStage ?? currentStageNumber, currentStageNumber,
-                    totalRareSetDropped.Count > 0 ? totalRareSetDropped : null);
+                    totalRareSetDropped.Count > 0 ? totalRareSetDropped : null, totalLeitaoDropped);
             }
             catch (Exception)
             {

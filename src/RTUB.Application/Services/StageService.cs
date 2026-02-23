@@ -252,7 +252,7 @@ public class StageService : IStageService
         }
 
         // Calculate rewards (deferred - not applied until run ends)
-        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped) =
+        var (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped, leitaoDropped) =
             CalculateRewardsForBattle(combatResult, stageNumber, character.Level, enemyCount, stageProgress.HighestStage, ownedRareSetPieces);
 
         // Update character HP and stage progress in-memory only (no DB save per battle)
@@ -279,6 +279,7 @@ public class StageService : IStageService
             PenaltiesDropped = penaltiesDropped,
             InstrumentPartsDropped = instrumentPartsDropped,
             FitabDropped = fitabDropped,
+            LeitaoDropped = leitaoDropped,
             RareSetPiecesDropped = rareSetPiecesDropped,
             ReplayJson = replayJson,
             PlayerFinalHP = combatResult.AttackerFinalHP,
@@ -372,7 +373,7 @@ public class StageService : IStageService
     /// Restores the character's HP to the specified value and resets stage progress.
     /// Used when user exits mid-run without completing it.
     /// </summary>
-    public async Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default)
+    public async Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, long restoreCanhaoRemainingMs = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -397,8 +398,11 @@ public class StageService : IStageService
                 character.CurrentHP = restoreHp;
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
                 character.CigarroShieldHitsRemaining = restoreCigarroShield;
-                character.CanhaoBuffExpiresAt = restoreCanhaoExpiresAt;
-                character.PenaltyBuffExpiresAt = restorePenaltyExpiresAt;
+                // Canhão: pause the active timer (save remaining ms) instead of wiping
+                // This preserves time used during the run and handles mid-run navigation
+                character.PauseCanhaoBuff();
+                // Penalty: same pause/resume pattern as Canhão
+                character.PausePenaltyBuff();
                 await _characterRepository.UpdateAsync(character);
 
                 // Reload stageProgress from database to ensure clean change tracker state.
@@ -579,7 +583,7 @@ public class StageService : IStageService
     /// Pure calculation of rewards for a stage battle (no side effects).
     /// Rewards are deferred and only applied when the run ends via ApplyRunRewardsAsync.
     /// </summary>
-    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab, List<InventoryItemType> rareSetPieces) CalculateRewardsForBattle(
+    private (int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, List<InventoryItemType> instrumentParts, int fitab, List<InventoryItemType> rareSetPieces, int leitao) CalculateRewardsForBattle(
         CombatResult combatResult,
         int stageNumber,
         int characterLevel,
@@ -589,7 +593,7 @@ public class StageService : IStageService
     {
         if (combatResult.Outcome != BattleOutcome.AttackerWon)
         {
-            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0, new List<InventoryItemType>());
+            return (0, 0m, 0, 0, 0, 0, 0, 0, new List<InventoryItemType>(), 0, new List<InventoryItemType>(), 0);
         }
 
         var random = Random.Shared;
@@ -600,6 +604,7 @@ public class StageService : IStageService
         var shotsDropped = 0;
         var penaltiesDropped = 0;
         var fitabDropped = 0;
+        var leitaoDropped = 0;
         var rareSetPiecesDropped = new List<InventoryItemType>();
         var instrumentPartsDropped = new List<InventoryItemType>();
         var stageConfig = _myTunoScalingConfig.StageMode;
@@ -619,9 +624,9 @@ public class StageService : IStageService
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(biomeRewardMult * stageMult), 2);
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
-        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var finoChance = highestStage >= 1 ? dropRates.FinoDropChance : 0;
-        var canecaChance = highestStage >= 5001 ? dropRates.CanecaDropChance : 0;
+        var canecaChance = highestStage >= 11001 ? dropRates.CanecaDropChance : 0;
         var cigarroChance = highestStage >= 3001 ? dropRates.CigarroDropChance : 0;
         var canhaoChance = highestStage >= 7001 ? dropRates.CanhaoDropChance : 0;
         var shotChance = highestStage >= 1001 ? dropRates.ShotDropChance : 0;
@@ -693,7 +698,27 @@ public class StageService : IStageService
             }
         }
 
-        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped);
+        // Leitão drop — only at boss fights in the player's CURRENT biome, and only at stage >= bossMode.stageOffset
+        // This prevents farming early bosses for easy leitão drops.
+        if (enemyType == EnemyType.Boss)
+        {
+            var bossStageOffset = _myTunoScalingConfig.BossMode.StageOffset;
+            if (stageNumber >= bossStageOffset)
+            {
+                // Determine the player's current biome range (1000-stage blocks)
+                var currentBiomeMin = ((highestStage - 1) / 1000) * 1000 + 1;
+                var currentBiomeMax = currentBiomeMin + 999;
+
+                // Only drop if the boss stage is within the player's current biome
+                if (stageNumber >= currentBiomeMin && stageNumber <= currentBiomeMax)
+                {
+                    if (random.NextDouble() < dropRates.LeitaoDropChance)
+                        leitaoDropped++;
+                }
+            }
+        }
+
+        return (xpReward, fidelisReward, finosDropped, canecasDropped, cigarrosDropped, canhaosDropped, shotsDropped, penaltiesDropped, instrumentPartsDropped, fitabDropped, rareSetPiecesDropped, leitaoDropped);
     }
 
     /// <summary>
@@ -701,14 +726,14 @@ public class StageService : IStageService
     /// Called after defeat to commit all rewards earned during the run.
     /// Not called on cancel/back — rewards are forfeited.
     /// </summary>
-    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, CancellationToken cancellationToken = default)
+    public async Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, int leitao = 0, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 3;
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, startStage, endStage, rareSetPieces, cancellationToken);
+                await ApplyRunRewardsCoreAsync(characterId, xp, fidelis, finos, canecas, cigarros, canhaos, shots, penalties, fitab, restoreHp, instrumentParts, expirePenaltyBuff, startStage, endStage, rareSetPieces, leitao, cancellationToken);
                 return;
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -729,7 +754,7 @@ public class StageService : IStageService
         }
     }
 
-    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, List<InventoryItemType>? rareSetPieces, CancellationToken cancellationToken)
+    private async Task ApplyRunRewardsCoreAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int fitab, long? restoreHp, Dictionary<InventoryItemType, int>? instrumentParts, bool expirePenaltyBuff, int startStage, int endStage, List<InventoryItemType>? rareSetPieces, int leitao, CancellationToken cancellationToken)
     {
         var hasInstrumentParts = instrumentParts != null && instrumentParts.Count > 0;
         var hasRareSetPieces = rareSetPieces != null && rareSetPieces.Count > 0;
@@ -753,7 +778,16 @@ public class StageService : IStageService
         {
             character.ExpireCigarroBuff();
         }
-        // Canhão and Penalty are timed buffs — they expire automatically via DateTime
+        // Canhão is paused between runs — save remaining time so it doesn't tick when idle
+        if (character.HasCanhaoBuff)
+        {
+            character.PauseCanhaoBuff();
+        }
+        // Penalty: same pause/resume pattern as Canhão
+        if (character.HasPenaltyBuff)
+        {
+            character.PausePenaltyBuff();
+        }
         
         await _characterRepository.UpdateAsync(character);
 
@@ -785,6 +819,7 @@ public class StageService : IStageService
         if (canhaos > 0) allDrops[InventoryItemType.Canhao] = canhaos;
         if (shots > 0) allDrops[InventoryItemType.Shot] = shots;
         if (penalties > 0) allDrops[InventoryItemType.Penalty] = penalties;
+        if (leitao > 0) allDrops[InventoryItemType.Leitao] = leitao;
 
         if (hasInstrumentParts)
         {
@@ -801,13 +836,13 @@ public class StageService : IStageService
         if (allDrops.Count > 0)
             await _inventoryRepository.AddItemsAsync(character.UserId, allDrops, cancellationToken);
 
-        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, instrumentParts, rareSetPieces, startStage, endStage);
+        LogRunRewards(user?.UserName ?? "Unknown", xp, fidelis, fitab, finos, canecas, cigarros, canhaos, shots, penalties, leitao, instrumentParts, rareSetPieces, startStage, endStage);
     }
 
     private void LogRunRewards(
         string username,
         int xp, decimal fidelis, int fitab,
-        int finos, int canecas, int cigarros, int canhaos, int shots, int penalties,
+        int finos, int canecas, int cigarros, int canhaos, int shots, int penalties, int leitao,
         Dictionary<InventoryItemType, int>? instrumentParts,
         List<InventoryItemType>? rareSetPieces,
         int startStage, int endStage)
@@ -826,6 +861,7 @@ public class StageService : IStageService
         if (canhaos > 0)  loot.Add($"+{canhaos} canhaos");
         if (shots > 0)    loot.Add($"+{shots} shots");
         if (penalties > 0) loot.Add($"+{penalties} penalties");
+        if (leitao > 0)   loot.Add($"+{leitao} leitão");
 
         var instrTotal = instrumentParts?.Values.Sum() ?? 0;
         if (instrTotal > 0) loot.Add($"+{instrTotal} instrument parts");

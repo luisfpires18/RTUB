@@ -47,6 +47,12 @@ public class CombatSession
     /// <summary>Whether the Penalty consumable buff is active.</summary>
     public bool HasPenaltyBuff { get; set; }
 
+    /// <summary>Effective Cigarro dodge chance (scaled by consumable upgrades).</summary>
+    public double EffectiveCigarroDodge { get; set; }
+
+    /// <summary>Effective Penalty lifesteal percent (scaled by consumable upgrades).</summary>
+    public double EffectivePenaltyLifesteal { get; set; }
+
     /// <summary>
     /// Damage bonus multiplier for heavy attacks from Powers upgrades (e.g., 0.10 = +10%).
     /// </summary>

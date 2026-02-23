@@ -149,7 +149,7 @@ public class InventoryService : IInventoryService
         character.CigarroShieldHitsRemaining = CigarroBuffRuns;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Cigarro ativado! +10% dodge por {CigarroBuffRuns} runs");
+        return (true, $"Cigarro ativado! +{(int)(character.EffectiveCigarroDodgeChance * 100)}% dodge por {CigarroBuffRuns} runs");
     }
 
     /// <summary>
@@ -184,8 +184,11 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        var canhaoMinutes = _scalingConfig.Consumables.CanhaoBuffMinutes;
-        character.CanhaoBuffExpiresAt = DateTime.UtcNow.AddMinutes(canhaoMinutes);
+        // Store as paused remaining ms — the timer only ticks during active stage runs.
+        // ResumeCanhaoBuff() is called when a stage run begins.
+        var canhaoMinutes = character.EffectiveCanhaoMinutes;
+        character.CanhaoBuffExpiresAt = null;
+        character.CanhaoBuffRemainingMs = (long)TimeSpan.FromMinutes(canhaoMinutes).TotalMilliseconds;
         await _characterRepository.UpdateAsync(character);
 
         return (true, $"Canhão ativado! AOE por {canhaoMinutes} minutos");
@@ -223,11 +226,14 @@ public class InventoryService : IInventoryService
         }
 
         // 3. Apply effect (only after successful consume)
-        var penaltyMinutes = _scalingConfig.Consumables.PenaltyBuffMinutes;
-        character.PenaltyBuffExpiresAt = DateTime.UtcNow.AddMinutes(penaltyMinutes);
+        // Store as paused state (RemainingMs) so the timer only ticks inside active runs
+        var penaltyMinutes = character.EffectivePenaltyMinutes;
+        var totalMs = (long)TimeSpan.FromMinutes(penaltyMinutes).TotalMilliseconds;
+        character.PenaltyBuffRemainingMs = totalMs;
+        character.PenaltyBuffExpiresAt = null;
         await _characterRepository.UpdateAsync(character);
 
-        return (true, $"Penalty ativado! 0.5% lifesteal por {penaltyMinutes} minutos");
+        return (true, $"Penalty ativado! {(character.EffectivePenaltyLifesteal * 100):F1}% lifesteal por {penaltyMinutes} minutos");
     }
 
     /// <summary>
@@ -337,7 +343,7 @@ public class InventoryService : IInventoryService
         
         await _characterRepository.UpdateAsync(character);
 
-        return (true, ShotBuffBattles, "Shot ativado! +5% stats por 5 runs");
+        return (true, ShotBuffBattles, $"Shot ativado! +{(int)((character.EffectiveShotBuffMultiplier - 1) * 100)}% stats por {ShotBuffBattles} runs");
     }
 
     /// <summary>

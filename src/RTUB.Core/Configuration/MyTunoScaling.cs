@@ -96,10 +96,42 @@ public static class MyTunoScaling
     public static int CanhaoBuffMinutes { get; private set; } = 6;
 
     /// <summary>Duration in minutes for the Penalty lifesteal buff.</summary>
-    public static int PenaltyBuffMinutes { get; private set; } = 3;
+    public static int PenaltyBuffMinutes { get; private set; } = 2;
 
     /// <summary>HP lifesteal per hit from Penalty buff (0.005 = 0.5%).</summary>
     public static double PenaltyLifestealPercent { get; private set; } = 0.005;
+
+    // ── Consumable Upgrades (rank-based improvements to consumable effects) ──
+
+    /// <summary>Cigarro dodge chance increase per upgrade (0.08 = +8% per rank).</summary>
+    public static double CigarroDodgePerUpgrade { get; private set; } = 0.08;
+
+    /// <summary>Maximum Cigarro dodge chance after upgrades (0.50 = 50%).</summary>
+    public static double MaxCigarroDodge { get; private set; } = 0.50;
+
+    /// <summary>Shot buff multiplier increase per upgrade (0.05 = +5% per rank).</summary>
+    public static double ShotBuffPerUpgrade { get; private set; } = 0.05;
+
+    /// <summary>Maximum Shot buff multiplier after upgrades (1.30 = +30%).</summary>
+    public static double MaxShotBuffMultiplier { get; private set; } = 1.30;
+
+    /// <summary>Canhão duration increase per upgrade in minutes.</summary>
+    public static int CanhaoMinutesPerUpgrade { get; private set; } = 1;
+
+    /// <summary>Maximum Canhão duration in minutes after upgrades.</summary>
+    public static int MaxCanhaoMinutes { get; private set; } = 5;
+
+    /// <summary>Penalty duration increase per upgrade in minutes.</summary>
+    public static int PenaltyMinutesPerUpgrade { get; private set; } = 1;
+
+    /// <summary>Maximum Penalty duration in minutes after upgrades.</summary>
+    public static int MaxPenaltyMinutes { get; private set; } = 5;
+
+    /// <summary>Penalty lifesteal percent increase per upgrade.</summary>
+    public static double PenaltyLifestealPerUpgrade { get; private set; } = 0.003333;
+
+    /// <summary>Maximum Penalty lifesteal percent after upgrades (0.015 = 1.5%).</summary>
+    public static double MaxPenaltyLifesteal { get; private set; } = 0.015;
 
     // ── Improvements (game-wide improvements) ──
 
@@ -206,7 +238,17 @@ public static class MyTunoScaling
         double rareSetBonusCrit = 0.50,
         double rareSetBonusSpeedReduction = 0.5,
         double doubleGatheringChancePerUpgrade = 0.02,
-        double maxDoubleGatheringChance = 0.50)
+        double maxDoubleGatheringChance = 0.50,
+        double cigarroDodgePerUpgrade = 0.08,
+        double maxCigarroDodge = 0.50,
+        double shotBuffPerUpgrade = 0.05,
+        double maxShotBuffMultiplier = 1.30,
+        int canhaoMinutesPerUpgrade = 1,
+        int maxCanhaoMinutes = 5,
+        int penaltyMinutesPerUpgrade = 1,
+        int maxPenaltyMinutes = 5,
+        double penaltyLifestealPerUpgrade = 0.003333,
+        double maxPenaltyLifesteal = 0.015)
     {
         BaseLevel = baseLevel;
         BaseXp = baseXp;
@@ -256,5 +298,15 @@ public static class MyTunoScaling
         RareSetBonusSpeedReduction = rareSetBonusSpeedReduction;
         DoubleGatheringChancePerUpgrade = doubleGatheringChancePerUpgrade;
         MaxDoubleGatheringChance = maxDoubleGatheringChance;
+        CigarroDodgePerUpgrade = cigarroDodgePerUpgrade;
+        MaxCigarroDodge = maxCigarroDodge;
+        ShotBuffPerUpgrade = shotBuffPerUpgrade;
+        MaxShotBuffMultiplier = maxShotBuffMultiplier;
+        CanhaoMinutesPerUpgrade = canhaoMinutesPerUpgrade;
+        MaxCanhaoMinutes = maxCanhaoMinutes;
+        PenaltyMinutesPerUpgrade = penaltyMinutesPerUpgrade;
+        MaxPenaltyMinutes = maxPenaltyMinutes;
+        PenaltyLifestealPerUpgrade = penaltyLifestealPerUpgrade;
+        MaxPenaltyLifesteal = maxPenaltyLifesteal;
     }
 }

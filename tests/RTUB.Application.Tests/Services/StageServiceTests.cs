@@ -55,6 +55,11 @@ public class StageServiceTests : IDisposable
         _characterRepository = new CharacterRepository(_context);
         _combatEngineMock = new Mock<ICombatEngine>();
         _inventoryRepositoryMock = new Mock<IInventoryRepository>();
+        _inventoryRepositoryMock.Setup(x => x.GetItemsByTypesAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<InventoryItemType>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<InventoryItem>());
         _loggerMock = new Mock<ILogger<StageService>>();
 
         // Setup MyTunoScalingConfiguration mock with default values

@@ -84,14 +84,8 @@ public class BattleService : IBattleService
         // This ensures the opponent always starts at full health regardless of their persisted state
         var opponentSnapshot = Character.CreateCpuSnapshot(opponentCharacter);
 
-        // Check if shot buff is active and create buffed copy for combat
-        var hasShotBuff = playerCharacter.ShotBuffBattlesRemaining > 0;
-        var hasPenaltyBuff = playerCharacter.HasPenaltyBuff;
-        var hasCigarroBuff = playerCharacter.CigarroShieldHitsRemaining > 0;
-        var hasCanhaoBuff = playerCharacter.HasCanhaoBuff;
-        var combatCharacter = hasShotBuff 
-            ? Character.CreateShotBuffedCopy(playerCharacter) 
-            : playerCharacter;
+        // Arena fights use base stats — no consumable buffs applied or consumed
+        var combatCharacter = playerCharacter;
 
         // Generate seed for deterministic combat
         var seed = GenerateSeed();
@@ -108,12 +102,8 @@ public class BattleService : IBattleService
         // Serialize replay events to JSON
         var replayJson = JsonSerializer.Serialize(combatResult.Events, JsonSerializerConstants.Compact);
 
-        // Calculate shot buff state after this battle
-        var shotBuffExpired = hasShotBuff && playerCharacter.ShotBuffBattlesRemaining == 1;
-        var shotBuffRemaining = hasShotBuff ? playerCharacter.ShotBuffBattlesRemaining - 1 : 0;
-        var penaltyBuffExpired = hasPenaltyBuff;
-
         // Create and return battle result (not persisted)
+        // No buff usage/expiry tracked — Arena doesn't consume buffs
         return new BattleResult
         {
             BattleId = Guid.NewGuid(),
@@ -125,11 +115,11 @@ public class BattleService : IBattleService
             AttackerFidelis = fidelisReward,
             ReplayJson = replayJson,
             AttackerFinalHP = combatResult.AttackerFinalHP,
-            ShotBuffUsed = hasShotBuff,
-            ShotBuffExpired = shotBuffExpired,
-            ShotBuffBattlesRemaining = shotBuffRemaining,
-            PenaltyBuffUsed = hasPenaltyBuff,
-            PenaltyBuffExpired = penaltyBuffExpired,
+            ShotBuffUsed = false,
+            ShotBuffExpired = false,
+            ShotBuffBattlesRemaining = playerCharacter.ShotBuffBattlesRemaining,
+            PenaltyBuffUsed = false,
+            PenaltyBuffExpired = false,
             RatingChange = ratingChange
         };
     }
@@ -197,17 +187,8 @@ public class BattleService : IBattleService
         // Always restore full HP after arena battle — players no longer lose HP between battles
         playerCharacter.CurrentHP = null;
 
-        // Expire run-based buffs after arena battle
-        playerCharacter.ExpireCigarroBuff();
-        // Timed buffs (Canhão/Penalty) expire automatically via DateTime — no decrement needed
-
-        // Apply shot buff decrement if used (ExpireShotBuff scales HP down when buff expires)
-        if (result.ShotBuffUsed)
-        {
-            playerCharacter.ExpireShotBuff();
-        }
-
-        // Penalty buff is timed — no manual expire needed
+        // Arena does NOT consume or expire any buffs — they are stage-only resources.
+        // Buffs remain untouched so they aren't wasted on arena fights.
 
         // Update arena statistics
         switch (result.Outcome)
@@ -331,7 +312,7 @@ public class BattleService : IBattleService
         var rewards = _myTunoScalingConfig.BattleRewards;
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
-        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
         var highestStage = stageProgress?.HighestStage ?? 1;
 
@@ -340,7 +321,7 @@ public class BattleService : IBattleService
         if (highestStage >= 1 && Random.Shared.NextDouble() < rewards.FinoDropChance)
             drops[InventoryItemType.Fino] = 1;
 
-        if (highestStage >= 5001 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
+        if (highestStage >= 11001 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
             drops[InventoryItemType.Caneca] = 1;
 
         if (highestStage >= 3001 && Random.Shared.NextDouble() < rewards.CigarroDropChance)

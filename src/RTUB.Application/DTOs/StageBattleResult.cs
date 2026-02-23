@@ -100,6 +100,11 @@ public class StageBattleResult
     public int FitabDropped { get; set; }
 
     /// <summary>
+    /// Number of Leitão (piggies) dropped at stage bosses.
+    /// </summary>
+    public int LeitaoDropped { get; set; }
+
+    /// <summary>
     /// Rare set pieces dropped (ultra-rare equipment upgrades).
     /// Each entry is the InventoryItemType of the rare set piece.
     /// </summary>

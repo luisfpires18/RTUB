@@ -89,8 +89,8 @@
       "shotBuffMultiplier": 1.05,
       "cigarroBuffRuns": 5,
       "cigarroDodgeChance": 0.10,
-      "canhaoBuffMinutes": 6,
-      "penaltyBuffMinutes": 3,
+      "canhaoBuffMinutes": 2,
+      "penaltyBuffMinutes": 2,
       "penaltyLifestealPercent": 0.005
     },
 
@@ -124,7 +124,8 @@
         "penaltyDropChance": 0.0002,
         "instrumentPartDropChance": 0.0003,
         "rareSetDropChance": 0.00005,
-        "bossDropMultiplier": 3.0
+        "bossDropMultiplier": 3.0,
+        "leitaoDropChance": 0.33
       },
 
       "rareSet": {

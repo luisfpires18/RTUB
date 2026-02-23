@@ -90,19 +90,19 @@
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-wind me-1"></i>10% Dodge @character.CigarroShieldHitsRemaining runs
+                            <i class="bi bi-wind me-1"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge @character.CigarroShieldHitsRemaining runs
                         </span>
                     }
                     @if (character.HasCanhaoBuff)
                     {
                         <span class="badge bg-info fs-6">
-                            <i class="bi bi-bullseye me-1"></i>AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
+                            <i class="bi bi-bullseye me-1"></i>AOE @character.CanhaoBuffRemainingFormatted
                         </span>
                     }
                     @if (character.HasPenaltyBuff)
                     {
                         <span class="badge bg-warning text-dark fs-6">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Penalty — Lifesteal @((character.EffectivePenaltyLifesteal * 100).ToString("F1"))% HP @((int)(character.PenaltyBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
                         </span>
                     }
                 </div>

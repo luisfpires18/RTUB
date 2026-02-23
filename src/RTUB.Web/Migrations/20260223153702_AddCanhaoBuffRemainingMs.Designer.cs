@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223153702_AddCanhaoBuffRemainingMs")]
+    partial class AddCanhaoBuffRemainingMs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -760,13 +763,7 @@ namespace RTUB.Migrations
                     b.Property<long>("CanhaoBuffRemainingMs")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CanhaoTimerUpgrades")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("CastSpeedUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CigarroDodgeUpgrades")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("CigarroShieldHitsRemaining")
@@ -913,12 +910,6 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("PenaltyBuffExpiresAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("PenaltyBuffRemainingMs")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PenaltyTimerUpgrades")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Power")
                         .HasColumnType("INTEGER");
 
@@ -947,9 +938,6 @@ namespace RTUB.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShotBuffUpgrades")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ShotStatBuffUpgrades")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("SpecialAttackUpgrades")

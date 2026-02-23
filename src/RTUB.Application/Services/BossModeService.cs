@@ -278,7 +278,15 @@ public class BossModeService : IBossModeService
         {
             character.ExpireCigarroBuff();
         }
-        // Canhão and Penalty are now timed buffs — they expire automatically via DateTime
+        // Canhão and Penalty use pause/resume pattern — pause so timer doesn't tick off-screen
+        if (character.HasCanhaoBuff)
+        {
+            character.PauseCanhaoBuff();
+        }
+        if (character.HasPenaltyBuff)
+        {
+            character.PausePenaltyBuff();
+        }
 
         await _characterRepository.UpdateAsync(character);
 
@@ -360,7 +368,8 @@ public class BossModeService : IBossModeService
                 character.ShotBuffBattlesRemaining = restoreShotBuffBattles;
                 character.CigarroShieldHitsRemaining = restoreCigarroShield;
                 character.CanhaoBuffExpiresAt = restoreCanhaoExpiresAt;
-                character.PenaltyBuffExpiresAt = restorePenaltyExpiresAt;
+                // Penalty: pause whatever time remains (same pattern as Stage CancelRun/Canhão)
+                character.PausePenaltyBuff();
                 await _characterRepository.UpdateAsync(character);
 
                 // End the run
@@ -506,9 +515,9 @@ public class BossModeService : IBossModeService
         var instrumentPartsDropped = new List<InventoryItemType>();
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
-        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=5001(Caverns), Canhão=7001(Volcanic), Penalty=9001(Sky)
+        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
         if (highestStage >= 1 && random.NextDouble() < dropRates.FinoDropChance) finosDropped++;
-        if (highestStage >= 5001 && random.NextDouble() < dropRates.CanecaDropChance) canecasDropped++;
+        if (highestStage >= 11001 && random.NextDouble() < dropRates.CanecaDropChance) canecasDropped++;
         if (highestStage >= 3001 && random.NextDouble() < dropRates.CigarroDropChance) cigarrosDropped++;
         if (highestStage >= 7001 && random.NextDouble() < dropRates.CanhaoDropChance) canhaosDropped++;
         if (highestStage >= 1001 && random.NextDouble() < dropRates.ShotDropChance) shotsDropped++;

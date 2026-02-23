@@ -22,6 +22,11 @@ public class MyTunoScalingConfiguration
     /// </summary>
     public ConsumablesConfig Consumables { get; set; } = new();
 
+    /// <summary>
+    /// Consumable upgrade rank configuration (costs and max ranks for consumable upgrades).
+    /// </summary>
+    public ConsumableUpgradesConfig ConsumableUpgrades { get; set; } = new();
+
     public StageModeConfig StageMode { get; set; } = new();
 
     /// <summary>
@@ -404,6 +409,9 @@ public class StageDropRates
     public double InstrumentPartDropChance { get; set; } = 0.0003;
     public double RareSetDropChance { get; set; } = 0.00005;
     public double BossDropMultiplier { get; set; } = 3.0;
+
+    /// <summary>Leitão drop chance at stage-mode boss fights (only in the player's current biome).</summary>
+    public double LeitaoDropChance { get; set; } = 0.33;
 }
 
 /// <summary>
@@ -653,8 +661,70 @@ public class ConsumablesConfig
     public int CigarroBuffRuns { get; set; } = 5;
     public double CigarroDodgeChance { get; set; } = 0.10;
     public int CanhaoBuffMinutes { get; set; } = 6;
-    public int PenaltyBuffMinutes { get; set; } = 3;
+    public int PenaltyBuffMinutes { get; set; } = 2;
     public double PenaltyLifestealPercent { get; set; } = 0.005;
+}
+
+/// <summary>
+/// Configuration for consumable upgrade ranks (improvements to consumable effects).
+/// Each upgrade type has fixed cost tiers (doubling or linear) and max ranks.
+/// </summary>
+public class ConsumableUpgradesConfig
+{
+    /// <summary>Cigarro dodge upgrade: 5 ranks, doubling cost from 5M.</summary>
+    public ConsumableUpgradeTier CigarroDodge { get; set; } = new()
+    {
+        MaxUpgrades = 5,
+        BaseCost = 5_000_000m,
+        CostFormula = CostFormulaType.Doubling
+    };
+
+    /// <summary>Shot buff upgrade: 5 ranks, doubling cost from 5M.</summary>
+    public ConsumableUpgradeTier ShotBuff { get; set; } = new()
+    {
+        MaxUpgrades = 5,
+        BaseCost = 5_000_000m,
+        CostFormula = CostFormulaType.Doubling
+    };
+
+    /// <summary>Canhão timer upgrade: 3 ranks, doubling cost from 25M.</summary>
+    public ConsumableUpgradeTier CanhaoTimer { get; set; } = new()
+    {
+        MaxUpgrades = 3,
+        BaseCost = 25_000_000m,
+        CostFormula = CostFormulaType.Doubling
+    };
+
+    /// <summary>Penalty timer+lifesteal upgrade: 3 ranks, linear cost from 50M (+50M per rank).</summary>
+    public ConsumableUpgradeTier PenaltyTimer { get; set; } = new()
+    {
+        MaxUpgrades = 3,
+        BaseCost = 50_000_000m,
+        CostPerLevel = 50_000_000m,
+        CostFormula = CostFormulaType.Linear
+    };
+}
+
+/// <summary>
+/// Configuration for a single consumable upgrade tier.
+/// </summary>
+public class ConsumableUpgradeTier
+{
+    public int MaxUpgrades { get; set; }
+    public decimal BaseCost { get; set; }
+    public decimal CostPerLevel { get; set; }
+    public CostFormulaType CostFormula { get; set; } = CostFormulaType.Doubling;
+}
+
+/// <summary>
+/// Determines how upgrade cost scales per rank.
+/// </summary>
+public enum CostFormulaType
+{
+    /// <summary>Cost doubles each rank: BaseCost × 2^n</summary>
+    Doubling,
+    /// <summary>Cost increases linearly: BaseCost + n × CostPerLevel</summary>
+    Linear
 }
 
 /// <summary>

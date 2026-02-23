@@ -100,6 +100,44 @@
     color: #ff4444;
 }
 
+/* ── Active Buff Indicators (below top bar, matching Stage mode) ── */
+.boss-buff-strip {
+    position: absolute;
+    top: 152px;
+    top: calc(152px + env(safe-area-inset-top, 0px));
+    left: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+}
+
+.boss-buff-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+.boss-buff-tag--shot {
+    background: rgba(123, 31, 162, 0.5);
+    border: 1px solid rgba(123, 31, 162, 0.7);
+}
+
+.boss-buff-tag--dodge {
+    background: rgba(0, 188, 212, 0.4);
+    border: 1px solid rgba(0, 188, 212, 0.6);
+}
+
+.boss-buff-tag--penalty {
+    background: rgba(255, 152, 0, 0.4);
+    border: 1px solid rgba(255, 152, 0, 0.6);
+}
+
 /* ═══════════════════════════════════════════
    Defeat Summary Panel
    ═══════════════════════════════════════════ */

@@ -256,6 +256,20 @@
                 shot: ccData.shot ?? ccData.Shot ?? 0,
                 penalty: ccData.penalty ?? ccData.Penalty ?? 0
             };
+
+            // ── Canhão buff countdown bar ──
+            // Receives the UTC expiry ISO string from Blazor so the JS can render a depleting timer bar
+            const canhaoUtc = data?.canhaoBuffExpiresAtUtc ?? data?.CanhaoBuffExpiresAtUtc ?? null;
+            this.canhaoBuffExpiresAt = canhaoUtc ? new Date(canhaoUtc).getTime() : null;
+            // Duration in ms for ratio computation (default 2 min)
+            this.canhaoBuffDurationMs = 2 * 60 * 1000;
+            this.canhaoTimerBar = null;
+
+            // ── Penalty buff countdown bar ──
+            const penaltyUtc = data?.penaltyBuffExpiresAtUtc ?? data?.PenaltyBuffExpiresAtUtc ?? null;
+            this.penaltyBuffExpiresAt = penaltyUtc ? new Date(penaltyUtc).getTime() : null;
+            this.penaltyBuffDurationMs = 2 * 60 * 1000;
+            this.penaltyTimerBar = null;
             
             this.setupAudio();
             this.initPixi();
@@ -687,6 +701,125 @@
             this.playerSpeedBar = {
                 bar: speedFill, barBg: speedBg, maxWidth: barWidth,
                 text: speedText, barHeight: speedBarHeight
+            };
+
+            // == Canhão AOE Timer Bar + Penalty Lifesteal Timer Bar ==
+            // Anchored to the BOTTOM-LEFT corner of the canvas.
+            // penalty bar is flush to the bottom, canhão bar sits just above it.
+            const bottomPadding = isMobile ? 10 : 12;
+            const timerBarX = paddingLeft;
+            const timerBarWidth = isMobile ? Math.min(240, width * 0.38) : Math.min(440, width * 0.44);
+            const canhaoBarHeight = isMobile ? 14 : 22;
+            const penaltyBarHeightCalc = isMobile ? 14 : 22;
+            // penaltyBarY is the lower bar (closer to bottom edge)
+            const penaltyBarYCalc = height - bottomPadding - penaltyBarHeightCalc;
+            // canhaoBarY is just above the penalty bar
+            const canhaoBarY = penaltyBarYCalc - 4 - canhaoBarHeight;
+
+            const canhaoBg = new PIXI.Graphics();
+            canhaoBg.roundRect(timerBarX, canhaoBarY, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+            canhaoBg.fill({ color: 0x1a0000, alpha: 0.85 });
+            this.stage.addChild(canhaoBg);
+
+            const canhaoFill = new PIXI.Graphics();
+            canhaoFill.roundRect(0, 0, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+            canhaoFill.fill(0xef5350);
+            canhaoFill.x = timerBarX;
+            canhaoFill.y = canhaoBarY;
+            this.stage.addChild(canhaoFill);
+
+            const canhaoLabelFontSize = isMobile ? 8 : 13;
+            const canhaoLabel = new PIXI.Text({
+                text: '🎯 AOE',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: canhaoLabelFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            canhaoLabel.anchor.set(0, 0.5);
+            canhaoLabel.x = timerBarX + 6;
+            canhaoLabel.y = canhaoBarY + canhaoBarHeight / 2;
+            this.stage.addChild(canhaoLabel);
+
+            const canhaoFontSize = isMobile ? 9 : 14;
+            const canhaoText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: canhaoFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            canhaoText.anchor.set(1, 0.5);
+            canhaoText.x = timerBarX + timerBarWidth - 6;
+            canhaoText.y = canhaoBarY + canhaoBarHeight / 2;
+            this.stage.addChild(canhaoText);
+
+            const hasCanhao = this.canhaoBuffExpiresAt && Date.now() < this.canhaoBuffExpiresAt;
+            canhaoBg.visible = hasCanhao;
+            canhaoFill.visible = hasCanhao;
+            canhaoLabel.visible = hasCanhao;
+            canhaoText.visible = hasCanhao;
+
+            this.canhaoTimerBar = {
+                bar: canhaoFill, barBg: canhaoBg, label: canhaoLabel,
+                text: canhaoText, maxWidth: timerBarWidth, barHeight: canhaoBarHeight
+            };
+
+            // == Penalty Lifesteal Timer Bar (above bottom edge, same left side as Canhão) ==
+            const penaltyBarHeight = penaltyBarHeightCalc;
+            const penaltyBarY = penaltyBarYCalc;
+
+            const penaltyBg = new PIXI.Graphics();
+            penaltyBg.roundRect(timerBarX, penaltyBarY, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+            penaltyBg.fill({ color: 0x1a0a00, alpha: 0.85 });
+            this.stage.addChild(penaltyBg);
+
+            const penaltyFill = new PIXI.Graphics();
+            penaltyFill.roundRect(0, 0, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+            penaltyFill.fill(0xff9800);
+            penaltyFill.x = timerBarX;
+            penaltyFill.y = penaltyBarY;
+            this.stage.addChild(penaltyFill);
+
+            const penaltyLabelFontSize = isMobile ? 8 : 13;
+            const penaltyLabel = new PIXI.Text({
+                text: '⚡ Lifesteal',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: penaltyLabelFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            penaltyLabel.anchor.set(0, 0.5);
+            penaltyLabel.x = timerBarX + 6;
+            penaltyLabel.y = penaltyBarY + penaltyBarHeight / 2;
+            this.stage.addChild(penaltyLabel);
+
+            const penaltyFontSize = isMobile ? 9 : 14;
+            const penaltyText = new PIXI.Text({
+                text: '',
+                style: {
+                    fontFamily: 'Arial, sans-serif', fontSize: penaltyFontSize, fontWeight: 'bold',
+                    fill: 0xffffff,
+                    stroke: { color: 0x000000, width: 2 }
+                }
+            });
+            penaltyText.anchor.set(1, 0.5);
+            penaltyText.x = timerBarX + timerBarWidth - 6;
+            penaltyText.y = penaltyBarY + penaltyBarHeight / 2;
+            this.stage.addChild(penaltyText);
+
+            const hasPenaltyTimer = this.penaltyBuffExpiresAt && Date.now() < this.penaltyBuffExpiresAt;
+            penaltyBg.visible = hasPenaltyTimer;
+            penaltyFill.visible = hasPenaltyTimer;
+            penaltyLabel.visible = hasPenaltyTimer;
+            penaltyText.visible = hasPenaltyTimer;
+
+            this.penaltyTimerBar = {
+                bar: penaltyFill, barBg: penaltyBg, label: penaltyLabel,
+                text: penaltyText, maxWidth: timerBarWidth, barHeight: penaltyBarHeight
             };
 
             // == Boss HUD bars (top-right, mirrored, red) ==
@@ -1522,8 +1655,7 @@
             const cd = this.consumableCooldowns[type] ?? 0;
             if (cd > 0) return;
             // Block if this buff is already active
-            const isBuffType = ['cigarro', 'canhao'].includes(type);
-            if (isBuffType && this.activeBuffs[type]) return;
+            const isBuffType = ['cigarro', 'canhao', 'penalty'].includes(type);
 
             this._consumablePending = true;
             this.requestUseConsumable(type);
@@ -1576,6 +1708,17 @@
                         if (result.buffActive) {
                             this.activeBuffs[type] = true;
                             this.updateConsumableButton(type);
+
+                            // When Canhão is activated mid-battle, set the expiry for the timer bar
+                            if (type === 'canhao') {
+                                this.canhaoBuffExpiresAt = Date.now() + this.canhaoBuffDurationMs;
+                                this.updateCanhaoTimerBar();
+                            }
+                            // When Penalty is activated mid-battle, set the expiry for the timer bar
+                            if (type === 'penalty') {
+                                this.penaltyBuffExpiresAt = Date.now() + this.penaltyBuffDurationMs;
+                                this.updatePenaltyTimerBar();
+                            }
                         }
 
                         // Handle penalty speed change — update the action time for the speed bar
@@ -2351,6 +2494,12 @@
                     this.requestTickConsumableCooldowns(realElapsed);
                 }
 
+                // ── Canhão AOE timer bar — depletes based on real wall-clock time ──
+                this.updateCanhaoTimerBar();
+
+                // ── Penalty Lifesteal timer bar ──
+                this.updatePenaltyTimerBar();
+
                 return; // Don't process pre-computed events
             }
             
@@ -2494,6 +2643,80 @@
                     const remainingSec = Math.max(0, this.enemySpeedBarTimers[enemyIndex] / 1000);
                     this.bossSpeedBar.text.text = `${remainingSec.toFixed(1)}s`;
                 }
+            }
+        }
+
+        /** Update the Canhão AOE countdown bar based on real wall-clock time. */
+        updateCanhaoTimerBar() {
+            if (!this.canhaoTimerBar) return;
+            const now = Date.now();
+            const active = this.canhaoBuffExpiresAt && now < this.canhaoBuffExpiresAt;
+
+            // Toggle visibility
+            this.canhaoTimerBar.bar.visible = active;
+            this.canhaoTimerBar.barBg.visible = active;
+            this.canhaoTimerBar.label.visible = active;
+            this.canhaoTimerBar.text.visible = active;
+
+            if (!active) return;
+
+            const remainingMs = this.canhaoBuffExpiresAt - now;
+            const ratio = Math.max(0, Math.min(1, remainingMs / this.canhaoBuffDurationMs));
+            this.canhaoTimerBar.bar.width = this.canhaoTimerBar.maxWidth * ratio;
+
+            // Colour shift: green→yellow→red as time depletes
+            const r = ratio > 0.5 ? Math.round(255 * (1 - ratio) * 2) : 255;
+            const g = ratio > 0.5 ? 255 : Math.round(255 * ratio * 2);
+            this.canhaoTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+            // Countdown text: "1:23" or "0:05"
+            const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+            const min = Math.floor(totalSec / 60);
+            const sec = totalSec % 60;
+            this.canhaoTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+            // Pulse the bar alpha when ≤ 15 seconds remain
+            if (remainingMs <= 15000) {
+                this.canhaoTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+            } else {
+                this.canhaoTimerBar.bar.alpha = 1;
+            }
+        }
+
+        /** Update the Penalty Lifesteal countdown bar based on real wall-clock time. */
+        updatePenaltyTimerBar() {
+            if (!this.penaltyTimerBar) return;
+            const now = Date.now();
+            const active = this.penaltyBuffExpiresAt && now < this.penaltyBuffExpiresAt;
+
+            // Toggle visibility
+            this.penaltyTimerBar.bar.visible = active;
+            this.penaltyTimerBar.barBg.visible = active;
+            this.penaltyTimerBar.label.visible = active;
+            this.penaltyTimerBar.text.visible = active;
+
+            if (!active) return;
+
+            const remainingMs = this.penaltyBuffExpiresAt - now;
+            const ratio = Math.max(0, Math.min(1, remainingMs / this.penaltyBuffDurationMs));
+            this.penaltyTimerBar.bar.width = this.penaltyTimerBar.maxWidth * ratio;
+
+            // Colour shift: orange base, shifts greener as time runs out
+            const r = 255;
+            const g = Math.round(152 * ratio);
+            this.penaltyTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+            // Countdown text: "1:23" or "0:05"
+            const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+            const min = Math.floor(totalSec / 60);
+            const sec = totalSec % 60;
+            this.penaltyTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+            // Pulse the bar alpha when ≤ 15 seconds remain
+            if (remainingMs <= 15000) {
+                this.penaltyTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+            } else {
+                this.penaltyTimerBar.bar.alpha = 1;
             }
         }
 
@@ -3518,6 +3741,26 @@
                     this.spellCooldowns[id] = remaining;
                 }
             }
+
+            // Update Canhão buff expiry from server (persists across stages)
+            const canhaoUtc = data?.canhaoBuffExpiresAtUtc ?? data?.CanhaoBuffExpiresAtUtc ?? null;
+            if (canhaoUtc) {
+                this.canhaoBuffExpiresAt = new Date(canhaoUtc).getTime();
+            }
+            // If server says canhao is not active, clear it
+            if (abData && !(abData.canhao ?? abData.Canhao)) {
+                this.canhaoBuffExpiresAt = null;
+            }
+
+            // Update Penalty buff expiry from server (persists across stages)
+            const penaltyUtc = data?.penaltyBuffExpiresAtUtc ?? data?.PenaltyBuffExpiresAtUtc ?? null;
+            if (penaltyUtc) {
+                this.penaltyBuffExpiresAt = new Date(penaltyUtc).getTime();
+            }
+            // If server says penalty is not active, clear it
+            if (abData && !(abData.penalty ?? abData.Penalty)) {
+                this.penaltyBuffExpiresAt = null;
+            }
             
             // PRE-LOAD new textures while old scene is still fully visible (no flash)
             try {
@@ -3561,6 +3804,20 @@
                 persistent.add(this.playerSpeedBar.barBg);
                 if (this.playerSpeedBar.border) persistent.add(this.playerSpeedBar.border);
                 if (this.playerSpeedBar.text) persistent.add(this.playerSpeedBar.text);
+            }
+            // Canhão timer bar (persisted across stages)
+            if (this.canhaoTimerBar) {
+                persistent.add(this.canhaoTimerBar.bar);
+                persistent.add(this.canhaoTimerBar.barBg);
+                persistent.add(this.canhaoTimerBar.label);
+                persistent.add(this.canhaoTimerBar.text);
+            }
+            // Penalty timer bar (persisted across stages)
+            if (this.penaltyTimerBar) {
+                persistent.add(this.penaltyTimerBar.bar);
+                persistent.add(this.penaltyTimerBar.barBg);
+                persistent.add(this.penaltyTimerBar.label);
+                persistent.add(this.penaltyTimerBar.text);
             }
             // Boss HUD bars (persisted so they're not destroyed between boss fights)
             if (this.bossHpBar) {
@@ -3823,6 +4080,8 @@
             const consumables = battleData?.consumables ?? battleData?.Consumables ?? {};
             const consumableImages = battleData?.consumableImages ?? battleData?.ConsumableImages ?? {};
             const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? {};
+            const canhaoBuffExpiresAtUtc = battleData?.canhaoBuffExpiresAtUtc ?? battleData?.CanhaoBuffExpiresAtUtc ?? null;
+            const penaltyBuffExpiresAtUtc = battleData?.penaltyBuffExpiresAtUtc ?? battleData?.PenaltyBuffExpiresAtUtc ?? null;
 
             stageScene = new StageBattleScene(container, {
                 events: events,
@@ -3845,7 +4104,9 @@
                 enemies: enemies,
                 consumables: consumables,
                 consumableImages: consumableImages,
-                activeBuffs: activeBuffs
+                activeBuffs: activeBuffs,
+                canhaoBuffExpiresAtUtc: canhaoBuffExpiresAtUtc,
+                penaltyBuffExpiresAtUtc: penaltyBuffExpiresAtUtc
             });
             
             // Apply initial battle speed after scene is created
@@ -3929,6 +4190,8 @@
             const consumableCooldowns = battleData?.consumableCooldowns ?? battleData?.ConsumableCooldowns ?? {};
             const spellCooldowns = battleData?.spellCooldowns ?? battleData?.SpellCooldowns ?? {};
             const activeBuffs = battleData?.activeBuffs ?? battleData?.ActiveBuffs ?? null;
+            const canhaoBuffExpiresAtUtc = battleData?.canhaoBuffExpiresAtUtc ?? battleData?.CanhaoBuffExpiresAtUtc ?? null;
+            const penaltyBuffExpiresAtUtc = battleData?.penaltyBuffExpiresAtUtc ?? battleData?.PenaltyBuffExpiresAtUtc ?? null;
 
             // Use fast reset instead of destroy/recreate
             stageScene.resetForNextBattle({
@@ -3954,7 +4217,9 @@
                 consumableImages: consumableImages,
                 consumableCooldowns: consumableCooldowns,
                 spellCooldowns: spellCooldowns,
-                activeBuffs: activeBuffs
+                activeBuffs: activeBuffs,
+                canhaoBuffExpiresAtUtc: canhaoBuffExpiresAtUtc,
+                penaltyBuffExpiresAtUtc: penaltyBuffExpiresAtUtc
             });
         }
     };

@@ -111,42 +111,7 @@
                             }
                         </div>
                     </div>
-                    @if (character?.ShotBuffBattlesRemaining > 0)
-                    {
-                        <div class="result-buff-row">
-                            <i class="bi bi-droplet-fill text-info"></i>
-                            <span>
-                                +5% Stats
-                            </span>
-                        </div>
-                    }
-                    @if (character?.CigarroShieldHitsRemaining > 0)
-                    {
-                        <div class="result-buff-row">
-                            <i class="bi bi-wind text-info"></i>
-                            <span>
-                                10% Dodge @character.CigarroShieldHitsRemaining runs
-                            </span>
-                        </div>
-                    }
-                    @if (character?.HasCanhaoBuff == true)
-                    {
-                        <div class="result-buff-row">
-                            <i class="bi bi-bullseye text-info"></i>
-                            <span>
-                                AOE @((int)(character.CanhaoBuffExpiresAt!.Value - DateTime.UtcNow).TotalMinutes)min
-                            </span>
-                        </div>
-                    }
-                    @if (character?.HasPenaltyBuff == true)
-                    {
-                        <div class="result-buff-row">
-                            <i class="bi bi-lightning-charge-fill text-warning"></i>
-                            <span>
-                                Penalty — Lifesteal 0.5% HP por hit
-                            </span>
-                        </div>
-                    }
+                    @* Arena does not use consumable buffs — no buff indicators shown *@
                     <div class="d-flex flex-column gap-2 mt-2 w-100">
                         <button class="result-btn" @onclick="ResultFightAgain">
                             <i class="bi bi-sword me-2"></i>LUTAR
@@ -560,13 +525,10 @@
             _starterSpells = null; // Special attacks disabled in Arena (Battle Mode)
 
             // Create CPU snapshot at full HP for the interactive session.
-            // Use buffed copies when consumable buffs are active (matches the pre-computed engine).
+            // Arena uses base stats — no consumable buffs applied or consumed.
             var opponentSnapshot = Character.CreateCpuSnapshot(opponent);
-            Character sessionChar = character;
-            if (character.ShotBuffBattlesRemaining > 0)
-                sessionChar = Character.CreateShotBuffedCopy(character);
             _combatSession = CombatActionService.CreateSession(
-                sessionChar,
+                character,
                 new List<Character> { opponentSnapshot },
                 currentBattle.Seed,
                 _starterSpells,
@@ -590,7 +552,7 @@
                         AttackerName = character.User?.Nickname ?? character.User?.UserName ?? "Jogador",
                         DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente",
                         BattleSpeed = battleSpeed,
-                        HasShotBuff = character.ShotBuffBattlesRemaining > 0,
+                        HasShotBuff = false, // Arena doesn't use buffs
                         // ── Interactive combat data ──
                         InteractiveMode = true,
                         PlayerHP = _combatSession!.Player.CurrentHP,

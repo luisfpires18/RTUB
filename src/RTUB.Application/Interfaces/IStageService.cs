@@ -51,7 +51,7 @@ public interface IStageService
     /// <param name="restoreStage">The stage number to restore to</param>
     /// <param name="restoreShotBuffBattles">The shot buff battles remaining to restore</param>
     /// <returns>True if cancelled successfully</returns>
-    Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, CancellationToken cancellationToken = default);
+    Task<bool> CancelRunAsync(int characterId, long restoreHp, int restoreStage, int restoreShotBuffBattles = 0, int restoreCigarroShield = 0, DateTime? restoreCanhaoExpiresAt = null, DateTime? restorePenaltyExpiresAt = null, long restoreCanhaoRemainingMs = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Applies accumulated run rewards (XP, Fidelis, item drops) when a stage run ends.
@@ -60,7 +60,7 @@ public interface IStageService
     /// Optionally restores the character's HP to the value they had before the run started.
     /// Stage range parameters used for logging clarity.
     /// </summary>
-    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, CancellationToken cancellationToken = default);
+    Task ApplyRunRewardsAsync(int characterId, int xp, decimal fidelis, int finos, int canecas, int cigarros, int canhaos, int shots, int penalties = 0, int fitab = 0, long? restoreHp = null, Dictionary<InventoryItemType, int>? instrumentParts = null, bool expirePenaltyBuff = true, int startStage = 0, int endStage = 0, List<InventoryItemType>? rareSetPieces = null, int leitao = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Calculates XP and Fidelis rewards for winning a given stage.

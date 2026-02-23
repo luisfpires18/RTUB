@@ -5,6 +5,7 @@
 @using RTUB.Core.Helpers
 @using Microsoft.Extensions.Options
 @inject IImprovementService ImprovementService
+@inject IConsumableUpgradeService ConsumableUpgradeService
 @inject IOptions<MyTunoScalingConfiguration> MyTunoConfig
 
 <div class="card h-100">
@@ -229,7 +230,215 @@
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Separator: Consumable Upgrades -->
+        <div class="mt-2 mb-1 px-1">
+            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Consumíveis</small>
+            <hr class="mt-1 mb-0" style="border-color: rgba(255,255,255,0.15);" />
+        </div>
+
+        <!-- Cigarro Dodge Upgrade Row -->
+        <div class="enhance-row @(IsCigarroDodgeMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon" style="background: linear-gradient(135deg, #6c757d, #495057);">
+                <span style="font-size: 1.1rem;">🚬</span>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Cigarro <span class="enhance-row__level">Lv@(Character.CigarroDodgeUpgrades)/@(MaxCigarroDodgeRanks)</span></div>
+                <div class="enhance-row__desc">Aumentar chance de dodge</div>
+                <div class="enhance-row__stat">
+                    @if (IsCigarroDodgeMaxed)
+                    {
+                        <text>@((Character.EffectiveCigarroDodgeChance * 100).ToString("F0"))%</text>
+                    }
+                    else
+                    {
+                        var nextDodge = Math.Min(MyTunoScaling.MaxCigarroDodge, Character.EffectiveCigarroDodgeChance + MyTunoScaling.CigarroDodgePerUpgrade);
+                        <text>@((Character.EffectiveCigarroDodgeChance * 100).ToString("F0"))% → <span class="text-success">@((nextDodge * 100).ToString("F0"))%</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsCigarroDodgeMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestConsumablePurchase(ConsumableUpgradeType.CigarroDodge)"
+                        disabled="@(ConsumablePurchasing || cigarroDodgeCostLoading || IsCigarroDodgeMaxed || FidelisBalance < cigarroDodgeCost)">
+                    @if (ConsumablePurchasing && ConsumablePurchasingType == ConsumableUpgradeType.CigarroDodge)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsCigarroDodgeMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (cigarroDodgeCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(cigarroDodgeCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Shot Buff Upgrade Row -->
+        <div class="enhance-row @(IsShotBuffMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon" style="background: linear-gradient(135deg, #d4a017, #b8860b);">
+                <span style="font-size: 1.1rem;">🥃</span>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Shot <span class="enhance-row__level">Lv@(Character.ShotStatBuffUpgrades)/@(MaxShotBuffRanks)</span></div>
+                <div class="enhance-row__desc">Aumentar buff de stats do Shot</div>
+                <div class="enhance-row__stat">
+                    @if (IsShotBuffMaxed)
+                    {
+                        <text>+@(((Character.EffectiveShotBuffMultiplier - 1) * 100).ToString("F0"))%</text>
+                    }
+                    else
+                    {
+                        var nextMultiplier = Math.Min(MyTunoScaling.MaxShotBuffMultiplier, Character.EffectiveShotBuffMultiplier + MyTunoScaling.ShotBuffPerUpgrade);
+                        <text>+@(((Character.EffectiveShotBuffMultiplier - 1) * 100).ToString("F0"))% → <span class="text-success">+@(((nextMultiplier - 1) * 100).ToString("F0"))%</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsShotBuffMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestConsumablePurchase(ConsumableUpgradeType.ShotBuff)"
+                        disabled="@(ConsumablePurchasing || shotBuffCostLoading || IsShotBuffMaxed || FidelisBalance < shotBuffCost)">
+                    @if (ConsumablePurchasing && ConsumablePurchasingType == ConsumableUpgradeType.ShotBuff)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsShotBuffMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (shotBuffCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(shotBuffCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Canhão Timer Upgrade Row -->
+        <div class="enhance-row @(IsCanhaoTimerMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon" style="background: linear-gradient(135deg, #dc3545, #a71d2a);">
+                <span style="font-size: 1.1rem;">💣</span>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Canhão <span class="enhance-row__level">Lv@(Character.CanhaoTimerUpgrades)/@(MaxCanhaoTimerRanks)</span></div>
+                <div class="enhance-row__desc">Aumentar duração do AOE</div>
+                <div class="enhance-row__stat">
+                    @if (IsCanhaoTimerMaxed)
+                    {
+                        <text>@(Character.EffectiveCanhaoMinutes)min</text>
+                    }
+                    else
+                    {
+                        var nextMinutes = Math.Min(MyTunoScaling.MaxCanhaoMinutes, Character.EffectiveCanhaoMinutes + MyTunoScaling.CanhaoMinutesPerUpgrade);
+                        <text>@(Character.EffectiveCanhaoMinutes)min → <span class="text-success">@(nextMinutes)min</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsCanhaoTimerMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestConsumablePurchase(ConsumableUpgradeType.CanhaoTimer)"
+                        disabled="@(ConsumablePurchasing || canhaoTimerCostLoading || IsCanhaoTimerMaxed || FidelisBalance < canhaoTimerCost)">
+                    @if (ConsumablePurchasing && ConsumablePurchasingType == ConsumableUpgradeType.CanhaoTimer)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsCanhaoTimerMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (canhaoTimerCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(canhaoTimerCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Penalty Timer + Lifesteal Upgrade Row -->
+        <div class="enhance-row @(IsPenaltyTimerMaxed ? "enhance-row--maxed" : "")">
+            <div class="enhance-row__icon" style="background: linear-gradient(135deg, #6610f2, #4a0ea3);">
+                <span style="font-size: 1.1rem;">⚡</span>
+            </div>
+            <div class="enhance-row__info">
+                <div class="enhance-row__title">Penalty <span class="enhance-row__level">Lv@(Character.PenaltyTimerUpgrades)/@(MaxPenaltyTimerRanks)</span></div>
+                <div class="enhance-row__desc">Aumentar duração e lifesteal</div>
+                <div class="enhance-row__stat">
+                    @if (IsPenaltyTimerMaxed)
+                    {
+                        <text>@(Character.EffectivePenaltyMinutes)min / @((Character.EffectivePenaltyLifesteal * 100).ToString("F1"))%</text>
+                    }
+                    else
+                    {
+                        var nextMinutes = Math.Min(MyTunoScaling.MaxPenaltyMinutes, Character.EffectivePenaltyMinutes + MyTunoScaling.PenaltyMinutesPerUpgrade);
+                        var nextLifesteal = Math.Min(MyTunoScaling.MaxPenaltyLifesteal, Character.EffectivePenaltyLifesteal + MyTunoScaling.PenaltyLifestealPerUpgrade);
+                        <text>@(Character.EffectivePenaltyMinutes)min / @((Character.EffectivePenaltyLifesteal * 100).ToString("F1"))% → <span class="text-success">@(nextMinutes)min / @((nextLifesteal * 100).ToString("F1"))%</span></text>
+                    }
+                </div>
+            </div>
+            <div class="enhance-row__action">
+                <button class="btn enhance-row__btn @(IsPenaltyTimerMaxed ? "enhance-row__btn--maxed" : "")"
+                        @onclick="() => RequestConsumablePurchase(ConsumableUpgradeType.PenaltyTimer)"
+                        disabled="@(ConsumablePurchasing || penaltyTimerCostLoading || IsPenaltyTimerMaxed || FidelisBalance < penaltyTimerCost)">
+                    @if (ConsumablePurchasing && ConsumablePurchasingType == ConsumableUpgradeType.PenaltyTimer)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <text>Aumentar</text>
+                    }
+                </button>
+                <div class="enhance-row__cost">
+                    @if (IsPenaltyTimerMaxed)
+                    {
+                        <i class="bi bi-coin"></i> <span>Max</span>
+                    }
+                    else if (penaltyTimerCostLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-coin"></i> <span>@FormatCost(penaltyTimerCost)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        </div>
     </div>
 </div>
 
@@ -240,10 +449,17 @@
     [Parameter] public bool Purchasing { get; set; }
     [Parameter] public ImprovementType? PurchasingType { get; set; }
     [Parameter] public EventCallback<ImprovementType> OnPurchaseRequested { get; set; }
+    [Parameter] public bool ConsumablePurchasing { get; set; }
+    [Parameter] public ConsumableUpgradeType? ConsumablePurchasingType { get; set; }
+    [Parameter] public EventCallback<ConsumableUpgradeType> OnConsumablePurchaseRequested { get; set; }
 
     private decimal energyAmountCost, energyRegenCost, castSpeedCost, doubleGatheringCost;
     private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost, doubleGatheringLeitaoCost;
     private bool energyAmountCostLoading = true, energyRegenCostLoading = true, castSpeedCostLoading = true, doubleGatheringCostLoading = true;
+
+    // Consumable upgrade costs
+    private decimal cigarroDodgeCost, shotBuffCost, canhaoTimerCost, penaltyTimerCost;
+    private bool cigarroDodgeCostLoading = true, shotBuffCostLoading = true, canhaoTimerCostLoading = true, penaltyTimerCostLoading = true;
 
     private int MaxEnergyAmountUpgrades => MyTunoConfig.Value.Improvements.EnergyAmount.MaxUpgrades;
     private int MaxEnergyRegenUpgrades => MyTunoConfig.Value.Improvements.EnergyRegen.MaxUpgrades;
@@ -252,6 +468,17 @@
     private bool IsEnergyRegenMaxed => (MaxEnergyRegenUpgrades > 0 && Character.EnergyRegenUpgrades >= MaxEnergyRegenUpgrades) || Character.EffectiveRegenInterval <= 5.0;
     private bool IsCastSpeedMaxed => Character.EffectiveCastTime <= MyTunoConfig.Value.Improvements.MinCastTime;
     private bool IsDoubleGatheringMaxed => Character.DoubleGatheringChance >= MyTunoConfig.Value.Improvements.MaxDoubleGatheringChance;
+
+    // Consumable upgrade max checks
+    private int MaxCigarroDodgeRanks => MyTunoConfig.Value.ConsumableUpgrades.CigarroDodge.MaxUpgrades;
+    private int MaxShotBuffRanks => MyTunoConfig.Value.ConsumableUpgrades.ShotBuff.MaxUpgrades;
+    private int MaxCanhaoTimerRanks => MyTunoConfig.Value.ConsumableUpgrades.CanhaoTimer.MaxUpgrades;
+    private int MaxPenaltyTimerRanks => MyTunoConfig.Value.ConsumableUpgrades.PenaltyTimer.MaxUpgrades;
+
+    private bool IsCigarroDodgeMaxed => Character.CigarroDodgeUpgrades >= MaxCigarroDodgeRanks;
+    private bool IsShotBuffMaxed => Character.ShotStatBuffUpgrades >= MaxShotBuffRanks;
+    private bool IsCanhaoTimerMaxed => Character.CanhaoTimerUpgrades >= MaxCanhaoTimerRanks;
+    private bool IsPenaltyTimerMaxed => Character.PenaltyTimerUpgrades >= MaxPenaltyTimerRanks;
 
     protected override void OnParametersSet()
     {
@@ -274,6 +501,13 @@
             energyRegenLeitaoCost = PiggiesCostConfig.CalculateCost(Character.EnergyRegenUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
             castSpeedLeitaoCost = PiggiesCostConfig.CalculateCost(Character.CastSpeedUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
             doubleGatheringLeitaoCost = PiggiesCostConfig.CalculateCost(Character.DoubleGatheringUpgrades, p.ImprovementStartLevel, p.ImprovementBaseCost, p.ImprovementCostEveryNLevels);
+
+            // Consumable upgrade costs
+            var consumableCosts = ConsumableUpgradeService.GetAllConsumableUpgradeCosts(Character);
+            cigarroDodgeCost = consumableCosts.GetValueOrDefault(ConsumableUpgradeType.CigarroDodge);
+            shotBuffCost = consumableCosts.GetValueOrDefault(ConsumableUpgradeType.ShotBuff);
+            canhaoTimerCost = consumableCosts.GetValueOrDefault(ConsumableUpgradeType.CanhaoTimer);
+            penaltyTimerCost = consumableCosts.GetValueOrDefault(ConsumableUpgradeType.PenaltyTimer);
         }
         catch
         {
@@ -285,12 +519,21 @@
             energyRegenCostLoading = false;
             castSpeedCostLoading = false;
             doubleGatheringCostLoading = false;
+            cigarroDodgeCostLoading = false;
+            shotBuffCostLoading = false;
+            canhaoTimerCostLoading = false;
+            penaltyTimerCostLoading = false;
         }
     }
 
     private async Task RequestPurchase(ImprovementType improvementType)
     {
         await OnPurchaseRequested.InvokeAsync(improvementType);
+    }
+
+    private async Task RequestConsumablePurchase(ConsumableUpgradeType upgradeType)
+    {
+        await OnConsumablePurchaseRequested.InvokeAsync(upgradeType);
     }
 
     private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);

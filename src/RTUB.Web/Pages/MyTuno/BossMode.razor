@@ -96,21 +96,17 @@
                 </div>
             </div>
 
-            <!-- Active Buff Indicators -->
-            @if (character != null && (character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
+            <!-- Active Buff Indicators (matching Stage mode style) -->
+            @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0))
             {
                 <div class="boss-buff-strip">
+                    @if (character.ShotBuffBattlesRemaining > 0)
+                    {
+                        <span class="boss-buff-tag boss-buff-tag--shot"><i class="bi bi-cup"></i>+@((int)((character.EffectiveShotBuffMultiplier - 1) * 100))% Stats</span>
+                    }
                     @if (character.CigarroShieldHitsRemaining > 0)
                     {
-                        <span class="boss-buff-tag boss-buff-tag--dodge"><i class="bi bi-wind"></i> 10% Dodge @character.CigarroShieldHitsRemaining runs</span>
-                    }
-                    @if (character.HasCanhaoBuff)
-                    {
-                        <span class="boss-buff-tag boss-buff-tag--aoe"><i class="bi bi-bullseye"></i> AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")</span>
-                    }
-                    @if (character.HasPenaltyBuff)
-                    {
-                        <span class="boss-buff-tag boss-buff-tag--penalty"><i class="bi bi-lightning-charge-fill"></i> Penalty — Lifesteal 0.5% HP @(character.PenaltyBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.PenaltyBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")</span>
+                        <span class="boss-buff-tag boss-buff-tag--dodge"><i class="bi bi-wind"></i>@((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge @character.CigarroShieldHitsRemaining runs</span>
                     }
                 </div>
             }
@@ -259,31 +255,19 @@
                     @* Current Buffs Section *@
                     <div class="buff-section">
                         <h6 class="buff-section-title"><i class="bi bi-shield-check me-1"></i>Buffs Ativos</h6>
-                        @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0 || character.HasCanhaoBuff || character.HasPenaltyBuff))
+                        @if (character != null && (character.ShotBuffBattlesRemaining > 0 || character.CigarroShieldHitsRemaining > 0))
                         {
                             <div class="buff-active-list">
                                 @if (character.ShotBuffBattlesRemaining > 0)
                                 {
-                                    <span class="boss-buff-tag boss-buff-tag--dodge">
-                                        <i class="bi bi-droplet-fill"></i> +5% Stats
+                                    <span class="boss-buff-tag boss-buff-tag--shot">
+                                        <i class="bi bi-cup"></i> +@((int)((character.EffectiveShotBuffMultiplier - 1) * 100))% Stats
                                     </span>
                                 }
                                 @if (character.CigarroShieldHitsRemaining > 0)
                                 {
                                     <span class="boss-buff-tag boss-buff-tag--dodge">
-                                        <i class="bi bi-wind"></i> 10% Dodge
-                                    </span>
-                                }
-                                @if (character.HasCanhaoBuff)
-                                {
-                                    <span class="boss-buff-tag boss-buff-tag--aoe">
-                                        <i class="bi bi-bullseye"></i> AOE @(character.CanhaoBuffExpiresAt.HasValue ? $"{Math.Max(0, (int)(character.CanhaoBuffExpiresAt.Value - DateTime.UtcNow).TotalMinutes)}min" : "")
-                                    </span>
-                                }
-                                @if (character.HasPenaltyBuff)
-                                {
-                                    <span class="boss-buff-tag boss-buff-tag--penalty">
-                                        <i class="bi bi-lightning-charge-fill"></i> 0.5% Lifesteal
+                                        <i class="bi bi-wind"></i> @((int)(character.EffectiveCigarroDodgeChance * 100))% Dodge
                                     </span>
                                 }
                             </div>
@@ -319,10 +303,10 @@
                                 var isFullHp = character != null && character.CurrentHP >= character.TotalHP;
                                 var buffConsumables = new (string Name, string Icon, string Desc, string CssVariant, int UnlockStage, int Qty, bool Using, InventoryItemType ItemType, Func<Task> UseAction, bool ExtraDisabled)[]
                                 {
-                                    ("Cigarro", "bi-cloud", "+10% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
-                                    ("Shot", "bi-droplet-fill", "+5% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
-                                    ("Canhão", "bi-bullseye", "AOE 6min", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, isCharacterDead || character?.HasCanhaoBuff == true),
-                                    ("Penalty", "bi-lightning-charge-fill", "Lifesteal 0.5% HP 3min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.HasPenaltyBuff == true),
+                                    ("Cigarro", "bi-cloud", $"+{(int)(character!.EffectiveCigarroDodgeChance * 100)}% Dodge x5", "shot", 2001, cigarroQuantity, usingCigarro, InventoryItemType.Cigarro, UseCigarroBoss, isCharacterDead || character?.CigarroShieldHitsRemaining > 0),
+                                    ("Shot", "bi-droplet-fill", $"+{(int)((character!.EffectiveShotBuffMultiplier - 1) * 100)}% Stats x5", "shot", 5001, shotQuantity, usingShot, InventoryItemType.Shot, UseShotBoss, isCharacterDead || character?.ShotBuffBattlesRemaining > 0),
+                                    ("Canhão", "bi-bullseye", "Stage Only", "shot", 7001, canhaoQuantity, usingCanhao, InventoryItemType.Canhao, UseCanhaoBoss, true),
+                    ("Penalty", "bi-lightning-charge-fill", $"Lifesteal {(character!.EffectivePenaltyLifesteal * 100):F1}% HP {character!.EffectivePenaltyMinutes}min", "penalty", 9001, penaltyQuantity, usingPenalty, InventoryItemType.Penalty, UsePenaltyBoss, isCharacterDead || character?.HasPenaltyBuff == true),
                                 };
                             }
 
@@ -507,6 +491,7 @@
     private int runStartingCigarroBuff = 0;
     private DateTime? runStartingCanhaoBuff;
     private DateTime? runStartingPenaltyBuff;
+    private long runStartingPenaltyRemainingMs = 0;
     private bool runInProgress = false;
     private bool pendingDefeatRewards = false;
     private bool _disposed = false;
@@ -628,6 +613,19 @@
 
                     if (character != null && bossModeProgress != null)
                     {
+                        // Safety net: pause any active Canhão timer (only ticks in stage mode)
+                        if (character.CanhaoBuffExpiresAt.HasValue)
+                        {
+                            character.PauseCanhaoBuff();
+                            await CharacterService.UpdateCharacterAsync(character);
+                        }
+                        // Safety net: pause any active Penalty timer
+                        if (character.PenaltyBuffExpiresAt.HasValue)
+                        {
+                            character.PausePenaltyBuff();
+                            await CharacterService.UpdateCharacterAsync(character);
+                        }
+
                         // Level gate: must be level 100+
                         if (character.Level < 100)
                         {
@@ -705,7 +703,15 @@
                 runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
                 runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
                 runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
+                runStartingPenaltyRemainingMs = character.PenaltyBuffRemainingMs;
                 runInProgress = true;
+
+                // Resume paused Penalty buff so the timer starts ticking during the run
+                if (character.PenaltyBuffRemainingMs > 0)
+                {
+                    character.ResumePenaltyBuff();
+                    await CharacterService.UpdateCharacterAsync(character);
+                }
 
                 // Load consumable quantities for in-fight bar (once per run)
                 try
@@ -873,7 +879,11 @@
                             Canhao = _combatSession.HasCanhaoBuff,
                             Shot = _combatSession.HasShotBuff,
                             Penalty = _combatSession.HasPenaltyBuff
-                        }
+                        },
+                        // Penalty countdown bar: pass expiry UTC so JS can render a depleting timer bar
+                        PenaltyBuffExpiresAtUtc = character.PenaltyBuffExpiresAt.HasValue
+                            ? character.PenaltyBuffExpiresAt.Value.ToString("o")
+                            : (string?)null
                     };
 
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
@@ -1382,11 +1392,8 @@
             character.ExpireShotBuff();
             needsSave = true;
         }
-        if (character.HasPenaltyBuff)
-        {
-            character.ExpirePenaltyBuff();
-            needsSave = true;
-        }
+        // Penalty uses pause/resume like Canhão — carry over remaining time to next run
+        // (already paused by ApplyBossRunRewardsAsync; don't expire it here)
         if (needsSave)
         {
             await CharacterService.UpdateCharacterAsync(character);
@@ -1394,6 +1401,13 @@
 
         // Reload character to get updated buff state
         character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
+
+        // Resume Penalty buff for the new run (carry over remaining time like Canhão)
+        if (character.PenaltyBuffRemainingMs > 0)
+        {
+            character.ResumePenaltyBuff();
+            await CharacterService.UpdateCharacterAsync(character);
+        }
 
         // Start a new boss run (costs 1 FITAB)
         try
@@ -1418,6 +1432,7 @@
         runStartingCigarroBuff = character.CigarroShieldHitsRemaining;
         runStartingCanhaoBuff = character.CanhaoBuffExpiresAt;
         runStartingPenaltyBuff = character.PenaltyBuffExpiresAt;
+        runStartingPenaltyRemainingMs = character.PenaltyBuffRemainingMs;
         runInProgress = true;
         pendingDefeatRewards = true;
         currentBattle = null;
@@ -1537,7 +1552,7 @@
             {
                 cigarroQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Cigarro activated! +10% Dodge for 5 runs.";
+                buffToastMessage = $"Cigarro activated! +{(int)(character.EffectiveCigarroDodgeChance * 100)}% Dodge for 5 runs.";
                 buffToastIsError = false;
             }
             else
@@ -1571,7 +1586,7 @@
             {
                 canhaoQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Canhão ativado! Ataques AOE por 5 corridas.";
+                buffToastMessage = $"Canhão ativado! Ataques AOE por {character.EffectiveCanhaoMinutes} minutos.";
                 buffToastIsError = false;
             }
             else
@@ -1605,7 +1620,7 @@
             {
                 penaltyQuantity--;
                 character = await CharacterService.GetOrCreateCharacterAsync(currentUser.Id);
-                buffToastMessage = "Penalty ativado! Lifesteal 0.5% HP por hit durante 5 corridas.";
+                buffToastMessage = $"Penalty ativado! Lifesteal {(character.EffectivePenaltyLifesteal * 100):F1}% HP por hit durante {character.EffectivePenaltyMinutes} minutos.";
                 buffToastIsError = false;
             }
             else

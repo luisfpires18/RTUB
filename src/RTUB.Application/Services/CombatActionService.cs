@@ -85,10 +85,12 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 return e;
             }).ToList(),
             CurrentTargetIndex = 0,
-            HasShotBuff = player.ShotBuffBattlesRemaining > 0,
-            HasCigarroBuff = player.CigarroShieldHitsRemaining > 0,
-            HasCanhaoBuff = player.HasCanhaoBuff,
-            HasPenaltyBuff = player.HasPenaltyBuff,
+            HasShotBuff = mode != "arena" && player.ShotBuffBattlesRemaining > 0,
+            HasCigarroBuff = mode != "arena" && player.CigarroShieldHitsRemaining > 0,
+            HasCanhaoBuff = mode == "stage" && player.HasCanhaoBuff, // AOE only in stage mode
+            HasPenaltyBuff = mode != "arena" && player.HasPenaltyBuff,
+            EffectiveCigarroDodge = player.EffectiveCigarroDodgeChance,
+            EffectivePenaltyLifesteal = player.EffectivePenaltyLifesteal,
             HeavyAttackDamageBonus = player.HeavyAttackDamageBonus,
             SpecialAttackDamageBonus = player.SpecialAttackDamageBonus,
             EquippedSpells = equippedSpells ?? [],
@@ -158,63 +160,70 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         if (session.CurrentTargetIndex >= session.Enemies.Count)
             return CompleteBattle(session, session.Player.Identifier);
 
-        var target = session.Enemies[session.CurrentTargetIndex];
         var result = new CombatActionResult();
         var simTime = (DateTime.UtcNow - session.BattleStartedAt).TotalMilliseconds;
 
-        // Calculate base damage
-        var (damage, isCritical) = CombatMath.CalculateDamage(
-            session.Player.Power, session.Player.CriticalChance, GetEffectiveDefense(session, target), session.Rng);
+        // Determine targets: Canhão AOE hits ALL alive enemies, otherwise single target
+        var targets = session.HasCanhaoBuff
+            ? session.Enemies.Where(e => e.CurrentHP > 0).ToList()
+            : [session.Enemies[session.CurrentTargetIndex]];
 
-        // Canhão AOE is handled separately — single-target attack proceeds normally
-
-        // Apply power boost (from Acordeão, Percussão, etc.)
-        if (session.PlayerPowerBoost.HitsRemaining > 0)
+        // Consume power boost once per attack action (not per target)
+        var hasPowerBoost = session.PlayerPowerBoost.HitsRemaining > 0;
+        var powerBoostFraction = hasPowerBoost ? session.PlayerPowerBoost.BoostFraction : 0;
+        if (hasPowerBoost)
         {
-            damage = (int)Math.Round(damage * (1 + session.PlayerPowerBoost.BoostFraction));
             session.PlayerPowerBoost = (session.PlayerPowerBoost.HitsRemaining - 1, session.PlayerPowerBoost.BoostFraction);
         }
 
-        // Apply vulnerable on target (double damage)
-        if (session.EnemyVulnerableStacks.TryGetValue(target.Identifier, out var vulnStacks) && vulnStacks > 0)
+        long totalDamageDealt = 0;
+
+        foreach (var target in targets)
         {
-            damage *= 2;
-            session.EnemyVulnerableStacks[target.Identifier] = vulnStacks - 1;
+            // Calculate base damage per target (separate crit roll per target)
+            var (damage, isCritical) = CombatMath.CalculateDamage(
+                session.Player.Power, session.Player.CriticalChance, GetEffectiveDefense(session, target), session.Rng);
+
+            // Apply power boost (from Acordeão, Percussão, etc.)
+            if (hasPowerBoost)
+            {
+                damage = (int)Math.Round(damage * (1 + powerBoostFraction));
+            }
+
+            // Apply vulnerable on target (double damage)
+            if (session.EnemyVulnerableStacks.TryGetValue(target.Identifier, out var vulnStacks) && vulnStacks > 0)
+            {
+                damage *= 2;
+                session.EnemyVulnerableStacks[target.Identifier] = vulnStacks - 1;
+            }
+
+            // Apply damage
+            target.CurrentHP = Math.Max(0, target.CurrentHP - damage);
+            totalDamageDealt += damage;
+
+            // Emit Attack event
+            var attackEvt = new CombatEvent
+            {
+                Type = "Attack",
+                Attacker = session.Player.Identifier,
+                Defender = target.Identifier,
+                Damage = damage,
+                IsCritical = isCritical,
+                IsAoe = session.HasCanhaoBuff ? true : null,
+                SimTime = simTime,
+                Timestamp = session.EventTimestamp++
+            };
+            result.Events.Add(attackEvt);
+            session.RecordedEvents.Add(attackEvt);
+
+            // Emit HPUpdate
+            EmitHPUpdate(session, result, target.Identifier, target.CurrentHP, simTime);
         }
 
-        // Apply damage
-        target.CurrentHP = Math.Max(0, target.CurrentHP - damage);
-
-        // Emit Attack event
-        var attackEvt = new CombatEvent
+        // Penalty lifesteal: heal player for % of max HP per attack action (scaled by upgrades)
+        if (session.HasPenaltyBuff && session.Player.CurrentHP > 0 && totalDamageDealt > 0)
         {
-            Type = "Attack",
-            Attacker = session.Player.Identifier,
-            Defender = target.Identifier,
-            Damage = damage,
-            IsCritical = isCritical,
-            SimTime = simTime,
-            Timestamp = session.EventTimestamp++
-        };
-        result.Events.Add(attackEvt);
-        session.RecordedEvents.Add(attackEvt);
-
-        // Emit HPUpdate
-        var hpEvt = new CombatEvent
-        {
-            Type = "HPUpdate",
-            Character = target.Identifier,
-            HP = target.CurrentHP,
-            SimTime = simTime,
-            Timestamp = session.EventTimestamp++
-        };
-        result.Events.Add(hpEvt);
-        session.RecordedEvents.Add(hpEvt);
-
-        // Penalty lifesteal: heal player for 0.5% of max HP per hit
-        if (session.HasPenaltyBuff && session.Player.CurrentHP > 0 && damage > 0)
-        {
-            var healAmount = (long)Math.Max(1, Math.Round(session.Player.MaxHP * MyTunoScaling.PenaltyLifestealPercent));
+            var healAmount = (long)Math.Max(1, Math.Round(session.Player.MaxHP * session.EffectivePenaltyLifesteal));
             session.Player.CurrentHP = Math.Min(session.Player.MaxHP, session.Player.CurrentHP + healAmount);
             EmitHPUpdate(session, result, session.Player.Identifier, session.Player.CurrentHP, simTime);
         }
@@ -228,17 +237,20 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         // Process bleed ticks on all enemies
         ProcessBleedTicks(session, result, simTime);
 
-        // Check KO
-        if (target.CurrentHP <= 0)
+        // Check KOs for all targets hit
+        foreach (var target in targets)
         {
-            EmitKO(session, result, target.Identifier, simTime);
-            ClearEnemyEffects(session, target.Identifier);
-
-            // Check if all enemies dead → victory
-            if (session.Enemies.All(e => e.CurrentHP <= 0))
+            if (target.CurrentHP <= 0)
             {
-                return EmitVictory(session, result, session.Player.Identifier, simTime);
+                EmitKO(session, result, target.Identifier, simTime);
+                ClearEnemyEffects(session, target.Identifier);
             }
+        }
+
+        // Check if all enemies dead → victory
+        if (session.Enemies.All(e => e.CurrentHP <= 0))
+        {
+            return EmitVictory(session, result, session.Player.Identifier, simTime);
         }
 
         session.LastPlayerActionAt = DateTime.UtcNow;
@@ -537,8 +549,8 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
             session.InstrumentShieldHits--;
             isBlocked = true;
         }
-        // ── Cigarro dodge buff — 10% chance to dodge incoming attack ──
-        else if (session.HasCigarroBuff && session.Rng.NextDouble() < MyTunoScaling.CigarroDodgeChance)
+        // ── Cigarro dodge buff — chance to dodge incoming attack (scaled by upgrades) ──
+        else if (session.HasCigarroBuff && session.Rng.NextDouble() < session.EffectiveCigarroDodge)
         {
             damage = 0;
             isDodged = true;
@@ -798,6 +810,10 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(type);
 
+        // Arena mode: no consumables allowed at all — buffs should never be wasted here
+        if (session?.Mode == "arena")
+            return ConsumableResult.Fail("Consumíveis não são permitidos na Arena.");
+
         switch (type.ToLowerInvariant())
         {
             case "fino":
@@ -859,29 +875,33 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
 
                 character.CigarroShieldHitsRemaining = MyTunoScaling.CigarroBuffRuns;
                 session.HasCigarroBuff = true;
+                session.EffectiveCigarroDodge = character.EffectiveCigarroDodgeChance;
 
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"🚬 +10% DODGE x{MyTunoScaling.CigarroBuffRuns} runs", BuffActive = true
+                    BuffMessage = $"🚬 +{(int)(character.EffectiveCigarroDodgeChance * 100)}% DODGE x{MyTunoScaling.CigarroBuffRuns} runs", BuffActive = true
                 };
             }
             case "canhao":
             {
                 if (session == null) return ConsumableResult.Fail("Sessão inválida.");
+                if (session.Mode != "stage")
+                    return ConsumableResult.Fail("Canhão só funciona em Stage Mode.");
                 if (character.HasCanhaoBuff)
                     return ConsumableResult.Fail("Canhão já ativo!");
 
                 var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Canhao, 1, cancellationToken);
                 if (!consumed) return ConsumableResult.Fail("Sem Canhão disponível.");
 
-                character.CanhaoBuffExpiresAt = DateTime.UtcNow.AddMinutes(MyTunoScaling.CanhaoBuffMinutes);
+                character.CanhaoBuffExpiresAt = DateTime.UtcNow.AddMinutes(character.EffectiveCanhaoMinutes);
+                character.CanhaoBuffRemainingMs = 0; // Active (not paused)
                 session.HasCanhaoBuff = true;
 
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"💣 AOE {MyTunoScaling.CanhaoBuffMinutes}min", BuffActive = true
+                    BuffMessage = $"💣 AOE {character.EffectiveCanhaoMinutes}min", BuffActive = true
                 };
             }
             case "shot":
@@ -895,14 +915,14 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 character.ShotBuffBattlesRemaining = MyTunoScaling.ShotBuffRuns;
                 if (session != null)
                 {
-                    session.Player.Power = CombatMath.ClampToLong(session.Player.Power * MyTunoScaling.ShotBuffMultiplier);
+                    session.Player.Power = CombatMath.ClampToLong(session.Player.Power * character.EffectiveShotBuffMultiplier);
                     session.HasShotBuff = true;
                 }
 
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"🥃 SHOT +{(int)((MyTunoScaling.ShotBuffMultiplier - 1) * 100)}% x{MyTunoScaling.ShotBuffRuns}", BuffActive = true
+                    BuffMessage = $"🥃 SHOT +{(int)((character.EffectiveShotBuffMultiplier - 1) * 100)}% x{MyTunoScaling.ShotBuffRuns}", BuffActive = true
                 };
             }
             case "penalty":
@@ -913,16 +933,18 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
                 var consumed = await _inventoryRepository.ConsumeItemAsync(userId, InventoryItemType.Penalty, 1, cancellationToken);
                 if (!consumed) return ConsumableResult.Fail("Sem Penalty disponível.");
 
-                character.PenaltyBuffExpiresAt = DateTime.UtcNow.AddMinutes(MyTunoScaling.PenaltyBuffMinutes);
+                character.PenaltyBuffExpiresAt = DateTime.UtcNow.AddMinutes(character.EffectivePenaltyMinutes);
+                character.PenaltyBuffRemainingMs = 0; // Active (not paused)
                 if (session != null)
                 {
                     session.HasPenaltyBuff = true;
+                    session.EffectivePenaltyLifesteal = character.EffectivePenaltyLifesteal;
                 }
 
                 return new ConsumableResult
                 {
                     Success = true, Type = type,
-                    BuffMessage = $"⚡ LIFESTEAL {MyTunoScaling.PenaltyBuffMinutes}min", BuffActive = true
+                    BuffMessage = $"⚡ LIFESTEAL {character.EffectivePenaltyMinutes}min", BuffActive = true
                 };
             }
             default:

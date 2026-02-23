@@ -168,7 +168,17 @@ public class Program
                 rareSetBonusCrit: myTunoScaling.StageMode.RareSet.SetBonusCrit,
                 rareSetBonusSpeedReduction: myTunoScaling.StageMode.RareSet.SetBonusSpeedReduction,
                 doubleGatheringChancePerUpgrade: myTunoScaling.Improvements.DoubleGathering.FlatBonus,
-                maxDoubleGatheringChance: myTunoScaling.Improvements.MaxDoubleGatheringChance);
+                maxDoubleGatheringChance: myTunoScaling.Improvements.MaxDoubleGatheringChance,
+                cigarroDodgePerUpgrade: 0.08,
+                maxCigarroDodge: 0.50,
+                shotBuffPerUpgrade: 0.05,
+                maxShotBuffMultiplier: 1.30,
+                canhaoMinutesPerUpgrade: 1,
+                maxCanhaoMinutes: 5,
+                penaltyMinutesPerUpgrade: 1,
+                maxPenaltyMinutes: 5,
+                penaltyLifestealPerUpgrade: 0.003333,
+                maxPenaltyLifesteal: 0.015);
         }
 
         // ---------- DB: SQLite only ----------
