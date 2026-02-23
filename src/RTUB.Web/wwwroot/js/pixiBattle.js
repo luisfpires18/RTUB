@@ -946,13 +946,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.stage.addChild(atkSprite);
       this.characterSprites.attacker = { sprite: atkSprite, originX: atkX, originY: atkY };
       if (this.hasShotBuff) {
-        const aura = new PIXI.Graphics();
-        const auraRadius = atkSprite.height * 0.6;
-        aura.circle(0, 0, auraRadius);
-        aura.fill({ color: 16737792, alpha: 0.25 });
+        const aura = PIXI.Sprite.from("attackerSprite");
+        aura.anchor.set(0.5, 1);
+        aura.scale.set(atkScale * 1.08);
         aura.x = atkX;
-        aura.y = atkY - atkSprite.height / 2;
-        this.stage.addChild(aura);
+        aura.y = atkY;
+        aura.tint = 4504575;
+        aura.alpha = 0.55;
+        const spriteIdx = this.stage.getChildIndex(atkSprite);
+        this.stage.addChildAt(aura, spriteIdx);
         this.attackerAura = aura;
       }
       const defSprite = PIXI.Sprite.from("defenderSprite");
@@ -1772,10 +1774,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.attackerAura && !this.attackerAura.destroyed && this.characterSprites.attacker) {
         const att = this.characterSprites.attacker;
         this.attackerAura.x = att.sprite.x;
-        const spriteHeight = att.sprite.height;
-        this.attackerAura.y = att.sprite.y - spriteHeight / 2;
+        this.attackerAura.y = att.sprite.y;
+        const curScale = att.sprite.scale.x;
+        this.attackerAura.scale.set(curScale * 1.08);
         const time = performance.now() / 1e3;
-        this.attackerAura.alpha = 0.25 + Math.sin(time * 1.2) * 0.12;
+        this.attackerAura.alpha = 0.45 + Math.sin(time * 1.2) * 0.15;
       }
       if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
         const simDelta = deltaMs * this.battleSpeed;

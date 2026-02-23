@@ -103,7 +103,7 @@ export class ArenaBattleScene implements VfxOwner {
 
   // Shot buff visual
   private hasShotBuff: boolean;
-  private attackerAura: Graphics | null = null;
+  private attackerAura: Sprite | null = null;
 
   // Speed bars
   private actionTime = { attacker: 5.0, defender: 5.0 };
@@ -388,15 +388,18 @@ export class ArenaBattleScene implements VfxOwner {
     this.stage.addChild(atkSprite);
     this.characterSprites.attacker = { sprite: atkSprite, originX: atkX, originY: atkY };
 
-    // Shot buff aura
+    // Shot buff aura — blue glow outline behind sprite
     if (this.hasShotBuff) {
-      const aura = new PIXI.Graphics();
-      const auraRadius = atkSprite.height * 0.6;
-      aura.circle(0, 0, auraRadius);
-      aura.fill({ color: 0xff6600, alpha: 0.25 });
+      const aura = PIXI.Sprite.from('attackerSprite');
+      aura.anchor.set(0.5, 1);
+      aura.scale.set(atkScale * 1.08);
       aura.x = atkX;
-      aura.y = atkY - atkSprite.height / 2;
-      this.stage.addChild(aura);
+      aura.y = atkY;
+      aura.tint = 0x44bbff;
+      aura.alpha = 0.55;
+      // Insert behind the real sprite
+      const spriteIdx = this.stage.getChildIndex(atkSprite);
+      this.stage.addChildAt(aura, spriteIdx);
       this.attackerAura = aura;
     }
 
@@ -1339,14 +1342,16 @@ export class ArenaBattleScene implements VfxOwner {
       }
     }
 
-    // Animate attacker aura (shot buff glow)
+    // Animate attacker aura (shot buff glow outline)
     if (this.attackerAura && !(this.attackerAura as unknown as { destroyed?: boolean }).destroyed && this.characterSprites.attacker) {
       const att = this.characterSprites.attacker;
       this.attackerAura.x = att.sprite.x;
-      const spriteHeight = att.sprite.height;
-      this.attackerAura.y = att.sprite.y - spriteHeight / 2;
+      this.attackerAura.y = att.sprite.y;
+      // Match the real sprite's current scale, plus the outline boost
+      const curScale = att.sprite.scale.x;
+      this.attackerAura.scale.set(curScale * 1.08);
       const time = performance.now() / 1000;
-      this.attackerAura.alpha = 0.25 + Math.sin(time * 1.2) * 0.12;
+      this.attackerAura.alpha = 0.45 + Math.sin(time * 1.2) * 0.15;
     }
 
     // ── Interactive mode: speed bars trigger server calls ──

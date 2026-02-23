@@ -1154,12 +1154,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.playerX = playerX;
       this.playerDisplayHeight = this.playerSprite.height;
       if (this.hasShotBuff) {
-        const auraSize = this.playerDisplayHeight * 0.7;
-        this.playerAura = new PIXI.Graphics();
-        this.playerAura.circle(0, 0, auraSize);
-        this.playerAura.fill({ color: 4504575, alpha: 0.35 });
+        this.playerAura = PIXI.Sprite.from(this._playerAlias);
+        this.playerAura.anchor.set(0.5, 1);
+        this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
         this.playerAura.x = playerX;
-        this.playerAura.y = playerY - this.playerDisplayHeight / 2;
+        this.playerAura.y = playerY;
+        this.playerAura.tint = 4504575;
+        this.playerAura.alpha = 0.55;
         this.stage.addChild(this.playerAura);
       }
       this.stage.addChild(this.playerSprite);
@@ -1891,18 +1892,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (type === "shot") {
           this.hasShotBuff = true;
           if (!this.playerAura && this.playerSprite && this.stage) {
-            const auraSize = this.playerDisplayHeight * 0.7;
-            this.playerAura = new PIXI.Graphics();
-            this.playerAura.circle(0, 0, auraSize);
-            this.playerAura.fill({ color: 4504575, alpha: 0.35 });
+            this.playerAura = PIXI.Sprite.from(this._playerAlias);
+            this.playerAura.anchor.set(0.5, 1);
+            this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
             this.playerAura.x = this.playerSprite.x;
-            this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+            this.playerAura.y = this.playerSprite.y;
+            this.playerAura.tint = 4504575;
+            this.playerAura.alpha = 0.55;
             const idx = this.stage.getChildIndex(this.playerSprite);
             this.stage.addChildAt(this.playerAura, idx);
           }
           if (this.playerAura) {
             this.playerAura.visible = true;
-            this.playerAura.alpha = 0.35;
+            this.playerAura.alpha = 0.55;
           }
           const msg = result.buffMessage ?? result.BuffMessage ?? "";
           if (msg && this.playerSprite) {
@@ -2226,7 +2228,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.playerSprite.x = p.baseX + Math.sin(t * 0.8 + p.phase + 1) * p.swayAmplitude;
         if (this.playerAura) {
           this.playerAura.x = this.playerSprite.x;
-          this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+          this.playerAura.y = this.playerSprite.y;
         }
       }
       for (let i = 0; i < this.enemySprites.length; i++) {
@@ -2997,12 +2999,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       if (this.hasShotBuff && !this.playerAura) {
         if (this.playerSprite && this.stage) {
-          const auraSize = this.playerDisplayHeight * 0.7;
-          this.playerAura = new PIXI.Graphics();
-          this.playerAura.circle(0, 0, auraSize);
-          this.playerAura.fill({ color: 4504575, alpha: 0.35 });
+          this.playerAura = PIXI.Sprite.from(this._playerAlias);
+          this.playerAura.anchor.set(0.5, 1);
+          this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
           this.playerAura.x = this.playerSprite.x;
-          this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+          this.playerAura.y = this.playerSprite.y;
+          this.playerAura.tint = 4504575;
+          this.playerAura.alpha = 0.55;
           const playerIdx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, playerIdx);
         }
@@ -3010,7 +3013,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.playerAura.visible = false;
       } else if (this.hasShotBuff && this.playerAura) {
         this.playerAura.visible = true;
-        this.playerAura.alpha = 0.35;
+        this.playerAura.alpha = 0.55;
       }
       if (this.backgroundSprite) {
         const newBgTexture = PIXI.Assets.get(this.bgAlias);

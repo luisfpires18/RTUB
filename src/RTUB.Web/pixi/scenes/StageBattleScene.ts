@@ -233,7 +233,7 @@ export class StageBattleScene implements VfxOwner {
   // Shot / penalty buff visual
   private hasShotBuff: boolean;
   private hasPenaltyBuff: boolean;
-  private playerAura: Graphics | null = null;
+  private playerAura: Sprite | null = null;
 
   // Canhao / Penalty timer bars (bottom-left corner)
   private canhaoTimerBar: TimerBarData | null = null;
@@ -688,14 +688,15 @@ export class StageBattleScene implements VfxOwner {
     this.playerX = playerX;
     this.playerDisplayHeight = this.playerSprite.height;
 
-    // Blue aura behind sprite for shot buff
+    // Blue glow outline behind sprite for shot buff
     if (this.hasShotBuff) {
-      const auraSize = this.playerDisplayHeight * 0.7;
-      this.playerAura = new PIXI.Graphics();
-      this.playerAura.circle(0, 0, auraSize);
-      this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+      this.playerAura = PIXI.Sprite.from(this._playerAlias);
+      this.playerAura.anchor.set(0.5, 1);
+      this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
       this.playerAura.x = playerX;
-      this.playerAura.y = playerY - this.playerDisplayHeight / 2;
+      this.playerAura.y = playerY;
+      this.playerAura.tint = 0x44bbff;
+      this.playerAura.alpha = 0.55;
       this.stage.addChild(this.playerAura);
     }
 
@@ -1510,22 +1511,23 @@ export class StageBattleScene implements VfxOwner {
         }
       }
 
-      // Shot aura
+      // Shot aura — blue glow outline
       if (type === 'shot') {
         this.hasShotBuff = true;
         if (!this.playerAura && this.playerSprite && this.stage) {
-          const auraSize = this.playerDisplayHeight * 0.7;
-          this.playerAura = new PIXI.Graphics();
-          this.playerAura.circle(0, 0, auraSize);
-          this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+          this.playerAura = PIXI.Sprite.from(this._playerAlias);
+          this.playerAura.anchor.set(0.5, 1);
+          this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
           this.playerAura.x = this.playerSprite.x;
-          this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+          this.playerAura.y = this.playerSprite.y;
+          this.playerAura.tint = 0x44bbff;
+          this.playerAura.alpha = 0.55;
           const idx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, idx);
         }
         if (this.playerAura) {
           this.playerAura.visible = true;
-          this.playerAura.alpha = 0.35;
+          this.playerAura.alpha = 0.55;
         }
         const msg = result.buffMessage ?? result.BuffMessage ?? '';
         if (msg && this.playerSprite) {
@@ -1903,7 +1905,7 @@ export class StageBattleScene implements VfxOwner {
       // Sync aura
       if (this.playerAura) {
         this.playerAura.x = this.playerSprite.x;
-        this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+        this.playerAura.y = this.playerSprite.y;
       }
     }
 
@@ -2788,15 +2790,16 @@ export class StageBattleScene implements VfxOwner {
       if (this.bossSpeedBar.text) this.bossSpeedBar.text.alpha = 1;
     }
 
-    // Handle shot buff aura changes
+    // Handle shot buff aura changes — blue glow outline
     if (this.hasShotBuff && !this.playerAura) {
       if (this.playerSprite && this.stage) {
-        const auraSize = this.playerDisplayHeight * 0.7;
-        this.playerAura = new PIXI.Graphics();
-        this.playerAura.circle(0, 0, auraSize);
-        this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+        this.playerAura = PIXI.Sprite.from(this._playerAlias);
+        this.playerAura.anchor.set(0.5, 1);
+        this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
         this.playerAura.x = this.playerSprite.x;
-        this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+        this.playerAura.y = this.playerSprite.y;
+        this.playerAura.tint = 0x44bbff;
+        this.playerAura.alpha = 0.55;
         const playerIdx = this.stage.getChildIndex(this.playerSprite);
         this.stage.addChildAt(this.playerAura, playerIdx);
       }
@@ -2804,7 +2807,7 @@ export class StageBattleScene implements VfxOwner {
       this.playerAura.visible = false;
     } else if (this.hasShotBuff && this.playerAura) {
       this.playerAura.visible = true;
-      this.playerAura.alpha = 0.35;
+      this.playerAura.alpha = 0.55;
     }
 
     // Update background texture if changed
