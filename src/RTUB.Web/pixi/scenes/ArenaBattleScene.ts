@@ -100,6 +100,13 @@ export class ArenaBattleScene implements VfxOwner {
   private hpGraphics: Graphics | null = null;
   private hpTexts: Record<string, Text> = {};
   private nameTexts: Record<string, Text> = {};
+  // HUD bar references (persistent, top-left / top-right)
+  private hudBars: Record<string, {
+    hpBg: Graphics; hpFill: Graphics; hpBorder: Graphics; hpText: Text;
+    speedBg: Graphics; speedFill: Graphics; speedText: Text;
+    maxHpWidth: number; hpBarHeight: number;
+    maxSpeedWidth: number; speedBarHeight: number;
+  }> = {};
 
   // Shot buff visual
   private hasShotBuff: boolean;
@@ -392,11 +399,12 @@ export class ArenaBattleScene implements VfxOwner {
     if (this.hasShotBuff) {
       const aura = PIXI.Sprite.from('attackerSprite');
       aura.anchor.set(0.5, 1);
-      aura.scale.set(atkScale * 1.08);
+      aura.scale.set(atkScale * 1.12);
       aura.x = atkX;
       aura.y = atkY;
       aura.tint = 0x44bbff;
-      aura.alpha = 0.55;
+      aura.alpha = 0.7;
+      aura.filters = [new PIXI.BlurFilter({ strength: 8 })];
       // Insert behind the real sprite
       const spriteIdx = this.stage.getChildIndex(atkSprite);
       this.stage.addChildAt(aura, spriteIdx);
@@ -489,99 +497,129 @@ export class ArenaBattleScene implements VfxOwner {
 
   private drawHpBars(): void {
     if (!this.app || !this.stage) return;
-    const { width } = this.app.screen;
+    const { width, height } = this.app.screen;
     const isMobile = width < 768;
 
-    // Remove previous
-    if (this.hpGraphics) {
-      this.stage.removeChild(this.hpGraphics);
-      this.hpGraphics.destroy();
+    // If HUD bars already exist, just update the fill width + text
+    if (this.hudBars.attacker && this.hudBars.defender) {
+      for (const key of ['attacker', 'defender'] as const) {
+        const hud = this.hudBars[key];
+        const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
+        const fillColor = key === 'attacker'
+          ? (ratio > 0.5 ? 0x4caf50 : ratio > 0.25 ? 0xcccc44 : 0xcc4444)
+          : (ratio > 0.5 ? 0xf44336 : ratio > 0.25 ? 0xd32f2f : 0xb71c1c);
+        hud.hpFill.clear();
+        hud.hpFill.roundRect(0, 0, hud.maxHpWidth, hud.hpBarHeight, hud.hpBarHeight / 2);
+        hud.hpFill.fill(fillColor);
+        hud.hpFill.width = hud.maxHpWidth * ratio;
+        hud.hpText.text = `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`;
+      }
+      return;
     }
-    for (const t of Object.values(this.hpTexts)) {
-      this.stage.removeChild(t);
-      t.destroy();
-    }
-    this.hpTexts = {};
 
-    const g = new PIXI.Graphics();
-    this.stage.addChild(g);
-    this.hpGraphics = g;
+    // First-time creation: build persistent HUD bars
+    const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.40);
+    const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
+    const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
+    const topBarHeight = 54;
+    const paddingTop = topBarHeight + 8;
+    const paddingLeft = Math.min(16, width * 0.03);
 
-    const barW = isMobile ? 120 : 180;
-    const barH = isMobile ? 14 : 18;
+    const positions = {
+      attacker: paddingLeft,                          // top-left
+      defender: width - paddingLeft - barWidth,       // top-right
+    };
+
+    const hpColors = { attacker: 0x4caf50, defender: 0xf44336 };
+    const borderColors = { attacker: 0x66bb6a, defender: 0xef5350 };
 
     for (const key of ['attacker', 'defender'] as const) {
-      const char = this.characterSprites[key];
-      if (!char) continue;
+      const x = positions[key];
 
-      const x = char.sprite.x - barW / 2;
-      const y = char.sprite.y - char.sprite.height - (isMobile ? 22 : 30);
-
-      // Background
-      g.roundRect(x, y, barW, barH, 4);
-      g.fill({ color: 0x333333, alpha: 0.8 });
+      // HP background
+      const hpBg = new PIXI.Graphics();
+      hpBg.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+      hpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
+      hpBg.stroke({ color: 0x333333, width: 1 });
+      this.stage.addChild(hpBg);
 
       // HP fill
       const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
-      const fillColor = ratio > 0.5 ? 0x44cc44 : ratio > 0.25 ? 0xcccc44 : 0xcc4444;
-      if (ratio > 0) {
-        g.roundRect(x, y, barW * ratio, barH, 4);
-        g.fill({ color: fillColor, alpha: 0.9 });
-      }
+      const hpFill = new PIXI.Graphics();
+      hpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+      hpFill.fill(hpColors[key]);
+      hpFill.x = x;
+      hpFill.y = paddingTop;
+      hpFill.width = barWidth * ratio;
+      this.stage.addChild(hpFill);
 
-      // Border
-      g.roundRect(x, y, barW, barH, 4);
-      g.stroke({ color: 0x888888, width: 1 });
+      // HP border
+      const hpBorder = new PIXI.Graphics();
+      hpBorder.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+      hpBorder.stroke({ width: 1.5, color: borderColors[key] });
+      this.stage.addChild(hpBorder);
 
-      // Text
+      // HP text
+      const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
       const hpText = new PIXI.Text({
-        text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])}`,
-        style: { fontFamily: 'Arial', fontSize: isMobile ? 10 : 12, fill: 0xffffff },
+        text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`,
+        style: {
+          fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
+          fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
+        },
       });
-      hpText.anchor.set(0.5);
-      hpText.x = char.sprite.x;
-      hpText.y = y + barH / 2;
+      hpText.anchor.set(0.5, 0.5);
+      hpText.x = x + barWidth / 2;
+      hpText.y = paddingTop + barHeight / 2;
       this.stage.addChild(hpText);
-      this.hpTexts[key] = hpText;
+
+      // Speed background
+      const speedBarY = paddingTop + barHeight + 3;
+      const speedBg = new PIXI.Graphics();
+      speedBg.roundRect(x, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+      speedBg.fill({ color: 0x111111, alpha: 0.85 });
+      this.stage.addChild(speedBg);
+
+      // Speed fill
+      const speedFill = new PIXI.Graphics();
+      speedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
+      speedFill.fill(0x00bcd4);
+      speedFill.x = x;
+      speedFill.y = speedBarY;
+      this.stage.addChild(speedFill);
+
+      // Speed text
+      const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
+      const speedText = new PIXI.Text({
+        text: '',
+        style: {
+          fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+          fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
+        },
+      });
+      speedText.anchor.set(0.5, 0.5);
+      speedText.x = x + barWidth / 2;
+      speedText.y = speedBarY + speedBarHeight / 2;
+      this.stage.addChild(speedText);
+
+      this.hudBars[key] = {
+        hpBg, hpFill, hpBorder, hpText,
+        speedBg, speedFill, speedText,
+        maxHpWidth: barWidth, hpBarHeight: barHeight,
+        maxSpeedWidth: barWidth, speedBarHeight,
+      };
     }
   }
 
   private drawSpeedBars(): void {
-    if (!this.app || !this.stage) return;
-    const { width } = this.app.screen;
-    const isMobile = width < 768;
-
     for (const key of ['attacker', 'defender'] as const) {
-      // Remove old
-      if (this.speedBars[key]) {
-        this.stage.removeChild(this.speedBars[key]!);
-        this.speedBars[key]!.destroy();
-        this.speedBars[key] = null;
-      }
-
-      const char = this.characterSprites[key];
-      if (!char) continue;
-
-      const barW = isMobile ? 120 : 180;
-      const barH = 6;
-      const x = char.sprite.x - barW / 2;
-      const y = char.sprite.y - char.sprite.height - (isMobile ? 8 : 12);
-
-      const g = new PIXI.Graphics();
-      // Background
-      g.roundRect(x, y, barW, barH, 2);
-      g.fill({ color: 0x222222, alpha: 0.6 });
-
-      // Fill — starts full, depletes as timer counts down to 0
+      const hud = this.hudBars[key];
+      if (!hud) continue;
       const maxMs = this.actionTime[key] * 1000;
-      const ratio = maxMs > 0 ? Math.max(0, this.speedBarTimers[key] / maxMs) : 0;
-      if (ratio > 0) {
-        g.roundRect(x, y, barW * ratio, barH, 2);
-        g.fill({ color: 0x00aaff, alpha: 0.8 });
-      }
-
-      this.stage.addChild(g);
-      this.speedBars[key] = g;
+      const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.speedBarTimers[key] / maxMs)) : 0;
+      hud.speedFill.width = hud.maxSpeedWidth * ratio;
+      const remaining = Math.max(0, this.speedBarTimers[key] / 1000);
+      hud.speedText.text = `${remaining.toFixed(1)}s`;
     }
   }
 
@@ -1347,11 +1385,11 @@ export class ArenaBattleScene implements VfxOwner {
       const att = this.characterSprites.attacker;
       this.attackerAura.x = att.sprite.x;
       this.attackerAura.y = att.sprite.y;
-      // Match the real sprite's current scale, plus the outline boost
+      // Match the real sprite's current scale, plus the glow boost
       const curScale = att.sprite.scale.x;
-      this.attackerAura.scale.set(curScale * 1.08);
+      this.attackerAura.scale.set(curScale * 1.12);
       const time = performance.now() / 1000;
-      this.attackerAura.alpha = 0.45 + Math.sin(time * 1.2) * 0.15;
+      this.attackerAura.alpha = 0.55 + Math.sin(time * 1.2) * 0.2;
     }
 
     // ── Interactive mode: speed bars trigger server calls ──

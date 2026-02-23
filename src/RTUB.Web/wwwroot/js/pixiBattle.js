@@ -720,6 +720,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "hpGraphics", null);
       __publicField(this, "hpTexts", {});
       __publicField(this, "nameTexts", {});
+      // HUD bar references (persistent, top-left / top-right)
+      __publicField(this, "hudBars", {});
       // Shot buff visual
       __publicField(this, "hasShotBuff");
       __publicField(this, "attackerAura", null);
@@ -948,11 +950,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.hasShotBuff) {
         const aura = PIXI.Sprite.from("attackerSprite");
         aura.anchor.set(0.5, 1);
-        aura.scale.set(atkScale * 1.08);
+        aura.scale.set(atkScale * 1.12);
         aura.x = atkX;
         aura.y = atkY;
         aura.tint = 4504575;
-        aura.alpha = 0.55;
+        aura.alpha = 0.7;
+        aura.filters = [new PIXI.BlurFilter({ strength: 8 })];
         const spriteIdx = this.stage.getChildIndex(atkSprite);
         this.stage.addChildAt(aura, spriteIdx);
         this.attackerAura = aura;
@@ -1032,75 +1035,119 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     drawHpBars() {
       if (!this.app || !this.stage) return;
-      const { width } = this.app.screen;
+      const { width, height } = this.app.screen;
       const isMobile = width < 768;
-      if (this.hpGraphics) {
-        this.stage.removeChild(this.hpGraphics);
-        this.hpGraphics.destroy();
-      }
-      for (const t of Object.values(this.hpTexts)) {
-        this.stage.removeChild(t);
-        t.destroy();
-      }
-      this.hpTexts = {};
-      const g = new PIXI.Graphics();
-      this.stage.addChild(g);
-      this.hpGraphics = g;
-      const barW = isMobile ? 120 : 180;
-      const barH = isMobile ? 14 : 18;
-      for (const key of ["attacker", "defender"]) {
-        const char = this.characterSprites[key];
-        if (!char) continue;
-        const x = char.sprite.x - barW / 2;
-        const y = char.sprite.y - char.sprite.height - (isMobile ? 22 : 30);
-        g.roundRect(x, y, barW, barH, 4);
-        g.fill({ color: 3355443, alpha: 0.8 });
-        const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
-        const fillColor = ratio > 0.5 ? 4508740 : ratio > 0.25 ? 13421636 : 13386820;
-        if (ratio > 0) {
-          g.roundRect(x, y, barW * ratio, barH, 4);
-          g.fill({ color: fillColor, alpha: 0.9 });
+      if (this.hudBars.attacker && this.hudBars.defender) {
+        for (const key of ["attacker", "defender"]) {
+          const hud = this.hudBars[key];
+          const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
+          const fillColor = key === "attacker" ? ratio > 0.5 ? 5025616 : ratio > 0.25 ? 13421636 : 13386820 : ratio > 0.5 ? 16007990 : ratio > 0.25 ? 13840175 : 12000284;
+          hud.hpFill.clear();
+          hud.hpFill.roundRect(0, 0, hud.maxHpWidth, hud.hpBarHeight, hud.hpBarHeight / 2);
+          hud.hpFill.fill(fillColor);
+          hud.hpFill.width = hud.maxHpWidth * ratio;
+          hud.hpText.text = `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`;
         }
-        g.roundRect(x, y, barW, barH, 4);
-        g.stroke({ color: 8947848, width: 1 });
+        return;
+      }
+      const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.4);
+      const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
+      const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
+      const topBarHeight = 54;
+      const paddingTop = topBarHeight + 8;
+      const paddingLeft = Math.min(16, width * 0.03);
+      const positions = {
+        attacker: paddingLeft,
+        // top-left
+        defender: width - paddingLeft - barWidth
+        // top-right
+      };
+      const hpColors = { attacker: 5025616, defender: 16007990 };
+      const borderColors = { attacker: 6732650, defender: 15684432 };
+      for (const key of ["attacker", "defender"]) {
+        const x = positions[key];
+        const hpBg = new PIXI.Graphics();
+        hpBg.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+        hpBg.fill({ color: 1710618, alpha: 0.85 });
+        hpBg.stroke({ color: 3355443, width: 1 });
+        this.stage.addChild(hpBg);
+        const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
+        const hpFill = new PIXI.Graphics();
+        hpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+        hpFill.fill(hpColors[key]);
+        hpFill.x = x;
+        hpFill.y = paddingTop;
+        hpFill.width = barWidth * ratio;
+        this.stage.addChild(hpFill);
+        const hpBorder = new PIXI.Graphics();
+        hpBorder.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+        hpBorder.stroke({ width: 1.5, color: borderColors[key] });
+        this.stage.addChild(hpBorder);
+        const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
         const hpText = new PIXI.Text({
-          text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])}`,
-          style: { fontFamily: "Arial", fontSize: isMobile ? 10 : 12, fill: 16777215 }
+          text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`,
+          style: {
+            fontFamily: "Arial, sans-serif",
+            fontSize: hpFontSize,
+            fontWeight: "bold",
+            fill: 16777215,
+            stroke: { color: 0, width: 2 }
+          }
         });
-        hpText.anchor.set(0.5);
-        hpText.x = char.sprite.x;
-        hpText.y = y + barH / 2;
+        hpText.anchor.set(0.5, 0.5);
+        hpText.x = x + barWidth / 2;
+        hpText.y = paddingTop + barHeight / 2;
         this.stage.addChild(hpText);
-        this.hpTexts[key] = hpText;
+        const speedBarY = paddingTop + barHeight + 3;
+        const speedBg = new PIXI.Graphics();
+        speedBg.roundRect(x, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+        speedBg.fill({ color: 1118481, alpha: 0.85 });
+        this.stage.addChild(speedBg);
+        const speedFill = new PIXI.Graphics();
+        speedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
+        speedFill.fill(48340);
+        speedFill.x = x;
+        speedFill.y = speedBarY;
+        this.stage.addChild(speedFill);
+        const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
+        const speedText = new PIXI.Text({
+          text: "",
+          style: {
+            fontFamily: "Arial, sans-serif",
+            fontSize: speedFontSize,
+            fontWeight: "bold",
+            fill: 16777215,
+            stroke: { color: 0, width: 2 }
+          }
+        });
+        speedText.anchor.set(0.5, 0.5);
+        speedText.x = x + barWidth / 2;
+        speedText.y = speedBarY + speedBarHeight / 2;
+        this.stage.addChild(speedText);
+        this.hudBars[key] = {
+          hpBg,
+          hpFill,
+          hpBorder,
+          hpText,
+          speedBg,
+          speedFill,
+          speedText,
+          maxHpWidth: barWidth,
+          hpBarHeight: barHeight,
+          maxSpeedWidth: barWidth,
+          speedBarHeight
+        };
       }
     }
     drawSpeedBars() {
-      if (!this.app || !this.stage) return;
-      const { width } = this.app.screen;
-      const isMobile = width < 768;
       for (const key of ["attacker", "defender"]) {
-        if (this.speedBars[key]) {
-          this.stage.removeChild(this.speedBars[key]);
-          this.speedBars[key].destroy();
-          this.speedBars[key] = null;
-        }
-        const char = this.characterSprites[key];
-        if (!char) continue;
-        const barW = isMobile ? 120 : 180;
-        const barH = 6;
-        const x = char.sprite.x - barW / 2;
-        const y = char.sprite.y - char.sprite.height - (isMobile ? 8 : 12);
-        const g = new PIXI.Graphics();
-        g.roundRect(x, y, barW, barH, 2);
-        g.fill({ color: 2236962, alpha: 0.6 });
+        const hud = this.hudBars[key];
+        if (!hud) continue;
         const maxMs = this.actionTime[key] * 1e3;
-        const ratio = maxMs > 0 ? Math.max(0, this.speedBarTimers[key] / maxMs) : 0;
-        if (ratio > 0) {
-          g.roundRect(x, y, barW * ratio, barH, 2);
-          g.fill({ color: 43775, alpha: 0.8 });
-        }
-        this.stage.addChild(g);
-        this.speedBars[key] = g;
+        const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.speedBarTimers[key] / maxMs)) : 0;
+        hud.speedFill.width = hud.maxSpeedWidth * ratio;
+        const remaining = Math.max(0, this.speedBarTimers[key] / 1e3);
+        hud.speedText.text = `${remaining.toFixed(1)}s`;
       }
     }
     /* ──────────────── Interactive Mode Init ────────────────────────── */
@@ -1776,9 +1823,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.attackerAura.x = att.sprite.x;
         this.attackerAura.y = att.sprite.y;
         const curScale = att.sprite.scale.x;
-        this.attackerAura.scale.set(curScale * 1.08);
+        this.attackerAura.scale.set(curScale * 1.12);
         const time = performance.now() / 1e3;
-        this.attackerAura.alpha = 0.45 + Math.sin(time * 1.2) * 0.15;
+        this.attackerAura.alpha = 0.55 + Math.sin(time * 1.2) * 0.2;
       }
       if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
         const simDelta = deltaMs * this.battleSpeed;

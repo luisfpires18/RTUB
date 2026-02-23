@@ -692,11 +692,12 @@ export class StageBattleScene implements VfxOwner {
     if (this.hasShotBuff) {
       this.playerAura = PIXI.Sprite.from(this._playerAlias);
       this.playerAura.anchor.set(0.5, 1);
-      this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
+      this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
       this.playerAura.x = playerX;
       this.playerAura.y = playerY;
       this.playerAura.tint = 0x44bbff;
-      this.playerAura.alpha = 0.55;
+      this.playerAura.alpha = 0.7;
+      this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
       this.stage.addChild(this.playerAura);
     }
 
@@ -1120,8 +1121,13 @@ export class StageBattleScene implements VfxOwner {
       });
     }
 
-    // Hide individual speed bars for bosses (boss uses HUD speed bar)
+    // Hide individual HP + speed bars for bosses (boss uses HUD bars in top-right)
     if (isBoss) {
+      for (const hb of this.enemyHpBars) {
+        hb.bar.visible = false;
+        hb.barBg.visible = false;
+        hb.text.visible = false;
+      }
       for (const sb of this.enemySpeedBars) {
         sb.bar.visible = false;
         sb.barBg.visible = false;
@@ -1517,17 +1523,18 @@ export class StageBattleScene implements VfxOwner {
         if (!this.playerAura && this.playerSprite && this.stage) {
           this.playerAura = PIXI.Sprite.from(this._playerAlias);
           this.playerAura.anchor.set(0.5, 1);
-          this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
+          this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
           this.playerAura.x = this.playerSprite.x;
           this.playerAura.y = this.playerSprite.y;
           this.playerAura.tint = 0x44bbff;
-          this.playerAura.alpha = 0.55;
+          this.playerAura.alpha = 0.7;
+          this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
           const idx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, idx);
         }
         if (this.playerAura) {
           this.playerAura.visible = true;
-          this.playerAura.alpha = 0.55;
+          this.playerAura.alpha = 0.7;
         }
         const msg = result.buffMessage ?? result.BuffMessage ?? '';
         if (msg && this.playerSprite) {
@@ -2795,11 +2802,12 @@ export class StageBattleScene implements VfxOwner {
       if (this.playerSprite && this.stage) {
         this.playerAura = PIXI.Sprite.from(this._playerAlias);
         this.playerAura.anchor.set(0.5, 1);
-        this.playerAura.scale.set(this.playerSprite.scale.x * 1.08);
+        this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
         this.playerAura.x = this.playerSprite.x;
         this.playerAura.y = this.playerSprite.y;
         this.playerAura.tint = 0x44bbff;
-        this.playerAura.alpha = 0.55;
+        this.playerAura.alpha = 0.7;
+        this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
         const playerIdx = this.stage.getChildIndex(this.playerSprite);
         this.stage.addChildAt(this.playerAura, playerIdx);
       }
@@ -2807,7 +2815,7 @@ export class StageBattleScene implements VfxOwner {
       this.playerAura.visible = false;
     } else if (this.hasShotBuff && this.playerAura) {
       this.playerAura.visible = true;
-      this.playerAura.alpha = 0.55;
+      this.playerAura.alpha = 0.7;
     }
 
     // Update background texture if changed
