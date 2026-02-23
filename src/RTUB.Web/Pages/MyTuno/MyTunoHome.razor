@@ -588,12 +588,12 @@
                                 }
                                 @if (character.HasPenaltyBuff)
                                 {
-                                    <div class="p-2 border border-warning rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
+                                    <div class="p-2 border border-info rounded d-flex justify-content-between align-items-center mb-2" style="background-color: #1e1e1e;">
                                         <span class="d-flex align-items-center">
-                                            <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+                                            <i class="bi bi-lightning-charge-fill text-info me-2"></i>
                                             <span>Penalty — Lifesteal @((character.EffectivePenaltyLifesteal * 100).ToString("F1"))% HP por hit</span>
                                         </span>
-                                        <span class="badge bg-warning text-dark">@character.PenaltyBuffRemainingFormatted restantes</span>
+                                        <span class="badge bg-info">@character.PenaltyBuffRemainingFormatted restantes</span>
                                     </div>
                                 }
                             </div>
@@ -1243,7 +1243,8 @@
                                               OnPurchaseRequested="PurchaseImprovement"
                                               ConsumablePurchasing="@purchasingConsumableUpgrade"
                                               ConsumablePurchasingType="@purchasingConsumableUpgradeType"
-                                              OnConsumablePurchaseRequested="PurchaseConsumableUpgrade" />
+                                              OnConsumablePurchaseRequested="PurchaseConsumableUpgrade"
+                                              ConsumableImageUrls="@itemTypePictures" />
                         }
 
                         </div>

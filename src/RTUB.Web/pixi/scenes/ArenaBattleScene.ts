@@ -111,7 +111,9 @@ export class ArenaBattleScene implements VfxOwner {
   private speedBarTimers = { attacker: 0, defender: 0 };
   private battleStartTime = 0;
   private currentSimTime = 0;
-  battleSpeed = 1.0;
+  private _battleSpeed = 1.0;
+  get battleSpeed(): number { return this._battleSpeed; }
+  set battleSpeed(v: number) { this._battleSpeed = v === 5 ? 5 : 1; }
 
   // Replay state
   private currentEventIndex = 0;
@@ -1283,8 +1285,7 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   setReplaySpeed(speed: number): void {
-    const allowedSpeeds = [1, 5];
-    const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+    const validSpeed = speed === 5 ? 5 : 1;
     this.playbackSpeed = validSpeed;
     this.battleSpeed = validSpeed;
   }

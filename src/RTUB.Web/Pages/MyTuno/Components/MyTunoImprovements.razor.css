@@ -43,6 +43,14 @@
   border: 2px solid rgba(0, 0, 0, 0.3);
   font-size: 1.25rem;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.enhance-row__img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
 .enhance-row__icon--energy {

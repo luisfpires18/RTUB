@@ -30,7 +30,8 @@ public class ItemTypeConfigInitializer
         (InventoryItemType.Caneca, "Caneca", "bi-cup-hot"),
         (InventoryItemType.Cigarro, "Cigarro", "bi-cloud"),
         (InventoryItemType.Canhao, "Canhão", "bi-bullseye"),
-        (InventoryItemType.Shot, "Shot", "bi-droplet-fill")
+        (InventoryItemType.Shot, "Shot", "bi-droplet-fill"),
+        (InventoryItemType.Penalty, "Penalty", "bi-lightning-charge-fill")
     ];
 
     private static readonly (InventoryItemType Type, string Label, string Icon)[] EquipmentSlots =

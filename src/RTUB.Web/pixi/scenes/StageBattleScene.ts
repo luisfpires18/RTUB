@@ -193,12 +193,11 @@ export class StageBattleScene implements VfxOwner {
   private battleStartTime = 0;
   private currentSimTime = 0;
 
-  // Battle speed (anti-exploit)
+  // Battle speed (anti-exploit) – only 1x or 5x allowed
   private _battleSpeed = 1.0;
   get battleSpeed(): number { return this._battleSpeed; }
   set battleSpeed(v: number) {
-    const allowed = [1, 3, 5];
-    this._battleSpeed = allowed.includes(v) ? v : 1;
+    this._battleSpeed = v === 5 ? 5 : 1;
   }
 
   // Playback
@@ -2203,8 +2202,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Public API ────────────────────────────────────── */
 
   setSpeed(speed: number): void {
-    const allowedSpeeds = [1, 3, 5];
-    const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
+    const validSpeed = speed === 5 ? 5 : 1;
     this.playbackSpeed = validSpeed;
     this._battleSpeed = validSpeed;
   }

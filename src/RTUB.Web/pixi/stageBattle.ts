@@ -119,8 +119,7 @@ const api: StageBattleGameApi = {
   destroySceneOnly,
   setSpeed(speed: number) {
     if (stageScene) {
-      const allowed = [1, 3, 5];
-      stageScene.setSpeed(allowed.includes(speed) ? speed : 1);
+      stageScene.setSpeed(speed === 5 ? 5 : 1);
     }
   },
   setAudioEnabled(enabled: boolean) {

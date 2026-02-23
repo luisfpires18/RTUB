@@ -1838,9 +1838,8 @@
         }
 
         setReplaySpeed(speed) {
-            // Only allow valid speeds to prevent console exploits
-            const allowedSpeeds = [1, 5];
-            const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+            // Only allow 1x or 5x to prevent console exploits
+            const validSpeed = speed === 5 ? 5 : 1;
             this.playbackSpeed = validSpeed;
             this.battleSpeed = validSpeed;
         }
@@ -2180,9 +2179,8 @@
         },
         setSpeed: (speed) => {
             if (activeScene) {
-                // Only allow valid speeds to prevent console exploits
-                const allowedSpeeds = [1, 5];
-                const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+                // Only allow 1x or 5x to prevent console exploits
+                const validSpeed = speed === 5 ? 5 : 1;
                 activeScene.playbackSpeed = validSpeed;
                 activeScene.battleSpeed = validSpeed;
             }

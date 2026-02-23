@@ -167,8 +167,7 @@
             Object.defineProperty(this, 'battleSpeed', {
                 get: () => this._battleSpeed,
                 set: (v) => {
-                    const allowed = [1, 3, 5];
-                    this._battleSpeed = allowed.includes(v) ? v : 1;
+                    this._battleSpeed = v === 5 ? 5 : 1;
                 },
                 configurable: false
             });
@@ -3461,9 +3460,8 @@
         }
 
         setSpeed(speed) {
-            // Only allow valid speeds (1, 3, 5) to prevent console exploits
-            const allowedSpeeds = [1, 3, 5];
-            const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
+            // Only allow 1x or 5x to prevent console exploits
+            const validSpeed = speed === 5 ? 5 : 1;
             this.playbackSpeed = validSpeed;
             this._battleSpeed = validSpeed;
         }
@@ -4134,9 +4132,7 @@
 
         setSpeed: function (speed) {
             if (stageScene) {
-                const allowedSpeeds = [1, 3, 5];
-                const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
-                stageScene.setSpeed(validSpeed);
+                stageScene.setSpeed(speed === 5 ? 5 : 1);
             }
         },
 

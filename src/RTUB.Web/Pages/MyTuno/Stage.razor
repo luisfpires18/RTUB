@@ -253,7 +253,7 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
+                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
@@ -548,6 +548,9 @@
         
         // Prevent multiple concurrent battles
         if (fighting) return;
+
+        // User clicked "Acabar" — don't start a new fight
+        if (_endingRun) return;
         
         // Acquire lock to prevent concurrent DbContext access (e.g. dispose cancel vs fight)
         if (!await _stageLock.WaitAsync(0)) return;
@@ -897,7 +900,7 @@
 
     private async Task ContinueToNextStage()
     {
-        if (_disposed) return;
+        if (_disposed || _endingRun) return;
         // Preserve cooldowns before destroying session
         PreserveCooldownsFromSession();
         // Reset battle state and start next fight
@@ -1163,7 +1166,7 @@
                 // Brief delay then start next stage automatically
                 // Keep showBattleAnimation = true to avoid hiding/recreating the container
                 await Task.Delay(200);
-                if (_disposed) return;
+                if (_disposed || _endingRun) return;
                 // Preserve cooldowns before destroying session
                 PreserveCooldownsFromSession();
                 currentBattle = null;

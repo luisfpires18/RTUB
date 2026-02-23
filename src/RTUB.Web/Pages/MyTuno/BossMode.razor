@@ -38,6 +38,8 @@
 <PageTitle>Boss Mode - My Tuno - RTUB</PageTitle>
 
 <div class="stage-page">
+    @if (!showBuffScreen && !showDefeatSummary)
+    {
     <div class="boss-header">
         <button class="boss-back-btn" @onclick="GoBack" title="Voltar">
             <i class="bi bi-arrow-left"></i>
@@ -45,6 +47,7 @@
         <h1 class="boss-title"><i class="bi bi-lightning-fill"></i> Boss Mode</h1>
         <div class="boss-header-spacer"></div>
     </div>
+    }
 
     @if (loading)
     {
@@ -144,7 +147,7 @@
                         }
                         @if (totalPenaltiesDropped > 0)
                         {
-                            <FantasyTile Icon="bi-lightning-charge-fill" Label="Penalty" Value="@($"+{Fmt(totalPenaltiesDropped)}")" Color="orange" Size="sm" />
+                            <FantasyTile Icon="bi-lightning-charge-fill" Label="Penalty" Value="@($"+{Fmt(totalPenaltiesDropped)}")" Color="blue" Size="sm" />
                         }
                     </div>
                 </div>
@@ -236,7 +239,7 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
+                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }
@@ -427,7 +430,7 @@
                             @if (totalPenaltiesDropped > 0)
                             {
                                 <div class="defeat-reward-row">
-                                    <i class="bi bi-lightning-charge-fill" style="color: #ff9800;"></i>
+                                    <i class="bi bi-lightning-charge-fill" style="color: #0dcaf0;"></i>
                                     <span>+@totalPenaltiesDropped Penalty</span>
                                 </div>
                             }

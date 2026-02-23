@@ -134,8 +134,8 @@
 }
 
 .boss-buff-tag--penalty {
-    background: rgba(255, 152, 0, 0.4);
-    border: 1px solid rgba(255, 152, 0, 0.6);
+    background: rgba(13, 202, 240, 0.4);
+    border: 1px solid rgba(13, 202, 240, 0.6);
 }
 
 /* ═══════════════════════════════════════════
@@ -145,7 +145,8 @@
 .defeat-overlay {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
+  min-height: 100%;
   padding: 1rem 0;
 }
 
@@ -391,17 +392,17 @@
 }
 
 .buff-item-card--penalty {
-  border-color: rgba(255, 152, 0, 0.5);
-  background: linear-gradient(180deg, #2e1a0f 0%, #1a0f08 100%);
+  border-color: rgba(13, 202, 240, 0.5);
+  background: linear-gradient(180deg, #0f2e3a 0%, #081a22 100%);
 }
 
 .buff-item-card--penalty:hover:not(.buff-item-card--locked):not(.buff-item-card--disabled) {
-  border-color: #ff9800;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+  border-color: #0dcaf0;
+  box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
 }
 
 .buff-item-card--penalty .buff-item-card__icon {
-  color: #ff9800;
+  color: #0dcaf0;
 }
 
 .buff-item-card--locked {

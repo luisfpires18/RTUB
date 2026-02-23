@@ -3,6 +3,7 @@
 @using RTUB.Core.Enums
 @using RTUB.Core.Configuration
 @using RTUB.Core.Helpers
+@using RTUB.Core.Utilities
 @using Microsoft.Extensions.Options
 @inject IImprovementService ImprovementService
 @inject IConsumableUpgradeService ConsumableUpgradeService
@@ -240,7 +241,14 @@
         <!-- Cigarro Dodge Upgrade Row -->
         <div class="enhance-row @(IsCigarroDodgeMaxed ? "enhance-row--maxed" : "")">
             <div class="enhance-row__icon" style="background: linear-gradient(135deg, #6c757d, #495057);">
-                <span style="font-size: 1.1rem;">🚬</span>
+                @if (GetConsumableImage("Cigarro") is string cigarroImg)
+                {
+                    <img src="@CacheBuster.Bust(cigarroImg)" alt="Cigarro" class="enhance-row__img" />
+                }
+                else
+                {
+                    <span style="font-size: 1.1rem;">🚬</span>
+                }
             </div>
             <div class="enhance-row__info">
                 <div class="enhance-row__title">Cigarro <span class="enhance-row__level">Lv@(Character.CigarroDodgeUpgrades)/@(MaxCigarroDodgeRanks)</span></div>
@@ -290,7 +298,14 @@
         <!-- Shot Buff Upgrade Row -->
         <div class="enhance-row @(IsShotBuffMaxed ? "enhance-row--maxed" : "")">
             <div class="enhance-row__icon" style="background: linear-gradient(135deg, #d4a017, #b8860b);">
-                <span style="font-size: 1.1rem;">🥃</span>
+                @if (GetConsumableImage("Shot") is string shotImg)
+                {
+                    <img src="@CacheBuster.Bust(shotImg)" alt="Shot" class="enhance-row__img" />
+                }
+                else
+                {
+                    <span style="font-size: 1.1rem;">🥃</span>
+                }
             </div>
             <div class="enhance-row__info">
                 <div class="enhance-row__title">Shot <span class="enhance-row__level">Lv@(Character.ShotStatBuffUpgrades)/@(MaxShotBuffRanks)</span></div>
@@ -340,7 +355,14 @@
         <!-- Canhão Timer Upgrade Row -->
         <div class="enhance-row @(IsCanhaoTimerMaxed ? "enhance-row--maxed" : "")">
             <div class="enhance-row__icon" style="background: linear-gradient(135deg, #dc3545, #a71d2a);">
-                <span style="font-size: 1.1rem;">💣</span>
+                @if (GetConsumableImage("Canhao") is string canhaoImg)
+                {
+                    <img src="@CacheBuster.Bust(canhaoImg)" alt="Canhão" class="enhance-row__img" />
+                }
+                else
+                {
+                    <span style="font-size: 1.1rem;">💣</span>
+                }
             </div>
             <div class="enhance-row__info">
                 <div class="enhance-row__title">Canhão <span class="enhance-row__level">Lv@(Character.CanhaoTimerUpgrades)/@(MaxCanhaoTimerRanks)</span></div>
@@ -390,7 +412,14 @@
         <!-- Penalty Timer + Lifesteal Upgrade Row -->
         <div class="enhance-row @(IsPenaltyTimerMaxed ? "enhance-row--maxed" : "")">
             <div class="enhance-row__icon" style="background: linear-gradient(135deg, #6610f2, #4a0ea3);">
-                <span style="font-size: 1.1rem;">⚡</span>
+                @if (GetConsumableImage("Penalty") is string penaltyImg)
+                {
+                    <img src="@CacheBuster.Bust(penaltyImg)" alt="Penalty" class="enhance-row__img" />
+                }
+                else
+                {
+                    <span style="font-size: 1.1rem;">⚡</span>
+                }
             </div>
             <div class="enhance-row__info">
                 <div class="enhance-row__title">Penalty <span class="enhance-row__level">Lv@(Character.PenaltyTimerUpgrades)/@(MaxPenaltyTimerRanks)</span></div>
@@ -452,6 +481,7 @@
     [Parameter] public bool ConsumablePurchasing { get; set; }
     [Parameter] public ConsumableUpgradeType? ConsumablePurchasingType { get; set; }
     [Parameter] public EventCallback<ConsumableUpgradeType> OnConsumablePurchaseRequested { get; set; }
+    [Parameter] public Dictionary<string, string>? ConsumableImageUrls { get; set; }
 
     private decimal energyAmountCost, energyRegenCost, castSpeedCost, doubleGatheringCost;
     private int energyAmountLeitaoCost, energyRegenLeitaoCost, castSpeedLeitaoCost, doubleGatheringLeitaoCost;
@@ -537,4 +567,7 @@
     }
 
     private static string FormatCost(decimal cost) => NumberFormatter.Compact(cost);
+
+    private string? GetConsumableImage(string typeKey)
+        => ConsumableImageUrls?.GetValueOrDefault(typeKey);
 }
