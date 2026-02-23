@@ -1087,7 +1087,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         g.roundRect(x, y, barW, barH, 2);
         g.fill({ color: 2236962, alpha: 0.6 });
         const maxMs = this.actionTime[key] * 1e3;
-        const ratio = maxMs > 0 ? Math.max(0, 1 - this.speedBarTimers[key] / maxMs) : 0;
+        const ratio = maxMs > 0 ? Math.max(0, this.speedBarTimers[key] / maxMs) : 0;
         if (ratio > 0) {
           g.roundRect(x, y, barW * ratio, barH, 2);
           g.fill({ color: 43775, alpha: 0.8 });

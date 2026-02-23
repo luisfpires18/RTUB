@@ -48,6 +48,8 @@ function createGame(containerId: string, battleData: StageBattleData): void {
     consumableImages: data.consumableImages ?? data.ConsumableImages,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
     BattleSpeed: data.battleSpeed ?? data.BattleSpeed,
+    canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
+    penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
   });
 
   const initialSpeed = pick<number>(data, 'BattleSpeed', 'battleSpeed', 1);
@@ -109,6 +111,8 @@ function nextBattle(battleData: StageBattleData): void {
     consumableCooldowns: data.consumableCooldowns ?? data.ConsumableCooldowns,
     spellCooldowns: data.spellCooldowns ?? data.SpellCooldowns,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
+    canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
+    penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
   });
 }
 

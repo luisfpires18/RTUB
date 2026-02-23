@@ -94,6 +94,15 @@ interface SpeedBarData {
   barHeight?: number;
 }
 
+interface TimerBarData {
+  bar: Graphics;
+  barBg: Graphics;
+  label: Text;
+  text: Text;
+  maxWidth: number;
+  barHeight: number;
+}
+
 interface EnemyIdleOffset {
   baseX: number;
   baseY: number;
@@ -226,6 +235,14 @@ export class StageBattleScene implements VfxOwner {
   private hasPenaltyBuff: boolean;
   private playerAura: Graphics | null = null;
 
+  // Canhao / Penalty timer bars (bottom-left corner)
+  private canhaoTimerBar: TimerBarData | null = null;
+  private penaltyTimerBar: TimerBarData | null = null;
+  private canhaoBuffExpiresAt: number | null = null;
+  private penaltyBuffExpiresAt: number | null = null;
+  private canhaoBuffDurationMs = 2 * 60 * 1000;
+  private penaltyBuffDurationMs = 2 * 60 * 1000;
+
   // Asset aliases
   private bgAlias = '';
   private _playerAlias = '';
@@ -348,6 +365,13 @@ export class StageBattleScene implements VfxOwner {
       shot: !!pick<boolean>(abData, 'Shot', 'shot', false),
       penalty: !!pick<boolean>(abData, 'Penalty', 'penalty', false),
     };
+
+    // Canhao / Penalty buff expiry (UTC timestamp from server)
+    const canhaoUtc = (data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc ?? null) as string | null;
+    this.canhaoBuffExpiresAt = canhaoUtc ? new Date(canhaoUtc).getTime() : null;
+
+    const penaltyUtc = (data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc ?? null) as string | null;
+    this.penaltyBuffExpiresAt = penaltyUtc ? new Date(penaltyUtc).getTime() : null;
 
     const ciData = (data.consumableImages ?? data.ConsumableImages ?? {}) as Record<string, unknown>;
     this.consumableImages = {
@@ -770,6 +794,107 @@ export class StageBattleScene implements VfxOwner {
       text: speedText, barHeight: speedBarHeight,
     };
 
+    // ── Canhão AOE Timer Bar + Penalty Lifesteal Timer Bar ──
+    // Anchored to the BOTTOM-LEFT corner of the canvas.
+    const bottomPadding = isMobile ? 10 : 12;
+    const timerBarX = paddingLeft;
+    const timerBarWidth = isMobile ? Math.min(240, width * 0.38) : Math.min(440, width * 0.44);
+    const canhaoBarHeight = isMobile ? 14 : 22;
+    const penaltyBarHeightCalc = isMobile ? 14 : 22;
+    const penaltyBarYCalc = height - bottomPadding - penaltyBarHeightCalc;
+    const canhaoBarY = penaltyBarYCalc - 4 - canhaoBarHeight;
+
+    // Canhão bar
+    const canhaoBg = new PIXI.Graphics();
+    canhaoBg.roundRect(timerBarX, canhaoBarY, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+    canhaoBg.fill({ color: 0x1a0000, alpha: 0.85 });
+    this.stage.addChild(canhaoBg);
+
+    const canhaoFill = new PIXI.Graphics();
+    canhaoFill.roundRect(0, 0, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+    canhaoFill.fill(0xef5350);
+    canhaoFill.x = timerBarX;
+    canhaoFill.y = canhaoBarY;
+    this.stage.addChild(canhaoFill);
+
+    const canhaoLabelFontSize = isMobile ? 8 : 13;
+    const canhaoLabel = new PIXI.Text({
+      text: '\u{1F4A5} AOE',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: canhaoLabelFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    canhaoLabel.anchor.set(0, 0.5);
+    canhaoLabel.x = timerBarX + 6;
+    canhaoLabel.y = canhaoBarY + canhaoBarHeight / 2;
+    this.stage.addChild(canhaoLabel);
+
+    const canhaoFontSize = isMobile ? 9 : 14;
+    const canhaoText = new PIXI.Text({
+      text: '',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: canhaoFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    canhaoText.anchor.set(1, 0.5);
+    canhaoText.x = timerBarX + timerBarWidth - 6;
+    canhaoText.y = canhaoBarY + canhaoBarHeight / 2;
+    this.stage.addChild(canhaoText);
+
+    const hasCanhao = this.canhaoBuffExpiresAt != null && Date.now() < this.canhaoBuffExpiresAt;
+    canhaoBg.visible = hasCanhao;
+    canhaoFill.visible = hasCanhao;
+    canhaoLabel.visible = hasCanhao;
+    canhaoText.visible = hasCanhao;
+
+    this.canhaoTimerBar = {
+      bar: canhaoFill, barBg: canhaoBg, label: canhaoLabel,
+      text: canhaoText, maxWidth: timerBarWidth, barHeight: canhaoBarHeight,
+    };
+
+    // Penalty Lifesteal bar
+    const penaltyBarHeight = penaltyBarHeightCalc;
+    const penaltyBarY = penaltyBarYCalc;
+
+    const penaltyBg = new PIXI.Graphics();
+    penaltyBg.roundRect(timerBarX, penaltyBarY, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+    penaltyBg.fill({ color: 0x1a0a00, alpha: 0.85 });
+    this.stage.addChild(penaltyBg);
+
+    const penaltyFill = new PIXI.Graphics();
+    penaltyFill.roundRect(0, 0, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+    penaltyFill.fill(0xff9800);
+    penaltyFill.x = timerBarX;
+    penaltyFill.y = penaltyBarY;
+    this.stage.addChild(penaltyFill);
+
+    const penaltyLabelFontSize = isMobile ? 8 : 13;
+    const penaltyLabel = new PIXI.Text({
+      text: '\u26A1 Lifesteal',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: penaltyLabelFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    penaltyLabel.anchor.set(0, 0.5);
+    penaltyLabel.x = timerBarX + 6;
+    penaltyLabel.y = penaltyBarY + penaltyBarHeight / 2;
+    this.stage.addChild(penaltyLabel);
+
+    const penaltyFontSize = isMobile ? 9 : 14;
+    const penaltyText = new PIXI.Text({
+      text: '',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: penaltyFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    penaltyText.anchor.set(1, 0.5);
+    penaltyText.x = timerBarX + timerBarWidth - 6;
+    penaltyText.y = penaltyBarY + penaltyBarHeight / 2;
+    this.stage.addChild(penaltyText);
+
+    const hasPenaltyTimer = this.penaltyBuffExpiresAt != null && Date.now() < this.penaltyBuffExpiresAt;
+    penaltyBg.visible = hasPenaltyTimer;
+    penaltyFill.visible = hasPenaltyTimer;
+    penaltyLabel.visible = hasPenaltyTimer;
+    penaltyText.visible = hasPenaltyTimer;
+
+    this.penaltyTimerBar = {
+      bar: penaltyFill, barBg: penaltyBg, label: penaltyLabel,
+      text: penaltyText, maxWidth: timerBarWidth, barHeight: penaltyBarHeight,
+    };
+
     // ── Boss HUD bars (top-right, mirrored, red) ──
     const isBossMode = this.enemyType?.toLowerCase() === 'boss';
     if (isBossMode) {
@@ -1187,71 +1312,103 @@ export class StageBattleScene implements VfxOwner {
     if (!this.app || !this.stage) return;
     const { width, height } = this.app.screen;
     const isMobile = this.isMobile;
+    const btnGap = isMobile ? 6 : 10;
 
-    // Consumable types that show in the bar
-    const types = ['fino', 'caneca', 'cigarro', 'canhao'];
-    const shown = types.filter(t => (this.consumableQuantities[t] ?? 0) > 0 || this.activeBuffs[t]);
-    if (shown.length === 0) return;
+    // Only fino and caneca show as clickable buttons (like original JS)
+    const allConsumables = [
+      { type: 'fino',   name: 'Fino',   color: 0xf5a623, fallbackIcon: '\u{1F37A}' },
+      { type: 'caneca', name: 'Caneca', color: 0xf5a623, fallbackIcon: '\u{1F37B}' },
+    ];
+    const consumables = allConsumables.filter(c => (this.consumableQuantities[c.type] ?? 0) > 0);
+    if (consumables.length === 0) return;
 
-    const barY = height - (isMobile ? 48 : 45);
-    const btnSize = isMobile ? 36 : 42;
-    const gap = isMobile ? 6 : 10;
-    const totalW = shown.length * btnSize + (shown.length - 1) * gap;
-    const startX = (width - totalW) / 2;
+    // Responsive button size — larger on desktop
+    const maxBarWidth = isMobile ? Math.min(width * 0.9, 320) : Math.min(width * 0.9, 420);
+    const btnSize = isMobile
+      ? Math.min(60, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length))
+      : Math.min(76, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
+
+    const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
+    const startX = (width - totalWidth) / 2;
+    const barY = height - btnSize - 10;
 
     this.consumableBarContainer = new PIXI.Container();
-    this.consumableBarContainer.y = barY;
     this.stage.addChild(this.consumableBarContainer);
 
-    this.consumableButtons = [];
-    for (let i = 0; i < shown.length; i++) {
-      const type = shown[i];
-      const btnContainer = new PIXI.Container();
-      btnContainer.x = startX + i * (btnSize + gap);
-      btnContainer.y = 0;
+    // Semi-transparent backdrop
+    const backdrop = new PIXI.Graphics();
+    backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 10);
+    backdrop.fill({ color: 0x0d1117, alpha: 0.7 });
+    this.consumableBarContainer.addChild(backdrop);
 
+    this.consumableButtons = [];
+    for (let i = 0; i < consumables.length; i++) {
+      const c = consumables[i];
+      const type = c.type;
+      const qty = this.consumableQuantities[type] ?? 0;
+      const x = startX + i * (btnSize + btnGap);
+
+      const btnContainer = new PIXI.Container();
+      btnContainer.x = x;
+      btnContainer.y = barY;
+
+      // Button background
       const bg = new PIXI.Graphics();
-      bg.roundRect(0, 0, btnSize, btnSize, 6);
-      bg.fill({ color: 0x1e1e2e, alpha: 0.9 });
-      bg.stroke({ color: 0x444466, width: 1.5 });
+      bg.roundRect(0, 0, btnSize, btnSize, 8);
+      bg.fill({ color: qty > 0 ? 0x1a2332 : 0x1a1a1a, alpha: 0.95 });
+      bg.stroke({ color: qty > 0 ? c.color : 0x444444, width: 2 });
       btnContainer.addChild(bg);
 
-      // Icon sprite from CDN or local SVG
+      // Icon: load sprite from CDN/local (or fallback emoji)
       let iconSprite: Sprite | null = null;
-      const imgUrl = this.consumableImages[type] ?? DEFAULT_CONSUMABLE_IMAGES[type];
-      if (imgUrl) {
-        try {
-          const texAlias = `consumable_${type}`;
-          if (!loadedAssetAliases.has(texAlias)) {
-            PIXI.Assets.load({ alias: texAlias, src: imgUrl }).then(() => {
-              loadedAssetAliases.add(texAlias);
-              try {
-                const s = PIXI.Sprite.from(texAlias);
-                s.width = btnSize - 10;
-                s.height = btnSize - 10;
-                s.x = 5;
-                s.y = 3;
-                btnContainer.addChildAt(s, 1);
-                const btn = this.consumableButtons.find(b => b.type === type);
-                if (btn) btn.iconSprite = s;
-              } catch { /* texture unavailable */ }
-            }).catch(() => { /* CDN image failed */ });
-          } else {
-            iconSprite = PIXI.Sprite.from(texAlias);
-            iconSprite.width = btnSize - 10;
-            iconSprite.height = btnSize - 10;
-            iconSprite.x = 5;
-            iconSprite.y = 3;
-            btnContainer.addChild(iconSprite);
+      const imageUrl = this.consumableImages[type] ?? DEFAULT_CONSUMABLE_IMAGES[type];
+      if (imageUrl) {
+        const spriteAlias = `consumable_${type}_${imageUrl}`;
+        const spriteContainer = new PIXI.Container();
+        spriteContainer.x = btnSize / 2;
+        spriteContainer.y = btnSize / 2 - 2;
+        btnContainer.addChild(spriteContainer);
+
+        (async () => {
+          try {
+            if (!loadedAssetAliases.has(spriteAlias)) {
+              await PIXI.Assets.load({ alias: spriteAlias, src: imageUrl });
+              loadedAssetAliases.add(spriteAlias);
+            }
+            const spr = PIXI.Sprite.from(spriteAlias);
+            spr.anchor.set(0.5);
+            const maxDim = btnSize * 0.6;
+            const scale = Math.min(maxDim / spr.width, maxDim / spr.height);
+            spr.scale.set(scale);
+            spriteContainer.addChild(spr);
+            const btn = this.consumableButtons.find(b => b.type === type);
+            if (btn) btn.iconSprite = spr;
+          } catch {
+            // Fallback: show emoji icon
+            const fallback = new PIXI.Text({
+              text: c.fallbackIcon,
+              style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' },
+            });
+            fallback.anchor.set(0.5);
+            spriteContainer.addChild(fallback);
           }
-        } catch { /* ignore */ }
+        })();
+      } else {
+        // No image URL — show emoji fallback
+        const fallbackText = new PIXI.Text({
+          text: c.fallbackIcon,
+          style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' },
+        });
+        fallbackText.anchor.set(0.5);
+        fallbackText.x = btnSize / 2;
+        fallbackText.y = btnSize / 2 - 2;
+        btnContainer.addChild(fallbackText);
       }
 
       // Quantity badge
-      const qty = this.consumableQuantities[type] ?? 0;
       const qtyText = new PIXI.Text({
         text: `${qty}`,
-        style: { fontSize: 10, fill: 0xffffff, fontWeight: 'bold', fontFamily: 'Arial' },
+        style: { fontSize: isMobile ? 10 : 12, fill: 0xffffff, fontWeight: 'bold', fontFamily: 'Arial' },
       });
       qtyText.anchor.set(1, 0);
       qtyText.x = btnSize - 2;
@@ -1260,14 +1417,14 @@ export class StageBattleScene implements VfxOwner {
 
       // CD overlay
       const cdOverlay = new PIXI.Graphics();
-      cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+      cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
       cdOverlay.fill({ color: 0x000000, alpha: 0.55 });
       cdOverlay.visible = false;
       btnContainer.addChild(cdOverlay);
 
       const cdText = new PIXI.Text({
         text: '',
-        style: { fontSize: 12, fill: 0xff8844, fontWeight: 'bold' },
+        style: { fontSize: isMobile ? 10 : 14, fill: 0xff8844, fontWeight: 'bold' },
       });
       cdText.anchor.set(0.5);
       cdText.x = btnSize / 2;
@@ -1345,6 +1502,11 @@ export class StageBattleScene implements VfxOwner {
         if (this.playerSprite) {
           playBuffVfx(this, this.playerSprite, type === 'cigarro' ? 0xff6600 : 0xff4444);
         }
+        // Activate canhao timer bar
+        if (type === 'canhao' && buffActive) {
+          this.canhaoBuffExpiresAt = Date.now() + this.canhaoBuffDurationMs;
+          this.updateCanhaoTimerBar();
+        }
       }
 
       // Shot aura
@@ -1381,6 +1543,9 @@ export class StageBattleScene implements VfxOwner {
           showFloatingText(this, msg, this.playerSprite.x, this.playerSprite.y - this.playerDisplayHeight - 20, 0xaa44ff);
         }
         if (this.playerSprite) playBuffVfx(this, this.playerSprite, 0xaa44ff);
+        // Activate penalty timer bar
+        this.penaltyBuffExpiresAt = Date.now() + this.penaltyBuffDurationMs;
+        this.updatePenaltyTimerBar();
       }
 
       this.updateConsumableButton(type);
@@ -1693,6 +1858,10 @@ export class StageBattleScene implements VfxOwner {
         this.requestTickConsumableCooldowns(realElapsed);
       }
 
+      // Update buff timer bars (real wall-clock time, not battle-speed)
+      this.updateCanhaoTimerBar();
+      this.updatePenaltyTimerBar();
+
       return; // Don't process pre-computed events
     } else if (!this.interactiveMode && this.isPlaying) {
       // Pre-computed (timed) mode: process events based on speed bar timing
@@ -1755,7 +1924,7 @@ export class StageBattleScene implements VfxOwner {
   private updatePlayerSpeedBar(): void {
     if (!this.playerSpeedBar) return;
     const maxMs = this.playerActionTime * 1000;
-    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, 1 - this.playerSpeedBarTimer / maxMs)) : 0;
+    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.playerSpeedBarTimer / maxMs)) : 0;
     this.playerSpeedBar.bar.width = this.playerSpeedBar.maxWidth * ratio;
     if (this.playerSpeedBar.text) {
       const remaining = Math.max(0, this.playerSpeedBarTimer / 1000);
@@ -1767,7 +1936,7 @@ export class StageBattleScene implements VfxOwner {
     const speedBarData = this.enemySpeedBars[enemyIndex];
     if (!speedBarData) return;
     const maxMs = this.enemyActionTimes[enemyIndex] * 1000;
-    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, 1 - this.enemySpeedBarTimers[enemyIndex] / maxMs)) : 0;
+    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.enemySpeedBarTimers[enemyIndex] / maxMs)) : 0;
     speedBarData.bar.width = speedBarData.maxWidth * ratio;
 
     // Sync boss HUD speed bar
@@ -1777,6 +1946,78 @@ export class StageBattleScene implements VfxOwner {
         const remaining = Math.max(0, this.enemySpeedBarTimers[0] / 1000);
         this.bossSpeedBar.text.text = `${remaining.toFixed(1)}s`;
       }
+    }
+  }
+
+  /* ──────────────── Buff Timer Bar Updates ────────────────────────── */
+
+  private updateCanhaoTimerBar(): void {
+    if (!this.canhaoTimerBar) return;
+    const now = Date.now();
+    const active = this.canhaoBuffExpiresAt != null && now < this.canhaoBuffExpiresAt;
+
+    this.canhaoTimerBar.bar.visible = active;
+    this.canhaoTimerBar.barBg.visible = active;
+    this.canhaoTimerBar.label.visible = active;
+    this.canhaoTimerBar.text.visible = active;
+
+    if (!active) return;
+
+    const remainingMs = this.canhaoBuffExpiresAt! - now;
+    const ratio = Math.max(0, Math.min(1, remainingMs / this.canhaoBuffDurationMs));
+    this.canhaoTimerBar.bar.width = this.canhaoTimerBar.maxWidth * ratio;
+
+    // Colour shift: green→yellow→red as time depletes
+    const r = ratio > 0.5 ? Math.round(255 * (1 - ratio) * 2) : 255;
+    const g = ratio > 0.5 ? 255 : Math.round(255 * ratio * 2);
+    this.canhaoTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+    // Countdown text: "1:23" or "0:05"
+    const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    this.canhaoTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    // Pulse bar alpha when ≤ 15 seconds remain
+    if (remainingMs <= 15000) {
+      this.canhaoTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+    } else {
+      this.canhaoTimerBar.bar.alpha = 1;
+    }
+  }
+
+  private updatePenaltyTimerBar(): void {
+    if (!this.penaltyTimerBar) return;
+    const now = Date.now();
+    const active = this.penaltyBuffExpiresAt != null && now < this.penaltyBuffExpiresAt;
+
+    this.penaltyTimerBar.bar.visible = active;
+    this.penaltyTimerBar.barBg.visible = active;
+    this.penaltyTimerBar.label.visible = active;
+    this.penaltyTimerBar.text.visible = active;
+
+    if (!active) return;
+
+    const remainingMs = this.penaltyBuffExpiresAt! - now;
+    const ratio = Math.max(0, Math.min(1, remainingMs / this.penaltyBuffDurationMs));
+    this.penaltyTimerBar.bar.width = this.penaltyTimerBar.maxWidth * ratio;
+
+    // Colour shift: orange base, shifts greener as time runs out
+    const r = 255;
+    const g = Math.round(152 * ratio);
+    this.penaltyTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+    // Countdown text
+    const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    this.penaltyTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    // Pulse bar alpha when ≤ 15 seconds remain
+    if (remainingMs <= 15000) {
+      this.penaltyTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+    } else {
+      this.penaltyTimerBar.bar.alpha = 1;
     }
   }
 
@@ -2381,6 +2622,20 @@ export class StageBattleScene implements VfxOwner {
       };
     }
 
+    // Canhao / Penalty buff expiry (UTC timestamp from server)
+    const canhaoUtcReset = (data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc ?? null) as string | null;
+    if (canhaoUtcReset) {
+      this.canhaoBuffExpiresAt = new Date(canhaoUtcReset).getTime();
+    } else if (!(this.canhaoBuffExpiresAt && Date.now() < this.canhaoBuffExpiresAt)) {
+      this.canhaoBuffExpiresAt = null;
+    }
+    const penaltyUtcReset = (data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc ?? null) as string | null;
+    if (penaltyUtcReset) {
+      this.penaltyBuffExpiresAt = new Date(penaltyUtcReset).getTime();
+    } else if (!(this.penaltyBuffExpiresAt && Date.now() < this.penaltyBuffExpiresAt)) {
+      this.penaltyBuffExpiresAt = null;
+    }
+
     // Consumable cooldowns
     const ccData = (data.consumableCooldowns ?? data.ConsumableCooldowns) as Record<string, number> | undefined;
     if (ccData) {
@@ -2451,6 +2706,18 @@ export class StageBattleScene implements VfxOwner {
     }
     if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
     if (this.spellBarContainer) persistent.add(this.spellBarContainer);
+    if (this.canhaoTimerBar) {
+      persistent.add(this.canhaoTimerBar.bar);
+      persistent.add(this.canhaoTimerBar.barBg);
+      persistent.add(this.canhaoTimerBar.label);
+      persistent.add(this.canhaoTimerBar.text);
+    }
+    if (this.penaltyTimerBar) {
+      persistent.add(this.penaltyTimerBar.bar);
+      persistent.add(this.penaltyTimerBar.barBg);
+      persistent.add(this.penaltyTimerBar.label);
+      persistent.add(this.penaltyTimerBar.text);
+    }
 
     // Remove non-persistent children
     if (!this.stage) return;

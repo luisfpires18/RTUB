@@ -566,9 +566,9 @@ export class ArenaBattleScene implements VfxOwner {
       g.roundRect(x, y, barW, barH, 2);
       g.fill({ color: 0x222222, alpha: 0.6 });
 
-      // Fill — approaches 100% as timer → 0
+      // Fill — starts full, depletes as timer counts down to 0
       const maxMs = this.actionTime[key] * 1000;
-      const ratio = maxMs > 0 ? Math.max(0, 1 - this.speedBarTimers[key] / maxMs) : 0;
+      const ratio = maxMs > 0 ? Math.max(0, this.speedBarTimers[key] / maxMs) : 0;
       if (ratio > 0) {
         g.roundRect(x, y, barW * ratio, barH, 2);
         g.fill({ color: 0x00aaff, alpha: 0.8 });
