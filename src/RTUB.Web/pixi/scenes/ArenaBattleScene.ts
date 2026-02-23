@@ -367,12 +367,13 @@ export class ArenaBattleScene implements VfxOwner {
 
   private createCharacters(width: number, height: number, isMobile: boolean): void {
     if (!this.stage) return;
-    const spriteScale = this.getSpriteScale(width);
+    const maxSpriteHeight = isMobile ? height * 0.25 : height * 0.45;
 
     // ── Attacker ──
     const atkSprite = PIXI.Sprite.from('attackerSprite');
     atkSprite.anchor.set(0.5, 1);
-    atkSprite.scale.set(spriteScale);
+    const atkScale = this.getSpriteScale(atkSprite, maxSpriteHeight);
+    atkSprite.scale.set(atkScale);
 
     let atkX: number, atkY: number;
     if (isMobile) {
@@ -402,7 +403,8 @@ export class ArenaBattleScene implements VfxOwner {
     // ── Defender ──
     const defSprite = PIXI.Sprite.from('defenderSprite');
     defSprite.anchor.set(0.5, 1);
-    defSprite.scale.set(spriteScale);
+    const defScale = this.getSpriteScale(defSprite, maxSpriteHeight);
+    defSprite.scale.set(defScale);
 
     let defX: number, defY: number;
     if (isMobile) {
@@ -439,10 +441,11 @@ export class ArenaBattleScene implements VfxOwner {
     this.nameTexts.defender = defNameText;
   }
 
-  private getSpriteScale(width: number): number {
-    if (width < 400) return 0.6;
-    if (width < 768) return 0.8;
-    return 1.0;
+  private getSpriteScale(sprite: Sprite, maxSpriteHeight: number): number {
+    if (!sprite.texture || !sprite.texture.height) {
+      return 0.6;
+    }
+    return Math.min(1, maxSpriteHeight / sprite.texture.height);
   }
 
   private startIdleAnimation(): void {

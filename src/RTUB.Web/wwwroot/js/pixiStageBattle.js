@@ -1530,10 +1530,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             stroke: { color: 0, width: 2 }
           }
         });
+        const showText = !isMobile || this.enemyCount <= 2;
         hpTxt.anchor.set(0.5, 0.5);
         hpTxt.x = pos.x;
-        hpTxt.y = hpBarY;
-        hpTxt.visible = false;
+        hpTxt.y = hpBarY - 8;
+        hpTxt.visible = showText;
         this.stage.addChild(hpTxt);
         this.enemyHpBars.push({
           bar,

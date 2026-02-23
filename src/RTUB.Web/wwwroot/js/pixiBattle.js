@@ -928,10 +928,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     createCharacters(width, height, isMobile) {
       if (!this.stage) return;
-      const spriteScale = this.getSpriteScale(width);
+      const maxSpriteHeight = isMobile ? height * 0.25 : height * 0.45;
       const atkSprite = PIXI.Sprite.from("attackerSprite");
       atkSprite.anchor.set(0.5, 1);
-      atkSprite.scale.set(spriteScale);
+      const atkScale = this.getSpriteScale(atkSprite, maxSpriteHeight);
+      atkSprite.scale.set(atkScale);
       let atkX, atkY;
       if (isMobile) {
         atkX = width / 2;
@@ -956,7 +957,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       const defSprite = PIXI.Sprite.from("defenderSprite");
       defSprite.anchor.set(0.5, 1);
-      defSprite.scale.set(spriteScale);
+      const defScale = this.getSpriteScale(defSprite, maxSpriteHeight);
+      defSprite.scale.set(defScale);
       let defX, defY;
       if (isMobile) {
         defX = width / 2;
@@ -988,10 +990,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.stage.addChild(defNameText);
       this.nameTexts.defender = defNameText;
     }
-    getSpriteScale(width) {
-      if (width < 400) return 0.6;
-      if (width < 768) return 0.8;
-      return 1;
+    getSpriteScale(sprite, maxSpriteHeight) {
+      if (!sprite.texture || !sprite.texture.height) {
+        return 0.6;
+      }
+      return Math.min(1, maxSpriteHeight / sprite.texture.height);
     }
     startIdleAnimation() {
       for (const char of Object.values(this.characterSprites)) {
