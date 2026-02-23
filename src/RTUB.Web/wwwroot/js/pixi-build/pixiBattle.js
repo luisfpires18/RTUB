@@ -727,7 +727,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "speedBarTimers", { attacker: 0, defender: 0 });
       __publicField(this, "battleStartTime", 0);
       __publicField(this, "currentSimTime", 0);
-      __publicField(this, "battleSpeed", 1);
+      __publicField(this, "_battleSpeed", 1);
       // Replay state
       __publicField(this, "currentEventIndex", 0);
       __publicField(this, "battleEvents", null);
@@ -779,6 +779,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.interactiveEnemies = data.Enemies ?? data.enemies ?? [];
       this.setupAudio();
       this.initPixi();
+    }
+    get battleSpeed() {
+      return this._battleSpeed;
+    }
+    set battleSpeed(v) {
+      this._battleSpeed = v === 5 ? 5 : 1;
     }
     /* ────────────────────────── Audio Setup ────────────────────────── */
     setupAudio() {
@@ -1718,8 +1724,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.isPlaying = isPlaying;
     }
     setReplaySpeed(speed) {
-      const allowedSpeeds = [1, 5];
-      const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
+      const validSpeed = speed === 5 ? 5 : 1;
       this.playbackSpeed = validSpeed;
       this.battleSpeed = validSpeed;
     }

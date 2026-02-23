@@ -757,7 +757,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "enemySpeedBarTimers", []);
       __publicField(this, "battleStartTime", 0);
       __publicField(this, "currentSimTime", 0);
-      // Battle speed (anti-exploit)
+      // Battle speed (anti-exploit) – only 1x or 5x allowed
       __publicField(this, "_battleSpeed", 1);
       // Playback
       __publicField(this, "playbackSpeed", 1);
@@ -891,8 +891,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return this._battleSpeed;
     }
     set battleSpeed(v) {
-      const allowed = [1, 3, 5];
-      this._battleSpeed = allowed.includes(v) ? v : 1;
+      this._battleSpeed = v === 5 ? 5 : 1;
     }
     /* ────────────────────────── Audio Setup ────────────────────────── */
     setupAudio() {
@@ -2522,8 +2521,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Public API ────────────────────────────────────── */
     setSpeed(speed) {
-      const allowedSpeeds = [1, 3, 5];
-      const validSpeed = allowedSpeeds.includes(speed) ? speed : 1;
+      const validSpeed = speed === 5 ? 5 : 1;
       this.playbackSpeed = validSpeed;
       this._battleSpeed = validSpeed;
     }
@@ -2987,8 +2985,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     destroySceneOnly,
     setSpeed(speed) {
       if (stageScene) {
-        const allowed = [1, 3, 5];
-        stageScene.setSpeed(allowed.includes(speed) ? speed : 1);
+        stageScene.setSpeed(speed === 5 ? 5 : 1);
       }
     },
     setAudioEnabled(enabled) {
