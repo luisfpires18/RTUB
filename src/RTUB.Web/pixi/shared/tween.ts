@@ -4,11 +4,12 @@
  */
 import type { Container } from 'pixi.js';
 
-type TickerRef = { _rafIds: number[] };
+type TickerRef = { _rafIds: number[]; battleSpeed?: number };
 
 /**
  * Animate properties of a DisplayObject from current to target over `duration` ms.
  * Uses requestAnimationFrame for smooth animation, independent of the PIXI ticker.
+ * Automatically adjusts duration by owner.battleSpeed (like the original JS).
  */
 export function animateTo(
   owner: TickerRef,
@@ -21,6 +22,10 @@ export function animateTo(
     onComplete?.();
     return;
   }
+
+  // Adjust animation duration based on battle speed, matching original JS behaviour
+  const speed = owner.battleSpeed ?? 1;
+  const adjustedDuration = speed > 0 ? duration / speed : duration;
 
   const startTime = Date.now();
   const container = target as unknown as Record<string, unknown>;
@@ -37,7 +42,7 @@ export function animateTo(
 
   const animate = (): void => {
     const elapsed = Date.now() - startTime;
-    const t = Math.min(elapsed / duration, 1);
+    const t = Math.min(elapsed / adjustedDuration, 1);
 
     try {
       for (const key of Object.keys(properties)) {

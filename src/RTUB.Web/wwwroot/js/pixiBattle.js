@@ -288,6 +288,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       onComplete == null ? void 0 : onComplete();
       return;
     }
+    const speed = owner.battleSpeed ?? 1;
+    const adjustedDuration = speed > 0 ? duration / speed : duration;
     const startTime = Date.now();
     const container = target;
     const startValues = {};
@@ -301,7 +303,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const animate = () => {
       var _a2;
       const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / duration, 1);
+      const t = Math.min(elapsed / adjustedDuration, 1);
       try {
         for (const key of Object.keys(properties)) {
           const from = startValues[key];
@@ -1493,7 +1495,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       this._playSound("hit");
       if (!isBlocked && !isDodged) {
-        const defenderStartX = defender.sprite.x;
+        const defenderStartX = defender.originX;
         const recoilDistance = isCritical ? 30 : 20;
         animateTo(this, defender.sprite, {
           x: defenderStartX + direction * recoilDistance

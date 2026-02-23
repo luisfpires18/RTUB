@@ -1045,7 +1045,7 @@ export class ArenaBattleScene implements VfxOwner {
     this._playSound('hit');
 
     if (!isBlocked && !isDodged) {
-      const defenderStartX = defender.sprite.x;
+      const defenderStartX = defender.originX;
       const recoilDistance = isCritical ? 30 : 20;
       animateTo(this, defender.sprite, {
         x: defenderStartX + direction * recoilDistance,

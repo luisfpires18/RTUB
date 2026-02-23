@@ -287,6 +287,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       onComplete == null ? void 0 : onComplete();
       return;
     }
+    const speed = owner.battleSpeed ?? 1;
+    const adjustedDuration = speed > 0 ? duration / speed : duration;
     const startTime = Date.now();
     const container = target;
     const startValues = {};
@@ -300,7 +302,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const animate = () => {
       var _a2;
       const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / duration, 1);
+      const t = Math.min(elapsed / adjustedDuration, 1);
       try {
         for (const key of Object.keys(properties)) {
           const from = startValues[key];
@@ -2490,44 +2492,46 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Attack Animations ─────────────────────────────── */
     animatePlayerAttack(isCritical) {
+      var _a, _b;
       if (!this.playerSprite) return;
       this._playerAttacking = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
+      const baseX = ((_a = this.playerIdleOffset) == null ? void 0 : _a.baseX) ?? this.playerSprite.x;
+      const baseY = ((_b = this.playerIdleOffset) == null ? void 0 : _b.baseY) ?? this.playerSprite.y;
       if (this.isMobile) {
-        const originalY = this.playerSprite.y;
-        animateTo(this, this.playerSprite, { y: originalY - lungeDistance }, lungeDuration, () => {
-          animateTo(this, this.playerSprite, { y: originalY }, 240, () => {
+        animateTo(this, this.playerSprite, { y: baseY - lungeDistance }, lungeDuration, () => {
+          animateTo(this, this.playerSprite, { y: baseY }, 240, () => {
             this._playerAttacking = false;
           });
         });
       } else {
-        const originalX = this.playerSprite.x;
-        animateTo(this, this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
-          animateTo(this, this.playerSprite, { x: originalX }, 240, () => {
+        animateTo(this, this.playerSprite, { x: baseX + lungeDistance }, lungeDuration, () => {
+          animateTo(this, this.playerSprite, { x: baseX }, 240, () => {
             this._playerAttacking = false;
           });
         });
       }
     }
     animateEnemyAttack(isCritical) {
+      var _a, _b;
       for (let index = 0; index < this.enemySprites.length; index++) {
         const enemy = this.enemySprites[index];
         this._enemyAttacking[index] = true;
         const lungeDistance = isCritical ? 80 : 60;
         const lungeDuration = isCritical ? 120 : 150;
+        const eBaseX = ((_a = this.enemyIdleOffsets[index]) == null ? void 0 : _a.baseX) ?? enemy.x;
+        const eBaseY = ((_b = this.enemyIdleOffsets[index]) == null ? void 0 : _b.baseY) ?? enemy.y;
         const id = setTimeout(() => {
           if (this.isMobile) {
-            const originalY = enemy.y;
-            animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-              animateTo(this, enemy, { y: originalY }, 240, () => {
+            animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+              animateTo(this, enemy, { y: eBaseY }, 240, () => {
                 this._enemyAttacking[index] = false;
               });
             });
           } else {
-            const originalX = enemy.x;
-            animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-              animateTo(this, enemy, { x: originalX }, 240, () => {
+            animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+              animateTo(this, enemy, { x: eBaseX }, 240, () => {
                 this._enemyAttacking[index] = false;
               });
             });
@@ -2537,23 +2541,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     animateSingleEnemyAttack(enemyIndex, isCritical) {
+      var _a, _b;
       if (enemyIndex < 0 || enemyIndex >= this.enemySprites.length) return;
       const enemy = this.enemySprites[enemyIndex];
       if (!enemy) return;
       this._enemyAttacking[enemyIndex] = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
+      const eBaseX = ((_a = this.enemyIdleOffsets[enemyIndex]) == null ? void 0 : _a.baseX) ?? enemy.x;
+      const eBaseY = ((_b = this.enemyIdleOffsets[enemyIndex]) == null ? void 0 : _b.baseY) ?? enemy.y;
       if (this.isMobile) {
-        const originalY = enemy.y;
-        animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-          animateTo(this, enemy, { y: originalY }, 240, () => {
+        animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+          animateTo(this, enemy, { y: eBaseY }, 240, () => {
             this._enemyAttacking[enemyIndex] = false;
           });
         });
       } else {
-        const originalX = enemy.x;
-        animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-          animateTo(this, enemy, { x: originalX }, 240, () => {
+        animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+          animateTo(this, enemy, { x: eBaseX }, 240, () => {
             this._enemyAttacking[enemyIndex] = false;
           });
         });

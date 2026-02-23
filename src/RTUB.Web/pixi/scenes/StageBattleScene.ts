@@ -2219,17 +2219,19 @@ export class StageBattleScene implements VfxOwner {
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
 
+    // Use idle-offset base position to prevent drift at high battle speeds
+    const baseX = this.playerIdleOffset?.baseX ?? this.playerSprite.x;
+    const baseY = this.playerIdleOffset?.baseY ?? this.playerSprite.y;
+
     if (this.isMobile) {
-      const originalY = this.playerSprite.y;
-      animateTo(this, this.playerSprite, { y: originalY - lungeDistance }, lungeDuration, () => {
-        animateTo(this, this.playerSprite!, { y: originalY }, 240, () => {
+      animateTo(this, this.playerSprite, { y: baseY - lungeDistance }, lungeDuration, () => {
+        animateTo(this, this.playerSprite!, { y: baseY }, 240, () => {
           this._playerAttacking = false;
         });
       });
     } else {
-      const originalX = this.playerSprite.x;
-      animateTo(this, this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
-        animateTo(this, this.playerSprite!, { x: originalX }, 240, () => {
+      animateTo(this, this.playerSprite, { x: baseX + lungeDistance }, lungeDuration, () => {
+        animateTo(this, this.playerSprite!, { x: baseX }, 240, () => {
           this._playerAttacking = false;
         });
       });
@@ -2242,18 +2244,19 @@ export class StageBattleScene implements VfxOwner {
       this._enemyAttacking[index] = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
+      // Use idle-offset base position to prevent drift at high battle speeds
+      const eBaseX = this.enemyIdleOffsets[index]?.baseX ?? enemy.x;
+      const eBaseY = this.enemyIdleOffsets[index]?.baseY ?? enemy.y;
       const id = setTimeout(() => {
         if (this.isMobile) {
-          const originalY = enemy.y;
-          animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-            animateTo(this, enemy, { y: originalY }, 240, () => {
+          animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+            animateTo(this, enemy, { y: eBaseY }, 240, () => {
               this._enemyAttacking[index] = false;
             });
           });
         } else {
-          const originalX = enemy.x;
-          animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-            animateTo(this, enemy, { x: originalX }, 240, () => {
+          animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+            animateTo(this, enemy, { x: eBaseX }, 240, () => {
               this._enemyAttacking[index] = false;
             });
           });
@@ -2271,17 +2274,19 @@ export class StageBattleScene implements VfxOwner {
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
 
+    // Use idle-offset base position to prevent drift at high battle speeds
+    const eBaseX = this.enemyIdleOffsets[enemyIndex]?.baseX ?? enemy.x;
+    const eBaseY = this.enemyIdleOffsets[enemyIndex]?.baseY ?? enemy.y;
+
     if (this.isMobile) {
-      const originalY = enemy.y;
-      animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-        animateTo(this, enemy, { y: originalY }, 240, () => {
+      animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+        animateTo(this, enemy, { y: eBaseY }, 240, () => {
           this._enemyAttacking[enemyIndex] = false;
         });
       });
     } else {
-      const originalX = enemy.x;
-      animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-        animateTo(this, enemy, { x: originalX }, 240, () => {
+      animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+        animateTo(this, enemy, { x: eBaseX }, 240, () => {
           this._enemyAttacking[enemyIndex] = false;
         });
       });
