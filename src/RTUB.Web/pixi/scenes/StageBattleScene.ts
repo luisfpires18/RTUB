@@ -1158,15 +1158,15 @@ export class StageBattleScene implements VfxOwner {
     height: number,
     placements: number[],
   ): EnemyPosition[] {
-    const positions: EnemyPosition[] = [];
+    const positions: EnemyPosition[] = new Array(count);
 
-    /* ── Optimal grid columns per enemy count ── */
-    const colsLookup = isMobile
-      //         0  1  2  3  4  5  6  7  8  9
-      ? [0, 1, 2, 3, 2, 3, 3, 4, 4, 3]
-      : [0, 1, 2, 3, 2, 3, 3, 4, 4, 3];
-    const cols = colsLookup[count] ?? Math.min(4, count);
-    const rows = Math.ceil(count / cols);
+    /* ── Separate enemies by type (index order preserved) ── */
+    const aerialIdx: number[] = [];
+    const groundIdx: number[] = [];
+    for (let i = 0; i < count; i++) {
+      if (placements?.[i] === 1) aerialIdx.push(i);
+      else groundIdx.push(i);
+    }
 
     /* ── Approximate scaled sprite size (must mirror createEnemies) ── */
     let csf = 1.0;
@@ -1188,42 +1188,55 @@ export class StageBattleScene implements VfxOwner {
       else if (count >= 3) csf = 0.92;
     }
     const spriteH = height * (isMobile ? 0.28 : 0.40) * csf;
-    const spriteW = spriteH * 0.7;
+    // Many monster sprites are square or wider-than-tall — use generous estimate
+    const spriteEstW = spriteH * 1.2;
 
-    /* ── Horizontal spacing: sprite-width-based, clamped to available area ── */
-    const idealHSpace = spriteW * 1.15;                       // snug but no overlap
-    const hMargin = spriteW * 0.5 + (isMobile ? 8 : 12);
-    const maxLeftHalf = baseX - hMargin;
-    const maxRightHalf = width - hMargin - baseX;
-    const maxHalfW = Math.min(maxLeftHalf, maxRightHalf);
-    const maxFormW = Math.max(0, 2 * maxHalfW);
-    const maxHSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
-    const hSpace = cols > 1 ? Math.min(idealHSpace, maxHSpace) : 0;
+    /* ── Helper: lay out a group of enemies in horizontal rows ── */
+    const layoutGroup = (
+      indices: number[],
+      groupBaseY: number,
+      isAerial: boolean,
+    ): void => {
+      if (indices.length === 0) return;
+      const maxCols = isMobile ? 3 : 4;
+      const groupCols = Math.min(maxCols, indices.length);
+      const groupRows = Math.ceil(indices.length / groupCols);
 
-    /* ── Vertical row offset: tiny depth stagger for ground enemies ── */
-    const depthOffset = spriteH * 0.12;                       // subtle back-row nudge
+      // Horizontal spacing: sprite-width plus gap, clamped to screen bounds
+      const idealH = spriteEstW * 1.1;
+      const hMargin = spriteEstW * 0.6;
+      const leftHalf = Math.max(0, baseX - hMargin);
+      const rightHalf = Math.max(0, width - hMargin - baseX);
+      const maxHalf = Math.min(leftHalf, rightHalf);
+      const maxFormW = 2 * maxHalf;
+      const hSpace = groupCols > 1
+        ? Math.min(idealH, maxFormW / (groupCols - 1))
+        : 0;
 
-    /* ── Aerial lift: enough to visibly float above ground enemies ── */
-    const aerialLift = spriteH * 0.50;
+      // Tiny depth offset between rows within the same group
+      const depthStep = spriteH * 0.15;
 
-    /* ── Place enemies in grid (row 0 = front / bottom, row N = back / top) ── */
-    let idx = 0;
-    for (let row = 0; row < rows; row++) {
-      const inRow = Math.min(cols, count - idx);
-      const rowW = (inRow - 1) * hSpace;
-      const startX = baseX - rowW / 2;
-      for (let col = 0; col < inRow; col++) {
-        const isAerial = placements?.[idx] === 1;
-        const x = startX + col * hSpace;
-        // Ground enemies: stay near baseY with a tiny depth nudge per row
-        // Aerial enemies: lift above baseY
-        const y = isAerial
-          ? baseY - aerialLift - row * depthOffset
-          : baseY - row * depthOffset;
-        positions.push({ x, y, isAerial });
-        idx++;
+      let gi = 0;
+      for (let row = 0; row < groupRows; row++) {
+        const inRow = Math.min(groupCols, indices.length - gi);
+        const rowW = (inRow - 1) * hSpace;
+        const startX = baseX - rowW / 2;
+        for (let col = 0; col < inRow; col++) {
+          positions[indices[gi]] = {
+            x: startX + col * hSpace,
+            y: groupBaseY - row * depthStep,
+            isAerial,
+          };
+          gi++;
+        }
       }
-    }
+    };
+
+    /* ── Aerial band: above ground level ── */
+    layoutGroup(aerialIdx, baseY - spriteH * 0.55, true);
+
+    /* ── Ground band: at baseY ── */
+    layoutGroup(groundIdx, baseY, false);
 
     return positions;
   }

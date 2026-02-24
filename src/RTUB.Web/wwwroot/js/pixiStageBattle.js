@@ -1606,10 +1606,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ───────────────── Enemy Position Calculations ─────────────────── */
     calculateEnemyPositions(isMobile, count, baseX, baseY, width, height, placements) {
-      const positions = [];
-      const colsLookup = isMobile ? [0, 1, 2, 3, 2, 3, 3, 4, 4, 3] : [0, 1, 2, 3, 2, 3, 3, 4, 4, 3];
-      const cols = colsLookup[count] ?? Math.min(4, count);
-      const rows = Math.ceil(count / cols);
+      const positions = new Array(count);
+      const aerialIdx = [];
+      const groundIdx = [];
+      for (let i = 0; i < count; i++) {
+        if ((placements == null ? void 0 : placements[i]) === 1) aerialIdx.push(i);
+        else groundIdx.push(i);
+      }
       let csf = 1;
       if (isMobile) {
         if (count >= 9) csf = 0.38;
@@ -1629,30 +1632,37 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         else if (count >= 3) csf = 0.92;
       }
       const spriteH = height * (isMobile ? 0.28 : 0.4) * csf;
-      const spriteW = spriteH * 0.7;
-      const idealHSpace = spriteW * 1.15;
-      const hMargin = spriteW * 0.5 + (isMobile ? 8 : 12);
-      const maxLeftHalf = baseX - hMargin;
-      const maxRightHalf = width - hMargin - baseX;
-      const maxHalfW = Math.min(maxLeftHalf, maxRightHalf);
-      const maxFormW = Math.max(0, 2 * maxHalfW);
-      const maxHSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
-      const hSpace = cols > 1 ? Math.min(idealHSpace, maxHSpace) : 0;
-      const depthOffset = spriteH * 0.12;
-      const aerialLift = spriteH * 0.5;
-      let idx = 0;
-      for (let row = 0; row < rows; row++) {
-        const inRow = Math.min(cols, count - idx);
-        const rowW = (inRow - 1) * hSpace;
-        const startX = baseX - rowW / 2;
-        for (let col = 0; col < inRow; col++) {
-          const isAerial = (placements == null ? void 0 : placements[idx]) === 1;
-          const x = startX + col * hSpace;
-          const y = isAerial ? baseY - aerialLift - row * depthOffset : baseY - row * depthOffset;
-          positions.push({ x, y, isAerial });
-          idx++;
+      const spriteEstW = spriteH * 1.2;
+      const layoutGroup = (indices, groupBaseY, isAerial) => {
+        if (indices.length === 0) return;
+        const maxCols = isMobile ? 3 : 4;
+        const groupCols = Math.min(maxCols, indices.length);
+        const groupRows = Math.ceil(indices.length / groupCols);
+        const idealH = spriteEstW * 1.1;
+        const hMargin = spriteEstW * 0.6;
+        const leftHalf = Math.max(0, baseX - hMargin);
+        const rightHalf = Math.max(0, width - hMargin - baseX);
+        const maxHalf = Math.min(leftHalf, rightHalf);
+        const maxFormW = 2 * maxHalf;
+        const hSpace = groupCols > 1 ? Math.min(idealH, maxFormW / (groupCols - 1)) : 0;
+        const depthStep = spriteH * 0.15;
+        let gi = 0;
+        for (let row = 0; row < groupRows; row++) {
+          const inRow = Math.min(groupCols, indices.length - gi);
+          const rowW = (inRow - 1) * hSpace;
+          const startX = baseX - rowW / 2;
+          for (let col = 0; col < inRow; col++) {
+            positions[indices[gi]] = {
+              x: startX + col * hSpace,
+              y: groupBaseY - row * depthStep,
+              isAerial
+            };
+            gi++;
+          }
         }
-      }
+      };
+      layoutGroup(aerialIdx, baseY - spriteH * 0.55, true);
+      layoutGroup(groundIdx, baseY, false);
       return positions;
     }
     /* ────────────────── Timed Battle (pre-computed) ────────────────── */
