@@ -950,12 +950,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.hasShotBuff) {
         const aura = PIXI.Sprite.from("attackerSprite");
         aura.anchor.set(0.5, 1);
-        aura.scale.set(atkScale * 1.12);
+        aura.scale.set(atkScale * 1.25);
         aura.x = atkX;
         aura.y = atkY;
-        aura.tint = 4504575;
-        aura.alpha = 0.7;
-        aura.filters = [new PIXI.BlurFilter({ strength: 8 })];
+        aura.tint = 43775;
+        aura.alpha = 0.8;
+        aura.filters = [new PIXI.BlurFilter({ strength: 12 })];
         const spriteIdx = this.stage.getChildIndex(atkSprite);
         this.stage.addChildAt(aura, spriteIdx);
         this.attackerAura = aura;
@@ -1519,6 +1519,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const isDodged = (evt == null ? void 0 : evt.isDodged) === true || (evt == null ? void 0 : evt.IsDodged) === true;
       const isBoosted = (evt == null ? void 0 : evt.isBoosted) === true || (evt == null ? void 0 : evt.IsBoosted) === true;
       this._playSound(isBlocked || isDodged ? "block" : isCritical ? "critical" : "attack");
+      const auraSprite = attackerKey !== "Defender" && this.attackerAura ? this.attackerAura : null;
       const lungeDuration = isCritical ? 150 : 200;
       animateTo(this, attacker.sprite, {
         x: targetX,
@@ -1530,7 +1531,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           y: startY,
           rotation: 0
         }, 240);
+        if (auraSprite) {
+          animateTo(this, auraSprite, { x: startX, y: startY }, 240);
+        }
       });
+      if (auraSprite) {
+        animateTo(this, auraSprite, { x: targetX, y: targetY }, lungeDuration);
+      }
       if (isBlocked || isDodged) {
         defender.sprite.tint = 58879;
         const id = setTimeout(() => {
@@ -1695,13 +1702,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this._playSound("victory");
       if (winnerSprite) {
         const originalY = winnerSprite.sprite.y;
+        const winnerAura = isAttackerWinner ? this.attackerAura : null;
         animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
           animateTo(this, winnerSprite.sprite, { y: originalY }, 200, () => {
             animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
               animateTo(this, winnerSprite.sprite, { y: originalY }, 200);
+              if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
             });
+            if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
           });
+          if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
         });
+        if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
       }
       const victoryText = new PIXI.Text({
         text: `${winnerName} vence!`,
@@ -1819,13 +1831,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       }
       if (this.attackerAura && !this.attackerAura.destroyed && this.characterSprites.attacker) {
-        const att = this.characterSprites.attacker;
-        this.attackerAura.x = att.sprite.x;
-        this.attackerAura.y = att.sprite.y;
-        const curScale = att.sprite.scale.x;
-        this.attackerAura.scale.set(curScale * 1.12);
+        const curScale = this.characterSprites.attacker.sprite.scale.x;
+        this.attackerAura.scale.set(curScale * 1.25);
         const time = performance.now() / 1e3;
-        this.attackerAura.alpha = 0.55 + Math.sin(time * 1.2) * 0.2;
+        this.attackerAura.alpha = 0.65 + Math.sin(time * 1.2) * 0.15;
       }
       if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
         const simDelta = deltaMs * this.battleSpeed;

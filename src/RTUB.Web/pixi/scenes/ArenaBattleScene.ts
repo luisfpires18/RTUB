@@ -395,16 +395,16 @@ export class ArenaBattleScene implements VfxOwner {
     this.stage.addChild(atkSprite);
     this.characterSprites.attacker = { sprite: atkSprite, originX: atkX, originY: atkY };
 
-    // Shot buff aura — blue glow outline behind sprite
+    // Shot buff aura — blue glow outline behind sprite (match CSS home page look)
     if (this.hasShotBuff) {
       const aura = PIXI.Sprite.from('attackerSprite');
       aura.anchor.set(0.5, 1);
-      aura.scale.set(atkScale * 1.12);
+      aura.scale.set(atkScale * 1.25);
       aura.x = atkX;
       aura.y = atkY;
-      aura.tint = 0x44bbff;
-      aura.alpha = 0.7;
-      aura.filters = [new PIXI.BlurFilter({ strength: 8 })];
+      aura.tint = 0x00aaff;
+      aura.alpha = 0.8;
+      aura.filters = [new PIXI.BlurFilter({ strength: 12 })];
       // Insert behind the real sprite
       const spriteIdx = this.stage.getChildIndex(atkSprite);
       this.stage.addChildAt(aura, spriteIdx);
@@ -1062,6 +1062,9 @@ export class ArenaBattleScene implements VfxOwner {
 
     this._playSound((isBlocked || isDodged) ? 'block' : (isCritical ? 'critical' : 'attack'));
 
+    // Determine if this attacker has an aura to move
+    const auraSprite = (attackerKey !== 'Defender' && this.attackerAura) ? this.attackerAura : null;
+
     const lungeDuration = isCritical ? 150 : 200;
     animateTo(this, attacker.sprite, {
       x: targetX,
@@ -1073,7 +1076,15 @@ export class ArenaBattleScene implements VfxOwner {
         y: startY,
         rotation: 0,
       }, 240);
+      // Return aura to start
+      if (auraSprite) {
+        animateTo(this, auraSprite, { x: startX, y: startY }, 240);
+      }
     });
+    // Move aura with lunge
+    if (auraSprite) {
+      animateTo(this, auraSprite, { x: targetX, y: targetY }, lungeDuration);
+    }
 
     if (isBlocked || isDodged) {
       defender.sprite.tint = 0x00e5ff;
@@ -1239,13 +1250,18 @@ export class ArenaBattleScene implements VfxOwner {
 
     if (winnerSprite) {
       const originalY = winnerSprite.sprite.y;
+      const winnerAura = isAttackerWinner ? this.attackerAura : null;
       animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
         animateTo(this, winnerSprite.sprite, { y: originalY }, 200, () => {
           animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
             animateTo(this, winnerSprite.sprite, { y: originalY }, 200);
+            if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
           });
+          if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
         });
+        if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
       });
+      if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
     }
 
     const victoryText = new PIXI.Text({
@@ -1380,16 +1396,12 @@ export class ArenaBattleScene implements VfxOwner {
       }
     }
 
-    // Animate attacker aura (shot buff glow outline)
+    // Animate attacker aura (shot buff glow) — pulse alpha, keep scale synced
     if (this.attackerAura && !(this.attackerAura as unknown as { destroyed?: boolean }).destroyed && this.characterSprites.attacker) {
-      const att = this.characterSprites.attacker;
-      this.attackerAura.x = att.sprite.x;
-      this.attackerAura.y = att.sprite.y;
-      // Match the real sprite's current scale, plus the glow boost
-      const curScale = att.sprite.scale.x;
-      this.attackerAura.scale.set(curScale * 1.12);
+      const curScale = this.characterSprites.attacker.sprite.scale.x;
+      this.attackerAura.scale.set(curScale * 1.25);
       const time = performance.now() / 1000;
-      this.attackerAura.alpha = 0.55 + Math.sin(time * 1.2) * 0.2;
+      this.attackerAura.alpha = 0.65 + Math.sin(time * 1.2) * 0.15;
     }
 
     // ── Interactive mode: speed bars trigger server calls ──

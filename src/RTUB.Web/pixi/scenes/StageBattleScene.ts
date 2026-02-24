@@ -688,16 +688,16 @@ export class StageBattleScene implements VfxOwner {
     this.playerX = playerX;
     this.playerDisplayHeight = this.playerSprite.height;
 
-    // Blue glow outline behind sprite for shot buff
+    // Blue glow outline behind sprite for shot buff (match CSS home page look)
     if (this.hasShotBuff) {
       this.playerAura = PIXI.Sprite.from(this._playerAlias);
       this.playerAura.anchor.set(0.5, 1);
-      this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
+      this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
       this.playerAura.x = playerX;
       this.playerAura.y = playerY;
-      this.playerAura.tint = 0x44bbff;
-      this.playerAura.alpha = 0.7;
-      this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
+      this.playerAura.tint = 0x00aaff;
+      this.playerAura.alpha = 0.8;
+      this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
       this.stage.addChild(this.playerAura);
     }
 
@@ -1517,24 +1517,24 @@ export class StageBattleScene implements VfxOwner {
         }
       }
 
-      // Shot aura — blue glow outline
+      // Shot aura — blue glow outline (match CSS home page look)
       if (type === 'shot') {
         this.hasShotBuff = true;
         if (!this.playerAura && this.playerSprite && this.stage) {
           this.playerAura = PIXI.Sprite.from(this._playerAlias);
           this.playerAura.anchor.set(0.5, 1);
-          this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
+          this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
           this.playerAura.x = this.playerSprite.x;
           this.playerAura.y = this.playerSprite.y;
-          this.playerAura.tint = 0x44bbff;
-          this.playerAura.alpha = 0.7;
-          this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
+          this.playerAura.tint = 0x00aaff;
+          this.playerAura.alpha = 0.8;
+          this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
           const idx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, idx);
         }
         if (this.playerAura) {
           this.playerAura.visible = true;
-          this.playerAura.alpha = 0.7;
+          this.playerAura.alpha = 0.8;
         }
         const msg = result.buffMessage ?? result.BuffMessage ?? '';
         if (msg && this.playerSprite) {
@@ -1909,11 +1909,13 @@ export class StageBattleScene implements VfxOwner {
       const p = this.playerIdleOffset;
       this.playerSprite.y = p.baseY + Math.sin(t * 1.2 + p.phase) * p.bobAmplitude;
       this.playerSprite.x = p.baseX + Math.sin(t * 0.8 + p.phase + 1) * p.swayAmplitude;
-      // Sync aura
-      if (this.playerAura) {
-        this.playerAura.x = this.playerSprite.x;
-        this.playerAura.y = this.playerSprite.y;
-      }
+    }
+    // Always sync aura to wherever the player sprite currently is
+    if (this.playerAura && this.playerSprite) {
+      this.playerAura.x = this.playerSprite.x;
+      this.playerAura.y = this.playerSprite.y;
+      const pTime = performance.now() / 1000;
+      this.playerAura.alpha = 0.65 + Math.sin(pTime * 1.2) * 0.15;
     }
 
     // Enemies
@@ -2232,19 +2234,24 @@ export class StageBattleScene implements VfxOwner {
     // Use idle-offset base position to prevent drift at high battle speeds
     const baseX = this.playerIdleOffset?.baseX ?? this.playerSprite.x;
     const baseY = this.playerIdleOffset?.baseY ?? this.playerSprite.y;
+    const aura = this.playerAura;
 
     if (this.isMobile) {
       animateTo(this, this.playerSprite, { y: baseY - lungeDistance }, lungeDuration, () => {
         animateTo(this, this.playerSprite!, { y: baseY }, 240, () => {
           this._playerAttacking = false;
         });
+        if (aura) animateTo(this, aura, { y: baseY }, 240);
       });
+      if (aura) animateTo(this, aura, { y: baseY - lungeDistance }, lungeDuration);
     } else {
       animateTo(this, this.playerSprite, { x: baseX + lungeDistance }, lungeDuration, () => {
         animateTo(this, this.playerSprite!, { x: baseX }, 240, () => {
           this._playerAttacking = false;
         });
+        if (aura) animateTo(this, aura, { x: baseX }, 240);
       });
+      if (aura) animateTo(this, aura, { x: baseX + lungeDistance }, lungeDuration);
     }
   }
 
@@ -2347,6 +2354,7 @@ export class StageBattleScene implements VfxOwner {
     if (character === 'Attacker' || character === 'Player') {
       if (this.playerSprite) {
         animateTo(this, this.playerSprite, { alpha: 0.3, rotation: Math.PI / 2 }, 500);
+        if (this.playerAura) animateTo(this, this.playerAura, { alpha: 0 }, 500);
       }
     } else if (character.startsWith('Enemy')) {
       const idx = parseInt(character.replace('Enemy', ''));
@@ -2797,17 +2805,17 @@ export class StageBattleScene implements VfxOwner {
       if (this.bossSpeedBar.text) this.bossSpeedBar.text.alpha = 1;
     }
 
-    // Handle shot buff aura changes — blue glow outline
+    // Handle shot buff aura changes — blue glow outline (match CSS home page look)
     if (this.hasShotBuff && !this.playerAura) {
       if (this.playerSprite && this.stage) {
         this.playerAura = PIXI.Sprite.from(this._playerAlias);
         this.playerAura.anchor.set(0.5, 1);
-        this.playerAura.scale.set(this.playerSprite.scale.x * 1.12);
+        this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
         this.playerAura.x = this.playerSprite.x;
         this.playerAura.y = this.playerSprite.y;
-        this.playerAura.tint = 0x44bbff;
-        this.playerAura.alpha = 0.7;
-        this.playerAura.filters = [new PIXI.BlurFilter({ strength: 8 })];
+        this.playerAura.tint = 0x00aaff;
+        this.playerAura.alpha = 0.8;
+        this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
         const playerIdx = this.stage.getChildIndex(this.playerSprite);
         this.stage.addChildAt(this.playerAura, playerIdx);
       }
@@ -2815,7 +2823,7 @@ export class StageBattleScene implements VfxOwner {
       this.playerAura.visible = false;
     } else if (this.hasShotBuff && this.playerAura) {
       this.playerAura.visible = true;
-      this.playerAura.alpha = 0.7;
+      this.playerAura.alpha = 0.8;
     }
 
     // Update background texture if changed
