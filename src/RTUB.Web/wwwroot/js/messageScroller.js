@@ -148,20 +148,34 @@ window.messageScroller = {
     },
     
     /**
-     * Scroll to bottom with delay to ensure DOM is updated
+     * Scroll to bottom with delay to ensure DOM is updated.
+     * On mobile, performs multiple scroll attempts at staggered intervals
+     * to handle push-notification navigation where layout may settle late.
      * @param {HTMLElement} element - The scrollable container element
      * @param {number} delayMs - Delay in milliseconds before scrolling
      */
     scrollToBottomDelayed: function (element, delayMs = 100) {
         if (!element) return;
         
-        setTimeout(() => {
+        const doScroll = () => {
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
                     element.scrollTop = element.scrollHeight;
                 });
             });
-        }, delayMs);
+        };
+        
+        // Initial scroll after the requested delay
+        setTimeout(doScroll, delayMs);
+        
+        // On mobile, add extra scroll attempts to handle late layout changes
+        // (e.g., navigating from a push notification where the viewport/layout
+        // may not be fully settled when the first scroll fires)
+        if (window.innerWidth <= this._MOBILE_BREAKPOINT) {
+            setTimeout(doScroll, 500);
+            setTimeout(doScroll, 800);
+            setTimeout(doScroll, 1200);
+        }
     },
     
     /**
