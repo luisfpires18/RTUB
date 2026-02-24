@@ -24,6 +24,7 @@
 @inject IStageService StageService
 @inject IBossModeService BossModeService
 @inject ISurviveModeService SurviveModeService
+@inject IShopService ShopService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -496,7 +497,7 @@
                         
                         <!-- Character Sprite -->
                         <div class="text-center mb-3">
-                            <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
+                            <img src="@CacheBuster.Bust(PlayerSpritePath)" 
                                  alt="My Tuno Character" 
                                  class="character-sprite img-fluid @(character.ShotBuffBattlesRemaining > 0 ? "shot-buff-aura" : "")"
                                  style="max-height: 200px; max-width: 100%; object-fit: contain;" />
@@ -778,7 +779,7 @@
 
                             <!-- Center character -->
                             <div class="equip-layout__center">
-                                <img src="@CacheBuster.Bust("/sprites/games/my-tuno/default_tuno.png")" 
+                                <img src="@CacheBuster.Bust(PlayerSpritePath)" 
                                      alt="Equipment Preview" 
                                      class="equip-layout__sprite" />
                             </div>
@@ -1045,10 +1046,37 @@
             <!-- Forging Section -->
             <div class="col-lg-4 order-5">
                 <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forja</h5>
+                    <div class="card-header text-white" style="background-color: #6f42c1;">
+                        <h5 class="mb-0"><i class="bi bi-hammer me-2"></i>Forge & Shop</h5>
                     </div>
                     <div class="card-body p-3 d-flex flex-column">
+                        <!-- Purple toggle tabs (same pattern as Upgrades) -->
+                        <div class="d-flex gap-1 mb-3">
+                            <button class="btn btn-sm flex-fill @(forgeShopTab == 0 ? "" : "btn-outline-secondary")"
+                                    style="@(forgeShopTab == 0 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => forgeShopTab = 0">
+                                <i class="bi bi-hammer me-1"></i>Forge
+                            </button>
+                            <button class="btn btn-sm flex-fill @(forgeShopTab == 1 ? "" : "btn-outline-secondary")"
+                                    style="@(forgeShopTab == 1 ? "background-color: #6f42c1; border-color: #6f42c1; color: white;" : "")"
+                                    @onclick="() => forgeShopTab = 1">
+                                <i class="bi bi-shop me-1"></i>Shop
+                            </button>
+                        </div>
+
+                        @{
+                            var forgeDrinkResource = forgeDrink.HasValue
+                                ? activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString())
+                                : null;
+                            var forgeDrinkQtyNeeded = forgeDrinkResource?.ForgeCost ?? 1;
+                            var forgeDrinkQtyHave = forgeDrink.HasValue ? GetResourceQuantity(forgeDrink.Value) : 0;
+                            var forgeCanAfford = forgeDrinkQtyHave >= forgeDrinkQtyNeeded;
+                            var skinAlreadyOwned = character != null && !string.IsNullOrEmpty(character.CustomSpritePath);
+                            var canAffordSkin = currentUser != null && currentUser.FidelisBalance >= 1_000_000m;
+                        }
+
+                        @if (forgeShopTab == 0)
+                        {
                         <p class="text-muted mb-3" style="font-size: 0.75rem;">Combina um instrumento com uma bebida para forjar uma arma!</p>
 
                         <!-- Forge Slots -->
@@ -1173,14 +1201,6 @@
                         }
 
                         <!-- Forge Button -->
-                        @{
-                            var forgeDrinkResource = forgeDrink.HasValue
-                                ? activeResources.FirstOrDefault(r => r.Type == forgeDrink.Value.ToString())
-                                : null;
-                            var forgeDrinkQtyNeeded = forgeDrinkResource?.ForgeCost ?? 1;
-                            var forgeDrinkQtyHave = forgeDrink.HasValue ? GetResourceQuantity(forgeDrink.Value) : 0;
-                            var forgeCanAfford = forgeDrinkQtyHave >= forgeDrinkQtyNeeded;
-                        }
                         <div class="d-flex gap-2 flex-wrap justify-content-center mb-3">
                             <FantasyTile Icon="bi-hammer"
                                          Label="Forjar Arma"
@@ -1193,11 +1213,110 @@
 
                             <FantasyTile Icon="bi-backpack2-fill"
                                          Label="Armas Forjadas"
-                                         Badge="@(forgedWeapons.Any() ? forgedWeapons.Count.ToString() : null)"
+                                         Value="@forgedWeapons.Count.ToString()"
                                          Color="purple"
                                          Clickable="true"
                                          OnClick="@(() => showWeaponsListModal = true)" />
                         </div>
+                        }
+                        @if (forgeShopTab == 1)
+                        {
+                        <div class="d-flex flex-column gap-2">
+                            <div class="enhance-row">
+                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #e67e22, #d35400); color: #fff;">
+                                    <span style="font-size: 1.1rem;">🐷</span>
+                                </div>
+                                <div class="enhance-row__info">
+                                    <div class="enhance-row__title">Leitão</div>
+                                    <div class="enhance-row__desc">Troca 25 FITAB por 1 Leitão</div>
+                                    <div class="enhance-row__stat">
+                                        FITAB: <span class="@(currentUser != null && currentUser.FitabBalance >= 25 ? "text-success" : "text-danger")">@(currentUser?.FitabBalance ?? 0)</span> / 25
+                                        &nbsp;|&nbsp; 🐷 @leitaoQuantity
+                                    </div>
+                                </div>
+                                <div class="enhance-row__action">
+                                    <button class="btn enhance-row__btn"
+                                            style="background: linear-gradient(180deg, #e67e22, #d35400, #b8450a); border-color: rgba(230, 126, 34, 0.4);"
+                                            @onclick="BuyLeitaoWithFitab"
+                                            disabled="@(buyingLeitao || currentUser == null || currentUser.FitabBalance < 25)">
+                                        @if (buyingLeitao)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <text>Trocar</text>
+                                        }
+                                    </button>
+                                    <div class="enhance-row__cost">
+                                        <span style="font-size: 0.7rem;">25 FITAB</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="enhance-row @(skinAlreadyOwned ? "enhance-row--maxed" : "") @(!hasCustomSpriteAvailable && !skinAlreadyOwned ? "opacity-50" : "")">
+                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff;">
+                                    <i class="bi bi-palette-fill"></i>
+                                </div>
+                                <div class="enhance-row__info">
+                                    <div class="enhance-row__title">Skin Personalizado</div>
+                                    <div class="enhance-row__desc">
+                                        @if (skinAlreadyOwned)
+                                        {
+                                            <text>Skin ativo!</text>
+                                        }
+                                        else if (!hasCustomSpriteAvailable)
+                                        {
+                                            <span style="color: #6f42c1; font-size: 0.78rem;">Não tens custom skin disponível ainda. Manda uma foto ao administrador</span>
+                                        }
+                                        else
+                                        {
+                                            <text>Substitui o tuno padrão em todos os modos</text>
+                                        }
+                                    </div>
+                                    <div class="enhance-row__stat">
+                                        @if (skinAlreadyOwned)
+                                        {
+                                            <span class="text-success">Comprado ✓</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="@(canAffordSkin ? "" : "text-danger")">@((currentUser?.FidelisBalance ?? 0).ToString("N0"))</span> <span>/ 1,000,000</span> <i class="bi bi-coin"></i>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="enhance-row__action">
+                                    <button class="btn enhance-row__btn @(skinAlreadyOwned ? "enhance-row__btn--maxed" : "")"
+                                            style="@(!skinAlreadyOwned ? "background: linear-gradient(180deg, #9b59b6, #8e44ad, #6c3483); border-color: rgba(155, 89, 182, 0.4);" : "")"
+                                            @onclick="BuyCustomSkin"
+                                            disabled="@(buyingSkin || skinAlreadyOwned || !hasCustomSpriteAvailable || !canAffordSkin)">
+                                        @if (buyingSkin)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else if (skinAlreadyOwned)
+                                        {
+                                            <text>Ativo</text>
+                                        }
+                                        else
+                                        {
+                                            <text>Comprar</text>
+                                        }
+                                    </button>
+                                    <div class="enhance-row__cost">
+                                        @if (skinAlreadyOwned)
+                                        {
+                                            <i class="bi bi-coin"></i> <span>—</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-coin"></i> <span>2M</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -1926,6 +2045,13 @@
 
 @code {
     /// <summary>
+    /// Returns the player sprite path — custom skin if owned, otherwise default_tuno.png.
+    /// </summary>
+    private string PlayerSpritePath => !string.IsNullOrEmpty(character?.CustomSpritePath)
+        ? character.CustomSpritePath
+        : "/sprites/games/my-tuno/default_tuno.png";
+
+    /// <summary>
     /// Gets the uploaded image URL for a weapon type, or null if none uploaded.
     /// Reads from pre-loaded itemTypePictures dictionary.
     /// </summary>
@@ -2070,6 +2196,12 @@
     // Consumable upgrades shop state
     private bool purchasingConsumableUpgrade = false;
     private ConsumableUpgradeType? purchasingConsumableUpgradeType = null;
+
+    // Shop state (Forge & Shop section)
+    private bool buyingLeitao = false;
+    private bool buyingSkin = false;
+    private bool hasCustomSpriteAvailable = false;
+    private int forgeShopTab = 0; // 0 = Forja, 1 = Loja
 
     private string toastMessage = string.Empty;
     private bool toastIsError = false;
@@ -2259,6 +2391,10 @@
                         
                         forgeComboPictures = forgeComboPicturesTask.Result;
                         forgedWeapons = forgedWeaponsTask.Result;
+
+                        // Check if a custom sprite is available for purchase (boss_{username}.png)
+                        if (string.IsNullOrEmpty(character.CustomSpritePath))
+                            hasCustomSpriteAvailable = await ShopService.HasCustomSpriteAvailableAsync(currentUser.Id);
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
@@ -2421,6 +2557,79 @@
         {
             purchasingConsumableUpgrade = false;
             purchasingConsumableUpgradeType = null;
+            StateHasChanged();
+        }
+    }
+
+    // ── Shop methods ──
+
+    private async Task BuyLeitaoWithFitab()
+    {
+        if (currentUser == null) return;
+        buyingLeitao = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, message, newFitab) = await ShopService.ExchangeFitabForLeitaoAsync(currentUser.Id);
+            if (success)
+            {
+                currentUser.FitabBalance = newFitab;
+                var inv = await InventoryService.GetUserInventorySummaryAsync(currentUser.Id);
+                leitaoQuantity = inv.GetValueOrDefault(InventoryItemType.Leitao);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exchanging FITAB for Leitão");
+            toastMessage = "Erro ao trocar FITAB. Tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            buyingLeitao = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuyCustomSkin()
+    {
+        if (currentUser == null || character == null) return;
+        buyingSkin = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, message) = await ShopService.PurchaseCustomSkinAsync(currentUser.Id);
+            if (success)
+            {
+                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
+                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
+                toastMessage = message;
+                toastIsError = false;
+            }
+            else
+            {
+                toastMessage = message;
+                toastIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error purchasing custom skin");
+            toastMessage = "Erro ao comprar skin. Tenta novamente.";
+            toastIsError = true;
+        }
+        finally
+        {
+            buyingSkin = false;
             StateHasChanged();
         }
     }

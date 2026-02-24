@@ -848,7 +848,7 @@
                         PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
                         EnemyName = currentBattle.BossName,
                         BackgroundPath = BossModeService.GetBackgroundPath(),
-                        PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        PlayerSpritePath = !string.IsNullOrEmpty(character.CustomSpritePath) ? character.CustomSpritePath : "/sprites/games/my-tuno/default_tuno.png",
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = new List<int> { 0 },
                         BattleSpeed = battleSpeed,

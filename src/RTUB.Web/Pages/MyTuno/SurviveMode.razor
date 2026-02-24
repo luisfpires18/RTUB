@@ -318,7 +318,7 @@
             var backgroundPath = SurviveModeService.GetBackgroundPath(currentLevel);
 
             // Get player sprite path
-            var playerSpritePath = "/sprites/games/my-tuno/default_tuno.png";
+            var playerSpritePath = !string.IsNullOrEmpty(character.CustomSpritePath) ? character.CustomSpritePath : "/sprites/games/my-tuno/default_tuno.png";
 
             var levelData = new
             {

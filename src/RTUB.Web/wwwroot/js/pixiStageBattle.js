@@ -1152,13 +1152,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.playerSprite.y = playerY;
       const maxSpriteHeight = this.isMobile ? height * 0.25 : height * 0.45;
       const scale = Math.min(1, maxSpriteHeight / this.playerSprite.height);
-      this.playerSprite.scale.set(scale);
+      const isCustomSprite = this.playerSpritePath !== DEFAULT_SPRITES.player;
+      if (isCustomSprite) {
+        this.playerSprite.scale.set(-scale, scale);
+      } else {
+        this.playerSprite.scale.set(scale);
+      }
       this.playerX = playerX;
       this.playerDisplayHeight = this.playerSprite.height;
       if (this.hasShotBuff) {
         this.playerAura = PIXI.Sprite.from(this._playerAlias);
         this.playerAura.anchor.set(0.5, 1);
-        this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
+        const auraScale = Math.abs(this.playerSprite.scale.x) * 1.25;
+        if (isCustomSprite) {
+          this.playerAura.scale.set(-auraScale, auraScale);
+        } else {
+          this.playerAura.scale.set(auraScale);
+        }
         this.playerAura.x = playerX;
         this.playerAura.y = playerY;
         this.playerAura.alpha = 0.8;
@@ -2034,7 +2044,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           if (!this.playerAura && this.playerSprite && this.stage) {
             this.playerAura = PIXI.Sprite.from(this._playerAlias);
             this.playerAura.anchor.set(0.5, 1);
-            this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
+            const auraScaleAbs = Math.abs(this.playerSprite.scale.x) * 1.25;
+            this.playerAura.scale.set(
+              this.playerSprite.scale.x < 0 ? -auraScaleAbs : auraScaleAbs,
+              auraScaleAbs
+            );
             this.playerAura.x = this.playerSprite.x;
             this.playerAura.y = this.playerSprite.y;
             this.playerAura.alpha = 0.8;
@@ -3181,7 +3195,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (this.playerSprite && this.stage) {
           this.playerAura = PIXI.Sprite.from(this._playerAlias);
           this.playerAura.anchor.set(0.5, 1);
-          this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
+          const auraScaleAbs = Math.abs(this.playerSprite.scale.x) * 1.25;
+          this.playerAura.scale.set(
+            this.playerSprite.scale.x < 0 ? -auraScaleAbs : auraScaleAbs,
+            auraScaleAbs
+          );
           this.playerAura.x = this.playerSprite.x;
           this.playerAura.y = this.playerSprite.y;
           this.playerAura.alpha = 0.8;

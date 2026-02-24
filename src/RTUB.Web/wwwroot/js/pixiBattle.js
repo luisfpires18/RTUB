@@ -725,6 +725,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       // Shot buff visual
       __publicField(this, "hasShotBuff");
       __publicField(this, "attackerAura", null);
+      // Custom sprite paths (overrides SPRITE_PATHS when non-empty)
+      __publicField(this, "attackerSpritePath");
+      __publicField(this, "defenderSpritePath");
+      // Actual PixiJS asset aliases used (may differ if custom sprites loaded)
+      __publicField(this, "_attackerAlias", "attackerSprite");
+      __publicField(this, "_defenderAlias", "defenderSprite");
+      __publicField(this, "_attackerIsCustom", false);
+      __publicField(this, "_defenderIsCustom", false);
       // Speed bars
       __publicField(this, "actionTime", { attacker: 5, defender: 5 });
       __publicField(this, "speedBars", { attacker: null, defender: null });
@@ -778,6 +786,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.attackerName = data.attackerName ?? "Attacker";
       this.defenderName = data.defenderName ?? "Defender";
       this.hasShotBuff = data.HasShotBuff ?? data.hasShotBuff ?? false;
+      this.attackerSpritePath = data.AttackerSpritePath ?? data.attackerSpritePath ?? "";
+      this.defenderSpritePath = data.DefenderSpritePath ?? data.defenderSpritePath ?? "";
       this.interactiveMode = data.InteractiveMode ?? data.interactiveMode ?? false;
       this.spells = data.Spells ?? data.spells ?? [];
       this.interactivePlayerHP = data.PlayerHP ?? data.playerHP ?? null;
@@ -881,11 +891,29 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ────────────────────────── Asset Loading ──────────────────────── */
     async loadAssets() {
       const toLoad = [];
-      if (!loadedAssetAliases.has("attackerSprite")) {
-        toLoad.push({ alias: "attackerSprite", src: SPRITE_PATHS.attacker + SESSION_CACHE_BUST });
+      if (this.attackerSpritePath) {
+        this._attackerAlias = `arena_atk_${this.attackerSpritePath}`;
+        this._attackerIsCustom = true;
+        if (!loadedAssetAliases.has(this._attackerAlias)) {
+          toLoad.push({ alias: this._attackerAlias, src: this.attackerSpritePath + SESSION_CACHE_BUST });
+        }
+      } else {
+        this._attackerAlias = "attackerSprite";
+        if (!loadedAssetAliases.has("attackerSprite")) {
+          toLoad.push({ alias: "attackerSprite", src: SPRITE_PATHS.attacker + SESSION_CACHE_BUST });
+        }
       }
-      if (!loadedAssetAliases.has("defenderSprite")) {
-        toLoad.push({ alias: "defenderSprite", src: SPRITE_PATHS.defender + SESSION_CACHE_BUST });
+      if (this.defenderSpritePath) {
+        this._defenderAlias = `arena_def_${this.defenderSpritePath}`;
+        this._defenderIsCustom = true;
+        if (!loadedAssetAliases.has(this._defenderAlias)) {
+          toLoad.push({ alias: this._defenderAlias, src: this.defenderSpritePath + SESSION_CACHE_BUST });
+        }
+      } else {
+        this._defenderAlias = "defenderSprite";
+        if (!loadedAssetAliases.has("defenderSprite")) {
+          toLoad.push({ alias: "defenderSprite", src: SPRITE_PATHS.defender + SESSION_CACHE_BUST });
+        }
       }
       if (!loadedAssetAliases.has("arenaBg")) {
         toLoad.push({ alias: "arenaBg", src: SPRITE_PATHS.background + SESSION_CACHE_BUST });
@@ -933,10 +961,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     createCharacters(width, height, isMobile) {
       if (!this.stage) return;
       const maxSpriteHeight = isMobile ? height * 0.25 : height * 0.45;
-      const atkSprite = PIXI.Sprite.from("attackerSprite");
+      const atkSprite = PIXI.Sprite.from(this._attackerAlias);
       atkSprite.anchor.set(0.5, 1);
       const atkScale = this.getSpriteScale(atkSprite, maxSpriteHeight);
-      atkSprite.scale.set(atkScale);
+      if (this._attackerIsCustom) {
+        atkSprite.scale.set(-atkScale, atkScale);
+      } else {
+        atkSprite.scale.set(atkScale);
+      }
       let atkX, atkY;
       if (isMobile) {
         atkX = width / 2;
@@ -950,9 +982,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.stage.addChild(atkSprite);
       this.characterSprites.attacker = { sprite: atkSprite, originX: atkX, originY: atkY };
       if (this.hasShotBuff) {
-        const aura = PIXI.Sprite.from("attackerSprite");
+        const aura = PIXI.Sprite.from(this._attackerAlias);
         aura.anchor.set(0.5, 1);
-        aura.scale.set(atkScale * 1.25);
+        const auraScale = atkScale * 1.25;
+        if (this._attackerIsCustom) {
+          aura.scale.set(-auraScale, auraScale);
+        } else {
+          aura.scale.set(auraScale);
+        }
         aura.x = atkX;
         aura.y = atkY;
         aura.alpha = 0.8;
@@ -984,7 +1021,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.stage.addChildAt(aura, spriteIdx);
         this.attackerAura = aura;
       }
-      const defSprite = PIXI.Sprite.from("defenderSprite");
+      const defSprite = PIXI.Sprite.from(this._defenderAlias);
       defSprite.anchor.set(0.5, 1);
       const defScale = this.getSpriteScale(defSprite, maxSpriteHeight);
       defSprite.scale.set(defScale);
@@ -1854,13 +1891,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const swayOffset = Math.sin(data.breathTime * 0.8) * 3;
           char.sprite.x = data.originalX + swayOffset;
           const scaleOffset = Math.sin(data.scaleTime * Math.PI / 2) * 0.02;
-          const newScale = data.originalScale * (1 + scaleOffset);
-          char.sprite.scale.set(newScale);
+          const absScale = Math.abs(data.originalScale) * (1 + scaleOffset);
+          char.sprite.scale.set(data.originalScale < 0 ? -absScale : absScale, absScale);
         }
       }
       if (this.attackerAura && !this.attackerAura.destroyed && this.characterSprites.attacker) {
-        const curScale = this.characterSprites.attacker.sprite.scale.x;
-        this.attackerAura.scale.set(curScale * 1.25);
+        const curScaleX = this.characterSprites.attacker.sprite.scale.x;
+        const curScaleY = this.characterSprites.attacker.sprite.scale.y;
+        this.attackerAura.scale.set(curScaleX < 0 ? curScaleX * 1.25 : curScaleX * 1.25, curScaleY * 1.25);
         const time = performance.now() / 1e3;
         this.attackerAura.alpha = 0.65 + Math.sin(time * 1.2) * 0.15;
       }
@@ -2009,12 +2047,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const playerMaxHP = d.PlayerMaxHP ?? d.playerMaxHP ?? null;
     const playerActionTime = d.PlayerActionTime ?? d.playerActionTime ?? null;
     const enemies = d.Enemies ?? d.enemies ?? [];
+    const attackerSpritePath = d.AttackerSpritePath ?? d.attackerSpritePath ?? "";
+    const defenderSpritePath = d.DefenderSpritePath ?? d.defenderSpritePath ?? "";
     return new ArenaBattleScene(container, {
       events,
       dotNetRef,
       mode,
       attackerName,
       defenderName,
+      AttackerSpritePath: attackerSpritePath,
+      DefenderSpritePath: defenderSpritePath,
       HasShotBuff: hasShotBuff,
       InteractiveMode: interactiveMode,
       Spells: spells,

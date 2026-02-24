@@ -551,6 +551,8 @@
                         DotNetRef = objRef,
                         AttackerName = character.User?.Nickname ?? character.User?.UserName ?? "Jogador",
                         DefenderName = opponent.User?.Nickname ?? opponent.User?.UserName ?? "Oponente",
+                        AttackerSpritePath = !string.IsNullOrEmpty(character.CustomSpritePath) ? character.CustomSpritePath : "",
+                        DefenderSpritePath = !string.IsNullOrEmpty(opponent.CustomSpritePath) ? opponent.CustomSpritePath : "",
                         BattleSpeed = battleSpeed,
                         HasShotBuff = false, // Arena doesn't use buffs
                         // ── Interactive combat data ──

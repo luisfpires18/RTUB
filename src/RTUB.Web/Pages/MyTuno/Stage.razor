@@ -762,7 +762,7 @@
                         PlayerName = character.User?.Nickname ?? character.User?.UserName ?? "Player",
                         EnemyName = currentBattle.EnemyName,
                         BackgroundPath = BiomeService.GetBackgroundForStage(battleStageNumber),
-                        PlayerSpritePath = "/sprites/games/my-tuno/default_tuno.png",
+                        PlayerSpritePath = !string.IsNullOrEmpty(character.CustomSpritePath) ? character.CustomSpritePath : "/sprites/games/my-tuno/default_tuno.png",
                         EnemySprites = enemySpritePaths,
                         EnemyPlacements = enemyPlacements,
                         BattleSpeed = battleSpeed,

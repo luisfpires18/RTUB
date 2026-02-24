@@ -103,7 +103,9 @@ public class StageService : IStageService
         
         var stageNumber = stageProgress.CurrentStage;
         var enemyType = GetEnemyTypeForStageFromConfig(stageNumber);
-        var region = stageProgress.CurrentRegion;
+        // Derive region from stage number — never rely on stored CurrentRegion which
+        // can be stale after CancelRunAsync or SaveChangesAsync side-effects.
+        var region = StageProgress.GetRegionForStage(stageNumber);
 
         // Get enemy count for this stage (e.g., stage 1 = 1 enemy, stage 9 = 5 enemies)
         var enemyCount = _biomeService.GetEnemyCountForStage(stageNumber);
@@ -415,6 +417,7 @@ public class StageService : IStageService
                 if (stageProgress.CurrentStage != restoreStage)
                 {
                     stageProgress.CurrentStage = restoreStage;
+                    stageProgress.CurrentRegion = StageProgress.GetRegionForStage(restoreStage);
                     stageProgress.EnemiesDefeatedInCurrentStage = 0;
                     await _stageProgressRepository.UpdateAsync(stageProgress);
                 }

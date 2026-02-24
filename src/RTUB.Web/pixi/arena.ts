@@ -44,6 +44,8 @@ function createGame(
   const playerMaxHP = (d.PlayerMaxHP ?? d.playerMaxHP ?? null) as number | null;
   const playerActionTime = (d.PlayerActionTime ?? d.playerActionTime ?? null) as number | null;
   const enemies = (d.Enemies ?? d.enemies ?? []) as ArenaBattleData['Enemies'];
+  const attackerSpritePath = (d.AttackerSpritePath ?? d.attackerSpritePath ?? '') as string;
+  const defenderSpritePath = (d.DefenderSpritePath ?? d.defenderSpritePath ?? '') as string;
 
   return new ArenaBattleScene(container, {
     events,
@@ -51,6 +53,8 @@ function createGame(
     mode,
     attackerName,
     defenderName,
+    AttackerSpritePath: attackerSpritePath,
+    DefenderSpritePath: defenderSpritePath,
     HasShotBuff: hasShotBuff,
     InteractiveMode: interactiveMode,
     Spells: spells,

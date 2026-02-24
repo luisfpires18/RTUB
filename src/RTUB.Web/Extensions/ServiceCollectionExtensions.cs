@@ -150,6 +150,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStageEnemyManagementService, StageEnemyManagementService>();
         services.AddScoped<IBossModeService, BossModeService>();
         services.AddScoped<ISurviveModeService, SurviveModeService>();
+        services.AddScoped<IShopService, ShopService>();
 
         return services;
     }

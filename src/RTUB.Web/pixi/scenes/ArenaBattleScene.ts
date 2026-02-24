@@ -112,6 +112,15 @@ export class ArenaBattleScene implements VfxOwner {
   private hasShotBuff: boolean;
   private attackerAura: Sprite | null = null;
 
+  // Custom sprite paths (overrides SPRITE_PATHS when non-empty)
+  private attackerSpritePath: string;
+  private defenderSpritePath: string;
+  // Actual PixiJS asset aliases used (may differ if custom sprites loaded)
+  private _attackerAlias = 'attackerSprite';
+  private _defenderAlias = 'defenderSprite';
+  private _attackerIsCustom = false;
+  private _defenderIsCustom = false;
+
   // Speed bars
   private actionTime = { attacker: 5.0, defender: 5.0 };
   private speedBars: Record<string, Graphics | null> = { attacker: null, defender: null };
@@ -177,6 +186,10 @@ export class ArenaBattleScene implements VfxOwner {
     mode: 'live' | 'replay';
     attackerName: string;
     defenderName: string;
+    AttackerSpritePath?: string;
+    attackerSpritePath?: string;
+    DefenderSpritePath?: string;
+    defenderSpritePath?: string;
     HasShotBuff?: boolean;
     hasShotBuff?: boolean;
     InteractiveMode?: boolean;
@@ -201,6 +214,10 @@ export class ArenaBattleScene implements VfxOwner {
     this.attackerName = data.attackerName ?? 'Attacker';
     this.defenderName = data.defenderName ?? 'Defender';
     this.hasShotBuff = data.HasShotBuff ?? data.hasShotBuff ?? false;
+
+    // Custom sprite paths (empty string = use default)
+    this.attackerSpritePath = data.AttackerSpritePath ?? data.attackerSpritePath ?? '';
+    this.defenderSpritePath = data.DefenderSpritePath ?? data.defenderSpritePath ?? '';
 
     // Interactive mode
     this.interactiveMode = data.InteractiveMode ?? data.interactiveMode ?? false;
@@ -315,12 +332,34 @@ export class ArenaBattleScene implements VfxOwner {
   private async loadAssets(): Promise<void> {
     const toLoad: { alias: string; src: string }[] = [];
 
-    if (!loadedAssetAliases.has('attackerSprite')) {
-      toLoad.push({ alias: 'attackerSprite', src: SPRITE_PATHS.attacker + SESSION_CACHE_BUST });
+    // Determine attacker sprite: custom or default
+    if (this.attackerSpritePath) {
+      this._attackerAlias = `arena_atk_${this.attackerSpritePath}`;
+      this._attackerIsCustom = true;
+      if (!loadedAssetAliases.has(this._attackerAlias)) {
+        toLoad.push({ alias: this._attackerAlias, src: this.attackerSpritePath + SESSION_CACHE_BUST });
+      }
+    } else {
+      this._attackerAlias = 'attackerSprite';
+      if (!loadedAssetAliases.has('attackerSprite')) {
+        toLoad.push({ alias: 'attackerSprite', src: SPRITE_PATHS.attacker + SESSION_CACHE_BUST });
+      }
     }
-    if (!loadedAssetAliases.has('defenderSprite')) {
-      toLoad.push({ alias: 'defenderSprite', src: SPRITE_PATHS.defender + SESSION_CACHE_BUST });
+
+    // Determine defender sprite: custom or default
+    if (this.defenderSpritePath) {
+      this._defenderAlias = `arena_def_${this.defenderSpritePath}`;
+      this._defenderIsCustom = true;
+      if (!loadedAssetAliases.has(this._defenderAlias)) {
+        toLoad.push({ alias: this._defenderAlias, src: this.defenderSpritePath + SESSION_CACHE_BUST });
+      }
+    } else {
+      this._defenderAlias = 'defenderSprite';
+      if (!loadedAssetAliases.has('defenderSprite')) {
+        toLoad.push({ alias: 'defenderSprite', src: SPRITE_PATHS.defender + SESSION_CACHE_BUST });
+      }
     }
+
     if (!loadedAssetAliases.has('arenaBg')) {
       toLoad.push({ alias: 'arenaBg', src: SPRITE_PATHS.background + SESSION_CACHE_BUST });
     }
@@ -380,10 +419,15 @@ export class ArenaBattleScene implements VfxOwner {
     const maxSpriteHeight = isMobile ? height * 0.25 : height * 0.45;
 
     // ── Attacker ──
-    const atkSprite = PIXI.Sprite.from('attackerSprite');
+    const atkSprite = PIXI.Sprite.from(this._attackerAlias);
     atkSprite.anchor.set(0.5, 1);
     const atkScale = this.getSpriteScale(atkSprite, maxSpriteHeight);
-    atkSprite.scale.set(atkScale);
+    // Custom sprites face left by default; flip to face right for attacker
+    if (this._attackerIsCustom) {
+      atkSprite.scale.set(-atkScale, atkScale);
+    } else {
+      atkSprite.scale.set(atkScale);
+    }
 
     let atkX: number, atkY: number;
     if (isMobile) {
@@ -400,9 +444,14 @@ export class ArenaBattleScene implements VfxOwner {
 
     // Shot buff aura — blue glow outline behind sprite (match CSS home page look)
     if (this.hasShotBuff) {
-      const aura = PIXI.Sprite.from('attackerSprite');
+      const aura = PIXI.Sprite.from(this._attackerAlias);
       aura.anchor.set(0.5, 1);
-      aura.scale.set(atkScale * 1.25);
+      const auraScale = atkScale * 1.25;
+      if (this._attackerIsCustom) {
+        aura.scale.set(-auraScale, auraScale);
+      } else {
+        aura.scale.set(auraScale);
+      }
       aura.x = atkX;
       aura.y = atkY;
       aura.alpha = 0.8;
@@ -422,7 +471,8 @@ export class ArenaBattleScene implements VfxOwner {
     }
 
     // ── Defender ──
-    const defSprite = PIXI.Sprite.from('defenderSprite');
+    // Custom sprites face left by default, which is correct for the defender
+    const defSprite = PIXI.Sprite.from(this._defenderAlias);
     defSprite.anchor.set(0.5, 1);
     const defScale = this.getSpriteScale(defSprite, maxSpriteHeight);
     defSprite.scale.set(defScale);
@@ -1405,15 +1455,17 @@ export class ArenaBattleScene implements VfxOwner {
         char.sprite.x = data.originalX + swayOffset;
 
         const scaleOffset = Math.sin(data.scaleTime * Math.PI / 2) * 0.02;
-        const newScale = data.originalScale * (1 + scaleOffset);
-        char.sprite.scale.set(newScale);
+        const absScale = Math.abs(data.originalScale) * (1 + scaleOffset);
+        // Preserve negative X for horizontally-flipped custom sprites
+        char.sprite.scale.set(data.originalScale < 0 ? -absScale : absScale, absScale);
       }
     }
 
     // Animate attacker aura (shot buff glow) — pulse alpha, keep scale synced
     if (this.attackerAura && !(this.attackerAura as unknown as { destroyed?: boolean }).destroyed && this.characterSprites.attacker) {
-      const curScale = this.characterSprites.attacker.sprite.scale.x;
-      this.attackerAura.scale.set(curScale * 1.25);
+      const curScaleX = this.characterSprites.attacker.sprite.scale.x;
+      const curScaleY = this.characterSprites.attacker.sprite.scale.y;
+      this.attackerAura.scale.set(curScaleX < 0 ? curScaleX * 1.25 : curScaleX * 1.25, curScaleY * 1.25);
       const time = performance.now() / 1000;
       this.attackerAura.alpha = 0.65 + Math.sin(time * 1.2) * 0.15;
     }

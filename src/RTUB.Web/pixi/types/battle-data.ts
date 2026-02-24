@@ -40,6 +40,12 @@ export interface ArenaBattleData {
   defenderName?: string;
   DefenderName?: string;
 
+  // Custom sprite paths
+  AttackerSpritePath?: string;
+  attackerSpritePath?: string;
+  DefenderSpritePath?: string;
+  defenderSpritePath?: string;
+
   // Gameplay config
   battleSpeed?: number;
   BattleSpeed?: number;

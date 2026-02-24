@@ -204,6 +204,15 @@ public class Character : BaseEntity
     /// <summary>Number of special attack damage upgrades purchased</summary>
     public int SpecialAttackUpgrades { get; set; }
 
+    // ── Custom Skin ──
+
+    /// <summary>
+    /// Path to a custom player sprite (purchased from the Shop).
+    /// When set, replaces default_tuno.png everywhere (homepage, stage, boss, arena).
+    /// Sprites are 512×512, face left by default.
+    /// </summary>
+    public string? CustomSpritePath { get; set; }
+
     // ── Rare Set Applied Flags (ultra-rare equipment upgrades) ──
 
     /// <summary>Whether the rare head upgrade has been applied</summary>
