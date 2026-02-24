@@ -158,6 +158,17 @@
                         <span class="text-muted ms-auto" style="font-size: 0.8rem;">@character.ArenaRating</span>
                     </div>
 
+                    <!-- Character Sprite -->
+                    @{
+                        var mySpritePath = !string.IsNullOrEmpty(character.CustomSpritePath)
+                            ? character.CustomSpritePath
+                            : "/sprites/games/my-tuno/default_tuno.png";
+                    }
+                    <div class="text-center my-2">
+                        <img src="@CacheBuster.Bust(mySpritePath)" alt="@GetOpponentName(character)"
+                             style="max-height: 100px; object-fit: contain;" loading="lazy" />
+                    </div>
+
                     <!-- Arena Record -->
                     <div class="arena-opponent-section-label"><i class="bi bi-trophy-fill me-1"></i>Registo</div>
                     <div class="arena-own-record">
@@ -232,6 +243,17 @@
                                     <i class="bi @rank.Icon" style="color: @rank.Color;"></i>
                                     <span style="color: @rank.Color; font-weight: 600;">@rank.Name</span>
                                     <span class="text-muted ms-auto" style="font-size: 0.8rem;">@opponent.ArenaRating</span>
+                                </div>
+
+                                <!-- Character Sprite -->
+                                @{
+                                    var oppSpritePath = !string.IsNullOrEmpty(opponent.CustomSpritePath)
+                                        ? opponent.CustomSpritePath
+                                        : "/sprites/games/my-tuno/default_tuno.png";
+                                }
+                                <div class="text-center my-2">
+                                    <img src="@CacheBuster.Bust(oppSpritePath)" alt="@GetOpponentName(opponent)"
+                                         style="max-height: 100px; object-fit: contain;" loading="lazy" />
                                 </div>
 
                                 <!-- Player Stats -->

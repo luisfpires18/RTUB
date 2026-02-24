@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,8 @@ public class UpgradeServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var mockCharConfig = Options.Create(new MyTunoScalingConfiguration());
         var mockCharLogger = new Mock<ILogger<CharacterService>>();
         _characterService = new CharacterService(
-            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object, _context);
+            characterRepository, mockCharUserManager.Object, mockCharConfig, mockCharLogger.Object, _context,
+            Mock.Of<IWebHostEnvironment>());
 
         // Setup UserManager mock
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();

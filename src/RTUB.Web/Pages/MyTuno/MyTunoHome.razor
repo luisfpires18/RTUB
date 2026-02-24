@@ -472,6 +472,9 @@
                         <h5 class="mb-0"><i class="bi bi-person me-2"></i>Personagem</h5>
                     </div>
                     <div class="card-body">
+                        <!-- Nickname -->
+                        <h5 class="text-center mb-2" style="font-weight: 700;">@(currentUser?.Nickname ?? "Personagem")</h5>
+
                         <!-- HP Bar (above character sprite) -->
                         @{
                             var currentHP = character!.CurrentHP ?? GetDisplayMaxHP(character);
@@ -1071,8 +1074,6 @@
                             var forgeDrinkQtyNeeded = forgeDrinkResource?.ForgeCost ?? 1;
                             var forgeDrinkQtyHave = forgeDrink.HasValue ? GetResourceQuantity(forgeDrink.Value) : 0;
                             var forgeCanAfford = forgeDrinkQtyHave >= forgeDrinkQtyNeeded;
-                            var skinAlreadyOwned = character != null && !string.IsNullOrEmpty(character.CustomSpritePath);
-                            var canAffordSkin = currentUser != null && currentUser.FidelisBalance >= 1_000_000m;
                         }
 
                         @if (forgeShopTab == 0)
@@ -1250,68 +1251,6 @@
                                     </button>
                                     <div class="enhance-row__cost">
                                         <span style="font-size: 0.7rem;">25 FITAB</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="enhance-row @(skinAlreadyOwned ? "enhance-row--maxed" : "") @(!hasCustomSpriteAvailable && !skinAlreadyOwned ? "opacity-50" : "")">
-                                <div class="enhance-row__icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff;">
-                                    <i class="bi bi-palette-fill"></i>
-                                </div>
-                                <div class="enhance-row__info">
-                                    <div class="enhance-row__title">Skin Personalizado</div>
-                                    <div class="enhance-row__desc">
-                                        @if (skinAlreadyOwned)
-                                        {
-                                            <text>Skin ativo!</text>
-                                        }
-                                        else if (!hasCustomSpriteAvailable)
-                                        {
-                                            <span style="color: #6f42c1; font-size: 0.78rem;">Não tens custom skin disponível ainda. Manda uma foto ao administrador</span>
-                                        }
-                                        else
-                                        {
-                                            <text>Substitui o tuno padrão em todos os modos</text>
-                                        }
-                                    </div>
-                                    <div class="enhance-row__stat">
-                                        @if (skinAlreadyOwned)
-                                        {
-                                            <span class="text-success">Comprado ✓</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="@(canAffordSkin ? "" : "text-danger")">@((currentUser?.FidelisBalance ?? 0).ToString("N0"))</span> <span>/ 1,000,000</span> <i class="bi bi-coin"></i>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="enhance-row__action">
-                                    <button class="btn enhance-row__btn @(skinAlreadyOwned ? "enhance-row__btn--maxed" : "")"
-                                            style="@(!skinAlreadyOwned ? "background: linear-gradient(180deg, #9b59b6, #8e44ad, #6c3483); border-color: rgba(155, 89, 182, 0.4);" : "")"
-                                            @onclick="BuyCustomSkin"
-                                            disabled="@(buyingSkin || skinAlreadyOwned || !hasCustomSpriteAvailable || !canAffordSkin)">
-                                        @if (buyingSkin)
-                                        {
-                                            <span class="spinner-border spinner-border-sm"></span>
-                                        }
-                                        else if (skinAlreadyOwned)
-                                        {
-                                            <text>Ativo</text>
-                                        }
-                                        else
-                                        {
-                                            <text>Comprar</text>
-                                        }
-                                    </button>
-                                    <div class="enhance-row__cost">
-                                        @if (skinAlreadyOwned)
-                                        {
-                                            <i class="bi bi-coin"></i> <span>—</span>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-coin"></i> <span>2M</span>
-                                        }
                                     </div>
                                 </div>
                             </div>
@@ -2199,8 +2138,6 @@
 
     // Shop state (Forge & Shop section)
     private bool buyingLeitao = false;
-    private bool buyingSkin = false;
-    private bool hasCustomSpriteAvailable = false;
     private int forgeShopTab = 0; // 0 = Forja, 1 = Loja
 
     private string toastMessage = string.Empty;
@@ -2392,9 +2329,12 @@
                         forgeComboPictures = forgeComboPicturesTask.Result;
                         forgedWeapons = forgedWeaponsTask.Result;
 
-                        // Check if a custom sprite is available for purchase (boss_{username}.png)
+                        // Auto-assign custom sprite if available and not yet set
                         if (string.IsNullOrEmpty(character.CustomSpritePath))
-                            hasCustomSpriteAvailable = await ShopService.HasCustomSpriteAvailableAsync(currentUser.Id);
+                        {
+                            await CharacterService.AutoAssignCustomSpriteAsync(currentUser.Id);
+                            character = await CharacterService.GetCharacterAsync(currentUser.Id);
+                        }
                         
                         // Start energy regen timer (synced with server)
                         StartEnergyRegenTimer(secondsUntilNext);
@@ -2595,41 +2535,6 @@
         finally
         {
             buyingLeitao = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task BuyCustomSkin()
-    {
-        if (currentUser == null || character == null) return;
-        buyingSkin = true;
-        StateHasChanged();
-
-        try
-        {
-            var (success, message) = await ShopService.PurchaseCustomSkinAsync(currentUser.Id);
-            if (success)
-            {
-                currentUser = await UserManager.FindByIdAsync(currentUser.Id);
-                character = await CharacterService.GetCharacterAsync(currentUser!.Id);
-                toastMessage = message;
-                toastIsError = false;
-            }
-            else
-            {
-                toastMessage = message;
-                toastIsError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error purchasing custom skin");
-            toastMessage = "Erro ao comprar skin. Tenta novamente.";
-            toastIsError = true;
-        }
-        finally
-        {
-            buyingSkin = false;
             StateHasChanged();
         }
     }

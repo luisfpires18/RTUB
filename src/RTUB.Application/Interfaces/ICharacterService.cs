@@ -64,4 +64,10 @@ public interface ICharacterService
     /// Deletes all characters, inventories, weapons, stage/boss/survive progress, and scores.
     /// </summary>
     Task<(bool Success, string Message)> ResetAllGameDataAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Automatically assigns CustomSpritePath if a matching boss_{username}.png sprite exists
+    /// and the character doesn't already have one set.
+    /// </summary>
+    Task AutoAssignCustomSpriteAsync(string userId, CancellationToken cancellationToken = default);
 }

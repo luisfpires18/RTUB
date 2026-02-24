@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +46,8 @@ public class CharacterServiceTests
             mockUserManager.Object,
             mockConfig,
             mockLogger.Object,
-            dbContext);
+            dbContext,
+            Mock.Of<IWebHostEnvironment>());
     }
 
     #region GetOrCreateCharacterAsync Tests
@@ -278,7 +280,8 @@ public class CharacterServiceTests
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
             new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            Mock.Of<IWebHostEnvironment>());
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
@@ -314,7 +317,8 @@ public class CharacterServiceTests
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
             new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            Mock.Of<IWebHostEnvironment>());
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 10);
@@ -350,7 +354,8 @@ public class CharacterServiceTests
             Options.Create(new MyTunoScalingConfiguration()),
             new Mock<ILogger<CharacterService>>().Object,
             new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()));
+                .UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}").Options, Mock.Of<IHttpContextAccessor>(), new AuditContext(), new AuditLogAppender()),
+            Mock.Of<IWebHostEnvironment>());
 
         // Act
         var (success, message, reward) = await service.ClaimDailyRewardAsync(userId, 1);

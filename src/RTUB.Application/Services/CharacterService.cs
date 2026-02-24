@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,19 +22,22 @@ public class CharacterService : ICharacterService
     private readonly IOptions<MyTunoScalingConfiguration> _myTunoConfig;
     private readonly ILogger<CharacterService> _logger;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IWebHostEnvironment _environment;
 
     public CharacterService(
         ICharacterRepository characterRepository,
         UserManager<ApplicationUser> userManager,
         IOptions<MyTunoScalingConfiguration> myTunoConfig,
         ILogger<CharacterService> logger,
-        ApplicationDbContext dbContext)
+        ApplicationDbContext dbContext,
+        IWebHostEnvironment environment)
     {
         _characterRepository = characterRepository;
         _userManager = userManager;
         _myTunoConfig = myTunoConfig;
         _logger = logger;
         _dbContext = dbContext;
+        _environment = environment;
     }
 
     /// <summary>
@@ -210,6 +214,54 @@ public class CharacterService : ICharacterService
         {
             _logger.LogError(ex, "Error resetting all game data");
             return (false, "Erro ao resetar dados de jogo.");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task AutoAssignCustomSpriteAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+
+        var character = await _characterRepository.GetByUserIdAsync(userId);
+        if (character == null || !string.IsNullOrEmpty(character.CustomSpritePath)) return;
+
+        var spritePath = FindCustomSprite(userId);
+        if (spritePath == null) return;
+
+        character.CustomSpritePath = spritePath;
+        await _characterRepository.UpdateAsync(character);
+
+        _logger.LogInformation("Auto-assigned custom sprite for user {UserId}: {SpritePath}", userId, spritePath);
+    }
+
+    /// <summary>
+    /// Searches the arena sprites folder for boss_{username}.png (case-insensitive).
+    /// </summary>
+    private string? FindCustomSprite(string userId)
+    {
+        try
+        {
+            var arenaDir = Path.Combine(_environment.WebRootPath, "sprites", "games", "my-tuno", "enemies", "arena");
+            if (!Directory.Exists(arenaDir))
+                return null;
+
+            var user = _userManager.FindByIdAsync(userId).GetAwaiter().GetResult();
+            if (user == null || string.IsNullOrEmpty(user.UserName))
+                return null;
+
+            var expectedFileName = $"boss_{user.UserName}.png";
+            var match = Directory.GetFiles(arenaDir, "boss_*.png")
+                .FirstOrDefault(f => Path.GetFileName(f).Equals(expectedFileName, StringComparison.OrdinalIgnoreCase));
+
+            if (match == null)
+                return null;
+
+            return $"/sprites/games/my-tuno/enemies/arena/{Path.GetFileName(match)}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error searching for custom sprite for user {UserId}", userId);
+            return null;
         }
     }
 }
