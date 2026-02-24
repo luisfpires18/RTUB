@@ -1190,24 +1190,25 @@ export class StageBattleScene implements VfxOwner {
     const spriteH = height * (isMobile ? 0.28 : 0.40) * csf;
     const spriteW = spriteH * 0.7;
 
-    /* ── Vertical spacing: distribute rows between topEdge and baseY ── */
-    const topEdge = isMobile ? 80 : height * 0.12;
-    const vertRange = baseY - topEdge;
-    const vSpace = rows > 1 ? vertRange / (rows - 1) : 0;
-
-    /* ── Horizontal spacing: max formation width centered at baseX ── */
-    const hMargin = spriteW * 0.5 + (isMobile ? 12 : 18);
+    /* ── Horizontal spacing: sprite-width-based, clamped to available area ── */
+    const idealHSpace = spriteW * 1.15;                       // snug but no overlap
+    const hMargin = spriteW * 0.5 + (isMobile ? 8 : 12);
     const maxLeftHalf = baseX - hMargin;
     const maxRightHalf = width - hMargin - baseX;
     const maxHalfW = Math.min(maxLeftHalf, maxRightHalf);
     const maxFormW = Math.max(0, 2 * maxHalfW);
-    const hSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
+    const maxHSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
+    const hSpace = cols > 1 ? Math.min(idealHSpace, maxHSpace) : 0;
 
-    /* ── Aerial lift: generous for single-row, clamped for multi-row ── */
-    const desiredAerial = isMobile ? height * 0.18 : height * 0.22;
-    const aerialLift = rows > 1
-      ? Math.min(desiredAerial, vSpace * 0.40)
-      : Math.min(desiredAerial, Math.max(0, baseY - topEdge - spriteH));
+    /* ── Vertical spacing: sprite-height-based, clamped to available area ── */
+    const idealVSpace = spriteH * 0.65;                       // rows overlap a bit (depth)
+    const topEdge = isMobile ? 80 : height * 0.15;
+    const vertRange = baseY - topEdge;
+    const maxVSpace = rows > 1 ? vertRange / (rows - 1) : 0;
+    const vSpace = rows > 1 ? Math.min(idealVSpace, maxVSpace) : 0;
+
+    /* ── Aerial lift: subtle — just enough to float above ground enemies ── */
+    const aerialLift = spriteH * 0.45;
 
     /* ── Place enemies in grid (row 0 = front / bottom, row N = back / top) ── */
     let idx = 0;
