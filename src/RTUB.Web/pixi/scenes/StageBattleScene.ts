@@ -1035,7 +1035,10 @@ export class StageBattleScene implements VfxOwner {
       else if (this.enemyCount >= 4) countScaleFactor = 0.75;
       else if (this.enemyCount >= 3) countScaleFactor = 0.85;
     } else {
-      if (this.enemyCount >= 6) countScaleFactor = 0.55;
+      if (this.enemyCount >= 9) countScaleFactor = 0.40;
+      else if (this.enemyCount >= 8) countScaleFactor = 0.42;
+      else if (this.enemyCount >= 7) countScaleFactor = 0.48;
+      else if (this.enemyCount >= 6) countScaleFactor = 0.55;
       else if (this.enemyCount >= 5) countScaleFactor = 0.65;
       else if (this.enemyCount >= 4) countScaleFactor = 0.85;
       else if (this.enemyCount >= 3) countScaleFactor = 0.92;
@@ -1157,47 +1160,66 @@ export class StageBattleScene implements VfxOwner {
   ): EnemyPosition[] {
     const positions: EnemyPosition[] = [];
 
-    if (count === 1) {
-      const isAerial = placements?.[0] === 1;
-      const yOff = isMobile && isAerial ? -height * 0.08 : 0;
-      positions.push({ x: baseX, y: baseY + yOff, isAerial });
-      return positions;
-    }
-
-    if (count === 2) {
-      const spacing = isMobile ? width * 0.22 : width * 0.12;
-      for (let i = 0; i < 2; i++) {
-        const isAerial = placements?.[i] === 1;
-        const xOff = (i === 0 ? -1 : 1) * spacing / 2;
-        const yOff = isAerial ? (isMobile ? -height * 0.08 : -height * 0.08) : 0;
-        positions.push({ x: baseX + xOff, y: baseY + yOff, isAerial });
-      }
-      return positions;
-    }
-
-    // 3+ enemies: formation-based layout
-    const cols = isMobile ? Math.min(3, count) : Math.min(4, count);
+    /* ── Optimal grid columns per enemy count ── */
+    const colsLookup = isMobile
+      //         0  1  2  3  4  5  6  7  8  9
+      ? [0, 1, 2, 3, 2, 3, 3, 4, 4, 3]
+      : [0, 1, 2, 3, 2, 3, 3, 4, 4, 3];
+    const cols = colsLookup[count] ?? Math.min(4, count);
     const rows = Math.ceil(count / cols);
-    const hSpacing = isMobile
-      ? Math.min(width * 0.24, 100)
-      : Math.min(width * 0.14, 120);
-    const vSpacing = isMobile
-      ? Math.min(height * 0.10, 60)
-      : Math.min(height * 0.12, 80);
 
+    /* ── Approximate scaled sprite size (must mirror createEnemies) ── */
+    let csf = 1.0;
+    if (isMobile) {
+      if (count >= 9) csf = 0.38;
+      else if (count >= 8) csf = 0.42;
+      else if (count >= 7) csf = 0.48;
+      else if (count >= 6) csf = 0.52;
+      else if (count >= 5) csf = 0.60;
+      else if (count >= 4) csf = 0.75;
+      else if (count >= 3) csf = 0.85;
+    } else {
+      if (count >= 9) csf = 0.40;
+      else if (count >= 8) csf = 0.42;
+      else if (count >= 7) csf = 0.48;
+      else if (count >= 6) csf = 0.55;
+      else if (count >= 5) csf = 0.65;
+      else if (count >= 4) csf = 0.85;
+      else if (count >= 3) csf = 0.92;
+    }
+    const spriteH = height * (isMobile ? 0.28 : 0.40) * csf;
+    const spriteW = spriteH * 0.7;
+
+    /* ── Vertical spacing: distribute rows between topEdge and baseY ── */
+    const topEdge = isMobile ? 80 : height * 0.12;
+    const vertRange = baseY - topEdge;
+    const vSpace = rows > 1 ? vertRange / (rows - 1) : 0;
+
+    /* ── Horizontal spacing: max formation width centered at baseX ── */
+    const hMargin = spriteW * 0.5 + (isMobile ? 12 : 18);
+    const maxLeftHalf = baseX - hMargin;
+    const maxRightHalf = width - hMargin - baseX;
+    const maxHalfW = Math.min(maxLeftHalf, maxRightHalf);
+    const maxFormW = Math.max(0, 2 * maxHalfW);
+    const hSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
+
+    /* ── Aerial lift: generous for single-row, clamped for multi-row ── */
+    const desiredAerial = isMobile ? height * 0.18 : height * 0.22;
+    const aerialLift = rows > 1
+      ? Math.min(desiredAerial, vSpace * 0.40)
+      : Math.min(desiredAerial, Math.max(0, baseY - topEdge - spriteH));
+
+    /* ── Place enemies in grid (row 0 = front / bottom, row N = back / top) ── */
     let idx = 0;
     for (let row = 0; row < rows; row++) {
-      const colsInRow = Math.min(cols, count - idx);
-      const rowWidth = (colsInRow - 1) * hSpacing;
-      const startX = baseX - rowWidth / 2;
-      for (let col = 0; col < colsInRow; col++) {
+      const inRow = Math.min(cols, count - idx);
+      const rowW = (inRow - 1) * hSpace;
+      const startX = baseX - rowW / 2;
+      for (let col = 0; col < inRow; col++) {
         const isAerial = placements?.[idx] === 1;
-        const aerialOff = isAerial ? (isMobile ? -height * 0.06 : -height * 0.06) : 0;
-        positions.push({
-          x: startX + col * hSpacing,
-          y: baseY - row * vSpacing + aerialOff,
-          isAerial,
-        });
+        const x = startX + col * hSpace;
+        const y = baseY - row * vSpace - (isAerial ? aerialLift : 0);
+        positions.push({ x, y, isAerial });
         idx++;
       }
     }
