@@ -1473,24 +1473,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const isMobile = this.isMobile;
       const bottomBarReserve = Math.min(140, height * 0.15);
       const groundOffset = bottomBarReserve + 10;
-      let enemyX, baseEnemyY;
+      let baseX, baseY;
       if (isMobile) {
-        enemyX = width * 0.5;
-        const topBarH = 60;
-        baseEnemyY = topBarH + height * 0.32;
+        baseX = width * 0.5;
+        baseY = height * 0.5;
       } else {
-        enemyX = width * 0.72;
-        baseEnemyY = height - groundOffset;
+        baseX = width * 0.72;
+        baseY = height - groundOffset;
       }
-      const positions = this.calculateEnemyPositions(
-        isMobile,
-        this.enemyCount,
-        enemyX,
-        baseEnemyY,
-        width,
-        height,
-        this.enemyPlacements
-      );
       const isBoss = ((_a = this.enemyType) == null ? void 0 : _a.toLowerCase()) === "boss";
       let countScaleFactor = 1;
       if (isMobile) {
@@ -1511,10 +1501,40 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         else if (this.enemyCount >= 3) countScaleFactor = 0.92;
       }
       const bossBoost = isBoss ? 1.25 : 1;
+      const tempSprites = [];
+      const scaledWidths = [];
+      const scaledHeights = [];
+      const mobileScale = isMobile ? 0.28 : 0.4;
+      const maxSpriteHeight = height * mobileScale;
+      for (let i = 0; i < this.enemyCount; i++) {
+        const alias = ((_b = this.enemySpriteAliases) == null ? void 0 : _b[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
+        const spr = PIXI.Sprite.from(alias);
+        spr.anchor.set(0.5, 1);
+        const baseScale = Math.min(1, maxSpriteHeight / spr.height);
+        const finalScale = baseScale * countScaleFactor * bossBoost;
+        spr.scale.set(finalScale);
+        tempSprites.push(spr);
+        scaledWidths.push(spr.width);
+        scaledHeights.push(spr.height);
+      }
+      const positions = this.calculateEnemyPositions(
+        isMobile,
+        this.enemyCount,
+        baseX,
+        baseY,
+        width,
+        height,
+        this.enemyPlacements,
+        scaledWidths,
+        scaledHeights
+      );
       for (let i = 0; i < this.enemyCount; i++) {
         const pos = positions[i];
         if (!pos) continue;
-        const isAerial = pos.isAerial || ((_b = this.enemyPlacements) == null ? void 0 : _b[i]) === 1;
+        const enemy = tempSprites[i];
+        const isAerial = ((_c = this.enemyPlacements) == null ? void 0 : _c[i]) === 1;
+        enemy.x = pos.x;
+        enemy.y = pos.y;
         this.enemyIdleOffsets.push({
           baseX: pos.x,
           baseY: pos.y,
@@ -1523,19 +1543,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           bobAmplitude: isAerial ? 6 : 3,
           swayAmplitude: isAerial ? 4 : 2
         });
-        const alias = ((_c = this.enemySpriteAliases) == null ? void 0 : _c[i]) ?? `enemy_${this.enemySpritePaths[i]}`;
-        const enemy = PIXI.Sprite.from(alias);
-        enemy.anchor.set(0.5, 1);
-        enemy.x = pos.x;
-        enemy.y = pos.y;
-        const mobileScale = isMobile ? 0.28 : 0.4;
-        const maxSpriteHeight = height * mobileScale;
-        const baseScale = Math.min(1, maxSpriteHeight / enemy.height);
-        const finalScale = baseScale * countScaleFactor * bossBoost;
-        enemy.scale.set(finalScale);
         this.stage.addChild(enemy);
         this.enemySprites.push(enemy);
-        const hpBarY = pos.y - enemy.height - 5;
+        const hpBarY = pos.y - scaledHeights[i] - 5;
         const hpBarWidth = isMobile ? 35 : 60;
         const hpBarHeight = isMobile ? 4 : 8;
         const barBg = new PIXI.Graphics();
@@ -1559,7 +1569,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             stroke: { color: 0, width: 2 }
           }
         });
-        const showText = !isMobile || this.enemyCount <= 2;
+        const showText = true;
         hpTxt.anchor.set(0.5, 0.5);
         hpTxt.x = pos.x;
         hpTxt.y = hpBarY - 8;
@@ -1605,7 +1615,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /* ───────────────── Enemy Position Calculations ─────────────────── */
-    calculateEnemyPositions(isMobile, count, baseX, baseY, width, height, placements) {
+    /**
+     * Two-band layout using REAL scaled sprite widths.
+     * Ground band at baseY, aerial band lifted above.
+     * Desktop: single row per group (big screen, no wrapping needed).
+     * Mobile: wraps into rows (max 3 cols).
+     */
+    calculateEnemyPositions(isMobile, count, baseX, baseY, width, _height, placements, scaledWidths, scaledHeights) {
       const positions = new Array(count);
       const aerialIdx = [];
       const groundIdx = [];
@@ -1613,56 +1629,123 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if ((placements == null ? void 0 : placements[i]) === 1) aerialIdx.push(i);
         else groundIdx.push(i);
       }
-      let csf = 1;
-      if (isMobile) {
-        if (count >= 9) csf = 0.38;
-        else if (count >= 8) csf = 0.42;
-        else if (count >= 7) csf = 0.48;
-        else if (count >= 6) csf = 0.52;
-        else if (count >= 5) csf = 0.6;
-        else if (count >= 4) csf = 0.75;
-        else if (count >= 3) csf = 0.85;
-      } else {
-        if (count >= 9) csf = 0.4;
-        else if (count >= 8) csf = 0.42;
-        else if (count >= 7) csf = 0.48;
-        else if (count >= 6) csf = 0.55;
-        else if (count >= 5) csf = 0.65;
-        else if (count >= 4) csf = 0.85;
-        else if (count >= 3) csf = 0.92;
-      }
-      const spriteH = height * (isMobile ? 0.28 : 0.4) * csf;
-      const spriteEstW = spriteH * 1.2;
-      const layoutGroup = (indices, groupBaseY, isAerial) => {
-        if (indices.length === 0) return;
-        const maxCols = isMobile ? 3 : 4;
-        const groupCols = Math.min(maxCols, indices.length);
-        const groupRows = Math.ceil(indices.length / groupCols);
-        const idealH = spriteEstW * 1.1;
-        const hMargin = spriteEstW * 0.6;
-        const leftHalf = Math.max(0, baseX - hMargin);
-        const rightHalf = Math.max(0, width - hMargin - baseX);
-        const maxHalf = Math.min(leftHalf, rightHalf);
-        const maxFormW = 2 * maxHalf;
-        const hSpace = groupCols > 1 ? Math.min(idealH, maxFormW / (groupCols - 1)) : 0;
-        const depthStep = spriteH * 0.15;
-        let gi = 0;
-        for (let row = 0; row < groupRows; row++) {
-          const inRow = Math.min(groupCols, indices.length - gi);
-          const rowW = (inRow - 1) * hSpace;
-          const startX = baseX - rowW / 2;
-          for (let col = 0; col < inRow; col++) {
-            positions[indices[gi]] = {
-              x: startX + col * hSpace,
-              y: groupBaseY - row * depthStep,
+      if (!isMobile) {
+        const margin2 = 20;
+        const layoutSingleRow = (indices, y, isAerial) => {
+          if (indices.length === 0) return;
+          if (indices.length === 1) {
+            positions[indices[0]] = { x: baseX, y, isAerial };
+            return;
+          }
+          let cellW = 0;
+          for (const idx of indices) {
+            if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+          }
+          const gap = Math.max(20, cellW * 0.15);
+          let step = cellW + gap;
+          let totalW = step * (indices.length - 1);
+          const maxAvailW = width - 2 * margin2 - cellW;
+          if (totalW > maxAvailW) {
+            step = Math.max(cellW + 4, maxAvailW / (indices.length - 1));
+            totalW = step * (indices.length - 1);
+          }
+          let startX = baseX - totalW * 0.35;
+          const halfCell = cellW / 2;
+          if (startX - halfCell < margin2) {
+            startX = margin2 + halfCell;
+          }
+          if (startX + totalW + halfCell > width - margin2) {
+            startX = width - margin2 - halfCell - totalW;
+            if (startX - halfCell < margin2) startX = margin2 + halfCell;
+          }
+          for (let c = 0; c < indices.length; c++) {
+            positions[indices[c]] = {
+              x: startX + c * step,
+              y,
               isAerial
             };
-            gi++;
           }
+        };
+        let tallestGround2 = 0;
+        for (const idx of groundIdx) {
+          if (scaledHeights[idx] > tallestGround2) tallestGround2 = scaledHeights[idx];
+        }
+        if (tallestGround2 === 0) {
+          for (let i = 0; i < count; i++) tallestGround2 += scaledHeights[i];
+          tallestGround2 = count > 0 ? tallestGround2 / count : 100;
+        }
+        layoutSingleRow(aerialIdx, baseY - tallestGround2 - 50, true);
+        layoutSingleRow(groundIdx, baseY, false);
+        return positions;
+      }
+      const margin = 6;
+      const topSafeY = 100;
+      const layoutMobileRow = (indices, y, isAerial) => {
+        if (indices.length === 0) return;
+        if (indices.length === 1) {
+          positions[indices[0]] = { x: baseX, y, isAerial };
+          return;
+        }
+        let cellW = 0;
+        for (const idx of indices) {
+          if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+        }
+        const maxAvailW = width - 2 * margin;
+        const minGap = 4;
+        const maxPerRow = Math.max(1, Math.floor((maxAvailW + minGap) / (cellW + minGap)));
+        const cols = Math.min(maxPerRow, indices.length);
+        const rows = Math.ceil(indices.length / cols);
+        let maxH = 0;
+        for (const idx of indices) {
+          if (scaledHeights[idx] > maxH) maxH = scaledHeights[idx];
+        }
+        let gi = 0;
+        for (let row = 0; row < rows; row++) {
+          const inRow = Math.min(cols, indices.length - gi);
+          const gap = Math.max(minGap, cellW * 0.1);
+          let step = cellW + gap;
+          let totalW = step * (inRow - 1);
+          const maxRowW = maxAvailW - cellW;
+          if (totalW > maxRowW && inRow > 1) {
+            step = Math.max(cellW + 2, maxRowW / (inRow - 1));
+            totalW = step * (inRow - 1);
+          }
+          let startX = baseX - totalW / 2;
+          const halfCell = cellW / 2;
+          if (startX - halfCell < margin) startX = margin + halfCell;
+          if (startX + totalW + halfCell > width - margin) {
+            startX = width - margin - halfCell - totalW;
+            if (startX - halfCell < margin) startX = margin + halfCell;
+          }
+          for (let c = 0; c < inRow; c++) {
+            const idx = indices[gi + c];
+            positions[idx] = {
+              x: startX + c * step,
+              y: y - row * (maxH * 0.55),
+              isAerial
+            };
+          }
+          gi += inRow;
         }
       };
-      layoutGroup(aerialIdx, baseY - spriteH * 0.55, true);
-      layoutGroup(groundIdx, baseY, false);
+      let tallestGround = 0;
+      for (const idx of groundIdx) {
+        if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
+      }
+      if (tallestGround === 0) {
+        for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
+        tallestGround = count > 0 ? tallestGround / count : 100;
+      }
+      let tallestAerial = 0;
+      for (const idx of aerialIdx) {
+        if (scaledHeights[idx] > tallestAerial) tallestAerial = scaledHeights[idx];
+      }
+      let aerialY = baseY - tallestGround - 40;
+      if (aerialY - tallestAerial < topSafeY) {
+        aerialY = topSafeY + tallestAerial;
+      }
+      layoutMobileRow(aerialIdx, aerialY, true);
+      layoutMobileRow(groundIdx, baseY, false);
       return positions;
     }
     /* ────────────────── Timed Battle (pre-computed) ────────────────── */
@@ -2239,6 +2322,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this._destroyed || !this.app || !this.stage || this.battleFinished) return;
       const delta = this.app.ticker.deltaMS;
       this.idleAnimationTime += delta * 1e-3;
+      this.updateIdleAnimation();
       if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
         const simDelta = delta * this.battleSpeed;
         this.currentSimTime += simDelta;
@@ -2303,7 +2387,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.updateEnemySpeedBar(i);
         }
       }
-      this.updateIdleAnimation();
     }
     /* ──────────────── Idle Animation ───────────────────────────────── */
     updateIdleAnimation() {

@@ -1009,19 +1009,14 @@ export class StageBattleScene implements VfxOwner {
     const bottomBarReserve = Math.min(140, height * 0.15);
     const groundOffset = bottomBarReserve + 10;
 
-    let enemyX: number, baseEnemyY: number;
+    let baseX: number, baseY: number;
     if (isMobile) {
-      enemyX = width * 0.5;
-      const topBarH = 60;
-      baseEnemyY = topBarH + height * 0.32;
+      baseX = width * 0.5;
+      baseY = height * 0.5;              // terrestrial feet at mid-screen
     } else {
-      enemyX = width * 0.72;
-      baseEnemyY = height - groundOffset;
+      baseX = width * 0.72;
+      baseY = height - groundOffset;
     }
-
-    const positions = this.calculateEnemyPositions(
-      isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements,
-    );
 
     // Scale factor based on enemy count
     const isBoss = this.enemyType?.toLowerCase() === 'boss';
@@ -1045,11 +1040,42 @@ export class StageBattleScene implements VfxOwner {
     }
     const bossBoost = isBoss ? 1.25 : 1.0;
 
+    /* ═══ PASS 1: Create sprites to get REAL scaled dimensions ═══ */
+    const tempSprites: PIXI.Sprite[] = [];
+    const scaledWidths: number[] = [];
+    const scaledHeights: number[] = [];
+    const mobileScale = isMobile ? 0.28 : 0.40;
+    const maxSpriteHeight = height * mobileScale;
+
+    for (let i = 0; i < this.enemyCount; i++) {
+      const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
+      const spr = PIXI.Sprite.from(alias);
+      spr.anchor.set(0.5, 1);
+      const baseScale = Math.min(1, maxSpriteHeight / spr.height);
+      const finalScale = baseScale * countScaleFactor * bossBoost;
+      spr.scale.set(finalScale);
+
+      tempSprites.push(spr);
+      scaledWidths.push(spr.width);
+      scaledHeights.push(spr.height);
+    }
+
+    /* ═══ PASS 2: Calculate positions using REAL widths ═══ */
+    const positions = this.calculateEnemyPositions(
+      isMobile, this.enemyCount, baseX, baseY, width, height,
+      this.enemyPlacements, scaledWidths, scaledHeights,
+    );
+
+    /* ═══ PASS 3: Place sprites and create HP/speed bars ═══ */
     for (let i = 0; i < this.enemyCount; i++) {
       const pos = positions[i];
       if (!pos) continue;
+      const enemy = tempSprites[i];
+      const isAerial = this.enemyPlacements?.[i] === 1;
 
-      const isAerial = pos.isAerial || (this.enemyPlacements?.[i] === 1);
+      enemy.x = pos.x;
+      enemy.y = pos.y;
+
       this.enemyIdleOffsets.push({
         baseX: pos.x, baseY: pos.y,
         phase: i * (Math.PI / 2),
@@ -1058,23 +1084,11 @@ export class StageBattleScene implements VfxOwner {
         swayAmplitude: isAerial ? 4 : 2,
       });
 
-      const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
-      const enemy = PIXI.Sprite.from(alias);
-      enemy.anchor.set(0.5, 1);
-      enemy.x = pos.x;
-      enemy.y = pos.y;
-
-      const mobileScale = isMobile ? 0.28 : 0.40;
-      const maxSpriteHeight = height * mobileScale;
-      const baseScale = Math.min(1, maxSpriteHeight / enemy.height);
-      const finalScale = baseScale * countScaleFactor * bossBoost;
-      enemy.scale.set(finalScale);
-
       this.stage.addChild(enemy);
       this.enemySprites.push(enemy);
 
       // Per-enemy HP bar
-      const hpBarY = pos.y - enemy.height - 5;
+      const hpBarY = pos.y - scaledHeights[i] - 5;
       const hpBarWidth = isMobile ? 35 : 60;
       const hpBarHeight = isMobile ? 4 : 8;
 
@@ -1098,7 +1112,7 @@ export class StageBattleScene implements VfxOwner {
           fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
         },
       });
-      const showText = !isMobile || this.enemyCount <= 2;
+      const showText = true;
       hpTxt.anchor.set(0.5, 0.5);
       hpTxt.x = pos.x;
       hpTxt.y = hpBarY - 8;
@@ -1149,18 +1163,26 @@ export class StageBattleScene implements VfxOwner {
 
   /* ───────────────── Enemy Position Calculations ─────────────────── */
 
+  /**
+   * Two-band layout using REAL scaled sprite widths.
+   * Ground band at baseY, aerial band lifted above.
+   * Desktop: single row per group (big screen, no wrapping needed).
+   * Mobile: wraps into rows (max 3 cols).
+   */
   private calculateEnemyPositions(
     isMobile: boolean,
     count: number,
     baseX: number,
     baseY: number,
     width: number,
-    height: number,
+    _height: number,
     placements: number[],
+    scaledWidths: number[],
+    scaledHeights: number[],
   ): EnemyPosition[] {
     const positions: EnemyPosition[] = new Array(count);
 
-    /* ── Separate enemies by type (index order preserved) ── */
+    /* ── Separate enemies by type ── */
     const aerialIdx: number[] = [];
     const groundIdx: number[] = [];
     for (let i = 0; i < count; i++) {
@@ -1168,75 +1190,179 @@ export class StageBattleScene implements VfxOwner {
       else groundIdx.push(i);
     }
 
-    /* ── Approximate scaled sprite size (must mirror createEnemies) ── */
-    let csf = 1.0;
-    if (isMobile) {
-      if (count >= 9) csf = 0.38;
-      else if (count >= 8) csf = 0.42;
-      else if (count >= 7) csf = 0.48;
-      else if (count >= 6) csf = 0.52;
-      else if (count >= 5) csf = 0.60;
-      else if (count >= 4) csf = 0.75;
-      else if (count >= 3) csf = 0.85;
-    } else {
-      if (count >= 9) csf = 0.40;
-      else if (count >= 8) csf = 0.42;
-      else if (count >= 7) csf = 0.48;
-      else if (count >= 6) csf = 0.55;
-      else if (count >= 5) csf = 0.65;
-      else if (count >= 4) csf = 0.85;
-      else if (count >= 3) csf = 0.92;
-    }
-    const spriteH = height * (isMobile ? 0.28 : 0.40) * csf;
-    // Many monster sprites are square or wider-than-tall — use generous estimate
-    const spriteEstW = spriteH * 1.2;
+    /* ══════════════════════════════════════════════════════════════════
+       DESKTOP: single row per group — lots of space, no wrapping.
+       ══════════════════════════════════════════════════════════════════ */
+    if (!isMobile) {
+      const margin = 20;
 
-    /* ── Helper: lay out a group of enemies in horizontal rows ── */
-    const layoutGroup = (
+      const layoutSingleRow = (
+        indices: number[],
+        y: number,
+        isAerial: boolean,
+      ): void => {
+        if (indices.length === 0) return;
+        if (indices.length === 1) {
+          positions[indices[0]] = { x: baseX, y, isAerial };
+          return;
+        }
+
+        // Uniform cell = widest sprite in the group
+        let cellW = 0;
+        for (const idx of indices) {
+          if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+        }
+
+        // Generous gap: 20px or 15% of cell width, whichever is larger
+        const gap = Math.max(20, cellW * 0.15);
+        let step = cellW + gap;
+        let totalW = step * (indices.length - 1); // centre-to-centre span
+
+        // If formation is too wide, compress step (minimum = cellW → no overlap)
+        const maxAvailW = width - 2 * margin - cellW;
+        if (totalW > maxAvailW) {
+          step = Math.max(cellW + 4, maxAvailW / (indices.length - 1));
+          totalW = step * (indices.length - 1);
+        }
+
+        // Anchor right at baseX: right edge of formation aligns near baseX
+        // then shift left by half so baseX is roughly the right-centre
+        let startX = baseX - totalW * 0.35;
+        const halfCell = cellW / 2;
+
+        // Clamp: left edge on-screen
+        if (startX - halfCell < margin) {
+          startX = margin + halfCell;
+        }
+        // Clamp: right edge on-screen
+        if (startX + totalW + halfCell > width - margin) {
+          startX = width - margin - halfCell - totalW;
+          if (startX - halfCell < margin) startX = margin + halfCell;
+        }
+
+        for (let c = 0; c < indices.length; c++) {
+          positions[indices[c]] = {
+            x: startX + c * step,
+            y,
+            isAerial,
+          };
+        }
+      };
+
+      // Tallest ground sprite for aerial lift
+      let tallestGround = 0;
+      for (const idx of groundIdx) {
+        if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
+      }
+      if (tallestGround === 0) {
+        for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
+        tallestGround = count > 0 ? tallestGround / count : 100;
+      }
+
+      // Aerial: above ground sprites + their HP bars (25px) + gap
+      layoutSingleRow(aerialIdx, baseY - tallestGround - 50, true);
+      // Ground: feet on the ground line
+      layoutSingleRow(groundIdx, baseY, false);
+
+      return positions;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       MOBILE: enemies laid out in rows, centred horizontally.
+       Wraps into multiple rows if they don't fit the screen width.
+       Terrestrial at baseY (mid-screen), aerial above with bar clearance.
+       ══════════════════════════════════════════════════════════════════ */
+    const margin = 6;
+    const topSafeY = 100; // below top HUD bars + HP text
+
+    const layoutMobileRow = (
       indices: number[],
-      groupBaseY: number,
+      y: number,
       isAerial: boolean,
     ): void => {
       if (indices.length === 0) return;
-      const maxCols = isMobile ? 3 : 4;
-      const groupCols = Math.min(maxCols, indices.length);
-      const groupRows = Math.ceil(indices.length / groupCols);
+      if (indices.length === 1) {
+        positions[indices[0]] = { x: baseX, y, isAerial };
+        return;
+      }
 
-      // Horizontal spacing: sprite-width plus gap, clamped to screen bounds
-      const idealH = spriteEstW * 1.1;
-      const hMargin = spriteEstW * 0.6;
-      const leftHalf = Math.max(0, baseX - hMargin);
-      const rightHalf = Math.max(0, width - hMargin - baseX);
-      const maxHalf = Math.min(leftHalf, rightHalf);
-      const maxFormW = 2 * maxHalf;
-      const hSpace = groupCols > 1
-        ? Math.min(idealH, maxFormW / (groupCols - 1))
-        : 0;
+      // Uniform cell = widest sprite in the group
+      let cellW = 0;
+      for (const idx of indices) {
+        if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+      }
 
-      // Tiny depth offset between rows within the same group
-      const depthStep = spriteH * 0.15;
+      // How many can fit in one row?
+      const maxAvailW = width - 2 * margin;
+      const minGap = 4;
+      const maxPerRow = Math.max(1, Math.floor((maxAvailW + minGap) / (cellW + minGap)));
+      const cols = Math.min(maxPerRow, indices.length);
+      const rows = Math.ceil(indices.length / cols);
+
+      // Tallest sprite for row vertical offset
+      let maxH = 0;
+      for (const idx of indices) { if (scaledHeights[idx] > maxH) maxH = scaledHeights[idx]; }
 
       let gi = 0;
-      for (let row = 0; row < groupRows; row++) {
-        const inRow = Math.min(groupCols, indices.length - gi);
-        const rowW = (inRow - 1) * hSpace;
-        const startX = baseX - rowW / 2;
-        for (let col = 0; col < inRow; col++) {
-          positions[indices[gi]] = {
-            x: startX + col * hSpace,
-            y: groupBaseY - row * depthStep,
+      for (let row = 0; row < rows; row++) {
+        const inRow = Math.min(cols, indices.length - gi);
+        const gap = Math.max(minGap, cellW * 0.1);
+        let step = cellW + gap;
+        let totalW = step * (inRow - 1);
+
+        // Compress if still too wide
+        const maxRowW = maxAvailW - cellW;
+        if (totalW > maxRowW && inRow > 1) {
+          step = Math.max(cellW + 2, maxRowW / (inRow - 1));
+          totalW = step * (inRow - 1);
+        }
+
+        // Centre + clamp
+        let startX = baseX - totalW / 2;
+        const halfCell = cellW / 2;
+        if (startX - halfCell < margin) startX = margin + halfCell;
+        if (startX + totalW + halfCell > width - margin) {
+          startX = width - margin - halfCell - totalW;
+          if (startX - halfCell < margin) startX = margin + halfCell;
+        }
+
+        for (let c = 0; c < inRow; c++) {
+          const idx = indices[gi + c];
+          positions[idx] = {
+            x: startX + c * step,
+            y: y - row * (maxH * 0.55),
             isAerial,
           };
-          gi++;
         }
+        gi += inRow;
       }
     };
 
-    /* ── Aerial band: above ground level ── */
-    layoutGroup(aerialIdx, baseY - spriteH * 0.55, true);
+    // Tallest ground sprite for aerial lift
+    let tallestGround = 0;
+    for (const idx of groundIdx) {
+      if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
+    }
+    if (tallestGround === 0) {
+      for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
+      tallestGround = count > 0 ? tallestGround / count : 100;
+    }
 
-    /* ── Ground band: at baseY ── */
-    layoutGroup(groundIdx, baseY, false);
+    // Tallest aerial sprite (to ensure it doesn't clip the top HUD)
+    let tallestAerial = 0;
+    for (const idx of aerialIdx) {
+      if (scaledHeights[idx] > tallestAerial) tallestAerial = scaledHeights[idx];
+    }
+
+    // Aerial Y: above ground sprites + their HP bars (25px) + gap
+    // Clamped so aerial sprite tops don't go above topSafeY
+    let aerialY = baseY - tallestGround - 40;
+    if (aerialY - tallestAerial < topSafeY) {
+      aerialY = topSafeY + tallestAerial;
+    }
+
+    layoutMobileRow(aerialIdx, aerialY, true);
+    layoutMobileRow(groundIdx, baseY, false);
 
     return positions;
   }
@@ -1871,6 +1997,9 @@ export class StageBattleScene implements VfxOwner {
     const delta = this.app.ticker.deltaMS;
     this.idleAnimationTime += delta * 0.001;
 
+    // Idle animation (always runs, even during attacks)
+    this.updateIdleAnimation();
+
     if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
       // Interactive mode: speed bars count down and trigger server-side actions
       const simDelta = delta * this.battleSpeed;
@@ -1952,9 +2081,6 @@ export class StageBattleScene implements VfxOwner {
         this.updateEnemySpeedBar(i);
       }
     }
-
-    // Idle animation (always runs)
-    this.updateIdleAnimation();
   }
 
   /* ──────────────── Idle Animation ───────────────────────────────── */
