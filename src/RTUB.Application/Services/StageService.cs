@@ -624,12 +624,12 @@ public class StageService : IStageService
         var fidelisReward = Math.Round(baseFidelis * enemyCount * (decimal)(biomeRewardMult * stageMult), 2);
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
-        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
+        // Fino=1(Forest), Cigarro=2001(Mountains), Shot=5001(Caverns), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var finoChance = highestStage >= 1 ? dropRates.FinoDropChance : 0;
         var canecaChance = highestStage >= 11001 ? dropRates.CanecaDropChance : 0;
-        var cigarroChance = highestStage >= 3001 ? dropRates.CigarroDropChance : 0;
+        var cigarroChance = highestStage >= 2001 ? dropRates.CigarroDropChance : 0;
         var canhaoChance = highestStage >= 7001 ? dropRates.CanhaoDropChance : 0;
-        var shotChance = highestStage >= 1001 ? dropRates.ShotDropChance : 0;
+        var shotChance = highestStage >= 5001 ? dropRates.ShotDropChance : 0;
         var penaltyChance = highestStage >= 9001 ? dropRates.PenaltyDropChance : 0;
         var instrumentPartChance = dropRates.InstrumentPartDropChance;
         if (enemyType == EnemyType.Boss)

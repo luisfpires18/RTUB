@@ -312,7 +312,7 @@ public class BattleService : IBattleService
         var rewards = _myTunoScalingConfig.BattleRewards;
 
         // Gate consumable drops behind biome progression (1000-floor biomes)
-        // Fino=1(Forest), Shot=1001(Swamp), Cigarro=3001(Snowy), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
+        // Fino=1(Forest), Cigarro=2001(Mountains), Shot=5001(Caverns), Caneca=11001(Underground), Canhão=7001(Volcanic), Penalty=9001(Sky)
         var stageProgress = await _stageProgressRepository.GetByUserIdAsync(userId);
         var highestStage = stageProgress?.HighestStage ?? 1;
 
@@ -324,13 +324,13 @@ public class BattleService : IBattleService
         if (highestStage >= 11001 && Random.Shared.NextDouble() < rewards.CanecaDropChance)
             drops[InventoryItemType.Caneca] = 1;
 
-        if (highestStage >= 3001 && Random.Shared.NextDouble() < rewards.CigarroDropChance)
+        if (highestStage >= 2001 && Random.Shared.NextDouble() < rewards.CigarroDropChance)
             drops[InventoryItemType.Cigarro] = 1;
 
         if (highestStage >= 7001 && Random.Shared.NextDouble() < rewards.CanhaoDropChance)
             drops[InventoryItemType.Canhao] = 1;
 
-        if (highestStage >= 1001 && Random.Shared.NextDouble() < rewards.ShotDropChance)
+        if (highestStage >= 5001 && Random.Shared.NextDouble() < rewards.ShotDropChance)
             drops[InventoryItemType.Shot] = 1;
 
         if (highestStage >= 9001 && Random.Shared.NextDouble() < rewards.PenaltyDropChance)
