@@ -162,6 +162,9 @@ export class ArenaBattleScene implements VfxOwner {
   _rafIds: number[] = [];
   _textPool: TextPool = { pool: [] };
 
+  // Destroyed flag — prevents async callbacks from running after destroy
+  private _destroyed = false;
+
   // WebGL / visibility listeners
   private _onContextLost: ((e: Event) => void) | null = null;
   private _onVisibilityChange: (() => void) | null = null;
@@ -402,9 +405,16 @@ export class ArenaBattleScene implements VfxOwner {
       aura.scale.set(atkScale * 1.25);
       aura.x = atkX;
       aura.y = atkY;
-      aura.tint = 0x00aaff;
       aura.alpha = 0.8;
-      aura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+      // Force solid blue silhouette (preserving alpha) then blur
+      const cm = new PIXI.ColorMatrixFilter();
+      cm.matrix = [
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0.667,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 0,
+      ];
+      aura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
       // Insert behind the real sprite
       const spriteIdx = this.stage.getChildIndex(atkSprite);
       this.stage.addChildAt(aura, spriteIdx);
@@ -761,12 +771,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestPlayerAutoAttack(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._playerAttackPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnPlayerAutoAttack');
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnPlayerAutoAttack error:', e);
@@ -776,12 +787,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestEnemyAttack(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._enemyAttackPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnEnemyAttack', 0);
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnEnemyAttack error:', e);
@@ -791,12 +803,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestPlayerSpell(attackId: string): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._spellPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnPlayerSpell', attackId);
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnPlayerSpell error:', e);
@@ -806,9 +819,10 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnTickCooldowns', elapsedSeconds);
+      if (this._destroyed || this.battleFinished) return;
       if (json) {
         const data = JSON.parse(json) as Record<string, unknown>;
         const spellCooldowns = (data.spells ?? data) as Record<string, number>;
@@ -822,7 +836,7 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private processServerResult(result: CombatActionResult): void {
-    if (!result) return;
+    if (this._destroyed || this.battleFinished || !result) return;
 
     const events = result.events ?? result.Events ?? [];
     for (const evt of events) {
@@ -1321,7 +1335,7 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Battle End ─────────────────────────────── */
 
   private finishBattle(): void {
-    if (this.battleFinished) return;
+    if (this._destroyed || this.battleFinished) return;
     this.battleFinished = true;
 
     if (this.dotNetRef?.invokeMethodAsync) {
@@ -1373,7 +1387,7 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Main Update Loop ───────────────────────── */
 
   private update(): void {
-    if (!this.app) return;
+    if (this._destroyed || !this.app) return;
     const deltaMs = this.app.ticker.deltaMS;
 
     // Character idle animations
@@ -1508,6 +1522,10 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Cleanup ────────────────────────────────── */
 
   destroy(): void {
+    this._destroyed = true;
+    this.battleFinished = true;
+    this.isPlaying = false;
+
     // Remove event listeners
     if (this._onContextLost && this.app?.canvas) {
       this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);

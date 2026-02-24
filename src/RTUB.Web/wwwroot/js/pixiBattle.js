@@ -765,6 +765,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "_timeoutIds", []);
       __publicField(this, "_rafIds", []);
       __publicField(this, "_textPool", { pool: [] });
+      // Destroyed flag — prevents async callbacks from running after destroy
+      __publicField(this, "_destroyed", false);
       // WebGL / visibility listeners
       __publicField(this, "_onContextLost", null);
       __publicField(this, "_onVisibilityChange", null);
@@ -953,9 +955,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         aura.scale.set(atkScale * 1.25);
         aura.x = atkX;
         aura.y = atkY;
-        aura.tint = 43775;
         aura.alpha = 0.8;
-        aura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+        const cm = new PIXI.ColorMatrixFilter();
+        cm.matrix = [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.667,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1,
+          0
+        ];
+        aura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
         const spriteIdx = this.stage.getChildIndex(atkSprite);
         this.stage.addChildAt(aura, spriteIdx);
         this.attackerAura = aura;
@@ -1268,12 +1292,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.requestPlayerSpell(attackId);
     }
     async requestPlayerAutoAttack() {
-      if (!this.dotNetRef || this.battleFinished) {
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
         this._playerAttackPending = false;
         return;
       }
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnPlayerAutoAttack");
+        if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("OnPlayerAutoAttack error:", e);
@@ -1282,12 +1307,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestEnemyAttack() {
-      if (!this.dotNetRef || this.battleFinished) {
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
         this._enemyAttackPending = false;
         return;
       }
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnEnemyAttack", 0);
+        if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("OnEnemyAttack error:", e);
@@ -1296,12 +1322,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestPlayerSpell(attackId) {
-      if (!this.dotNetRef || this.battleFinished) {
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
         this._spellPending = false;
         return;
       }
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnPlayerSpell", attackId);
+        if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("OnPlayerSpell error:", e);
@@ -1310,9 +1337,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestTickCooldowns(elapsedSeconds) {
-      if (!this.dotNetRef || this.battleFinished) return;
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnTickCooldowns", elapsedSeconds);
+        if (this._destroyed || this.battleFinished) return;
         if (json) {
           const data = JSON.parse(json);
           const spellCooldowns = data.spells ?? data;
@@ -1325,7 +1353,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     processServerResult(result) {
-      if (!result) return;
+      if (this._destroyed || this.battleFinished || !result) return;
       const events = result.events ?? result.Events ?? [];
       for (const evt of events) {
         this.processInteractiveEvent(evt);
@@ -1771,7 +1799,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ────────────────────── Battle End ─────────────────────────────── */
     finishBattle() {
       var _a;
-      if (this.battleFinished) return;
+      if (this._destroyed || this.battleFinished) return;
       this.battleFinished = true;
       if ((_a = this.dotNetRef) == null ? void 0 : _a.invokeMethodAsync) {
         this.dotNetRef.invokeMethodAsync("OnBattleFinished").catch((e) => {
@@ -1814,7 +1842,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ────────────────────── Main Update Loop ───────────────────────── */
     update() {
-      if (!this.app) return;
+      if (this._destroyed || !this.app) return;
       const deltaMs = this.app.ticker.deltaMS;
       for (const char of Object.values(this.characterSprites)) {
         const data = char.sprite.idleAnimationData;
@@ -1916,6 +1944,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ────────────────────── Cleanup ────────────────────────────────── */
     destroy() {
       var _a;
+      this._destroyed = true;
+      this.battleFinished = true;
+      this.isPlaying = false;
       if (this._onContextLost && ((_a = this.app) == null ? void 0 : _a.canvas)) {
         this.app.canvas.removeEventListener("webglcontextlost", this._onContextLost);
       }

@@ -821,6 +821,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "_timeoutIds", []);
       __publicField(this, "_rafIds", []);
       __publicField(this, "_textPool", { pool: [] });
+      // Destroyed flag — prevents async callbacks from running after destroy
+      __publicField(this, "_destroyed", false);
       // Event listeners
       __publicField(this, "_onContextLost", null);
       __publicField(this, "_onContextRestored", null);
@@ -1159,9 +1161,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
         this.playerAura.x = playerX;
         this.playerAura.y = playerY;
-        this.playerAura.tint = 43775;
         this.playerAura.alpha = 0.8;
-        this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+        const cm = new PIXI.ColorMatrixFilter();
+        cm.matrix = [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.667,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1,
+          0
+        ];
+        this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
         this.stage.addChild(this.playerAura);
       }
       this.stage.addChild(this.playerSprite);
@@ -1850,10 +1874,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.requestUseConsumable(type);
     }
     async requestUseConsumable(type) {
-      if (!this.dotNetRef || this._consumablePending) return;
+      if (this._destroyed || !this.dotNetRef || this._consumablePending) return;
       this._consumablePending = true;
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnUseConsumable", type);
+        if (this._destroyed || this.battleFinished) {
+          this._consumablePending = false;
+          return;
+        }
         if (!json) {
           this._consumablePending = false;
           return;
@@ -1903,9 +1931,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
             this.playerAura.x = this.playerSprite.x;
             this.playerAura.y = this.playerSprite.y;
-            this.playerAura.tint = 43775;
             this.playerAura.alpha = 0.8;
-            this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+            const cm = new PIXI.ColorMatrixFilter();
+            cm.matrix = [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0.667,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1,
+              0
+            ];
+            this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
             const idx = this.stage.getChildIndex(this.playerSprite);
             this.stage.addChildAt(this.playerAura, idx);
           }
@@ -1985,12 +2035,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Interactive Server Calls ─────────────────────── */
     async requestPlayerAutoAttack() {
-      if (!this.dotNetRef || this.battleFinished) {
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
         this._playerAttackPending = false;
         return;
       }
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnPlayerAutoAttack");
+        if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("requestPlayerAutoAttack error:", e.message);
@@ -1999,12 +2050,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestEnemyAttack(enemyIndex) {
-      if (!this.dotNetRef || this.battleFinished) {
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) {
         this._enemyAttackPending[enemyIndex] = false;
         return;
       }
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnEnemyAttack", enemyIndex);
+        if (this._destroyed || this.battleFinished) return;
         if (json) this.processServerResult(JSON.parse(json));
       } catch (e) {
         console.warn("requestEnemyAttack error:", e.message);
@@ -2013,12 +2065,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestPlayerSpell(attackId, cooldownSeconds) {
-      if (!this.dotNetRef || this._spellPending || this.battleFinished) return;
+      if (this._destroyed || !this.dotNetRef || this._spellPending || this.battleFinished) return;
       this._spellPending = true;
       try {
         this.spellCooldowns[attackId] = cooldownSeconds;
         this.updateSpellCooldownVisuals();
         const json = await this.dotNetRef.invokeMethodAsync("OnPlayerSpell", attackId);
+        if (this._destroyed || this.battleFinished) return;
         if (json) {
           const result = JSON.parse(json);
           const serverCooldowns = result.spellCooldowns ?? result.SpellCooldowns;
@@ -2033,13 +2086,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.warn("requestPlayerSpell error:", e.message);
       } finally {
         this._spellPending = false;
-        this.updateSpellCooldownVisuals();
+        if (!this._destroyed) this.updateSpellCooldownVisuals();
       }
     }
     async requestTickCooldowns(elapsedSeconds) {
-      if (!this.dotNetRef || this.battleFinished) return;
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnTickCooldowns", elapsedSeconds);
+        if (this._destroyed || this.battleFinished) return;
         if (json) {
           const data = JSON.parse(json);
           const spellCooldowns = data.spells ?? data;
@@ -2053,9 +2107,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     async requestTickConsumableCooldowns(realElapsedSeconds) {
-      if (!this.dotNetRef || this.battleFinished) return;
+      if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
       try {
         const json = await this.dotNetRef.invokeMethodAsync("OnTickConsumableCooldowns", realElapsedSeconds);
+        if (this._destroyed || this.battleFinished) return;
         if (json) {
           const data = JSON.parse(json);
           for (const [type, remaining] of Object.entries(data)) {
@@ -2069,6 +2124,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Server Result Processing ─────────────────────── */
     processServerResult(result) {
+      if (this._destroyed || this.battleFinished) return;
       const events = result.events ?? result.Events ?? [];
       for (const evt of events) {
         this.processInteractiveEvent(evt);
@@ -2157,7 +2213,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ────────────────────── Main Update Loop ───────────────────────── */
     update() {
-      if (!this.app || !this.stage || this.battleFinished) return;
+      if (this._destroyed || !this.app || !this.stage || this.battleFinished) return;
       const delta = this.app.ticker.deltaMS;
       this.idleAnimationTime += delta * 1e-3;
       if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
@@ -2348,7 +2404,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     processNextEvent() {
-      if (this.battleFinished || !this.isPlaying) return;
+      if (this._destroyed || this.battleFinished || !this.isPlaying) return;
       if (this.currentEventIndex >= this.eventsList.length) {
         this.finishBattle();
         return;
@@ -2736,7 +2792,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /* ──────────────── Finish Battle ─────────────────────────────────── */
     finishBattle() {
-      if (this.battleFinished) return;
+      if (this._destroyed || this.battleFinished) return;
       this.battleFinished = true;
       this.isPlaying = false;
       if (this.eventTimer) {
@@ -2767,6 +2823,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ──────────────── Destroy ──────────────────────────────────────── */
     destroy() {
       var _a, _b, _c;
+      this._destroyed = true;
+      this.battleFinished = true;
+      this.isPlaying = false;
       if (this._onResize) {
         window.removeEventListener("resize", this._onResize);
         this._onResize = null;
@@ -2819,7 +2878,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* ──────────────── Reset For Next Battle ─────────────────────────── */
     async resetForNextBattle(data) {
       var _a, _b;
-      if (!this.app || !this.stage) {
+      if (this._destroyed || !this.app || !this.stage) {
         console.warn("resetForNextBattle: app/stage destroyed, skipping");
         return;
       }
@@ -2903,7 +2962,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       } catch (e) {
         console.error("Failed to load assets for next stage:", e);
       }
-      if (!this.app || !this.stage) {
+      if (this._destroyed || !this.app || !this.stage) {
         console.warn("resetForNextBattle: destroyed during asset load");
         return;
       }
@@ -3019,9 +3078,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
           this.playerAura.x = this.playerSprite.x;
           this.playerAura.y = this.playerSprite.y;
-          this.playerAura.tint = 43775;
           this.playerAura.alpha = 0.8;
-          this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+          const cm = new PIXI.ColorMatrixFilter();
+          cm.matrix = [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0.667,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0
+          ];
+          this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
           const playerIdx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, playerIdx);
         }

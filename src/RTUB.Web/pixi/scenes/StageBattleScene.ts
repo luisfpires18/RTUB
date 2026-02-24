@@ -280,6 +280,9 @@ export class StageBattleScene implements VfxOwner {
   _rafIds: number[] = [];
   _textPool: TextPool = { pool: [] };
 
+  // Destroyed flag — prevents async callbacks from running after destroy
+  private _destroyed = false;
+
   // Event listeners
   private _onContextLost: ((e: Event) => void) | null = null;
   private _onContextRestored: ((e: Event) => void) | null = null;
@@ -695,9 +698,15 @@ export class StageBattleScene implements VfxOwner {
       this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
       this.playerAura.x = playerX;
       this.playerAura.y = playerY;
-      this.playerAura.tint = 0x00aaff;
       this.playerAura.alpha = 0.8;
-      this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+      const cm = new PIXI.ColorMatrixFilter();
+      cm.matrix = [
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0.667,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 0,
+      ];
+      this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
       this.stage.addChild(this.playerAura);
     }
 
@@ -1469,10 +1478,11 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private async requestUseConsumable(type: string): Promise<void> {
-    if (!this.dotNetRef || this._consumablePending) return;
+    if (this._destroyed || !this.dotNetRef || this._consumablePending) return;
     this._consumablePending = true;
     try {
       const json = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as string | null;
+      if (this._destroyed || this.battleFinished) { this._consumablePending = false; return; }
       if (!json) { this._consumablePending = false; return; }
 
       const result = JSON.parse(json) as ConsumableResult;
@@ -1526,9 +1536,15 @@ export class StageBattleScene implements VfxOwner {
           this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
           this.playerAura.x = this.playerSprite.x;
           this.playerAura.y = this.playerSprite.y;
-          this.playerAura.tint = 0x00aaff;
           this.playerAura.alpha = 0.8;
-          this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+          const cm = new PIXI.ColorMatrixFilter();
+          cm.matrix = [
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0.667,
+            0, 0, 0, 0, 1,
+            0, 0, 0, 1, 0,
+          ];
+          this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
           const idx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, idx);
         }
@@ -1626,12 +1642,13 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Interactive Server Calls ─────────────────────── */
 
   private async requestPlayerAutoAttack(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._playerAttackPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as string | null;
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestPlayerAutoAttack error:', (e as Error).message);
@@ -1641,12 +1658,13 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private async requestEnemyAttack(enemyIndex: number): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._enemyAttackPending[enemyIndex] = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as string | null;
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestEnemyAttack error:', (e as Error).message);
@@ -1656,13 +1674,14 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private async requestPlayerSpell(attackId: string, cooldownSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this._spellPending || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this._spellPending || this.battleFinished) return;
     this._spellPending = true;
     try {
       this.spellCooldowns[attackId] = cooldownSeconds;
       this.updateSpellCooldownVisuals();
 
       const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as string | null;
+      if (this._destroyed || this.battleFinished) return;
       if (json) {
         const result = JSON.parse(json) as CombatActionResult;
         const serverCooldowns = (result.spellCooldowns ?? result.SpellCooldowns) as Record<string, number> | undefined;
@@ -1677,14 +1696,15 @@ export class StageBattleScene implements VfxOwner {
       console.warn('requestPlayerSpell error:', (e as Error).message);
     } finally {
       this._spellPending = false;
-      this.updateSpellCooldownVisuals();
+      if (!this._destroyed) this.updateSpellCooldownVisuals();
     }
   }
 
   private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
       const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds) as string | null;
+      if (this._destroyed || this.battleFinished) return;
       if (json) {
         const data = JSON.parse(json);
         // Server returns { spells: {...} } or direct map
@@ -1700,9 +1720,10 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private async requestTickConsumableCooldowns(realElapsedSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
       const json = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns', realElapsedSeconds) as string | null;
+      if (this._destroyed || this.battleFinished) return;
       if (json) {
         const data = JSON.parse(json) as Record<string, number>;
         for (const [type, remaining] of Object.entries(data)) {
@@ -1718,6 +1739,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Server Result Processing ─────────────────────── */
 
   private processServerResult(result: CombatActionResult): void {
+    if (this._destroyed || this.battleFinished) return;
     const events = (result.events ?? result.Events ?? []) as BattleEvent[];
     for (const evt of events) {
       this.processInteractiveEvent(evt);
@@ -1808,7 +1830,7 @@ export class StageBattleScene implements VfxOwner {
   /* ────────────────────── Main Update Loop ───────────────────────── */
 
   private update(): void {
-    if (!this.app || !this.stage || this.battleFinished) return;
+    if (this._destroyed || !this.app || !this.stage || this.battleFinished) return;
 
     const delta = this.app.ticker.deltaMS;
     this.idleAnimationTime += delta * 0.001;
@@ -2048,7 +2070,7 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private processNextEvent(): void {
-    if (this.battleFinished || !this.isPlaying) return;
+    if (this._destroyed || this.battleFinished || !this.isPlaying) return;
     if (this.currentEventIndex >= this.eventsList.length) {
       this.finishBattle();
       return;
@@ -2481,7 +2503,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Finish Battle ─────────────────────────────────── */
 
   private finishBattle(): void {
-    if (this.battleFinished) return;
+    if (this._destroyed || this.battleFinished) return;
     this.battleFinished = true;
     this.isPlaying = false;
 
@@ -2518,6 +2540,10 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Destroy ──────────────────────────────────────── */
 
   destroy(): void {
+    this._destroyed = true;
+    this.battleFinished = true;
+    this.isPlaying = false;
+
     // Remove event listeners
     if (this._onResize) {
       window.removeEventListener('resize', this._onResize);
@@ -2577,7 +2603,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Reset For Next Battle ─────────────────────────── */
 
   async resetForNextBattle(data: Record<string, unknown>): Promise<void> {
-    if (!this.app || !this.stage) {
+    if (this._destroyed || !this.app || !this.stage) {
       console.warn('resetForNextBattle: app/stage destroyed, skipping');
       return;
     }
@@ -2682,7 +2708,7 @@ export class StageBattleScene implements VfxOwner {
       console.error('Failed to load assets for next stage:', e);
     }
 
-    if (!this.app || !this.stage) {
+    if (this._destroyed || !this.app || !this.stage) {
       console.warn('resetForNextBattle: destroyed during asset load');
       return;
     }
@@ -2813,9 +2839,15 @@ export class StageBattleScene implements VfxOwner {
         this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
         this.playerAura.x = this.playerSprite.x;
         this.playerAura.y = this.playerSprite.y;
-        this.playerAura.tint = 0x00aaff;
         this.playerAura.alpha = 0.8;
-        this.playerAura.filters = [new PIXI.BlurFilter({ strength: 12 })];
+        const cm = new PIXI.ColorMatrixFilter();
+        cm.matrix = [
+          0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0.667,
+          0, 0, 0, 0, 1,
+          0, 0, 0, 1, 0,
+        ];
+        this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
         const playerIdx = this.stage.getChildIndex(this.playerSprite);
         this.stage.addChildAt(this.playerAura, playerIdx);
       }
