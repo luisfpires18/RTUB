@@ -2955,6 +2955,10 @@ export class StageBattleScene implements VfxOwner {
       }
     }
 
+    // Final _destroyed guard — destroy() may have run while we were
+    // synchronously rebuilding. If so, abort before starting the ticker loop.
+    if (this._destroyed || !this.app || !this.stage) return;
+
     // Restart battle
     if (this.interactiveMode) {
       this.initInteractiveState();

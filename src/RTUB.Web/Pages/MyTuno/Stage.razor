@@ -819,6 +819,14 @@
                     // nextBattle handles both first battle (falls back to start) and subsequent battles
                     await JSRuntime.InvokeVoidAsync("stageBattleGame.nextBattle", battleData);
 
+                    // If user clicked "Acabar" while nextBattle was in-flight,
+                    // destroy the just-started scene immediately to avoid an orphan.
+                    if (_endingRun)
+                    {
+                        try { await JSRuntime.InvokeVoidAsync("stageBattleGame.destroy"); }
+                        catch { /* EndRunEarly will also try – ok if this fails */ }
+                    }
+
                     // Release the large ReplayJson string now that JS has it — reduces GC
                     // pressure during long farming runs (hundreds of stages)
                     _replaySentToJs = true;
@@ -1460,6 +1468,13 @@
                 // Stop any in-progress fight from continuing
                 fighting = false;
 
+                // Hide battle canvas IMMEDIATELY — before any async DB work.
+                // This prevents intermediate StateHasChanged() calls from other
+                // callbacks re-rendering the live canvas while we tear down.
+                showBattleAnimation = false;
+                _combatSession = null;
+                StateHasChanged();
+
                 // Destroy JS battle animation
                 if (hasRendered)
                 {
@@ -1514,8 +1529,7 @@
                     }
                 }
 
-                // Show reward summary
-                showBattleAnimation = false;
+                // Show reward summary (showBattleAnimation already set false above)
                 showDefeatSummary = true;
                 currentEnemyStats.Clear();
                 currentBattle = null;

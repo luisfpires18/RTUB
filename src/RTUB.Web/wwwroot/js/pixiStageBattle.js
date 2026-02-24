@@ -3204,6 +3204,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         }
       }
+      if (this._destroyed || !this.app || !this.stage) return;
       if (this.interactiveMode) {
         this.initInteractiveState();
         if (((_b = this.spells) == null ? void 0 : _b.length) > 0) {
@@ -3238,7 +3239,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   let stageScene = null;
+  let _stopped = false;
   function createGame(containerId, battleData) {
+    _stopped = false;
     const container = document.getElementById(containerId);
     if (!container) {
       console.error("Stage battle container not found:", containerId);
@@ -3283,6 +3286,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function destroyBattle() {
+    _stopped = true;
     if (stageScene) {
       stageScene.destroy();
       stageScene = null;
@@ -3290,12 +3294,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     StageBattleScene.stopBackgroundMusic();
   }
   function destroySceneOnly() {
+    _stopped = true;
     if (stageScene) {
       stageScene.destroy();
       stageScene = null;
     }
   }
   function nextBattle(battleData) {
+    if (_stopped) {
+      console.warn("nextBattle: game was stopped, ignoring");
+      return;
+    }
     if (!stageScene || !stageScene.app || !stageScene.stage) {
       console.warn("No active scene, using start() instead");
       if (stageScene) {

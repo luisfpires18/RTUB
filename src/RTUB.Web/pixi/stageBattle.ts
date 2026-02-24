@@ -9,7 +9,12 @@ import { StageBattleScene } from './scenes/StageBattleScene';
 
 let stageScene: StageBattleScene | null = null;
 
+/** Module-level stop flag — prevents nextBattle from recreating an orphan scene
+ *  after destroyBattle has been called (e.g. user clicked "Acabar" mid-transition). */
+let _stopped = false;
+
 function createGame(containerId: string, battleData: StageBattleData): void {
+  _stopped = false;
   const container = document.getElementById(containerId);
   if (!container) {
     console.error('Stage battle container not found:', containerId);
@@ -59,6 +64,7 @@ function createGame(containerId: string, battleData: StageBattleData): void {
 }
 
 function destroyBattle(): void {
+  _stopped = true;
   if (stageScene) {
     stageScene.destroy();
     stageScene = null;
@@ -67,6 +73,7 @@ function destroyBattle(): void {
 }
 
 function destroySceneOnly(): void {
+  _stopped = true;
   if (stageScene) {
     stageScene.destroy();
     stageScene = null;
@@ -74,6 +81,12 @@ function destroySceneOnly(): void {
 }
 
 function nextBattle(battleData: StageBattleData): void {
+  // Refuse to start a new battle if destroyBattle was already called
+  if (_stopped) {
+    console.warn('nextBattle: game was stopped, ignoring');
+    return;
+  }
+
   if (!stageScene || !stageScene.app || !stageScene.stage) {
     console.warn('No active scene, using start() instead');
     if (stageScene) {
