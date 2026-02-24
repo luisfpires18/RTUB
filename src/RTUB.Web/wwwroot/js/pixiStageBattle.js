@@ -1638,12 +1638,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const maxFormW = Math.max(0, 2 * maxHalfW);
       const maxHSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
       const hSpace = cols > 1 ? Math.min(idealHSpace, maxHSpace) : 0;
-      const idealVSpace = spriteH * 0.65;
-      const topEdge = isMobile ? 80 : height * 0.15;
-      const vertRange = baseY - topEdge;
-      const maxVSpace = rows > 1 ? vertRange / (rows - 1) : 0;
-      const vSpace = rows > 1 ? Math.min(idealVSpace, maxVSpace) : 0;
-      const aerialLift = spriteH * 0.45;
+      const depthOffset = spriteH * 0.12;
+      const aerialLift = spriteH * 0.5;
       let idx = 0;
       for (let row = 0; row < rows; row++) {
         const inRow = Math.min(cols, count - idx);
@@ -1652,7 +1648,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         for (let col = 0; col < inRow; col++) {
           const isAerial = (placements == null ? void 0 : placements[idx]) === 1;
           const x = startX + col * hSpace;
-          const y = baseY - row * vSpace - (isAerial ? aerialLift : 0);
+          const y = isAerial ? baseY - aerialLift - row * depthOffset : baseY - row * depthOffset;
           positions.push({ x, y, isAerial });
           idx++;
         }

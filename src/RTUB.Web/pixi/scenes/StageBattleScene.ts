@@ -1200,15 +1200,11 @@ export class StageBattleScene implements VfxOwner {
     const maxHSpace = cols > 1 ? maxFormW / (cols - 1) : 0;
     const hSpace = cols > 1 ? Math.min(idealHSpace, maxHSpace) : 0;
 
-    /* ── Vertical spacing: sprite-height-based, clamped to available area ── */
-    const idealVSpace = spriteH * 0.65;                       // rows overlap a bit (depth)
-    const topEdge = isMobile ? 80 : height * 0.15;
-    const vertRange = baseY - topEdge;
-    const maxVSpace = rows > 1 ? vertRange / (rows - 1) : 0;
-    const vSpace = rows > 1 ? Math.min(idealVSpace, maxVSpace) : 0;
+    /* ── Vertical row offset: tiny depth stagger for ground enemies ── */
+    const depthOffset = spriteH * 0.12;                       // subtle back-row nudge
 
-    /* ── Aerial lift: subtle — just enough to float above ground enemies ── */
-    const aerialLift = spriteH * 0.45;
+    /* ── Aerial lift: enough to visibly float above ground enemies ── */
+    const aerialLift = spriteH * 0.50;
 
     /* ── Place enemies in grid (row 0 = front / bottom, row N = back / top) ── */
     let idx = 0;
@@ -1219,7 +1215,11 @@ export class StageBattleScene implements VfxOwner {
       for (let col = 0; col < inRow; col++) {
         const isAerial = placements?.[idx] === 1;
         const x = startX + col * hSpace;
-        const y = baseY - row * vSpace - (isAerial ? aerialLift : 0);
+        // Ground enemies: stay near baseY with a tiny depth nudge per row
+        // Aerial enemies: lift above baseY
+        const y = isAerial
+          ? baseY - aerialLift - row * depthOffset
+          : baseY - row * depthOffset;
         positions.push({ x, y, isAerial });
         idx++;
       }
