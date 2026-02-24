@@ -100,10 +100,17 @@ export class ArenaBattleScene implements VfxOwner {
   private hpGraphics: Graphics | null = null;
   private hpTexts: Record<string, Text> = {};
   private nameTexts: Record<string, Text> = {};
+  // HUD bar references (persistent, top-left / top-right)
+  private hudBars: Record<string, {
+    hpBg: Graphics; hpFill: Graphics; hpBorder: Graphics; hpText: Text;
+    speedBg: Graphics; speedFill: Graphics; speedText: Text;
+    maxHpWidth: number; hpBarHeight: number;
+    maxSpeedWidth: number; speedBarHeight: number;
+  }> = {};
 
   // Shot buff visual
   private hasShotBuff: boolean;
-  private attackerAura: Graphics | null = null;
+  private attackerAura: Sprite | null = null;
 
   // Speed bars
   private actionTime = { attacker: 5.0, defender: 5.0 };
@@ -111,9 +118,13 @@ export class ArenaBattleScene implements VfxOwner {
   private speedBarTimers = { attacker: 0, defender: 0 };
   private battleStartTime = 0;
   private currentSimTime = 0;
+  // Anti-exploit: getter/setter restricts battleSpeed to allowed values
   private _battleSpeed = 1.0;
   get battleSpeed(): number { return this._battleSpeed; }
-  set battleSpeed(v: number) { this._battleSpeed = v === 5 ? 5 : 1; }
+  set battleSpeed(v: number) {
+    const allowed = [1, 5];
+    this._battleSpeed = allowed.includes(v) ? v : 1;
+  }
 
   // Replay state
   private currentEventIndex = 0;
@@ -150,6 +161,9 @@ export class ArenaBattleScene implements VfxOwner {
   _timeoutIds: number[] = [];
   _rafIds: number[] = [];
   _textPool: TextPool = { pool: [] };
+
+  // Destroyed flag — prevents async callbacks from running after destroy
+  private _destroyed = false;
 
   // WebGL / visibility listeners
   private _onContextLost: ((e: Event) => void) | null = null;
@@ -261,6 +275,15 @@ export class ArenaBattleScene implements VfxOwner {
     this.container.appendChild(this.app.canvas);
     this.stage = this.app.stage;
 
+    // Anti-exploit: remove PixiJS debug global and freeze ticker speed
+    delete (globalThis as Record<string, unknown>).__PIXI_APP__;
+    delete (globalThis as Record<string, unknown>).__PIXI_STAGE__;
+    try {
+      Object.defineProperty(this.app.ticker, 'speed', {
+        value: 1, writable: false, configurable: false,
+      });
+    } catch (_) { /* already frozen */ }
+
     // WebGL context loss recovery
     this._onContextLost = (e: Event) => {
       console.warn('WebGL context lost — finishing battle to recover');
@@ -354,12 +377,13 @@ export class ArenaBattleScene implements VfxOwner {
 
   private createCharacters(width: number, height: number, isMobile: boolean): void {
     if (!this.stage) return;
-    const spriteScale = this.getSpriteScale(width);
+    const maxSpriteHeight = isMobile ? height * 0.25 : height * 0.45;
 
     // ── Attacker ──
     const atkSprite = PIXI.Sprite.from('attackerSprite');
     atkSprite.anchor.set(0.5, 1);
-    atkSprite.scale.set(spriteScale);
+    const atkScale = this.getSpriteScale(atkSprite, maxSpriteHeight);
+    atkSprite.scale.set(atkScale);
 
     let atkX: number, atkY: number;
     if (isMobile) {
@@ -374,22 +398,34 @@ export class ArenaBattleScene implements VfxOwner {
     this.stage.addChild(atkSprite);
     this.characterSprites.attacker = { sprite: atkSprite, originX: atkX, originY: atkY };
 
-    // Shot buff aura
+    // Shot buff aura — blue glow outline behind sprite (match CSS home page look)
     if (this.hasShotBuff) {
-      const aura = new PIXI.Graphics();
-      const auraRadius = atkSprite.height * 0.6;
-      aura.circle(0, 0, auraRadius);
-      aura.fill({ color: 0xff6600, alpha: 0.25 });
+      const aura = PIXI.Sprite.from('attackerSprite');
+      aura.anchor.set(0.5, 1);
+      aura.scale.set(atkScale * 1.25);
       aura.x = atkX;
-      aura.y = atkY - atkSprite.height / 2;
-      this.stage.addChild(aura);
+      aura.y = atkY;
+      aura.alpha = 0.8;
+      // Force solid blue silhouette (preserving alpha) then blur
+      const cm = new PIXI.ColorMatrixFilter();
+      cm.matrix = [
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0.667,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 0,
+      ];
+      aura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
+      // Insert behind the real sprite
+      const spriteIdx = this.stage.getChildIndex(atkSprite);
+      this.stage.addChildAt(aura, spriteIdx);
       this.attackerAura = aura;
     }
 
     // ── Defender ──
     const defSprite = PIXI.Sprite.from('defenderSprite');
     defSprite.anchor.set(0.5, 1);
-    defSprite.scale.set(spriteScale);
+    const defScale = this.getSpriteScale(defSprite, maxSpriteHeight);
+    defSprite.scale.set(defScale);
 
     let defX: number, defY: number;
     if (isMobile) {
@@ -426,10 +462,11 @@ export class ArenaBattleScene implements VfxOwner {
     this.nameTexts.defender = defNameText;
   }
 
-  private getSpriteScale(width: number): number {
-    if (width < 400) return 0.6;
-    if (width < 768) return 0.8;
-    return 1.0;
+  private getSpriteScale(sprite: Sprite, maxSpriteHeight: number): number {
+    if (!sprite.texture || !sprite.texture.height) {
+      return 0.6;
+    }
+    return Math.min(1, maxSpriteHeight / sprite.texture.height);
   }
 
   private startIdleAnimation(): void {
@@ -470,99 +507,129 @@ export class ArenaBattleScene implements VfxOwner {
 
   private drawHpBars(): void {
     if (!this.app || !this.stage) return;
-    const { width } = this.app.screen;
+    const { width, height } = this.app.screen;
     const isMobile = width < 768;
 
-    // Remove previous
-    if (this.hpGraphics) {
-      this.stage.removeChild(this.hpGraphics);
-      this.hpGraphics.destroy();
+    // If HUD bars already exist, just update the fill width + text
+    if (this.hudBars.attacker && this.hudBars.defender) {
+      for (const key of ['attacker', 'defender'] as const) {
+        const hud = this.hudBars[key];
+        const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
+        const fillColor = key === 'attacker'
+          ? (ratio > 0.5 ? 0x4caf50 : ratio > 0.25 ? 0xcccc44 : 0xcc4444)
+          : (ratio > 0.5 ? 0xf44336 : ratio > 0.25 ? 0xd32f2f : 0xb71c1c);
+        hud.hpFill.clear();
+        hud.hpFill.roundRect(0, 0, hud.maxHpWidth, hud.hpBarHeight, hud.hpBarHeight / 2);
+        hud.hpFill.fill(fillColor);
+        hud.hpFill.width = hud.maxHpWidth * ratio;
+        hud.hpText.text = `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`;
+      }
+      return;
     }
-    for (const t of Object.values(this.hpTexts)) {
-      this.stage.removeChild(t);
-      t.destroy();
-    }
-    this.hpTexts = {};
 
-    const g = new PIXI.Graphics();
-    this.stage.addChild(g);
-    this.hpGraphics = g;
+    // First-time creation: build persistent HUD bars
+    const barWidth = isMobile ? Math.min(220, width * 0.32) : Math.min(400, width * 0.40);
+    const barHeight = isMobile ? Math.min(22, height * 0.035) : Math.min(36, height * 0.055);
+    const speedBarHeight = isMobile ? Math.min(10, height * 0.015) : Math.min(18, height * 0.025);
+    const topBarHeight = 54;
+    const paddingTop = topBarHeight + 8;
+    const paddingLeft = Math.min(16, width * 0.03);
 
-    const barW = isMobile ? 120 : 180;
-    const barH = isMobile ? 14 : 18;
+    const positions = {
+      attacker: paddingLeft,                          // top-left
+      defender: width - paddingLeft - barWidth,       // top-right
+    };
+
+    const hpColors = { attacker: 0x4caf50, defender: 0xf44336 };
+    const borderColors = { attacker: 0x66bb6a, defender: 0xef5350 };
 
     for (const key of ['attacker', 'defender'] as const) {
-      const char = this.characterSprites[key];
-      if (!char) continue;
+      const x = positions[key];
 
-      const x = char.sprite.x - barW / 2;
-      const y = char.sprite.y - char.sprite.height - (isMobile ? 22 : 30);
-
-      // Background
-      g.roundRect(x, y, barW, barH, 4);
-      g.fill({ color: 0x333333, alpha: 0.8 });
+      // HP background
+      const hpBg = new PIXI.Graphics();
+      hpBg.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+      hpBg.fill({ color: 0x1a1a1a, alpha: 0.85 });
+      hpBg.stroke({ color: 0x333333, width: 1 });
+      this.stage.addChild(hpBg);
 
       // HP fill
       const ratio = Math.max(0, this.currentHp[key] / this.maxHp[key]);
-      const fillColor = ratio > 0.5 ? 0x44cc44 : ratio > 0.25 ? 0xcccc44 : 0xcc4444;
-      if (ratio > 0) {
-        g.roundRect(x, y, barW * ratio, barH, 4);
-        g.fill({ color: fillColor, alpha: 0.9 });
-      }
+      const hpFill = new PIXI.Graphics();
+      hpFill.roundRect(0, 0, barWidth, barHeight, barHeight / 2);
+      hpFill.fill(hpColors[key]);
+      hpFill.x = x;
+      hpFill.y = paddingTop;
+      hpFill.width = barWidth * ratio;
+      this.stage.addChild(hpFill);
 
-      // Border
-      g.roundRect(x, y, barW, barH, 4);
-      g.stroke({ color: 0x888888, width: 1 });
+      // HP border
+      const hpBorder = new PIXI.Graphics();
+      hpBorder.roundRect(x, paddingTop, barWidth, barHeight, barHeight / 2);
+      hpBorder.stroke({ width: 1.5, color: borderColors[key] });
+      this.stage.addChild(hpBorder);
 
-      // Text
+      // HP text
+      const hpFontSize = isMobile ? Math.min(12, barHeight * 0.55) : Math.min(16, barHeight * 0.5);
       const hpText = new PIXI.Text({
-        text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])}`,
-        style: { fontFamily: 'Arial', fontSize: isMobile ? 10 : 12, fill: 0xffffff },
+        text: `${formatNum(this.currentHp[key])} / ${formatNum(this.maxHp[key])} HP`,
+        style: {
+          fontFamily: 'Arial, sans-serif', fontSize: hpFontSize, fontWeight: 'bold',
+          fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
+        },
       });
-      hpText.anchor.set(0.5);
-      hpText.x = char.sprite.x;
-      hpText.y = y + barH / 2;
+      hpText.anchor.set(0.5, 0.5);
+      hpText.x = x + barWidth / 2;
+      hpText.y = paddingTop + barHeight / 2;
       this.stage.addChild(hpText);
-      this.hpTexts[key] = hpText;
+
+      // Speed background
+      const speedBarY = paddingTop + barHeight + 3;
+      const speedBg = new PIXI.Graphics();
+      speedBg.roundRect(x, speedBarY, barWidth, speedBarHeight, speedBarHeight / 2);
+      speedBg.fill({ color: 0x111111, alpha: 0.85 });
+      this.stage.addChild(speedBg);
+
+      // Speed fill
+      const speedFill = new PIXI.Graphics();
+      speedFill.roundRect(0, 0, barWidth, speedBarHeight, speedBarHeight / 2);
+      speedFill.fill(0x00bcd4);
+      speedFill.x = x;
+      speedFill.y = speedBarY;
+      this.stage.addChild(speedFill);
+
+      // Speed text
+      const speedFontSize = isMobile ? Math.min(8, speedBarHeight * 0.8) : Math.min(14, speedBarHeight * 0.8);
+      const speedText = new PIXI.Text({
+        text: '',
+        style: {
+          fontFamily: 'Arial, sans-serif', fontSize: speedFontSize, fontWeight: 'bold',
+          fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
+        },
+      });
+      speedText.anchor.set(0.5, 0.5);
+      speedText.x = x + barWidth / 2;
+      speedText.y = speedBarY + speedBarHeight / 2;
+      this.stage.addChild(speedText);
+
+      this.hudBars[key] = {
+        hpBg, hpFill, hpBorder, hpText,
+        speedBg, speedFill, speedText,
+        maxHpWidth: barWidth, hpBarHeight: barHeight,
+        maxSpeedWidth: barWidth, speedBarHeight,
+      };
     }
   }
 
   private drawSpeedBars(): void {
-    if (!this.app || !this.stage) return;
-    const { width } = this.app.screen;
-    const isMobile = width < 768;
-
     for (const key of ['attacker', 'defender'] as const) {
-      // Remove old
-      if (this.speedBars[key]) {
-        this.stage.removeChild(this.speedBars[key]!);
-        this.speedBars[key]!.destroy();
-        this.speedBars[key] = null;
-      }
-
-      const char = this.characterSprites[key];
-      if (!char) continue;
-
-      const barW = isMobile ? 120 : 180;
-      const barH = 6;
-      const x = char.sprite.x - barW / 2;
-      const y = char.sprite.y - char.sprite.height - (isMobile ? 8 : 12);
-
-      const g = new PIXI.Graphics();
-      // Background
-      g.roundRect(x, y, barW, barH, 2);
-      g.fill({ color: 0x222222, alpha: 0.6 });
-
-      // Fill — approaches 100% as timer → 0
+      const hud = this.hudBars[key];
+      if (!hud) continue;
       const maxMs = this.actionTime[key] * 1000;
-      const ratio = maxMs > 0 ? Math.max(0, 1 - this.speedBarTimers[key] / maxMs) : 0;
-      if (ratio > 0) {
-        g.roundRect(x, y, barW * ratio, barH, 2);
-        g.fill({ color: 0x00aaff, alpha: 0.8 });
-      }
-
-      this.stage.addChild(g);
-      this.speedBars[key] = g;
+      const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.speedBarTimers[key] / maxMs)) : 0;
+      hud.speedFill.width = hud.maxSpeedWidth * ratio;
+      const remaining = Math.max(0, this.speedBarTimers[key] / 1000);
+      hud.speedText.text = `${remaining.toFixed(1)}s`;
     }
   }
 
@@ -704,12 +771,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestPlayerAutoAttack(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._playerAttackPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnPlayerAutoAttack');
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnPlayerAutoAttack error:', e);
@@ -719,12 +787,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestEnemyAttack(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._enemyAttackPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnEnemyAttack', 0);
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnEnemyAttack error:', e);
@@ -734,12 +803,13 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestPlayerSpell(attackId: string): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
       this._spellPending = false;
       return;
     }
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnPlayerSpell', attackId);
+      if (this._destroyed || this.battleFinished) return;
       if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('OnPlayerSpell error:', e);
@@ -749,9 +819,10 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
       const json = await this.dotNetRef.invokeMethodAsync<string>('OnTickCooldowns', elapsedSeconds);
+      if (this._destroyed || this.battleFinished) return;
       if (json) {
         const data = JSON.parse(json) as Record<string, unknown>;
         const spellCooldowns = (data.spells ?? data) as Record<string, number>;
@@ -765,7 +836,7 @@ export class ArenaBattleScene implements VfxOwner {
   }
 
   private processServerResult(result: CombatActionResult): void {
-    if (!result) return;
+    if (this._destroyed || this.battleFinished || !result) return;
 
     const events = result.events ?? result.Events ?? [];
     for (const evt of events) {
@@ -1005,6 +1076,9 @@ export class ArenaBattleScene implements VfxOwner {
 
     this._playSound((isBlocked || isDodged) ? 'block' : (isCritical ? 'critical' : 'attack'));
 
+    // Determine if this attacker has an aura to move
+    const auraSprite = (attackerKey !== 'Defender' && this.attackerAura) ? this.attackerAura : null;
+
     const lungeDuration = isCritical ? 150 : 200;
     animateTo(this, attacker.sprite, {
       x: targetX,
@@ -1016,7 +1090,15 @@ export class ArenaBattleScene implements VfxOwner {
         y: startY,
         rotation: 0,
       }, 240);
+      // Return aura to start
+      if (auraSprite) {
+        animateTo(this, auraSprite, { x: startX, y: startY }, 240);
+      }
     });
+    // Move aura with lunge
+    if (auraSprite) {
+      animateTo(this, auraSprite, { x: targetX, y: targetY }, lungeDuration);
+    }
 
     if (isBlocked || isDodged) {
       defender.sprite.tint = 0x00e5ff;
@@ -1032,7 +1114,7 @@ export class ArenaBattleScene implements VfxOwner {
     this._playSound('hit');
 
     if (!isBlocked && !isDodged) {
-      const defenderStartX = defender.sprite.x;
+      const defenderStartX = defender.originX;
       const recoilDistance = isCritical ? 30 : 20;
       animateTo(this, defender.sprite, {
         x: defenderStartX + direction * recoilDistance,
@@ -1182,13 +1264,18 @@ export class ArenaBattleScene implements VfxOwner {
 
     if (winnerSprite) {
       const originalY = winnerSprite.sprite.y;
+      const winnerAura = isAttackerWinner ? this.attackerAura : null;
       animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
         animateTo(this, winnerSprite.sprite, { y: originalY }, 200, () => {
           animateTo(this, winnerSprite.sprite, { y: originalY - 20 }, 200, () => {
             animateTo(this, winnerSprite.sprite, { y: originalY }, 200);
+            if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
           });
+          if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
         });
+        if (winnerAura) animateTo(this, winnerAura, { y: originalY }, 200);
       });
+      if (winnerAura) animateTo(this, winnerAura, { y: originalY - 20 }, 200);
     }
 
     const victoryText = new PIXI.Text({
@@ -1248,7 +1335,7 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Battle End ─────────────────────────────── */
 
   private finishBattle(): void {
-    if (this.battleFinished) return;
+    if (this._destroyed || this.battleFinished) return;
     this.battleFinished = true;
 
     if (this.dotNetRef?.invokeMethodAsync) {
@@ -1287,7 +1374,7 @@ export class ArenaBattleScene implements VfxOwner {
   setReplaySpeed(speed: number): void {
     const validSpeed = speed === 5 ? 5 : 1;
     this.playbackSpeed = validSpeed;
-    this.battleSpeed = validSpeed;
+    this._battleSpeed = validSpeed;
   }
 
   jumpToEvent(index: number): void {
@@ -1300,7 +1387,7 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Main Update Loop ───────────────────────── */
 
   private update(): void {
-    if (!this.app) return;
+    if (this._destroyed || !this.app) return;
     const deltaMs = this.app.ticker.deltaMS;
 
     // Character idle animations
@@ -1323,14 +1410,12 @@ export class ArenaBattleScene implements VfxOwner {
       }
     }
 
-    // Animate attacker aura (shot buff glow)
+    // Animate attacker aura (shot buff glow) — pulse alpha, keep scale synced
     if (this.attackerAura && !(this.attackerAura as unknown as { destroyed?: boolean }).destroyed && this.characterSprites.attacker) {
-      const att = this.characterSprites.attacker;
-      this.attackerAura.x = att.sprite.x;
-      const spriteHeight = att.sprite.height;
-      this.attackerAura.y = att.sprite.y - spriteHeight / 2;
+      const curScale = this.characterSprites.attacker.sprite.scale.x;
+      this.attackerAura.scale.set(curScale * 1.25);
       const time = performance.now() / 1000;
-      this.attackerAura.alpha = 0.25 + Math.sin(time * 1.2) * 0.12;
+      this.attackerAura.alpha = 0.65 + Math.sin(time * 1.2) * 0.15;
     }
 
     // ── Interactive mode: speed bars trigger server calls ──
@@ -1437,6 +1522,10 @@ export class ArenaBattleScene implements VfxOwner {
   /* ────────────────────── Cleanup ────────────────────────────────── */
 
   destroy(): void {
+    this._destroyed = true;
+    this.battleFinished = true;
+    this.isPlaying = false;
+
     // Remove event listeners
     if (this._onContextLost && this.app?.canvas) {
       this.app.canvas.removeEventListener('webglcontextlost', this._onContextLost);

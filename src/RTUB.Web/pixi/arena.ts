@@ -93,7 +93,8 @@ window.myTunoGame = {
     if (activeScene) {
       const allowedSpeeds = [1, 5];
       const validSpeed = allowedSpeeds.includes(speed) ? speed : Math.min(5, Math.max(1, Math.round(speed)));
-      activeScene.battleSpeed = validSpeed;
+      // Use internal field to bypass the setter's own validation (already validated above)
+      (activeScene as unknown as { _battleSpeed: number })._battleSpeed = validSpeed;
     }
   },
   toggleAudio: () => {

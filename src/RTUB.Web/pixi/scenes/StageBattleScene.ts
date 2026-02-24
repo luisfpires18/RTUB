@@ -94,6 +94,15 @@ interface SpeedBarData {
   barHeight?: number;
 }
 
+interface TimerBarData {
+  bar: Graphics;
+  barBg: Graphics;
+  label: Text;
+  text: Text;
+  maxWidth: number;
+  barHeight: number;
+}
+
 interface EnemyIdleOffset {
   baseX: number;
   baseY: number;
@@ -224,7 +233,15 @@ export class StageBattleScene implements VfxOwner {
   // Shot / penalty buff visual
   private hasShotBuff: boolean;
   private hasPenaltyBuff: boolean;
-  private playerAura: Graphics | null = null;
+  private playerAura: Sprite | null = null;
+
+  // Canhao / Penalty timer bars (bottom-left corner)
+  private canhaoTimerBar: TimerBarData | null = null;
+  private penaltyTimerBar: TimerBarData | null = null;
+  private canhaoBuffExpiresAt: number | null = null;
+  private penaltyBuffExpiresAt: number | null = null;
+  private canhaoBuffDurationMs = 2 * 60 * 1000;
+  private penaltyBuffDurationMs = 2 * 60 * 1000;
 
   // Asset aliases
   private bgAlias = '';
@@ -262,6 +279,9 @@ export class StageBattleScene implements VfxOwner {
   _timeoutIds: number[] = [];
   _rafIds: number[] = [];
   _textPool: TextPool = { pool: [] };
+
+  // Destroyed flag — prevents async callbacks from running after destroy
+  private _destroyed = false;
 
   // Event listeners
   private _onContextLost: ((e: Event) => void) | null = null;
@@ -348,6 +368,13 @@ export class StageBattleScene implements VfxOwner {
       shot: !!pick<boolean>(abData, 'Shot', 'shot', false),
       penalty: !!pick<boolean>(abData, 'Penalty', 'penalty', false),
     };
+
+    // Canhao / Penalty buff expiry (UTC timestamp from server)
+    const canhaoUtc = (data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc ?? null) as string | null;
+    this.canhaoBuffExpiresAt = canhaoUtc ? new Date(canhaoUtc).getTime() : null;
+
+    const penaltyUtc = (data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc ?? null) as string | null;
+    this.penaltyBuffExpiresAt = penaltyUtc ? new Date(penaltyUtc).getTime() : null;
 
     const ciData = (data.consumableImages ?? data.ConsumableImages ?? {}) as Record<string, unknown>;
     this.consumableImages = {
@@ -664,14 +691,22 @@ export class StageBattleScene implements VfxOwner {
     this.playerX = playerX;
     this.playerDisplayHeight = this.playerSprite.height;
 
-    // Blue aura behind sprite for shot buff
+    // Blue glow outline behind sprite for shot buff (match CSS home page look)
     if (this.hasShotBuff) {
-      const auraSize = this.playerDisplayHeight * 0.7;
-      this.playerAura = new PIXI.Graphics();
-      this.playerAura.circle(0, 0, auraSize);
-      this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+      this.playerAura = PIXI.Sprite.from(this._playerAlias);
+      this.playerAura.anchor.set(0.5, 1);
+      this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
       this.playerAura.x = playerX;
-      this.playerAura.y = playerY - this.playerDisplayHeight / 2;
+      this.playerAura.y = playerY;
+      this.playerAura.alpha = 0.8;
+      const cm = new PIXI.ColorMatrixFilter();
+      cm.matrix = [
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0.667,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 0,
+      ];
+      this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
       this.stage.addChild(this.playerAura);
     }
 
@@ -768,6 +803,107 @@ export class StageBattleScene implements VfxOwner {
     this.playerSpeedBar = {
       bar: speedFill, barBg: speedBg, maxWidth: barWidth,
       text: speedText, barHeight: speedBarHeight,
+    };
+
+    // ── Canhão AOE Timer Bar + Penalty Lifesteal Timer Bar ──
+    // Anchored to the BOTTOM-LEFT corner of the canvas.
+    const bottomPadding = isMobile ? 10 : 12;
+    const timerBarX = paddingLeft;
+    const timerBarWidth = isMobile ? Math.min(240, width * 0.38) : Math.min(440, width * 0.44);
+    const canhaoBarHeight = isMobile ? 14 : 22;
+    const penaltyBarHeightCalc = isMobile ? 14 : 22;
+    const penaltyBarYCalc = height - bottomPadding - penaltyBarHeightCalc;
+    const canhaoBarY = penaltyBarYCalc - 4 - canhaoBarHeight;
+
+    // Canhão bar
+    const canhaoBg = new PIXI.Graphics();
+    canhaoBg.roundRect(timerBarX, canhaoBarY, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+    canhaoBg.fill({ color: 0x1a0000, alpha: 0.85 });
+    this.stage.addChild(canhaoBg);
+
+    const canhaoFill = new PIXI.Graphics();
+    canhaoFill.roundRect(0, 0, timerBarWidth, canhaoBarHeight, canhaoBarHeight / 2);
+    canhaoFill.fill(0xef5350);
+    canhaoFill.x = timerBarX;
+    canhaoFill.y = canhaoBarY;
+    this.stage.addChild(canhaoFill);
+
+    const canhaoLabelFontSize = isMobile ? 8 : 13;
+    const canhaoLabel = new PIXI.Text({
+      text: '\u{1F4A5} AOE',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: canhaoLabelFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    canhaoLabel.anchor.set(0, 0.5);
+    canhaoLabel.x = timerBarX + 6;
+    canhaoLabel.y = canhaoBarY + canhaoBarHeight / 2;
+    this.stage.addChild(canhaoLabel);
+
+    const canhaoFontSize = isMobile ? 9 : 14;
+    const canhaoText = new PIXI.Text({
+      text: '',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: canhaoFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    canhaoText.anchor.set(1, 0.5);
+    canhaoText.x = timerBarX + timerBarWidth - 6;
+    canhaoText.y = canhaoBarY + canhaoBarHeight / 2;
+    this.stage.addChild(canhaoText);
+
+    const hasCanhao = this.canhaoBuffExpiresAt != null && Date.now() < this.canhaoBuffExpiresAt;
+    canhaoBg.visible = hasCanhao;
+    canhaoFill.visible = hasCanhao;
+    canhaoLabel.visible = hasCanhao;
+    canhaoText.visible = hasCanhao;
+
+    this.canhaoTimerBar = {
+      bar: canhaoFill, barBg: canhaoBg, label: canhaoLabel,
+      text: canhaoText, maxWidth: timerBarWidth, barHeight: canhaoBarHeight,
+    };
+
+    // Penalty Lifesteal bar
+    const penaltyBarHeight = penaltyBarHeightCalc;
+    const penaltyBarY = penaltyBarYCalc;
+
+    const penaltyBg = new PIXI.Graphics();
+    penaltyBg.roundRect(timerBarX, penaltyBarY, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+    penaltyBg.fill({ color: 0x1a0a00, alpha: 0.85 });
+    this.stage.addChild(penaltyBg);
+
+    const penaltyFill = new PIXI.Graphics();
+    penaltyFill.roundRect(0, 0, timerBarWidth, penaltyBarHeight, penaltyBarHeight / 2);
+    penaltyFill.fill(0xff9800);
+    penaltyFill.x = timerBarX;
+    penaltyFill.y = penaltyBarY;
+    this.stage.addChild(penaltyFill);
+
+    const penaltyLabelFontSize = isMobile ? 8 : 13;
+    const penaltyLabel = new PIXI.Text({
+      text: '\u26A1 Lifesteal',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: penaltyLabelFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    penaltyLabel.anchor.set(0, 0.5);
+    penaltyLabel.x = timerBarX + 6;
+    penaltyLabel.y = penaltyBarY + penaltyBarHeight / 2;
+    this.stage.addChild(penaltyLabel);
+
+    const penaltyFontSize = isMobile ? 9 : 14;
+    const penaltyText = new PIXI.Text({
+      text: '',
+      style: { fontFamily: 'Arial, sans-serif', fontSize: penaltyFontSize, fontWeight: 'bold', fill: 0xffffff, stroke: { color: 0x000000, width: 2 } },
+    });
+    penaltyText.anchor.set(1, 0.5);
+    penaltyText.x = timerBarX + timerBarWidth - 6;
+    penaltyText.y = penaltyBarY + penaltyBarHeight / 2;
+    this.stage.addChild(penaltyText);
+
+    const hasPenaltyTimer = this.penaltyBuffExpiresAt != null && Date.now() < this.penaltyBuffExpiresAt;
+    penaltyBg.visible = hasPenaltyTimer;
+    penaltyFill.visible = hasPenaltyTimer;
+    penaltyLabel.visible = hasPenaltyTimer;
+    penaltyText.visible = hasPenaltyTimer;
+
+    this.penaltyTimerBar = {
+      bar: penaltyFill, barBg: penaltyBg, label: penaltyLabel,
+      text: penaltyText, maxWidth: timerBarWidth, barHeight: penaltyBarHeight,
     };
 
     // ── Boss HUD bars (top-right, mirrored, red) ──
@@ -873,19 +1009,14 @@ export class StageBattleScene implements VfxOwner {
     const bottomBarReserve = Math.min(140, height * 0.15);
     const groundOffset = bottomBarReserve + 10;
 
-    let enemyX: number, baseEnemyY: number;
+    let baseX: number, baseY: number;
     if (isMobile) {
-      enemyX = width * 0.5;
-      const topBarH = 60;
-      baseEnemyY = topBarH + height * 0.32;
+      baseX = width * 0.5;
+      baseY = height * 0.5;              // terrestrial feet at mid-screen
     } else {
-      enemyX = width * 0.72;
-      baseEnemyY = height - groundOffset;
+      baseX = width * 0.72;
+      baseY = height - groundOffset;
     }
-
-    const positions = this.calculateEnemyPositions(
-      isMobile, this.enemyCount, enemyX, baseEnemyY, width, height, this.enemyPlacements,
-    );
 
     // Scale factor based on enemy count
     const isBoss = this.enemyType?.toLowerCase() === 'boss';
@@ -899,18 +1030,52 @@ export class StageBattleScene implements VfxOwner {
       else if (this.enemyCount >= 4) countScaleFactor = 0.75;
       else if (this.enemyCount >= 3) countScaleFactor = 0.85;
     } else {
-      if (this.enemyCount >= 6) countScaleFactor = 0.55;
+      if (this.enemyCount >= 9) countScaleFactor = 0.40;
+      else if (this.enemyCount >= 8) countScaleFactor = 0.42;
+      else if (this.enemyCount >= 7) countScaleFactor = 0.48;
+      else if (this.enemyCount >= 6) countScaleFactor = 0.55;
       else if (this.enemyCount >= 5) countScaleFactor = 0.65;
       else if (this.enemyCount >= 4) countScaleFactor = 0.85;
       else if (this.enemyCount >= 3) countScaleFactor = 0.92;
     }
     const bossBoost = isBoss ? 1.25 : 1.0;
 
+    /* ═══ PASS 1: Create sprites to get REAL scaled dimensions ═══ */
+    const tempSprites: PIXI.Sprite[] = [];
+    const scaledWidths: number[] = [];
+    const scaledHeights: number[] = [];
+    const mobileScale = isMobile ? 0.28 : 0.40;
+    const maxSpriteHeight = height * mobileScale;
+
+    for (let i = 0; i < this.enemyCount; i++) {
+      const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
+      const spr = PIXI.Sprite.from(alias);
+      spr.anchor.set(0.5, 1);
+      const baseScale = Math.min(1, maxSpriteHeight / spr.height);
+      const finalScale = baseScale * countScaleFactor * bossBoost;
+      spr.scale.set(finalScale);
+
+      tempSprites.push(spr);
+      scaledWidths.push(spr.width);
+      scaledHeights.push(spr.height);
+    }
+
+    /* ═══ PASS 2: Calculate positions using REAL widths ═══ */
+    const positions = this.calculateEnemyPositions(
+      isMobile, this.enemyCount, baseX, baseY, width, height,
+      this.enemyPlacements, scaledWidths, scaledHeights,
+    );
+
+    /* ═══ PASS 3: Place sprites and create HP/speed bars ═══ */
     for (let i = 0; i < this.enemyCount; i++) {
       const pos = positions[i];
       if (!pos) continue;
+      const enemy = tempSprites[i];
+      const isAerial = this.enemyPlacements?.[i] === 1;
 
-      const isAerial = pos.isAerial || (this.enemyPlacements?.[i] === 1);
+      enemy.x = pos.x;
+      enemy.y = pos.y;
+
       this.enemyIdleOffsets.push({
         baseX: pos.x, baseY: pos.y,
         phase: i * (Math.PI / 2),
@@ -919,23 +1084,11 @@ export class StageBattleScene implements VfxOwner {
         swayAmplitude: isAerial ? 4 : 2,
       });
 
-      const alias = this.enemySpriteAliases?.[i] ?? `enemy_${this.enemySpritePaths[i]}`;
-      const enemy = PIXI.Sprite.from(alias);
-      enemy.anchor.set(0.5, 1);
-      enemy.x = pos.x;
-      enemy.y = pos.y;
-
-      const mobileScale = isMobile ? 0.28 : 0.40;
-      const maxSpriteHeight = height * mobileScale;
-      const baseScale = Math.min(1, maxSpriteHeight / enemy.height);
-      const finalScale = baseScale * countScaleFactor * bossBoost;
-      enemy.scale.set(finalScale);
-
       this.stage.addChild(enemy);
       this.enemySprites.push(enemy);
 
       // Per-enemy HP bar
-      const hpBarY = pos.y - enemy.height - 5;
+      const hpBarY = pos.y - scaledHeights[i] - 5;
       const hpBarWidth = isMobile ? 35 : 60;
       const hpBarHeight = isMobile ? 4 : 8;
 
@@ -959,10 +1112,11 @@ export class StageBattleScene implements VfxOwner {
           fill: 0xffffff, stroke: { color: 0x000000, width: 2 },
         },
       });
+      const showText = true;
       hpTxt.anchor.set(0.5, 0.5);
       hpTxt.x = pos.x;
-      hpTxt.y = hpBarY;
-      hpTxt.visible = false;
+      hpTxt.y = hpBarY - 8;
+      hpTxt.visible = showText;
       this.stage.addChild(hpTxt);
 
       this.enemyHpBars.push({
@@ -993,8 +1147,13 @@ export class StageBattleScene implements VfxOwner {
       });
     }
 
-    // Hide individual speed bars for bosses (boss uses HUD speed bar)
+    // Hide individual HP + speed bars for bosses (boss uses HUD bars in top-right)
     if (isBoss) {
+      for (const hb of this.enemyHpBars) {
+        hb.bar.visible = false;
+        hb.barBg.visible = false;
+        hb.text.visible = false;
+      }
       for (const sb of this.enemySpeedBars) {
         sb.bar.visible = false;
         sb.barBg.visible = false;
@@ -1004,61 +1163,206 @@ export class StageBattleScene implements VfxOwner {
 
   /* ───────────────── Enemy Position Calculations ─────────────────── */
 
+  /**
+   * Two-band layout using REAL scaled sprite widths.
+   * Ground band at baseY, aerial band lifted above.
+   * Desktop: single row per group (big screen, no wrapping needed).
+   * Mobile: wraps into rows (max 3 cols).
+   */
   private calculateEnemyPositions(
     isMobile: boolean,
     count: number,
     baseX: number,
     baseY: number,
     width: number,
-    height: number,
+    _height: number,
     placements: number[],
+    scaledWidths: number[],
+    scaledHeights: number[],
   ): EnemyPosition[] {
-    const positions: EnemyPosition[] = [];
+    const positions: EnemyPosition[] = new Array(count);
 
-    if (count === 1) {
-      const isAerial = placements?.[0] === 1;
-      const yOff = isMobile && isAerial ? -height * 0.08 : 0;
-      positions.push({ x: baseX, y: baseY + yOff, isAerial });
+    /* ── Separate enemies by type ── */
+    const aerialIdx: number[] = [];
+    const groundIdx: number[] = [];
+    for (let i = 0; i < count; i++) {
+      if (placements?.[i] === 1) aerialIdx.push(i);
+      else groundIdx.push(i);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       DESKTOP: single row per group — lots of space, no wrapping.
+       ══════════════════════════════════════════════════════════════════ */
+    if (!isMobile) {
+      const margin = 20;
+
+      const layoutSingleRow = (
+        indices: number[],
+        y: number,
+        isAerial: boolean,
+      ): void => {
+        if (indices.length === 0) return;
+        if (indices.length === 1) {
+          positions[indices[0]] = { x: baseX, y, isAerial };
+          return;
+        }
+
+        // Uniform cell = widest sprite in the group
+        let cellW = 0;
+        for (const idx of indices) {
+          if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+        }
+
+        // Generous gap: 20px or 15% of cell width, whichever is larger
+        const gap = Math.max(20, cellW * 0.15);
+        let step = cellW + gap;
+        let totalW = step * (indices.length - 1); // centre-to-centre span
+
+        // If formation is too wide, compress step (minimum = cellW → no overlap)
+        const maxAvailW = width - 2 * margin - cellW;
+        if (totalW > maxAvailW) {
+          step = Math.max(cellW + 4, maxAvailW / (indices.length - 1));
+          totalW = step * (indices.length - 1);
+        }
+
+        // Anchor right at baseX: right edge of formation aligns near baseX
+        // then shift left by half so baseX is roughly the right-centre
+        let startX = baseX - totalW * 0.35;
+        const halfCell = cellW / 2;
+
+        // Clamp: left edge on-screen
+        if (startX - halfCell < margin) {
+          startX = margin + halfCell;
+        }
+        // Clamp: right edge on-screen
+        if (startX + totalW + halfCell > width - margin) {
+          startX = width - margin - halfCell - totalW;
+          if (startX - halfCell < margin) startX = margin + halfCell;
+        }
+
+        for (let c = 0; c < indices.length; c++) {
+          positions[indices[c]] = {
+            x: startX + c * step,
+            y,
+            isAerial,
+          };
+        }
+      };
+
+      // Tallest ground sprite for aerial lift
+      let tallestGround = 0;
+      for (const idx of groundIdx) {
+        if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
+      }
+      if (tallestGround === 0) {
+        for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
+        tallestGround = count > 0 ? tallestGround / count : 100;
+      }
+
+      // Aerial: above ground sprites + their HP bars (25px) + gap
+      layoutSingleRow(aerialIdx, baseY - tallestGround - 50, true);
+      // Ground: feet on the ground line
+      layoutSingleRow(groundIdx, baseY, false);
+
       return positions;
     }
 
-    if (count === 2) {
-      const spacing = isMobile ? width * 0.22 : width * 0.12;
-      for (let i = 0; i < 2; i++) {
-        const isAerial = placements?.[i] === 1;
-        const xOff = (i === 0 ? -1 : 1) * spacing / 2;
-        const yOff = isAerial ? (isMobile ? -height * 0.08 : -height * 0.08) : 0;
-        positions.push({ x: baseX + xOff, y: baseY + yOff, isAerial });
+    /* ══════════════════════════════════════════════════════════════════
+       MOBILE: enemies laid out in rows, centred horizontally.
+       Wraps into multiple rows if they don't fit the screen width.
+       Terrestrial at baseY (mid-screen), aerial above with bar clearance.
+       ══════════════════════════════════════════════════════════════════ */
+    const margin = 6;
+    const topSafeY = 100; // below top HUD bars + HP text
+
+    const layoutMobileRow = (
+      indices: number[],
+      y: number,
+      isAerial: boolean,
+    ): void => {
+      if (indices.length === 0) return;
+      if (indices.length === 1) {
+        positions[indices[0]] = { x: baseX, y, isAerial };
+        return;
       }
-      return positions;
+
+      // Uniform cell = widest sprite in the group
+      let cellW = 0;
+      for (const idx of indices) {
+        if (scaledWidths[idx] > cellW) cellW = scaledWidths[idx];
+      }
+
+      // How many can fit in one row?
+      const maxAvailW = width - 2 * margin;
+      const minGap = 4;
+      const maxPerRow = Math.max(1, Math.floor((maxAvailW + minGap) / (cellW + minGap)));
+      const cols = Math.min(maxPerRow, indices.length);
+      const rows = Math.ceil(indices.length / cols);
+
+      // Tallest sprite for row vertical offset
+      let maxH = 0;
+      for (const idx of indices) { if (scaledHeights[idx] > maxH) maxH = scaledHeights[idx]; }
+
+      let gi = 0;
+      for (let row = 0; row < rows; row++) {
+        const inRow = Math.min(cols, indices.length - gi);
+        const gap = Math.max(minGap, cellW * 0.1);
+        let step = cellW + gap;
+        let totalW = step * (inRow - 1);
+
+        // Compress if still too wide
+        const maxRowW = maxAvailW - cellW;
+        if (totalW > maxRowW && inRow > 1) {
+          step = Math.max(cellW + 2, maxRowW / (inRow - 1));
+          totalW = step * (inRow - 1);
+        }
+
+        // Centre + clamp
+        let startX = baseX - totalW / 2;
+        const halfCell = cellW / 2;
+        if (startX - halfCell < margin) startX = margin + halfCell;
+        if (startX + totalW + halfCell > width - margin) {
+          startX = width - margin - halfCell - totalW;
+          if (startX - halfCell < margin) startX = margin + halfCell;
+        }
+
+        for (let c = 0; c < inRow; c++) {
+          const idx = indices[gi + c];
+          positions[idx] = {
+            x: startX + c * step,
+            y: y - row * (maxH * 0.55),
+            isAerial,
+          };
+        }
+        gi += inRow;
+      }
+    };
+
+    // Tallest ground sprite for aerial lift
+    let tallestGround = 0;
+    for (const idx of groundIdx) {
+      if (scaledHeights[idx] > tallestGround) tallestGround = scaledHeights[idx];
+    }
+    if (tallestGround === 0) {
+      for (let i = 0; i < count; i++) tallestGround += scaledHeights[i];
+      tallestGround = count > 0 ? tallestGround / count : 100;
     }
 
-    // 3+ enemies: formation-based layout
-    const cols = isMobile ? Math.min(3, count) : Math.min(4, count);
-    const rows = Math.ceil(count / cols);
-    const hSpacing = isMobile
-      ? Math.min(width * 0.24, 100)
-      : Math.min(width * 0.14, 120);
-    const vSpacing = isMobile
-      ? Math.min(height * 0.10, 60)
-      : Math.min(height * 0.12, 80);
-
-    let idx = 0;
-    for (let row = 0; row < rows; row++) {
-      const colsInRow = Math.min(cols, count - idx);
-      const rowWidth = (colsInRow - 1) * hSpacing;
-      const startX = baseX - rowWidth / 2;
-      for (let col = 0; col < colsInRow; col++) {
-        const isAerial = placements?.[idx] === 1;
-        const aerialOff = isAerial ? (isMobile ? -height * 0.06 : -height * 0.06) : 0;
-        positions.push({
-          x: startX + col * hSpacing,
-          y: baseY - row * vSpacing + aerialOff,
-          isAerial,
-        });
-        idx++;
-      }
+    // Tallest aerial sprite (to ensure it doesn't clip the top HUD)
+    let tallestAerial = 0;
+    for (const idx of aerialIdx) {
+      if (scaledHeights[idx] > tallestAerial) tallestAerial = scaledHeights[idx];
     }
+
+    // Aerial Y: above ground sprites + their HP bars (25px) + gap
+    // Clamped so aerial sprite tops don't go above topSafeY
+    let aerialY = baseY - tallestGround - 40;
+    if (aerialY - tallestAerial < topSafeY) {
+      aerialY = topSafeY + tallestAerial;
+    }
+
+    layoutMobileRow(aerialIdx, aerialY, true);
+    layoutMobileRow(groundIdx, baseY, false);
 
     return positions;
   }
@@ -1187,71 +1491,103 @@ export class StageBattleScene implements VfxOwner {
     if (!this.app || !this.stage) return;
     const { width, height } = this.app.screen;
     const isMobile = this.isMobile;
+    const btnGap = isMobile ? 6 : 10;
 
-    // Consumable types that show in the bar
-    const types = ['fino', 'caneca', 'cigarro', 'canhao'];
-    const shown = types.filter(t => (this.consumableQuantities[t] ?? 0) > 0 || this.activeBuffs[t]);
-    if (shown.length === 0) return;
+    // Only fino and caneca show as clickable buttons (like original JS)
+    const allConsumables = [
+      { type: 'fino',   name: 'Fino',   color: 0xf5a623, fallbackIcon: '\u{1F37A}' },
+      { type: 'caneca', name: 'Caneca', color: 0xf5a623, fallbackIcon: '\u{1F37B}' },
+    ];
+    const consumables = allConsumables.filter(c => (this.consumableQuantities[c.type] ?? 0) > 0);
+    if (consumables.length === 0) return;
 
-    const barY = height - (isMobile ? 48 : 45);
-    const btnSize = isMobile ? 36 : 42;
-    const gap = isMobile ? 6 : 10;
-    const totalW = shown.length * btnSize + (shown.length - 1) * gap;
-    const startX = (width - totalW) / 2;
+    // Responsive button size — larger on desktop
+    const maxBarWidth = isMobile ? Math.min(width * 0.9, 320) : Math.min(width * 0.9, 420);
+    const btnSize = isMobile
+      ? Math.min(60, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length))
+      : Math.min(76, Math.floor((maxBarWidth - (consumables.length - 1) * btnGap) / consumables.length));
+
+    const totalWidth = consumables.length * btnSize + (consumables.length - 1) * btnGap;
+    const startX = (width - totalWidth) / 2;
+    const barY = height - btnSize - 10;
 
     this.consumableBarContainer = new PIXI.Container();
-    this.consumableBarContainer.y = barY;
     this.stage.addChild(this.consumableBarContainer);
 
-    this.consumableButtons = [];
-    for (let i = 0; i < shown.length; i++) {
-      const type = shown[i];
-      const btnContainer = new PIXI.Container();
-      btnContainer.x = startX + i * (btnSize + gap);
-      btnContainer.y = 0;
+    // Semi-transparent backdrop
+    const backdrop = new PIXI.Graphics();
+    backdrop.roundRect(startX - 8, barY - 6, totalWidth + 16, btnSize + 12, 10);
+    backdrop.fill({ color: 0x0d1117, alpha: 0.7 });
+    this.consumableBarContainer.addChild(backdrop);
 
+    this.consumableButtons = [];
+    for (let i = 0; i < consumables.length; i++) {
+      const c = consumables[i];
+      const type = c.type;
+      const qty = this.consumableQuantities[type] ?? 0;
+      const x = startX + i * (btnSize + btnGap);
+
+      const btnContainer = new PIXI.Container();
+      btnContainer.x = x;
+      btnContainer.y = barY;
+
+      // Button background
       const bg = new PIXI.Graphics();
-      bg.roundRect(0, 0, btnSize, btnSize, 6);
-      bg.fill({ color: 0x1e1e2e, alpha: 0.9 });
-      bg.stroke({ color: 0x444466, width: 1.5 });
+      bg.roundRect(0, 0, btnSize, btnSize, 8);
+      bg.fill({ color: qty > 0 ? 0x1a2332 : 0x1a1a1a, alpha: 0.95 });
+      bg.stroke({ color: qty > 0 ? c.color : 0x444444, width: 2 });
       btnContainer.addChild(bg);
 
-      // Icon sprite from CDN or local SVG
+      // Icon: load sprite from CDN/local (or fallback emoji)
       let iconSprite: Sprite | null = null;
-      const imgUrl = this.consumableImages[type] ?? DEFAULT_CONSUMABLE_IMAGES[type];
-      if (imgUrl) {
-        try {
-          const texAlias = `consumable_${type}`;
-          if (!loadedAssetAliases.has(texAlias)) {
-            PIXI.Assets.load({ alias: texAlias, src: imgUrl }).then(() => {
-              loadedAssetAliases.add(texAlias);
-              try {
-                const s = PIXI.Sprite.from(texAlias);
-                s.width = btnSize - 10;
-                s.height = btnSize - 10;
-                s.x = 5;
-                s.y = 3;
-                btnContainer.addChildAt(s, 1);
-                const btn = this.consumableButtons.find(b => b.type === type);
-                if (btn) btn.iconSprite = s;
-              } catch { /* texture unavailable */ }
-            }).catch(() => { /* CDN image failed */ });
-          } else {
-            iconSprite = PIXI.Sprite.from(texAlias);
-            iconSprite.width = btnSize - 10;
-            iconSprite.height = btnSize - 10;
-            iconSprite.x = 5;
-            iconSprite.y = 3;
-            btnContainer.addChild(iconSprite);
+      const imageUrl = this.consumableImages[type] ?? DEFAULT_CONSUMABLE_IMAGES[type];
+      if (imageUrl) {
+        const spriteAlias = `consumable_${type}_${imageUrl}`;
+        const spriteContainer = new PIXI.Container();
+        spriteContainer.x = btnSize / 2;
+        spriteContainer.y = btnSize / 2 - 2;
+        btnContainer.addChild(spriteContainer);
+
+        (async () => {
+          try {
+            if (!loadedAssetAliases.has(spriteAlias)) {
+              await PIXI.Assets.load({ alias: spriteAlias, src: imageUrl });
+              loadedAssetAliases.add(spriteAlias);
+            }
+            const spr = PIXI.Sprite.from(spriteAlias);
+            spr.anchor.set(0.5);
+            const maxDim = btnSize * 0.6;
+            const scale = Math.min(maxDim / spr.width, maxDim / spr.height);
+            spr.scale.set(scale);
+            spriteContainer.addChild(spr);
+            const btn = this.consumableButtons.find(b => b.type === type);
+            if (btn) btn.iconSprite = spr;
+          } catch {
+            // Fallback: show emoji icon
+            const fallback = new PIXI.Text({
+              text: c.fallbackIcon,
+              style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' },
+            });
+            fallback.anchor.set(0.5);
+            spriteContainer.addChild(fallback);
           }
-        } catch { /* ignore */ }
+        })();
+      } else {
+        // No image URL — show emoji fallback
+        const fallbackText = new PIXI.Text({
+          text: c.fallbackIcon,
+          style: { fontSize: Math.min(22, btnSize * 0.45), fontFamily: 'Arial, sans-serif' },
+        });
+        fallbackText.anchor.set(0.5);
+        fallbackText.x = btnSize / 2;
+        fallbackText.y = btnSize / 2 - 2;
+        btnContainer.addChild(fallbackText);
       }
 
       // Quantity badge
-      const qty = this.consumableQuantities[type] ?? 0;
       const qtyText = new PIXI.Text({
         text: `${qty}`,
-        style: { fontSize: 10, fill: 0xffffff, fontWeight: 'bold', fontFamily: 'Arial' },
+        style: { fontSize: isMobile ? 10 : 12, fill: 0xffffff, fontWeight: 'bold', fontFamily: 'Arial' },
       });
       qtyText.anchor.set(1, 0);
       qtyText.x = btnSize - 2;
@@ -1260,14 +1596,14 @@ export class StageBattleScene implements VfxOwner {
 
       // CD overlay
       const cdOverlay = new PIXI.Graphics();
-      cdOverlay.roundRect(0, 0, btnSize, btnSize, 6);
+      cdOverlay.roundRect(0, 0, btnSize, btnSize, 8);
       cdOverlay.fill({ color: 0x000000, alpha: 0.55 });
       cdOverlay.visible = false;
       btnContainer.addChild(cdOverlay);
 
       const cdText = new PIXI.Text({
         text: '',
-        style: { fontSize: 12, fill: 0xff8844, fontWeight: 'bold' },
+        style: { fontSize: isMobile ? 10 : 14, fill: 0xff8844, fontWeight: 'bold' },
       });
       cdText.anchor.set(0.5);
       cdText.x = btnSize / 2;
@@ -1304,12 +1640,14 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private async requestUseConsumable(type: string): Promise<void> {
-    if (!this.dotNetRef || this._consumablePending) return;
+    if (this._destroyed || !this.dotNetRef || this._consumablePending) return;
     this._consumablePending = true;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as ConsumableResult | null;
-      if (!result) { this._consumablePending = false; return; }
+      const json = await this.dotNetRef.invokeMethodAsync('OnUseConsumable', type) as string | null;
+      if (this._destroyed || this.battleFinished) { this._consumablePending = false; return; }
+      if (!json) { this._consumablePending = false; return; }
 
+      const result = JSON.parse(json) as ConsumableResult;
       const success = result.success ?? result.Success ?? false;
       if (!success) { this._consumablePending = false; return; }
 
@@ -1344,24 +1682,37 @@ export class StageBattleScene implements VfxOwner {
         if (this.playerSprite) {
           playBuffVfx(this, this.playerSprite, type === 'cigarro' ? 0xff6600 : 0xff4444);
         }
+        // Activate canhao timer bar
+        if (type === 'canhao' && buffActive) {
+          this.canhaoBuffExpiresAt = Date.now() + this.canhaoBuffDurationMs;
+          this.updateCanhaoTimerBar();
+        }
       }
 
-      // Shot aura
+      // Shot aura — blue glow outline (match CSS home page look)
       if (type === 'shot') {
         this.hasShotBuff = true;
         if (!this.playerAura && this.playerSprite && this.stage) {
-          const auraSize = this.playerDisplayHeight * 0.7;
-          this.playerAura = new PIXI.Graphics();
-          this.playerAura.circle(0, 0, auraSize);
-          this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+          this.playerAura = PIXI.Sprite.from(this._playerAlias);
+          this.playerAura.anchor.set(0.5, 1);
+          this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
           this.playerAura.x = this.playerSprite.x;
-          this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+          this.playerAura.y = this.playerSprite.y;
+          this.playerAura.alpha = 0.8;
+          const cm = new PIXI.ColorMatrixFilter();
+          cm.matrix = [
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0.667,
+            0, 0, 0, 0, 1,
+            0, 0, 0, 1, 0,
+          ];
+          this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
           const idx = this.stage.getChildIndex(this.playerSprite);
           this.stage.addChildAt(this.playerAura, idx);
         }
         if (this.playerAura) {
           this.playerAura.visible = true;
-          this.playerAura.alpha = 0.35;
+          this.playerAura.alpha = 0.8;
         }
         const msg = result.buffMessage ?? result.BuffMessage ?? '';
         if (msg && this.playerSprite) {
@@ -1380,6 +1731,9 @@ export class StageBattleScene implements VfxOwner {
           showFloatingText(this, msg, this.playerSprite.x, this.playerSprite.y - this.playerDisplayHeight - 20, 0xaa44ff);
         }
         if (this.playerSprite) playBuffVfx(this, this.playerSprite, 0xaa44ff);
+        // Activate penalty timer bar
+        this.penaltyBuffExpiresAt = Date.now() + this.penaltyBuffDurationMs;
+        this.updatePenaltyTimerBar();
       }
 
       this.updateConsumableButton(type);
@@ -1450,38 +1804,48 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Interactive Server Calls ─────────────────────── */
 
   private async requestPlayerAutoAttack(): Promise<void> {
-    if (!this.dotNetRef || this._playerAttackPending || this.battleFinished) return;
-    this._playerAttackPending = true;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
+      this._playerAttackPending = false;
+      return;
+    }
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as CombatActionResult | null;
-      if (result) this.processServerResult(result);
+      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerAutoAttack') as string | null;
+      if (this._destroyed || this.battleFinished) return;
+      if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestPlayerAutoAttack error:', (e as Error).message);
+    } finally {
+      this._playerAttackPending = false;
     }
-    this._playerAttackPending = false;
   }
 
   private async requestEnemyAttack(enemyIndex: number): Promise<void> {
-    if (!this.dotNetRef || this._enemyAttackPending[enemyIndex] || this.battleFinished) return;
-    this._enemyAttackPending[enemyIndex] = true;
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) {
+      this._enemyAttackPending[enemyIndex] = false;
+      return;
+    }
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as CombatActionResult | null;
-      if (result) this.processServerResult(result);
+      const json = await this.dotNetRef.invokeMethodAsync('OnEnemyAttack', enemyIndex) as string | null;
+      if (this._destroyed || this.battleFinished) return;
+      if (json) this.processServerResult(JSON.parse(json) as CombatActionResult);
     } catch (e) {
       console.warn('requestEnemyAttack error:', (e as Error).message);
+    } finally {
+      this._enemyAttackPending[enemyIndex] = false;
     }
-    this._enemyAttackPending[enemyIndex] = false;
   }
 
   private async requestPlayerSpell(attackId: string, cooldownSeconds: number): Promise<void> {
-    if (!this.dotNetRef || this._spellPending || this.battleFinished) return;
+    if (this._destroyed || !this.dotNetRef || this._spellPending || this.battleFinished) return;
     this._spellPending = true;
     try {
       this.spellCooldowns[attackId] = cooldownSeconds;
       this.updateSpellCooldownVisuals();
 
-      const result = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as CombatActionResult | null;
-      if (result) {
+      const json = await this.dotNetRef.invokeMethodAsync('OnPlayerSpell', attackId) as string | null;
+      if (this._destroyed || this.battleFinished) return;
+      if (json) {
+        const result = JSON.parse(json) as CombatActionResult;
         const serverCooldowns = (result.spellCooldowns ?? result.SpellCooldowns) as Record<string, number> | undefined;
         if (serverCooldowns) {
           for (const [id, rem] of Object.entries(serverCooldowns)) {
@@ -1492,40 +1856,52 @@ export class StageBattleScene implements VfxOwner {
       }
     } catch (e) {
       console.warn('requestPlayerSpell error:', (e as Error).message);
+    } finally {
+      this._spellPending = false;
+      if (!this._destroyed) this.updateSpellCooldownVisuals();
     }
-    this._spellPending = false;
-    this.updateSpellCooldownVisuals();
   }
 
-  private async requestTickCooldowns(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+  private async requestTickCooldowns(elapsedSeconds: number): Promise<void> {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns') as CooldownMap | null;
-      if (result) {
-        for (const [id, rem] of Object.entries(result)) {
-          this.spellCooldowns[id] = rem;
+      const json = await this.dotNetRef.invokeMethodAsync('OnTickCooldowns', elapsedSeconds) as string | null;
+      if (this._destroyed || this.battleFinished) return;
+      if (json) {
+        const data = JSON.parse(json);
+        // Server returns { spells: {...} } or direct map
+        const spellCooldowns = data.spells ?? data;
+        for (const [id, remaining] of Object.entries(spellCooldowns)) {
+          this.spellCooldowns[id] = remaining as number;
         }
         this.updateSpellCooldownVisuals();
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('OnTickCooldowns error:', (e as Error).message);
+    }
   }
 
-  private async requestTickConsumableCooldowns(): Promise<void> {
-    if (!this.dotNetRef || this.battleFinished) return;
+  private async requestTickConsumableCooldowns(realElapsedSeconds: number): Promise<void> {
+    if (this._destroyed || !this.dotNetRef || this.battleFinished) return;
     try {
-      const result = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns') as CooldownMap | null;
-      if (result) {
-        for (const [type, rem] of Object.entries(result)) {
-          this.consumableCooldowns[type] = rem;
+      const json = await this.dotNetRef.invokeMethodAsync('OnTickConsumableCooldowns', realElapsedSeconds) as string | null;
+      if (this._destroyed || this.battleFinished) return;
+      if (json) {
+        const data = JSON.parse(json) as Record<string, number>;
+        for (const [type, remaining] of Object.entries(data)) {
+          this.consumableCooldowns[type] = remaining;
         }
         this.updateConsumableCooldownVisuals();
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('OnTickConsumableCooldowns error:', (e as Error).message);
+    }
   }
 
   /* ──────────────── Server Result Processing ─────────────────────── */
 
   private processServerResult(result: CombatActionResult): void {
+    if (this._destroyed || this.battleFinished) return;
     const events = (result.events ?? result.Events ?? []) as BattleEvent[];
     for (const evt of events) {
       this.processInteractiveEvent(evt);
@@ -1616,46 +1992,74 @@ export class StageBattleScene implements VfxOwner {
   /* ────────────────────── Main Update Loop ───────────────────────── */
 
   private update(): void {
-    if (!this.app || !this.stage || this.battleFinished) return;
+    if (this._destroyed || !this.app || !this.stage || this.battleFinished) return;
 
     const delta = this.app.ticker.deltaMS;
     this.idleAnimationTime += delta * 0.001;
 
-    if (this.interactiveMode && this.isPlaying) {
-      // Interactive mode: speed bars count down and trigger actions
-      const scaledDelta = delta * this.battleSpeed;
+    // Idle animation (always runs, even during attacks)
+    this.updateIdleAnimation();
 
-      // Player speed bar
-      this.playerSpeedBarTimer -= scaledDelta;
-      if (this.playerSpeedBarTimer <= 0) {
-        this.playerSpeedBarTimer = this.playerActionTime * 1000;
-        this.requestPlayerAutoAttack();
-      }
-      this.updatePlayerSpeedBar();
+    if (this.interactiveMode && !this.battleFinished && this.isPlaying) {
+      // Interactive mode: speed bars count down and trigger server-side actions
+      const simDelta = delta * this.battleSpeed;
+      this.currentSimTime += simDelta;
 
-      // Enemy speed bars
-      for (let i = 0; i < this.enemyCount; i++) {
-        this.enemySpeedBarTimers[i] -= scaledDelta;
-        if (this.enemySpeedBarTimers[i] <= 0) {
-          this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
-          this.requestEnemyAttack(i);
+      // Player speed bar (only tick if player is alive)
+      if (this.playerCurrentHp > 0) {
+        this.playerSpeedBarTimer = Math.max(0, this.playerSpeedBarTimer - simDelta);
+        this.updatePlayerSpeedBar();
+
+        if (this.playerSpeedBarTimer <= 0 && !this._playerAttackPending) {
+          this._playerAttackPending = true;
+          this.playerSpeedBarTimer = this.playerActionTime * 1000;
+          this.requestPlayerAutoAttack();
         }
-        this.updateEnemySpeedBar(i);
       }
 
-      // Cooldown ticks (once per real second, unaffected by battle speed)
-      this._cooldownTickAccum += delta;
-      if (this._cooldownTickAccum >= 1000) {
-        this._cooldownTickAccum -= 1000;
-        this.requestTickCooldowns();
+      // Enemy speed bars (only tick if enemy is alive)
+      for (let i = 0; i < this.enemyCount; i++) {
+        if (this.enemyHPs[i] && this.enemyHPs[i].current > 0) {
+          this.enemySpeedBarTimers[i] = Math.max(0, this.enemySpeedBarTimers[i] - simDelta);
+          this.updateEnemySpeedBar(i);
+
+          if (this.enemySpeedBarTimers[i] <= 0 && !this._enemyAttackPending[i]) {
+            this._enemyAttackPending[i] = true;
+            this.enemySpeedBarTimers[i] = this.enemyActionTimes[i] * 1000;
+            this.requestEnemyAttack(i);
+          }
+        }
       }
 
-      // Consumable cooldown ticks (real-time, unaffected by battle speed)
+      // Tick spell cooldowns every ~200ms of sim time (scales with battle speed)
+      this._cooldownTickAccum += simDelta;
+      if (this._cooldownTickAccum >= 200) {
+        const spellElapsed = this._cooldownTickAccum / 1000;
+        this._cooldownTickAccum = 0;
+        for (const id of Object.keys(this.spellCooldowns)) {
+          this.spellCooldowns[id] = Math.max(0, this.spellCooldowns[id] - spellElapsed);
+        }
+        this.updateSpellCooldownVisuals();
+        this.requestTickCooldowns(spellElapsed);
+      }
+
+      // Tick consumable cooldowns every ~200ms of REAL time (not battle-speed-scaled)
       this._consumableTickAccum += delta;
-      if (this._consumableTickAccum >= 1000) {
-        this._consumableTickAccum -= 1000;
-        this.requestTickConsumableCooldowns();
+      if (this._consumableTickAccum >= 200) {
+        const realElapsed = this._consumableTickAccum / 1000;
+        this._consumableTickAccum = 0;
+        for (const type of Object.keys(this.consumableCooldowns)) {
+          this.consumableCooldowns[type] = Math.max(0, this.consumableCooldowns[type] - realElapsed);
+        }
+        this.updateConsumableCooldownVisuals();
+        this.requestTickConsumableCooldowns(realElapsed);
       }
+
+      // Update buff timer bars (real wall-clock time, not battle-speed)
+      this.updateCanhaoTimerBar();
+      this.updatePenaltyTimerBar();
+
+      return; // Don't process pre-computed events
     } else if (!this.interactiveMode && this.isPlaying) {
       // Pre-computed (timed) mode: process events based on speed bar timing
       const scaledDelta = delta * this.battleSpeed;
@@ -1677,9 +2081,6 @@ export class StageBattleScene implements VfxOwner {
         this.updateEnemySpeedBar(i);
       }
     }
-
-    // Idle animation (always runs)
-    this.updateIdleAnimation();
   }
 
   /* ──────────────── Idle Animation ───────────────────────────────── */
@@ -1692,11 +2093,13 @@ export class StageBattleScene implements VfxOwner {
       const p = this.playerIdleOffset;
       this.playerSprite.y = p.baseY + Math.sin(t * 1.2 + p.phase) * p.bobAmplitude;
       this.playerSprite.x = p.baseX + Math.sin(t * 0.8 + p.phase + 1) * p.swayAmplitude;
-      // Sync aura
-      if (this.playerAura) {
-        this.playerAura.x = this.playerSprite.x;
-        this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
-      }
+    }
+    // Always sync aura to wherever the player sprite currently is
+    if (this.playerAura && this.playerSprite) {
+      this.playerAura.x = this.playerSprite.x;
+      this.playerAura.y = this.playerSprite.y;
+      const pTime = performance.now() / 1000;
+      this.playerAura.alpha = 0.65 + Math.sin(pTime * 1.2) * 0.15;
     }
 
     // Enemies
@@ -1717,7 +2120,7 @@ export class StageBattleScene implements VfxOwner {
   private updatePlayerSpeedBar(): void {
     if (!this.playerSpeedBar) return;
     const maxMs = this.playerActionTime * 1000;
-    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, 1 - this.playerSpeedBarTimer / maxMs)) : 0;
+    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.playerSpeedBarTimer / maxMs)) : 0;
     this.playerSpeedBar.bar.width = this.playerSpeedBar.maxWidth * ratio;
     if (this.playerSpeedBar.text) {
       const remaining = Math.max(0, this.playerSpeedBarTimer / 1000);
@@ -1729,7 +2132,7 @@ export class StageBattleScene implements VfxOwner {
     const speedBarData = this.enemySpeedBars[enemyIndex];
     if (!speedBarData) return;
     const maxMs = this.enemyActionTimes[enemyIndex] * 1000;
-    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, 1 - this.enemySpeedBarTimers[enemyIndex] / maxMs)) : 0;
+    const ratio = maxMs > 0 ? Math.max(0, Math.min(1, this.enemySpeedBarTimers[enemyIndex] / maxMs)) : 0;
     speedBarData.bar.width = speedBarData.maxWidth * ratio;
 
     // Sync boss HUD speed bar
@@ -1739,6 +2142,78 @@ export class StageBattleScene implements VfxOwner {
         const remaining = Math.max(0, this.enemySpeedBarTimers[0] / 1000);
         this.bossSpeedBar.text.text = `${remaining.toFixed(1)}s`;
       }
+    }
+  }
+
+  /* ──────────────── Buff Timer Bar Updates ────────────────────────── */
+
+  private updateCanhaoTimerBar(): void {
+    if (!this.canhaoTimerBar) return;
+    const now = Date.now();
+    const active = this.canhaoBuffExpiresAt != null && now < this.canhaoBuffExpiresAt;
+
+    this.canhaoTimerBar.bar.visible = active;
+    this.canhaoTimerBar.barBg.visible = active;
+    this.canhaoTimerBar.label.visible = active;
+    this.canhaoTimerBar.text.visible = active;
+
+    if (!active) return;
+
+    const remainingMs = this.canhaoBuffExpiresAt! - now;
+    const ratio = Math.max(0, Math.min(1, remainingMs / this.canhaoBuffDurationMs));
+    this.canhaoTimerBar.bar.width = this.canhaoTimerBar.maxWidth * ratio;
+
+    // Colour shift: green→yellow→red as time depletes
+    const r = ratio > 0.5 ? Math.round(255 * (1 - ratio) * 2) : 255;
+    const g = ratio > 0.5 ? 255 : Math.round(255 * ratio * 2);
+    this.canhaoTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+    // Countdown text: "1:23" or "0:05"
+    const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    this.canhaoTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    // Pulse bar alpha when ≤ 15 seconds remain
+    if (remainingMs <= 15000) {
+      this.canhaoTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+    } else {
+      this.canhaoTimerBar.bar.alpha = 1;
+    }
+  }
+
+  private updatePenaltyTimerBar(): void {
+    if (!this.penaltyTimerBar) return;
+    const now = Date.now();
+    const active = this.penaltyBuffExpiresAt != null && now < this.penaltyBuffExpiresAt;
+
+    this.penaltyTimerBar.bar.visible = active;
+    this.penaltyTimerBar.barBg.visible = active;
+    this.penaltyTimerBar.label.visible = active;
+    this.penaltyTimerBar.text.visible = active;
+
+    if (!active) return;
+
+    const remainingMs = this.penaltyBuffExpiresAt! - now;
+    const ratio = Math.max(0, Math.min(1, remainingMs / this.penaltyBuffDurationMs));
+    this.penaltyTimerBar.bar.width = this.penaltyTimerBar.maxWidth * ratio;
+
+    // Colour shift: orange base, shifts greener as time runs out
+    const r = 255;
+    const g = Math.round(152 * ratio);
+    this.penaltyTimerBar.bar.tint = (r << 16) | (g << 8) | 0x00;
+
+    // Countdown text
+    const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    this.penaltyTimerBar.text.text = `${min}:${sec.toString().padStart(2, '0')}`;
+
+    // Pulse bar alpha when ≤ 15 seconds remain
+    if (remainingMs <= 15000) {
+      this.penaltyTimerBar.bar.alpha = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.005));
+    } else {
+      this.penaltyTimerBar.bar.alpha = 1;
     }
   }
 
@@ -1757,7 +2232,7 @@ export class StageBattleScene implements VfxOwner {
   }
 
   private processNextEvent(): void {
-    if (this.battleFinished || !this.isPlaying) return;
+    if (this._destroyed || this.battleFinished || !this.isPlaying) return;
     if (this.currentEventIndex >= this.eventsList.length) {
       this.finishBattle();
       return;
@@ -1940,20 +2415,27 @@ export class StageBattleScene implements VfxOwner {
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
 
+    // Use idle-offset base position to prevent drift at high battle speeds
+    const baseX = this.playerIdleOffset?.baseX ?? this.playerSprite.x;
+    const baseY = this.playerIdleOffset?.baseY ?? this.playerSprite.y;
+    const aura = this.playerAura;
+
     if (this.isMobile) {
-      const originalY = this.playerSprite.y;
-      animateTo(this, this.playerSprite, { y: originalY - lungeDistance }, lungeDuration, () => {
-        animateTo(this, this.playerSprite!, { y: originalY }, 240, () => {
+      animateTo(this, this.playerSprite, { y: baseY - lungeDistance }, lungeDuration, () => {
+        animateTo(this, this.playerSprite!, { y: baseY }, 240, () => {
           this._playerAttacking = false;
         });
+        if (aura) animateTo(this, aura, { y: baseY }, 240);
       });
+      if (aura) animateTo(this, aura, { y: baseY - lungeDistance }, lungeDuration);
     } else {
-      const originalX = this.playerSprite.x;
-      animateTo(this, this.playerSprite, { x: originalX + lungeDistance }, lungeDuration, () => {
-        animateTo(this, this.playerSprite!, { x: originalX }, 240, () => {
+      animateTo(this, this.playerSprite, { x: baseX + lungeDistance }, lungeDuration, () => {
+        animateTo(this, this.playerSprite!, { x: baseX }, 240, () => {
           this._playerAttacking = false;
         });
+        if (aura) animateTo(this, aura, { x: baseX }, 240);
       });
+      if (aura) animateTo(this, aura, { x: baseX + lungeDistance }, lungeDuration);
     }
   }
 
@@ -1963,18 +2445,19 @@ export class StageBattleScene implements VfxOwner {
       this._enemyAttacking[index] = true;
       const lungeDistance = isCritical ? 80 : 60;
       const lungeDuration = isCritical ? 120 : 150;
+      // Use idle-offset base position to prevent drift at high battle speeds
+      const eBaseX = this.enemyIdleOffsets[index]?.baseX ?? enemy.x;
+      const eBaseY = this.enemyIdleOffsets[index]?.baseY ?? enemy.y;
       const id = setTimeout(() => {
         if (this.isMobile) {
-          const originalY = enemy.y;
-          animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-            animateTo(this, enemy, { y: originalY }, 240, () => {
+          animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+            animateTo(this, enemy, { y: eBaseY }, 240, () => {
               this._enemyAttacking[index] = false;
             });
           });
         } else {
-          const originalX = enemy.x;
-          animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-            animateTo(this, enemy, { x: originalX }, 240, () => {
+          animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+            animateTo(this, enemy, { x: eBaseX }, 240, () => {
               this._enemyAttacking[index] = false;
             });
           });
@@ -1992,17 +2475,19 @@ export class StageBattleScene implements VfxOwner {
     const lungeDistance = isCritical ? 80 : 60;
     const lungeDuration = isCritical ? 120 : 150;
 
+    // Use idle-offset base position to prevent drift at high battle speeds
+    const eBaseX = this.enemyIdleOffsets[enemyIndex]?.baseX ?? enemy.x;
+    const eBaseY = this.enemyIdleOffsets[enemyIndex]?.baseY ?? enemy.y;
+
     if (this.isMobile) {
-      const originalY = enemy.y;
-      animateTo(this, enemy, { y: originalY + lungeDistance }, lungeDuration, () => {
-        animateTo(this, enemy, { y: originalY }, 240, () => {
+      animateTo(this, enemy, { y: eBaseY + lungeDistance }, lungeDuration, () => {
+        animateTo(this, enemy, { y: eBaseY }, 240, () => {
           this._enemyAttacking[enemyIndex] = false;
         });
       });
     } else {
-      const originalX = enemy.x;
-      animateTo(this, enemy, { x: originalX - lungeDistance }, lungeDuration, () => {
-        animateTo(this, enemy, { x: originalX }, 240, () => {
+      animateTo(this, enemy, { x: eBaseX - lungeDistance }, lungeDuration, () => {
+        animateTo(this, enemy, { x: eBaseX }, 240, () => {
           this._enemyAttacking[enemyIndex] = false;
         });
       });
@@ -2053,6 +2538,7 @@ export class StageBattleScene implements VfxOwner {
     if (character === 'Attacker' || character === 'Player') {
       if (this.playerSprite) {
         animateTo(this, this.playerSprite, { alpha: 0.3, rotation: Math.PI / 2 }, 500);
+        if (this.playerAura) animateTo(this, this.playerAura, { alpha: 0 }, 500);
       }
     } else if (character.startsWith('Enemy')) {
       const idx = parseInt(character.replace('Enemy', ''));
@@ -2179,7 +2665,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Finish Battle ─────────────────────────────────── */
 
   private finishBattle(): void {
-    if (this.battleFinished) return;
+    if (this._destroyed || this.battleFinished) return;
     this.battleFinished = true;
     this.isPlaying = false;
 
@@ -2216,6 +2702,10 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Destroy ──────────────────────────────────────── */
 
   destroy(): void {
+    this._destroyed = true;
+    this.battleFinished = true;
+    this.isPlaying = false;
+
     // Remove event listeners
     if (this._onResize) {
       window.removeEventListener('resize', this._onResize);
@@ -2275,7 +2765,7 @@ export class StageBattleScene implements VfxOwner {
   /* ──────────────── Reset For Next Battle ─────────────────────────── */
 
   async resetForNextBattle(data: Record<string, unknown>): Promise<void> {
-    if (!this.app || !this.stage) {
+    if (this._destroyed || !this.app || !this.stage) {
       console.warn('resetForNextBattle: app/stage destroyed, skipping');
       return;
     }
@@ -2343,6 +2833,20 @@ export class StageBattleScene implements VfxOwner {
       };
     }
 
+    // Canhao / Penalty buff expiry (UTC timestamp from server)
+    const canhaoUtcReset = (data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc ?? null) as string | null;
+    if (canhaoUtcReset) {
+      this.canhaoBuffExpiresAt = new Date(canhaoUtcReset).getTime();
+    } else if (!(this.canhaoBuffExpiresAt && Date.now() < this.canhaoBuffExpiresAt)) {
+      this.canhaoBuffExpiresAt = null;
+    }
+    const penaltyUtcReset = (data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc ?? null) as string | null;
+    if (penaltyUtcReset) {
+      this.penaltyBuffExpiresAt = new Date(penaltyUtcReset).getTime();
+    } else if (!(this.penaltyBuffExpiresAt && Date.now() < this.penaltyBuffExpiresAt)) {
+      this.penaltyBuffExpiresAt = null;
+    }
+
     // Consumable cooldowns
     const ccData = (data.consumableCooldowns ?? data.ConsumableCooldowns) as Record<string, number> | undefined;
     if (ccData) {
@@ -2366,7 +2870,7 @@ export class StageBattleScene implements VfxOwner {
       console.error('Failed to load assets for next stage:', e);
     }
 
-    if (!this.app || !this.stage) {
+    if (this._destroyed || !this.app || !this.stage) {
       console.warn('resetForNextBattle: destroyed during asset load');
       return;
     }
@@ -2413,6 +2917,18 @@ export class StageBattleScene implements VfxOwner {
     }
     if (this.consumableBarContainer) persistent.add(this.consumableBarContainer);
     if (this.spellBarContainer) persistent.add(this.spellBarContainer);
+    if (this.canhaoTimerBar) {
+      persistent.add(this.canhaoTimerBar.bar);
+      persistent.add(this.canhaoTimerBar.barBg);
+      persistent.add(this.canhaoTimerBar.label);
+      persistent.add(this.canhaoTimerBar.text);
+    }
+    if (this.penaltyTimerBar) {
+      persistent.add(this.penaltyTimerBar.bar);
+      persistent.add(this.penaltyTimerBar.barBg);
+      persistent.add(this.penaltyTimerBar.label);
+      persistent.add(this.penaltyTimerBar.text);
+    }
 
     // Remove non-persistent children
     if (!this.stage) return;
@@ -2477,15 +2993,23 @@ export class StageBattleScene implements VfxOwner {
       if (this.bossSpeedBar.text) this.bossSpeedBar.text.alpha = 1;
     }
 
-    // Handle shot buff aura changes
+    // Handle shot buff aura changes — blue glow outline (match CSS home page look)
     if (this.hasShotBuff && !this.playerAura) {
       if (this.playerSprite && this.stage) {
-        const auraSize = this.playerDisplayHeight * 0.7;
-        this.playerAura = new PIXI.Graphics();
-        this.playerAura.circle(0, 0, auraSize);
-        this.playerAura.fill({ color: 0x44bbff, alpha: 0.35 });
+        this.playerAura = PIXI.Sprite.from(this._playerAlias);
+        this.playerAura.anchor.set(0.5, 1);
+        this.playerAura.scale.set(this.playerSprite.scale.x * 1.25);
         this.playerAura.x = this.playerSprite.x;
-        this.playerAura.y = this.playerSprite.y - this.playerDisplayHeight / 2;
+        this.playerAura.y = this.playerSprite.y;
+        this.playerAura.alpha = 0.8;
+        const cm = new PIXI.ColorMatrixFilter();
+        cm.matrix = [
+          0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0.667,
+          0, 0, 0, 0, 1,
+          0, 0, 0, 1, 0,
+        ];
+        this.playerAura.filters = [cm, new PIXI.BlurFilter({ strength: 12 })];
         const playerIdx = this.stage.getChildIndex(this.playerSprite);
         this.stage.addChildAt(this.playerAura, playerIdx);
       }
@@ -2493,7 +3017,7 @@ export class StageBattleScene implements VfxOwner {
       this.playerAura.visible = false;
     } else if (this.hasShotBuff && this.playerAura) {
       this.playerAura.visible = true;
-      this.playerAura.alpha = 0.35;
+      this.playerAura.alpha = 0.8;
     }
 
     // Update background texture if changed
@@ -2570,6 +3094,10 @@ export class StageBattleScene implements VfxOwner {
         if (speedBar.barBg) { speedBar.barBg.alpha = 0; animateTo(this, speedBar.barBg, { alpha: 1 }, 250); }
       }
     }
+
+    // Final _destroyed guard — destroy() may have run while we were
+    // synchronously rebuilding. If so, abort before starting the ticker loop.
+    if (this._destroyed || !this.app || !this.stage) return;
 
     // Restart battle
     if (this.interactiveMode) {

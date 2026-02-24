@@ -150,10 +150,24 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         return session;
     }
 
+    /// <summary>
+    /// Minimum fraction of ActionTime that must elapse between auto-attacks.
+    /// Set to 0.3 (30%) to allow for network jitter and battle-speed multiplier (up to ~3x)
+    /// while still blocking extreme speed hacks (e.g., 9999x).
+    /// </summary>
+    private const double ActionTimeToleranceFraction = 0.3;
+
     /// <inheritdoc />
     public CombatActionResult ProcessPlayerAutoAttack(CombatSession session)
     {
         if (session.IsComplete) return new CombatActionResult { BattleOver = true, Outcome = session.Winner == session.Player.Identifier ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon };
+
+        // Anti-exploit: reject if not enough real time has elapsed since last player action
+        var now = DateTime.UtcNow;
+        var elapsed = (now - session.LastPlayerActionAt).TotalSeconds;
+        var minRequired = session.Player.ActionTimeSeconds * ActionTimeToleranceFraction;
+        if (elapsed < minRequired)
+            return new CombatActionResult(); // silently ignore — speed bar hasn't truly filled
 
         // Advance target to next alive enemy
         AdvanceTarget(session);
@@ -492,6 +506,17 @@ public class CombatActionService(IInventoryRepository inventoryRepository) : ICo
         if (session.IsComplete) return new CombatActionResult { BattleOver = true, Outcome = session.Winner == session.Player.Identifier ? BattleOutcome.AttackerWon : BattleOutcome.DefenderWon };
         if (enemyIndex < 0 || enemyIndex >= session.Enemies.Count)
             return new CombatActionResult();
+
+        // Anti-exploit: reject if not enough real time has elapsed since last enemy action
+        var now = DateTime.UtcNow;
+        if (enemyIndex < session.LastEnemyActionAt.Length)
+        {
+            var enemyElapsed = (now - session.LastEnemyActionAt[enemyIndex]).TotalSeconds;
+            var enemy2 = session.Enemies[enemyIndex];
+            var minEnemyRequired = enemy2.ActionTimeSeconds * ActionTimeToleranceFraction;
+            if (enemyElapsed < minEnemyRequired)
+                return new CombatActionResult(); // silently ignore
+        }
 
         var enemy = session.Enemies[enemyIndex];
         if (enemy.CurrentHP <= 0 || session.Player.CurrentHP <= 0)

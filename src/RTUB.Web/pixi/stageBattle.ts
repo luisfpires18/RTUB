@@ -9,7 +9,12 @@ import { StageBattleScene } from './scenes/StageBattleScene';
 
 let stageScene: StageBattleScene | null = null;
 
+/** Module-level stop flag — prevents nextBattle from recreating an orphan scene
+ *  after destroyBattle has been called (e.g. user clicked "Acabar" mid-transition). */
+let _stopped = false;
+
 function createGame(containerId: string, battleData: StageBattleData): void {
+  _stopped = false;
   const container = document.getElementById(containerId);
   if (!container) {
     console.error('Stage battle container not found:', containerId);
@@ -48,6 +53,8 @@ function createGame(containerId: string, battleData: StageBattleData): void {
     consumableImages: data.consumableImages ?? data.ConsumableImages,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
     BattleSpeed: data.battleSpeed ?? data.BattleSpeed,
+    canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
+    penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
   });
 
   const initialSpeed = pick<number>(data, 'BattleSpeed', 'battleSpeed', 1);
@@ -57,6 +64,7 @@ function createGame(containerId: string, battleData: StageBattleData): void {
 }
 
 function destroyBattle(): void {
+  _stopped = true;
   if (stageScene) {
     stageScene.destroy();
     stageScene = null;
@@ -65,6 +73,7 @@ function destroyBattle(): void {
 }
 
 function destroySceneOnly(): void {
+  _stopped = true;
   if (stageScene) {
     stageScene.destroy();
     stageScene = null;
@@ -73,12 +82,18 @@ function destroySceneOnly(): void {
 
 function nextBattle(battleData: StageBattleData): void {
   if (!stageScene || !stageScene.app || !stageScene.stage) {
-    console.warn('No active scene, using start() instead');
+    // No active scene — start fresh (createGame clears _stopped)
     if (stageScene) {
       try { stageScene.destroy(); } catch { /* ignore */ }
       stageScene = null;
     }
     createGame('phaserBattleContainer', battleData);
+    return;
+  }
+
+  // Refuse to reset a scene that was already destroyed/stopped
+  if (_stopped) {
+    console.warn('nextBattle: game was stopped, ignoring');
     return;
   }
 
@@ -109,6 +124,8 @@ function nextBattle(battleData: StageBattleData): void {
     consumableCooldowns: data.consumableCooldowns ?? data.ConsumableCooldowns,
     spellCooldowns: data.spellCooldowns ?? data.SpellCooldowns,
     activeBuffs: data.activeBuffs ?? data.ActiveBuffs,
+    canhaoBuffExpiresAtUtc: data.canhaoBuffExpiresAtUtc ?? data.CanhaoBuffExpiresAtUtc,
+    penaltyBuffExpiresAtUtc: data.penaltyBuffExpiresAtUtc ?? data.PenaltyBuffExpiresAtUtc,
   });
 }
 

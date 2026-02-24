@@ -17,7 +17,7 @@ const outName = process.env.OUTNAME ?? 'pixiBattle';
 export default defineConfig({
   root: __dirname,
   build: {
-    outDir: resolve(__dirname, '../wwwroot/js/pixi-build'),
+    outDir: resolve(__dirname, '../wwwroot/js'),
     emptyOutDir: false,
     sourcemap: true,
     minify: false,
