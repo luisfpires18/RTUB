@@ -3304,12 +3304,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function nextBattle(battleData) {
-    if (_stopped) {
-      console.warn("nextBattle: game was stopped, ignoring");
-      return;
-    }
     if (!stageScene || !stageScene.app || !stageScene.stage) {
-      console.warn("No active scene, using start() instead");
       if (stageScene) {
         try {
           stageScene.destroy();
@@ -3318,6 +3313,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         stageScene = null;
       }
       createGame("phaserBattleContainer", battleData);
+      return;
+    }
+    if (_stopped) {
+      console.warn("nextBattle: game was stopped, ignoring");
       return;
     }
     const data = battleData;

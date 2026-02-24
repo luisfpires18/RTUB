@@ -81,19 +81,19 @@ function destroySceneOnly(): void {
 }
 
 function nextBattle(battleData: StageBattleData): void {
-  // Refuse to start a new battle if destroyBattle was already called
-  if (_stopped) {
-    console.warn('nextBattle: game was stopped, ignoring');
-    return;
-  }
-
   if (!stageScene || !stageScene.app || !stageScene.stage) {
-    console.warn('No active scene, using start() instead');
+    // No active scene — start fresh (createGame clears _stopped)
     if (stageScene) {
       try { stageScene.destroy(); } catch { /* ignore */ }
       stageScene = null;
     }
     createGame('phaserBattleContainer', battleData);
+    return;
+  }
+
+  // Refuse to reset a scene that was already destroyed/stopped
+  if (_stopped) {
+    console.warn('nextBattle: game was stopped, ignoring');
     return;
   }
 
