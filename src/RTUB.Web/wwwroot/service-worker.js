@@ -6,7 +6,7 @@
 // Optimized for mobile PWA performance
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v33';
+const CACHE_VERSION = 'rtub-v34';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
