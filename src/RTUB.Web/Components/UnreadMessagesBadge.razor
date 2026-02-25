@@ -23,7 +23,6 @@
     public EventCallback OnCountChanged { get; set; }
 
     private int unreadCount = 0;
-    private int _previousUnreadCount = 0;
     private string? currentUserId;
     private System.Threading.Timer? _refreshTimer;
     private DotNetObjectReference<UnreadMessagesBadge>? _dotNetRef;
@@ -31,19 +30,7 @@
     // Static event to allow cross-component communication
     private static event Action? OnBadgeRefreshRequested;
     
-    /// <summary>
-    /// Optimize rendering - only re-render if unread count changes
-    /// </summary>
-    protected override bool ShouldRender()
-    {
-        if (unreadCount != _previousUnreadCount)
-        {
-            _previousUnreadCount = unreadCount;
-            return true;
-        }
-        return false;
-    }
-    
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -66,11 +53,12 @@
                 // Fallback timer refresh every 60 seconds
                 _refreshTimer = new System.Threading.Timer(async _ =>
                 {
-                    await InvokeAsync(async () =>
+                    try
                     {
-                        await LoadUnreadCount();
-                        StateHasChanged();
-                    });
+                        await InvokeAsync(RefreshAndRender);
+                    }
+                    catch (ObjectDisposedException) { /* Circuit/component disposed */ }
+                    catch (TaskCanceledException) { /* Circuit shutting down */ }
                 }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
             }
         }
@@ -93,26 +81,39 @@
             try
             {
                 unreadCount = await MessagingService.GetUnreadCountAsync(currentUserId);
-                await UpdateAppBadge();
             }
             catch
             {
-                // Ignore errors
+                // Ignore errors — keep previous count
             }
         }
     }
 
+    /// <summary>
+    /// Fetches the latest count, re-renders immediately, then updates the PWA badge.
+    /// Separating StateHasChanged from the JS interop call ensures the UI updates
+    /// without waiting for the JS round-trip over the SignalR circuit.
+    /// </summary>
+    private async Task RefreshAndRender()
+    {
+        await LoadUnreadCount();
+        StateHasChanged();
+        if (OnCountChanged.HasDelegate)
+        {
+            await OnCountChanged.InvokeAsync();
+        }
+        // Fire-and-forget the badge update so it never blocks rendering
+        _ = UpdateAppBadge();
+    }
+
     private async void HandleRefreshRequest()
     {
-        await InvokeAsync(async () =>
+        try
         {
-            await LoadUnreadCount();
-            StateHasChanged();
-            if (OnCountChanged.HasDelegate)
-            {
-                await OnCountChanged.InvokeAsync();
-            }
-        });
+            await InvokeAsync(RefreshAndRender);
+        }
+        catch (ObjectDisposedException) { /* Circuit/component disposed */ }
+        catch (TaskCanceledException) { /* Circuit shutting down */ }
     }
 
     /// <summary>
@@ -121,12 +122,7 @@
     [JSInvokable("RefreshUnreadMessages")]
     public async Task RefreshUnreadMessages()
     {
-        await LoadUnreadCount();
-        await InvokeAsync(StateHasChanged);
-        if (OnCountChanged.HasDelegate)
-        {
-            await OnCountChanged.InvokeAsync();
-        }
+        await RefreshAndRender();
     }
 
     /// <summary>
@@ -149,30 +145,24 @@
         if (message.SenderId != currentUserId && 
             message.RecipientIds.Contains(currentUserId))
         {
-            await InvokeAsync(async () =>
+            try
             {
-                await LoadUnreadCount();
-                StateHasChanged();
-                if (OnCountChanged.HasDelegate)
-                {
-                    await OnCountChanged.InvokeAsync();
-                }
-            });
+                await InvokeAsync(RefreshAndRender);
+            }
+            catch (ObjectDisposedException) { /* Circuit/component disposed */ }
+            catch (TaskCanceledException) { /* Circuit shutting down */ }
         }
     }
 
     private async Task HandleMessageSeen(int conversationId, string userId, DateTime seenAt)
     {
         // Update unread count when messages are seen
-        await InvokeAsync(async () =>
+        try
         {
-            await LoadUnreadCount();
-            StateHasChanged();
-            if (OnCountChanged.HasDelegate)
-            {
-                await OnCountChanged.InvokeAsync();
-            }
-        });
+            await InvokeAsync(RefreshAndRender);
+        }
+        catch (ObjectDisposedException) { /* Circuit/component disposed */ }
+        catch (TaskCanceledException) { /* Circuit shutting down */ }
     }
 
     /// <summary>

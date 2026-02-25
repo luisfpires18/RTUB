@@ -5,6 +5,12 @@ namespace RTUB.Web.Services;
 /// <summary>
 /// Service for notifying components about real-time messaging events in Blazor Server.
 /// This replaces the client-side SignalR connection which doesn't work in server-side Blazor.
+///
+/// IMPORTANT: Because this is a singleton shared across multiple Blazor circuits,
+/// each event may have multiple subscribers (e.g. two UnreadMessagesBadge instances
+/// plus the Inbox page). The standard multicast Func&lt;..., Task&gt;.Invoke() only
+/// returns the Task of the LAST subscriber, silently discarding earlier ones.
+/// We use GetInvocationList() + Task.WhenAll() to await every subscriber properly.
 /// </summary>
 public class MessagesNotificationService
 {
@@ -19,9 +25,11 @@ public class MessagesNotificationService
     /// </summary>
     public async Task NotifyMessageReceivedAsync(MessageDto message)
     {
-        if (OnMessageReceived != null)
+        var handler = OnMessageReceived;
+        if (handler != null)
         {
-            await OnMessageReceived.Invoke(message);
+            await InvokeAllAsync(handler.GetInvocationList(), d =>
+                ((Func<MessageDto, Task>)d)(message));
         }
     }
 
@@ -30,9 +38,11 @@ public class MessagesNotificationService
     /// </summary>
     public async Task NotifyMessageSeenAsync(int conversationId, string userId, DateTime seenAt)
     {
-        if (OnMessageSeen != null)
+        var handler = OnMessageSeen;
+        if (handler != null)
         {
-            await OnMessageSeen.Invoke(conversationId, userId, seenAt);
+            await InvokeAllAsync(handler.GetInvocationList(), d =>
+                ((Func<int, string, DateTime, Task>)d)(conversationId, userId, seenAt));
         }
     }
 
@@ -41,9 +51,11 @@ public class MessagesNotificationService
     /// </summary>
     public async Task NotifyTypingStartedAsync(int conversationId, string userId)
     {
-        if (OnTypingStarted != null)
+        var handler = OnTypingStarted;
+        if (handler != null)
         {
-            await OnTypingStarted.Invoke(conversationId, userId);
+            await InvokeAllAsync(handler.GetInvocationList(), d =>
+                ((Func<int, string, Task>)d)(conversationId, userId));
         }
     }
 
@@ -52,9 +64,42 @@ public class MessagesNotificationService
     /// </summary>
     public async Task NotifyTypingStoppedAsync(int conversationId, string userId)
     {
-        if (OnTypingStopped != null)
+        var handler = OnTypingStopped;
+        if (handler != null)
         {
-            await OnTypingStopped.Invoke(conversationId, userId);
+            await InvokeAllAsync(handler.GetInvocationList(), d =>
+                ((Func<int, string, Task>)d)(conversationId, userId));
+        }
+    }
+
+    /// <summary>
+    /// Invokes every subscriber in the multicast delegate's invocation list
+    /// and awaits all of them concurrently. Individual subscriber failures are
+    /// caught so one broken circuit doesn't prevent other subscribers from updating.
+    /// </summary>
+    private static async Task InvokeAllAsync(Delegate[] delegates, Func<Delegate, Task> invoker)
+    {
+        var tasks = new Task[delegates.Length];
+        for (var i = 0; i < delegates.Length; i++)
+        {
+            try
+            {
+                tasks[i] = invoker(delegates[i]);
+            }
+            catch (Exception)
+            {
+                tasks[i] = Task.CompletedTask;
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch
+        {
+            // Individual subscriber errors are non-fatal.
+            // Each subscriber already handles its own exceptions.
         }
     }
 }
