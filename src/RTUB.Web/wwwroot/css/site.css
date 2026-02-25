@@ -83,6 +83,9 @@
 @import url('3-components/naipe-card.css');
 @import url('3-components/game-card.css');
 
+/* Portal Sections */
+@import url('3-components/portal-section.css');
+
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');
 

@@ -21,7 +21,7 @@
 
 .portal-section-divider {
     height: 3px;
-    background: linear-gradient(90deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.3) 100%);
+    background: linear-gradient(90deg, transparent, #6f42c1, transparent);
     border-radius: 2px;
     margin-bottom: 1.75rem;
 }

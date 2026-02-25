@@ -1,18 +1,15 @@
-/* Scoped styles for Index.razor (Landing Page) */
+/* Scoped styles for Index.razor (Landing Page — Scroll Sections Refactor) */
 
 /* ========================================
-   CAROUSEL FIX FOR TABLET
-   Ensures only active slide is visible at all viewports
+   CAROUSEL
    ======================================== */
 
-/* Override any potential Bootstrap overrides - ensure carousel items are absolutely positioned */
 .carousel-inner {
     position: relative;
     width: 100%;
     overflow: hidden;
 }
 
-/* Ensure all carousel items are absolutely positioned and hidden by default */
 .carousel-item {
     position: relative;
     display: none;
@@ -23,12 +20,10 @@
     transition: transform 0.6s ease-in-out;
 }
 
-/* Only the active carousel item should be visible */
 .carousel-item.active {
     display: block;
 }
 
-/* Ensure proper stacking for transitions */
 .carousel-item-next,
 .carousel-item-prev {
     display: block;
@@ -36,7 +31,6 @@
     top: 0;
 }
 
-/* These classes are added during transitions */
 .carousel-item-next:not(.carousel-item-start) {
     transform: translateX(100%);
 }
@@ -45,7 +39,6 @@
     transform: translateX(-100%);
 }
 
-/* Maintain image aspect ratio and sizing */
 .carousel-image {
     width: 100%;
     height: auto;
@@ -53,7 +46,6 @@
     display: block;
 }
 
-/* Carousel caption styling */
 .carousel-caption {
     position: absolute;
     right: 15%;
@@ -65,13 +57,36 @@
     text-align: center;
 }
 
-/* Logo styling */
+/* Bottom gradient fade on carousel blending into page bg */
+.carousel-fade-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to top, #0f0f10, transparent);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* ========================================
+   HERO / LOGO
+   ======================================== */
+
+.homepage-hero {
+    padding: 2rem 0 1rem;
+}
+
 .logo-main {
     max-width: 300px;
     height: auto;
 }
 
-/* Responsive adjustments */
+/* ========================================
+   RESPONSIVE BREAKPOINTS
+   ======================================== */
+
+/* Phone (≤768px) */
 @media (max-width: 768px) {
     .carousel-image {
         height: 250px;
@@ -94,11 +109,15 @@
     }
 
     .logo-main {
-        max-width: 200px;
+        max-width: 220px;
+    }
+
+    .homepage-hero {
+        padding: 1.5rem 0 0.5rem;
     }
 }
 
-/* Mobile landscape orientation */
+/* Phone landscape */
 @media (max-width: 768px) and (orientation: landscape) {
     .carousel-image {
         height: 200px;
@@ -106,7 +125,7 @@
     }
 }
 
-/* Tablet specific (769px - 1024px) - ensure carousel works properly */
+/* Tablet (769px - 1024px) */
 @media (min-width: 769px) and (max-width: 1024px) {
     .carousel-image {
         height: 350px;
@@ -116,7 +135,6 @@
         max-width: 250px;
     }
 
-    /* Critical: Ensure only active item is displayed on tablet */
     .carousel-item:not(.active) {
         display: none !important;
     }
@@ -126,14 +144,18 @@
     }
 }
 
-/* Desktop */
+/* Desktop (≥1025px) */
 @media (min-width: 1025px) {
     .carousel-image {
         height: 440px;
     }
+
+    .homepage-hero {
+        padding: 2.5rem 0 1.5rem;
+    }
 }
 
-/* Small mobile devices */
+/* Small phones */
 @media (max-width: 375px) {
     .carousel-image {
         height: 200px;
@@ -141,47 +163,21 @@
     }
 
     .logo-main {
-        max-width: 160px;
+        max-width: 170px;
     }
 }
 
 /* ========================================
-   MOBILE / PWA LAYOUT FIX
-   Match Profile.razor behavior - full height, no gaps, single scroll
+   MOBILE / PWA LAYOUT
    ======================================== */
 
-/* Mobile + tablet styles (max-width: 1024px) for PWA/mobile/tablet devices */
 @media (max-width: 1024px) {
-    /* Wrapper container for homepage content */
     .homepage-content {
         width: 100%;
         max-width: 100%;
         min-width: 0;
         overflow-x: hidden;
         min-height: 100vh;
-        min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
-    }
-    
-    /* Ensure carousel doesn't create extra space */
-    #homeCarousel {
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Tighter spacing for mobile to prevent gaps */
-    .homepage-content > .mb-5 {
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .homepage-content > .mb-4 {
-        margin-bottom: 1rem !important;
-    }
-    
-    /* Direct children sections */
-    .homepage-content > section {
-        margin-bottom: 1.5rem;
-    }
-    
-    .homepage-content > section:last-child {
-        margin-bottom: 1rem;
+        min-height: 100dvh;
     }
 }

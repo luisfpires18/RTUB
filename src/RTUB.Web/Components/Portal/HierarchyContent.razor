@@ -6,26 +6,27 @@
 @inject ILogger<HierarchyContent> Logger
 @namespace RTUB.Components.Portal
 
-<div class="hierarchy-page">
-    <!-- Intro Section -->
-    <section class="hierarchy-intro">
-        <div class="portal-section-header justify-content-between">
-            <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
-            <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
+<div class="portal-card">
+
+    <!-- Header -->
+    <div class="portal-section-header">
+        <h2 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h2>
+        <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
+    </div>
+    <div class="portal-section-divider"></div>
+
+    <!-- Subtitle + Intro -->
+    <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <h3 class="portal-card-subtitle">@(subtitleLabel?.Content ?? "")</h3>
+        <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+    </div>
+    @if (introLabel != null)
+    {
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <p class="portal-card-intro">@introLabel.Content</p>
+            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
         </div>
-        <div class="portal-section-divider"></div>
-        <div class="d-flex justify-content-between align-items-baseline mb-3">
-            <h2 class="hierarchy-subtitle">@(subtitleLabel?.Content ?? "")</h2>
-            <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
-        </div>
-        @if (introLabel != null)
-        {
-            <div class="d-flex justify-content-between align-items-start">
-                <p class="hierarchy-intro-text">@introLabel.Content</p>
-                <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
-            </div>
-        }
-    </section>
+    }
 
     <!-- Stage Cards Grid -->
     <div class="hierarchy-grid">
@@ -133,7 +134,7 @@
             </div>
         </article>
     </div>
-</div>
+</div> <!-- /portal-card -->
 
 <!-- Edit Label Modal (at root level, outside cards) -->
 <Modal Show="@showEditModal"

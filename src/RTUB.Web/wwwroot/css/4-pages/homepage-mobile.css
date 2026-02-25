@@ -4,10 +4,10 @@
    Phone (≤767px):
      Carousel hidden, bottom nav visible, 2×2 social grid
    Tablet (768px–1024px):
-     Carousel visible, desktop portal buttons hidden,
+     Carousel visible, sticky nav hidden,
      bottom nav visible, 2×2 social grid
    Desktop (≥1025px):
-     Full layout — carousel, inline nav, classic social row
+     Full layout — carousel, sticky nav, classic social row
    ========================================== */
 
 /* ---- Phone only: hide carousel ---- */
@@ -17,25 +17,11 @@
     }
 }
 
-/* ---- Tablet + Phone: hide desktop portal buttons, mobile layout tweaks ---- */
+/* ---- Tablet + Phone: scroll layout tweaks ---- */
 @media (max-width: 1024px) {
-    /* Hide the desktop inline portal-navigation buttons (bottom nav replaces them) */
-    .homepage-portal-nav-desktop {
-        display: none !important;
-    }
-
     /* Add bottom padding so content isn't hidden behind fixed bottom nav */
     .homepage-content {
         padding-bottom: 4.5rem;
-    }
-
-    /* Tighten spacing */
-    .homepage-logo {
-        margin-bottom: 1.5rem !important;
-    }
-
-    .homepage-social {
-        margin-bottom: 1.5rem !important;
     }
 
     /* Full-width container on homepage */

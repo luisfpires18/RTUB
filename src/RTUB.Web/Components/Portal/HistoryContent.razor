@@ -5,98 +5,93 @@
 @inject ILogger<HistoryContent> Logger
 @namespace RTUB.Components.Portal
 
-<div class="portal-content-wrapper">
+<div class="portal-card">
 
-<!-- Header + Intro -->
-<section class="history-header mb-5">
-    <div class="portal-section-header">
-        <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
-        <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
-    </div>
-    <div class="portal-section-divider"></div>
-    <div class="d-flex justify-content-between align-items-baseline mb-3">
-        <h2 class="history-subtitle">@(subtitleLabel?.Content ?? "")</h2>
-        <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
-    </div>
-    @if (introLabel != null)
-    {
-        <div class="d-flex justify-content-between align-items-start">
-            <p class="history-intro-text">@introLabel.Content</p>
-            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
-        </div>
-    }
-</section>
+<!-- Header -->
+<div class="portal-section-header">
+    <h2 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h2>
+    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
+</div>
+<div class="portal-section-divider"></div>
 
-<!-- Missão & Identidade: Merged two-column card -->
-<section class="history-mission-identity mb-5">
-    <div class="mission-identity-container">
-        <div class="mission-identity-column">
+<!-- Subtitle + Intro -->
+<div class="d-flex justify-content-between align-items-baseline mb-3">
+    <h3 class="portal-card-subtitle">@(subtitleLabel?.Content ?? "")</h3>
+    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+</div>
+@if (introLabel != null)
+{
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <p class="portal-card-intro">@introLabel.Content</p>
+        <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
+    </div>
+}
+
+<!-- Missão & Identidade -->
+<div class="portal-inner-card">
+    <div class="portal-inner-columns">
+        <div class="portal-inner-column">
             <div class="d-flex justify-content-between align-items-start mb-3">
-                <div class="column-header">
-                    <i class="bi bi-heart-fill me-2"></i>
+                <div class="portal-inner-header">
+                    <i class="bi bi-heart-fill"></i>
                     <h3>@(missionTitleLabel?.Content ?? "")</h3>
                 </div>
                 <LabelEditButton CurrentLabel="@missionTitleLabel" OnEditClick="@OpenEditModal" />
             </div>
             <div class="d-flex justify-content-between align-items-start">
-                <div class="column-content">@(missionContentLabel?.Content ?? "")</div>
+                <div class="portal-inner-content">@(missionContentLabel?.Content ?? "")</div>
                 <LabelEditButton CurrentLabel="@missionContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
             </div>
         </div>
-        <div class="mission-identity-divider"></div>
-        <div class="mission-identity-column">
+        <div class="portal-inner-column">
             <div class="d-flex justify-content-between align-items-start mb-3">
-                <div class="column-header">
-                    <i class="bi bi-palette-fill me-2"></i>
+                <div class="portal-inner-header">
+                    <i class="bi bi-palette-fill"></i>
                     <h3>@(identityTitleLabel?.Content ?? "")</h3>
                 </div>
                 <LabelEditButton CurrentLabel="@identityTitleLabel" OnEditClick="@OpenEditModal" />
             </div>
             <div class="d-flex justify-content-between align-items-start">
-                <div class="column-content">@(identityContentLabel?.Content ?? "")</div>
+                <div class="portal-inner-content">@(identityContentLabel?.Content ?? "")</div>
                 <LabelEditButton CurrentLabel="@identityContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- Percurso: Timeline -->
-<section class="history-timeline mb-5">
-    <div class="timeline-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div class="timeline-header">
-                <i class="bi bi-clock-history me-2"></i>
-                <h3>@(journeyTitleLabel?.Content ?? "")</h3>
-            </div>
-            <LabelEditButton CurrentLabel="@journeyTitleLabel" OnEditClick="@OpenEditModal" />
+<!-- Percurso -->
+<div class="portal-inner-card history-timeline-inner">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="portal-inner-header">
+            <i class="bi bi-clock-history"></i>
+            <h3>@(journeyTitleLabel?.Content ?? "")</h3>
         </div>
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="timeline-content">@(journeyContentLabel?.Content ?? "")</div>
-            <LabelEditButton CurrentLabel="@journeyContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
-        </div>
+        <LabelEditButton CurrentLabel="@journeyTitleLabel" OnEditClick="@OpenEditModal" />
     </div>
-</section>
+    <div class="d-flex justify-content-between align-items-start">
+        <div class="portal-inner-content">@(journeyContentLabel?.Content ?? "")</div>
+        <LabelEditButton CurrentLabel="@journeyContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+    </div>
+</div>
 
-<!-- Mais que Música: Closing callout -->
-<section class="history-closing mb-5">
-    <div class="closing-callout">
-        <div class="closing-content">
-            <i class="bi bi-star-fill"></i>
-            <div class="closing-text-wrapper">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h3 class="closing-title">@(moreTitleLabel?.Content ?? "")</h3>
-                    <LabelEditButton CurrentLabel="@moreTitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
-                </div>
-                <div class="d-flex justify-content-between align-items-start">
-                    <p class="closing-text">@(moreContentLabel?.Content ?? "")</p>
-                    <LabelEditButton CurrentLabel="@moreContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
-                </div>
+<!-- Mais que Música -->
+<div class="closing-callout">
+    <div class="closing-content">
+        <i class="bi bi-star-fill"></i>
+        <div class="closing-text-wrapper">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h3 class="closing-title">@(moreTitleLabel?.Content ?? "")</h3>
+                <LabelEditButton CurrentLabel="@moreTitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="closing-text">@(moreContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@moreContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
             </div>
         </div>
     </div>
-</section>
+</div>
 
-</div> <!-- /portal-content-wrapper -->
+</div> <!-- /portal-card -->
 
 <!-- Edit Label Modal (at root level, outside cards) -->
 <Modal Show="@showEditModal" 

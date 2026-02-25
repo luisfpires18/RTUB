@@ -1,0 +1,361 @@
+/* ============================================
+   PORTAL SECTIONS - Shared Styles
+   Glassmorphism cards, scroll-reveal animations,
+   alternating backgrounds, consistent section spacing
+   ============================================ */
+
+/* --- Section wrapper --- */
+.portal-section {
+    padding: 3rem 0;
+    opacity: 0;
+    transition: opacity 0.6s ease-out;
+}
+
+.portal-section.in-view {
+    opacity: 1;
+}
+
+/* Alternating subtle background strips for rhythm */
+.portal-section:nth-child(even) {
+    background: rgba(111, 66, 193, 0.03);
+}
+
+/* --- Section header treatment --- */
+.portal-section__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.portal-section__icon {
+    font-size: 1.5rem;
+    color: #a88ee5;
+}
+
+.portal-section__title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+    letter-spacing: 0.03em;
+}
+
+/* Shared gradient divider */
+.portal-section__divider {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #6f42c1, transparent);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+}
+
+/* --- Glassmorphism card --- */
+.portal-glass-card {
+    background: rgba(30, 30, 35, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    border-radius: 1rem;
+    padding: 2rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.portal-glass-card:hover {
+    border-color: rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 24px rgba(111, 66, 193, 0.08);
+}
+
+/* ================================================
+   Shared Portal Card — mirrors "Sobre Nós" layout
+   Unified glassmorphism container for all portal content
+   ================================================ */
+.portal-card {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: rgba(30, 30, 35, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(111, 66, 193, 0.15);
+    border-radius: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.portal-card:hover {
+    border-color: rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 24px rgba(111, 66, 193, 0.08);
+}
+
+/* Subtitle within a portal card */
+.portal-card-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+    margin: 0;
+}
+
+/* Intro text within a portal card */
+.portal-card-intro {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+    margin: 0;
+}
+
+/* Inner sub-card within a portal card */
+.portal-inner-card {
+    background: rgba(21, 21, 22, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.portal-inner-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Inner card header with icon */
+.portal-inner-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.portal-inner-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.portal-inner-header i {
+    font-size: 1.25rem;
+    color: var(--bs-primary);
+}
+
+/* Inner content text */
+.portal-inner-content {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Two-column inner card layout */
+.portal-inner-columns {
+    display: flex;
+    gap: 0;
+}
+
+.portal-inner-column {
+    flex: 1;
+    padding: 0;
+    position: relative;
+}
+
+.portal-inner-column:first-child {
+    padding-right: 1.5rem;
+}
+
+.portal-inner-column:last-child {
+    padding-left: 1.5rem;
+}
+
+.portal-inner-column:first-child::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent 0%, var(--bs-primary) 50%, transparent 100%);
+}
+
+/* --- Desktop Sticky Section Nav --- */
+.portal-sticky-nav {
+    display: none; /* Hidden on mobile, shown via media query */
+}
+
+@media (min-width: 1025px) {
+    .portal-sticky-nav {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: rgba(15, 15, 16, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(111, 66, 193, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        /* Hidden until scrolled past hero */
+        transform: translateY(-100%);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .portal-sticky-nav.visible {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.portal-sticky-nav__btn {
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.portal-sticky-nav__btn:hover {
+    color: #e2e2e2;
+    border-color: rgba(111, 66, 193, 0.4);
+    background: rgba(111, 66, 193, 0.1);
+}
+
+.portal-sticky-nav__btn--active {
+    color: #ffffff;
+    background: #6f42c1;
+    border-color: #6f42c1;
+    box-shadow: 0 0 12px rgba(111, 66, 193, 0.35);
+}
+
+.portal-sticky-nav__btn--active:hover {
+    background: #7c4fd4;
+    border-color: #7c4fd4;
+}
+
+/* --- Hero area --- */
+.homepage-hero {
+    text-align: center;
+    padding-bottom: 1.5rem;
+}
+
+.homepage-hero__motto {
+    font-size: 1rem;
+    color: rgba(168, 142, 229, 0.8);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+}
+
+/* --- Event cards horizontal scroll on mobile --- */
+@media (max-width: 767px) {
+    .events-scroll-row {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(111, 66, 193, 0.3) transparent;
+    }
+
+    .events-scroll-row > * {
+        flex: 0 0 85%;
+        max-width: 85%;
+        scroll-snap-align: start;
+    }
+}
+
+/* --- Social section hover glow --- */
+.social-glow:hover {
+    box-shadow: 0 0 16px rgba(111, 66, 193, 0.25);
+}
+
+/* --- Smooth scroll behavior --- */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 64px; /* fixed section nav height + gap */
+}
+
+/* --- Responsive adjustments --- */
+@media (max-width: 1024px) {
+    .portal-section {
+        padding: 2rem 0;
+    }
+
+    .portal-section__title {
+        font-size: 1.5rem;
+    }
+
+    .portal-glass-card {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+    }
+
+    html {
+        scroll-padding-top: 64px; /* only navbar on mobile */
+    }
+}
+
+@media (max-width: 768px) {
+    .portal-card {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+    }
+
+    .portal-card-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .portal-inner-columns {
+        flex-direction: column;
+    }
+
+    .portal-inner-column:first-child::after {
+        width: 80%;
+        height: 2px;
+        top: auto;
+        bottom: 0;
+        left: 10%;
+        right: auto;
+        background: linear-gradient(90deg, transparent 0%, var(--bs-primary) 50%, transparent 100%);
+    }
+
+    .portal-inner-column:first-child {
+        padding-right: 0;
+        padding-bottom: 1.5rem;
+    }
+
+    .portal-inner-column:last-child {
+        padding-left: 0;
+        padding-top: 1.5rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .portal-section {
+        padding: 1.5rem 0;
+    }
+
+    .portal-glass-card {
+        padding: 1.25rem;
+    }
+
+    .portal-section__title {
+        font-size: 1.375rem;
+    }
+
+    .portal-card {
+        padding: 1.25rem;
+    }
+}

@@ -1,0 +1,32 @@
+@namespace RTUB.Components.Portal
+@*
+    Portal Section Navigation - Sticky Desktop Nav
+    Horizontal pill-style nav bar that docks below the top navbar on scroll.
+    Highlights the active section via scroll-spy.
+    Hidden on mobile (≤1024px) where MobileBottomNav is used instead.
+*@
+
+<nav class="portal-sticky-nav" role="navigation" aria-label="Secções do portal">
+    @foreach (var item in Items)
+    {
+        <button type="button"
+                class="portal-sticky-nav__btn @(item.Key == ActiveKey ? "portal-sticky-nav__btn--active" : "")"
+                @onclick="() => OnSelect.InvokeAsync(item.Key)"
+                aria-current="@(item.Key == ActiveKey ? "true" : null)">
+            @item.Label
+        </button>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PortalNavItem> Items { get; set; } = Array.Empty<PortalNavItem>();
+
+    [Parameter]
+    public string ActiveKey { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnSelect { get; set; }
+
+    public record PortalNavItem(string Key, string Label);
+}

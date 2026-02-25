@@ -3,14 +3,22 @@
    Scoped styles for AboutUsContent.razor
    ============================================ */
 
-/* About Us Container */
+/* About Us Container — Glassmorphism */
 .about-us-container {
     max-width: 900px;
     margin: 0 auto;
     padding: 2rem;
-    background-color: rgba(21, 21, 22, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(30, 30, 35, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(111, 66, 193, 0.15);
     border-radius: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.about-us-container:hover {
+    border-color: rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 24px rgba(111, 66, 193, 0.08);
 }
 
 .about-us-header {
@@ -33,7 +41,7 @@
 
 .about-us-divider {
     height: 3px;
-    background: linear-gradient(90deg, #6f42c1 0%, rgba(111, 66, 193, 0.3) 100%);
+    background: linear-gradient(90deg, transparent, #6f42c1, transparent);
     border-radius: 2px;
     margin-bottom: 1.75rem;
 }
